@@ -1,0 +1,74 @@
+/** Colors */
+$text: #3a4b60;
+$silver: #c3c8cf;
+$white: #ffffff;
+$blue: #2699fb;
+$red: #ad3636;
+$orange: #9d4610;
+$green: #428661;
+$blue-1: #0b65b2;
+
+/** Background */
+$bg-blue: #bce0fd;
+$bg-blue-opa: #e0f1fd;
+$bg-blue-opa1: rgba(224, 241, 253, 0.4);
+$bg-red: rgba(173, 54, 54, 0.06);
+$bg-orange: #ebd3b2;
+$bg-green: #ebf3ef;
+$bg-gray: #e6e6e6;
+$bg-gray2: #e8e8e8;
+$bg-gray3: #ececec;
+$bg-lightgray: #f8f8f8;
+$bg-table-item: #eceff4;
+$bg-blue-1: #f8fcff;
+$bg-blue-2: #0b65b2;
+
+/** Border */
+$br-gray: #cccdce;
+$br-black: #3c4a5f;
+$br-blue: #d6edff;
+$br-blue-1: #f1f9ff;
+// Text
+$text-gray: #b5b5b5;
+$text-black: #181818;
+
+/** Font-size */
+$fs-12: 12px;
+$fs-14: 14px;
+$fs-16: 16px;
+$fs-22: 22px;
+$fs-24: 24px;
+$fs-26: 26px;
+
+/** Font-weight */
+$fw-600: 600;
+
+//
+$height-header-px: 45px;
+$height-menu-px: 60px;
+$height-header: 45;
+$height-menu: 60;
+$z-index-for-alarm-change: 999;
+$z-index-equipment: 2;
+$z-index-loading-item: 3;
+$z-index-alarm-setting: 3;
+$z-index-alarm-bell: 2;
+$z-index-report: 3;
+$z-index-dashboard-header: 50;
+$z-index-loading: 9998;
+$z-index-waiting: 9999;
+$z-index-state-history: 999;
+$z-index-report: 999;
+$z-index-history-detail: 1004;
+$z-index-full-screen: 1004;
+$z-index-tag-list: 1004;
+$z-index-tag-detail: 1005;
+// padding
+$padding-content: 16;
+$padding-8: 8;
+
+// element height
+$equipment-list-max-height: 50%;
+
+//margin
+$margin-dashboard-body: 100;

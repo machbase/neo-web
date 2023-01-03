@@ -1,0 +1,10 @@
+version: '3.7'
+
+services:
+    cems-mobi-cmcg:
+        container_name: cems-mobi-cmcg
+        build:
+            context: .
+            dockerfile: Dockerfile-cmcg
+        ports:
+            - '3000:80'        

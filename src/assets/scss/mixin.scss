@@ -1,0 +1,57 @@
+/** Convert property from px to rems */
+@mixin mToRem($property, $value) {
+    #{$property}: $value / 16 + rem !important;
+}
+
+/** Convert margin from px to rem */
+@mixin mMargin($top, $right, $bottom, $left) {
+    margin-top: $top / 16 + rem;
+    margin-right: $right / 16 + rem;
+    margin-bottom: $bottom / 16 + rem;
+    margin-left: $left / 16 + rem;
+}
+
+/** Convert padding from px to rem */
+@mixin mPadding($top, $right, $bottom, $left) {
+    padding-top: $top / 16 + rem;
+    padding-right: $right / 16 + rem;
+    padding-bottom: $bottom / 16 + rem;
+    padding-left: $left / 16 + rem;
+}
+
+@function toRem($value) {
+    $remValue: $value / 16 + rem;
+    @return $remValue;
+}
+
+@mixin color-text {
+    color: $blue-1;
+}
+@mixin box-shadow {
+    box-shadow: 0 3px 0px rgba($bg-blue, 0.6) !important;
+}
+@mixin padding-content {
+    padding: 0 toRem($padding-content);
+}
+@mixin box-shadow-wrap {
+    box-shadow: 0px 1px 5px 1px $bg-blue;
+}
+
+@mixin d-flex($align: center, $justify: center) {
+    display: flex;
+    align-items: $align;
+    justify-content: $justify;
+}
+@mixin height-body {
+    height: calc(100vh - 60px - 45px);
+}
+@mixin height-body-active {
+    height: calc(100vh - 45px);
+}
+@mixin header-title {
+    font-size: toRem(16);
+    font-weight: bold;
+    text-align: left;
+    color: $blue-1;
+    text-transform: capitalize;
+}

@@ -1,0 +1,22 @@
+import { InjectionKey } from 'vue';
+import { createStore, useStore as baseUseStore, Store } from 'vuex';
+import { mutations } from './mutations';
+import { state, RootState } from './state';
+import { actions } from './actions';
+import { getters } from './getters';
+
+type storeTypes = RootState;
+
+export const key: InjectionKey<Store<storeTypes>> = Symbol();
+
+export const store = createStore<storeTypes>({
+    state: state,
+    getters: getters,
+    mutations: mutations,
+    actions: actions,
+});
+
+// define your own `useStore` composition function
+export function useStore() {
+    return baseUseStore(key);
+}
