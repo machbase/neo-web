@@ -1,5 +1,5 @@
 <template>
-    <div :class="{ dark: cIsDardMode }">
+    <div :class="cIsDardMode ? 'dark' : 'light'">
         <button
             @click="
                 () => {
