@@ -1,5 +1,5 @@
 <template>
-    <div>header</div>
+    <div class="header">header</div>
 </template>
 
 <script setup lang="ts" name="Header"></script>

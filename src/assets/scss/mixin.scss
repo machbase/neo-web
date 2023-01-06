@@ -1,3 +1,35 @@
+$themes: (
+    dark: (
+        'text-color': $text-b,
+        'bg-color': $d-background,
+        'bg-color-opa': $d-background-opa,
+        'border-color': $d-border,
+    ),
+    light: (
+        'text-color': $l-text,
+        'bg-color': $l-background,
+        'border-color': $l-border,
+    ),
+);
+@mixin theme() {
+    @each $theme, $map in $themes {
+        $theme-map: $map !global;
+        .#{$theme} & {
+            @content;
+        }
+    }
+    $theme-map: null !global;
+}
+@function theme-get($key) {
+    @return map-get($theme-map, $key);
+}
+// use
+// @include theme() {
+//     color: theme-get('text-color');
+//     background-color: theme-get('bg-color');
+//   }
+//
+
 @function toRem($value) {
     $remValue: $value / 16 + rem;
     @return $remValue;
@@ -5,8 +37,8 @@
 
 @mixin nav-header {
     min-height: 44px;
-    background-color: $black-opa;
-    color: $text1;
+    background-color: $d-background-opa;
+    color: $text-b;
     padding: 0 $px-10;
 }
 
