@@ -1,7 +1,7 @@
 <template>
-    <div class="">tag-view</div>
+    <div class="">ShareView</div>
 </template>
-<script setup lang="ts" name="TagView">
+<script setup lang="ts" name="ShareView">
 import { ref } from 'vue';
 </script>
 

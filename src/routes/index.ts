@@ -1,31 +1,40 @@
 import Footer from '@/components/footer/index.vue';
 import Header from '@/components/header/index.vue';
+import TagView from '@/pages/tag-view/index.vue';
+import ChartEdit from '@/pages/chart-edit/index.vue';
+import ShareView from '@/pages/share-view/index.vue';
 import { PageRoutes } from '@/enums/routes';
-import Main from '@/pages/main/index.vue';
 import { RouteRecordRaw, createRouter, createWebHistory } from 'vue-router';
 import protectedRoute from '../middlewares/protected';
 import { RouteNames } from './../enums/routes';
 
 const routes: Array<RouteRecordRaw> = [
     {
-        path: PageRoutes.MAIN,
-        name: RouteNames.MAIN,
+        path: PageRoutes.TAG_VIEW,
+        name: RouteNames.TAG_VIEW,
         alias: ['/'],
-        // redirect: `${PageRoutes.ALARM}/${PageRoutes.HISTORY}`,
-        // children: [
-        //     {
-        //         path: PageRoutes.SETTING,
-        //         name: RouteNames.ALARM_SETTING,
-        //         component: AlarmSetting,
-        //     },
-        //     {
-        //         path: PageRoutes.HISTORY,
-        //         name: RouteNames.ALARM_HISTORY,
-        //         component: AlarmHistory,
-        //     },
-        // ],
         components: {
-            default: Main,
+            default: TagView,
+            Header,
+            Footer,
+        },
+        beforeEnter: protectedRoute,
+    },
+    {
+        path: PageRoutes.CHART_EDIT,
+        name: RouteNames.CHART_EDIT,
+        components: {
+            default: ChartEdit,
+            Header,
+            Footer,
+        },
+        beforeEnter: protectedRoute,
+    },
+    {
+        path: PageRoutes.SHARE_VIEW,
+        name: RouteNames.SHARE_VIEW,
+        components: {
+            default: ShareView,
             Header,
             Footer,
         },
