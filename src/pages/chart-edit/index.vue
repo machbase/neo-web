@@ -1,7 +1,7 @@
 <template>
-    <div class="">Main</div>
+    <div class="">ChartEdit</div>
 </template>
-<script setup lang="ts" name="Main">
+<script setup lang="ts" name="ChartEdit">
 import { ref } from 'vue';
 </script>
 
