@@ -7,7 +7,7 @@
         "serve": "vite preview",
         "build": "vite build",
         "build:cmcgdev": "vite build --mode cmcgdev",
-        "dev": "vite",
+        "dev": "vite --mode cmcgdev",
         "dev:cmcgdev": "vite --mode cmcgdev",
         "test:unit": "jest src",
         "deploy:cmcg": "docker-compose -f docker-compose-cmcg.yml up -d --build"
