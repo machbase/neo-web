@@ -1,14 +1,14 @@
 <template>
-    <div :class="cIsDardMode ? 'dark' : 'light'">
-        <button
+    <div :class="cIsDarkMode ? 'dark' : 'light'">
+        <!-- <button
             @click="
                 () => {
-                    store.commit(MutationTypes.activeDarkMode, !cIsDardMode);
+                    store.commit(MutationTypes.activeDarkMode, !cIsDarkMode);
                 }
             "
         >
             Change mode
-        </button>
+        </button> -->
         <div class="app">
             <router-view name="Header" />
             <router-view />
@@ -22,7 +22,7 @@ import { useStore } from './store';
 import { computed } from 'vue';
 import { MutationTypes } from '@/store/mutations';
 const store = useStore();
-const cIsDardMode = computed(() => store.state.gDarkMode);
+const cIsDarkMode = computed(() => store.state.gDarkMode);
 </script>
 <style lang="scss">
 @import './index.scss';
