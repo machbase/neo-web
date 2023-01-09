@@ -1,9 +1,7 @@
 <template>
-    <div class="">tag-view</div>
+    <div class="tag-view">tag-view</div>
 </template>
-<script setup lang="ts" name="TagView">
-import { ref } from 'vue';
-</script>
+<script setup lang="ts" name="TagView"></script>
 
 <style lang="scss" scoped>
 @import './index.scss';
