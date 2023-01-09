@@ -1,9 +1,11 @@
+import { Board } from '@/interface/tagView';
 import { RootState } from './state';
 
 enum MutationTypes {
     /* Global */
     activeDarkMode = 'activeDarkMode',
     activeHeader = 'activeHeader',
+    setBoardList = 'setBoardList',
 }
 
 const mutations = {
@@ -13,6 +15,9 @@ const mutations = {
     },
     [MutationTypes.activeHeader](state: RootState, aActive: boolean) {
         state.gActiveHeader = aActive;
+    },
+    [MutationTypes.setBoardList](state: RootState, aBoardList: Board[]) {
+        state.gBoardList = aBoardList;
     },
 };
 
