@@ -1,7 +1,8 @@
 @import '@/assets/scss/theme.scss';
 .app {
+    position: relative;
     font-size: 13px;
-    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
     list-style: none;
     @include theme() {
         color: theme-get('text-color');
