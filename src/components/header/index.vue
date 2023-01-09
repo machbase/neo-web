@@ -2,7 +2,7 @@
     <div class="header">
         <div class="header__link">
             <img :src="logo" class="icon" />
-            <ComboboxSelect v-if="sHeaderType === 'tag-view'" :p-data="cBoardListSelect" :p-value="cBoardListSelect[0]?.id" />
+            <ComboboxSelect v-if="sHeaderType === 'tag-view'" :p-data="cBoardListSelect" :p-value="cBoardListSelect[0]?.id" @eOnChange="handltest" />
             <div v-if="sHeaderType === 'share-view'" class="share-header">{{ NEW_DASHBOARD }}</div>
             <div v-if="sHeaderType === 'tag-view'" class="header__link--group">
                 <div class="header__link--group-item">{{ NEW_DASHBOARD }}</div>
@@ -64,6 +64,10 @@ const cBoardListSelect = computed(() =>
 const onChildGroup = () => {
     childGroup.value.classList.toggle('active');
 };
+const handltest = () => {
+    console.log('object');
+};
+
 store.dispatch(ActionTypes.fetchBoardList);
 </script>
 

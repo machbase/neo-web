@@ -14,7 +14,7 @@ enum ActionTypes {
 
 const actions = {
     async [ActionTypes.fetchBoardList](context: MyActionContext) {
-        const res = (await getBoardList()) as ResBoardList;
+        const res = (await getBoardList()) as ResBoardList | any;
         if (res.success === true) {
             context.commit(MutationTypes.setBoardList, res.list);
             return 'success';
