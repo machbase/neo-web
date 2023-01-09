@@ -1,4 +1,13 @@
 /// <reference types="vite/client" />
+interface ImportMetaEnv {
+    readonly VITE_TAG_ANALYZER_VERSION: string
+    // more env variables...
+}
+
+interface ImportMeta {
+    readonly env: ImportMetaEnv
+}
+
 declare module 'v3-infinite-loading';
 declare module '*.vue' {
     import { DefineComponent } from 'vue';
