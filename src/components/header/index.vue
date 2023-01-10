@@ -21,7 +21,8 @@
         </div>
         <div class="header__tool">
             <div v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard' || sHeaderType === 'share-view'" class="time-range icon">{{ TIME_RANGE_NOT_SET }}</div>
-            <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard'" :src="i_b_timerange" class="icon" />
+            <!-- <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard'" :src="i_b_timerange" class="icon" />             -->
+            <v-icon v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard'" class="icon" icon="mdi-content-save"></v-icon>
             <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard' || sHeaderType === 'share-view'" :src="i_b_timerange" class="icon" />
             <img :src="i_b_refresh" class="icon" />
             <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard'" :src="i_b_share" class="icon" />

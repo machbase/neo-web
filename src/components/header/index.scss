@@ -12,6 +12,7 @@
             height: max-content;
             height: fit-content;
             padding: 0 $px-10;
+            cursor: pointer;
         }
         &--group {
             display: flex;
@@ -52,6 +53,8 @@
         }
         .icon {
             padding: $px-10;
+            cursor: pointer;
+
         }
     }
     .share-header {
