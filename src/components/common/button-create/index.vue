@@ -4,13 +4,14 @@
         <div :style="{ fontSize: props.isAddChart ? '24px' : '16px' }">
             <span class="normal-text">Click </span>
             <span class="plus-text">+ button</span>
-            <span class="normal-text"> to {{ props.isAddChart ? 'create a new chart' : 'add new tags' }}!</span>
+            <span class="normal-text"> to {{ props.isAddChart ? ADD_CHART_TEXT : ADD_TAG_TEXT }}!</span>
         </div>
     </div>
 </template>
 
 <script setup lang="ts" name="ButtonCreate">
 import { defineProps } from 'vue';
+import { ADD_CHART_TEXT, ADD_TAG_TEXT } from './constant';
 interface PropsButtonCreate {
     isAddChart: boolean;
     onClick: () => void;
