@@ -1,1 +1,25 @@
 @import '@/assets/scss/theme.scss';
+
+.chart-select-wrapper {
+    justify-content: space-between;
+    align-items: center;
+    overflow: hidden;
+    display: flex;
+}
+/* HIDE RADIO */
+[type=radio] { 
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+  
+/* IMAGE STYLES */
+[type=radio] + img {
+    cursor: pointer;
+}
+  
+/* CHECKED STYLES */
+[type=radio]:checked + img {
+    border: 1px solid $text-blue;
+}
