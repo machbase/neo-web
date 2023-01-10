@@ -1,4 +1,64 @@
 @import '@/assets/scss/theme.scss';
 .header {
+    display: flex;
+    justify-content: space-between;
+    padding: $px-7 $px-10;
+    background-color: $d-background-opa;
+    color: $text-w;
+    &__link {
+        display: flex;
+        align-items: center;
+        .icon {
+            height: max-content;
+            height: fit-content;
+            padding: 0 $px-10;
+            cursor: pointer;
+        }
+        &--group {
+            display: flex;
+            align-items: center;
+            color: $text-blue;
+            margin-left: $px-10;
+            font-size: $font-12;
+            height: 100%;
+            &-item {
+                padding: $px-12 $px-10;
+                cursor: pointer;
+                position: relative;
+                .child-group {
+                    display: none;
+                    position: absolute;
+                    top: calc(100% + 10px);
+                    left: 0;
+                    min-width: 160px;
+                    background-color: $d-background-opa;
+                    padding: $px-5 0;
+                    border: 1px solid $bd-black;
+                    .item {
+                        padding: 3px $px-20;
+                    }
+                }
+                .child-group.active {
+                    display: block;
+                }
+            }
+        }
+    }
+    &__tool {
+        display: flex;
+        align-items: center;
+        .time-range {
+            color: $text-b;
+            font-size: $font-12;
+        }
+        .icon {
+            padding: $px-10;
+            cursor: pointer;
 
+        }
+    }
+    .share-header {
+        color: $text-w;
+        margin: 0 $px-15;
+    }
 }

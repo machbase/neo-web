@@ -1,0 +1,9 @@
+const NEW_DASHBOARD = 'New DashBoard';
+const SET = 'Set';
+const LOGOUT = 'Logout';
+const PREFERENCE = 'Preference';
+const MANAGE_DASHBOARD = 'Manage Dashboard';
+const REQUEST_ROLLUP = 'Request Rollup';
+const TIME_RANGE_NOT_SET = 'Time range not set';
+
+export { NEW_DASHBOARD, SET, LOGOUT, PREFERENCE, MANAGE_DASHBOARD, REQUEST_ROLLUP, TIME_RANGE_NOT_SET };
