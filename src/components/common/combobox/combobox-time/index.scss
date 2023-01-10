@@ -1,1 +1,48 @@
 @import '@/assets/scss/theme.scss';
+$height: 30px;
+
+.combobox-time {
+    cursor: pointer;
+    display: flex;
+    height: $height;
+    .icon {
+        width: $height;
+        height: $height;
+        border: 1px solid $color-blue;
+        @include theme() {
+            background-color: theme-get('bg-color');
+        }
+    }
+    .input {
+        border: 1px solid $d-border;
+        outline: none;
+        flex: 1;
+        @include theme() {
+            background-color: theme-get('bg-color-input');
+            color: theme-get('text-color');
+            padding: $px-5 $px-10;
+        }
+    }
+}
+:deep(.v-list-item) {
+    padding-inline-start: 0 !important;
+    padding-inline-end: 0 !important;
+    min-width: 160px;
+}
+:deep(.item) {
+    padding: $px-5 $px-20 !important;
+    min-height: 1px !important;
+    cursor: pointer;
+    &:hover {
+        color: $color-blue;
+    }
+}
+:deep(.v-list) {
+    margin-top: 3px;
+    border: 1px solid;
+    @include theme() {
+        color: theme-get('text-color');
+        background-color: theme-get('bg-color-opa') !important;
+        border-color: theme-get('border-color');
+    }
+}

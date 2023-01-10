@@ -2,11 +2,21 @@
 .app {
     position: relative;
     font-size: 13px;
-    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
+    font-family: 'Open Sans', Helvetica, Arial, sans-serif;
     list-style: none;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    height: auto;
 }
 .body {
-    min-height: 100vh;
+    flex: 1;
+    overflow: auto;
+    @include theme() {
+        color: theme-get('text-color');
+        background-color: theme-get('bg-color');
+        border-color: theme-get('border-color');
+    }
 }
 body {
     overflow: overlay;

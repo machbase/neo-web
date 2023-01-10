@@ -2,7 +2,7 @@
     <div class="header">
         <div class="header__link">
             <img :src="logo" class="icon" />
-            <ComboboxSelect v-if="sHeaderType === 'tag-view'" :p-data="cBoardListSelect" :p-value="cBoardListSelect[0]?.id" @eOnChange="handltest" />
+            <ComboboxSelect v-if="sHeaderType === 'tag-view'" :p-data="cBoardListSelect" :p-value="cBoardListSelect[0]?.id" />
             <div v-if="sHeaderType === 'share-view'" class="share-header">{{ NEW_DASHBOARD }}</div>
             <div v-if="sHeaderType === 'tag-view'" class="header__link--group">
                 <div class="header__link--group-item">{{ NEW_DASHBOARD }}</div>
@@ -19,6 +19,7 @@
                 <div class="header__link--group-item">{{ LOGOUT }}</div>
             </div>
         </div>
+        <ComboboxTime />
         <div class="header__tool">
             <div v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard' || sHeaderType === 'share-view'" class="time-range icon">{{ TIME_RANGE_NOT_SET }}</div>
             <!-- <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard'" :src="i_b_timerange" class="icon" />             -->
@@ -41,6 +42,7 @@ import i_b_save_2 from '@/assets/image/i_b_save_2.png';
 import i_b_share from '@/assets/image/i_b_share.png';
 import i_b_timerange from '@/assets/image/i_b_timerange.png';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
+import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
 import { Board } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
@@ -64,9 +66,6 @@ const cBoardListSelect = computed(() =>
 );
 const onChildGroup = () => {
     childGroup.value.classList.toggle('active');
-};
-const handltest = () => {
-    console.log('object');
 };
 
 store.dispatch(ActionTypes.fetchBoardList);
