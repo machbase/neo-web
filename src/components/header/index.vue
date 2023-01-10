@@ -20,11 +20,11 @@
             </div>
         </div>
         <div class="header__tool">
-            <div v-if="sHeaderType === 'tag-view' || sHeaderType === 'share-view'" class="time-range icon">{{ TIME_RANGE_NOT_SET }}</div>
-            <img v-if="sHeaderType === 'tag-view'" :src="i_b_timerange" class="icon" />
-            <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'share-view'" :src="i_b_timerange" class="icon" />
+            <div v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard' || sHeaderType === 'share-view'" class="time-range icon">{{ TIME_RANGE_NOT_SET }}</div>
+            <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard'" :src="i_b_timerange" class="icon" />
+            <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard' || sHeaderType === 'share-view'" :src="i_b_timerange" class="icon" />
             <img :src="i_b_refresh" class="icon" />
-            <img v-if="sHeaderType === 'tag-view'" :src="i_b_share" class="icon" />
+            <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard'" :src="i_b_share" class="icon" />
             <img v-if="sHeaderType === 'edit-chart'" :src="i_b_save_2" class="icon" />
             <img v-if="sHeaderType === 'edit-chart'" :src="i_b_close" class="icon" />
         </div>
@@ -46,7 +46,7 @@ import { ActionTypes } from '@/store/actions';
 import { ref, computed } from 'vue';
 import { NEW_DASHBOARD, SET, LOGOUT, MANAGE_DASHBOARD, REQUEST_ROLLUP, PREFERENCE, TIME_RANGE_NOT_SET } from './constant';
 
-export type headerType = 'tag-view' | 'share-view' | 'chart-view' | 'edit-chart';
+export type headerType = 'tag-view' | 'share-view' | 'chart-view' | 'edit-chart' | 'new-dashboard';
 const sHeaderType = ref<headerType>('tag-view');
 
 const store = useStore();

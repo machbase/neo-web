@@ -10,18 +10,19 @@
 import { ref, defineProps, defineEmits, watch, withDefaults, watchEffect } from 'vue';
 import { isEmpty } from 'lodash';
 import ic_arrow_s_down from '@/assets/image/ic_arrow_s_down.svg';
-interface comboboxData {
+import { SELECT_DASHBOARD } from './constant';
+interface ComboboxData {
     id: any;
     name: string;
 }
 interface ComboboxSelectProps {
-    pData: comboboxData[];
+    pData: ComboboxData[];
     pValue?: any;
     pStringDefault?: string;
 }
 
 const props = withDefaults(defineProps<ComboboxSelectProps>(), {
-    pStringDefault: '-- Select DashBoard --',
+    pStringDefault: SELECT_DASHBOARD,
 });
 
 const emit = defineEmits(['eOnChange']);
