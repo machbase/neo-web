@@ -22,6 +22,9 @@ $height: 30px;
             color: theme-get('text-color');
             padding: $px-5 $px-10;
         }
+        &:focus {
+            @include box-shadow;
+        }
     }
 }
 :deep(.v-list-item) {

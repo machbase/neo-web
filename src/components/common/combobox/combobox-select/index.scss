@@ -4,14 +4,14 @@
     border: 1px solid $bd-black;
     color: $text-w;
     outline: none;
-    margin: 0 8px ;
+    margin: 0 8px;
     padding: 0 $px-15;
     min-width: 200px;
     min-height: 24px;
     font-size: $font-12;
     position: relative;
     &:focus {
-        box-shadow: inset 0 1px 1px rgb(0 0 0 / 8%), 0 0 8px rgb(102 175 233 / 60%);
+        @include box-shadow;
     }
     &__item {
         background-color: $d-background;
