@@ -1,1 +1,27 @@
 @import '@/assets/scss/theme.scss';
+
+.button-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-width: 1px;
+    border-style: solid;
+    cursor: pointer;
+    @include theme() {
+        background-color: theme-get('bg-color-button') !important;
+        border-color: theme-get('border-color') !important;
+    }
+    .normal-text {
+        @include theme() {
+            color: theme-get('text-color') !important;
+        }
+        font-style: italic;
+    }
+    .plus-text{
+        color: $text-blue;
+        font-weight: bold;
+    }
+    .img-wrapper{
+        margin-right: $px-7;
+    }
+}

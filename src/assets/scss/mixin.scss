@@ -3,12 +3,14 @@ $themes: (
         'text-color': $text-b,
         'bg-color': $d-background,
         'bg-color-opa': $d-background-opa,
-        'border-color': $d-border,
+        'border-color': $d-border-28,
+        'bg-color-button': $d-background-1c,
     ),
     light: (
         'text-color': $l-text,
         'bg-color': $l-background,
         'border-color': $l-border,
+        'bg-color-button': $l-background-f6,
     ),
 );
 @mixin theme() {
