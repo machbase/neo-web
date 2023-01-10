@@ -19,7 +19,6 @@
                 <div class="header__link--group-item">{{ LOGOUT }}</div>
             </div>
         </div>
-        <ComboboxTime />
         <div class="header__tool">
             <div v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard' || sHeaderType === 'share-view'" class="time-range icon">{{ TIME_RANGE_NOT_SET }}</div>
             <!-- <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard'" :src="i_b_timerange" class="icon" />             -->
@@ -34,20 +33,19 @@
 </template>
 
 <script setup lang="ts" name="Header">
-import logo from '@/assets/image/i_logo.png';
-import i_b_menu_1 from '@/assets/image/i_b_menu_1.png';
 import i_b_close from '@/assets/image/i_b_close.png';
+import i_b_menu_1 from '@/assets/image/i_b_menu_1.png';
 import i_b_refresh from '@/assets/image/i_b_refresh.png';
 import i_b_save_2 from '@/assets/image/i_b_save_2.png';
 import i_b_share from '@/assets/image/i_b_share.png';
 import i_b_timerange from '@/assets/image/i_b_timerange.png';
+import logo from '@/assets/image/i_logo.png';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
-import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
 import { Board } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
-import { ref, computed } from 'vue';
-import { NEW_DASHBOARD, SET, LOGOUT, MANAGE_DASHBOARD, REQUEST_ROLLUP, PREFERENCE, TIME_RANGE_NOT_SET } from './constant';
+import { computed, ref } from 'vue';
+import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET } from './constant';
 
 export type headerType = 'tag-view' | 'share-view' | 'chart-view' | 'edit-chart' | 'new-dashboard';
 const sHeaderType = ref<headerType>('tag-view');
