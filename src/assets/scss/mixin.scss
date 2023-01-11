@@ -3,12 +3,15 @@ $themes: (
         'text-color': $text-b,
         'bg-color': $d-background,
         'bg-color-opa': $d-background-opa,
+        'bg-color-input': $d-background-input,
         'border-color': $d-border-28,
         'bg-color-button': $d-background-1c,
     ),
     light: (
         'text-color': $l-text,
         'bg-color': $l-background,
+        'bg-color-opa': $l-background,
+        'bg-color-input': $l-background-input,
         'border-color': $l-border,
         'bg-color-button': $l-background-f6,
     ),
@@ -43,5 +46,7 @@ $themes: (
     color: $text-b;
     padding: 0 $px-10;
 }
-
+@mixin box-shadow {
+    box-shadow: inset 0 1px 1px rgb(0 0 0 / 8%), 0 0 8px rgb(102 175 233 / 60%);
+}
 // font

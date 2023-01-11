@@ -2,7 +2,7 @@
     <div class="header">
         <div class="header__link">
             <img :src="logo" class="icon" />
-            <ComboboxSelect v-if="sHeaderType === 'tag-view'" :p-data="cBoardListSelect" :p-value="cBoardListSelect[0]?.id" @eOnChange="handltest" />
+            <ComboboxSelect v-if="sHeaderType === 'tag-view'" :p-data="cBoardListSelect" :p-value="cBoardListSelect[0]?.id" />
             <div v-if="sHeaderType === 'share-view'" class="share-header">{{ NEW_DASHBOARD }}</div>
             <div v-if="sHeaderType === 'tag-view'" class="header__link--group">
                 <div class="header__link--group-item">{{ NEW_DASHBOARD }}</div>
@@ -33,19 +33,19 @@
 </template>
 
 <script setup lang="ts" name="Header">
-import logo from '@/assets/image/i_logo.png';
-import i_b_menu_1 from '@/assets/image/i_b_menu_1.png';
 import i_b_close from '@/assets/image/i_b_close.png';
+import i_b_menu_1 from '@/assets/image/i_b_menu_1.png';
 import i_b_refresh from '@/assets/image/i_b_refresh.png';
 import i_b_save_2 from '@/assets/image/i_b_save_2.png';
 import i_b_share from '@/assets/image/i_b_share.png';
 import i_b_timerange from '@/assets/image/i_b_timerange.png';
+import logo from '@/assets/image/i_logo.png';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import { Board } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
-import { ref, computed } from 'vue';
-import { NEW_DASHBOARD, SET, LOGOUT, MANAGE_DASHBOARD, REQUEST_ROLLUP, PREFERENCE, TIME_RANGE_NOT_SET } from './constant';
+import { computed, ref } from 'vue';
+import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET } from './constant';
 
 export type headerType = 'tag-view' | 'share-view' | 'chart-view' | 'edit-chart' | 'new-dashboard';
 const sHeaderType = ref<headerType>('tag-view');
@@ -64,9 +64,6 @@ const cBoardListSelect = computed(() =>
 );
 const onChildGroup = () => {
     childGroup.value.classList.toggle('active');
-};
-const handltest = () => {
-    console.log('object');
 };
 
 store.dispatch(ActionTypes.fetchBoardList);
