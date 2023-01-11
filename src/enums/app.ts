@@ -16,3 +16,9 @@ export enum ResStatus {
     SUCCESS = 'success',
     FAILED = 'failed',
 }
+
+export enum ChartType {
+    Zone,
+    Dot,
+    Line,
+}
