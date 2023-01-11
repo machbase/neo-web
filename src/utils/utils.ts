@@ -1,6 +1,8 @@
 // import { getWebStatus, getDataStatus, getReportStatus, getCacheStatus } from '@/api/repository/userManagement';
 // const delay = (ms: any) => new Promise((res) => setTimeout(res, ms));
 
+import { DAY, HOUR, MINUTE, SECOND } from './constants';
+
 const utils = {
     // delay,
 };
@@ -39,7 +41,7 @@ function splitTimeDuration(aTime: string) {
     const sTemp = aTime.trim().toLowerCase();
     if (sTemp != '' && sTemp != 'off') {
         const sUnitS = sTemp.slice(-1);
-        if (sUnitS != 'd' && sUnitS != 'h' && sUnitS != 'm' && sUnitS != 's') {
+        if (![DAY, HOUR, MINUTE, SECOND].includes(sUnitS)) {
             sRet.type = '';
             sRet.value = 1;
             sRet.error = 'type';
