@@ -23,7 +23,7 @@ import ChartSelect from "./components/common/chart-select/index.vue";
 import { useStore } from './store';
 import { computed } from 'vue';
 import { MutationTypes } from '@/store/mutations';
-import { ChartType } from "./components/common/chart-select/constant";
+import { ChartType } from "./enums/app";
 const handle = (data: ChartType) => console.log(data,'data');
 const store = useStore();
 const cIsDarkMode = computed(() => store.state.gDarkMode);

@@ -22,9 +22,9 @@ import i_b_graph_2 from '@/assets/image/i_b_graph_2.png';
 import i_w_graph_2 from '@/assets/image/i_w_graph_2.png';
 import i_b_graph_3 from '@/assets/image/i_b_graph_3.png';
 import i_w_graph_3 from '@/assets/image/i_w_graph_3.png';
-import { ChartType } from './constant';
 import { defineProps, defineEmits, withDefaults, computed } from 'vue';
 import { useStore } from '../../../store';
+import { ChartType } from '@/enums/app';
 const store = useStore();
 const cIsDarkMode = computed(() => store.state.gDarkMode);
 interface ChartSelectProps {
