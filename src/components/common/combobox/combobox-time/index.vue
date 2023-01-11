@@ -21,30 +21,34 @@ import { COMBO_BOX_TIME } from '@/utils/constants';
 import { computed, defineEmits, reactive, ref } from 'vue';
 import { splitTimeDuration } from '@/utils/utils';
 
+type DataTime = {
+    name: string;
+    value: string;
+};
 const emit = defineEmits(['eOnChange']);
 const store = useStore();
 
 const cIsDarkMode = computed(() => store.state.gDarkMode);
 const sData = reactive({
-    select: null,
-    input: '',
+    select: {} as DataTime,
+    input: '' as string,
 });
 const sOldInput = ref<string>('');
 
-const onChange = (aValue: any) => {
+const onChange = (aValue: DataTime) => {
     sOldInput.value = aValue.value;
     sData.input = aValue.value;
     sData.select = aValue;
     emit('eOnChange', sData.input);
 };
-const onChangeInput = (aEvent: any) => {
-    let sTemp = splitTimeDuration(aEvent.target.value);
+const onChangeInput = (aEvent: Event) => {
+    const sTemp = splitTimeDuration((aEvent.target as HTMLInputElement).value);
     if (sTemp.error != '') {
         alert('Invalid input.');
         sData.input = sOldInput.value;
         return;
     } else {
-        sData.input = aEvent.target.value;
+        sData.input = (aEvent.target as HTMLInputElement).value;
         sOldInput.value = sData.input;
         emit('eOnChange', sData.input);
     }
