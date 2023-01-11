@@ -2,7 +2,7 @@
     <div :class="cIsDarkMode ? 'dark' : 'light'">
         <div class="app">
             <router-view name="Header" />
-            <Pagination />
+            <Pagination :total="6" />
             <router-view class="body" />
             <router-view name="Footer" />            
         </div>

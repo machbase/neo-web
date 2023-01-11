@@ -6,6 +6,7 @@ $themes: (
         'bg-color-input': $d-background-input,
         'border-color': $d-border-28,
         'bg-color-button': $d-background-1c,
+        'border-color-paging': $d-border,
     ),
     light: (
         'text-color': $l-text,
@@ -14,6 +15,7 @@ $themes: (
         'bg-color-input': $l-background-input,
         'border-color': $l-border,
         'bg-color-button': $l-background-f6,
+        'border-color-paging': $l-border,
     ),
 );
 @mixin theme() {
