@@ -11,6 +11,8 @@
 <script setup lang="ts" name="App">
 import { useStore } from '@/store';
 import { computed } from 'vue';
+import { MutationTypes } from '@/store/mutations';
+
 const store = useStore();
 const cIsDarkMode = computed(() => store.state.gDarkMode);
 </script>
