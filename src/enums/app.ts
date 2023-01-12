@@ -22,3 +22,11 @@ export enum ChartType {
     Dot,
     Line,
 }
+export enum PopupType {
+    NEW_CHART = 'New Chart',
+    MANAGE_DASHBOARD = 'Manage Dashboard',
+    NEW_TAGS = 'Add New Tags',
+    PREFERENCES = 'Preferences',
+    SAVE_DASHBOARD = 'Save Dashboard',
+    TIME_RANGE = 'Time range',
+}

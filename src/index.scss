@@ -10,13 +10,11 @@
     height: auto;
 }
 .body {
-    flex: 1;
-    overflow: auto;
     @include theme() {
-        color: theme-get('text-color');
         background-color: theme-get('bg-color');
-        border-color: theme-get('border-color');
+        color: theme-get('text-color');
     }
+    flex: 1;
 }
 body {
     overflow: overlay;

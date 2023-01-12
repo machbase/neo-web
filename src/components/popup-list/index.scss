@@ -1,1 +1,37 @@
 @import '@/assets/scss/theme.scss';
+
+// deep
+:deep(.v-overlay__scrim) {
+    background-color: $bg-modal;
+    opacity: 1;
+}
+:deep(.v-overlay__content) {
+    @include theme() {
+        background-color: theme-get('bg-color');
+        color: theme-get('text-color');
+    }
+}
+.dialog-wrap {
+    align-items: flex-start;
+    margin-top: 5%;
+    &__content {
+        border: 1px solid $text-blue;
+        @include theme() {
+            background-color: theme-get('bg-color');
+            color: theme-get('text-color');
+        }
+        &--header {
+            padding: $px-10 $px-15;
+            border-bottom: 1px solid $d-border;
+            display: flex;
+            justify-content: space-between;
+            & > img {
+                object-fit: contain;
+                cursor: pointer;
+            }
+        }
+        &--body {
+            padding: $px-15 $px-15;
+        }
+    }
+}

@@ -1,8 +1,8 @@
 <template>
-    <div>PopupList</div>
+    <div>ManageDashboard</div>
 </template>
 
-<script setup lang="ts" name="PopupList"></script>
+<script setup lang="ts" name="ManageDashboard"></script>
 
 <style lang="scss" scoped>
 @import 'index.scss';

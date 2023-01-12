@@ -1,5 +1,4 @@
 export const ADMIN = 'Admin';
-
 export const COMBO_BOX_TIME = [
     {
         name: 'off',

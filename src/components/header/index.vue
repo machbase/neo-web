@@ -10,8 +10,8 @@
                 <div class="header__link--group-item drop" @click="onChildGroup">
                     {{ SET }}
                     <div ref="childGroup" class="child-group">
-                        <div class="item">{{ PREFERENCE }}</div>
-                        <div class="item">{{ MANAGE_DASHBOARD }}</div>
+                        <div class="item" @click="onClickPopupItem(PopupType.PREFERENCES)">{{ PREFERENCE }}</div>
+                        <div class="item" @click="onClickPopupItem(PopupType.MANAGE_DASHBOARD)">{{ MANAGE_DASHBOARD }}</div>
                         <div class="item">{{ REQUEST_ROLLUP }}</div>
                     </div>
                 </div>
@@ -20,16 +20,33 @@
             </div>
         </div>
         <div class="header__tool">
-            <div v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard' || sHeaderType === 'share-view'" class="time-range icon">{{ TIME_RANGE_NOT_SET }}</div>
+            <div
+                v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard' || sHeaderType === 'share-view'"
+                class="time-range icon"
+                @click="onClickPopupItem(PopupType.TIME_RANGE)"
+            >
+                {{ TIME_RANGE_NOT_SET }}
+            </div>
             <!-- <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard'" :src="i_b_timerange" class="icon" />             -->
-            <v-icon v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard'" class="icon" icon="mdi-content-save"></v-icon>
-            <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard' || sHeaderType === 'share-view'" :src="i_b_timerange" class="icon" />
+            <v-icon
+                v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard'"
+                class="icon"
+                icon="mdi-content-save"
+                @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)"
+            ></v-icon>
+            <img
+                v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard' || sHeaderType === 'share-view'"
+                :src="i_b_timerange"
+                class="icon"
+                @click="onClickPopupItem(PopupType.TIME_RANGE)"
+            />
             <img :src="i_b_refresh" class="icon" />
             <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard'" :src="i_b_share" class="icon" />
             <img v-if="sHeaderType === 'edit-chart'" :src="i_b_save_2" class="icon" />
             <img v-if="sHeaderType === 'edit-chart'" :src="i_b_close" class="icon" />
         </div>
     </div>
+    <PopupWrap :p-type="sPopupType" :p-show="sDialog" @eClosePopup="onClosePopup" />
 </template>
 
 <script setup lang="ts" name="Header">
@@ -41,6 +58,8 @@ import i_b_share from '@/assets/image/i_b_share.png';
 import i_b_timerange from '@/assets/image/i_b_timerange.png';
 import logo from '@/assets/image/i_logo.png';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
+import PopupWrap from '@/components/popup-list/index.vue';
+import { PopupType } from '@/enums/app';
 import { Board } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
@@ -51,6 +70,8 @@ export type headerType = 'tag-view' | 'share-view' | 'chart-view' | 'edit-chart'
 const sHeaderType = ref<headerType>('tag-view');
 
 const store = useStore();
+const sDialog = ref<boolean>(false);
+const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
 const childGroup = ref();
 const cBoardList = computed((): Board[] => store.state.gBoardList);
 const cBoardListSelect = computed(() =>
@@ -64,6 +85,14 @@ const cBoardListSelect = computed(() =>
 );
 const onChildGroup = () => {
     childGroup.value.classList.toggle('active');
+};
+const onClosePopup = () => {
+    console.log('first');
+    sDialog.value = false;
+};
+const onClickPopupItem = (aPopupName: PopupType) => {
+    sPopupType.value = aPopupName;
+    sDialog.value = true;
 };
 
 store.dispatch(ActionTypes.fetchBoardList);
