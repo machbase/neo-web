@@ -2,9 +2,11 @@
     <div class="tag-view">
         <ButtonCreate :is-add-chart="true" :on-click="test" />
         <PopupWrap :p-type="PopupType.NEW_CHART" :p-show="sDialog" @e-close-popup="onClosePopup" />
+        <Pagination :total="6" />
     </div>
 </template>
 <script setup lang="ts" name="TagView">
+import Pagination from '@/components/common/pagination/index.vue';
 import ButtonCreate from '@/components/common/button-create/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { PopupType } from '@/enums/app';
