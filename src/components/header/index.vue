@@ -10,8 +10,8 @@
                 <div class="header__link--group-item drop" @click="onChildGroup">
                     {{ SET }}
                     <div ref="childGroup" class="child-group">
-                        <div class="item" @click="sPopupType = PopupType.PREFERENCES">{{ PREFERENCE }}</div>
-                        <div class="item" @click="sPopupType = PopupType.MANAGE_DASHBOARD">{{ MANAGE_DASHBOARD }}</div>
+                        <div class="item" @click="onClickPopupItem(PopupType.PREFERENCES)">{{ PREFERENCE }}</div>
+                        <div class="item" @click="onClickPopupItem(PopupType.MANAGE_DASHBOARD)">{{ MANAGE_DASHBOARD }}</div>
                         <div class="item">{{ REQUEST_ROLLUP }}</div>
                     </div>
                 </div>
@@ -23,7 +23,7 @@
             <div
                 v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard' || sHeaderType === 'share-view'"
                 class="time-range icon"
-                @click="sPopupType = PopupType.TIME_RANGE"
+                @click="onClickPopupItem(PopupType.TIME_RANGE)"
             >
                 {{ TIME_RANGE_NOT_SET }}
             </div>
@@ -32,13 +32,13 @@
                 v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard'"
                 class="icon"
                 icon="mdi-content-save"
-                @click="sPopupType = PopupType.SAVE_DASHBOARD"
+                @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)"
             ></v-icon>
             <img
                 v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard' || sHeaderType === 'share-view'"
                 :src="i_b_timerange"
                 class="icon"
-                @click="sPopupType = PopupType.TIME_RANGE"
+                @click="onClickPopupItem(PopupType.TIME_RANGE)"
             />
             <img :src="i_b_refresh" class="icon" />
             <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new-dashboard'" :src="i_b_share" class="icon" />
@@ -63,7 +63,7 @@ import { PopupType } from '@/enums/app';
 import { Board } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET } from './constant';
 
 export type headerType = 'tag-view' | 'share-view' | 'chart-view' | 'edit-chart' | 'new-dashboard';
@@ -87,27 +87,13 @@ const onChildGroup = () => {
     childGroup.value.classList.toggle('active');
 };
 const onClosePopup = () => {
+    console.log('first');
     sDialog.value = false;
 };
-
-watch(
-    () => sPopupType.value,
-    () => {
-        if (sPopupType.value !== PopupType.NEW_CHART) {
-            sDialog.value = true;
-        }
-    }
-);
-watch(
-    () => sDialog.value,
-    () => {
-        if (!sDialog.value) {
-            setTimeout(() => {
-                sPopupType.value = PopupType.NEW_CHART;
-            }, 200);
-        }
-    }
-);
+const onClickPopupItem = (aPopupName: PopupType) => {
+    sPopupType.value = aPopupName;
+    sDialog.value = true;
+};
 
 store.dispatch(ActionTypes.fetchBoardList);
 </script>

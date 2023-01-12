@@ -1,9 +1,16 @@
 <template>
-    <v-dialog v-model="sDialog" transition="dialog-top-transition" class="dialog-wrap" :class="cIsDarkMode ? 'dark' : 'light'" :width="pWidth || '400px'">
+    <v-dialog
+        v-model="sDialog"
+        transition="dialog-top-transition"
+        class="dialog-wrap"
+        :class="cIsDarkMode ? 'dark' : 'light'"
+        :width="pWidth || '400px'"
+        @update:model-value="onClosePopup"
+    >
         <div class="dialog-wrap__content">
             <div class="dialog-wrap__content--header">
-                <p>{{ cTitle }}</p>
-                <img :src="i_b_close" @click="sDialog = false" />
+                <p>{{ props.pType }}</p>
+                <img :src="i_b_close" @click="onClosePopup" />
             </div>
             <div class="dialog-wrap__content--body">
                 <ManageDashboard v-if="pType === PopupType.MANAGE_DASHBOARD" />
@@ -23,7 +30,6 @@ import i_b_close from '@/assets/image/i_b_close.png';
 import { PopupType } from '@/enums/app';
 import { useStore } from '@/store';
 import { MutationTypes } from '@/store/mutations';
-import { POPUP_TITLE } from '@/utils/constants';
 import { computed, defineProps, ref, watch, defineEmits } from 'vue';
 import ManageDashboard from './popup/ManageDashboard.vue';
 import NewChart from './popup/NewChart.vue';
@@ -41,18 +47,16 @@ const props = defineProps<PopupWrapProps>();
 const emit = defineEmits(['eClosePopup']);
 const store = useStore();
 const sDialog = ref<boolean>(false);
-const cTitle = computed(() => POPUP_TITLE.find((aTitle) => props.pType === aTitle));
+
+const onClosePopup = () => {
+    sDialog.value = false;
+    emit('eClosePopup');
+};
 
 watch(
     () => props.pShow,
     () => {
         if (props.pShow === true) sDialog.value = true;
-    }
-);
-watch(
-    () => sDialog.value,
-    () => {
-        if (!sDialog.value) emit('eClosePopup');
     }
 );
 
