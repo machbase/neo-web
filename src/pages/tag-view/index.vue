@@ -3,10 +3,10 @@
         <ChartDashboard />
         <ButtonCreate :is-add-chart="true" :on-click="test" />
         <PopupWrap :p-type="PopupType.NEW_CHART" :p-show="sDialog" @e-close-popup="onClosePopup" />
-        <Pagination :total="6" />
+        <!-- <Pagination :total="6" />
         <div style="width: 250px">
             <CustomScale @e-on-change="onClickScale" />
-        </div>
+        </div> -->
     </div>
 </template>
 <script setup lang="ts" name="TagView">

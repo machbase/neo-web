@@ -19,7 +19,7 @@
                 <Preferences v-if="pType === PopupType.PREFERENCES" />
                 <SaveDashboard v-if="pType === PopupType.SAVE_DASHBOARD" />
                 <TimeRange v-if="pType === PopupType.TIME_RANGE" />
-                <button class="btn" @click="onToggleDardMode">change themes</button>
+                <button class="btn" @click="onToggleDardMode">Change themes</button>
             </div>
         </div>
     </v-dialog>
