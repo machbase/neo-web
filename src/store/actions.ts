@@ -1,4 +1,4 @@
-import { getBoardList } from '@/api/repository/tagView';
+import { getBoardList } from '@/api/repository/api';
 import { ResBoardList } from '@/interface/tagView';
 import { ActionContext } from 'vuex';
 import { MutationTypes, Mutations } from './mutations';

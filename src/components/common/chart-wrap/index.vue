@@ -1,9 +1,16 @@
 <template>
-    <div>ComboboxTime</div>
+    <div class="chart-wrap">
+        <div>title</div>
+        <slot />
+    </div>
 </template>
 
-<script setup lang="ts" name="ChartWrap"></script>
+<script lang="ts" setup name="ChartWrap">
+// interface ChartWrapProps {}
+
+// withDefaults(defineProps<ChartWrapProps>(), {});
+</script>
 
 <style lang="scss" scoped>
-@import 'index.scss';
+@import './index.scss';
 </style>

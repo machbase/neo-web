@@ -40,6 +40,7 @@
                 }
                 .child-group.active {
                     display: block;
+                    z-index: $z-index-set;
                 }
             }
         }
