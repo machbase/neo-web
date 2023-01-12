@@ -1,1 +1,21 @@
 @import '@/assets/scss/theme.scss';
+.custom-scale{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+.inputCustom {
+    max-width: 110px;
+    border: 1px solid $d-border;
+    outline: none;
+    flex: 1;
+    @include theme() {
+        background-color: theme-get('bg-color-input');
+        color: theme-get('text-color');
+        padding: $px-5 $px-10;
+    }
+    &:focus {
+        @include box-shadow;
+    }
+}
