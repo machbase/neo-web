@@ -33,4 +33,3 @@ export const DAY = 'd';
 export const HOUR = 'h';
 export const MINUTE = 'm';
 export const SECOND = 's';
-export const POPUP_TITLE = ['New Chart', 'Manage Dashboard', 'Add New Tags', 'Preferences', 'Save Dashboard', 'Time range'];
