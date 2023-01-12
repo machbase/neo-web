@@ -3,7 +3,7 @@ $text-blue: #2ec0df;
 $color-blue: #2ec0df;
 $text-w: #e7e8ea;
 $text-b: #9ca2ab;
-$bg-modal: rgba(5,6,6,0.6);
+$bg-modal: rgba(5, 6, 6, 0.6);
 
 // color border
 $bd-black: #333333;
@@ -20,14 +20,12 @@ $d-border: #383838;
 $d-border-28: #282828;
 $d-background-input: #202020;
 
-
 // light
 $l-text: #202020;
 $l-background: #fff;
-$l-border: #dbe2ea; 
-$l-background-f6:#f6f7f8;
+$l-border: #dbe2ea;
+$l-background-f6: #f6f7f8;
 $l-background-input: #f6f7f8;
-
 
 // Spacing
 $px-5: 5px;
@@ -36,3 +34,6 @@ $px-10: 10px;
 $px-12: 12px;
 $px-15: 15px;
 $px-20: 20px;
+
+// z-index
+$z-index-set: 2;
