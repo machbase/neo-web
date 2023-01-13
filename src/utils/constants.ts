@@ -1,3 +1,5 @@
+import { TimeRange } from '@/interface/web';
+
 //
 export const NOW = 'now';
 export const DAY = 'd';
@@ -209,31 +211,43 @@ export const TIME_DURATION = [
             key: 1,
             name: '1 year',
             value: `1${YEAR}`,
+            number: 1,
+            format: YEAR,
         },
         {
             key: 2,
             name: '6 months',
             value: `6${MONTH}`,
+            number: 6,
+            format: MONTH,
         },
         {
             key: 3,
             name: '1 month',
             value: `1${MONTH}`,
+            number: 1,
+            format: MONTH,
         },
         {
             key: 4,
             name: '1 day',
             value: `1${DAY}`,
+            number: 1,
+            format: DAY,
         },
         {
             key: 5,
             name: '12 hours',
             value: `12${HOUR}`,
+            number: 12,
+            format: HOUR,
         },
         {
             key: 6,
             name: '6 hours',
             value: `6${HOUR}`,
+            number: 6,
+            format: HOUR,
         },
     ],
     [
@@ -241,31 +255,43 @@ export const TIME_DURATION = [
             key: 7,
             name: '3 hours',
             value: `3${HOUR}`,
+            number: 3,
+            format: HOUR,
         },
         {
             key: 8,
             name: '1 hours',
             value: `1${HOUR}`,
+            number: 1,
+            format: HOUR,
         },
         {
             key: 9,
             name: '30 minutes',
             value: `30${MINUTE}`,
+            number: 30,
+            format: MINUTE,
         },
         {
             key: 10,
             name: '10 minutes',
             value: `10${MINUTE}`,
+            number: 10,
+            format: MINUTE,
         },
         {
             key: 11,
             name: '1 minute',
             value: `1${MINUTE}`,
+            number: 1,
+            format: MINUTE,
         },
         {
             key: 12,
             name: '30 seconds',
             value: `30${SECOND}`,
+            number: 30,
+            format: SECOND,
         },
     ],
 ];

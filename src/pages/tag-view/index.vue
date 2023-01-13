@@ -2,7 +2,7 @@
     <div class="tag-view">
         <ChartDashboard />
         <ButtonCreate :is-add-chart="true" :on-click="test" />
-        <PopupWrap :p-type="PopupType.NEW_CHART" :p-show="sDialog" @e-close-popup="onClosePopup" />
+        <PopupWrap :width="'500px'" :p-type="PopupType.NEW_CHART" :p-show="sDialog" @e-close-popup="onClosePopup" />
         <!-- <Pagination :total="6" />
         <div style="width: 250px">
             <CustomScale @e-on-change="onClickScale" />

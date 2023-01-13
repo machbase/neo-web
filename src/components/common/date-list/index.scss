@@ -1,1 +1,22 @@
 @import '@/assets/scss/theme.scss';
+
+.date-time {
+    &__title {
+        margin-bottom: $px-5;
+    }
+    &__body {
+        display: flex;
+        justify-content: space-between;
+        .col {
+            .text {
+                cursor: pointer;
+                @include theme() {
+                    color: theme-get('text-color1');
+                }
+            }
+            .text:hover {
+                color: $color-blue;
+            }
+        }
+    }
+}
