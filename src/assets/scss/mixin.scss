@@ -1,6 +1,7 @@
 $themes: (
     dark: (
         'text-color': $text-b,
+        'text-color1': $text-w,
         'bg-color': $d-background,
         'bg-color-opa': $d-background-opa,
         'bg-color-input': $d-background-input,
@@ -10,6 +11,7 @@ $themes: (
     ),
     light: (
         'text-color': $l-text,
+        'text-color1': $l-text,
         'bg-color': $l-background,
         'bg-color-opa': $l-background,
         'bg-color-input': $l-background-input,
