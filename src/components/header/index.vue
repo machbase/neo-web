@@ -46,7 +46,7 @@
             <img v-if="sHeaderType === 'edit-chart'" :src="i_b_close" class="icon" />
         </div>
     </div>
-    <PopupWrap :p-type="sPopupType" :p-show="sDialog" @eClosePopup="onClosePopup" />
+    <PopupWrap :p-type="sPopupType" :p-show="sDialog" :p-width="cWidthPopup" @eClosePopup="onClosePopup" />
 </template>
 
 <script setup lang="ts" name="Header">
@@ -60,7 +60,7 @@ import logo from '@/assets/image/i_logo.png';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { PopupType } from '@/enums/app';
-import { Board } from '@/interface/tagView';
+import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { computed, ref } from 'vue';
@@ -73,7 +73,7 @@ const store = useStore();
 const sDialog = ref<boolean>(false);
 const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
 const childGroup = ref();
-const cBoardList = computed((): Board[] => store.state.gBoardList);
+const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
 const cBoardListSelect = computed(() =>
     cBoardList.value.map((aItem) => {
         return {
@@ -83,6 +83,14 @@ const cBoardListSelect = computed(() =>
         };
     })
 );
+const cWidthPopup = computed((): string => {
+    switch (sPopupType.value) {
+        case PopupType.PREFERENCES:
+            return '450px';
+        default:
+            return '400px';
+    }
+});
 const onChildGroup = () => {
     childGroup.value.classList.toggle('active');
 };

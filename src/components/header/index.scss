@@ -44,6 +44,10 @@
                 }
             }
         }
+        :deep(.combobox-select .combobox-select__item) {
+            background-color: $d-background-opa !important;
+            color: $text-w !important;
+        }
     }
     &__tool {
         display: flex;
@@ -55,7 +59,6 @@
         .icon {
             padding: $px-10;
             cursor: pointer;
-
         }
     }
     .share-header {

@@ -1,1 +1,68 @@
 @import '@/assets/scss/theme.scss';
+
+.popup {
+    font-size: 13px;
+    .combobox-select {
+        margin: 0;
+        @include theme() {
+            background-color: theme-get('bg-color-input');
+            color: theme-get('text-color');
+        }
+    }
+    &__input {
+        display: flex;
+        gap: $px-10;
+        justify-content: space-between;
+        margin-bottom: $px-7;
+        &-label {
+            text-align: right;
+            width: 130px;
+        }
+        &-content {
+            flex: 1;
+        }
+        .combobox-select {
+            width: 100%;
+        }
+    }
+    &__input-group {
+        display: flex;
+        gap: $px-10;
+        &-label {
+            text-align: right;
+            width: 130px;
+        }
+        &-text {
+            border: 1px solid $d-border;
+            outline: none;
+            padding: $px-5 $px-10;
+            flex: 1;
+            @include theme() {
+                background-color: theme-get('bg-color-input');
+                color: theme-get('text-color');
+            }
+            &:focus {
+                @include box-shadow;
+            }
+        }
+        &-content {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            gap: $px-10;
+        }
+    }
+    &__btn-group {
+        margin-top: $px-20;
+        margin-bottom: $px-10;
+        display: flex;
+        gap: $px-10;
+        justify-content: center;
+        .button-effect {
+            @include button-effect;
+        }
+        .button-effect-color {
+            @include button-effect-color;        
+        }
+    }
+}

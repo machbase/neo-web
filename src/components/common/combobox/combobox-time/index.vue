@@ -28,7 +28,7 @@ type DataTime = {
 const emit = defineEmits(['eOnChange']);
 const store = useStore();
 
-const cIsDarkMode = computed(() => store.state.gDarkMode);
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const sData = reactive({
     select: {} as DataTime,
     input: '' as string,

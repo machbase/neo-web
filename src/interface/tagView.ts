@@ -1,12 +1,10 @@
-export interface Board {
+export interface ResBoardList {
     board_id: string;
     board_name: string;
     last_edit: string;
 }
-
-// Res
-export interface ResBoardList {
-    msg: string;
-    list: Board[];
-    success: boolean;
+export interface ResPreferences {
+    home_board: string;
+    theme: string;
+    timeout: number;
 }
