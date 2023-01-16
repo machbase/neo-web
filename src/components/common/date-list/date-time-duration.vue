@@ -13,8 +13,15 @@
 import { TIME_DURATION } from '@/utils/constants';
 import { defineEmits } from 'vue';
 
+type Data = {
+    key: number;
+    name: string;
+    value: string;
+    number: number;
+    format: string;
+};
 const emit = defineEmits(['eOnTimeDuration']);
-const onSendTime = (aTime: any) => {
+const onSendTime = (aTime: Data) => {
     emit('eOnTimeDuration', aTime);
 };
 </script>
