@@ -38,7 +38,7 @@ const postSetting = async (params: any): Promise<ResPreferences> => {
     );
 };
 
-const getBoard = (sId: any) => {
+const getBoard = (sId: string) => {
     return request({
         method: 'GET',
         url: `/api/machiotboard/${sId}/`,

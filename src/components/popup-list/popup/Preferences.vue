@@ -3,13 +3,13 @@
         <div class="popup__input">
             <p class="popup__input-label">UI Theme</p>
             <div class="popup__input-content">
-                <ComboboxSelect :p-data="THEME_MODE" :p-string-default="SELECT_THEME" :p-value="cPreferences.theme" @e-on-change="(aValue) => onChange(aValue, true)" />
+                <ComboboxSelect :p-data="THEME_MODE" :p-string-default="SELECT_THEME" :p-value="cPreferences.theme" @e-on-change="(aValue) => aIsChangeTheme(aValue, true)" />
             </div>
         </div>
         <div class="popup__input">
             <p class="popup__input-label">Home Dashboard</p>
             <div class="popup__input-content">
-                <ComboboxSelect :p-data="cBoardList" :p-string-default="NOT_YET" @e-on-change="onChange" />
+                <ComboboxSelect :p-data="cBoardList" :p-string-default="NOT_YET" @e-on-change="aIsChangeTheme" />
             </div>
         </div>
         <div class="popup__input-group">
@@ -52,7 +52,7 @@ const cBoardList = computed(() =>
     })
 );
 
-const onChange = (aValue: string, aType: boolean) => {
+const aIsChangeTheme = (aValue: string, aType: boolean) => {
     if (aType) {
         sData.theme = aValue;
     } else sData.board = aValue;

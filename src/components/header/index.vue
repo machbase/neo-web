@@ -25,11 +25,7 @@
             </div>
         </div>
         <div class="header__tool">
-            <div
-                v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW || sHeaderType === RouteNames.VIEW"
-                class="time-range icon"
-                @click="onClickPopupItem(PopupType.TIME_RANGE)"
-            >
+            <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.VIEW" class="time-range icon" @click="onClickPopupItem(PopupType.TIME_RANGE)">
                 {{ TIME_RANGE_NOT_SET }}
             </div>
             <!-- <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new'" :src="i_b_timerange" class="icon" />             -->
