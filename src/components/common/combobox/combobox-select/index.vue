@@ -1,7 +1,7 @@
 <template>
     <select v-model="sSelect" class="combobox-select">
         <img class="icon" :src="ic_arrow_s_down" />
-        <option class="combobox-select__item" value="null">{{ pStringDefault }}</option>
+        <option class="combobox-select__item" value="">{{ pStringDefault }}</option>
         <option v-for="aItem in pData" :key="aItem.id" class="combobox-select__item" :value="aItem.id">{{ aItem.name }}</option>
     </select>
 </template>
@@ -26,7 +26,7 @@ const props = withDefaults(defineProps<ComboboxSelectProps>(), {
 });
 
 const emit = defineEmits(['eOnChange']);
-const sSelect = ref<any>(null);
+const sSelect = ref<any>('');
 
 watch(
     () => sSelect.value,
