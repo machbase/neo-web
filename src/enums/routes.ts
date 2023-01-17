@@ -1,11 +1,15 @@
 export enum PageRoutes {
     CHART_EDIT = '/chart-edit',
-    SHARE_VIEW = '/share-view',
+    VIEW = '/view',
     TAG_VIEW = '/tag-view',
+    NEW = '/new',
+    CHART_VIEW = '/chart-view',
 }
 
 export enum RouteNames {
     CHART_EDIT = 'chart-edit',
-    SHARE_VIEW = 'share-view',
+    VIEW = 'view',
     TAG_VIEW = 'tag-view',
+    NEW = 'new',
+    CHART_VIEW = 'chart-view',
 }

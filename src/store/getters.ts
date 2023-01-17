@@ -1,8 +1,9 @@
 import { RootState } from './state';
 
 const getters = {
-    getStatusHeader(state: RootState) {
-        return state.gActiveHeader
+    getDarkMode(state: RootState) {
+        if (state.gPreference.theme === 'machIoTchartBlack') return true;
+        if (state.gPreference.theme === 'machIoTchartWhite') return false;
     },
 };
 

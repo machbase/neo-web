@@ -1,10 +1,10 @@
-import { Board } from '@/interface/tagView';
+import { ResBoardList, ResPreferences } from '@/interface/tagView';
 
 const state = {
     /* Global */
-    gDarkMode: true as boolean,
+    gPreference: {} as ResPreferences,
     gActiveHeader: false as boolean,
-    gBoardList: [] as Board[],
+    gBoardList: [] as ResBoardList[],
 };
 
 type RootState = typeof state;

@@ -1,34 +1,44 @@
 import request from '@/api/core';
+import { ResponseData, ResponseList, ResType } from '@/assets/ts/common';
+import { ResBoardList, ResPreferences } from '@/interface/tagView';
 
-const getBoardList = () => {
-    return request({
-        method: 'GET',
-        url: '/api/machiotboard/list',
-    });
+const getBoardList = async (): Promise<ResBoardList[]> => {
+    return ResponseList<ResBoardList[]>(
+        await request({
+            method: 'GET',
+            url: '/api/machiotboard/list',
+        }),
+        ResType.list
+    );
 };
 
-const getPreference = () => {
-    return request({
-        method: 'GET',
-        url: '/api/machiotboard/preference/',
-        data: {},
-    });
+const getPreference = async (): Promise<ResPreferences> => {
+    return ResponseData<ResPreferences>(
+        await request({
+            method: 'GET',
+            url: '/api/machiotboard/preference/',
+        }),
+        ResType.data
+    );
 };
 
-const postSetting = (params: any) => {
+const postSetting = async (params: any): Promise<ResPreferences> => {
     const { theme, home_board, timeout } = params;
-    return request({
-        method: 'POST',
-        url: '/api/machiotboard/setting/',
-        data: {
-            theme,
-            home_board,
-            timeout,
-        },
-    });
+    return ResponseData<ResPreferences>(
+        await request({
+            method: 'POST',
+            url: '/api/machiotboard/setting/',
+            data: {
+                theme,
+                home_board,
+                timeout,
+            },
+        }),
+        ResType.data
+    );
 };
 
-const getBoard = (sId: any) => {
+const getBoard = (sId: string) => {
     return request({
         method: 'GET',
         url: `/api/machiotboard/${sId}/`,

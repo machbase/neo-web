@@ -13,13 +13,12 @@
                 <img :src="i_b_close" @click="onClosePopup" />
             </div>
             <div class="dialog-wrap__content--body">
-                <ManageDashboard v-if="pType === PopupType.MANAGE_DASHBOARD" />
-                <NewChart v-if="pType === PopupType.NEW_CHART" />
-                <NewTags v-if="pType === PopupType.NEW_TAGS" />
-                <Preferences v-if="pType === PopupType.PREFERENCES" />
-                <SaveDashboard v-if="pType === PopupType.SAVE_DASHBOARD" />
-                <TimeRange v-if="pType === PopupType.TIME_RANGE" />
-                <button class="btn" @click="onToggleDardMode">Change themes</button>
+                <ManageDashboard v-if="pType === PopupType.MANAGE_DASHBOARD" @eClosePopup="onClosePopup" />
+                <NewChart v-if="pType === PopupType.NEW_CHART" @eClosePopup="onClosePopup" />
+                <NewTags v-if="pType === PopupType.NEW_TAGS" @eClosePopup="onClosePopup" />
+                <Preferences v-if="pType === PopupType.PREFERENCES" @eClosePopup="onClosePopup" />
+                <SaveDashboard v-if="pType === PopupType.SAVE_DASHBOARD" @eClosePopup="onClosePopup" />
+                <TimeRange v-if="pType === PopupType.TIME_RANGE" @eClosePopup="onClosePopup" />
             </div>
         </div>
     </v-dialog>
@@ -61,10 +60,7 @@ watch(
 );
 
 // Test
-const cIsDarkMode = computed(() => store.state.gDarkMode);
-const onToggleDardMode = () => {
-    store.commit(MutationTypes.activeDarkMode, !cIsDarkMode.value);
-};
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 </script>
 
 <style lang="scss" scoped>

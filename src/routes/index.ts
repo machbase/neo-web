@@ -1,7 +1,9 @@
 import Footer from '@/components/footer/index.vue';
 import Header from '@/components/header/index.vue';
 import TagView from '@/pages/tag-view/index.vue';
+import New from '@/pages/new/index.vue';
 import ChartEdit from '@/pages/chart-edit/index.vue';
+import ChartView from '@/pages/chart-view/index.vue';
 import ShareView from '@/pages/share-view/index.vue';
 import { PageRoutes } from '@/enums/routes';
 import { RouteRecordRaw, createRouter, createWebHistory } from 'vue-router';
@@ -21,7 +23,17 @@ const routes: Array<RouteRecordRaw> = [
         beforeEnter: protectedRoute,
     },
     {
-        path: PageRoutes.CHART_EDIT,
+        path: `${PageRoutes.TAG_VIEW}${PageRoutes.NEW}`,
+        name: RouteNames.NEW,
+        components: {
+            default: New,
+            Header,
+            Footer,
+        },
+        beforeEnter: protectedRoute,
+    },
+    {
+        path: `${PageRoutes.TAG_VIEW}${PageRoutes.CHART_EDIT}`,
         name: RouteNames.CHART_EDIT,
         components: {
             default: ChartEdit,
@@ -31,8 +43,18 @@ const routes: Array<RouteRecordRaw> = [
         beforeEnter: protectedRoute,
     },
     {
-        path: PageRoutes.SHARE_VIEW,
-        name: RouteNames.SHARE_VIEW,
+        path: `${PageRoutes.TAG_VIEW}${PageRoutes.CHART_VIEW}`,
+        name: RouteNames.CHART_VIEW,
+        components: {
+            default: ChartView,
+            Header,
+            Footer,
+        },
+        beforeEnter: protectedRoute,
+    },
+    {
+        path: `${PageRoutes.TAG_VIEW}${PageRoutes.VIEW}/:id`,
+        name: RouteNames.VIEW,
         components: {
             default: ShareView,
             Header,

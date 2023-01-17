@@ -295,3 +295,13 @@ export const TIME_DURATION = [
         },
     ],
 ];
+export const THEME_MODE = [
+    {
+        id: 'machIoTchartWhite',
+        name: 'machIoTchartWhite',
+    },
+    {
+        id: 'machIoTchartBlack',
+        name: 'machIoTchartBlack',
+    },
+];
