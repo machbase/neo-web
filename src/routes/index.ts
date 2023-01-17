@@ -21,6 +21,16 @@ const routes: Array<RouteRecordRaw> = [
         beforeEnter: protectedRoute,
     },
     {
+        path: `${PageRoutes.TAG_VIEW}${PageRoutes.NEW}`,
+        name: RouteNames.NEW,
+        components: {
+            default: TagView,
+            Header,
+            Footer,
+        },
+        beforeEnter: protectedRoute,
+    },
+    {
         path: PageRoutes.CHART_EDIT,
         name: RouteNames.CHART_EDIT,
         components: {
@@ -31,8 +41,8 @@ const routes: Array<RouteRecordRaw> = [
         beforeEnter: protectedRoute,
     },
     {
-        path: PageRoutes.SHARE_VIEW,
-        name: RouteNames.SHARE_VIEW,
+        path: `${PageRoutes.TAG_VIEW}${PageRoutes.VIEW}/:id`,
+        name: RouteNames.VIEW,
         components: {
             default: ShareView,
             Header,

@@ -15,7 +15,7 @@
         <div class="popup__input-group">
             <p class="popup__input-group-label">Query Timeout</p>
             <div class="popup__input-group-content">
-                <input :value="cPreferences.timeout || 0" class="popup__input-group-text" @change="onChangeInput" />
+                <input :value="Math.floor(cPreferences.timeout / 1000) || 0" class="popup__input-group-text" @change="onChangeInput" />
                 <p>seconds</p>
             </div>
         </div>

@@ -17,14 +17,16 @@
         &--group {
             display: flex;
             align-items: center;
-            color: $text-blue;
             margin-left: $px-10;
-            font-size: $font-12;
             height: 100%;
             &-item {
                 padding: $px-12 $px-10;
                 cursor: pointer;
                 position: relative;
+                font-size: $font-12;
+                color: $text-blue;
+                text-decoration: none;
+
                 .child-group {
                     display: none;
                     position: absolute;
@@ -64,5 +66,6 @@
     .share-header {
         color: $text-w;
         margin: 0 $px-15;
+        font-size: 12px;
     }
 }
