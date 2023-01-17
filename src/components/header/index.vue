@@ -86,7 +86,7 @@ const cBoardListSelect = computed(() =>
 const cWidthPopup = computed((): string => {
     switch (sPopupType.value) {
         case PopupType.PREFERENCES:
-            return '450px';
+            return '400';
         default:
             return '400px';
     }

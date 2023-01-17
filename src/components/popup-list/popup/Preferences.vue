@@ -15,7 +15,7 @@
         <div class="popup__input-group">
             <p class="popup__input-group-label">Query Timeout</p>
             <div class="popup__input-group-content">
-                <input v-model="sData.time" class="popup__input-group-text" />
+                <input :value="cPreferences.timeout || 0" class="popup__input-group-text" @change="onChangeInput" />
                 <p>seconds</p>
             </div>
         </div>
@@ -39,7 +39,7 @@ const store = useStore();
 const sData = reactive({
     theme: '' as string,
     board: '' as string,
-    time: 0 as number,
+    time: '0' as string,
 });
 const cPreferences = computed(() => store.state.gPreference);
 const cBoardList = computed(() =>
@@ -56,6 +56,9 @@ const onChange = (aValue: string, aType: boolean) => {
     if (aType) {
         sData.theme = aValue;
     } else sData.board = aValue;
+};
+const onChangeInput = (aEvent: Event) => {
+    sData.time = (aEvent.target as HTMLInputElement).value;
 };
 const onSetting = () => {
     store.dispatch(ActionTypes.postPreference, sData).then(() => onClosePopup());

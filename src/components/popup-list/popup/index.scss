@@ -1,7 +1,7 @@
 @import '@/assets/scss/theme.scss';
 
 .popup {
-    font-size: 13px;
+    font-size: 12px;
     .combobox-select {
         margin: 0;
         @include theme() {
@@ -13,10 +13,13 @@
         display: flex;
         gap: $px-10;
         justify-content: space-between;
-        margin-bottom: $px-7;
+        margin-bottom: $px-10;
         &-label {
+            align-self: center;
             text-align: right;
-            width: 130px;
+            min-width: 120px;
+            width: 120px;
+            font-weight: 500;
         }
         &-content {
             flex: 1;
@@ -29,8 +32,11 @@
         display: flex;
         gap: $px-10;
         &-label {
+            align-self: center;
             text-align: right;
-            width: 130px;
+            min-width: 120px;
+            width: 120px;
+            font-weight: 500;
         }
         &-text {
             border: 1px solid $d-border;
@@ -62,7 +68,7 @@
             @include button-effect;
         }
         .button-effect-color {
-            @include button-effect-color;        
+            @include button-effect-color;
         }
     }
 }

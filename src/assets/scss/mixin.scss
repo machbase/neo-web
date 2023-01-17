@@ -57,11 +57,25 @@ $themes: (
     border-radius: 0;
     background-color: $color-blue;
     color: $text-w;
-    border: 1px solid $color-blue;
+    border: 1px solid #57d6f1;
+    text-transform: capitalize;
+    font-size: 12px;
+    height: 30px;
+    width: 70px;
+    &:hover{
+        font-weight: bold;
+    }
 }
 @mixin button-effect {
     border-radius: 0;
     color: $text-blue;
+    text-transform: capitalize;
+    font-size: 12px;
+    height: 30px;
+    width: 70px;
+    &:hover{
+        font-weight: bold;
+    }
     @include theme() {
         background-color: theme-get('bg-color-button');
         border: 1px solid theme-get('border-color');
