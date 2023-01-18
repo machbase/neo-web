@@ -72,3 +72,16 @@
         }
     }
 }
+.time-range-wrapper{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    .col-left{
+        display: flex; 
+        flex-direction: column;
+        .row{
+            display: flex;
+            flex-direction: row;
+        }
+    }
+}
