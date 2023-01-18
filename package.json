@@ -31,6 +31,7 @@
         "vuex": "^4.0.2"
     },
     "devDependencies": {
+        "@vuepic/vue-datepicker": "^3.5.2",
         "@originjs/vite-plugin-commonjs": "^1.0.3",
         "@types/jest": "^28.1.4",
         "@types/lodash": "^4.14.188",
