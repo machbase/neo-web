@@ -1,5 +1,5 @@
 <template>
-    <Datepicker v-model="sDate" class="date-picker" :format="'yyyy-MM-dd HH:mm'" position="left" :dark="cIsDarkMode" :disabled="pDisabled">
+    <Datepicker v-model="sDate" class="date-picker" :format="'yyyy-MM-dd HH:mm'" position="left" :dark="cIsDarkMode" :disabled="pDisabled" auto-apply>
         <template #input-icon>
             <img class="input-slot-image" :src="icon" />
         </template>
