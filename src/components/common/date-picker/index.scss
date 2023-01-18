@@ -1,6 +1,12 @@
 @import '@/assets/scss/theme.scss';
 
 .date-picker {
+    :deep(.dp__disabled) {
+        display: none;
+    }
+    :deep(.dp__pointer) {
+        display: none;
+    }
     :deep(.dp__input_icon) {
         position: relative;
         .input-slot-image {
@@ -10,5 +16,11 @@
             background: linear-gradient(#2ed0df, #08a5bc);
             border: 1px solid #57d6f1;
         }
+    }
+    :deep(.dp__disabled + .dp__input_icon .input-slot-image) {
+        background: rgb(32, 32, 32);
+        border: 1px solid rgb(56, 56, 56);
+        color: rgb(119, 119, 119);
+        cursor: not-allowed;
     }
 }
