@@ -1,6 +1,16 @@
 <template>
-    <Datepicker v-model="sDate" class="date-picker" :format="'yyyy-MM-dd HH:mm'" position="left" :dark="cIsDarkMode" :disabled="pDisabled" auto-apply>
-        <template #input-icon>
+    <Datepicker
+        v-model="sDate"
+        class="date-picker"
+        :class="{ disabled: pDisabled }"
+        :format="'yyyy-MM-dd HH:mm'"
+        position="left"
+        :disabled="pDisabled"
+        :dark="cIsDarkMode"
+        auto-apply
+        enable-seconds
+    >
+        <template #trigger>
             <img class="input-slot-image" :src="icon" />
         </template>
     </Datepicker>
