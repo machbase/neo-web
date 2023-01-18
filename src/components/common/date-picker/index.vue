@@ -11,11 +11,14 @@ import icon from '@/assets/image/ic_calendar.svg';
 import { useStore } from '@/store';
 import Datepicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-import { defineEmits, defineProps, ref, watch, computed } from 'vue';
+import { defineEmits, withDefaults, defineProps, ref, watch, computed } from 'vue';
 export interface DatePickerProps {
     pDisabled: boolean;
 }
-const props = defineProps<DatePickerProps>();
+const props = withDefaults(defineProps<DatePickerProps>(), {
+    pDisabled: false,
+});
+
 const emit = defineEmits(['eChangeTime']);
 const store = useStore();
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
