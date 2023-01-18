@@ -102,6 +102,12 @@ $height: 30px;
         .row {
             display: flex;
             flex-direction: row;
+            align-items: center;
+        }
+        .button-apply{
+            height: $height;
+            margin-left: $px-10;
+            @include button-effect;
         }
     }
 }
@@ -113,5 +119,19 @@ $height: 30px;
 
     @include theme() {
         background-color: theme-get('bg-color');
+    }
+}
+.input {
+    height: $height;
+    border: 1px solid $d-border;
+    outline: none;
+    flex: 1;
+    @include theme() {
+        background-color: theme-get('bg-color-input');
+        color: theme-get('text-color');
+        padding: $px-5 $px-10;
+    }
+    &:focus {
+        @include box-shadow;
     }
 }
