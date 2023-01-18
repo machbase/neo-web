@@ -1,11 +1,14 @@
 FROM node:latest as build-stage
 WORKDIR /app
 COPY package*.json ./
+RUN npm config set fetch-retry-mintimeout 20000
+RUN npm config set fetch-retry-maxtimeout 120000
 RUN npm install -f
 COPY ./ .
-RUN npm run build:cmcgtest
+RUN npm run build:cmcgdev
 
 FROM nginx as production-stage
 RUN mkdir /app
 COPY --from=build-stage /app/dist /app
 COPY nginx.conf /etc/nginx/nginx.conf
+

@@ -1,10 +1,10 @@
 version: '3.7'
 
 services:
-    cems-mobi-cmcg:
-        container_name: cems-mobi-cmcg
+    taganalyzer-front:
+        container_name: taganalyzer-front
         build:
             context: .
             dockerfile: Dockerfile-cmcg
         ports:
-            - '3000:80'        
+            - '5002:80'        
