@@ -1,17 +1,12 @@
 <template>
     <div class="time-range-wrapper">
         <div class="col-left">
+            <p>From</p>
             <div>
-                From
-                <Datepicker v-model="dateStart" auto-apply :dark="false">
-                    <template #trigger>
-                        <span>Img</span>
-                        <input :value="dateStart"/>
-                        <!-- <span><img src="" /></span> -->
-                    </template>
-                </Datepicker>
+                <DatePicker :p-disabled="false" :on-e-change-time="changeTime"/>
+                <input :value="dateStart" />
             </div>
-            <div>To<Datepicker v-model="dateEnd" text-input auto-apply></Datepicker></div>
+            <!-- <div>To<Datepicker v-model="dateEnd" text-input auto-apply></Datepicker></div> -->
             <div>
                 <p>Refreshing every</p>
                 <div class="row"><ComboboxTime /><v-btn variant="outlined"> Apply </v-btn></div>
@@ -22,11 +17,14 @@
 </template>
 
 <script setup lang="ts" name="TimeRange">
-import Datepicker from '@vuepic/vue-datepicker';
-import '@vuepic/vue-datepicker/dist/main.css';
+import DatePicker from '@/components/common/date-picker/index.vue';
+// import '@vuepic/vue-datepicker/dist/main.css';
 import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
 import TimeRange from '@/components/common/date-list/date-time-range.vue';
 import { computed, defineEmits, reactive, ref } from 'vue';
+const changeTime = (data: any) => {
+    console.log(data,'time');
+}
 const timeRange = reactive<any>({
     start: '',
     end: '',
