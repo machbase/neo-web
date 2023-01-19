@@ -27,11 +27,11 @@ type DataTime = {
 };
 const emit = defineEmits(['eOnChange']);
 const store = useStore();
-const cTimeRange = computed(() => store.state.gTimeRange);
+
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const sData = reactive({
     select: {} as DataTime,
-    input: cTimeRange.value.refresh || '',
+    input: '' as string,
 });
 const sOldInput = ref<string>('');
 

@@ -26,11 +26,7 @@
         </div>
         <div class="header__tool">
             <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.VIEW" class="time-range icon" @click="onClickPopupItem(PopupType.TIME_RANGE)">
-                {{
-                    !isEmpty(cTimeRange)
-                        ? `${cTimeRange.start ? cTimeRange.start : ''} ~ ${cTimeRange.end ? cTimeRange.end : ''} ${cTimeRange.refresh ? `refresh every ${cTimeRange.refresh}` : ''}`
-                        : TIME_RANGE_NOT_SET
-                }}
+                {{ TIME_RANGE_NOT_SET }}
             </div>
             <!-- <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new'" :src="i_b_timerange" class="icon" />             -->
             <v-icon
@@ -61,7 +57,6 @@
 </template>
 
 <script setup lang="ts" name="Header">
-import { isEmpty } from 'lodash';
 import i_b_close from '@/assets/image/i_b_close.png';
 import i_b_menu_1 from '@/assets/image/i_b_menu_1.png';
 import i_b_refresh from '@/assets/image/i_b_refresh.png';
@@ -82,7 +77,6 @@ import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SE
 
 export type headerType = RouteNames.TAG_VIEW | RouteNames.VIEW | RouteNames.CHART_VIEW | RouteNames.CHART_EDIT | RouteNames.NEW;
 const store = useStore();
-const cTimeRange = computed(() => store.state.gTimeRange);
 const router = useRouter();
 const route = useRoute();
 const sHeaderType = ref<headerType>(route.name as headerType);
@@ -103,8 +97,6 @@ const cWidthPopup = computed((): string => {
     switch (sPopupType.value) {
         case PopupType.PREFERENCES:
             return WIDTH_DEFAULT.PREFERENCES;
-        case PopupType.TIME_RANGE:
-            return WIDTH_DEFAULT.TIME_RANGE;
         default:
             return WIDTH_DEFAULT.DEFAULT;
     }

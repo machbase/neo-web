@@ -2,22 +2,18 @@
 
 .popup {
     font-size: 12px;
-
     .combobox-select {
         margin: 0;
-
         @include theme() {
             background-color: theme-get('bg-color-input');
             color: theme-get('text-color');
         }
     }
-
     &__input {
         display: flex;
         gap: $px-10;
         justify-content: space-between;
         margin-bottom: $px-10;
-
         &-label {
             align-self: center;
             text-align: right;
@@ -25,20 +21,16 @@
             width: 120px;
             font-weight: 500;
         }
-
         &-content {
             flex: 1;
         }
-
         .combobox-select {
             width: 100%;
         }
     }
-
     &__input-group {
         display: flex;
         gap: $px-10;
-
         &-label {
             align-self: center;
             text-align: right;
@@ -46,23 +38,19 @@
             width: 120px;
             font-weight: 500;
         }
-
         &-text {
             border: 1px solid $d-border;
             outline: none;
             padding: $px-5 $px-10;
             flex: 1;
-
             @include theme() {
                 background-color: theme-get('bg-color-input');
                 color: theme-get('text-color');
             }
-
             &:focus {
                 @include box-shadow;
             }
         }
-
         &-content {
             display: flex;
             align-items: center;
@@ -70,68 +58,17 @@
             gap: $px-10;
         }
     }
-
     &__btn-group {
         margin-top: $px-20;
         margin-bottom: $px-10;
         display: flex;
         gap: $px-10;
         justify-content: center;
-
         .button-effect {
             @include button-effect;
         }
-
         .button-effect-color {
             @include button-effect-color;
         }
-    }
-}
-
-$height: 30px;
-
-.time-range-wrapper {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-
-    .col-left {
-        display: flex;
-        flex-direction: column;
-
-        .row {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-        }
-        .button-apply{
-            height: $height;
-            margin-left: $px-10;
-            @include button-effect;
-        }
-    }
-}
-
-.icon {
-    width: $height;
-    height: $height;
-    border: 1px solid $color-blue;
-
-    @include theme() {
-        background-color: theme-get('bg-color');
-    }
-}
-.input {
-    height: $height;
-    border: 1px solid $d-border;
-    outline: none;
-    flex: 1;
-    @include theme() {
-        background-color: theme-get('bg-color-input');
-        color: theme-get('text-color');
-        padding: $px-5 $px-10;
-    }
-    &:focus {
-        @include box-shadow;
     }
 }

@@ -13,13 +13,13 @@
 import { TIME_RANGE } from '@/utils/constants';
 import { defineEmits } from 'vue';
 
-export type TimeRangeInput = {
+type Data = {
     key: number;
     name: string;
     value: string[];
 };
 const emit = defineEmits(['eOnTimeRange']);
-const onSendTime = (aTime: TimeRangeInput) => {
+const onSendTime = (aTime: Data) => {
     emit('eOnTimeRange', aTime);
 };
 </script>
