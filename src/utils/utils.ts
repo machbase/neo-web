@@ -6,11 +6,7 @@ import { DAY, HOUR, MINUTE, SECOND } from './constants';
 const utils = {
     // delay,
 };
-const formatDate = (date: Date): string => {
-    const dateStr = date.toISOString();
-    const [yyyy, mm, dd, hh, mi, se] = dateStr?.split(/[/:\-T. ]/) || [];
-    return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${se}`;
-};
+
 // const getStatusTimeCheck = async (aType: string) => {
 //     let webTimeS = 0;
 //     let webTimeE = 0;
@@ -69,4 +65,4 @@ function splitTimeDuration(aTime: string) {
     return sRet;
 }
 
-export { utils, splitTimeDuration, formatDate };
+export { utils, splitTimeDuration };

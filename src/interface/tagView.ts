@@ -8,8 +8,3 @@ export interface ResPreferences {
     theme: string;
     timeout: number;
 }
-export interface TimeRange {
-    start: string;
-    end: string;
-    refresh: string;
-}
