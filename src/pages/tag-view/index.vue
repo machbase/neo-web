@@ -14,6 +14,7 @@ import { PopupType } from '@/enums/app';
 import { BoardInfo } from '@/interface/chart';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
+import { isEmpty } from 'lodash';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 

@@ -49,15 +49,18 @@ const getBoard = async (sId: string): Promise<BoardInfo> => {
     );
 };
 
-const putBoard = (params: any) => {
+const putBoard = async (params: any): Promise<ResBoardList[]> => {
     const { sId, board_name } = params;
-    return request({
-        method: 'PUT',
-        url: `/api/machiotboard/${sId}/`,
-        data: {
-            board_name,
-        },
-    });
+    return ResponseList<ResBoardList[]>(
+        await request({
+            method: 'PUT',
+            url: `/api/machiotboard/${sId}/`,
+            data: {
+                board_name,
+            },
+        }),
+        ResType.list
+    );
 };
 
 const deleteBoard = (sId: any) => {

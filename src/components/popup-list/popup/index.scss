@@ -104,7 +104,7 @@ $height: 30px;
             flex-direction: row;
             align-items: center;
         }
-        .button-apply{
+        .button-apply {
             height: $height;
             margin-left: $px-10;
             @include button-effect;
@@ -149,10 +149,61 @@ $height: 30px;
             flex-direction: row;
             align-items: center;
         }
-        .button-apply{
+        .button-apply {
             height: $height;
             margin-left: $px-10;
             @include button-effect;
+        }
+    }
+}
+
+.manage-dashboard {
+    &__table {
+        min-height: 400px;
+        .text-title {
+            font-weight: 500;
+        }
+        .text-title,
+        .text-row {
+            height: 20px;
+            padding-top: 4px;
+            padding-bottom: 4px;
+            text-align: center !important;
+            @include theme() {
+                border-bottom: 1px solid theme-get('border-color');
+            }
+            @include font-12;
+            &-edit {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                .input {
+                    height: 22px;
+                }
+                .button-effect {
+                    @include button-effect;
+                    height: 22px;
+                    width: 56px;
+                }
+
+                .button-effect-color {
+                    @include button-effect-color;
+                    height: 22px;
+                    width: 56px;
+                }
+            }
+        }
+        .text-row.imgs {
+            img {
+                padding: 5px;
+                margin-right: 3px;
+                cursor: pointer;
+                vertical-align: middle;
+            }
+        }
+        @include theme() {
+            background-color: theme-get('bg-color');
+            color: theme-get('color-table');
         }
     }
 }

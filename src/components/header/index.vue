@@ -107,6 +107,8 @@ const cWidthPopup = computed((): string => {
             return WIDTH_DEFAULT.TIME_RANGE;
         case PopupType.TIME_DURATION:
             return WIDTH_DEFAULT.TIME_DURATION;
+        case PopupType.MANAGE_DASHBOARD:
+            return WIDTH_DEFAULT.MANAGE_DASHBOARD;
         default:
             return WIDTH_DEFAULT.DEFAULT;
     }
