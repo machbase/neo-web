@@ -35,15 +35,15 @@ const fetchRawData = async (params: any) => {
     });
 };
 
-const fetchRangeData = async (params: any) => {
-    const { Table, TagName } = params;
+const fetchRangeData = async (params?: any) => {
+    // const { Table, TagName } = params;
     return await request({
         method: 'GET',
-        url: `/machiot/tags/range`,
-        data: {
-            Table,
-            TagName,
-        },
+        url: `/machiot-rest-api/tags/range`,
+        // data: {
+        //     Table,
+        //     TagName,
+        // },
     });
 };
 
