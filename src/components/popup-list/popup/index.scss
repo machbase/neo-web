@@ -112,6 +112,28 @@ $height: 30px;
     }
 }
 
+.time-duration-wrapper {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    .col-left {
+        width: 50%;
+        display: flex;
+        flex-direction: column;
+
+        .row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
+        .button-apply{
+            height: $height;
+            margin-left: $px-10;
+            @include button-effect;
+        }
+    }
+}
+
 .icon {
     width: $height;
     height: $height;

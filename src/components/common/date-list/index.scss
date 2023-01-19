@@ -9,6 +9,19 @@
         display: flex;
         justify-content: space-between;
         .col {
+            margin-right: 20px;
+            .text {
+                cursor: pointer;
+                @include theme() {
+                    color: theme-get('text-color1');
+                }
+            }
+            .text:hover {
+                color: $color-blue;
+            }
+        }
+        .col-duration {
+            margin-right: 60px;
             .text {
                 cursor: pointer;
                 @include theme() {
