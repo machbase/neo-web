@@ -6,8 +6,11 @@ import { DAY, HOUR, MINUTE, SECOND } from './constants';
 const utils = {
     // delay,
 };
-const formatDate = (date: Date): string => {
-    const dateStr = date.toISOString();
+const formatDate = (date: Date | string): string => {
+    let dateStr;
+    if (typeof date === 'string') dateStr = date;
+    else dateStr = date?.toISOString();
+    // let dateStr = date.toISOString();
     const [yyyy, mm, dd, hh, mi, se] = dateStr?.split(/[/:\-T. ]/) || [];
     return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${se}`;
 };
