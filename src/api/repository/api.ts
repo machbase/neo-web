@@ -1,5 +1,6 @@
 import request from '@/api/core';
 import { ResponseData, ResponseList, ResType } from '@/assets/ts/common';
+import { BoardInfo } from '@/interface/chart';
 import { ResBoardList, ResPreferences } from '@/interface/tagView';
 
 const getBoardList = async (): Promise<ResBoardList[]> => {
@@ -38,11 +39,14 @@ const postSetting = async (params: any): Promise<ResPreferences> => {
     );
 };
 
-const getBoard = (sId: string) => {
-    return request({
-        method: 'GET',
-        url: `/api/machiotboard/${sId}/`,
-    });
+const getBoard = async (sId: string): Promise<BoardInfo> => {
+    return ResponseData<BoardInfo>(
+        await request({
+            method: 'GET',
+            url: `/api/machiotboard/${sId}/`,
+        }),
+        ResType.data
+    );
 };
 
 const putBoard = (params: any) => {
