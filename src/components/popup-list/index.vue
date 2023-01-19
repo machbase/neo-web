@@ -29,15 +29,14 @@
 import i_b_close from '@/assets/image/i_b_close.png';
 import { PopupType } from '@/enums/app';
 import { useStore } from '@/store';
-import { MutationTypes } from '@/store/mutations';
-import { computed, defineProps, ref, watch, defineEmits } from 'vue';
+import { computed, defineEmits, defineProps, ref, watch } from 'vue';
 import ManageDashboard from './popup/ManageDashboard.vue';
 import NewChart from './popup/NewChart.vue';
 import NewTags from './popup/NewTags.vue';
 import Preferences from './popup/Preferences.vue';
 import SaveDashboard from './popup/SaveDashboard.vue';
-import TimeRange from './popup/TimeRange.vue';
 import TimeDuration from './popup/TimeDuration.vue';
+import TimeRange from './popup/TimeRange.vue';
 
 interface PopupWrapProps {
     pType: PopupType;

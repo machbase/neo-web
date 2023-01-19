@@ -1,4 +1,4 @@
-import { ResBoardList, ResPreferences } from '@/interface/tagView';
+import { ResBoardList, ResPreferences, TimeRange } from '@/interface/tagView';
 import { RootState } from './state';
 
 enum MutationTypes {
@@ -6,6 +6,7 @@ enum MutationTypes {
     setPreference = 'setPreference',
     activeHeader = 'activeHeader',
     setBoardList = 'setBoardList',
+    setTimeRange = 'setTimeRange',
 }
 
 const mutations = {
@@ -18,6 +19,9 @@ const mutations = {
     },
     [MutationTypes.setPreference](state: RootState, aPreference: ResPreferences) {
         state.gPreference = aPreference;
+    },
+    [MutationTypes.setTimeRange](state: RootState, aTimeRange: TimeRange) {
+        state.gTimeRange = aTimeRange;
     },
 };
 

@@ -15,7 +15,7 @@
         <Pagination :total="6" />
         TimeRange
         <TimeRange @eOnTimeRange="OnTimeRange" />
-        TimeDuration
+        TimeRange
         <TimeDuration @eOnTimeDuration="OnTimeRange" />
     </div>
 </template>
