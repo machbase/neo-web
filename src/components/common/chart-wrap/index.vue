@@ -1,6 +1,5 @@
 <template>
     <div class="chart-wrap">
-        <div>title</div>
         <slot />
     </div>
 </template>

@@ -72,3 +72,73 @@
         }
     }
 }
+
+$height: 30px;
+
+.time-range-wrapper {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+
+    .col-left {
+        display: flex;
+        flex-direction: column;
+
+        .row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
+        .button-apply{
+            height: $height;
+            margin-left: $px-10;
+            @include button-effect;
+        }
+    }
+}
+
+.time-duration-wrapper {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    .col-left {
+        width: 50%;
+        display: flex;
+        flex-direction: column;
+
+        .row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
+        .button-apply{
+            height: $height;
+            margin-left: $px-10;
+            @include button-effect;
+        }
+    }
+}
+
+.icon {
+    width: $height;
+    height: $height;
+    border: 1px solid $color-blue;
+
+    @include theme() {
+        background-color: theme-get('bg-color');
+    }
+}
+.input {
+    height: $height;
+    border: 1px solid $d-border;
+    outline: none;
+    flex: 1;
+    @include theme() {
+        background-color: theme-get('bg-color-input');
+        color: theme-get('text-color');
+        padding: $px-5 $px-10;
+    }
+    &:focus {
+        @include box-shadow;
+    }
+}

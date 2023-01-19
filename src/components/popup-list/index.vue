@@ -19,6 +19,7 @@
                 <Preferences v-if="pType === PopupType.PREFERENCES" @eClosePopup="onClosePopup" />
                 <SaveDashboard v-if="pType === PopupType.SAVE_DASHBOARD" @eClosePopup="onClosePopup" />
                 <TimeRange v-if="pType === PopupType.TIME_RANGE" @eClosePopup="onClosePopup" />
+                <TimeDuration v-if="pType === PopupType.TIME_DURATION" @eClosePopup="onClosePopup" />
             </div>
         </div>
     </v-dialog>
@@ -36,6 +37,7 @@ import NewTags from './popup/NewTags.vue';
 import Preferences from './popup/Preferences.vue';
 import SaveDashboard from './popup/SaveDashboard.vue';
 import TimeRange from './popup/TimeRange.vue';
+import TimeDuration from './popup/TimeDuration.vue';
 
 interface PopupWrapProps {
     pType: PopupType;

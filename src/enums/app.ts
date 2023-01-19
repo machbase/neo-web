@@ -29,4 +29,5 @@ export enum PopupType {
     PREFERENCES = 'Preferences',
     SAVE_DASHBOARD = 'Save Dashboard',
     TIME_RANGE = 'Time range',
+    TIME_DURATION = 'Time duration',
 }

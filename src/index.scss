@@ -16,6 +16,7 @@
         background-color: theme-get('bg-color');
         color: theme-get('text-color');
     }
+    padding: 0 $px-20 !important;
     flex: 1;
 }
 body {

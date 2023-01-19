@@ -41,7 +41,7 @@
                 class="icon"
                 @click="onClickPopupItem(PopupType.TIME_RANGE)"
             />
-            <img :src="i_b_refresh" class="icon" />
+            <img :src="i_b_refresh" class="icon" @click="onClickPopupItem(PopupType.TIME_DURATION)" />
             <router-link
                 v-if="route.params.id || cBoardListSelect[0]?.id"
                 :to="{ name: RouteNames.VIEW, params: { id: route.params.id || cBoardListSelect[0]?.id }, query: {} }"
@@ -97,6 +97,10 @@ const cWidthPopup = computed((): string => {
     switch (sPopupType.value) {
         case PopupType.PREFERENCES:
             return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.TIME_RANGE:
+            return WIDTH_DEFAULT.TIME_RANGE;
+        case PopupType.TIME_DURATION:
+            return WIDTH_DEFAULT.TIME_DURATION;
         default:
             return WIDTH_DEFAULT.DEFAULT;
     }
