@@ -123,7 +123,6 @@ const onChangeRoute = (aValue: string) => {
     router.replace({ query: { id: aValue } });
     if (route.name === RouteNames.VIEW) router.replace({ query: {} });
     if (route.name === RouteNames.NEW) router.replace({ name: RouteNames.TAG_VIEW, query: { id: aValue } });
-    console.log(aValue);
 };
 const onClickPopupItem = (aPopupName: PopupType) => {
     sPopupType.value = aPopupName;

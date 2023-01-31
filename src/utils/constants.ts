@@ -1,6 +1,5 @@
-import { TimeRange } from '@/interface/web';
-
 //
+export const LENGTH_LIST = 10;
 export const NOW = 'now';
 export const DAY = 'd';
 export const HOUR = 'h';

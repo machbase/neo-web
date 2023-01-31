@@ -44,7 +44,8 @@ import { useStore } from '@/store';
 import { MutationTypes } from '@/store/mutations';
 import { computed, defineEmits, ref, watch } from 'vue';
 import { DATA_TITLE } from './constant';
-export interface BoardList {
+import { LENGTH_LIST } from '@/utils/constants';
+export interface BoardInfo {
     board_id: string;
     board_name: string;
     last_edit: string;
@@ -54,7 +55,7 @@ export interface BoardList {
 const store = useStore();
 const emit = defineEmits(['eClosePopup']);
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
-const sBoardList = ref<BoardList[]>(
+const sBoardList = ref<BoardInfo[]>(
     cBoardList.value.map((aBoard) => {
         return {
             ...aBoard,
@@ -62,10 +63,9 @@ const sBoardList = ref<BoardList[]>(
         };
     })
 );
-const cTotal = computed(() => Math.ceil(sBoardList.value.length / 10));
+const cTotal = computed(() => Math.ceil(sBoardList.value.length / LENGTH_LIST));
 
-const onEditBoard = async (aBoard: BoardList) => {
-    console.log('first', aBoard);
+const onEditBoard = async (aBoard: BoardInfo) => {
     const sRes = await putBoard({ sId: aBoard.board_id, board_name: aBoard.board_name });
     await store.commit(MutationTypes.setBoardList, sRes);
     sBoardList.value = sBoardList.value.map((aBoard) => {
