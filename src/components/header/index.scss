@@ -1,8 +1,9 @@
 @import '@/assets/scss/theme.scss';
 .header {
+    height: 44px;
     display: flex;
     justify-content: space-between;
-    padding: $px-7 $px-10;
+    padding: 0 $px-10;
     background-color: $d-background-opa;
     color: $text-w;
     &__link {
