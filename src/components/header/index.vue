@@ -107,6 +107,8 @@ const cWidthPopup = computed((): string => {
             return WIDTH_DEFAULT.TIME_RANGE;
         case PopupType.TIME_DURATION:
             return WIDTH_DEFAULT.TIME_DURATION;
+        case PopupType.MANAGE_DASHBOARD:
+            return WIDTH_DEFAULT.MANAGE_DASHBOARD;
         default:
             return WIDTH_DEFAULT.DEFAULT;
     }
@@ -121,7 +123,6 @@ const onChangeRoute = (aValue: string) => {
     router.replace({ query: { id: aValue } });
     if (route.name === RouteNames.VIEW) router.replace({ query: {} });
     if (route.name === RouteNames.NEW) router.replace({ name: RouteNames.TAG_VIEW, query: { id: aValue } });
-    console.log(aValue);
 };
 const onClickPopupItem = (aPopupName: PopupType) => {
     sPopupType.value = aPopupName;

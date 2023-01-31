@@ -1,5 +1,5 @@
 <template>
-    <v-pagination v-model="sIndex" :size="'x-small'" :active-color="'#2ec0df'" :color="'#9ca2ab'" :length="props.total"></v-pagination>
+    <v-pagination v-model="sIndex" class="pagination-cp" :size="'x-small'" :active-color="'#2ec0df'" :color="'#9ca2ab'" :length="props.total"></v-pagination>
 </template>
 
 <script setup lang="ts" name="Pagination">

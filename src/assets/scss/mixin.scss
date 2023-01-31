@@ -8,6 +8,7 @@ $themes: (
         'border-color': $d-border-28,
         'bg-color-button': $d-background-1c,
         'border-color-paging': $d-border,
+        'color-table': $d-color-table,
     ),
     light: (
         'text-color': $l-text,
@@ -18,6 +19,7 @@ $themes: (
         'border-color': $l-border,
         'bg-color-button': $l-background-f6,
         'border-color-paging': $l-border,
+        'color-table': $l-color-table,
     ),
 );
 @mixin theme() {
@@ -62,7 +64,7 @@ $themes: (
     font-size: 12px;
     height: 30px;
     width: 70px;
-    &:hover{
+    &:hover {
         font-weight: bold;
     }
 }
@@ -73,7 +75,7 @@ $themes: (
     font-size: 12px;
     height: 30px;
     width: 70px;
-    &:hover{
+    &:hover {
         font-weight: bold;
     }
     @include theme() {
@@ -82,3 +84,11 @@ $themes: (
     }
 }
 // font
+@mixin font-12 {
+    font-family: 'Open Sans', Helvetica, Arial, sans-serif;
+    font-size: 12px;
+}
+@mixin font-13 {
+    font-family: 'Open Sans', Helvetica, Arial, sans-serif;
+    font-size: 13px;
+}
