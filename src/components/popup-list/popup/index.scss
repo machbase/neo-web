@@ -291,6 +291,7 @@ $height: 30px;
       color: #e7e8ea;
       background-color: #202020;
       border: 1px solid #383838;
+      margin-bottom: 20px;
 }
 .taglistdiv div {
     cursor: pointer;
@@ -309,3 +310,19 @@ $height: 30px;
 .taglistscroll::-webkit-scrollbar-thumb {
     background: #383838;
   }
+.selectedlistdiv {
+    height: 240px;
+    padding: 10px;
+    font-size: 12px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    color: #e7e8ea;
+    background-color: #131313;
+    border: 1px solid #383838;
+  }
+.selectedlistdiv div {
+    cursor: pointer;
+}
+.selectedlistdiv div:hover {
+    font-weight: bold;
+}

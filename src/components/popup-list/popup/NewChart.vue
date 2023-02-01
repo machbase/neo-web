@@ -3,7 +3,7 @@
         <div class="row">
             <div class="newchart-all">
                 <div class="tagtitle floatleft">Table</div>
-                <ComboboxSelect class="input" :p-show-default-option="false" :p-data="[{ id: '1', name: 'TAG' }]" :p-value="'1'" style="width: 100%" />
+                <ComboboxSelect class="input" :p-show-default-option="false" :p-data="cTableListSelect" :p-value="'TAG'" style="width: 100%" />
             </div>
         </div>
         <div class="row">
@@ -16,7 +16,7 @@
                 </div>
                 <div class="countGroup">
                     <div class="wrapsearchcount floatleft">
-                        <p class="searchcount">Total : {{ cTags.length }} / 10,000</p>
+                        <p class="searchcount">Total : {{ cTagsSearch.length }} / {{ cTags.length }}</p>
                     </div>
                     <div class="selectCountBox floatright">
                         <p class="selCountText">
@@ -25,13 +25,23 @@
                     </div>
                 </div>
                 <div class="taglistdiv taglistscroll">
-                    <div style="margin-bottom: 5px" v-for="aTime in cTags" :key="aTime" class="text" @click="onSelectTag(aTime)">{{ aTime }}</div>
+                    <div style="margin-bottom: 5px" v-for="aTime in cTagsSearch" :key="aTime" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
                 </div>
-                <Pagination :total="Math.ceil(cTags.length / 1)" @e-on-change="onPaging"/>
+                <Pagination :total="Math.ceil(cTags.length / 1)" @e-on-change="onPaging" />
             </div>
             <div class="col-sm-6 newchart-right">
                 <div class="wrapcharttype overflowhidden">
                     <ChartSelect @e-on-change="onSelectChart" />
+                </div>
+                <div class="selectedlistdiv taglistscroll">
+                    <div v-for="(aTime, aIndex) in sSelectedTags" style="margin-bottom: 5px" :key="aIndex" class="text">
+                        <span @click="onRemoveTag(aIndex)"> {{ aTime.NAME }}</span>
+                        <ComboboxSelect :p-show-default-option="false" :p-data="CALC_MODE" :p-value="'avg'" @e-on-change="onChangeCalcMode" />
+                    </div>
+                </div>
+                <div class="popup__btn-group">
+                    <v-btn variant="outlined" class="button-effect-color" @click="onSetting"> Ok </v-btn>
+                    <v-btn variant="outlined" class="button-effect" @click="onClosePopup"> Cancel </v-btn>
                 </div>
             </div>
         </div>
@@ -48,16 +58,48 @@ import ChartSelect from '@/components/common/chart-select/index.vue';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
 import { useStore } from '@/store';
-import { computed, defineEmits, reactive, ref } from 'vue';
+import { computed, defineEmits, reactive, ref, onMounted } from 'vue';
 import { ChartType } from '@/enums/app';
+import { CALC_MODE } from './constant';
+import { fetchTablesData } from '@/api/repository/machiot';
+import { ActionTypes } from '@/store/actions';
+const emit = defineEmits(['eClosePopup']);
 const searchText = ref<string>('');
 const chartType = ref<ChartType>(ChartType.Zone);
 const selectCount = ref<number>(0);
-const cTags = ['TAG0001', 'TAG0002'];
+const cTags = computed(() => store.state.gTagList);
+let cTagsSearch = ref<any>(cTags);
+const sSelectedTags = reactive<any>([]);
 const store = useStore();
-// const cTableList = computed((): ResBoardList[] => store.state.gTableList);
+// onMounted(async () => {
+//     const data: any = await fetchTablesData();
+//     console.log('🚀 ~ file: TimeDuration.vue:43 ~ onMounted ~ Data', data);
+// });
+const cTableList = computed(() => store.state.gTableList);
+const cTableListSelect = computed(() =>
+    cTableList.value.map((aItem: string) => {
+        return {
+            id: aItem,
+            name: aItem,
+        };
+    })
+);
+console.log('🚀 ~ file: NewChart.vue:72 ~ cTableList', cTableList.value);
 const onSearch = () => {
-    if (searchText.value != '') console.log('searchText.value', searchText.value.trim());
+    if (searchText.value != '') {
+        const searchTextTrim = searchText.value.trim();
+        let sRegExp = new RegExp(searchTextTrim);
+        if (searchTextTrim.charAt(0) == '/' && searchTextTrim.indexOf('/', 1) != -1) {
+            // regexp
+            var sSplit = searchTextTrim.split('/');
+            sRegExp = sSplit.length > 2 ? new RegExp(sSplit[1], sSplit[2]) : new RegExp(sSplit[1]);
+        }
+
+        console.log('🚀 ~ file: NewChart.vue:91 ~ onSearch ~ searchTextTrim', searchTextTrim);
+        cTagsSearch.value = cTagsSearch.value.filter(function (aVal: any) {
+            return aVal['NAME'].search(sRegExp) != -1;
+        });
+    }
 };
 const onReset = () => {
     if (searchText.value != '') searchText.value = '';
@@ -68,11 +110,30 @@ const onSelectChart = (data: ChartType) => {
 };
 const onSelectTag = (data: any) => {
     selectCount.value++;
+    sSelectedTags.push(data);
+    console.log(data, 'data');
+};
+const onRemoveTag = (index: number) => {
+    selectCount.value--;
+    sSelectedTags.splice(index, 1);
+    console.log(index, 'index');
+};
+const onChangeCalcMode = (data: string) => {
     console.log(data, 'data');
 };
 const onPaging = (index: number) => {
     console.log(index, 'index');
-}
+};
+const onSetting = () => {
+    onClosePopup();
+    // store.dispatch(ActionTypes.setTimeRange, { start: dateStart.value, end: dateEnd.value }).then(() => onClosePopup());
+};
+
+const onClosePopup = () => {
+    emit('eClosePopup');
+};
+store.dispatch(ActionTypes.fetchTableList);
+store.dispatch(ActionTypes.fetchTagList, 'TAG');
 </script>
 
 <style lang="scss" scoped>
