@@ -13,3 +13,8 @@ export interface TimeRange {
     end: string;
     refresh: string;
 }
+export interface ResTableList {
+    board_id: string;
+    board_name: string;
+    last_edit: string;
+}
