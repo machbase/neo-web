@@ -3,7 +3,7 @@
         <div class="row">
             <div class="newchart-all">
                 <div class="tagtitle floatleft">Table</div>
-                <ComboboxSelect class="input" :p-show-default-option="false" :p-data="cTableListSelect" :p-value="'TAG'" style="width: 100%" />
+                <ComboboxSelect class="input" :p-show-default-option="false" :p-data="cTableListSelect" :p-value="'TAG'" style="width: 100%" @e-on-change="onChangeTable" />
             </div>
         </div>
         <div class="row">
@@ -25,7 +25,7 @@
                     </div>
                 </div>
                 <div class="taglistdiv taglistscroll">
-                    <div style="margin-bottom: 5px" v-for="aTime in cTagsSearch" :key="aTime" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
+                    <div style="margin-bottom: 5px" v-for="(aTime, aIndex) in cTagsSearch" :key="aIndex" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
                 </div>
                 <Pagination :total="Math.ceil(cTags.length / 1)" @e-on-change="onPaging" />
             </div>
@@ -34,9 +34,9 @@
                     <ChartSelect @e-on-change="onSelectChart" />
                 </div>
                 <div class="selectedlistdiv taglistscroll">
-                    <div v-for="(aTime, aIndex) in sSelectedTags" style="margin-bottom: 5px" :key="aIndex" class="text">
-                        <span @click="onRemoveTag(aIndex)"> {{ aTime.NAME }}</span>
-                        <ComboboxSelect :p-show-default-option="false" :p-data="CALC_MODE" :p-value="'avg'" @e-on-change="onChangeCalcMode" />
+                    <div v-for="(aTime, aIndex) in sSelectedTags" style="margin-bottom: 5px" :key="aIndex" class="wrapperTagSelect">
+                        <span @click="onRemoveTag(aIndex)"> {{ aTime.tag_names }}</span>
+                        <ComboboxSelect :p-show-default-option="false" :p-data="CALC_MODE" :p-value="'avg'" @e-on-change="(item) => onChangeCalcMode(item, aIndex)" />
                     </div>
                 </div>
                 <div class="popup__btn-group">
@@ -58,23 +58,24 @@ import ChartSelect from '@/components/common/chart-select/index.vue';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
 import { useStore } from '@/store';
-import { computed, defineEmits, reactive, ref, onMounted } from 'vue';
+import { computed, defineEmits, reactive, ref, watch } from 'vue';
 import { ChartType } from '@/enums/app';
-import { CALC_MODE } from './constant';
+import { CALC_MODE, MAX_TAG_COUNT } from './constant';
 import { fetchTablesData } from '@/api/repository/machiot';
 import { ActionTypes } from '@/store/actions';
+import { TagSet } from '@/interface/chart';
+import { CalculationMode } from '@/interface/constants';
 const emit = defineEmits(['eClosePopup']);
 const searchText = ref<string>('');
+const isSearchClick = ref<boolean>(false);
+const tableSelected = ref<string>('');
 const chartType = ref<ChartType>(ChartType.Zone);
 const selectCount = ref<number>(0);
 const cTags = computed(() => store.state.gTagList);
-let cTagsSearch = ref<any>(cTags);
-const sSelectedTags = reactive<any>([]);
+const cTagsSearch = ref<any>([]);
+console.log('🚀 ~ file: NewChart.vue:75 ~ cTagsSearch', cTagsSearch);
+const sSelectedTags = reactive<Partial<TagSet>[]>([]);
 const store = useStore();
-// onMounted(async () => {
-//     const data: any = await fetchTablesData();
-//     console.log('🚀 ~ file: TimeDuration.vue:43 ~ onMounted ~ Data', data);
-// });
 const cTableList = computed(() => store.state.gTableList);
 const cTableListSelect = computed(() =>
     cTableList.value.map((aItem: string) => {
@@ -84,9 +85,33 @@ const cTableListSelect = computed(() =>
         };
     })
 );
+const onChangeTable = (aValue: string) => {
+    tableSelected.value = aValue;
+};
+watch(
+    () => cTags.value,
+    () => {
+        cTagsSearch.value = cTags.value;
+    }
+);
+watch(
+    () => searchText.value,
+    () => {
+        if (searchText.value == '') {
+            cTagsSearch.value = cTags.value;
+        }
+    }
+);
+watch(
+    () => tableSelected.value,
+    () => {
+        store.dispatch(ActionTypes.fetchTagList, tableSelected.value);
+    }
+);
 console.log('🚀 ~ file: NewChart.vue:72 ~ cTableList', cTableList.value);
 const onSearch = () => {
     if (searchText.value != '') {
+        isSearchClick.value = true;
         const searchTextTrim = searchText.value.trim();
         let sRegExp = new RegExp(searchTextTrim);
         if (searchTextTrim.charAt(0) == '/' && searchTextTrim.indexOf('/', 1) != -1) {
@@ -94,9 +119,7 @@ const onSearch = () => {
             var sSplit = searchTextTrim.split('/');
             sRegExp = sSplit.length > 2 ? new RegExp(sSplit[1], sSplit[2]) : new RegExp(sSplit[1]);
         }
-
-        console.log('🚀 ~ file: NewChart.vue:91 ~ onSearch ~ searchTextTrim', searchTextTrim);
-        cTagsSearch.value = cTagsSearch.value.filter(function (aVal: any) {
+        cTagsSearch.value = cTags.value.filter(function (aVal: any) {
             return aVal['NAME'].search(sRegExp) != -1;
         });
     }
@@ -108,32 +131,41 @@ const onSelectChart = (data: ChartType) => {
     console.log(data, 'data');
     chartType.value = data;
 };
-const onSelectTag = (data: any) => {
+const onSelectTag = (data: { NAME: string }) => {
     selectCount.value++;
-    sSelectedTags.push(data);
-    console.log(data, 'data');
+    sSelectedTags.push({ tag_names: data.NAME, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0 });
 };
 const onRemoveTag = (index: number) => {
     selectCount.value--;
     sSelectedTags.splice(index, 1);
     console.log(index, 'index');
 };
-const onChangeCalcMode = (data: string) => {
-    console.log(data, 'data');
+const onChangeCalcMode = (data: CalculationMode, index: number) => {
+    sSelectedTags[index].calculation_mode = data;
 };
 const onPaging = (index: number) => {
     console.log(index, 'index');
 };
 const onSetting = () => {
-    onClosePopup();
-    // store.dispatch(ActionTypes.setTimeRange, { start: dateStart.value, end: dateEnd.value }).then(() => onClosePopup());
+    if (sSelectedTags.length <= 0) {
+        alert('Select tags for the chart.');
+        return;
+    }
+    if (sSelectedTags.length > MAX_TAG_COUNT) {
+        alert('The maximum number of tags in a chart is ' + MAX_TAG_COUNT.toString() + '.');
+        return;
+    }
+    const newData = {
+        chartType: chartType.value,
+        tagSet: sSelectedTags,
+    }
+    store.dispatch(ActionTypes.setTempNewChartData, newData).then(() => onClosePopup());
 };
 
 const onClosePopup = () => {
     emit('eClosePopup');
 };
 store.dispatch(ActionTypes.fetchTableList);
-store.dispatch(ActionTypes.fetchTagList, 'TAG');
 </script>
 
 <style lang="scss" scoped>

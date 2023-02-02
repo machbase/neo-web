@@ -1,3 +1,4 @@
+import { TempNewChartData } from './../interface/tagView';
 import { getBoardList, getPreference, postSetting } from '@/api/repository/api';
 import { ActionContext } from 'vuex';
 import { MutationTypes, Mutations } from './mutations';
@@ -16,6 +17,7 @@ enum ActionTypes {
     setTimeRange = 'setTimeRange',
     fetchTableList = 'fetchTableList',
     fetchTagList = 'fetchTagList',
+    setTempNewChartData = 'setTempNewChartData',
 }
 
 const actions = {
@@ -42,6 +44,9 @@ const actions = {
         const res = await fetchTags(payload);
         console.log("🚀 ~ file: actions.ts:38 ~ res", res);
         context.commit(MutationTypes.setTagList, (res as any).Data);
+    },
+    [ActionTypes.setTempNewChartData](context: MyActionContext, payload: TempNewChartData) {
+        context.commit(MutationTypes.setTempNewChartData, payload);
     },
 };
 

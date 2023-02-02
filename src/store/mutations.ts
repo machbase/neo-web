@@ -1,3 +1,4 @@
+import { TempNewChartData } from './../interface/tagView';
 import { ResBoardList, ResPreferences, TimeRange } from '@/interface/tagView';
 import { RootState } from './state';
 
@@ -9,6 +10,7 @@ enum MutationTypes {
     setTimeRange = 'setTimeRange',
     setTableList = 'setTableList',
     setTagList = 'setTagList',
+    setTempNewChartData = 'setTempNewChartData',
 }
 
 const mutations = {
@@ -47,6 +49,9 @@ const mutations = {
     },
     [MutationTypes.setTagList](state: RootState, aTagList: any) {
         state.gTagList = aTagList;
+    },
+    [MutationTypes.setTempNewChartData](state: RootState, aTemp: TempNewChartData) {
+        state.gTempNewChartData = aTemp;
     },
 };
 

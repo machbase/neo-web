@@ -1,4 +1,4 @@
-import { ResBoardList, ResPreferences, TimeRange } from '@/interface/tagView';
+import { ResBoardList, ResPreferences, TempNewChartData, TimeRange } from '@/interface/tagView';
 
 const state = {
     /* Global */
@@ -9,8 +9,9 @@ const state = {
     gTableList: [] as any,
     gSecRollupExist: {} as any,
     gTagList: [] as any,
+    gTempNewChartData: {} as TempNewChartData,
 };
-console.log("🚀 ~ file: state.ts:11 ~ gTableList", state.gTableList)
+console.log("🚀 ~ file: state.ts:11 ~ gTempNewChartData", state.gTempNewChartData)
 
 type RootState = typeof state;
 
