@@ -1,7 +1,7 @@
 <template>
     <select v-model="sSelect" class="combobox-select">
         <img class="icon" :src="ic_arrow_s_down" />
-        <option class="combobox-select__item" value="">{{ pStringDefault }}</option>
+        <option v-if="props.pShowDefaultOption" class="combobox-select__item" value="">{{ pStringDefault }}</option>
         <option v-for="aItem in pData" :key="aItem.id" class="combobox-select__item" :value="aItem.id">{{ aItem.name }}</option>
     </select>
 </template>
@@ -19,10 +19,12 @@ interface ComboboxSelectProps {
     pData: ComboboxData[];
     pValue?: any;
     pStringDefault?: string;
+    pShowDefaultOption?: boolean;
 }
 
 const props = withDefaults(defineProps<ComboboxSelectProps>(), {
     pStringDefault: SELECT_DASHBOARD,
+    pShowDefaultOption: true,
 });
 
 const emit = defineEmits(['eOnChange']);

@@ -1,7 +1,12 @@
 @import '@/assets/scss/theme.scss';
-
+.pagination-cp{
+    @include theme() {
+        color: theme-get('border-color-paging') !important;
+    }
+}
 :deep(.v-pagination__prev) {
-    border: 1px solid;
+    border-width: 1px;
+    border-style: solid;
     margin: 0;
     @include theme() {
         background-color: theme-get('bg-color-opa') !important;
@@ -12,7 +17,8 @@
 }
 
 :deep(.v-pagination__item) {
-    border: 1px solid;
+    border-width: 1px;
+    border-style: solid;
     margin: 0;
     border-left-style: none;
     @include theme() {
@@ -22,7 +28,8 @@
 }
 
 :deep(.v-pagination__next) {
-    border: 1px solid;
+    border-width: 1px;
+    border-style: solid;
     margin: 0;
     border-left-style: none;
     @include theme() {

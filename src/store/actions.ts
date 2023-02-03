@@ -1,8 +1,10 @@
+import { TempNewChartData } from './../interface/tagView';
 import { getBoardList, getPreference, postSetting } from '@/api/repository/api';
 import { ActionContext } from 'vuex';
 import { MutationTypes, Mutations } from './mutations';
 import { RootState } from './state';
 import { ResPreferences, TimeRange } from '@/interface/tagView';
+import { fetchTablesData, fetchTags } from '@/api/repository/machiot';
 
 type MyActionContext = {
     commit<K extends keyof Mutations>(key: K, payload?: Parameters<Mutations[K]>[1]): ReturnType<Mutations[K]>;
@@ -13,6 +15,9 @@ enum ActionTypes {
     fetchPreference = 'fetchPreference',
     postPreference = 'postPreference',
     setTimeRange = 'setTimeRange',
+    fetchTableList = 'fetchTableList',
+    fetchTagList = 'fetchTagList',
+    setTempNewChartData = 'setTempNewChartData',
 }
 
 const actions = {
@@ -30,6 +35,18 @@ const actions = {
     },
     [ActionTypes.setTimeRange](context: MyActionContext, payload: TimeRange) {
         context.commit(MutationTypes.setTimeRange, payload);
+    },
+    async [ActionTypes.fetchTableList](context: MyActionContext) {
+        const res = await fetchTablesData();
+        context.commit(MutationTypes.setTableList, (res as any).Data);
+    },
+    async [ActionTypes.fetchTagList](context: MyActionContext, payload: string) {
+        const res = await fetchTags(payload);
+        console.log("🚀 ~ file: actions.ts:38 ~ res", res);
+        context.commit(MutationTypes.setTagList, (res as any).Data);
+    },
+    [ActionTypes.setTempNewChartData](context: MyActionContext, payload: TempNewChartData) {
+        context.commit(MutationTypes.setTempNewChartData, payload);
     },
 };
 

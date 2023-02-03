@@ -2,15 +2,15 @@
     <div class="chart-select-wrapper" :style="{ flexDirection: props.isRow ? 'row' : 'column' }">
         <label>
             <input type="radio" name="test" checked @click="() => onClick(ChartType.Zone)" />
-            <img :src="cIsDarkMode ? i_b_graph_1 : i_w_graph_1" alt="Option 1" />
+            <img width="86" :src="cIsDarkMode ? i_b_graph_1 : i_w_graph_1" alt="Option 1" />
         </label>
         <label>
             <input type="radio" name="test" @click="() => onClick(ChartType.Dot)" />
-            <img :src="cIsDarkMode ? i_b_graph_2 : i_w_graph_2" alt="Option 2" />
+            <img width="86" :src="cIsDarkMode ? i_b_graph_2 : i_w_graph_2" alt="Option 2" />
         </label>
         <label>
             <input type="radio" name="test" @click="() => onClick(ChartType.Line)" />
-            <img :src="cIsDarkMode ? i_b_graph_3 : i_w_graph_3" alt="Option 3" />
+            <img width="86" :src="cIsDarkMode ? i_b_graph_3 : i_w_graph_3" alt="Option 3" />
         </label>
     </div>
 </template>
