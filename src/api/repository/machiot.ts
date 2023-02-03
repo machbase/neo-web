@@ -50,4 +50,11 @@ const fetchTablesData = async () => {
     });
 };
 
-export { fetchCalculationData, fetchRawData, fetchTablesData, fetchRollupData, fetchRangeData };
+const fetchTags = async (table: string) => {
+    return await request({
+        method: 'GET',
+        url: `/machiot-rest-api/tags/list/?table=${table}`,
+    });
+};
+
+export { fetchCalculationData, fetchRawData, fetchTablesData, fetchRollupData, fetchRangeData, fetchTags };

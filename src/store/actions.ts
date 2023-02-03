@@ -1,12 +1,12 @@
+import { TempNewChartData } from './../interface/tagView';
 import { getBoard, getBoardList, getPreference, postSetting } from '@/api/repository/api';
 import { ActionContext } from 'vuex';
 import { MutationTypes, Mutations } from './mutations';
 import { RootState } from './state';
 import { ResPreferences, TimeRange } from '@/interface/tagView';
 import { BoardInfo, FetchTagDataArg, RangeData } from '@/interface/chart';
-import { fetchCalculationData, fetchRangeData, fetchRawData, fetchTablesData } from '@/api/repository/machiot';
+import { fetchCalculationData, fetchRangeData, fetchRawData, fetchTablesData, fetchTags } from '@/api/repository/machiot';
 import { ResType } from '@/assets/ts/common';
-
 type MyActionContext = {
     commit<K extends keyof Mutations>(key: K, payload?: Parameters<Mutations[K]>[1]): ReturnType<Mutations[K]>;
 } & Omit<ActionContext<RootState, RootState>, 'commit'>;
@@ -17,9 +17,11 @@ enum ActionTypes {
     fetchPreference = 'fetchPreference',
     postPreference = 'postPreference',
     setTimeRange = 'setTimeRange',
+    fetchTableList = 'fetchTableList',
+    fetchTagList = 'fetchTagList',
+    setTempNewChartData = 'setTempNewChartData',
     fetchRangeData = 'fetchRangeData',
     fetchTable = 'fetchTable',
-    //
     fetchTagData = 'fetchTagData',
 }
 
@@ -43,6 +45,19 @@ const actions = {
     [ActionTypes.setTimeRange](context: MyActionContext, payload: TimeRange) {
         context.commit(MutationTypes.setTimeRange, payload);
     },
+    async [ActionTypes.fetchTableList](context: MyActionContext) {
+        const res = await fetchTablesData();
+        context.commit(MutationTypes.setTableList, (res as any).Data);
+    },
+    async [ActionTypes.fetchTagList](context: MyActionContext, payload: string) {
+        const res = await fetchTags(payload);
+        console.log('🚀 ~ file: actions.ts:38 ~ res', res);
+        context.commit(MutationTypes.setTagList, (res as any).Data);
+    },
+    [ActionTypes.setTempNewChartData](context: MyActionContext, payload: TempNewChartData) {
+        context.commit(MutationTypes.setTempNewChartData, payload);
+    },
+
     async [ActionTypes.fetchRangeData](context: MyActionContext) {
         const res: any = await fetchRangeData();
         context.commit(MutationTypes.setRangeData, res.Data[0]);
@@ -62,7 +77,6 @@ const actions = {
         }
     },
 };
-
 type Actions = typeof actions;
 
 export { ActionTypes, actions, Actions };

@@ -2,7 +2,7 @@
     <div class="tag-view">
         <ChartDashboard ref="sPanels" />
         <ButtonCreate :is-add-chart="true" :on-click="onOpenPopup" />
-        <PopupWrap :width="'500px'" :p-type="PopupType.NEW_CHART" :p-show="sDialog" @e-close-popup="onClosePopup" />
+        <PopupWrap :width="'667px'" :p-type="PopupType.NEW_CHART" :p-show="sDialog" @e-close-popup="onClosePopup" />
     </div>
 </template>
 <script setup lang="ts" name="TagView">
