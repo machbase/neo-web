@@ -2,7 +2,7 @@
     <div class="tag-view">
         <ChartDashboard v-for="(aPanel, aIndex) in sData?.panels" :key="aIndex" />
         <ButtonCreate :is-add-chart="true" :on-click="onOpenPopup" />
-        <PopupWrap :width="'667px'" :p-type="PopupType.NEW_TAGS" :p-show="sDialog" @e-close-popup="onClosePopup" />
+        <PopupWrap :width="'667px'" :p-type="PopupType.NEW_CHART" :p-show="sDialog" @e-close-popup="onClosePopup" />
     </div>
 </template>
 <script setup lang="ts" name="TagView">

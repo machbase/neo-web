@@ -283,26 +283,21 @@ $height: 30px;
 .search-wrapper {
     display: flex;
     flex-direction: row;
+    .clear-icon{
+        text-align: center;
+        margin-right: 10px;
+    }
 }
 
 .countGroup {
     padding-top: 13px;
-}
-
-.wrapsearchcount,
-.selectCountBox {
-    width: 50%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
 }
 
 .floatright {
     float: right;
-}
-
-.searchcount,
-.selCountText {
-    margin: 0px;
-    padding: 0px;
-    width: 100%;
 }
 
 .newchart-right {

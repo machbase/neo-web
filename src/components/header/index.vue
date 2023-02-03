@@ -37,7 +37,7 @@
                 v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
                 class="icon"
                 icon="mdi-content-save"
-                @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)"
+                @click="onClickPopupItem(PopupType.NEW_TAGS)"
             ></v-icon>
             <img
                 v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW || sHeaderType === RouteNames.VIEW"
@@ -109,6 +109,8 @@ const cWidthPopup = computed((): string => {
             return WIDTH_DEFAULT.TIME_DURATION;
         case PopupType.MANAGE_DASHBOARD:
             return WIDTH_DEFAULT.MANAGE_DASHBOARD;
+        case PopupType.NEW_TAGS:
+            return '667px';
         default:
             return WIDTH_DEFAULT.DEFAULT;
     }

@@ -11,25 +11,19 @@
                 <div class="tagtitle floatleft">Tag</div>
                 <div class="search-wrapper">
                     <input v-model="searchText" type="text" class="form-control taginput input" style="width: 180px" />
-                    <span @click="onReset" class="input">X</span>
+                    <span @click="onReset" class="input clear-icon"><img :src="i_b_close" alt="Clear icon" /></span>
                     <v-btn class="button-effect-color" variant="outlined" :height="30" @click="onSearch">Search</v-btn>
                 </div>
                 <div class="countGroup">
-                    <div class="wrapsearchcount floatleft">
-                        <p class="searchcount">Total : {{ cTagsSearch.length }} / {{ cTags.length }}</p>
-                    </div>
-                    <div class="selectCountBox floatright">
-                        <p class="selCountText">
-                            Select : <span>{{ selectCount }}</span>
-                        </p>
-                    </div>
+                    <div>Total : {{ cTagsSearch.length }} / {{ cTags.length }}</div>
+                    <div>Select : {{ selectCount }}</div>
                 </div>
                 <div class="taglistdiv taglistscroll">
                     <div style="margin-bottom: 5px" v-for="(aTime, aIndex) in cTagsSearch" :key="aIndex" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
                 </div>
                 <Pagination :total="Math.ceil(cTags.length / 1)" @e-on-change="onPaging" />
             </div>
-            <div class="col-sm-6 newchart-right">
+            <div class="col-sm-6 newchart-right overflowhidden">
                 <div class="wrapcharttype overflowhidden">
                     <ChartSelect @e-on-change="onSelectChart" />
                 </div>
@@ -49,6 +43,7 @@
 </template>
 
 <script setup lang="ts" name="NewChart">
+import i_b_close from '@/assets/image/i_b_close.png';
 import Pagination from '@/components/common/pagination/index.vue';
 import TimeRange from '@/components/common/date-list/date-time-range.vue';
 import TimeDuration from '@/components/common/date-list/date-time-duration.vue';
@@ -158,7 +153,7 @@ const onSetting = () => {
     const newData = {
         chartType: chartType.value,
         tagSet: sSelectedTags,
-    }
+    };
     store.dispatch(ActionTypes.setTempNewChartData, newData).then(() => onClosePopup());
 };
 
