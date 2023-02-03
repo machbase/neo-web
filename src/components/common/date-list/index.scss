@@ -1,7 +1,7 @@
 @import '@/assets/scss/theme.scss';
 
 .date-time {
-    font-size: 13px;
+    @include font-13;
     &__title {
         margin-bottom: $px-5;
     }

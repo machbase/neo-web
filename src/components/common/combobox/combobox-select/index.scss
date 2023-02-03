@@ -19,6 +19,7 @@
     &__item {
         background-color: $d-background;
         padding: 0 $px-15;
+        @include font-12;
         @include theme() {
             background-color: theme-get('bg-color');
             color: theme-get('text-color');
