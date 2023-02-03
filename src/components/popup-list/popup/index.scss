@@ -9,6 +9,7 @@
         @include theme() {
             background-color: theme-get('bg-color-input');
             color: theme-get('text-color');
+            border-color: theme-get('border-color');
         }
     }
 
@@ -29,7 +30,13 @@
         &-content {
             flex: 1;
         }
-
+        &-group-text {
+            @include theme() {
+                background-color: theme-get('bg-color-input');
+                color: theme-get('text-color');
+                border-color: theme-get('border-color');
+            }
+        }
         .combobox-select {
             width: 100%;
         }

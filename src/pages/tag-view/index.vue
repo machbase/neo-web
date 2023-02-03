@@ -1,6 +1,6 @@
 <template>
     <div class="tag-view">
-        <ChartDashboard v-for="(aPanel, aIndex) in sData?.panels" :key="aIndex" />
+        <ChartDashboard ref="sPanels" />
         <ButtonCreate :is-add-chart="true" :on-click="onOpenPopup" />
         <PopupWrap :width="'500px'" :p-type="PopupType.NEW_CHART" :p-show="sDialog" @e-close-popup="onClosePopup" />
     </div>
@@ -14,6 +14,7 @@ import { PopupType } from '@/enums/app';
 import { BoardInfo } from '@/interface/chart';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
+import { ActionTypes } from '@/store/actions';
 import { isEmpty } from 'lodash';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
@@ -23,6 +24,8 @@ const store = useStore();
 const sDialog = ref<boolean>(false);
 const sData = ref<BoardInfo>();
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
+const cBoard = computed((): BoardInfo => store.state.gBoard);
+const sPanels = ref(null);
 
 function onOpenPopup() {
     sDialog.value = true;
@@ -32,9 +35,14 @@ const onClosePopup = () => {
 };
 
 const setBoard = async (sId: string) => {
-    const sRes: BoardInfo = await getBoard(sId);
-    sData.value = sRes;
+    await store.dispatch(ActionTypes.fetchTable);
+    await store.dispatch(ActionTypes.fetchRangeData);
+    await store.dispatch(ActionTypes.fetchBoard, sId);
 };
+const onRefreshData = (aIsRangeTimeChange: boolean) => {
+    (sPanels.value as any)?.refreshData(aIsRangeTimeChange);
+};
+onRefreshData(true);
 
 watch(
     () => route.query.id,

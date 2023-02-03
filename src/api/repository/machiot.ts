@@ -2,36 +2,21 @@ import request from '@/api/core';
 
 const fetchCalculationData = async (params: any) => {
     const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue } = params;
+    const queryString = `/?TagNames=${encodeURIComponent(
+        TagNames
+    )}&Start=${Start}&End=${End}&CalculationMode=${CalculationMode}&Count=${Count}&IntervalType=${IntervalType}&IntervalValue=${IntervalValue}&table=${Table}`;
     return await request({
         method: 'GET',
-        url: `/machiot/datapoints/calculated`,
-        data: {
-            Table,
-            TagNames,
-            Start,
-            End,
-            CalculationMode,
-            Count,
-            IntervalType,
-            IntervalValue,
-        },
+        url: `/machiot-rest-api/datapoints/calculated` + queryString,
     });
 };
 
 const fetchRawData = async (params: any) => {
-    const { Table, TagNames, Start, End, Direction, Count, Offset } = params;
+    const { Table, TagNames, Start, End, Direction, Count } = params;
+    const queryString = `/?TagNames=${encodeURIComponent(TagNames)}&Start=${Start}&End=${End}&Direction=${Direction}&Count=${Count}&table=${Table}`;
     return await request({
         method: 'GET',
-        url: `/machiot/datapoints/raw`,
-        data: {
-            Table,
-            TagNames,
-            Start,
-            End,
-            Direction,
-            Count,
-            Offset,
-        },
+        url: `/machiot-rest-api/datapoints/raw` + queryString,
     });
 };
 
@@ -61,7 +46,7 @@ const fetchRollupData = async (params: any) => {
 const fetchTablesData = async () => {
     return await request({
         method: 'GET',
-        url: `/machiot-rest-api/tables`,
+        url: `/machiot-rest-api/tables/`,
     });
 };
 

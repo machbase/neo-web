@@ -1,5 +1,38 @@
 import { YorN, CalculationMode, ChartMode, ShowLegend } from './constants';
+export type ChartType =
+    | 'line'
+    | 'areaLine'
+    | 'pointLine'
+    | 'point'
+    | 'stock'
+    | 'bar'
+    | 'grid'
+    | 'stackedBar'
+    | 'pie'
+    | 'gradientPie'
+    | 'semiCircleDonut'
+    | 'gauge'
+    | 'text'
+    | 'group'
+    | '';
 
+export type startTimeToendTimeType = { startTime: string | number; endTime: string | number };
+export interface RangeData {
+    MAX: string;
+    MIN: string;
+}
+export interface GaugeColorset {
+    color: string;
+    to: number;
+    from: number;
+    min?: number;
+}
+
+export interface TextColorset {
+    color: string;
+    max: number;
+    min: number;
+}
 export interface TagSet {
     weight: number;
     offset: number;
@@ -20,6 +53,13 @@ export interface LegendValue {
 export interface SecRollup {
     TAG: string;
     MYTAG: string;
+}
+export interface LinePanel extends PanelInfo {
+    isStock?: YorN;
+}
+export interface BarPanel extends PanelInfo {
+    percent?: YorN;
+    stacked?: YorN; // for bar chart}PanelInfo;
 }
 export interface PanelInfo {
     chart_id: string;
@@ -90,6 +130,25 @@ export interface PanelInfo {
     use_detail: number;
     detail_count: number;
     detail_rows: number;
+
+    i?: number;
+    panel_title?: string;
+    panel_type?: ChartType;
+    select_count_type?: string;
+    font_size?: number;
+    connect_info?: any;
+    inner_radius?: number; // for pie chart
+    outer_radius?: number; // for pie chart
+    min_value?: number;
+    background_color?: number;
+    min_width?: number; // for bar chart
+    bar_width?: number; // for bar chart
+    total_width?: number; // for bar chart
+    percent_text_annotation?: string; // for bar chart
+    usage?: any; // for 1.4 All panels in the dashboard have a parameter usage keyW
+    url?: string; // url store for path 2.3 information panel
+    timezone_key?: string;
+    timezone_value?: string;
 }
 export interface BoardInfo {
     board_id: string;
@@ -97,5 +156,43 @@ export interface BoardInfo {
     refresh: string;
     board_name: string;
     range_bgn: string;
-    panels: PanelInfo[][];
+    panels: PanelInfo[][][];
+}
+export interface LineDataset {
+    datasets: HighchartsDataset[];
+}
+
+export interface HighchartsDataset {
+    name: string;
+    data: number[][];
+    marker: { symbol: string; lineColor: null; lineWidth: number };
+}
+export interface ChartData {
+    Quality: number;
+    TimeStamp: string;
+    Value: number;
+}
+export interface ReturnTagData {
+    CalculationMode: string;
+    DataType: string;
+    ErrorCode: number;
+    Query: string;
+    Samples: ChartData[];
+    TagName: string;
+}
+export interface TimeInfo {
+    startTime: string;
+    endTime: string;
+}
+
+export interface FetchTagDataArg {
+    Table: string;
+    TagNames: string;
+    Start: string;
+    End: string;
+    Count: number;
+    CalculationMode?: string;
+    IntervalType?: string;
+    IntervalValue?: number;
+    Direction?: number;
 }

@@ -1,50 +1,44 @@
-<template><highcharts :constructor-type="'stockChart'" :options="cChartOptions"></highcharts></template>
-<script setup lang="ts" name="LineChart">
-import { useStore } from '@/store';
-import moment from 'moment';
-import axios from 'axios';
-import Btn from '@/components/common/pagination/index.vue';
-import { computed, ref, onMounted, withDefaults, defineProps } from 'vue';
-export interface StockChartLineProps {
-    pDateChart: string;
+<template><highcharts ref="chart" :constructor-type="props.isStockChart ? 'stockChart' : 'chart'" :options="cChartOptions"></highcharts></template>
+
+<script lang="ts" setup name="LineChart">
+import { setUtcTime } from '@/helpers/date';
+import { HighchartsDataset, LineDataset, LinePanel } from '@/interface/chart';
+import { computed, defineProps, withDefaults, reactive, watch, ref, defineExpose } from 'vue';
+
+interface BarChartContainerProps {
+    chartData: LineDataset;
+    panelInfo: LinePanel;
+    xAxisMinRange: string | number;
+    xAxisMaxRange: string | number;
+    panelWidth: number;
+    panelMode: string;
+    isStockChart?: boolean;
 }
-const props = withDefaults(defineProps<StockChartLineProps>(), {
-    pDateChart: '2022-12-30 16:05:19 ~ 2022-12-30 16:07:32 ( interval : 1 sec )',
+
+const props = withDefaults(defineProps<BarChartContainerProps>(), {
+    panelWidth: 0,
+    panelMode: '',
 });
-const sTag = ref([
-    {
-        name: 'tag1',
-        value: 1,
-    },
-    {
-        name: 'tag2',
-        value: 2,
-    },
-]);
-const sData = ref();
-const store = useStore();
-const cIsDarkMode = computed(() => store.getters.getDarkMode);
+
+const data = reactive({
+    sMasterSeriesData: [] as HighchartsDataset[],
+});
+
+const chart = ref(null);
+
+watch(
+    () => props.chartData,
+    () => {
+        createStockChart();
+    }
+);
+
 const cChartOptions = computed(() => {
     return {
-        title: {
-            text: props.pDateChart,
-            style: {
-                color: cIsDarkMode.value ? '#afb5bc' : '#4f5050',
-                fontSize: '12px',
-            },
-        },
-        series: [
-            {
-                data: sData.value,
-            },
-        ],
+        title: '',
         chart: {
             type: 'area',
-            backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
-            borderColor: cIsDarkMode.value ? '#282828' : '#dbe2ea',
-            borderWidth: 1,
-            //
-            zoomType: 'x',
+            zoomType: null,
             resetZoomButton: {
                 theme: {
                     style: {
@@ -52,43 +46,56 @@ const cChartOptions = computed(() => {
                     },
                 },
             },
+            width: null,
+            height: '324px',
         },
-        tooltip: {
-            useHTML: true,
-            headerFormat: '',
-            pointFormat: `<p>{point.key}</p>` + `<div class="point-row">${sTag.value.map((a) => `<p class="point">${a.name}</p><p class="point">${a.value}</p>`)}</div>`,
-            style: {
-                color: '#fff',
+        series: data.sMasterSeriesData,
+        legend: {
+            //   enabled: props.panelInfo.show_legend === 'Y',
+            itemStyle: {
+                fontWeight: 'normal', // bold
+                fontSize: '14px',
+                textOverflow: 'ellipsis',
             },
-            backgroundColor: '#000',
-            valueDecimals: 0,
-            borderColor: '#000',
-            borderWidth: 1,
         },
-        // tooltip: {
-        //     formatter: function () {
-        //         const sValue = this as any;
-        //         return `${moment(sValue.x).format('YYYY-MM-DD hh:mm:ss')}
-        //                 <br/>
-        //                 ${sTag.value.map((a) => `<br><div class="test">${a.name}-${a.value}</div></br>`)}
-        //                 `;
-        //     },
-        // },
         xAxis: {
-            gapGridLineWidth: 0,
+            crosshair: true,
+            type: 'datetime',
+            // ordinal: false,
+            // ...this.pXaxisRange,
+            //   min: (setUtcTime(props.xAxisMinRange as number) as Date).getTime(),
+            //   max: (setUtcTime(props.xAxisMaxRange as number) as Date).getTime(),
+            // labels: {
+            //     format: '{value:%H:%M}',
+            // },
+        },
+        credits: {
+            enabled: false,
+        },
+        rangeSelector: {
+            buttons: [],
+            allButtonsEnabled: false,
+            inputEnabled: false,
+            selected: 1,
+        },
+        plotOptions: {
+            series: {
+                lineWidth: props.panelInfo.stroke,
+                //   fillOpacity: props.panelInfo.opacity,
+                showInNavigator: true,
+                marker: {
+                    enabled: props.panelInfo.show_point === 'Y',
+                },
+            },
         },
     };
 });
 
-onMounted(() => axios.get('https://cdn.jsdelivr.net/gh/highcharts/highcharts@v7.0.0/samples/data/new-intraday.json').then((data) => (sData.value = data.data)));
-</script>
+const createStockChart = () => {
+    data.sMasterSeriesData = JSON.parse(JSON.stringify(props.chartData.datasets));
+};
 
-<style lang="scss" scoped>
-@import '../index.scss';
-:deep(.point-row) {
-    /* display: flex; */
-}
-:deep(.point) {
-    color: red;
-}
-</style>
+defineExpose({
+    chart,
+});
+</script>

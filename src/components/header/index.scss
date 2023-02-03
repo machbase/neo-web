@@ -47,6 +47,9 @@
                 }
             }
         }
+        :deep(.combobox-select) {
+            border: 1px solid #333333 !important;
+        }
         :deep(.combobox-select .combobox-select__item) {
             background-color: $d-background-opa !important;
             color: $text-w !important;

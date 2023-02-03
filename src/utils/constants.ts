@@ -1,4 +1,5 @@
 //
+export const FORMAT_FULL_DATE = 'YYYY-MM-DD HH:mm:ss';
 export const LENGTH_LIST = 10;
 export const NOW = 'now';
 export const DAY = 'd';
