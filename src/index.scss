@@ -7,10 +7,6 @@
     min-height: 100vh;
     height: auto;
 }
-* {
-    font-size: 13px;
-    font-family: 'Open Sans', Helvetica, Arial, sans-serif;
-}
 .body {
     @include theme() {
         background-color: theme-get('bg-color');
