@@ -21,7 +21,7 @@
                 <div class="taglistdiv taglistscroll">
                     <div style="margin-bottom: 5px" v-for="(aTime, aIndex) in cTagsSearch" :key="aIndex" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
                 </div>
-                <Pagination :total="Math.ceil(cTags.length / 1)" @e-on-change="onPaging" />
+                <Pagination :total="Math.ceil(cTags.length / MAX_TAG_COUNT)" @e-on-change="onPaging" />
             </div>
             <div class="col-sm-6 newchart-right overflowhidden">
                 <div class="wrapcharttype overflowhidden">
