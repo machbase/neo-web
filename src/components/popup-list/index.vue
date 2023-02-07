@@ -15,7 +15,7 @@
             <div class="dialog-wrap__content--body">
                 <ManageDashboard v-if="pType === PopupType.MANAGE_DASHBOARD" @eClosePopup="onClosePopup" />
                 <NewChart v-if="pType === PopupType.NEW_CHART" @eClosePopup="onClosePopup" />
-                <NewTags v-if="pType === PopupType.NEW_TAGS" @eClosePopup="onClosePopup" />
+                <NewTags v-if="pType === PopupType.NEW_TAGS" :no-of-select-tags="5" @eClosePopup="onClosePopup" @e-submit="test" />
                 <Preferences v-if="pType === PopupType.PREFERENCES" @eClosePopup="onClosePopup" />
                 <SaveDashboard v-if="pType === PopupType.SAVE_DASHBOARD" @eClosePopup="onClosePopup" />
                 <TimeRange v-if="pType === PopupType.TIME_RANGE" @eClosePopup="onClosePopup" />
@@ -37,7 +37,9 @@ import Preferences from './popup/Preferences.vue';
 import SaveDashboard from './popup/SaveDashboard.vue';
 import TimeDuration from './popup/TimeDuration.vue';
 import TimeRange from './popup/TimeRange.vue';
-
+const test = (data: any) => {
+console.log("🚀 ~ file: index.vue:41 ~ test ~ data", data)
+}
 interface PopupWrapProps {
     pType: PopupType;
     pShow: boolean;

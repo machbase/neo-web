@@ -11,7 +11,7 @@
                 <div class="tagtitle floatleft">Tag</div>
                 <div class="search-wrapper">
                     <input v-model="searchText" type="text" class="form-control taginput input" style="width: 180px" />
-                    <span @click="onReset" style="text-align: center" class="input"><img :src="i_b_close" alt="Clear icon" /></span>
+                    <span @click="onReset" style="text-align: center" class="input clear-icon"><img :src="i_b_close" alt="Clear icon" /></span>
                     <v-btn class="button-effect-color" variant="outlined" :height="30" @click="onSearch">Search</v-btn>
                 </div>
                 <div class="countGroup">
@@ -21,7 +21,7 @@
                 <div class="taglistdiv taglistscroll">
                     <div style="margin-bottom: 5px" v-for="(aTime, aIndex) in cTagsSearch" :key="aIndex" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
                 </div>
-                <Pagination :total="Math.ceil(cTags.length / 1)" @e-on-change="onPaging" />
+                <Pagination :total="Math.ceil(cTags.length / MAX_TAG_COUNT)" @e-on-change="onPaging" />
             </div>
             <div class="col-sm-6 newchart-right">
                 <div class="selectedlistdiv taglistscroll" style="height: 300px">
@@ -39,33 +39,30 @@
     </div>
 </template>
 
-<script setup lang="ts" name="NewChart">
+<script setup lang="ts" name="NewTags">
 import i_b_close from '@/assets/image/i_b_close.png';
 import Pagination from '@/components/common/pagination/index.vue';
-import TimeRange from '@/components/common/date-list/date-time-range.vue';
-import TimeDuration from '@/components/common/date-list/date-time-duration.vue';
-import CustomScale, { CustomScaleInput } from '@/components/common/custom-scale/index.vue';
-import ButtonCreate from '@/components/common/button-create/index.vue';
-import ChartSelect from '@/components/common/chart-select/index.vue';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
-import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
 import { useStore } from '@/store';
-import { computed, defineEmits, reactive, ref, watch } from 'vue';
+import { computed, defineEmits, reactive, ref, watch, defineProps, withDefaults, toRefs } from 'vue';
 import { ChartType } from '@/enums/app';
 import { CALC_MODE, MAX_TAG_COUNT } from './constant';
-import { fetchTablesData } from '@/api/repository/machiot';
 import { ActionTypes } from '@/store/actions';
 import { TagSet } from '@/interface/chart';
 import { CalculationMode } from '@/interface/constants';
-const emit = defineEmits(['eClosePopup']);
+interface NewTagProps {
+    noOfSelectTags: number;
+}
+const props = defineProps<NewTagProps>();
+const { noOfSelectTags } = toRefs(props);
+const emit = defineEmits(['eClosePopup', 'eSubmit']);
 const searchText = ref<string>('');
 const isSearchClick = ref<boolean>(false);
 const tableSelected = ref<string>('');
 const chartType = ref<ChartType>(ChartType.Zone);
-const selectCount = ref<number>(0);
+const selectCount = ref<number>(noOfSelectTags.value);
 const cTags = computed(() => store.state.gTagList);
-const cTagsSearch = ref<any>([]);
-console.log('🚀 ~ file: NewChart.vue:75 ~ cTagsSearch', cTagsSearch);
+const cTagsSearch = ref<{ NAME: string }[]>([]);
 const sSelectedTags = reactive<Partial<TagSet>[]>([]);
 const store = useStore();
 const cTableList = computed(() => store.state.gTableList);
@@ -80,6 +77,7 @@ const cTableListSelect = computed(() =>
 const onChangeTable = (aValue: string) => {
     tableSelected.value = aValue;
 };
+
 watch(
     () => cTags.value,
     () => {
@@ -119,13 +117,9 @@ const onSearch = () => {
 const onReset = () => {
     if (searchText.value != '') searchText.value = '';
 };
-const onSelectChart = (data: ChartType) => {
-    console.log(data, 'data');
-    chartType.value = data;
-};
 const onSelectTag = (data: { NAME: string }) => {
     selectCount.value++;
-    sSelectedTags.push({ tag_names: data.NAME, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0 });
+    sSelectedTags.push({ tag_names: data.NAME, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0, use_y2: 'N' });
 };
 const onRemoveTag = (index: number) => {
     selectCount.value--;
@@ -143,15 +137,12 @@ const onSetting = () => {
         alert('Select tags for the chart.');
         return;
     }
-    if (sSelectedTags.length > MAX_TAG_COUNT) {
+    if (sSelectedTags.length + noOfSelectTags.value > MAX_TAG_COUNT) {
         alert('The maximum number of tags in a chart is ' + MAX_TAG_COUNT.toString() + '.');
         return;
     }
-    const newData = {
-        chartType: chartType.value,
-        tagSet: sSelectedTags,
-    }
-    store.dispatch(ActionTypes.setTempNewChartData, newData).then(() => onClosePopup());
+    emit('eSubmit', sSelectedTags);
+    onClosePopup();
 };
 
 const onClosePopup = () => {
