@@ -6,6 +6,7 @@ const state = {
     gActiveHeader: false as boolean,
     gBoardList: [] as ResBoardList[],
     gTimeRange: {} as TimeRange,
+    gTimeRangeSetting: {} as TimeRange,
     gTableList: [] as any,
     gSecRollupExist: {} as any,
     gTagList: [] as any,
