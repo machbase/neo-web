@@ -19,6 +19,21 @@
             </span>
             <span @click="onReset"><img :src="i_b_close" alt="Clear icon" /></span>
         </div>
+        <div class="tag-row">
+            <span
+                ><span>Calc mode </span>
+                <ComboboxSelect class="select" :p-show-default-option="false" :p-data="CALC_MODE" :p-value="'avg'" @e-on-change="(item) => onChangeCalcMode(item)"
+            /></span>
+            <span
+                ><span>Tag Names </span>
+                <input type="text" class="form-control taginput input" />
+            </span>
+            <span
+                ><span>Alias </span>
+                <input type="text" class="form-control taginput input" />
+            </span>
+            <span @click="onReset"><img :src="i_b_close" alt="Clear icon" /></span>
+        </div>
         <ButtonCreate class="create-div" :is-add-chart="false" :on-click="onOpenPopup" />
         <PopupWrap :width="'667px'" :p-type="PopupType.NEW_TAGS" :p-show="sDialog" @e-close-popup="onClosePopup" />
     </div>
