@@ -1,10 +1,8 @@
 @import '@/assets/scss/theme.scss';
 
 .combobox-select {
-    border: 1px solid;
-    @include theme() {
-        border-color: theme-get('border-color');
-    }
+    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
+    border: 1px solid $bd-black;
     color: $text-w;
     outline: none;
     // margin: 0 8px;

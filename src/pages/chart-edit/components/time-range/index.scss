@@ -1,1 +1,45 @@
 @import '@/assets/scss/theme.scss';
+$height: 30px;
+.time-range-wrapper {
+    padding-top: 10px;
+    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
+    font-size: 12px;
+    width: 700px;
+    min-height: 450px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+
+    .col-left {
+        display: flex;
+        flex-direction: column;
+
+        .row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
+
+        .button-apply {
+            height: $height;
+            margin-left: $px-10;
+            @include button-effect-color;
+        }
+    }
+}
+.input {
+    height: $height;
+    border: 1px solid $d-border;
+    outline: none;
+    flex: 1;
+
+    @include theme() {
+        background-color: theme-get('bg-color-input');
+        color: theme-get('text-color');
+        padding: $px-5 $px-10;
+    }
+
+    &:focus {
+        @include box-shadow;
+    }
+}

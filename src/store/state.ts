@@ -15,6 +15,7 @@ const state = {
     } as BoardInfo,
     gBoardList: [] as ResBoardList[],
     gTimeRange: {} as TimeRange,
+    gTimeRangeSetting: {} as TimeRange,
     gTableList: [] as any,
     gSecRollupExist: {} as any,
     gTagList: [] as any,

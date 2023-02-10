@@ -8,7 +8,7 @@
                 :p-value="route.params.id || route.query.id || (cBoardListSelect[0]?.id && route.query.id !== null)"
                 @e-on-change="onChangeRoute"
             />
-            <div v-if="sHeaderType === RouteNames.VIEW" class="share-header">{{ NEW_DASHBOARD }}</div>
+            <div v-if="sHeaderType === RouteNames.VIEW" class="share-header">{{ boardSelected }}</div>
             <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" class="header__link--group">
                 <router-link class="header__link--group-item" :to="{ name: RouteNames.NEW }" target="_blank">{{ NEW_DASHBOARD }}</router-link>
                 <img :src="i_b_menu_1" class="icon" />
@@ -49,7 +49,7 @@
             <img :src="i_b_refresh" class="icon" @click="onClickPopupItem(PopupType.TIME_DURATION)" />
             <router-link
                 v-if="route.params.id || cBoardListSelect[0]?.id"
-                :to="{ name: RouteNames.VIEW, params: { id: route.params.id || cBoardListSelect[0]?.id }, query: {} }"
+                :to="{ name: RouteNames.CHART_EDIT, params: { id: route.params.id || cBoardListSelect[0]?.id }, query: {} }"
                 target="_blank"
             >
                 <img v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" :src="i_b_share" class="icon" />
@@ -91,6 +91,7 @@ const sDialog = ref<boolean>(false);
 const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
 const childGroup = ref();
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
+const boardSelected = computed((): string => cBoardList.value.find(({ board_id }) => board_id === route.params.id)?.board_name as string);
 const cBoardListSelect = computed(() =>
     cBoardList.value.map((aItem) => {
         return {
