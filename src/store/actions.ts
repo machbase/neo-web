@@ -18,6 +18,7 @@ enum ActionTypes {
     fetchTableList = 'fetchTableList',
     fetchTagList = 'fetchTagList',
     setTempNewChartData = 'setTempNewChartData',
+    fetchBoardDetail = 'fetchBoardDetail',
 }
 
 const actions = {
@@ -47,6 +48,11 @@ const actions = {
     },
     [ActionTypes.setTempNewChartData](context: MyActionContext, payload: TempNewChartData) {
         context.commit(MutationTypes.setTempNewChartData, payload);
+    },
+    async [ActionTypes.fetchBoardDetail](context: MyActionContext, payload: string) {
+        // const res = await fetchTags(payload);
+        // console.log("🚀 ~ file: actions.ts:38 ~ res", res);
+        // context.commit(MutationTypes.setTagList, (res as any).Data);
     },
 };
 
