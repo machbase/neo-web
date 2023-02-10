@@ -1,1 +1,51 @@
 @import '@/assets/scss/theme.scss';
+.data-tab-wrapper{
+    padding: 20px;
+    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
+    font-size: 12px;
+    width: 1050px;
+    .create-div {
+        margin-top: 5px !important;
+    }
+    .row {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        .plus{
+            font-size: large;
+            cursor: pointer;
+        }
+    }
+    .tag-row{
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        .input {
+            width: 311px;
+            height: 30px;
+            border: 1px solid $d-border;
+            outline: none;
+            flex: 1;
+        
+            @include theme() {
+                background-color: theme-get('bg-color-input');
+                color: theme-get('text-color');
+                padding: $px-5 $px-10;
+            }
+        
+            &:focus {
+                @include box-shadow;
+            }
+        }
+        .select{
+            width: 150px;
+            height: 30px;
+        }
+        @include theme() {
+            background-color: theme-get('bg-color-button') !important;
+            border-color: theme-get('border-color') !important;
+        }
+    }
+}
