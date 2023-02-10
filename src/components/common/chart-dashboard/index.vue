@@ -27,8 +27,6 @@ const store = useStore();
 const gDashboard = computed(() => store.state.gBoard);
 
 const setPanelRefs = (ref: any) => {
-    console.log('ref', ref, panelRefs.value);
-    console.log('data', data.sPanels);
     panelRefs.value.push(ref);
 };
 
@@ -46,7 +44,6 @@ watch(
     gDashboard,
     (newValue) => {
         if (!newValue) return;
-        console.log(newValue.panels);
         data.sPanels = newValue.panels
             ? (newValue.panels.map((v: any, i: number) => {
                   const sPanel = v[0];

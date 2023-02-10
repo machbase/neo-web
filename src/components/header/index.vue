@@ -35,6 +35,7 @@
             <!-- <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new'" :src="i_b_timerange" class="icon" />             -->
             <v-icon
                 v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
+                size="small"
                 class="icon"
                 icon="mdi-content-save"
                 @click="onClickPopupItem(PopupType.NEW_TAGS)"

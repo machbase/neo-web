@@ -1,5 +1,36 @@
 @import '@/assets/scss/theme.scss';
 
-.chart-wrap{
+.chart-wrap {
     margin-top: $px-20;
+    @include theme() {
+        background-color: theme-get('background-chart');
+        color: theme-get('text-chart');
+        border: 1px solid theme-get('border-chart');
+    }
+    @include font-12;
+
+    &__header {
+        .title {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            p {
+                width: 3px;
+                height: 10px;
+                background-color: #2ec0df;
+            }
+        }
+        padding: $px-12 $px-10;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        &-icons {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .icon {
+            cursor: pointer;
+        }
+    }
 }

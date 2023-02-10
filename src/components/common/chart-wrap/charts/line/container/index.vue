@@ -1,9 +1,10 @@
 <template><highcharts ref="chart" :constructor-type="props.isStockChart ? 'stockChart' : 'chart'" :options="cChartOptions"></highcharts></template>
 
 <script lang="ts" setup name="LineChart">
-import { setUtcTime } from '@/helpers/date';
 import { HighchartsDataset, LineDataset, LinePanel } from '@/interface/chart';
-import { computed, defineProps, withDefaults, reactive, watch, ref, defineExpose } from 'vue';
+import { useStore } from '@/store';
+import { toTimeUtcChart } from '@/utils/utils';
+import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults } from 'vue';
 
 interface BarChartContainerProps {
     chartData: LineDataset;
@@ -19,9 +20,19 @@ const props = withDefaults(defineProps<BarChartContainerProps>(), {
     panelWidth: 0,
     panelMode: '',
 });
+const store = useStore();
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const data = reactive({
     sMasterSeriesData: [] as HighchartsDataset[],
+    sTimeXaxis: {
+        min: '' as string | number,
+        max: '' as string | number,
+    },
+    sTimeChartXaxis: {
+        min: '' as string | number,
+        max: '' as string | number,
+    },
 });
 
 const chart = ref(null);
@@ -30,72 +41,258 @@ watch(
     () => props.chartData,
     () => {
         createStockChart();
+        data.sTimeXaxis.min = props.xAxisMinRange;
+        data.sTimeXaxis.max = props.xAxisMaxRange;
+        data.sTimeChartXaxis.min = props.xAxisMinRange;
+        data.sTimeChartXaxis.max = props.xAxisMaxRange;
     }
 );
+watch(data.sTimeChartXaxis, () => {
+    console.log('data', data.sTimeChartXaxis);
+});
 
+// cIsDarkMode.value ? '#e7e8ea' : '#2a313b',
 const cChartOptions = computed(() => {
     return {
-        title: '',
+        colors: ['#5ca3f2', '#d06a5f', '#e2bb5c', '#86b66b', '#7070e0', '#6bcbc1', '#a673e8', '#e26daf', '#bac85d', '#87cedd'],
         chart: {
+            // type: 'line',
             type: 'area',
-            zoomType: null,
-            resetZoomButton: {
-                theme: {
-                    style: {
-                        display: 'none',
+            zoomType: 'x',
+            backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
+            events: {
+                selectedpoints: function (event) {
+                    console.log('event click chart', event);
+                },
+                // xAxis: when click chart
+                // 0: axis: a2, value: 1672415796649.6125
+                // 1: axis: a2, value: 1672415905801.4258
+            },
+            // margin: [0, 40, 100, 40],
+            // spacingTop: 50,
+        },
+        // data Chart
+        series: data.sMasterSeriesData,
+        // data
+        data: {},
+        // option chart
+        plotOptions: {
+            // area
+            series: {
+                fillOpacity: 0.1,
+                cursor: 'pointer',
+                point: {
+                    events: {
+                        click: function (e) {
+                            console.log('select point', e);
+                        },
                     },
                 },
             },
-            width: null,
-            height: '324px',
-        },
-        series: data.sMasterSeriesData,
-        legend: {
-            //   enabled: props.panelInfo.show_legend === 'Y',
-            itemStyle: {
-                fontWeight: 'normal', // bold
-                fontSize: '14px',
-                textOverflow: 'ellipsis',
-            },
-        },
-        xAxis: {
-            crosshair: true,
-            type: 'datetime',
-            // ordinal: false,
-            // ...this.pXaxisRange,
-            //   min: (setUtcTime(props.xAxisMinRange as number) as Date).getTime(),
-            //   max: (setUtcTime(props.xAxisMaxRange as number) as Date).getTime(),
-            // labels: {
-            //     format: '{value:%H:%M}',
+            // line
+            // series: {
+            //     marker: {
+            //         enabled: true,
+            //     },
+            // },
+            // dots
+            // series: {
+            //     lineWidth: 0,
+            //     marker: {
+            //         enabled: true,
+            //     },
+            //     states: {
+            //         hover: {
+            // enabled: true,
+            //     lineWidthPlus: 0,
+            //     lineWidth: 0
+            //     },
             // },
         },
-        credits: {
+        // view point
+        scrollbar: {
+            liveRedraw: false,
             enabled: false,
         },
-        rangeSelector: {
-            buttons: [],
-            allButtonsEnabled: false,
-            inputEnabled: false,
-            selected: 1,
-        },
-        plotOptions: {
-            series: {
-                lineWidth: props.panelInfo.stroke,
-                //   fillOpacity: props.panelInfo.opacity,
-                showInNavigator: true,
-                marker: {
-                    enabled: props.panelInfo.show_point === 'Y',
-                },
+        // view point navigator
+        navigator: {
+            enabled: true,
+            adaptToUpdatedData: false,
+            handles: {
+                // width: 0.5,
+                opacity: 0,
+                height: 26,
             },
+            height: 26,
+            maskFill: 'rgba(119, 119, 119, .3)',
+            series: {
+                showInNavigator: true,
+            },
+            outlineWidth: 1,
+            // outlineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+            xAxis: {
+                type: 'datetime',
+                min: toTimeUtcChart(data.sTimeXaxis.min as string),
+                max: toTimeUtcChart(data.sTimeXaxis.max as string),
+                labels: {
+                    align: 'center',
+                    style: {
+                        color: cIsDarkMode.value ? '#afb5bc' : '#6c6e70',
+                        fontSize: '10px',
+                    },
+                    y: 20,
+                },
+                gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+            },
+            yAxis: {
+                gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+                gridLineWidth: 1,
+            },
+        },
+        //  Time chart
+        xAxis: {
+            type: 'datetime',
+            ordinal: false,
+            gridLineWidth: 1,
+            gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+            lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+            labels: {
+                align: 'center',
+                style: {
+                    color: cIsDarkMode.value ? '#afb5bc' : '#6c6e70',
+                    fontSize: '10px',
+                },
+                y: 30,
+            },
+            minorTickColor: 'red',
+
+            min: toTimeUtcChart(data.sTimeChartXaxis.min as string),
+            max: toTimeUtcChart(data.sTimeChartXaxis.max as string),
+            events: {
+                setExtremes: afterSetExtremes,
+            },
+            crosshair: {
+                snap: false,
+                width: 0.5,
+                color: 'red',
+            },
+            startOnTick: true,
+            tickColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+        },
+        // Value chart
+        yAxis: {
+            showLastLabel: true,
+            // showFirstLabel: false,
+            max: 10, // data
+
+            // tickAmount: 6,
+            gridLineWidth: 1,
+            gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+            lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+            opposite: false,
+            startOnTick: true,
+            endOnTick: true,
+            labels: {
+                align: 'center',
+                style: {
+                    color: cIsDarkMode.value ? '#afb5bc' : '#6c6e70',
+                    fontSize: '10px',
+                },
+                x: -5,
+                y: 3,
+            },
+        },
+        // Info tag chart
+        tooltip: {
+            valueDecimals: 2,
+            split: false,
+            shared: true,
+            followPointer: true,
+            backgroundColor: cIsDarkMode.value ? '#1f1d1d' : '#f6f7f8',
+            borderColor: cIsDarkMode.value ? '#292929' : '#dbe2ea',
+            borderWidth: 1,
+            useHTML: true,
+            xDateFormat: '%Y-%m-%d %H:%M:%S.%L',
+            headerFormat: `<div style="minWidth:200px;paddingLeft:10px; fontSize:10px"><div style="color: ${cIsDarkMode.value ? '#afb5bc' : '#2a313b'}">{point.key}</div>`,
+            pointFormat:
+                '<div style="display: flex; justifyContent: space-between"><p style="color: {series.color}">{series.name} </p>' +
+                '<p style="color: {series.color}">{point.y}</p></div>',
+            footerFormat: '</div>',
+        },
+        // list tag
+        legend: {
+            enabled: true,
+            align: 'left',
+            itemDistance: 15,
+            squareSymbol: false,
+            // symbolHeight: 5,
+            // symbolWidth: 10,
+            symbolRadius: 1,
+            itemHoverStyle: {
+                color: '#23527c',
+                'text-decoration': 'underline',
+            },
+            itemStyle: {
+                color: cIsDarkMode.value ? '#e7e8ea' : '#2a313b',
+                cursor: 'pointer',
+                fontSize: '10px',
+                fontWeight: 'none',
+                'font-family': 'Open Sans,Helvetica,Arial,sans-serif',
+                textOverflow: 'ellipsis',
+                'text-decoration': 'none',
+            },
+            margin: 30,
+            x: 20,
+        },
+        //
+        // No data
+        lang: {
+            noData: 'Nichts zu anzeigen',
+        },
+        noData: {
+            style: {
+                fontWeight: 'bold',
+                fontSize: '15px',
+                color: '#303030',
+            },
+        },
+        // tool
+        rangeSelector: {
+            enabled: false,
+        },
+        // show link web
+        credits: {
+            enabled: false,
         },
     };
 });
 
+function afterSetExtremes(e) {
+    const { chart } = e.target;
+    // console.log('chart :', chart);
+    // console.log('e :', e);
+    data.sTimeChartXaxis.min = e.min;
+    data.sTimeChartXaxis.max = e.max;
+
+    console.log(e);
+    // chart.showLoading('Loading data from server...');
+    // fetch(`${dataURL}?start=${Math.round(e.min)}&end=${Math.round(e.max)}`)
+    //     .then((res) => res.ok && res.json())
+    //     .then((data1) => {
+    //         data.sMasterSeriesData = data1;
+    //         chart.hideLoading();
+    //     })
+    //     .catch((error) => console.error(error.message));
+}
+
 const createStockChart = () => {
     data.sMasterSeriesData = JSON.parse(JSON.stringify(props.chartData.datasets));
 };
-
 defineExpose({
     chart,
 });
 </script>
+
+<style lang="scss" scoped>
+/* @import 'index.scss'; */
+</style>

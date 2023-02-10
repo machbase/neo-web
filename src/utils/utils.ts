@@ -75,8 +75,7 @@ function splitTimeDuration(aTime: string) {
 
 function toTimeUtcChart(date: string) {
     const newDate = date.split(' ');
-    // newDate.pop();
-    const newFormat: string[] = newDate.join(' ').replace(/-|:/gi, ' ').split(' ');
+    const newFormat: string[] = newDate.join(' ').replace(/-|:|T/gi, ' ').split(' ');
     return Date.UTC(Number(newFormat[0]), Number(newFormat[1]) - 1, Number(newFormat[2]), Number(newFormat[3]), Number(newFormat[4]), Number(newFormat[5]));
 }
 export { utils, splitTimeDuration, formatDate, toTimeUtcChart };

@@ -188,7 +188,7 @@ const convertData = async (aTagData: ReturnTagData[], aPanelInfo: PanelInfo, aTa
             }),
 
             yAxis: aTagInfo.use_y2 === 'Y' ? 1 : 0,
-            color: sTagColor,
+            // color: sTagColor,
             type: props.panelInfo.chart_type === 'areaLine' ? 'area' : null,
             fillColor:
                 props.panelInfo.chart_type === 'areaLine'
@@ -294,10 +294,6 @@ const refreshBoard = async (aIsRangeTimeChange: boolean) => {
     // await refreshData(true);
 };
 
-watch(
-    () => props.panelInfo,
-    () => console.log('object')
-);
 //
 onMounted(async () => {
     await intializePanelData();
