@@ -6,25 +6,20 @@
     </div>
 </template>
 <script setup lang="ts" name="TagView">
-import { getBoard } from '@/api/repository/api';
 import ButtonCreate from '@/components/common/button-create/index.vue';
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { PopupType } from '@/enums/app';
-import { BoardInfo } from '@/interface/chart';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
-import { isEmpty } from 'lodash';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
 const store = useStore();
 const sDialog = ref<boolean>(false);
-const sData = ref<BoardInfo>();
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
-const cBoard = computed((): BoardInfo => store.state.gBoard);
 const sPanels = ref(null);
 
 function onOpenPopup() {
@@ -35,14 +30,9 @@ const onClosePopup = () => {
 };
 
 const setBoard = async (sId: string) => {
-    await store.dispatch(ActionTypes.fetchTable);
-    await store.dispatch(ActionTypes.fetchRangeData);
+    // await store.dispatch(ActionTypes.fetchTable);
     await store.dispatch(ActionTypes.fetchBoard, sId);
 };
-const onRefreshData = (aIsRangeTimeChange: boolean) => {
-    (sPanels.value as any)?.refreshData(aIsRangeTimeChange);
-};
-onRefreshData(true);
 
 watch(
     () => route.query.id,
@@ -52,6 +42,7 @@ watch(
         }
     }
 );
+
 watch(
     () => cBoardList.value,
     () => {
@@ -63,6 +54,8 @@ watch(
         }
     }
 );
+
+store.dispatch(ActionTypes.fetchRangeData);
 </script>
 
 <style lang="scss" scoped>

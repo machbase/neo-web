@@ -1,7 +1,7 @@
 <template>
     <!-- Loop show chart -->
     <div v-for="(panel, index) in data.sPanels" :key="index">
-        <LineChart v-if="isLine(panel.chart_type)" :ref="(el) => setPanelRefs(el)" :panel-info="panel" :index="panel.i" />
+        <LineChart v-if="isLine(panel.chart_type)" :panel-info="panel" :index="panel.i" />
     </div>
 </template>
 
@@ -15,33 +15,16 @@ import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults
 interface DashboardPanelsProps {
     pIsViewMode?: boolean;
 }
-
 withDefaults(defineProps<DashboardPanelsProps>(), {});
+
 const data = reactive({
     sPanels: [] as PanelInfo[],
 });
-const panelRefs = ref<string[]>([]);
-
 const store = useStore();
-
-const gDashboard = computed(() => store.state.gBoard);
-
-const setPanelRefs = (ref: any) => {
-    panelRefs.value.push(ref);
-};
-
-const refreshData = (aIsRangeTimeChange: boolean) => {
-    data.sPanels?.forEach((_, i) => {
-        if (panelRefs.value[i]) {
-            if ((panelRefs.value[i] as any)?.refreshBoard) {
-                (panelRefs.value[i] as any).refreshBoard(aIsRangeTimeChange);
-            }
-        }
-    });
-};
+const gBoard = computed(() => store.state.gBoard);
 
 watch(
-    gDashboard,
+    gBoard,
     (newValue) => {
         if (!newValue) return;
         data.sPanels = newValue.panels
@@ -57,9 +40,7 @@ watch(
     { immediate: true }
 );
 
-defineExpose({
-    refreshData,
-});
+defineExpose({});
 </script>
 <style lang="scss" scoped>
 @import 'index.scss';

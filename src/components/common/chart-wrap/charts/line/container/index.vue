@@ -33,10 +33,10 @@ const data = reactive({
         min: '' as string | number,
         max: '' as string | number,
     },
+    sChartWidth: 0 as number,
 });
 
-const chart = ref(null);
-
+const chart = ref();
 watch(
     () => props.chartData,
     () => {
@@ -45,6 +45,7 @@ watch(
         data.sTimeXaxis.max = props.xAxisMaxRange;
         data.sTimeChartXaxis.min = props.xAxisMinRange;
         data.sTimeChartXaxis.max = props.xAxisMaxRange;
+        data.sChartWidth = chart.value.chart.plotWidth;
     }
 );
 watch(data.sTimeChartXaxis, () => {
@@ -57,6 +58,8 @@ const cChartOptions = computed(() => {
         colors: ['#5ca3f2', '#d06a5f', '#e2bb5c', '#86b66b', '#7070e0', '#6bcbc1', '#a673e8', '#e26daf', '#bac85d', '#87cedd'],
         chart: {
             // type: 'line',
+            height: 450,
+            width: null,
             type: 'area',
             zoomType: 'x',
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
@@ -67,6 +70,7 @@ const cChartOptions = computed(() => {
                 // xAxis: when click chart
                 // 0: axis: a2, value: 1672415796649.6125
                 // 1: axis: a2, value: 1672415905801.4258
+                render() {},
             },
             // margin: [0, 40, 100, 40],
             // spacingTop: 50,
@@ -131,6 +135,8 @@ const cChartOptions = computed(() => {
             outlineWidth: 1,
             // outlineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             xAxis: {
+                // width: data.sChartWidth - 80,
+                margin: 300,
                 type: 'datetime',
                 min: toTimeUtcChart(data.sTimeXaxis.min as string),
                 max: toTimeUtcChart(data.sTimeXaxis.max as string),
@@ -148,6 +154,7 @@ const cChartOptions = computed(() => {
                 gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
                 gridLineWidth: 1,
             },
+            margin: 65,
         },
         //  Time chart
         xAxis: {
@@ -244,16 +251,15 @@ const cChartOptions = computed(() => {
             margin: 30,
             x: 20,
         },
-        //
         // No data
         lang: {
-            noData: 'Nichts zu anzeigen',
+            noData: 'No Data',
         },
         noData: {
             style: {
                 fontWeight: 'bold',
-                fontSize: '15px',
-                color: '#303030',
+                fontSize: '24px',
+                color: '#9ca2ab',
             },
         },
         // tool

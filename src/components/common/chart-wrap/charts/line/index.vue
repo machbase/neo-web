@@ -15,7 +15,7 @@
 
 <script lang="ts" setup>
 import ChartWrap from '@/components/common/chart-wrap/index.vue';
-import { convertDurationToSecond, getDateRange, getIntervalTime } from '@/helpers/date';
+import { getDateRange, getIntervalTime } from '@/helpers/date';
 import { lineColors } from '@/helpers/tags';
 import { BarPanel, ChartData, HighchartsDataset, LineDataset, LinePanel, PanelInfo, ReturnTagData, TagSet, TimeInfo, startTimeToendTimeType } from '@/interface/chart';
 import { TimeLineType } from '@/interface/date';
@@ -24,21 +24,18 @@ import { ActionTypes } from '@/store/actions';
 import { FORMAT_FULL_DATE } from '@/utils/constants';
 import { toTimeUtcChart } from '@/utils/utils';
 import moment from 'moment';
-import { computed, defineExpose, defineProps, onMounted, reactive, ref, withDefaults, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, defineProps, onMounted, reactive, ref, withDefaults } from 'vue';
 import LineChart from '../line/container/index.vue';
 
 interface LineChartProps {
     panelInfo: LinePanel;
     index: number;
 }
-
 const props = withDefaults(defineProps<LineChartProps>(), {
     index: 0,
 });
 
 const store = useStore();
-const route = useRoute();
 
 const data = reactive({
     sDisplayData: {} as LineDataset, // Data show chart
@@ -47,6 +44,7 @@ const data = reactive({
     sCount: -1 as number,
     sIsLoading: false,
 });
+
 function convertInterType(gUnit: string) {
     switch (gUnit) {
         case 's':
@@ -265,42 +263,9 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType) => {
     data.sIsLoading = false;
 };
 
-// pending
-const setIntervalRefresh = () => {
-    // const sRefreshTime = props.panelInfo.refresh;
-    // clearTimeout(data.sInterVal);
-    // if (sRefreshTime === 'off' || !sRefreshTime) return;
-    // let intervalTime = convertDurationToSecond(sRefreshTime);
-    // data.sInterVal = setTimeout(() => {
-    //     // 왜 10초 뒤에 실행되야 하는 지 모르겠음.
-    //     refreshData(true); //👈 true를 줘야 데이터 refresh가 실행 됨.
-    // }, (intervalTime as number) * 1000);
-};
-const refreshData = async (aIsReset: boolean) => {
-    // if (!aIsReset) return;
-    // // this.sInitLoading = true; 차트 컴포넌트를 새로 그림.
-    // await intializePanelData();
-    // data.sTimeLineData = { ...data.sDisplayData };
-    // setIntervalRefresh();
-};
-const refreshBoard = async (aIsRangeTimeChange: boolean) => {
-    // if (this.sLoading || this.sIsZooming) return;  👈 원래는 이거임. panel에서 줌했을 때, dashboard 전체에 적용이 되어야 함.
-    // if (data.sIsLoading) return;
-    // if (aIsRangeTimeChange) {
-    //     if (props.panelInfo.range_bgn && props.panelInfo.range_end) return;
-    // } else {
-    //     if (props.panelInfo.refresh) return;
-    // }
-    // await refreshData(true);
-};
-
 //
 onMounted(async () => {
     await intializePanelData();
-});
-
-defineExpose({
-    refreshBoard,
 });
 </script>
 

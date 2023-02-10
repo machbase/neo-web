@@ -67,6 +67,8 @@ const actions = {
         const res: any = await fetchRangeData();
         context.commit(MutationTypes.setRangeData, res.Data[0]);
     },
+
+    // lấy ActionTypes.fetchTableList
     async [ActionTypes.fetchTable](context: MyActionContext) {
         const res: any = await fetchTablesData();
         context.commit(MutationTypes.setTable, { ...res.Data.map((aItem: any) => aItem[0]) });
