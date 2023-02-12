@@ -1,1 +1,26 @@
 @import '@/assets/scss/theme.scss';
+.view-port {
+    background-color: black;
+    padding: 10px;
+    height: 110px;
+    font-size: 10px;
+    &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        &--events {
+            display: flex;
+            gap: 5px;
+            .button,
+            .icon {
+                @include theme() {
+                    background-color: theme-get('bg-color');
+                    color: theme-get('text-color');
+                    border: 1px solid theme-get('border-chart');
+                }
+                cursor: pointer;
+                padding: 2px 5px;
+            }
+        }
+    }
+}
