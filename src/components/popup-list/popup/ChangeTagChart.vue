@@ -1,14 +1,6 @@
 <template>
     <div class="popup">
         <div class="popup__input-group">
-            <p class="popup__input-group-label">Board ID</p>
-            <div class="popup__input-group-content">
-                <input class="popup__input-group-text" @change="onChangeId" />
-                <input v-model="sData.checked" type="checkbox" />
-                <span>Save as Copy</span>
-            </div>
-        </div>
-        <div class="popup__input-group">
             <p class="popup__input-group-label">Board Title</p>
             <div class="popup__input-group-content">
                 <input class="popup__input-group-text" @change="onChangeTitle" />
