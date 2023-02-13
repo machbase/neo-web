@@ -1,4 +1,39 @@
 @import '@/assets/scss/theme.scss';
-.chart-edit-page{
-    
+
+.chart-edit-page {
+    .tabs{
+        margin-top: 20px;
+        .header{
+            height: 30px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            @include theme() {
+                background-color: theme-get('bg-color-button') !important;
+                border-color: theme-get('border-color') !important;
+            }
+            img {
+                margin-right: 15px;
+                cursor: pointer;
+            }
+        }
+    }
+    .nav-pills {
+    }
+
+    .nav-pills li {
+        font-family: 'Open Sans',Helvetica,Arial,sans-serif;
+        display: inline;
+        margin-right: 30px;
+        cursor: pointer;
+        font-size: 12px;
+        color: #e7e8ea;
+        font-weight: 500;
+        font-style: normal;margin-left: 20px;
+    }
+
+    .nav-pills li:hover {
+        font-weight: bold;
+    }
 }

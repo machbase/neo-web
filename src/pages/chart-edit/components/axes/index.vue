@@ -1,8 +1,8 @@
 <template>
-    <div>footer</div>
+    <div>AxesTab</div>
 </template>
 
-<script setup lang="ts" name="Footer"></script>
+<script setup lang="ts" name="AxesTab"></script>
 
 <style lang="scss" scoped>
 @import 'index.scss';
