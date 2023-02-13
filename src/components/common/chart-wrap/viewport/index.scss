@@ -4,6 +4,11 @@
     padding: 10px;
     height: 110px;
     font-size: 10px;
+    position: absolute;
+    bottom: 50px;
+    width: 100%;
+    // left: 20px;
+    // right: 20px;
     &__header {
         display: flex;
         justify-content: space-between;

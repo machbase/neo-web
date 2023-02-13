@@ -28,6 +28,7 @@
             </div>
         </div>
         <slot />
+        <ViewPort />
     </div>
 </template>
 
@@ -37,6 +38,7 @@
 import { useStore } from '@/store';
 import { computed } from 'vue';
 import i_b_newwin from '@/assets/image/i_b_newwin.png';
+import ViewPort from './viewport/index.vue';
 import i_b_edit from '@/assets/image/i_b_edit.png';
 import i_b_refresh from '@/assets/image/i_b_refresh.png';
 import i_b_del from '@/assets/image/i_b_del.png';

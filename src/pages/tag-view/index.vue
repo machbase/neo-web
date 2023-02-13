@@ -3,11 +3,9 @@
         <ChartDashboard ref="sPanels" />
         <ButtonCreate :is-add-chart="true" :on-click="onOpenPopup" />
         <PopupWrap :width="'667px'" :p-type="PopupType.NEW_CHART" :p-show="sDialog" @e-close-popup="onClosePopup" />
-        <ViewPort/>
     </div>
 </template>
 <script setup lang="ts" name="TagView">
-import ViewPort from '@/components/common/chart-wrap/viewport/index.vue';
 import ButtonCreate from '@/components/common/button-create/index.vue';
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
