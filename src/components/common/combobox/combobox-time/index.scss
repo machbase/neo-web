@@ -37,6 +37,8 @@ $height: 30px;
     padding: $px-5 $px-20 !important;
     min-height: 1px !important;
     cursor: pointer;
+    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
+    font-size: 14px;
     &:hover {
         color: $color-blue;
     }

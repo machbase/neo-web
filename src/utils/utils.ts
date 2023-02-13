@@ -1,7 +1,8 @@
 // import { getWebStatus, getDataStatus, getReportStatus, getCacheStatus } from '@/api/repository/userManagement';
 // const delay = (ms: any) => new Promise((res) => setTimeout(res, ms));
 
-import { DAY, HOUR, MINUTE, SECOND } from './constants';
+import moment from 'moment';
+import { DAY, FORMAT_FULL_DATE, HOUR, MINUTE, SECOND } from './constants';
 
 const utils = {
     // delay,
@@ -72,4 +73,9 @@ function splitTimeDuration(aTime: string) {
     return sRet;
 }
 
-export { utils, splitTimeDuration, formatDate };
+function toTimeUtcChart(date: string) {
+    const newDate = date.split(' ');
+    const newFormat: string[] = newDate.join(' ').replace(/-|:|T/gi, ' ').split(' ');
+    return Date.UTC(Number(newFormat[0]), Number(newFormat[1]) - 1, Number(newFormat[2]), Number(newFormat[3]), Number(newFormat[4]), Number(newFormat[5]));
+}
+export { utils, splitTimeDuration, formatDate, toTimeUtcChart };

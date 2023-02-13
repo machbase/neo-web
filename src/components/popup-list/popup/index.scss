@@ -9,6 +9,7 @@
         @include theme() {
             background-color: theme-get('bg-color-input');
             color: theme-get('text-color');
+            border-color: theme-get('border-color');
         }
     }
 
@@ -21,15 +22,21 @@
         &-label {
             align-self: center;
             text-align: right;
-            min-width: 120px;
-            width: 120px;
+            min-width: 100px;
+            width: 100px;
             font-weight: 500;
         }
 
         &-content {
             flex: 1;
         }
-
+        &-group-text {
+            @include theme() {
+                background-color: theme-get('bg-color-input');
+                color: theme-get('text-color');
+                border-color: theme-get('border-color');
+            }
+        }
         .combobox-select {
             width: 100%;
         }
@@ -42,8 +49,8 @@
         &-label {
             align-self: center;
             text-align: right;
-            min-width: 120px;
-            width: 120px;
+            min-width: 100px;
+            width: 100px;
             font-weight: 500;
         }
 

@@ -9,6 +9,9 @@ $themes: (
         'bg-color-button': $d-background-1c,
         'border-color-paging': $d-border,
         'color-table': $d-color-table,
+        'background-chart': $d-background-chart,
+        'text-chart': $d-text-chart,
+        'border-chart': $d-border-chart,
     ),
     light: (
         'text-color': $l-text,
@@ -20,6 +23,9 @@ $themes: (
         'bg-color-button': $l-background-f6,
         'border-color-paging': $l-border,
         'color-table': $l-color-table,
+        'background-chart': $l-background-chart,
+        'text-chart': $l-text-chart,
+        'border-chart': $l-border-chart,
     ),
 );
 @mixin theme() {

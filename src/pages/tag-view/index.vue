@@ -1,28 +1,26 @@
 <template>
     <div class="tag-view">
-        <ChartDashboard v-for="(aPanel, aIndex) in sData?.panels" :key="aIndex" />
+        <ChartDashboard ref="sPanels" />
         <ButtonCreate :is-add-chart="true" :on-click="onOpenPopup" />
         <PopupWrap :width="'667px'" :p-type="PopupType.NEW_CHART" :p-show="sDialog" @e-close-popup="onClosePopup" />
     </div>
 </template>
 <script setup lang="ts" name="TagView">
-import { getBoard } from '@/api/repository/api';
 import ButtonCreate from '@/components/common/button-create/index.vue';
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { PopupType } from '@/enums/app';
-import { BoardInfo } from '@/interface/chart';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
-import { isEmpty } from 'lodash';
+import { ActionTypes } from '@/store/actions';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
 const store = useStore();
 const sDialog = ref<boolean>(false);
-const sData = ref<BoardInfo>();
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
+const sPanels = ref(null);
 
 function onOpenPopup() {
     sDialog.value = true;
@@ -32,8 +30,8 @@ const onClosePopup = () => {
 };
 
 const setBoard = async (sId: string) => {
-    const sRes: BoardInfo = await getBoard(sId);
-    sData.value = sRes;
+    // await store.dispatch(ActionTypes.fetchTable);
+    await store.dispatch(ActionTypes.fetchBoard, sId);
 };
 
 watch(
@@ -44,6 +42,7 @@ watch(
         }
     }
 );
+
 watch(
     () => cBoardList.value,
     () => {
@@ -55,6 +54,8 @@ watch(
         }
     }
 );
+
+store.dispatch(ActionTypes.fetchRangeData);
 </script>
 
 <style lang="scss" scoped>

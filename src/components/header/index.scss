@@ -48,6 +48,11 @@
                 }
             }
         }
+        :deep(.combobox-select) {
+            width: 200px;
+            border: 1px solid #333333 !important;
+            margin: 0px 20px 0px 10px;
+        }
         :deep(.combobox-select .combobox-select__item) {
             background-color: $d-background-opa !important;
             color: $text-w !important;
