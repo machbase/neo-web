@@ -33,13 +33,14 @@ const routes: Array<RouteRecordRaw> = [
         beforeEnter: protectedRoute,
     },
     {
-        path: `${PageRoutes.TAG_VIEW}${PageRoutes.CHART_EDIT}`,
+        path: `${PageRoutes.TAG_VIEW}${PageRoutes.CHART_EDIT}/:id`,
         name: RouteNames.CHART_EDIT,
         components: {
             default: ChartEdit,
             Header,
             Footer,
         },
+        props: true,
         beforeEnter: protectedRoute,
     },
     {

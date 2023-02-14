@@ -23,6 +23,7 @@ enum ActionTypes {
     fetchRangeData = 'fetchRangeData',
     fetchTable = 'fetchTable',
     fetchTagData = 'fetchTagData',
+    fetchTagDataRaw = 'fetchTagDataRaw',
     fetchBoardDetail = 'fetchBoardDetail',
 }
 
@@ -77,6 +78,14 @@ const actions = {
     //
     async [ActionTypes.fetchTagData](context: MyActionContext, aParams: FetchTagDataArg) {
         const res = aParams.CalculationMode === 'raw' ? ((await fetchRawData(aParams)) as any) : ((await fetchCalculationData(aParams)) as any);
+        if (res.ErrorCode === 0) {
+            return res.Data;
+        } else {
+            return 'fail';
+        }
+    },
+    async [ActionTypes.fetchTagDataRaw](context: MyActionContext, aParams: FetchTagDataArg) {
+        const res = (await fetchRawData(aParams)) as any;
         if (res.ErrorCode === 0) {
             return res.Data;
         } else {

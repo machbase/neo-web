@@ -1,6 +1,6 @@
 <template><highcharts ref="chart" constructor-type="stockChart" :options="cChartOptions"></highcharts></template>
 
-<script lang="ts" setup name="LineChart">
+<script lang="ts" setup name="AreaChart">
 import { HighchartsDataset, LineDataset, LinePanel } from '@/interface/chart';
 import { useStore } from '@/store';
 import { toTimeUtcChart } from '@/utils/utils';
@@ -52,9 +52,9 @@ const cChartOptions = computed(() => {
     return {
         colors: ['#5ca3f2', '#d06a5f', '#e2bb5c', '#86b66b', '#7070e0', '#6bcbc1', '#a673e8', '#e26daf', '#bac85d', '#87cedd'],
         chart: {
-            type: 'line',
             height: 400,
             width: null,
+            type: 'area',
             zoomType: 'x',
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
             lineWidth: 1,
@@ -77,8 +77,15 @@ const cChartOptions = computed(() => {
         // option chart
         plotOptions: {
             series: {
-                marker: {
-                    enabled: true,
+                lineWidth: 1,
+                fillOpacity: 0.1,
+                cursor: 'pointer',
+                point: {
+                    events: {
+                        click: function (e) {
+                            console.log('select point', e);
+                        },
+                    },
                 },
             },
         },

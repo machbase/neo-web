@@ -156,7 +156,7 @@ export interface BoardInfo {
     refresh: string;
     board_name: string;
     range_bgn: string;
-    panels: PanelInfo[][][];
+    panels: PanelInfo[][];
 }
 export interface LineDataset {
     datasets: HighchartsDataset[];

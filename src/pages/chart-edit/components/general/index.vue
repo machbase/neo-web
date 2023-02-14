@@ -71,6 +71,7 @@ const zoom = ref<boolean>(true);
 const zoomStart = ref<boolean>(true);
 const drillDown = ref<boolean>(true);
 const normalize = ref<boolean>(true);
+
 const onChangeAction = (item: string) => {
     actionIndex.value = parseInt(item);
 };
@@ -80,7 +81,6 @@ const actions = [
     { id: 2, name: 'Show Raw data table' },
 ];
 </script>
-
 <style lang="scss" scoped>
 @import 'index.scss';
 </style>
