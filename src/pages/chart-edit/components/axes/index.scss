@@ -1,1 +1,52 @@
 @import '@/assets/scss/theme.scss';
+.axe-tab {
+    padding: 20px;
+    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
+    font-size: 12px;
+    display: flex;
+    width: 1000px;
+    .input {
+        width: 210px;
+        height: 26px;
+        border: 1px solid $d-border;
+        outline: none;
+        flex: 1;
+    
+        @include theme() {
+            background-color: theme-get('bg-color-input');
+            color: theme-get('text-color');
+            padding: $px-5 $px-10;
+        }
+    
+        &:focus {
+            @include box-shadow;
+        }
+    }
+    .cfg-input {
+        margin-top: 2px;
+        margin-bottom: 20px;
+    }
+    .col1 {
+        .checkbox-wrapper{
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            input {
+                margin-top: 5px;
+                margin-right: 5px;
+            }
+            .title1 {
+                font-weight: 700;
+                font-style: normal;
+                color: #afb5bc;
+            }
+        }
+        width: 25%;
+        .title {
+            font-weight: 700;
+            font-style: normal;
+            color: #afb5bc;
+            margin-bottom: 10px;
+        }
+    }
+}
