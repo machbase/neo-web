@@ -49,7 +49,7 @@
             <img :src="i_b_refresh" class="icon" @click="onClickPopupItem(PopupType.TIME_DURATION)" />
             <router-link
                 v-if="route.params.id || cBoardListSelect[0]?.id"
-                :to="{ name: RouteNames.CHART_EDIT, params: { id: route.params.id || cBoardListSelect[0]?.id }, query: {} }"
+                :to="{ name: RouteNames.VIEW, params: { id: route.params.id || cBoardListSelect[0]?.id }, query: {} }"
                 target="_blank"
             >
                 <img v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" :src="i_b_share" class="icon" />
@@ -77,7 +77,7 @@ import { RouteNames } from '@/enums/routes';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from './constant';
 
@@ -135,6 +135,13 @@ const onClickPopupItem = (aPopupName: PopupType) => {
     sDialog.value = true;
 };
 store.dispatch(ActionTypes.fetchBoardList);
+
+watch(
+    () => route.name,
+    () => {
+        if (route.name) sHeaderType.value = route.name as headerType;
+    }
+);
 </script>
 
 <style lang="scss" scoped>

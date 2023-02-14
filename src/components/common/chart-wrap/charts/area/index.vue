@@ -1,8 +1,8 @@
 <template>
     <ChartWrap :panel-info="props.panelInfo">
-        <LineChart
+        <AreaChart
             :id="`chart-${props.index}`"
-            ref="lineChart"
+            ref="areaChart"
             :chart-data="data.sDisplayData"
             :panel-info="props.panelInfo"
             :x-axis-max-range="data.sTimeLine.endTime"
@@ -24,7 +24,7 @@ import { FORMAT_FULL_DATE } from '@/utils/constants';
 import { toTimeUtcChart } from '@/utils/utils';
 import moment from 'moment';
 import { computed, defineProps, onMounted, reactive, ref, withDefaults } from 'vue';
-import LineChart from '../line/container/index.vue';
+import AreaChart from './container/index.vue';
 
 interface LineChartProps {
     panelInfo: LinePanel;
@@ -40,6 +40,8 @@ const data = reactive({
     sIntervalData: { IntervalType: convertInterType(props.panelInfo.interval_type.toLowerCase()), IntervalValue: 0 } as { IntervalValue: number; IntervalType: string },
     sIsLoading: false,
 });
+const lineChart = ref(null);
+const sIsStockChart = ref<boolean>(true);
 function convertInterType(gUnit: string) {
     switch (gUnit) {
         case 's':
@@ -57,9 +59,6 @@ function convertInterType(gUnit: string) {
 const sInnerValue = reactive({
     sTickPixels: props.panelInfo.pixels_per_tick <= 0 ? (1 as number) : (props.panelInfo.pixels_per_tick as number),
 });
-
-const lineChart = ref(null);
-const sIsStockChart = ref<boolean>(true);
 
 function calcInterval(aBgn: string, aEnd: string, aWidth: number): { IntervalType: string; IntervalValue: number } {
     var sBgn = new Date(aBgn);

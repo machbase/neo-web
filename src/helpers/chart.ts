@@ -6,10 +6,12 @@ const isBar = (aType: string) => {
     return barTypeArr.includes(aType);
 };
 
-const lineTypeArr = ['line', 'areaLine', 'pointLine', 'point', 'stock'];
+const lineTypeArr = ['line', 'point', 'area'];
 
-const isLine = (aType: string) => {
-    return lineTypeArr.includes(aType);
+const isChartType = (show_point?: 'Y' | 'N', stroke?: number) => {
+    if (show_point === 'N' && stroke === 1) return 'area';
+    else if (show_point === 'Y' && stroke === 1) return 'line';
+    else if (show_point === 'Y' && stroke === 0) return 'point';
 };
 
 const pieChartTypes = {
@@ -225,8 +227,8 @@ const getConnectionQueryString = (aPanelInfo: PanelInfo) => {
 };
 
 export {
+    isChartType,
     isBar,
-    isLine,
     isPieChart,
     isGaugeChart,
     isTextChart,

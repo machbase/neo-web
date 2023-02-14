@@ -1,8 +1,8 @@
 <template>
     <ChartWrap :panel-info="props.panelInfo">
-        <LineChart
+        <PointChart
             :id="`chart-${props.index}`"
-            ref="lineChart"
+            ref="pointChart"
             :chart-data="data.sDisplayData"
             :panel-info="props.panelInfo"
             :x-axis-max-range="data.sTimeLine.endTime"
@@ -24,7 +24,7 @@ import { FORMAT_FULL_DATE } from '@/utils/constants';
 import { toTimeUtcChart } from '@/utils/utils';
 import moment from 'moment';
 import { computed, defineProps, onMounted, reactive, ref, withDefaults } from 'vue';
-import LineChart from '../line/container/index.vue';
+import PointChart from './container/index.vue';
 
 interface LineChartProps {
     panelInfo: LinePanel;

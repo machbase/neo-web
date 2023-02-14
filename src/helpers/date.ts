@@ -169,12 +169,12 @@ const getIntervalTime = (aChartWidth: number, aPanelInfo: any, aStart: any, aEnd
         // bar, line 타입 차트가 아니면 pixelsPerTick은 무조건 1.
         // numberOfTick은 panel에 몇 분할할건지(divisions_number) 기본값은 100.
         // 사용자가 입력하게 한다. 기본값은 100이다.
-        let pixelsPerTick = 1;
-        let numberOfTick = aPanelInfo.divisions_number;
-        if (isLine(panelType) || isBar(panelType)) {
-            pixelsPerTick = isBar(panelType) ? getPixelsPerTickOfBar(aPanelInfo) : aPanelInfo.pixels_per_tick || 3;
-            numberOfTick = Math.floor(((isLine(panelType) ? aChartWidth - 60 : aChartWidth) - 16) / pixelsPerTick);
-        }
+        const pixelsPerTick = 1;
+        const numberOfTick = aPanelInfo.divisions_number;
+        // if (isLine(panelType) || isBar(panelType)) {
+        //     pixelsPerTick = isBar(panelType) ? getPixelsPerTickOfBar(aPanelInfo) : aPanelInfo.pixels_per_tick || 3;
+        //     numberOfTick = Math.floor(((isLine(panelType) ? aChartWidth - 60 : aChartWidth) - 16) / pixelsPerTick);
+        // }
         if (tags[0].calculation_mode === 'raw') return { count: numberOfTick };
         const rangeTime = moment(aEnd).diff(moment(aStart), 's');
         //첫번째 날과 두번 째날의 차이를 구함

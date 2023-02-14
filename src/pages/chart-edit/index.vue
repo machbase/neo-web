@@ -1,66 +1,40 @@
 <template>
     <div class="chart-edit-page">
-        <ChartDashboard ref="sPanels" />
+        <ChartDashboard ref="sPanels" :chart-data-single="sDataChart" />
         <DisplayTab />
         <DataTab />
         <TimeRangeTab />
     </div>
 </template>
-<script setup lang="ts" name="TagView">
+<script setup lang="ts" name="ChartEdit">
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
 import TimeRangeTab from '../chart-edit/components/time-range/index.vue';
 import DisplayTab from '../chart-edit/components/display/index.vue';
-import { BoardInfo } from '@/interface/chart';
+import { BoardInfo, LinePanel, PanelInfo } from '@/interface/chart';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import DataTab from '../chart-edit/components/data/index.vue';
+import { withDefaults, defineProps } from 'vue';
 
 const route = useRoute();
+const sDataChart = ref<PanelInfo[]>([]);
 const store = useStore();
-const sDialog = ref<boolean>(false);
-const sData = ref<BoardInfo>();
+const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
-const cBoard = computed((): BoardInfo => store.state.gBoard);
-const sPanels = ref(null);
-
-function onOpenPopup() {
-    sDialog.value = true;
-}
-const onClosePopup = () => {
-    sDialog.value = false;
-};
-
-const setBoard = async (sId: string) => {
-    await store.dispatch(ActionTypes.fetchTable);
-    await store.dispatch(ActionTypes.fetchRangeData);
-    await store.dispatch(ActionTypes.fetchBoard, sId);
-};
-const onRefreshData = (aIsRangeTimeChange: boolean) => {
-    (sPanels.value as any)?.refreshData(aIsRangeTimeChange);
-};
-onRefreshData(true);
 
 watch(
-    () => route.query.id,
+    () => route.params.id,
     () => {
-        if (route.query.id) {
-            setBoard(route.query.id as string);
+        if (route.params.id) {
+            sDataChart.value = CPanels.value[route.params.id as any];
+        } else {
+            console.log('sDataChart.value', sDataChart.value);
         }
-    }
-);
-watch(
-    () => cBoardList.value,
-    () => {
-        if (!route.query.id && cBoardList.value.length > 0) {
-            setBoard(cBoardList.value[0]?.board_id as string);
-        }
-        if (route.query.id) {
-            setBoard(route.query.id as string);
-        }
-    }
+    },
+    { immediate: true }
 );
 </script>
 
