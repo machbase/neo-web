@@ -18,21 +18,21 @@
         </div>
     </div>
 </template>
-<script setup lang="ts" name="TagView">
+<script setup lang="ts" name="ChartEdit">
 import i_b_close from '@/assets/image/i_b_close.png';
 import i_b_save_2 from '@/assets/image/i_b_save_2.png';
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
-import TimeRangeTab from '../chart-edit/components/time-range/index.vue';
-import DisplayTab from '../chart-edit/components/display/index.vue';
-import { BoardInfo, LinePanel, PanelInfo } from '@/interface/chart';
+import { BoardInfo, PanelInfo } from '@/interface/chart';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
-import { computed, ref, watch, defineProps, withDefaults } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import DataTab from '../chart-edit/components/data/index.vue';
 import AxesTab from '../chart-edit/components/axes/index.vue';
+import DataTab from '../chart-edit/components/data/index.vue';
+import DisplayTab from '../chart-edit/components/display/index.vue';
 import GeneralTab from '../chart-edit/components/general/index.vue';
+import TimeRangeTab from '../chart-edit/components/time-range/index.vue';
 
 const tabs = ['General', 'Data', 'Axes', 'Display', 'Time range'];
 const route = useRoute();
@@ -40,11 +40,9 @@ const sDataChart = ref<PanelInfo[]>([]);
 const store = useStore();
 
 const sDialog = ref<boolean>(false);
-const sData = ref<BoardInfo>();
 const tabIndex = ref<number>(1);
-const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
-const cBoard = computed((): BoardInfo => store.state.gBoard);
+const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const sPanels = ref(null);
 const onClickTab = (index: number) => {
     console.log('onClickTab ~ index', index);
@@ -68,12 +66,18 @@ const onRefreshData = (aIsRangeTimeChange: boolean) => {
 onRefreshData(true);
 
 watch(
-    () => route.params.id,
+    () => cBoardList.value,
+    () => {
+        setBoard(cBoardList.value[0]?.board_id as string);
+    }
+);
+watch(
+    CPanels,
     () => {
         if (route.params.id) {
             sDataChart.value = CPanels.value[route.params.id as any];
         } else {
-            console.log('sDataChart.value', sDataChart.value);
+            sDataChart.value = CPanels.value[0];
         }
     },
     { immediate: true }
