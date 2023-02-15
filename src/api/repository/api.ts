@@ -70,4 +70,11 @@ const deleteBoard = (sId: any) => {
     });
 };
 
-export { getBoardList, postSetting, getPreference, deleteBoard, putBoard, getBoard };
+const getDataDefault = async () => {
+    return await request({
+        method: 'GET',
+        url: '/api/machiotchart/default/',
+    });
+};
+
+export { getBoardList, postSetting, getPreference, deleteBoard, putBoard, getBoard, getDataDefault };

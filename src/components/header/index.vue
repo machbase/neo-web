@@ -49,7 +49,7 @@
             <img :src="i_b_refresh" class="icon" @click="onClickPopupItem(PopupType.TIME_DURATION)" />
             <router-link
                 v-if="route.params.id || cBoardListSelect[0]?.id"
-                :to="{ name: RouteNames.VIEW, params: { id: route.params.id || cBoardListSelect[0]?.id }, query: {} }"
+                :to="{ name: RouteNames.VIEW, params: { id: route.params.id || route.query.id as string || cBoardListSelect[0]?.id } }"
                 target="_blank"
             >
                 <img v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" :src="i_b_share" class="icon" />
