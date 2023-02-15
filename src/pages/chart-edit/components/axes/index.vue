@@ -90,13 +90,14 @@
 <script setup lang="ts" name="AxesTab">
 import i_b_close from '@/assets/image/i_b_close.png';
 import { splitTimeDuration } from '@/utils/utils';
-import { computed, defineEmits, reactive, ref, watch } from 'vue';
+import { computed, defineEmits, reactive, ref, watch, watchEffect } from 'vue';
 import CustomScale, { CustomScaleInput } from '@/components/common/custom-scale/index.vue';
 import { useRoute } from 'vue-router';
 import { useStore } from '@/store';
 import { PanelInfo, TagSet } from '@/interface/chart';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 
+const emit = defineEmits(['eOnChange']);
 const store = useStore();
 const route = useRoute();
 const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
@@ -111,7 +112,7 @@ const tagSetsSelected = computed((): any => {
     });
     return newArr;
 });
-console.log('🚀 ~ file: index.vue:90 ~ chartSelected', chartSelected[0]);
+
 const picked = ref('r');
 const isZeroBase = ref<boolean>(false);
 const isZeroBase2 = ref<boolean>(false);
@@ -141,6 +142,7 @@ const sCustomScaleRaw2 = reactive<CustomScaleInput>({
 });
 const onChangeInput = (aEvent: Event) => {
     const sTemp = splitTimeDuration((aEvent.target as HTMLInputElement).value);
+    console.log("🚀 ~ file: index.vue:145 ~ onChangeInput ~ sTemp", sTemp)
     intervalValue.value = sTemp.value;
     intervalUnit.value = sTemp.type;
 };
@@ -174,6 +176,13 @@ const onChangeCustomScale = (data: CustomScaleInput, type: number) => {
         sCustomScaleRaw2.input2 = data.input2;
     }
 };
+watchEffect(() => {
+    const data = {
+        interval_type: intervalUnit.value,
+        interval_value: intervalValue.value,
+    };
+    emit('eOnChange', data);
+});
 watch(
     CPanels,
     () => {

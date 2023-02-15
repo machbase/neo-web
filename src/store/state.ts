@@ -35,7 +35,7 @@ const state = {
     //ActionTypes.fetchTableList
     gTable: {} as any,
 };
-console.log('🚀 ~ file: state.ts:11 ~ gTempNewChartData', state.gTempNewChartData);
+console.log('🚀 ~ file: state.ts:11 ~ gTempNewChartData', state.gBoard.panels);
 
 type RootState = typeof state;
 

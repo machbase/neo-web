@@ -6,12 +6,12 @@
                 <ul class="nav-pills">
                     <li v-for="(item, index) in tabs" :key="index" :style="{ color: tabIndex === index ? '#2ec0df' : '#e7e8ea' }" @click="onClickTab(index)">{{ item }}</li>
                 </ul>
-                <div><img :src="i_b_save_2" alt="Clear icon" /><img :src="i_b_close" alt="Clear icon" /></div>
+                <div><img :src="i_b_save_2" @click="onSave" alt="Clear icon" /><img :src="i_b_close" alt="Clear icon" /></div>
             </div>
             <div>
                 <GeneralTab v-if="tabIndex === 0" />
                 <DataTab v-if="tabIndex === 1" />
-                <AxesTab v-if="tabIndex === 2" />
+                <AxesTab v-if="tabIndex === 2" @e-on-change="onChangeAxes" />
                 <DisplayTab v-if="tabIndex === 3" />
                 <TimeRangeTab v-if="tabIndex === 4" />
             </div>
@@ -26,7 +26,8 @@ import { BoardInfo, PanelInfo } from '@/interface/chart';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
-import { computed, ref, watch } from 'vue';
+import { MutationTypes } from '@/store/mutations';
+import { computed, ref, watch, reactive } from 'vue';
 import { useRoute } from 'vue-router';
 import AxesTab from '../chart-edit/components/axes/index.vue';
 import DataTab from '../chart-edit/components/data/index.vue';
@@ -42,9 +43,22 @@ const tabIndex = ref<number>(1);
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
 const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const sPanels = ref(null);
+const sTabData = ref<any>({});
 const onClickTab = (index: number) => {
     console.log('onClickTab ~ index', index);
     tabIndex.value = index;
+};
+
+const onChangeAxes = (data: any) => {
+    sTabData.value = { ...sTabData.value, ...data };
+    console.log('🚀 ~ file: index.vue:54 ~ onChangeAxes ~ sTabData.value', sTabData.value);
+};
+const onSave = () => {
+    const payload = {
+        index: route.params.id,
+        item: sTabData.value,
+    };
+    store.commit(MutationTypes.setChartEdit, payload);
 };
 
 const setBoard = async (sId: string) => {
