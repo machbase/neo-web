@@ -3,7 +3,7 @@
 <script lang="ts" setup name="LineChart">
 import { HighchartsDataset, LineDataset, LinePanel } from '@/interface/chart';
 import { useStore } from '@/store';
-import { toTimeUtcChart } from '@/utils/utils';
+import { formatColors, toTimeUtcChart } from '@/utils/utils';
 import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults } from 'vue';
 
 interface BarChartContainerProps {
@@ -50,11 +50,11 @@ watch(data.sTimeChartXaxis, () => {
 // cIsDarkMode.value ? '#e7e8ea' : '#2a313b',
 const cChartOptions = computed(() => {
     return {
-        colors: ['#5ca3f2', '#d06a5f', '#e2bb5c', '#86b66b', '#7070e0', '#6bcbc1', '#a673e8', '#e26daf', '#bac85d', '#87cedd'],
+        colors: formatColors(props.panelInfo.color_set),
         chart: {
             type: 'line',
             height: 400,
-            width: null,
+            width: props.panelInfo.chart_width <= 0 ? null : props.panelInfo.chart_width,
             zoomType: 'x',
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
             lineWidth: 1,
@@ -77,8 +77,9 @@ const cChartOptions = computed(() => {
         // option chart
         plotOptions: {
             series: {
+                lineWidth: props.panelInfo.stroke,
                 marker: {
-                    enabled: true,
+                    enabled: props.panelInfo.show_point === 'Y',
                 },
             },
         },
@@ -196,7 +197,7 @@ const cChartOptions = computed(() => {
         },
         // list tag
         legend: {
-            enabled: true,
+            enabled: props.panelInfo.show_legend === 'B',
             align: 'left',
             itemDistance: 15,
             squareSymbol: false,

@@ -11,7 +11,7 @@
                 <div class="tagtitle floatleft">Tag</div>
                 <div class="search-wrapper">
                     <input v-model="searchText" type="text" class="form-control taginput input" style="width: 180px" />
-                    <span @click="onReset" class="input clear-icon"><img :src="i_b_close" alt="Clear icon" /></span>
+                    <span class="input clear-icon" @click="onReset"><img :src="i_b_close" alt="Clear icon" /></span>
                     <v-btn class="button-effect-color" variant="outlined" :height="30" @click="onSearch">Search</v-btn>
                 </div>
                 <div class="countGroup">
@@ -19,7 +19,7 @@
                     <div>Select : {{ selectCount }}</div>
                 </div>
                 <div class="taglistdiv taglistscroll">
-                    <div style="margin-bottom: 5px" v-for="(aTime, aIndex) in cTagsSearch" :key="aIndex" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
+                    <div v-for="(aTime, aIndex) in cTagsSearch" :key="aIndex" style="margin-bottom: 5px" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
                 </div>
                 <Pagination :total="Math.ceil(cTags.length / MAX_TAG_COUNT)" @e-on-change="onPaging" />
             </div>
@@ -28,7 +28,7 @@
                     <ChartSelect @e-on-change="onSelectChart" />
                 </div>
                 <div class="selectedlistdiv taglistscroll">
-                    <div v-for="(aTime, aIndex) in sSelectedTags" style="margin-bottom: 5px" :key="aIndex" class="wrapperTagSelect">
+                    <div v-for="(aTime, aIndex) in sSelectedTags" :key="aIndex" style="margin-bottom: 5px" class="wrapperTagSelect">
                         <span @click="onRemoveTag(aIndex)"> {{ aTime.tag_names }}</span>
                         <ComboboxSelect :p-show-default-option="false" :p-data="CALC_MODE" :p-value="'avg'" @e-on-change="(item) => onChangeCalcMode(item, aIndex)" />
                     </div>
@@ -68,7 +68,6 @@ const chartType = ref<ChartType>(ChartType.Zone);
 const selectCount = ref<number>(0);
 const cTags = computed(() => store.state.gTagList);
 const cTagsSearch = ref<any>([]);
-console.log('🚀 ~ file: NewChart.vue:75 ~ cTagsSearch', cTagsSearch);
 const sSelectedTags = reactive<Partial<TagSet>[]>([]);
 const store = useStore();
 const cTableList = computed(() => store.state.gTableList);
@@ -123,7 +122,6 @@ const onReset = () => {
     if (searchText.value != '') searchText.value = '';
 };
 const onSelectChart = (data: ChartType) => {
-    console.log(data, 'data');
     chartType.value = data;
 };
 const onSelectTag = (data: { NAME: string }) => {
@@ -133,7 +131,6 @@ const onSelectTag = (data: { NAME: string }) => {
 const onRemoveTag = (index: number) => {
     selectCount.value--;
     sSelectedTags.splice(index, 1);
-    console.log(index, 'index');
 };
 const onChangeCalcMode = (data: CalculationMode, index: number) => {
     sSelectedTags[index].calculation_mode = data;
@@ -154,7 +151,7 @@ const onSetting = () => {
         chartType: chartType.value,
         tagSet: sSelectedTags,
     };
-    store.dispatch(ActionTypes.setTempNewChartData, newData).then(() => onClosePopup());
+    store.dispatch(ActionTypes.fetchNewChartBoard, newData).then(() => onClosePopup());
 };
 
 const onClosePopup = () => {

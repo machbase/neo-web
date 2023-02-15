@@ -5,6 +5,7 @@ import { HighchartsDataset, LineDataset, LinePanel } from '@/interface/chart';
 import { useStore } from '@/store';
 import { toTimeUtcChart } from '@/utils/utils';
 import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults } from 'vue';
+import { formatColors } from '@/utils/utils';
 
 interface BarChartContainerProps {
     chartData: LineDataset;
@@ -36,6 +37,7 @@ watch(
     () => props.chartData,
     () => {
         createStockChart();
+        console.log('panelInfo', props.panelInfo);
         data.sTimeXaxis.min = props.xAxisMinRange;
         data.sTimeXaxis.max = props.xAxisMaxRange;
         data.sTimeChartXaxis.min = props.xAxisMinRange;
@@ -47,13 +49,13 @@ watch(data.sTimeChartXaxis, () => {
     console.log('data', data.sTimeChartXaxis);
 });
 
-// cIsDarkMode.value ? '#e7e8ea' : '#2a313b',
 const cChartOptions = computed(() => {
     return {
-        colors: ['#5ca3f2', '#d06a5f', '#e2bb5c', '#86b66b', '#7070e0', '#6bcbc1', '#a673e8', '#e26daf', '#bac85d', '#87cedd'],
+        colors: formatColors(props.panelInfo.color_set),
         chart: {
+            // height: 400, ----------- chart_height
             height: 400,
-            width: null,
+            width: props.panelInfo.chart_width <= 0 ? null : props.panelInfo.chart_width,
             type: 'area',
             zoomType: 'x',
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
@@ -77,9 +79,13 @@ const cChartOptions = computed(() => {
         // option chart
         plotOptions: {
             series: {
-                lineWidth: 1,
+                // lineWidth: 1,
+                lineWidth: props.panelInfo.stroke,
                 fillOpacity: 0.1,
                 cursor: 'pointer',
+                marker: {
+                    enabled: props.panelInfo.show_point === 'Y',
+                },
                 point: {
                     events: {
                         click: function (e) {
@@ -165,6 +171,8 @@ const cChartOptions = computed(() => {
         yAxis: {
             showLastLabel: true,
             // showFirstLabel: false,
+            // min: props.panelInfo.zero_base === 'Y' ? 0 : props.panelInfo.custom_min || null,
+            //           max: props.panelInfo.custom_max || null,
             max: 10, // data
 
             // tickAmount: 6,
@@ -203,7 +211,8 @@ const cChartOptions = computed(() => {
         },
         // list tag
         legend: {
-            enabled: true,
+            // enabled: true,
+            enabled: props.panelInfo.show_legend === 'B',
             align: 'left',
             itemDistance: 15,
             squareSymbol: false,

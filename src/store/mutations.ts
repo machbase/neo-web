@@ -15,6 +15,7 @@ enum MutationTypes {
     setTagList = 'setTagList',
     setTempNewChartData = 'setTempNewChartData',
     setRangeData = 'setRangeData',
+    setNewChartBoard = 'setNewChartBoard',
 }
 
 const mutations = {
@@ -59,6 +60,9 @@ const mutations = {
     },
     [MutationTypes.setTempNewChartData](state: RootState, aTemp: TempNewChartData) {
         state.gTempNewChartData = aTemp;
+    },
+    [MutationTypes.setNewChartBoard](state: RootState, aTemp: PanelInfo) {
+        state.gBoard.panels.push([{ ...aTemp }]);
     },
     [MutationTypes.setRangeData](state: RootState, aRangeData: RangeData) {
         state.gRangeData = aRangeData;

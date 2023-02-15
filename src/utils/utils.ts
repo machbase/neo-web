@@ -3,10 +3,11 @@
 
 import moment from 'moment';
 import { DAY, FORMAT_FULL_DATE, HOUR, MINUTE, SECOND } from './constants';
+import { PanelInfo } from '@/interface/chart';
+import { TempNewChartData } from '@/interface/tagView';
+import { COLOR_SET } from './constants';
 
-const utils = {
-    // delay,
-};
+const utils = {};
 const formatDate = (date: Date | string): string => {
     let dateStr;
     if (typeof date === 'string') dateStr = date;
@@ -73,9 +74,68 @@ function splitTimeDuration(aTime: string) {
     return sRet;
 }
 
-function toTimeUtcChart(date: string) {
-    const newDate = date.split(' ');
-    const newFormat: string[] = newDate.join(' ').replace(/-|:|T/gi, ' ').split(' ');
-    return Date.UTC(Number(newFormat[0]), Number(newFormat[1]) - 1, Number(newFormat[2]), Number(newFormat[3]), Number(newFormat[4]), Number(newFormat[5]));
+function toTimeUtcChart(date: string | number) {
+    if (typeof date === 'string') {
+        const newDate = date.split(' ');
+        const newFormat: string[] = newDate.join(' ').replace(/-|:|T/gi, ' ').split(' ');
+        return Date.UTC(Number(newFormat[0]), Number(newFormat[1]) - 1, Number(newFormat[2]), Number(newFormat[3]), Number(newFormat[4]), Number(newFormat[5]));
+    } else {
+        return date;
+    }
 }
-export { utils, splitTimeDuration, formatDate, toTimeUtcChart };
+
+function formatColors(colors: string) {
+    const newFormat = colors.split(',').map((i) => '#' + i);
+    return newFormat;
+}
+
+function convertChartType(aType: number) {
+    let show_point = 'Y';
+    let stroke = 0;
+    switch (aType) {
+        case 0:
+            show_point = 'N';
+            stroke = 1;
+            break;
+        case 1:
+            show_point = 'Y';
+            stroke = 0;
+            break;
+        case 2:
+            show_point = 'Y';
+            stroke = 1;
+            break;
+    }
+    return {
+        show_point,
+        stroke,
+    };
+}
+function convertTagChartType(aTags: []) {
+    return aTags.map((a) => {
+        return {
+            max: 0,
+            min: 0,
+            use_y2: 'N',
+            alias: '',
+            weight: 1,
+            table: 'TAG',
+            ...a,
+        };
+    });
+}
+
+function convertChartDefault(aChartDefault: PanelInfo, aTag: TempNewChartData): PanelInfo {
+    const chart = convertChartType(aTag.chartType);
+    const tagSet = convertTagChartType(aTag.tagSet);
+    // const timeout = 20000;
+    return {
+        ...aChartDefault,
+        color_set: COLOR_SET,
+        show_point: chart.show_point,
+        stroke: chart.stroke,
+        fill: 0,
+        tag_set: tagSet,
+    };
+}
+export { utils, splitTimeDuration, formatDate, toTimeUtcChart, formatColors, convertChartDefault, convertChartType, convertTagChartType };
