@@ -17,7 +17,7 @@
         <div class="col1">
             <label for="_cfg_chart_action">Action on click</label>
             <div class="select-div cfg-input">
-                <ComboboxSelect style="width: 250px" class="select" :p-show-default-option="false" :p-data="actions" :p-value="'1'" @e-on-change="onChangeAction" />
+                <ComboboxSelect style="width: 250px" class="select input" :p-show-default-option="false" :p-data="actions" :p-value="'1'" @e-on-change="onChangeAction" />
             </div>
             <div v-if="actionIndex === 2">
                 <label for="_cfg_chart_table_limit">Raw data table limits</label>
