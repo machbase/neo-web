@@ -11,9 +11,9 @@
             <div>
                 <GeneralTab v-if="tabIndex === 0" />
                 <DataTab v-if="tabIndex === 1" />
-                <AxesTab v-if="tabIndex === 2" @e-on-change="onChangeAxes" />
+                <AxesTab v-if="tabIndex === 2" @e-on-change="onChangeTabData" />
                 <DisplayTab v-if="tabIndex === 3" />
-                <TimeRangeTab v-if="tabIndex === 4" />
+                <TimeRangeTab v-if="tabIndex === 4" @e-on-change="onChangeTabData"/>
             </div>
         </div>
     </div>
@@ -49,9 +49,9 @@ const onClickTab = (index: number) => {
     tabIndex.value = index;
 };
 
-const onChangeAxes = (data: any) => {
+const onChangeTabData = (data: any) => {
     sTabData.value = { ...sTabData.value, ...data };
-    console.log('🚀 ~ file: index.vue:54 ~ onChangeAxes ~ sTabData.value', sTabData.value);
+    console.log('🚀 ~ file: index.vue:54 ~ onChangeTabData ~ sTabData.value', sTabData.value);
 };
 const onSave = () => {
     const payload = {
