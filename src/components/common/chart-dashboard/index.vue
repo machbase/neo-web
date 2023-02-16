@@ -39,8 +39,9 @@ const store = useStore();
 const gBoard = computed(() => store.state.gBoard);
 
 watch(
-    gBoard,
+    () => gBoard.value,
     (newValue) => {
+        console.log('gBoard.value', gBoard.value);
         if (!newValue) return;
         data.sPanels = newValue.panels
             ? (newValue.panels.map((v: any, i: number) => {
@@ -52,7 +53,7 @@ watch(
               }) as PanelInfo[])
             : [];
     },
-    { immediate: true }
+    { immediate: true, deep: true }
 );
 watch(
     () => props.chartDataSingle,

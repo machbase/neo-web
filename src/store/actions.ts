@@ -1,5 +1,5 @@
 import { TempNewChartData } from './../interface/tagView';
-import { getBoard, getBoardList, getPreference, postSetting } from '@/api/repository/api';
+import { getBoard, getBoardList, getPreference, postSetting, getDataDefault } from '@/api/repository/api';
 import { ActionContext } from 'vuex';
 import { MutationTypes, Mutations } from './mutations';
 import { RootState } from './state';
@@ -7,6 +7,8 @@ import { ResPreferences, TimeRange } from '@/interface/tagView';
 import { BoardInfo, FetchTagDataArg, RangeData } from '@/interface/chart';
 import { fetchCalculationData, fetchRangeData, fetchRawData, fetchTablesData, fetchTags } from '@/api/repository/machiot';
 import { ResType } from '@/assets/ts/common';
+import { convertChartDefault } from '../utils/utils';
+
 type MyActionContext = {
     commit<K extends keyof Mutations>(key: K, payload?: Parameters<Mutations[K]>[1]): ReturnType<Mutations[K]>;
 } & Omit<ActionContext<RootState, RootState>, 'commit'>;
@@ -19,7 +21,7 @@ enum ActionTypes {
     setTimeRange = 'setTimeRange',
     fetchTableList = 'fetchTableList',
     fetchTagList = 'fetchTagList',
-    setTempNewChartData = 'setTempNewChartData',
+    fetchNewChartBoard = 'fetchNewChartBoard',
     fetchRangeData = 'fetchRangeData',
     fetchTable = 'fetchTable',
     fetchTagData = 'fetchTagData',
@@ -53,11 +55,12 @@ const actions = {
     },
     async [ActionTypes.fetchTagList](context: MyActionContext, payload: string) {
         const res = await fetchTags(payload);
-        console.log('🚀 ~ file: actions.ts:38 ~ res', res);
         context.commit(MutationTypes.setTagList, (res as any).Data);
     },
-    [ActionTypes.setTempNewChartData](context: MyActionContext, payload: TempNewChartData) {
-        context.commit(MutationTypes.setTempNewChartData, payload);
+    async [ActionTypes.fetchNewChartBoard](context: MyActionContext, payload: TempNewChartData) {
+        const res = await getDataDefault();
+        const chartFormat = await convertChartDefault(res.data, payload);
+        context.commit(MutationTypes.setNewChartBoard, chartFormat);
     },
     async [ActionTypes.fetchBoardDetail](context: MyActionContext, payload: string) {
         // const res = await fetchTags(payload);
