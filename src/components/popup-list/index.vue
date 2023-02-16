@@ -38,8 +38,8 @@ import SaveDashboard from './popup/SaveDashboard.vue';
 import TimeDuration from './popup/TimeDuration.vue';
 import TimeRange from './popup/TimeRange.vue';
 const test = (data: any) => {
-console.log("🚀 ~ file: index.vue:41 ~ test ~ data", data)
-}
+    console.log('🚀 ~ file: index.vue:41 ~ test ~ data', data);
+};
 interface PopupWrapProps {
     pType: PopupType;
     pShow: boolean;
