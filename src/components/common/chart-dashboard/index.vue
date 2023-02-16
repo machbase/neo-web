@@ -41,7 +41,6 @@ const gBoard = computed(() => store.state.gBoard);
 watch(
     () => gBoard.value,
     (newValue) => {
-        console.log('gBoard.value', gBoard.value);
         if (!newValue) return;
         data.sPanels = newValue.panels
             ? (newValue.panels.map((v: any, i: number) => {
