@@ -67,8 +67,8 @@ const mutations = {
         state.gTable = aTable;
     },
     [MutationTypes.setChartEdit](state: RootState, payload: any) {
-        console.log("🚀 ~ file: mutations.ts:73 ~ index", payload)
-        state.gBoard.panels[payload.index][0] = payload;
+        console.log('🚀 ~ file: mutations.ts:73 ~ index', payload);
+        state.gBoard.panels[payload.index][0] = { ...state.gBoard.panels[payload.index][0], ...payload.item };
     },
 };
 

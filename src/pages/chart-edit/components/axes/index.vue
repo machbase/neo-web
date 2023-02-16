@@ -30,11 +30,11 @@
             </div>
             <div class="cfg-input">
                 <label>Custom scale</label>
-                <CustomScale style="width: 245px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 0)" />
+                <CustomScale :init-value="customScaleInit" style="width: 245px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 0)" />
             </div>
             <div class="cfg-input">
                 <label>Custom scale for raw data chart</label>
-                <CustomScale style="width: 245px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 1)" />
+                <CustomScale :init-value="customScaleRawInit" style="width: 245px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 1)" />
             </div>
         </div>
         <div class="col1" style="width: 270px">
@@ -55,11 +55,11 @@
                 </div>
                 <div class="cfg-input">
                     <label>Custom scale</label>
-                    <CustomScale style="width: 245px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 2)" />
+                    <CustomScale :init-value="customScaleInit2" style="width: 245px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 2)" />
                 </div>
                 <div class="cfg-input">
                     <label>Custom scale for raw data chart</label>
-                    <CustomScale style="width: 245px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 3)" />
+                    <CustomScale :init-value="customScaleRawInit2" style="width: 245px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 3)" />
                 </div>
                 <div class="cfg-input">
                     <label>Position of Y-axis</label>
@@ -102,6 +102,27 @@ const store = useStore();
 const route = useRoute();
 const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const chartSelected = CPanels.value[route.params.id as any];
+
+const customScaleInit: CustomScaleInput = {
+    input1: chartSelected[0].custom_min,
+    input2: chartSelected[0].custom_max,
+};
+
+const customScaleRawInit: CustomScaleInput = {
+    input1: chartSelected[0].custom_drilldown_min,
+    input2: chartSelected[0].custom_drilldown_max,
+};
+
+const customScaleInit2: CustomScaleInput = {
+    input1: chartSelected[0].custom_min2,
+    input2: chartSelected[0].custom_max2,
+};
+
+const customScaleRawInit2: CustomScaleInput = {
+    input1: chartSelected[0].custom_drilldown_min2,
+    input2: chartSelected[0].custom_drilldown_max2,
+};
+
 const tagSets = chartSelected[0].tag_set;
 const tagOptions = ref<any>([]);
 const tagsSelected = ref<any>([]);
@@ -123,26 +144,26 @@ const isShowTickLineY2 = ref<boolean>(true);
 const intervalUnit = ref<string>('');
 const interval = ref<string>();
 const pixel = ref<number>(0);
-const intervalValue = ref<number>();
+const intervalValue = ref<number>(chartSelected[0].interval_value);
 const sCustomScale = reactive<CustomScaleInput>({
-    input1: '',
-    input2: '',
+    input1: 0,
+    input2: 0,
 });
 const sCustomScaleRaw = reactive<CustomScaleInput>({
-    input1: '',
-    input2: '',
+    input1: 0,
+    input2: 0,
 });
 const sCustomScale2 = reactive<CustomScaleInput>({
-    input1: '',
-    input2: '',
+    input1: 0,
+    input2: 0,
 });
 const sCustomScaleRaw2 = reactive<CustomScaleInput>({
-    input1: '',
-    input2: '',
+    input1: 0,
+    input2: 0,
 });
 const onChangeInput = (aEvent: Event) => {
     const sTemp = splitTimeDuration((aEvent.target as HTMLInputElement).value);
-    console.log("🚀 ~ file: index.vue:145 ~ onChangeInput ~ sTemp", sTemp)
+    console.log('🚀 ~ file: index.vue:145 ~ onChangeInput ~ sTemp', sTemp);
     intervalValue.value = sTemp.value;
     intervalUnit.value = sTemp.type;
 };
@@ -177,9 +198,24 @@ const onChangeCustomScale = (data: CustomScaleInput, type: number) => {
     }
 };
 watchEffect(() => {
-    const data = {
+    const data: Partial<PanelInfo> = {
         interval_type: intervalUnit.value,
         interval_value: intervalValue.value,
+        show_x_tickline: isShowTickLineX.value ? 'Y' : 'N',
+        show_y_tickline: isShowTickLineY.value ? 'Y' : 'N',
+        show_y_tickline2: isShowTickLineY2.value ? 'Y' : 'N',
+        pixels_per_tick: pixel.value,
+        zero_base: isZeroBase.value ? 'Y' : 'N',
+        zero_base2: isZeroBase2.value ? 'Y' : 'N',
+        custom_min: parseFloat(sCustomScale.input1 as string),
+        custom_max: parseFloat(sCustomScale.input2 as string),
+        custom_drilldown_min: parseFloat(sCustomScaleRaw.input1 as string),
+        custom_drilldown_max: parseFloat(sCustomScaleRaw.input2 as string),
+        custom_min2: parseFloat(sCustomScale2.input1 as string),
+        custom_max2: parseFloat(sCustomScale2.input2 as string),
+        custom_drilldown_min2: parseFloat(sCustomScaleRaw2.input1 as string),
+        custom_drilldown_max2: parseFloat(sCustomScaleRaw2.input2 as string),
+        use_right_y2: picked.value == 'r' ? 'Y' : 'N',
     };
     emit('eOnChange', data);
 });
@@ -205,6 +241,7 @@ watch(
         isZeroBase.value = chartSelected[0].zero_base.toUpperCase() == 'Y';
         isZeroBase2.value = chartSelected[0].zero_base2.toUpperCase() == 'Y';
         if (tagSets[0].use_y2 == 'Y') isAdditionalYAxis.value = true;
+        picked.value = chartSelected[0].use_right_y2.toUpperCase() == 'Y' ? 'r' : 'l';
 
         tagSets.forEach((value, index) => {
             if (value.use_y2 != 'Y') {
