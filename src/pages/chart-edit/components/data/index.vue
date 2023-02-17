@@ -25,7 +25,14 @@
             <span @click="onRemove(aIndex)"><img :src="i_b_close" alt="Clear icon" /></span>
         </div>
         <ButtonCreate class="create-div" :is-add-chart="false" :on-click="onOpenPopup" />
-        <PopupWrap :width="'667px'" :p-type="PopupType.NEW_TAGS" :p-show="sDialog" @e-close-popup="onClosePopup" />
+        <PopupWrap
+            :width="'667px'"
+            :p-type="PopupType.NEW_TAGS"
+            :p-show="sDialog"
+            :p-no-of-select-tags="tempTagSets.length"
+            @e-close-popup="onClosePopup"
+            @e-submit-tags="onSubmitTag"
+        />
     </div>
 </template>
 
@@ -35,7 +42,7 @@ import i_b_close from '@/assets/image/i_b_close.png';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import { CALC_MODE } from '@/components/popup-list/popup/constant';
 import { CalculationMode } from '@/interface/constants';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, defineEmits, watchEffect } from 'vue';
 import { PopupType } from '@/enums/app';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { useStore } from '@/store';
@@ -43,6 +50,7 @@ import { ActionTypes } from '@/store/actions';
 import { useRoute } from 'vue-router';
 import { PanelInfo, TagSet } from '@/interface/chart';
 
+const emit = defineEmits(['eOnChange']);
 const store = useStore();
 const route = useRoute();
 const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
@@ -72,6 +80,15 @@ const onRemove = (aIndex: number) => {
 const onAdd = () => {
     tempTagSets.value.push(tempTagSets.value[tempTagSets.value.length - 1]);
 };
+const onSubmitTag = (data: any) => {
+    tempTagSets.value.push(...data);
+};
+watchEffect(() => {
+    const data: Partial<PanelInfo> = {
+        tag_set: tempTagSets.value,
+    };
+    emit('eOnChange', data);
+});
 </script>
 
 <style lang="scss" scoped>

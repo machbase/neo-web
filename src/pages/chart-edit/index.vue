@@ -10,7 +10,7 @@
             </div>
             <div>
                 <GeneralTab v-if="tabIndex === 0" />
-                <DataTab v-if="tabIndex === 1" />
+                <DataTab v-if="tabIndex === 1" @e-on-change="onChangeTabData" />
                 <AxesTab v-if="tabIndex === 2" @e-on-change="onChangeTabData" />
                 <DisplayTab v-if="tabIndex === 3" />
                 <TimeRangeTab v-if="tabIndex === 4" @e-on-change="onChangeTabData"/>
