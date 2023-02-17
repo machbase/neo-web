@@ -98,7 +98,7 @@ watchEffect(() => {
         point_radius: isNaN(pointRadius.value) ? 3 : pointRadius.value,
         show_legend: showLegend.value ? 'B' : 'N',
         fill: isNaN(fillOpacity.value) ? 0.15 : fillOpacity.value,
-        stroke: isNaN(lineThick.value) ? 1.5 : lineThick.value,
+        stroke: isNaN(lineThick.value) ? 1.5 : parseFloat(lineThick.value as any),
         border_color,
     };
     emit('eOnChange', data);

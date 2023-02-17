@@ -19,9 +19,11 @@
             }
         }
         .inner-tab{
+            border-width: 1px;
+            border-style: solid;
             @include theme() {
-                background-color: theme-get('bg-color-button') !important;
-                border-color: theme-get('border-color') !important;
+                background-color: theme-get('background-chart') !important;
+                border-color: theme-get('border-chart') !important;
             } 
         }
     }
