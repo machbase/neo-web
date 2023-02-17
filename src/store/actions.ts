@@ -1,5 +1,5 @@
 import { TempNewChartData } from './../interface/tagView';
-import { getBoard, getBoardList, getPreference, postSetting, getDataDefault } from '@/api/repository/api';
+import { getBoard, getBoardList, getPreference, postSetting, getDataDefault, postNewBoard, putNewBoard } from '@/api/repository/api';
 import { ActionContext } from 'vuex';
 import { MutationTypes, Mutations } from './mutations';
 import { RootState } from './state';
@@ -22,6 +22,7 @@ enum ActionTypes {
     fetchTableList = 'fetchTableList',
     fetchTagList = 'fetchTagList',
     fetchNewChartBoard = 'fetchNewChartBoard',
+    fetchNewDashboard = 'fetchNewDashboard',
     fetchRangeData = 'fetchRangeData',
     fetchTable = 'fetchTable',
     fetchTagData = 'fetchTagData',
@@ -61,6 +62,35 @@ const actions = {
         const res = await getDataDefault();
         const chartFormat = await convertChartDefault(res.data, payload);
         context.commit(MutationTypes.setNewChartBoard, chartFormat);
+    },
+    async [ActionTypes.fetchNewDashboard](context: MyActionContext, payload: any) {
+        const res =
+            payload.old_id === ''
+                ? await postNewBoard({
+                      ...context.state.gBoard,
+                      board_id: payload.board_id,
+                      board_name: payload.board_name,
+                      old_id: payload.old_id,
+                  })
+                : await putNewBoard({
+                      ...context.state.gBoard,
+                      board_id: payload.board_id,
+                      board_name: payload.board_name,
+                      old_id: payload.old_id,
+                  });
+        if (res.success === true) {
+            if (payload.old_id === '') {
+                context.commit(MutationTypes.setBoardList, res.list);
+            } else {
+                const newListBoard = context.state.gBoardList;
+                newListBoard.splice(context.state.gBoardList.length - 1, 1, res.list[res.list.length - 1]);
+            }
+            context.commit(MutationTypes.setNewBoard, {
+                ...payload,
+                old_id: payload.board_id,
+            });
+        }
+        return res;
     },
     async [ActionTypes.fetchBoardDetail](context: MyActionContext, payload: string) {
         // const res = await fetchTags(payload);

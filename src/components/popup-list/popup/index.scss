@@ -244,7 +244,7 @@ $height: 30px;
         .newchart-all {
             width: 580px;
             margin-bottom: 5px;
-        
+
             .tagtitle {
                 width: 35px;
                 margin-left: -35px;
@@ -254,7 +254,7 @@ $height: 30px;
         .newchart-left {
             width: 285px;
             padding: 0px;
-        
+
             .tagtitle {
                 width: 30px;
                 margin-left: -30px;
@@ -270,7 +270,7 @@ $height: 30px;
             .search-wrapper {
                 display: flex;
                 flex-direction: row;
-                .clear-icon{
+                .clear-icon {
                     text-align: center;
                     margin-right: 10px;
                 }
@@ -322,7 +322,7 @@ $height: 30px;
                 color: #e7e8ea;
                 background-color: #131313;
                 border: 1px solid #383838;
-                .wrapperTagSelect{
+                .wrapperTagSelect {
                     display: flex;
                     flex-direction: row;
                     justify-content: space-between;
@@ -338,12 +338,12 @@ $height: 30px;
                     width: 10px;
                     background: #141415;
                 }
-                
+
                 .taglistscroll::-webkit-scrollbar-track {
                     -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
                     background: #141415;
                 }
-                
+
                 .taglistscroll::-webkit-scrollbar-thumb {
                     background: #383838;
                 }
@@ -351,6 +351,111 @@ $height: 30px;
         }
         .overflowhidden {
             overflow: hidden;
+        }
+    }
+}
+
+.save-dashboard {
+    font-size: 12px;
+    font-weight: 500;
+    &__input {
+        display: flex;
+        gap: $px-10;
+        justify-content: space-between;
+        margin-bottom: $px-10;
+
+        &-label {
+            align-self: center;
+            text-align: right;
+            min-width: 25%;
+            width: 25%;
+            font-weight: 500;
+        }
+
+        &-content {
+            flex: 1;
+        }
+        &-group-text {
+            @include theme() {
+                background-color: theme-get('bg-color-input');
+                color: theme-get('text-color');
+                border-color: theme-get('border-color');
+            }
+        }
+    }
+
+    &__input-group {
+        display: flex;
+        gap: $px-10;
+
+        &-label {
+            align-self: center;
+            text-align: right;
+            min-width: 25%;
+            width: 25%;
+            font-weight: 500;
+        }
+
+        &-text {
+            border: 1px solid $d-border;
+            outline: none;
+            padding: $px-5 $px-10;
+            flex: 1;
+            @include theme() {
+                background-color: theme-get('bg-color-input');
+                color: theme-get('text-color');
+            }
+
+            &:focus {
+                @include box-shadow;
+            }
+        }
+        &-text.check {
+            border: 1px solid $d-border;
+            outline: none;
+            padding: $px-5 $px-10;
+            flex: 1;
+            max-width: 50%;
+            @include theme() {
+                background-color: theme-get('bg-color-input');
+                color: theme-get('text-color');
+            }
+
+            &:focus {
+                @include box-shadow;
+            }
+        }
+
+        &-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex: 1;
+        }
+
+        &-checkbox {
+            width: 35%;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+    }
+    &__input-group ~ &__input-group {
+        margin-top: 10px;
+    }
+    &__btn-group {
+        margin-top: $px-20;
+        margin-bottom: $px-10;
+        display: flex;
+        gap: $px-10;
+        justify-content: center;
+
+        .button-effect {
+            @include button-effect;
+        }
+
+        .button-effect-color {
+            @include button-effect-color;
         }
     }
 }
