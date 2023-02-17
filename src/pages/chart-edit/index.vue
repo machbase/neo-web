@@ -9,11 +9,11 @@
                 <div><img :src="i_b_save_2" @click="onSave" alt="Clear icon" /><img :src="i_b_close" alt="Clear icon" /></div>
             </div>
             <div>
-                <GeneralTab v-if="tabIndex === 0" />
+                <GeneralTab v-if="tabIndex === 0" @e-on-change="onChangeTabData" />
                 <DataTab v-if="tabIndex === 1" @e-on-change="onChangeTabData" />
                 <AxesTab v-if="tabIndex === 2" @e-on-change="onChangeTabData" />
                 <DisplayTab v-if="tabIndex === 3" />
-                <TimeRangeTab v-if="tabIndex === 4" @e-on-change="onChangeTabData"/>
+                <TimeRangeTab v-if="tabIndex === 4" @e-on-change="onChangeTabData" />
             </div>
         </div>
     </div>

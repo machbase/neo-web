@@ -3,26 +3,33 @@
         <div class="first-col">
             <label for="_cfg_chart_title">Chart title</label>
             <div class="cfg-input">
-                <input id="_cfg_chart_title" type="text" class="input" />
+                <input id="_cfg_chart_title" v-model="title" type="text" class="input" />
             </div>
             <label for="_cfg_chart_width">Width</label>
             <div class="cfg-input">
-                <input id="_cfg_chart_width" type="text" class="input" />
+                <input id="_cfg_chart_width" v-model="width" type="text" class="input" />
             </div>
             <label for="_cfg_chart_height">Height</label>
             <div class="cfg-input">
-                <input id="_cfg_chart_height" type="text" class="input" />
+                <input id="_cfg_chart_height" v-model="height" type="text" class="input" />
             </div>
         </div>
         <div class="col1">
             <label for="_cfg_chart_action">Action on click</label>
             <div class="select-div cfg-input">
-                <ComboboxSelect style="width: 250px" class="select input" :p-show-default-option="false" :p-data="actions" :p-value="'1'" @e-on-change="onChangeAction" />
+                <ComboboxSelect
+                    style="width: 250px"
+                    class="select input"
+                    :p-show-default-option="false"
+                    :p-data="actions"
+                    :p-value="actionIndex.toString()"
+                    @e-on-change="onChangeAction"
+                />
             </div>
             <div v-if="actionIndex === 2">
                 <label for="_cfg_chart_table_limit">Raw data table limits</label>
                 <div class="cfg-input">
-                    <input id="_cfg_chart_table_limit" type="text" class="input" />
+                    <input id="_cfg_chart_table_limit" v-model="detailRows" type="text" class="input" />
                 </div>
                 <label for="_cfg_chart_row">Rows per page</label>
                 <div class="cfg-input">
@@ -57,7 +64,7 @@
             </div>
             <label for="_cfg_raw_time_range">raw data time range (millisecond)</label>
             <div class="cfg-input">
-                <input id="_cfg_raw_time_range" type="text" class="input1" />
+                <input id="_cfg_raw_time_range" v-model="rawChart" type="text" class="input1" />
             </div>
         </div>
     </div>
@@ -65,12 +72,29 @@
 
 <script setup lang="ts" name="GeneralTab">
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
-import { computed, defineEmits, reactive, ref, watch } from 'vue';
-const actionIndex = ref<number>(1);
-const zoom = ref<boolean>(true);
-const zoomStart = ref<boolean>(true);
-const drillDown = ref<boolean>(true);
-const normalize = ref<boolean>(true);
+import { computed, defineEmits, reactive, ref, watch, watchEffect } from 'vue';
+import { useStore } from '@/store';
+import { useRoute } from 'vue-router';
+import { PanelInfo, TagSet } from '@/interface/chart';
+
+const emit = defineEmits(['eOnChange']);
+const store = useStore();
+const route = useRoute();
+const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
+const chartSelected = CPanels.value[route.params.id as any];
+
+const title = ref<string>(chartSelected[0].chart_title);
+const width = ref<number>(chartSelected[0].chart_width);
+const height = ref<number>(chartSelected[0].chart_height);
+const actionIndex = ref<number>(chartSelected[0].use_detail || 1); // on click point - 0: not use, 1: show raw data chart, 2: show raw data table
+const detailCount = ref<number>(chartSelected[0].detail_count || 0);
+const detailRows = ref<number>(chartSelected[0].detail_rows || 0);
+const zoom = ref<boolean>(chartSelected[0].use_zoom.toUpperCase() == 'Y');
+const zoomStart = ref<boolean>(chartSelected[0].start_with_vport.toUpperCase() == 'Y');
+const drillDown = ref<boolean>(chartSelected[0].drilldown_zoom.toUpperCase() == 'Y');
+const normalize = ref<boolean>(chartSelected[0]?.use_normalize.toUpperCase() == 'Y');
+let gRawChartThreshold = chartSelected[0]?.raw_chart_threshold; // >1 : count, <1 : ratio of total count, =0 : total / count * 2, <0 : not use
+const rawChart = ref<number>(gRawChartThreshold < 0 ? gRawChartThreshold * -1 : gRawChartThreshold);
 
 const onChangeAction = (item: string) => {
     actionIndex.value = parseInt(item);
@@ -80,6 +104,28 @@ const actions = [
     { id: 1, name: 'Show Raw data chart' },
     { id: 2, name: 'Show Raw data table' },
 ];
+watchEffect(() => {
+    let raw_chart_threshold = rawChart.value;
+    if (isNaN(raw_chart_threshold)) {
+        raw_chart_threshold = 5000;
+    } else if (raw_chart_threshold > 0) {
+        raw_chart_threshold *= -1;
+    }
+    const data: Partial<PanelInfo> = {
+        chart_title: title.value,
+        chart_width: width.value,
+        chart_height: height.value,
+        use_detail: actionIndex.value,
+        detail_count: detailCount.value,
+        detail_rows: detailRows.value,
+        use_zoom: zoom.value ? 'Y' : 'N',
+        drilldown_zoom: drillDown.value ? 'Y' : 'N',
+        start_with_vport: zoomStart.value ? 'Y' : 'N',
+        use_normalize: normalize.value ? 'Y' : 'N',
+        raw_chart_threshold,
+    };
+    emit('eOnChange', data);
+});
 </script>
 <style lang="scss" scoped>
 @import 'index.scss';
