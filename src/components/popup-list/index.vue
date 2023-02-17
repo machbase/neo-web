@@ -15,7 +15,7 @@
             <div class="dialog-wrap__content--body">
                 <ManageDashboard v-if="pType === PopupType.MANAGE_DASHBOARD" @eClosePopup="onClosePopup" />
                 <NewChart v-if="pType === PopupType.NEW_CHART" @eClosePopup="onClosePopup" />
-                <NewTags v-if="pType === PopupType.NEW_TAGS" :no-of-select-tags="5" @eClosePopup="onClosePopup" @e-submit="test" />
+                <NewTags v-if="pType === PopupType.NEW_TAGS" :no-of-select-tags="props.pNoOfSelectTags as number" @eClosePopup="onClosePopup" @e-submit="onSubmitTag" />
                 <Preferences v-if="pType === PopupType.PREFERENCES" @eClosePopup="onClosePopup" />
                 <SaveDashboard v-if="pType === PopupType.SAVE_DASHBOARD" @eClosePopup="onClosePopup" />
                 <TimeRange v-if="pType === PopupType.TIME_RANGE" @eClosePopup="onClosePopup" />
@@ -37,16 +37,18 @@ import Preferences from './popup/Preferences.vue';
 import SaveDashboard from './popup/SaveDashboard.vue';
 import TimeDuration from './popup/TimeDuration.vue';
 import TimeRange from './popup/TimeRange.vue';
-const test = (data: any) => {
+const onSubmitTag = (data: any) => {
     console.log('🚀 ~ file: index.vue:41 ~ test ~ data', data);
+    emit('eSubmitTags', data);
 };
 interface PopupWrapProps {
     pType: PopupType;
     pShow: boolean;
     pWidth?: string;
+    pNoOfSelectTags?: number;
 }
 const props = defineProps<PopupWrapProps>();
-const emit = defineEmits(['eClosePopup']);
+const emit = defineEmits(['eClosePopup', 'eSubmitTags']);
 const store = useStore();
 const sDialog = ref<boolean>(false);
 

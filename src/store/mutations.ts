@@ -1,7 +1,7 @@
 import { TempNewChartData } from './../interface/tagView';
 import { ResBoardList, ResPreferences, TimeRange } from '@/interface/tagView';
 import { RootState } from './state';
-import { BoardInfo, RangeData } from '@/interface/chart';
+import { BoardInfo, PanelInfo, RangeData } from '@/interface/chart';
 
 enum MutationTypes {
     /* Global */
@@ -15,6 +15,7 @@ enum MutationTypes {
     setTagList = 'setTagList',
     setTempNewChartData = 'setTempNewChartData',
     setRangeData = 'setRangeData',
+    setChartEdit = 'setChartEdit',
     setNewChartBoard = 'setNewChartBoard',
     setNewBoard = 'setNewBoard',
 }
@@ -37,7 +38,6 @@ const mutations = {
         state.gTimeRange = aTimeRange;
     },
     [MutationTypes.setTableList](state: RootState, aTableList: any) {
-        console.log('🚀 ~ file: mutations.ts:31 ~ aTableList', aTableList);
         const mutateTables = [];
         const gTagTables = state.gTableList;
         if (gTagTables.length > 0) {
@@ -78,6 +78,10 @@ const mutations = {
     },
     [MutationTypes.setTable](state: RootState, aTable: any) {
         state.gTable = aTable;
+    },
+    [MutationTypes.setChartEdit](state: RootState, payload: any) {
+        console.log('🚀 ~ file: mutations.ts:73 ~ index', payload);
+        state.gBoard.panels[payload.index][0] = { ...state.gBoard.panels[payload.index][0], ...payload.item };
     },
 };
 

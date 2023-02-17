@@ -119,7 +119,7 @@ const onReset = () => {
 };
 const onSelectTag = (data: { NAME: string }) => {
     selectCount.value++;
-    sSelectedTags.push({ tag_names: data.NAME, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0, use_y2: 'N' });
+    sSelectedTags.push({ tag_names: data.NAME, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0, use_y2: 'N', max: 0, min: 0 });
 };
 const onRemoveTag = (index: number) => {
     selectCount.value--;
