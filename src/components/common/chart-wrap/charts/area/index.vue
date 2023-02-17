@@ -1,5 +1,6 @@
 <template>
-    <ChartWrap :panel-info="props.panelInfo">
+    <ChartWrap v-slot="{ contact }" :panel-info="props.panelInfo">
+        {{ contact }}
         <AreaChart
             :id="`chart-${props.index}`"
             ref="areaChart"
@@ -23,17 +24,20 @@ import { ActionTypes } from '@/store/actions';
 import { FORMAT_FULL_DATE } from '@/utils/constants';
 import { toTimeUtcChart } from '@/utils/utils';
 import moment from 'moment';
-import { computed, defineProps, onMounted, reactive, ref, withDefaults } from 'vue';
+import { computed, defineProps, onMounted, reactive, ref, withDefaults, watch } from 'vue';
 import AreaChart from './container/index.vue';
+import { useSlots } from 'vue';
 
-interface LineChartProps {
+interface AreaChartProps {
     panelInfo: LinePanel;
     index: number;
 }
-const props = withDefaults(defineProps<LineChartProps>(), {
+const props = withDefaults(defineProps<AreaChartProps>(), {
     index: 0,
 });
+
 const store = useStore();
+const slots = useSlots();
 const data = reactive({
     sDisplayData: {} as LineDataset,
     sTimeLine: {} as TimeLineType,
@@ -364,6 +368,8 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType) => {
 onMounted(async () => {
     await intializePanelData();
 });
+
+// watch(contact, () => {});
 </script>
 
 <style lang="scss" scoped>

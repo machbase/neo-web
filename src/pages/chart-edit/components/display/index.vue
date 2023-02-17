@@ -4,7 +4,7 @@
         <div class="input-col2">
             <label for="_cfg_show_point">Show data points</label>
             <div class="cfg-input">
-                <span class="input"><input v-model="showPoint" id="_cfg_show_point" type="checkbox" /></span>
+                <span class="input"><input id="_cfg_show_point" v-model="showPoint" type="checkbox" /></span>
                 <input type="text" class="input" data-for="_cfg_show_point" value="Display data points in the line chart." readonly />
             </div>
             <label for="_cfg_point_radius">Point radius</label>
@@ -13,18 +13,18 @@
             </div>
             <label for="_cfg_show_bottom_legend">Legend</label>
             <div class="cfg-input">
-                <span class="input"><input v-model="showLegend" id="_cfg_show_bottom_legend" type="checkbox" /></span>
+                <span class="input"><input id="_cfg_show_bottom_legend" v-model="showLegend" type="checkbox" /></span>
                 <input type="text" class="input" data-for="_cfg_show_bottom_legend" value="Display legend." readonly />
             </div>
         </div>
         <div class="input-col2">
             <label for="_cfg_fill">Opacity of fill area</label>
             <div class="cfg-input">
-                <input v-model="fillOpacity" id="_cfg_fill" type="text" class="input point_radius_input" />
+                <input id="_cfg_fill" v-model="fillOpacity" type="text" class="input point_radius_input" />
             </div>
             <label for="_cfg_stroke">Line thickness</label>
             <div class="cfg-input">
-                <input v-model="lineThick" id="_cfg_stroke" type="text" class="input point_radius_input" />
+                <input id="_cfg_stroke" v-model="lineThick" type="text" class="input point_radius_input" />
             </div>
             <label for="_cfg_border_color">Border color</label>
             <div class="cfg-input">

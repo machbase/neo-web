@@ -35,7 +35,7 @@
                 <img v-if="route.name !== RouteNames.CHART_EDIT" :src="i_w_del" class="icon" />
             </div>
         </div>
-        <slot />
+        <slot :contact="props.panelInfo.i" />
         <ViewPort />
     </div>
 </template>
@@ -44,7 +44,7 @@
 // interface ChartWrapProps {}
 
 import { useStore } from '@/store';
-import { computed } from 'vue';
+import { computed, useSlots } from 'vue';
 import i_b_newwin from '@/assets/image/i_b_newwin.png';
 import ViewPort from './viewport/index.vue';
 import i_b_edit from '@/assets/image/i_b_edit.png';

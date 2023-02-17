@@ -54,7 +54,6 @@ const cChartOptions = computed(() => {
         colors: formatColors(props.panelInfo.color_set),
         chart: {
             // height: 400, ----------- chart_height
-            height: 400,
             width: props.panelInfo.chart_width <= 0 ? null : props.panelInfo.chart_width,
             type: 'area',
             zoomType: 'x',
@@ -211,8 +210,8 @@ const cChartOptions = computed(() => {
         },
         // list tag
         legend: {
-            // enabled: true,
-            enabled: props.panelInfo.show_legend === 'B',
+            enabled: true,
+            // props.panelInfo.show_legend === 'B'
             align: 'left',
             itemDistance: 15,
             squareSymbol: false,
@@ -233,7 +232,7 @@ const cChartOptions = computed(() => {
                 'text-decoration': 'none',
             },
             margin: 30,
-            x: 20,
+            // x: 20,
         },
         // No data
         lang: {
@@ -285,4 +284,7 @@ defineExpose({
 
 <style lang="scss" scoped>
 /* @import 'index.scss'; */
+:deep(.highcharts-legend.highcharts-no-tooltip) {
+    display: v-bind("props.panelInfo.show_legend === 'B'? '': 'none'");
+}
 </style>

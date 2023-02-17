@@ -26,11 +26,11 @@ import moment from 'moment';
 import { computed, defineProps, onMounted, reactive, ref, withDefaults } from 'vue';
 import PointChart from './container/index.vue';
 
-interface LineChartProps {
+interface PointChartProps {
     panelInfo: LinePanel;
     index: number;
 }
-const props = withDefaults(defineProps<LineChartProps>(), {
+const props = withDefaults(defineProps<PointChartProps>(), {
     index: 0,
 });
 const store = useStore();
