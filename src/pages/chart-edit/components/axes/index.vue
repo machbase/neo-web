@@ -129,7 +129,9 @@ const tagsSelected = ref<any>([]);
 const tagSetsSelected = computed((): any => {
     const newArr: any[] = [];
     tagsSelected.value.forEach((item: any) => {
-        newArr.push(tagSets[item]);
+        const newItem: any = tagSets[item];
+        newItem.id = item;
+        newArr.push(newItem);
     });
     return newArr;
 });
@@ -170,14 +172,14 @@ const onChangeInput = (aEvent: Event) => {
 const onChangeTag = (data: string) => {
     const index = tagOptions.value.findIndex((item: any) => item.id === data);
     tagOptions.value.splice(index, 1);
-    tagsSelected.value.push(index);
+    tagsSelected.value.push(parseInt(data));
 };
 const onRemove = (item: any, index: number) => {
     tagsSelected.value.splice(index, 1);
     // name: value.calculation_mode + ' : ' + value.tag_names,
     const name = item.calculation_mode + ' : ' + item.tag_names;
     const option = {
-        id: index,
+        id: item.id,
         name,
     };
     tagOptions.value.push(option);
@@ -198,6 +200,11 @@ const onChangeCustomScale = (data: CustomScaleInput, type: number) => {
     }
 };
 watchEffect(() => {
+    const tag_set: TagSet[] = tagSets;
+    tagsSelected.value.forEach((item: any) => {
+        tag_set[item].use_y2 = 'Y';
+    });
+    console.log('🚀 ~ file: index.vue:202 ~ watchEffect ~ tag_set', tag_set);
     const data: Partial<PanelInfo> = {
         interval_type: intervalUnit.value,
         interval_value: intervalValue.value,
@@ -216,6 +223,7 @@ watchEffect(() => {
         custom_drilldown_min2: parseFloat(sCustomScaleRaw2.input1 as string),
         custom_drilldown_max2: parseFloat(sCustomScaleRaw2.input2 as string),
         use_right_y2: picked.value == 'r' ? 'Y' : 'N',
+        tag_set,
     };
     emit('eOnChange', data);
 });
