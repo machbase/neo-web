@@ -8,9 +8,11 @@
             :panel-info="props.panelInfo"
             :x-axis-max-range="data.sTimeLine.endTime"
             :x-axis-min-range="data.sTimeLine.startTime"
+            :x-chart-max-range="data.sTimeChart.endTime"
+            :x-chart-min-range="data.sTimeChart.startTime"
             :is-stock-chart="sIsStockChart"
         />
-        <ViewPort :panel-info="props.panelInfo" @eOnChange="onChangeEmit" />
+        <ViewPort :range-time="{ startTime: data.sTimeLine.startTime, endTime: data.sTimeLine.endTime }" :panel-info="props.panelInfo" @eOnChange="onChangeEmit" />
     </ChartWrap>
 </template>
 
@@ -44,6 +46,7 @@ const slots = useSlots();
 const data = reactive({
     sDisplayData: {} as LineDataset,
     sTimeLine: {} as TimeLineType,
+    sTimeChart: {} as TimeLineType,
     sIntervalData: { IntervalType: convertInterType(props.panelInfo.interval_type.toLowerCase()), IntervalValue: 0 } as { IntervalValue: number; IntervalType: string },
     sIsLoading: false,
 });
@@ -210,9 +213,9 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     if (!aCustomRange) data.sTimeLine = sTimeRange;
     const sIntervalTime =
         aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(data.sTimeLine.startTime as string, data.sTimeLine.endTime as string, sChartWidth) : data.sIntervalData;
+
     for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
-        console.log('sTagSetElement', sTagSetElement);
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
             Table: sTagSetElement.table,
             TagNames: sTagSetElement.tag_names,
@@ -368,9 +371,15 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType) => {
     data.sIsLoading = false;
 };
 
-const onChangeEmit = (eValue: any) => {
-    console.log('eValue');
-    console.log(eValue);
+const onChangeEmit = async (eValue: any) => {
+    const aCustomRange = {
+        startTime: eValue.dateStart.value,
+        endTime: eValue.dateEnd.value,
+    };
+    data.sTimeLine.startTime = eValue.dateStart;
+    data.sTimeLine.endTime = eValue.dateEnd;
+    console.log('aCustomRange', aCustomRange);
+    await fetchPanelData(props.panelInfo, aCustomRange);
 };
 
 onMounted(async () => {

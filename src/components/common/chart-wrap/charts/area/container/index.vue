@@ -6,12 +6,15 @@ import { useStore } from '@/store';
 import { toTimeUtcChart } from '@/utils/utils';
 import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults } from 'vue';
 import { formatColors } from '@/utils/utils';
+import { watchEffect } from 'vue';
 
 interface BarChartContainerProps {
     chartData: LineDataset;
     panelInfo: LinePanel;
     xAxisMinRange: string | number;
     xAxisMaxRange: string | number;
+    xChartMaxRange: string | number;
+    xChartMinRange: string | number;
     isStockChart?: boolean;
 }
 
@@ -21,10 +24,6 @@ const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const data = reactive({
     sMasterSeriesData: [] as HighchartsDataset[],
-    sTimeXaxis: {
-        min: '' as string | number,
-        max: '' as string | number,
-    },
     sTimeChartXaxis: {
         min: '' as string | number,
         max: '' as string | number,
@@ -33,16 +32,16 @@ const data = reactive({
 });
 
 const chart = ref();
+// watchEffect
+
 watch(
     () => props.chartData,
     () => {
         createStockChart();
-        console.log('panelInfo', props.panelInfo);
-        data.sTimeXaxis.min = props.xAxisMinRange;
-        data.sTimeXaxis.max = props.xAxisMaxRange;
-        data.sTimeChartXaxis.min = props.xAxisMinRange;
-        data.sTimeChartXaxis.max = props.xAxisMaxRange;
         data.sChartWidth = chart.value.chart.plotWidth;
+    },
+    {
+        deep: true,
     }
 );
 watch(data.sTimeChartXaxis, () => {
@@ -118,8 +117,8 @@ const cChartOptions = computed(() => {
             xAxis: {
                 // width: data.sChartWidth - 80,
                 type: 'datetime',
-                min: toTimeUtcChart(data.sTimeXaxis.min as string),
-                max: toTimeUtcChart(data.sTimeXaxis.max as string),
+                min: toTimeUtcChart(props.xAxisMinRange as string),
+                max: toTimeUtcChart(props.xAxisMaxRange as string),
                 labels: {
                     align: 'center',
                     style: {
@@ -153,8 +152,8 @@ const cChartOptions = computed(() => {
             },
             minorTickColor: 'red',
 
-            min: toTimeUtcChart(data.sTimeChartXaxis.min as string),
-            max: toTimeUtcChart(data.sTimeChartXaxis.max as string),
+            min: toTimeUtcChart(props.xAxisMinRange as string),
+            max: toTimeUtcChart(props.xAxisMaxRange as string),
             events: {
                 setExtremes: afterSetExtremes,
             },

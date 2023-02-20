@@ -19,7 +19,7 @@
                 <Preferences v-if="pType === PopupType.PREFERENCES" @eClosePopup="onClosePopup" />
                 <SaveDashboard v-if="pType === PopupType.SAVE_DASHBOARD" @eClosePopup="onClosePopup" />
                 <TimeRange v-if="pType === PopupType.TIME_RANGE" @eClosePopup="onClosePopup" />
-                <TimeDuration v-if="pType === PopupType.TIME_DURATION" @eClosePopup="onClosePopup" />
+                <TimeDuration v-if="pType === PopupType.TIME_DURATION" :p-is-from-time="pIsFromTime" :p-time-range="pTimeRange" @eClosePopup="onClosePopup" />
             </div>
         </div>
     </v-dialog>
@@ -37,6 +37,7 @@ import Preferences from './popup/Preferences.vue';
 import SaveDashboard from './popup/SaveDashboard.vue';
 import TimeDuration from './popup/TimeDuration.vue';
 import TimeRange from './popup/TimeRange.vue';
+import { TimeLineType } from '@/interface/date';
 const onSubmitTag = (data: any) => {
     console.log('🚀 ~ file: index.vue:41 ~ test ~ data', data);
     emit('eSubmitTags', data);
@@ -46,15 +47,17 @@ interface PopupWrapProps {
     pShow: boolean;
     pWidth?: string;
     pNoOfSelectTags?: number;
+    pIsFromTime?: boolean;
+    pTimeRange?: TimeLineType;
 }
 const props = defineProps<PopupWrapProps>();
 const emit = defineEmits(['eClosePopup', 'eSubmitTags']);
 const store = useStore();
 const sDialog = ref<boolean>(false);
 
-const onClosePopup = () => {
+const onClosePopup = (aValue: any) => {
     sDialog.value = false;
-    emit('eClosePopup');
+    emit('eClosePopup', aValue);
 };
 
 watch(
