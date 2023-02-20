@@ -1,18 +1,18 @@
 <template>
     <div class="time-range-wrapper">
         <div class="col-left">
-            <p>From</p>
+            <p class="title">From</p>
             <div class="row">
                 <DatePicker @e-change-time="changeTimeStart" />
                 <input :value="dateStart" type="text" class="input" />
             </div>
-            <p>To</p>
+            <p class="title">To</p>
             <div class="row">
                 <DatePicker @e-change-time="changeTimeEnd" />
                 <input :value="dateEnd" type="text" class="input" />
             </div>
             <div>
-                <p>Refreshing every</p>
+                <p class="title">Refreshing every</p>
                 <div class="row"><ComboboxTime @e-on-change="changeRefresh" /><v-btn class="button-apply" variant="outlined" @click="onSetting"> Apply </v-btn></div>
             </div>
         </div>

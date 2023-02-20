@@ -14,31 +14,20 @@ $height: 30px;
             background-color: theme-get('bg-color');
         }
     }
-    .input {
-        border: 1px solid $d-border;
-        outline: none;
-        flex: 1;
-        @include theme() {
-            background-color: theme-get('bg-color-input');
-            color: theme-get('text-color');
-            padding: $px-5 $px-10;
-        }
-        &:focus {
-            @include box-shadow;
-        }
-    }
+    @include common-input;
 }
 :deep(.v-list-item) {
     padding-inline-start: 0 !important;
     padding-inline-end: 0 !important;
     min-width: 160px;
 }
+:deep(.v-list-item-title) {
+    @include font-12;
+}
 :deep(.item) {
     padding: $px-5 $px-20 !important;
     min-height: 1px !important;
     cursor: pointer;
-    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
-    font-size: 14px;
     &:hover {
         color: $color-blue;
     }
