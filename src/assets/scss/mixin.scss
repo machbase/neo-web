@@ -15,6 +15,7 @@ $themes: (
         'text-vport-chart': $d-text-vport-chart,
         'bg-vport-chart': $d-bg-vport-chart,
         'border-vport-chart': $d-bd-vport-chart,
+        'text-title-tab': $d-text-tab-title,
     ),
     light: (
         'text-color': $l-text,
@@ -32,6 +33,7 @@ $themes: (
         'text-vport-chart': $l-text-vport-chart,
         'bg-vport-chart': $l-bg-vport-chart,
         'border-vport-chart': $l-bd-vport-chart,
+        'text-title-tab': $l-text-tab-title,
     ),
 );
 @mixin theme() {

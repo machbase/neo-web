@@ -4,7 +4,7 @@
         <div class="tabs">
             <div class="header">
                 <ul class="nav-pills">
-                    <li v-for="(item, index) in tabs" :key="index" :style="{ color: tabIndex === index ? '#2ec0df' : '#e7e8ea' }" @click="onClickTab(index)">{{ item }}</li>
+                    <li v-for="(item, index) in tabs" :key="index" :style="{ color: tabIndex === index ? '#2ec0df !important' : undefined }" @click="onClickTab(index)">{{ item }}</li>
                 </ul>
                 <div><img :src="i_b_save_2" alt="Clear icon" @click="onSave" /><img :src="i_b_close" alt="Clear icon" /></div>
             </div>

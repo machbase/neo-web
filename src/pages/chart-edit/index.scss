@@ -1,44 +1,53 @@
 @import '@/assets/scss/theme.scss';
 
 .chart-edit-page {
-    .tabs{
+    .tabs {
         margin-top: 20px;
-        .header{
+
+        .header {
             height: 30px;
             display: flex;
             flex-direction: row;
             justify-content: space-between;
             align-items: center;
+
             @include theme() {
                 background-color: theme-get('bg-color-button') !important;
                 border-color: theme-get('border-color') !important;
             }
+
             img {
                 margin-right: 15px;
                 cursor: pointer;
             }
         }
-        .inner-tab{
+
+        .inner-tab {
             border-width: 1px;
             border-style: solid;
+
             @include theme() {
                 background-color: theme-get('background-chart') !important;
                 border-color: theme-get('border-chart') !important;
-            } 
+            }
         }
     }
-    .nav-pills {
-    }
+
+    .nav-pills {}
 
     .nav-pills li {
-        font-family: 'Open Sans',Helvetica,Arial,sans-serif;
+        @include font-12;
         display: inline;
         margin-right: 30px;
         cursor: pointer;
-        font-size: 12px;
-        color: #e7e8ea;
+
+        @include theme() {
+            color: theme-get('text-title-tab') !important;
+        }
+
         font-weight: 500;
-        font-style: normal;margin-left: 20px;
+        font-style: normal;
+        margin-left: 20px;
     }
 
     .nav-pills li:hover {

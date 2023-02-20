@@ -16,11 +16,11 @@
             /></span>
             <span
                 ><span>Tag Names </span>
-                <input type="text" class="form-control taginput input" :value="aItem.tag_names" @change="(event) => onChangeTagName(event, aIndex)" />
+                <input type="text" class="taginput input" :value="aItem.tag_names" @change="(event) => onChangeTagName(event, aIndex)" />
             </span>
             <span
                 ><span>Alias </span>
-                <input type="text" class="form-control taginput input" :value="aItem.alias" />
+                <input type="text" class="taginput input" :value="aItem.alias" />
             </span>
             <span @click="onRemove(aIndex)"><img :src="i_b_close" alt="Clear icon" /></span>
         </div>
