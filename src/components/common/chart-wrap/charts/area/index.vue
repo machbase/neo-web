@@ -1,6 +1,6 @@
 <template>
-    <ChartWrap v-slot="{ contact }" :panel-info="props.panelInfo">
-        {{ contact }}
+    <ChartWrap>
+        <ChartHeader :panel-info="props.panelInfo" @eOnChange="onChangeEmit" />
         <AreaChart
             :id="`chart-${props.index}`"
             ref="areaChart"
@@ -10,11 +10,14 @@
             :x-axis-min-range="data.sTimeLine.startTime"
             :is-stock-chart="sIsStockChart"
         />
+        <ViewPort :panel-info="props.panelInfo" @eOnChange="onChangeEmit" />
     </ChartWrap>
 </template>
 
 <script lang="ts" setup>
 import ChartWrap from '@/components/common/chart-wrap/index.vue';
+import ViewPort from '@/components/common/chart-wrap/viewport/index.vue';
+import ChartHeader from '@/components/common/chart-wrap/chart-header/index.vue';
 import { getDateRange } from '@/helpers/date';
 import { lineColors } from '@/helpers/tags';
 import { BarPanel, ChartData, HighchartsDataset, LineDataset, LinePanel, PanelInfo, ReturnTagData, TagSet, TimeInfo, startTimeToendTimeType } from '@/interface/chart';
@@ -363,6 +366,11 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType) => {
         console.log(error);
     }
     data.sIsLoading = false;
+};
+
+const onChangeEmit = (eValue: any) => {
+    console.log('eValue');
+    console.log(eValue);
 };
 
 onMounted(async () => {

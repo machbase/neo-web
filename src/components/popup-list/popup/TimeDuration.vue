@@ -3,13 +3,13 @@
         <div class="col-left">
             <p>From</p>
             <div class="row">
-                <DatePicker @e-change-time="changeTimeStart" />
+                <DatePicker :p-init="formatDate(dateStart)" @e-change-time="changeTimeStart" />
                 <input :value="formatDate(dateStart)" type="text" class="input" />
             </div>
             <p>To</p>
             <div class="row">
-                <DatePicker :p-disabled="true" @e-change-time="changeTimeEnd" />
-                <input :value="formatDate(dateEnd)" type="text" class="input" disabled />
+                <DatePicker :p-init="formatDate(dateEnd)" :p-disabled="false" @e-change-time="changeTimeEnd" />
+                <input :value="formatDate(dateEnd)" type="text" class="input" :disabled="false" />
             </div>
             <div>
                 <p>Duration</p>
@@ -37,31 +37,31 @@ import { formatDate } from '@/utils/utils';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { fetchRangeData } from '@/api/repository/machiot';
+import { FORMAT_FULL_DATE } from '@/utils/constants';
+
 const store = useStore();
-onMounted(async () => {
-    const data: any = await fetchRangeData();
-    dateStart.value = formatDate(data.Data[0].MIN);
-    dateEnd.value = formatDate(data.Data[0].MAX);
-    console.log('🚀 ~ file: TimeDuration.vue:43 ~ onMounted ~ Data', data);
-});
+const dateStart = ref();
+const dateEnd = ref();
+const duration = ref();
+const number = ref();
+const format = ref();
+
 const changeTimeStart = (data: Date) => {
+    // console.log('data', data);
     dateStart.value = data;
-    if (duration.value) {
-        const date = moment(data);
-        dateEnd.value = date.add(number.value, format.value);
-    }
+    // if (duration.value) {
+    //     const date = moment(data);
+    //     dateEnd.value = date.add(number.value, format.value);
+    // }
 };
 const changeTimeEnd = (data: Date) => {
-    dateEnd.value = data;
+    dateEnd.value = moment(data).format(FORMAT_FULL_DATE);
 };
 const OnTimeRange = (data: any) => {
-    console.log('🚀 ~ file: TimeDuration.vue:44 ~ OnTimeRange ~ data', data);
     duration.value = data.value;
     number.value = data.number;
     format.value = data.format;
-    const date = moment(dateStart.value);
-    dateEnd.value = date.add(data.number, data.format);
-    // dateEnd.value = data.value[1];
+    dateEnd.value = moment(dateStart.value).add(data.number, data.format).format(FORMAT_FULL_DATE);
 };
 const onSetting = () => {
     onClosePopup();
@@ -69,14 +69,17 @@ const onSetting = () => {
 };
 
 const onClosePopup = () => {
-    emit('eClosePopup');
+    // emit('eClosePopup');
+    console.log('dateStart', dateStart.value);
+    console.log('dateEnd', dateEnd.value);
 };
 const emit = defineEmits(['eClosePopup']);
-const dateStart = ref();
-const dateEnd = ref();
-const duration = ref();
-const number = ref();
-const format = ref();
+
+onMounted(async () => {
+    const data: any = await fetchRangeData();
+    dateStart.value = formatDate(data.Data[0].MIN);
+    dateEnd.value = formatDate(data.Data[0].MAX);
+});
 </script>
 
 <style lang="scss" scoped>
