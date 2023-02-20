@@ -2,9 +2,7 @@
 
 .date-time {
     @include font-13;
-    &__title {
-        margin-bottom: $px-5;
-    }
+    @include title;
     &__body {
         display: flex;
         justify-content: space-between;

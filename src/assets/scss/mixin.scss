@@ -7,7 +7,7 @@ $themes: (
         'bg-color-input': $d-background-input,
         'border-color': $d-border-28,
         'bg-color-button': $d-background-1c,
-        'border-color-paging': $d-border,
+        'border-color-input': $d-border,
         'color-table': $d-color-table,
         'background-chart': $d-background-chart,
         'text-chart': $d-text-chart,
@@ -24,7 +24,7 @@ $themes: (
         'bg-color-input': $l-background-input,
         'border-color': $l-border,
         'bg-color-button': $l-background-f6,
-        'border-color-paging': $l-border,
+        'border-color-input': $l-border,
         'color-table': $l-color-table,
         'background-chart': $l-background-chart,
         'text-chart': $l-text-chart,
@@ -96,6 +96,32 @@ $themes: (
     }
 }
 // font
+@mixin title {
+    .title {
+        font-weight: bold;
+    }
+}
+
+@mixin common-input {
+    .input {
+        height: $height;
+        border: 1px solid;
+        outline: none;
+        flex: 1;
+    
+        @include theme() {
+            background-color: theme-get('bg-color-input');
+            color: theme-get('text-color');
+            border-color: theme-get('border-color-input');;
+            padding: $px-5 $px-10;
+        }
+    
+        &:focus {
+            @include box-shadow;
+        }
+    }
+}
+
 @mixin font-12 {
     font-family: 'Open Sans', Helvetica, Arial, sans-serif;
     font-size: 12px;

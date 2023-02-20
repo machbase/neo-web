@@ -14,19 +14,7 @@ $height: 30px;
             background-color: theme-get('bg-color');
         }
     }
-    .input {
-        border: 1px solid $d-border;
-        outline: none;
-        flex: 1;
-        @include theme() {
-            background-color: theme-get('bg-color-input');
-            color: theme-get('text-color');
-            padding: $px-5 $px-10;
-        }
-        &:focus {
-            @include box-shadow;
-        }
-    }
+    @include common-input;
 }
 :deep(.v-list-item) {
     padding-inline-start: 0 !important;
