@@ -21,12 +21,13 @@ $height: 30px;
     padding-inline-end: 0 !important;
     min-width: 160px;
 }
+:deep(.v-list-item-title) {
+    @include font-12;
+}
 :deep(.item) {
     padding: $px-5 $px-20 !important;
     min-height: 1px !important;
     cursor: pointer;
-    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
-    font-size: 14px;
     &:hover {
         color: $color-blue;
     }
