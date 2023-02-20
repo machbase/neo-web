@@ -100,10 +100,9 @@
 }
 
 $height: 30px;
-
+@include title;
 .time-range-wrapper {
     @include font-12;
-    @include title;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -148,8 +147,6 @@ $height: 30px;
 
         .row {
             display: flex;
-            flex-direction: row;
-            align-items: center;
         }
 
         .button-apply {

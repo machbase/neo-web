@@ -11,8 +11,11 @@
     }
 }
 .date-picker.disabled .input-slot-image {
-    background: rgb(32, 32, 32);
-    border: 1px solid rgb(56, 56, 56);
-    color: rgb(119, 119, 119);
+    border: 1px solid;
+    @include theme() {
+        background: theme-get('bg-color-input');
+        border-color: theme-get('border-color-input');;
+        color: theme-get('text-color');
+    }
     cursor: not-allowed;
 }

@@ -1,18 +1,18 @@
 <template>
     <div class="time-duration-wrapper">
         <div class="col-left">
-            <p>From</p>
+            <p class="title">From</p>
             <div class="row">
                 <DatePicker @e-change-time="changeTimeStart" />
                 <input :value="formatDate(dateStart)" type="text" class="input" />
             </div>
-            <p>To</p>
+            <p class="title">To</p>
             <div class="row">
                 <DatePicker :p-disabled="true" @e-change-time="changeTimeEnd" />
                 <input :value="formatDate(dateEnd)" type="text" class="input" disabled />
             </div>
             <div>
-                <p>Duration</p>
+                <p class="title">Duration</p>
                 <div class="row"><input :value="duration" type="text" class="input" /></div>
             </div>
         </div>
