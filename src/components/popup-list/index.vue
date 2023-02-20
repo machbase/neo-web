@@ -9,7 +9,7 @@
     >
         <div class="dialog-wrap__content">
             <div class="dialog-wrap__content--header">
-                <p>{{ props.pType }}</p>
+                <p>{{ pType === PopupType.TIME_DURATION ? PopupType.TIME_RANGE : pType }}</p>
                 <img :src="i_b_close" @click="onClosePopup" />
             </div>
             <div class="dialog-wrap__content--body">

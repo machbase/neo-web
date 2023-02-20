@@ -1,0 +1,25 @@
+@import '@/assets/scss/theme.scss';
+.chart-wrap__header {
+    padding: $px-12 $px-10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    .title {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        p {
+            width: 3px;
+            height: 10px;
+            background-color: #2ec0df;
+        }
+    }
+    &-icons {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+    }
+    .icon {
+        cursor: pointer;
+    }
+}

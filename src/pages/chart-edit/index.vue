@@ -6,7 +6,7 @@
                 <ul class="nav-pills">
                     <li v-for="(item, index) in tabs" :key="index" :style="{ color: tabIndex === index ? '#2ec0df' : '#e7e8ea' }" @click="onClickTab(index)">{{ item }}</li>
                 </ul>
-                <div><img :src="i_b_save_2" @click="onSave" alt="Clear icon" /><img :src="i_b_close" alt="Clear icon" /></div>
+                <div><img :src="i_b_save_2" alt="Clear icon" @click="onSave" /><img :src="i_b_close" alt="Clear icon" /></div>
             </div>
             <div class="inner-tab">
                 <GeneralTab v-if="tabIndex === 0" @e-on-change="onChangeTabData" />

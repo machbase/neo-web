@@ -19,11 +19,14 @@
 <script setup lang="ts" name="DatePicker">
 import icon from '@/assets/image/ic_calendar.svg';
 import { useStore } from '@/store';
+import { FORMAT_FULL_DATE } from '@/utils/constants';
 import Datepicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-import { defineEmits, withDefaults, defineProps, ref, watch, computed } from 'vue';
+import moment from 'moment';
+import { defineEmits, withDefaults, defineProps, ref, watch, computed, onMounted } from 'vue';
 export interface DatePickerProps {
-    pDisabled: boolean;
+    pDisabled?: boolean;
+    pInit?: string;
 }
 const props = withDefaults(defineProps<DatePickerProps>(), {
     pDisabled: false,
@@ -38,6 +41,14 @@ watch(
     () => {
         emit('eChangeTime', sDate.value);
     }
+);
+watch(
+    () => props.pInit,
+    () => {
+        if (!props.pInit) return;
+        sDate.value = props.pInit;
+    },
+    { immediate: true }
 );
 </script>
 

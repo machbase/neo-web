@@ -1,5 +1,6 @@
 <template>
-    <ChartWrap :panel-info="props.panelInfo">
+    <ChartWrap>
+        <ChartHeader :panel-info="props.panelInfo" />
         <PointChart
             :id="`chart-${props.index}`"
             ref="pointChart"
@@ -9,11 +10,14 @@
             :x-axis-min-range="data.sTimeLine.startTime"
             :is-stock-chart="sIsStockChart"
         />
+        <ViewPort />
     </ChartWrap>
 </template>
 
 <script lang="ts" setup>
 import ChartWrap from '@/components/common/chart-wrap/index.vue';
+import ViewPort from '@/components/common/chart-wrap/viewport/index.vue';
+import ChartHeader from '@/components/common/chart-wrap/chart-header/index.vue';
 import { getDateRange } from '@/helpers/date';
 import { lineColors } from '@/helpers/tags';
 import { BarPanel, ChartData, HighchartsDataset, LineDataset, LinePanel, PanelInfo, ReturnTagData, TagSet, TimeInfo, startTimeToendTimeType } from '@/interface/chart';
@@ -26,11 +30,11 @@ import moment from 'moment';
 import { computed, defineProps, onMounted, reactive, ref, withDefaults } from 'vue';
 import PointChart from './container/index.vue';
 
-interface LineChartProps {
+interface PointChartProps {
     panelInfo: LinePanel;
     index: number;
 }
-const props = withDefaults(defineProps<LineChartProps>(), {
+const props = withDefaults(defineProps<PointChartProps>(), {
     index: 0,
 });
 const store = useStore();
