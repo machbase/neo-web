@@ -263,7 +263,7 @@ $height: 30px;
                 }
             }
             .countGroup {
-                padding-top: 13px;
+                padding-top: 10px;
                 display: flex;
                 flex-direction: row;
                 justify-content: space-between;
@@ -276,9 +276,11 @@ $height: 30px;
                 overflow-x: hidden;
                 //  overflow-y: auto;
                 overflow-y: hidden;
-                color: #e7e8ea;
-                background-color: #202020;
-                border: 1px solid #383838;
+                @include theme() {
+                    color: theme-get('text-color1');
+                    background-color: theme-get('bg-color');
+                    border: 1px solid theme-get('border-color-input');
+                }
                 margin-bottom: 20px;
                 div {
                     cursor: pointer;
@@ -301,9 +303,11 @@ $height: 30px;
                 font-size: 12px;
                 overflow-x: hidden;
                 overflow-y: auto;
-                color: #e7e8ea;
-                background-color: #131313;
-                border: 1px solid #383838;
+                @include theme() {
+                    color: theme-get('text-color1');
+                    background-color: theme-get('bg-color');
+                    border: 1px solid theme-get('border-color-input');
+                }
                 .wrapperTagSelect {
                     display: flex;
                     flex-direction: row;
