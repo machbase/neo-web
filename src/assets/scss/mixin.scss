@@ -112,7 +112,7 @@ $themes: (
         @include theme() {
             background-color: theme-get('bg-color-input');
             color: theme-get('text-color');
-            border-color: theme-get('border-color-input');;
+            border-color: theme-get('border-color-input');
             padding: $px-5 $px-10;
         }
     

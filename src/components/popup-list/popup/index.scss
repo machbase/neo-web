@@ -365,7 +365,7 @@ $height: 30px;
             @include theme() {
                 background-color: theme-get('bg-color-input');
                 color: theme-get('text-color');
-                border-color: theme-get('border-color');
+                border-color: theme-get('border-color-input') !important;
             }
         }
     }
