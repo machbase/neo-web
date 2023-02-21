@@ -13,7 +13,7 @@
 
             @include theme() {
                 background-color: theme-get('bg-color-button') !important;
-                border-color: theme-get('border-color') !important;
+                border: 1px solid theme-get('border-chart') !important;
             }
 
             img {
@@ -23,12 +23,9 @@
         }
 
         .inner-tab {
-            border-width: 1px;
-            border-style: solid;
-
             @include theme() {
-                background-color: theme-get('background-chart') !important;
-                border-color: theme-get('border-chart') !important;
+                background-color: theme-get('bg-tab-content') !important;
+                border: 1px solid theme-get('border-chart') !important;
             }
         }
     }

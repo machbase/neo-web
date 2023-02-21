@@ -1,6 +1,5 @@
 $themes: (
-    dark: (
-        'text-color': $text-b,
+    dark: ('text-color': $text-b,
         'text-color1': $text-w,
         'bg-color': $d-background,
         'bg-color-opa': $d-background-opa,
@@ -16,9 +15,8 @@ $themes: (
         'bg-vport-chart': $d-bg-vport-chart,
         'border-vport-chart': $d-bd-vport-chart,
         'text-title-tab': $d-text-tab-title,
-    ),
-    light: (
-        'text-color': $l-text,
+        'bg-tab-content': $d-bg-tab-content ),
+    light: ('text-color': $l-text,
         'text-color1': $l-text,
         'bg-color': $l-background,
         'bg-color-opa': $l-background,
@@ -34,20 +32,27 @@ $themes: (
         'bg-vport-chart': $l-bg-vport-chart,
         'border-vport-chart': $l-bd-vport-chart,
         'text-title-tab': $l-text-tab-title,
-    ),
+        'bg-tab-content': $l-bg-tab-content ),
 );
+
 @mixin theme() {
-    @each $theme, $map in $themes {
-        $theme-map: $map !global;
+
+    @each $theme,
+    $map in $themes {
+        $theme-map: $map  !global;
+
         .#{$theme} & {
             @content;
         }
     }
+
     $theme-map: null !global;
 }
+
 @function theme-get($key) {
     @return map-get($theme-map, $key);
 }
+
 // use
 // @include theme() {
 //     color: theme-get('text-color');
@@ -56,7 +61,7 @@ $themes: (
 //
 
 @function toRem($value) {
-    $remValue: $value / 16 + rem;
+    $remValue: $value / 16+rem;
     @return $remValue;
 }
 
@@ -66,9 +71,11 @@ $themes: (
     color: $text-b;
     padding: 0 $px-10;
 }
+
 @mixin box-shadow {
     box-shadow: inset 0 1px 1px rgb(0 0 0 / 8%), 0 0 8px rgb(102 175 233 / 60%);
 }
+
 @mixin button-effect-color {
     border-radius: 0;
     background-color: $color-blue;
@@ -78,10 +85,12 @@ $themes: (
     font-size: 12px;
     height: 30px;
     width: 70px;
+
     &:hover {
         font-weight: bold;
     }
 }
+
 @mixin button-effect {
     border-radius: 0;
     color: $text-blue;
@@ -89,14 +98,17 @@ $themes: (
     font-size: 12px;
     height: 30px;
     width: 70px;
+
     &:hover {
         font-weight: bold;
     }
+
     @include theme() {
         background-color: theme-get('bg-color-button');
         border: 1px solid theme-get('border-color');
     }
 }
+
 // font
 @mixin title {
     .title {
@@ -110,16 +122,35 @@ $themes: (
         border: 1px solid;
         outline: none;
         flex: 1;
-    
+
         @include theme() {
             background-color: theme-get('bg-color-input');
             color: theme-get('text-color');
             border-color: theme-get('border-color-input');
             padding: $px-5 $px-10;
         }
-    
+
         &:focus {
             @include box-shadow;
+        }
+    }
+}
+
+@mixin checkbox-common {
+    .input-wrapper {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        .checkbox-wrapper {
+            height: 30px;
+            width: 34px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            @include theme() {
+                background-color: theme-get('bg-color-input');
+                border: 1px solid theme-get('border-color-input');
+            }
         }
     }
 }
@@ -128,6 +159,7 @@ $themes: (
     font-family: 'Open Sans', Helvetica, Arial, sans-serif;
     font-size: 12px;
 }
+
 @mixin font-13 {
     font-family: 'Open Sans', Helvetica, Arial, sans-serif;
     font-size: 13px;

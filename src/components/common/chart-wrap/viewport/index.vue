@@ -8,7 +8,7 @@
             <div class="view-port__header--events icon">
                 <v-icon color="#2ec0df" icon="mdi-magnify-minus-outline"></v-icon>
                 <v-icon color="#2ec0df" icon="mdi-magnify-minus-outline"></v-icon>
-                <v-icon color="#fff" size="x-large" icon="mdi-image-filter-center-focus-strong-outline"></v-icon>
+                <v-icon color="#2ec0df" size="x-large" icon="mdi-image-filter-center-focus-strong-outline"></v-icon>
                 <v-icon color="#2ec0df" icon="mdi-magnify-plus-outline"></v-icon>
                 <v-icon color="#2ec0df" icon="mdi-magnify-plus-outline"></v-icon>
             </div>

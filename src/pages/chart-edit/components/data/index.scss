@@ -10,9 +10,11 @@
         margin-top: 5px !important;
     }
     .row {
+        height: 15px;
         display: flex;
         flex-direction: row;
         justify-content: space-between;
+        align-items: center;
         .plus{
             font-size: large;
             cursor: pointer;
@@ -21,7 +23,7 @@
     .tag-row{
         @include theme() {
             background-color: theme-get('bg-color-button') !important;
-            border-color: theme-get('border-vport-chart') !important;
+            border: 1px solid theme-get('border-color') !important;
         }
         margin-top: 5px;
         display: flex;

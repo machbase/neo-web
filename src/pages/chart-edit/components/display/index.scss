@@ -1,9 +1,10 @@
 @import '@/assets/scss/theme.scss';
 .display-wrapper {
+    @include common-input;
+    @include checkbox-common;
+    @include font-12;
     width: 700px;
     padding: 20px;
-    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
-    font-size: 12px;
     display: flex;
     .chart-type-wrapper{
         width: 152px;
@@ -28,24 +29,5 @@
     .cfg-input {
         margin-top: 2px;
         margin-bottom: 20px;
-        // display: flex;
-        // flex-direction: row;
-    }
-    .input {
-        width: 210px;
-        height: 26px;
-        border: 1px solid $d-border;
-        outline: none;
-        flex: 1;
-    
-        @include theme() {
-            background-color: theme-get('bg-color-input');
-            color: theme-get('text-color');
-            padding: $px-5 $px-10;
-        }
-    
-        &:focus {
-            @include box-shadow;
-        }
     }
 }
