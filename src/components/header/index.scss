@@ -51,7 +51,9 @@
         :deep(.combobox-select) {
             width: 200px;
             border: 1px solid #333333 !important;
+            background-color: $d-background-opa !important;
             margin: 0px 20px 0px 10px;
+            color: $text-w !important;
         }
         :deep(.combobox-select .combobox-select__item) {
             background-color: $d-background-opa !important;

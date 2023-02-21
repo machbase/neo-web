@@ -3,8 +3,8 @@
         <div class="chart-type-wrapper"><span>Chart Type</span><ChartSelect class="chart-type-div" :is-row="false" :p-data="chartTypeMapped" @e-on-change="onSelectChart" /></div>
         <div class="input-col2">
             <label for="_cfg_show_point">Show data points</label>
-            <div class="cfg-input">
-                <span class="input"><input id="_cfg_show_point" v-model="showPoint" type="checkbox" /></span>
+            <div class="cfg-input input-wrapper">
+                <div class="checkbox-wrapper"><input id="_cfg_show_point" v-model="showPoint" type="checkbox" /></div>
                 <input type="text" class="input" data-for="_cfg_show_point" value="Display data points in the line chart." readonly />
             </div>
             <label for="_cfg_point_radius">Point radius</label>
@@ -12,8 +12,8 @@
                 <input id="_cfg_point_radius" v-model="pointRadius" type="text" class="input point_radius_input" />
             </div>
             <label for="_cfg_show_bottom_legend">Legend</label>
-            <div class="cfg-input">
-                <span class="input"><input id="_cfg_show_bottom_legend" v-model="showLegend" type="checkbox" /></span>
+            <div class="cfg-input input-wrapper">
+                <div class="checkbox-wrapper"><input id="_cfg_show_bottom_legend" v-model="showLegend" type="checkbox" /></div>
                 <input type="text" class="input" data-for="_cfg_show_bottom_legend" value="Display legend." readonly />
             </div>
         </div>

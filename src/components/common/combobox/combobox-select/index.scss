@@ -2,7 +2,11 @@
 
 .combobox-select {
     font-family: 'Open Sans',Helvetica,Arial,sans-serif;
-    border: 1px solid $bd-black;
+    @include theme() {
+        border: 1px solid theme-get('border-color-input');
+        color: theme-get('text-color');
+        background-color: theme-get('bg-color-input');
+    }
     color: $text-w;
     outline: none;
     // margin: 0 8px;

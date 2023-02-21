@@ -4,66 +4,66 @@
             <div class="title">X-axis</div>
             <label for="_cfg_interval">Interval</label>
             <div class="cfg-input">
-                <input id="_cfg_interval" v-model="interval" type="text" class="input" @change="onChangeInput" />
+                <input id="_cfg_interval" v-model="interval" type="text" class="input" style="width: 240px" @change="onChangeInput" />
             </div>
             <label for="_cfg_line_x">Show tick line</label>
-            <div class="cfg-input">
-                <span class="input"><input id="_cfg_line_x" v-model="isShowTickLineX" type="checkbox" /></span>
+            <div class="cfg-input input-wrapper">
+                <div class="checkbox-wrapper"><input id="_cfg_line_x" v-model="isShowTickLineX" type="checkbox" /></div>
                 <input type="text" class="input" data-for="_cfg_line_x" value="Displays the X-axis tick line." readonly style="width: 175px" />
             </div>
             <label for="_cfg_pixel">Pixels between tick marks</label>
             <div class="cfg-input">
-                <input id="_cfg_pixel" v-model="pixel" type="text" class="input" />
+                <input id="_cfg_pixel" v-model="pixel" type="text" class="input" style="width: 240px" />
             </div>
         </div>
         <div class="col1" style="width: 270px">
             <div class="title">Y-axis</div>
             <label for="_cfg_zero_base">Start at zero</label>
-            <div class="cfg-input">
-                <span class="input"><input id="_cfg_zero_base" v-model="isZeroBase" type="checkbox" /></span>
+            <div class="cfg-input input-wrapper">
+                <div class="checkbox-wrapper"><input id="_cfg_zero_base" v-model="isZeroBase" type="checkbox" /></div>
                 <input type="text" class="input" data-for="_cfg_zero_base" value="The scale of the y-axis start at zero." readonly />
             </div>
             <label for="_cfg_line_y">Show tick line</label>
-            <div class="cfg-input">
-                <span class="input"><input id="_cfg_line_y" v-model="isShowTickLineY" type="checkbox" /></span>
+            <div class="cfg-input input-wrapper">
+                <div class="checkbox-wrapper"><input id="_cfg_line_y" v-model="isShowTickLineY" type="checkbox" /></div>
                 <input type="text" class="input" data-for="_cfg_line_y" value="Displays the Y-axis tick line." readonly />
             </div>
             <div class="cfg-input">
                 <label>Custom scale</label>
-                <CustomScale :init-value="customScaleInit" style="width: 245px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 0)" />
+                <CustomScale :init-value="customScaleInit" style="width: 270px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 0)" />
             </div>
             <div class="cfg-input">
                 <label>Custom scale for raw data chart</label>
-                <CustomScale :init-value="customScaleRawInit" style="width: 245px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 1)" />
+                <CustomScale :init-value="customScaleRawInit" style="width: 270px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 1)" />
             </div>
         </div>
         <div class="col1" style="width: 270px">
-            <div class="checkbox-wrapper">
+            <div class="checkbox-wrapper1">
                 <span><input v-model="isAdditionalYAxis" type="checkbox" /></span>
                 <span class="title1">Set additional Y-axis</span>
             </div>
             <div v-if="isAdditionalYAxis">
                 <label for="_cfg_zero_base">Start at zero</label>
-                <div class="cfg-input">
-                    <span class="input"><input id="_cfg_zero_base" v-model="isZeroBase2" type="checkbox" /></span>
+                <div class="cfg-input input-wrapper">
+                    <div class="checkbox-wrapper"><input id="_cfg_zero_base" v-model="isZeroBase2" type="checkbox" /></div>
                     <input type="text" class="input" data-for="_cfg_zero_base" value="The scale of the y-axis start at zero." readonly />
                 </div>
                 <label for="_cfg_line_y">Show tick line</label>
-                <div class="cfg-input">
-                    <span class="input"><input id="_cfg_line_y" v-model="isShowTickLineY2" type="checkbox" /></span>
+                <div class="cfg-input input-wrapper">
+                    <div class="checkbox-wrapper"><input id="_cfg_line_y" v-model="isShowTickLineY2" type="checkbox" /></div>
                     <input type="text" class="input" data-for="_cfg_line_y" value="Displays the Y-axis tick line." readonly />
                 </div>
                 <div class="cfg-input">
                     <label>Custom scale</label>
-                    <CustomScale :init-value="customScaleInit2" style="width: 245px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 2)" />
+                    <CustomScale :init-value="customScaleInit2" style="width: 270px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 2)" />
                 </div>
                 <div class="cfg-input">
                     <label>Custom scale for raw data chart</label>
-                    <CustomScale :init-value="customScaleRawInit2" style="width: 245px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 3)" />
+                    <CustomScale :init-value="customScaleRawInit2" style="width: 270px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 3)" />
                 </div>
                 <div class="cfg-input">
                     <label>Position of Y-axis</label>
-                    <div class="input radio-wrapper" style="width: 245px">
+                    <div class="input radio-wrapper" style="width: 270px">
                         <input type="radio" id="one" value="l" v-model="picked" />
                         <label for="one">Left side</label>
                         <input type="radio" id="two" value="r" v-model="picked" />

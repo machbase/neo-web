@@ -26,6 +26,8 @@ $d-color-table: #afb5bc;
 $d-text-vport-chart: #afb5bc;
 $d-bg-vport-chart: #202020;
 $d-bd-vport-chart: #383838;
+$d-text-tab-title: $text-w;
+$d-bg-tab-content: #1c1c1d;
 
 // light
 $l-text: #202020;
@@ -38,8 +40,10 @@ $l-background-f6: #f6f7f8;
 $l-background-input: #f6f7f8;
 $l-color-table: #2a313b;
 $l-text-vport-chart: #2a313b;
+$l-text-tab-title: #2a313b;
 $l-bg-vport-chart: #f6f7f8;
 $l-bd-vport-chart: #dbe2ea;
+$l-bg-tab-content: #fbfcfd;
 
 // Spacing
 $px-5: 5px;
@@ -51,3 +55,5 @@ $px-20: 20px;
 
 // z-index
 $z-index-set: 2;
+
+$height: 30px;
