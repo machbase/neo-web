@@ -7,55 +7,64 @@
     display: flex;
     width: 1000px;
 
+    @include common-input;
+    @include checkbox-common;
+
     .tag-list {
         width: 250px;
         margin-top: 40px;
-        height: 227px;
+        height: 234px;
         border: 1px solid $d-border;
 
         @include theme() {
             background-color: theme-get('bg-color-input');
             color: theme-get('text-color');
+            border-color: theme-get('border-color-input');
             padding: $px-5 $px-10;
         }
+
         .tag-item-wrapper {
             margin-bottom: $px-10;
             display: flex;
             flex-direction: row;
             align-items: center;
             justify-content: space-between;
+
             .tag-item {
                 border: 1px solid $d-border;
                 width: 200px;
+
                 @include theme() {
                     background-color: theme-get('bg-color-input');
                     color: theme-get('text-color');
+                    border-color: theme-get('border-color-input');
                     padding: $px-5 $px-10;
                 }
-                span{
+
+                span {
                     margin-left: 30px;
                 }
             }
         }
     }
 
-    .input {
-        width: 210px;
-        height: 26px;
-        border: 1px solid $d-border;
-        outline: none;
-        flex: 1;
+    // .input {
+    //     width: 210px;
+    //     height: 26px;
+    //     border: 1px solid $d-border;
+    //     outline: none;
+    //     flex: 1;
 
-        @include theme() {
-            background-color: theme-get('bg-color-input');
-            color: theme-get('text-color');
-            padding: $px-5 $px-10;
-        }
+    //     @include theme() {
+    //         background-color: theme-get('bg-color-input');
+    //         color: theme-get('text-color');
+    //         padding: $px-5 $px-10;
+    //     }
 
-        &:focus {
-            @include box-shadow;
-        }
-    }
+    //     &:focus {
+    //         @include box-shadow;
+    //     }
+    // }
 
     .cfg-input {
         margin-top: 2px;
@@ -65,7 +74,7 @@
     .col1 {
         margin-right: 20px;
 
-        .checkbox-wrapper {
+        .checkbox-wrapper1 {
             display: flex;
             flex-direction: row;
             align-items: center;
@@ -79,7 +88,10 @@
             .title1 {
                 font-weight: 700;
                 font-style: normal;
-                color: #afb5bc;
+
+                @include theme() {
+                    color: theme-get('text-color');
+                }
             }
         }
 
@@ -92,12 +104,17 @@
         .title {
             font-weight: 700;
             font-style: normal;
+
+            @include theme() {
+                color: theme-get('text-color');
+            }
+
             color: #afb5bc;
             margin-bottom: 10px;
         }
 
         .radio-wrapper {
-            padding: 0px 40px;
+            padding: 0px 50px;
             display: flex;
             flex-direction: row;
             justify-content: space-between;

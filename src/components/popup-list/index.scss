@@ -24,7 +24,9 @@
         }
         &--header {
             padding: $px-10 $px-15;
-            border-bottom: 1px solid $d-border;
+            @include theme() {
+                border-bottom: 1px solid theme-get('border-color-input');
+            }
             display: flex;
             justify-content: space-between;
             & > img {

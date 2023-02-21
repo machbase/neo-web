@@ -55,7 +55,9 @@
                 <img v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" :src="i_b_share" class="icon" />
             </router-link>
             <img v-if="sHeaderType === RouteNames.CHART_EDIT" :src="i_b_save_2" class="icon" />
-            <img v-if="sHeaderType === RouteNames.CHART_EDIT" :src="i_b_close" class="icon" />
+            <router-link v-if="sHeaderType === RouteNames.CHART_EDIT" :to="{ name: RouteNames.TAG_VIEW }">
+                <img :src="i_b_close" class="icon" style="margin-top: 7px;"/>
+            </router-link>
         </div>
     </div>
     <PopupWrap :p-type="sPopupType" :p-show="sDialog" :p-width="cWidthPopup" @eClosePopup="onClosePopup" />

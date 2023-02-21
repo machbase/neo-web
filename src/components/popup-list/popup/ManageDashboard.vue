@@ -23,7 +23,7 @@
                             <img :src="i_b_newwin" />
                         </router-link>
                         <img :src="i_b_edit" @click="sBoardList[aIndex].edit = true" />
-                        <img :src="i_b_del" @click="onDeleteBoard(aBoard.board_id)" />
+                        <img :src="i_b_del" @click="onDeleteBoard(aBoard.board_id, aBoard.board_name)" />
                     </td>
                 </tr>
             </tbody>
@@ -75,7 +75,10 @@ const onEditBoard = async (aBoard: BoardInfo) => {
         };
     });
 };
-const onDeleteBoard = async (sId: string) => {
+const onDeleteBoard = async (sId: string, sName: string) => {
+    if (!confirm('Are you sure you want to delete this dashboard?\n(' + sId + ' - ' + sName + ')')) {
+        return;
+    }
     const sRes = (await deleteBoard(sId)) as any;
     await store.commit(MutationTypes.setBoardList, sRes.list);
     sBoardList.value = cBoardList.value.map((aBoard) => {

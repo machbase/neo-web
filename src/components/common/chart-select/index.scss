@@ -17,6 +17,9 @@
 /* IMAGE STYLES */
 [type=radio] + img {
     cursor: pointer;
+    @include theme() {
+        border: 1px solid theme-get('border-color-input');
+    }
 }
   
 /* CHECKED STYLES */

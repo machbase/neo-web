@@ -1,5 +1,7 @@
 @import '@/assets/scss/theme.scss';
+
 .data-tab-wrapper{
+    @include common-input;
     padding: 20px;
     font-family: 'Open Sans',Helvetica,Arial,sans-serif;
     font-size: 12px;
@@ -8,45 +10,33 @@
         margin-top: 5px !important;
     }
     .row {
+        height: 15px;
         display: flex;
         flex-direction: row;
         justify-content: space-between;
+        align-items: center;
         .plus{
             font-size: large;
             cursor: pointer;
         }
     }
     .tag-row{
+        @include theme() {
+            background-color: theme-get('bg-color-button') !important;
+            border: 1px solid theme-get('border-color') !important;
+        }
         margin-top: 5px;
         display: flex;
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
         padding: 15px;
-        .input {
+        .taginput {
             width: 311px;
-            height: 30px;
-            border: 1px solid $d-border;
-            outline: none;
-            flex: 1;
-        
-            @include theme() {
-                background-color: theme-get('bg-color-input');
-                color: theme-get('text-color');
-                padding: $px-5 $px-10;
-            }
-        
-            &:focus {
-                @include box-shadow;
-            }
         }
         .select{
             width: 150px;
             height: 30px;
-        }
-        @include theme() {
-            background-color: theme-get('bg-color-button') !important;
-            border-color: theme-get('border-color') !important;
         }
     }
 }
