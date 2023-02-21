@@ -6,11 +6,26 @@
                 <div class="button blue">Undo</div>
             </div>
             <div class="view-port__header--events icon">
-                <v-icon color="#2ec0df" icon="mdi-magnify-minus-outline"></v-icon>
-                <v-icon color="#2ec0df" icon="mdi-magnify-minus-outline"></v-icon>
-                <v-icon color="#fff" size="x-large" icon="mdi-image-filter-center-focus-strong-outline"></v-icon>
-                <v-icon color="#2ec0df" icon="mdi-magnify-plus-outline"></v-icon>
-                <v-icon color="#2ec0df" icon="mdi-magnify-plus-outline"></v-icon>
+                <div>
+                    <v-icon color="#2ec0df" icon="mdi-magnify-minus-outline" @click="adjustViewportRange({ type: 'O', zoom: 0.4 })"></v-icon>
+                    <v-tooltip activator="parent" location="bottom">Zoom out x4</v-tooltip>
+                </div>
+                <div>
+                    <v-icon color="#2ec0df" icon="mdi-magnify-minus-outline" @click="adjustViewportRange({ type: 'O', zoom: 0.2 })"></v-icon>
+                    <v-tooltip activator="parent" location="bottom">Zoom out x2</v-tooltip>
+                </div>
+                <div>
+                    <v-icon color="#fff" size="x-large" icon="mdi-image-filter-center-focus-strong-outline" @click="adjustViewportRange({ type: 'O', zoom: 1 })"></v-icon>
+                    <v-tooltip activator="parent" location="bottom">Focus</v-tooltip>
+                </div>
+                <div>
+                    <v-icon color="#2ec0df" icon="mdi-magnify-plus-outline" @click="adjustViewportRange({ type: 'I', zoom: 0.2 })"></v-icon>
+                    <v-tooltip activator="parent" location="bottom">Zoom in x2</v-tooltip>
+                </div>
+                <div>
+                    <v-icon color="#2ec0df" icon="mdi-magnify-plus-outline" @click="adjustViewportRange({ type: 'I', zoom: 0.4 })"></v-icon>
+                    <v-tooltip activator="parent" location="bottom">Zoom in x4</v-tooltip>
+                </div>
             </div>
             <div class="view-port__header--events">
                 <div class="button" @click="onChangeEmit('1')">STAT</div>
@@ -49,7 +64,7 @@ interface ViewPortProps {
     rangeTime: TimeLineType;
 }
 const props = withDefaults(defineProps<ViewPortProps>(), {});
-const emit = defineEmits(['eOnChange']);
+const emit = defineEmits(['eOnChange', 'eOnChangeAdjust']);
 const store = useStore();
 const sDialog = ref<boolean>(false);
 const sDateLeft = ref<string | number>('');
@@ -57,7 +72,10 @@ const sDateRight = ref<string | number>('');
 const sIsFromTime = ref<boolean>(false);
 const cRangeData = computed(() => store.state.gRangeData);
 const onChangeEmit = (aValue: any) => {
-    emit('eOnChange', aValue);
+    console.log('aValue', aValue);
+};
+const adjustViewportRange = (aEvent: { type: 'O' | 'I'; zoom: number }) => {
+    emit('eOnChangeAdjust', aEvent);
 };
 const onOpenPopup = (isFrom: boolean) => {
     sIsFromTime.value = isFrom;
@@ -71,6 +89,7 @@ const onClosePopup = (aDate: any) => {
 watch(
     () => props.rangeTime,
     () => {
+        console.log(props);
         if (!props.rangeTime) return;
         sDateLeft.value =
             typeof props.rangeTime.startTime === 'string' ? moment(formatDate(props.rangeTime.startTime as string)).format(FORMAT_FULL_DATE) : props.rangeTime.startTime;

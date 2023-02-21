@@ -4,26 +4,29 @@
 import { HighchartsDataset, LineDataset, LinePanel } from '@/interface/chart';
 import { useStore } from '@/store';
 import { toTimeUtcChart } from '@/utils/utils';
-import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults } from 'vue';
+import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults, defineEmits } from 'vue';
 import { formatColors } from '@/utils/utils';
 import { watchEffect } from 'vue';
 
 interface BarChartContainerProps {
     chartData: LineDataset;
+    viewData: LineDataset;
     panelInfo: LinePanel;
     xAxisMinRange: string | number;
     xAxisMaxRange: string | number;
-    xChartMaxRange: string | number;
-    xChartMinRange: string | number;
+    xMinTimeRangeViewPort: string | number;
+    xMaxTimeRangeViewPort: string | number;
     isStockChart?: boolean;
 }
 
 const props = withDefaults(defineProps<BarChartContainerProps>(), {});
 const store = useStore();
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
+const emit = defineEmits(['eOnChange']);
 
 const data = reactive({
     sMasterSeriesData: [] as HighchartsDataset[],
+    sViewPortSeriesData: [] as HighchartsDataset[],
     sTimeChartXaxis: {
         min: '' as string | number,
         max: '' as string | number,
@@ -35,9 +38,11 @@ const chart = ref();
 // watchEffect
 
 watch(
-    () => props.chartData,
+    () => [props.chartData, props.viewData],
     () => {
-        createStockChart();
+        if (props.chartData && props.viewData) {
+            createStockChart();
+        }
         data.sChartWidth = chart.value.chart.plotWidth;
     },
     {
@@ -45,7 +50,7 @@ watch(
     }
 );
 watch(data.sTimeChartXaxis, () => {
-    console.log('data', data.sTimeChartXaxis);
+    emit('eOnChange', data.sTimeChartXaxis);
 });
 
 const cChartOptions = computed(() => {
@@ -98,6 +103,12 @@ const cChartOptions = computed(() => {
             liveRedraw: false,
             enabled: false,
         },
+        rangeSelector: {
+            buttons: [],
+            allButtonsEnabled: false,
+            inputEnabled: false,
+            selected: 1,
+        },
         // view point navigator
         navigator: {
             enabled: true,
@@ -109,16 +120,20 @@ const cChartOptions = computed(() => {
             },
             height: 26,
             maskFill: 'rgba(119, 119, 119, .3)',
-            series: {
-                showInNavigator: true,
-            },
+            // series: data.sViewPortSeriesData,
+            series: data.sViewPortSeriesData.map((i) => {
+                return {
+                    data: i.data,
+                    marker: i.marker,
+                };
+            }),
             outlineWidth: 1,
             // outlineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             xAxis: {
                 // width: data.sChartWidth - 80,
                 type: 'datetime',
-                min: toTimeUtcChart(props.xAxisMinRange as string),
-                max: toTimeUtcChart(props.xAxisMaxRange as string),
+                min: toTimeUtcChart(props.xMinTimeRangeViewPort as string),
+                max: toTimeUtcChart(props.xMaxTimeRangeViewPort as string),
                 labels: {
                     align: 'center',
                     style: {
@@ -162,7 +177,6 @@ const cChartOptions = computed(() => {
                 width: 0.5,
                 color: 'red',
             },
-            startOnTick: true,
             tickColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
         },
         // Value chart
@@ -235,18 +249,14 @@ const cChartOptions = computed(() => {
         },
         // No data
         lang: {
-            noData: 'No Data',
+            noData: 'Nichts zu anzeigen',
         },
         noData: {
             style: {
                 fontWeight: 'bold',
-                fontSize: '24px',
-                color: '#9ca2ab',
+                fontSize: '15px',
+                color: '#303030',
             },
-        },
-        // tool
-        rangeSelector: {
-            enabled: false,
         },
         // show link web
         credits: {
@@ -274,7 +284,8 @@ function afterSetExtremes(e) {
 }
 
 const createStockChart = () => {
-    data.sMasterSeriesData = JSON.parse(JSON.stringify(props.chartData.datasets));
+    data.sMasterSeriesData = props.chartData.datasets;
+    data.sViewPortSeriesData = props.viewData.datasets;
 };
 defineExpose({
     chart,

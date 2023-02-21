@@ -83,12 +83,12 @@ const onClosePopup = () => {
 };
 const emit = defineEmits(['eClosePopup']);
 
-onMounted(async () => {
+onMounted(() => {
     if (props.pTimeRange) {
         dateStart.value = formatDate(props.pTimeRange?.startTime as string);
         dateEnd.value = formatDate(props.pTimeRange?.endTime as string);
     } else {
-        const data: any = await fetchRangeData();
+        const data: any = fetchRangeData();
         dateStart.value = formatDate(data.Data[0].MIN);
         dateEnd.value = formatDate(data.Data[0].MAX);
     }

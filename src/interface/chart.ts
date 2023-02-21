@@ -182,8 +182,8 @@ export interface ReturnTagData {
     TagName: string;
 }
 export interface TimeInfo {
-    startTime: string;
-    endTime: string;
+    startTime: string | number;
+    endTime: string | number;
 }
 
 export interface FetchTagDataArg {

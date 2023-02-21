@@ -366,8 +366,8 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType) => {
     data.sIsLoading = false;
 };
 
-onMounted(async () => {
-    await intializePanelData();
+onMounted(() => {
+    intializePanelData();
 });
 </script>
 

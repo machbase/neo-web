@@ -1,18 +1,25 @@
 <template>
     <ChartWrap>
-        <ChartHeader :panel-info="props.panelInfo" @eOnChange="onChangeEmit" />
+        <ChartHeader :panel-info="props.panelInfo" @eOnChange="onChangeTineRange" />
         <AreaChart
             :id="`chart-${props.index}`"
             ref="areaChart"
             :chart-data="data.sDisplayData"
+            :view-data="data.sViewPortData"
             :panel-info="props.panelInfo"
             :x-axis-max-range="data.sTimeLine.endTime"
             :x-axis-min-range="data.sTimeLine.startTime"
-            :x-chart-max-range="data.sTimeChart.endTime"
-            :x-chart-min-range="data.sTimeChart.startTime"
+            :x-min-time-range-view-port="data.sTimeRangeViewPort.startTime"
+            :x-max-time-range-view-port="data.sTimeRangeViewPort.endTime"
             :is-stock-chart="sIsStockChart"
+            @eOnChange="OnChangeTimeRangerViewPort"
         />
-        <ViewPort :range-time="{ startTime: data.sTimeLine.startTime, endTime: data.sTimeLine.endTime }" :panel-info="props.panelInfo" @eOnChange="onChangeEmit" />
+        <ViewPort
+            :range-time="{ startTime: data.sTimeRangeViewPort.startTime, endTime: data.sTimeRangeViewPort.endTime }"
+            :panel-info="props.panelInfo"
+            @eOnChange="onChangeTineRange"
+            @eOnChangeAdjust="adjustViewportRange"
+        />
     </ChartWrap>
 </template>
 
@@ -43,14 +50,16 @@ const props = withDefaults(defineProps<AreaChartProps>(), {
 
 const store = useStore();
 const slots = useSlots();
+const areaChart = ref<any>();
 const data = reactive({
     sDisplayData: {} as LineDataset,
+    sViewPortData: {} as LineDataset,
     sTimeLine: {} as TimeLineType,
-    sTimeChart: {} as TimeLineType,
+    sTimeRangeViewPort: {} as TimeLineType,
     sIntervalData: { IntervalType: convertInterType(props.panelInfo.interval_type.toLowerCase()), IntervalValue: 0 } as { IntervalValue: number; IntervalType: string },
     sIsLoading: false,
 });
-const lineChart = ref(null);
+const lineChart = ref();
 const sIsStockChart = ref<boolean>(true);
 function convertInterType(gUnit: string) {
     switch (gUnit) {
@@ -209,8 +218,17 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
     if (!sTagSet.length) return;
-    const sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
-    if (!aCustomRange) data.sTimeLine = sTimeRange;
+    let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
+    if (!aCustomRange) {
+        sTimeRange = {
+            // startTime: moment(sTimeRange.startTime).valueOf() - 133000,
+            startTime: moment(moment(sTimeRange.endTime).valueOf() - 133000).format('YYYY-MM-DDTHH:mm:ss'),
+            endTime: sTimeRange.endTime,
+        };
+        data.sTimeLine = sTimeRange;
+    } else {
+        sTimeRange = aCustomRange;
+    }
     const sIntervalTime =
         aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(data.sTimeLine.startTime as string, data.sTimeLine.endTime as string, sChartWidth) : data.sIntervalData;
 
@@ -240,19 +258,27 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     });
     data.sDisplayData = { datasets: sDatasets };
 };
-const generateRollupDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
-    let sLimit = aPanelInfo.count;
-    let gUnit = convertInterType(aPanelInfo.interval_type.toLowerCase());
-    if (gUnit != '') {
-        sLimit = 0;
-    }
+const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
+    let sLimit = aPanelInfo.count;
+    let sCount = -1;
+    if (sLimit < 0) {
+        sCount = Math.ceil(sChartWidth / sInnerValue.sTickPixels);
+    }
     let sDatasets = [] as HighchartsDataset[];
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
     if (!sTagSet.length) return;
-    const sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
-    if (!aCustomRange) data.sTimeLine = sTimeRange;
+    let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
+    if (!aCustomRange)
+        data.sTimeRangeViewPort = {
+            startTime: sTimeRange.startTime,
+            endTime: sTimeRange.endTime,
+        };
+    else {
+        data.sTimeRangeViewPort = aCustomRange;
+        sTimeRange = aCustomRange;
+    }
     const sIntervalTime =
         aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(data.sTimeLine.startTime as string, data.sTimeLine.endTime as string, sChartWidth) : data.sIntervalData;
     for (let index = 0; index < sTagSet.length; index++) {
@@ -264,7 +290,8 @@ const generateRollupDataChart = async (aPanelInfo: BarPanel, aCustomRange?: star
             End: moment(sTimeRange.endTime).format(FORMAT_FULL_DATE),
             CalculationMode: sTagSetElement.calculation_mode.toLowerCase(),
             ...sIntervalTime,
-            Count: sLimit,
+            Count: sCount,
+            Direction: 0,
         });
         sTagList.push(sFetchResult);
     }
@@ -278,8 +305,9 @@ const generateRollupDataChart = async (aPanelInfo: BarPanel, aCustomRange?: star
         sConvertData = await convertData(sRes, aPanelInfo, sTag, i, sSumTagDatas);
         sDatasets = sConvertData;
     });
-    data.sDisplayData = { datasets: sDatasets };
+    data.sViewPortData = { datasets: sDatasets };
 };
+
 const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
     let gDetailLimit = 0;
     gDetailLimit = aPanelInfo.detail_count;
@@ -361,29 +389,74 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
     data.sDisplayData = { datasets: sDatasets };
 };
 
-const intializePanelData = async (aCustomRange?: startTimeToendTimeType) => {
+const intializePanelData = (aCustomRange?: startTimeToendTimeType) => {
     data.sIsLoading = true;
     try {
-        await fetchPanelData(props.panelInfo, aCustomRange);
+        fetchPanelData(props.panelInfo);
+        fetchViewPortData(props.panelInfo);
     } catch (error) {
         console.log(error);
     }
     data.sIsLoading = false;
 };
 
-const onChangeEmit = async (eValue: any) => {
+const onChangeTineRange = async (eValue: any) => {
     const aCustomRange = {
         startTime: eValue.dateStart.value,
         endTime: eValue.dateEnd.value,
     };
-    data.sTimeLine.startTime = eValue.dateStart;
-    data.sTimeLine.endTime = eValue.dateEnd;
-    console.log('aCustomRange', aCustomRange);
-    await fetchPanelData(props.panelInfo, aCustomRange);
+    data.sTimeRangeViewPort.startTime = eValue.dateStart;
+    data.sTimeRangeViewPort.endTime = eValue.dateEnd;
+    fetchPanelData(props.panelInfo, {
+        startTime: data.sTimeLine.startTime,
+        endTime: data.sTimeLine.endTime,
+    });
+    fetchViewPortData(props.panelInfo, aCustomRange);
 };
 
-onMounted(async () => {
-    await intializePanelData();
+const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) => {
+    let sType = aEvent.type;
+    let sZoom = aEvent.zoom / 2; // left & right
+
+    let sBgn = data.sTimeRangeViewPort.startTime;
+    let sEnd = data.sTimeRangeViewPort.endTime;
+    let sTimeGap = moment(sEnd).valueOf() - moment(sBgn).valueOf();
+    let sNewTimeBgn = null;
+    let sNewTimeEnd = null;
+
+    if (sType == 'I') {
+        sZoom = sZoom * -1.0;
+    }
+
+    // calc new time range
+    sNewTimeBgn = moment(sBgn).valueOf() - sTimeGap * sZoom;
+    sNewTimeEnd = moment(sEnd).valueOf() + sTimeGap * sZoom;
+    if (sNewTimeBgn >= sNewTimeEnd) {
+        alert('The time range is too small to perform this function.');
+        return;
+    }
+    data.sTimeRangeViewPort.startTime = moment(sNewTimeBgn).format(FORMAT_FULL_DATE);
+    data.sTimeRangeViewPort.endTime = moment(sNewTimeEnd).format(FORMAT_FULL_DATE);
+    fetchPanelData(props.panelInfo, {
+        startTime: data.sTimeLine.startTime,
+        endTime: data.sTimeLine.endTime,
+    });
+    fetchViewPortData(props.panelInfo, {
+        startTime: moment(sNewTimeBgn).format(FORMAT_FULL_DATE),
+        endTime: moment(sNewTimeEnd).format(FORMAT_FULL_DATE),
+    });
+};
+async function OnChangeTimeRangerViewPort(params: any) {
+    data.sTimeLine.startTime = moment(params.min).utc().format(FORMAT_FULL_DATE);
+    data.sTimeLine.endTime = moment(params.max).utc().format(FORMAT_FULL_DATE);
+    fetchPanelData(props.panelInfo, {
+        startTime: data.sTimeLine.startTime,
+        endTime: data.sTimeLine.endTime,
+    });
+}
+
+onMounted(() => {
+    intializePanelData();
 });
 
 // watch(contact, () => {});
