@@ -6,6 +6,7 @@ import { DAY, FORMAT_FULL_DATE, HOUR, MINUTE, SECOND } from './constants';
 import { PanelInfo } from '@/interface/chart';
 import { TempNewChartData } from '@/interface/tagView';
 import { COLOR_SET } from './constants';
+import { MAX_TAG_COUNT } from '@/components/popup-list/popup/constant';
 
 const utils = {};
 const formatDate = (date: Date | string): string => {
@@ -138,4 +139,19 @@ function convertChartDefault(aChartDefault: PanelInfo, aTag: TempNewChartData): 
         tag_set: tagSet,
     };
 }
-export { utils, splitTimeDuration, formatDate, toTimeUtcChart, formatColors, convertChartDefault, convertChartType, convertTagChartType };
+const getPaginationPages = (items: any): any => {
+    let lastItemOnPage = MAX_TAG_COUNT - 1;
+    let currentItemIndex = 0;
+    const numberOfChunks = Math.ceil(items.length / lastItemOnPage);
+    const paginationItems = [];
+
+    for (let currentChunk = 0; currentChunk < numberOfChunks; currentChunk += 1) {
+        paginationItems.push(items.slice(currentItemIndex, lastItemOnPage));
+        currentItemIndex += MAX_TAG_COUNT - 1;
+        lastItemOnPage += MAX_TAG_COUNT - 1;
+    }
+
+    return paginationItems;
+};
+
+export { utils, splitTimeDuration, formatDate, toTimeUtcChart, formatColors, convertChartDefault, convertChartType, convertTagChartType, getPaginationPages };
