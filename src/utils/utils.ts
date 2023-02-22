@@ -139,16 +139,16 @@ function convertChartDefault(aChartDefault: PanelInfo, aTag: TempNewChartData): 
         tag_set: tagSet,
     };
 }
-const getPaginationPages = (items: any): any => {
-    let lastItemOnPage = MAX_TAG_COUNT;
+const getPaginationPages = (items: any, pageSize: number): any => {
+    let lastItemOnPage = pageSize;
     let currentItemIndex = 0;
     const numberOfChunks = Math.ceil(items.length / lastItemOnPage);
     const paginationItems = [];
 
     for (let currentChunk = 0; currentChunk < numberOfChunks; currentChunk += 1) {
         paginationItems.push(items.slice(currentItemIndex, lastItemOnPage));
-        currentItemIndex += MAX_TAG_COUNT;
-        lastItemOnPage += MAX_TAG_COUNT;
+        currentItemIndex += pageSize;
+        lastItemOnPage += pageSize;
     }
     console.log("🚀 ~ file: utils.ts:147 ~ getPaginationPages ~ paginationItems:", paginationItems)
     return paginationItems;

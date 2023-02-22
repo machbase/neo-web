@@ -82,7 +82,7 @@ const cTableListSelect = computed(() =>
 );
 
 const pageIndex = ref<number>(0);
-const tagsPaged = computed(() => getPaginationPages(cTagsSearch.value));
+const tagsPaged = computed(() => getPaginationPages(cTagsSearch.value, MAX_TAG_COUNT));
 const onChangeTable = (aValue: string) => {
     tableSelected.value = aValue;
 };
