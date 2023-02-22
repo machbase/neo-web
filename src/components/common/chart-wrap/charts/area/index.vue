@@ -509,16 +509,20 @@ const getMaxValue = (array: any) => {
 watch(
     () => props.panelInfo,
     () => {
-        intializePanelData(
-            {
-                startTime: data.sTimeLine.startTime,
-                endTime: data.sTimeLine.endTime,
-            },
-            {
-                startTime: data.sTimeRangeViewPort.startTime,
-                endTime: data.sTimeRangeViewPort.endTime,
-            }
-        );
+        if (props.panelInfo.range_bgn === '' && props.panelInfo.range_end === '')
+            intializePanelData(
+                {
+                    startTime: data.sTimeLine.startTime,
+                    endTime: data.sTimeLine.endTime,
+                },
+                {
+                    startTime: data.sTimeRangeViewPort.startTime,
+                    endTime: data.sTimeRangeViewPort.endTime,
+                }
+            );
+        else {
+            intializePanelData();
+        }
     }
 );
 onMounted(() => {
