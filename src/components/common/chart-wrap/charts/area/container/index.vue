@@ -68,7 +68,7 @@ const cChartOptions = computed(() => {
     return {
         colors: formatColors(props.panelInfo.color_set),
         chart: {
-            // height: 400, ----------- chart_height
+            height: props.panelInfo.chart_height < 400 ? 400 : props.panelInfo.chart_height,
             width: props.panelInfo.chart_width <= 0 ? null : props.panelInfo.chart_width,
             type: 'area',
             zoomType: 'x',

@@ -21,11 +21,15 @@
 </template>
 
 <script setup lang="ts" name="SaveDashboard">
+import { PopupType } from '@/enums/app';
+import { RouteNames } from '@/enums/routes';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { computed, defineEmits, reactive, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 
 const emit = defineEmits(['eClosePopup']);
+const route = useRoute();
 const store = useStore();
 const sData = reactive({
     boardId: '' as string,
@@ -56,7 +60,7 @@ const onSetting = () => {
     const newBoard = {
         board_id: sData.boardId,
         board_name: sData.boardTitle,
-        old_id: sData.oldId,
+        old_id: route.name !== RouteNames.NEW ? sData.boardId : sData.oldId,
     };
     store.dispatch(ActionTypes.fetchNewDashboard, newBoard).then((res) => {
         alert(res.msg);

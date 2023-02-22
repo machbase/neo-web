@@ -450,7 +450,6 @@ async function OnChangeTimeRangerViewPort(params: any) {
         endTime: data.sTimeLine.endTime,
     });
 }
-
 const getMaxValue = (array: any) => {
     return array.reduce((result: number, current: any) => {
         current.data.forEach((a: any) => {
@@ -459,6 +458,13 @@ const getMaxValue = (array: any) => {
         return result;
     }, 0);
 };
+
+watch(
+    () => props.panelInfo,
+    () => {
+        intializePanelData()
+    }
+);
 onMounted(() => {
     intializePanelData();
 });

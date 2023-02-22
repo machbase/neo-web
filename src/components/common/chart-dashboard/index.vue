@@ -57,7 +57,7 @@ watch(
 watch(
     () => props.chartDataSingle,
     async (newValue) => {
-        // if (!newValue) return;
+        if (!newValue) return;
         if (props.chartDataSingle) {
             data.sPanel = props.chartDataSingle
                 ? (props.chartDataSingle.map((v: any, i: number) => {
