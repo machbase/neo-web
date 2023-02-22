@@ -29,7 +29,7 @@
             <div v-if="actionIndex === 2">
                 <label for="_cfg_chart_table_limit">Raw data table limits</label>
                 <div class="cfg-input">
-                    <input id="_cfg_chart_table_limit" style="width: 250px" v-model="detailRows" type="text" class="input" />
+                    <input id="_cfg_chart_table_limit" v-model="detailRows" style="width: 250px" type="text" class="input" />
                 </div>
                 <label for="_cfg_chart_row">Rows per page</label>
                 <div class="cfg-input">
@@ -84,7 +84,7 @@ const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const chartSelected = CPanels.value[route.params.id as any];
 
 const title = ref<string>(chartSelected[0].chart_title);
-const width = ref<number>(chartSelected[0].chart_width);
+const width = ref<number | string>(chartSelected[0].chart_width);
 const height = ref<number>(chartSelected[0].chart_height);
 const actionIndex = ref<number>(chartSelected[0].use_detail || 1); // on click point - 0: not use, 1: show raw data chart, 2: show raw data table
 const detailCount = ref<number>(chartSelected[0].detail_count || 0);

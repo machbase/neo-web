@@ -68,7 +68,7 @@ const cChartOptions = computed(() => {
         colors: formatColors(props.panelInfo.color_set),
         chart: {
             height: props.panelInfo.chart_height < 400 ? 400 : props.panelInfo.chart_height,
-            width: props.panelInfo.chart_width <= 0 ? null : props.panelInfo.chart_width,
+            width: (props.panelInfo.chart_width as number) <= 0 ? null : props.panelInfo.chart_width,
             type: 'area',
             zoomType: 'x',
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
@@ -291,20 +291,8 @@ const cChartOptions = computed(() => {
 
 function afterSetExtremes(e) {
     const { chart } = e.target;
-    // console.log('chart :', chart);
-    // console.log('e :', e);
     data.sTimeChartXaxis.min = e.min;
     data.sTimeChartXaxis.max = e.max;
-
-    console.log(e);
-    // chart.showLoading('Loading data from server...');
-    // fetch(`${dataURL}?start=${Math.round(e.min)}&end=${Math.round(e.max)}`)
-    //     .then((res) => res.ok && res.json())
-    //     .then((data1) => {
-    //         data.sMasterSeriesData = data1;
-    //         chart.hideLoading();
-    //     })
-    //     .catch((error) => console.error(error.message));
 }
 
 defineExpose({

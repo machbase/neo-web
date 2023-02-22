@@ -410,11 +410,16 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
     data.sDisplayData = { datasets: sDatasets };
 };
 
-const intializePanelData = async (aCustomRange?: startTimeToendTimeType) => {
+const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPortRange?: startTimeToendTimeType) => {
     data.sIsLoading = true;
     try {
-        fetchPanelData(props.panelInfo);
-        fetchViewPortData(props.panelInfo);
+        if (!aCustomRange && !aViewPortRange) {
+            fetchPanelData(props.panelInfo);
+            fetchViewPortData(props.panelInfo);
+        } else {
+            fetchPanelData(props.panelInfo, aCustomRange);
+            fetchViewPortData(props.panelInfo, aViewPortRange);
+        }
     } catch (error) {
         console.log(error);
     }
@@ -504,7 +509,16 @@ const getMaxValue = (array: any) => {
 watch(
     () => props.panelInfo,
     () => {
-        intializePanelData();
+        intializePanelData(
+            {
+                startTime: data.sTimeLine.startTime,
+                endTime: data.sTimeLine.endTime,
+            },
+            {
+                startTime: data.sTimeRangeViewPort.startTime,
+                endTime: data.sTimeRangeViewPort.endTime,
+            }
+        );
     }
 );
 onMounted(() => {
