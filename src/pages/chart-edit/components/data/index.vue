@@ -56,9 +56,7 @@ const route = useRoute();
 const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const chartSelected = CPanels.value[route.params.id as any];
 const tagSets = chartSelected[0].tag_set;
-console.log('chartSelected', chartSelected);
 const tempTagSets = ref<TagSet[]>(tagSets);
-console.log('🚀 ~ file: index.vue:48 ~ tempTagSets', tempTagSets.value);
 const sDialog = ref<boolean>(false);
 const onChangeTagName = (aEvent: Event, aIndex: number) => {
     const value = (aEvent.target as HTMLInputElement).value;

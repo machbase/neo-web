@@ -19,7 +19,7 @@
                     <div>Select : {{ selectCount }}</div>
                 </div>
                 <div class="taglistdiv taglistscroll">
-                    <div style="margin-bottom: 5px" v-for="(aTime, aIndex) in cTagsSearch" :key="aIndex" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
+                    <div style="margin-bottom: 5px" v-for="(aTime, aIndex) in tagsPaged[pageIndex]" :key="aIndex" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
                 </div>
                 <Pagination :total="Math.ceil(cTags.length / MAX_TAG_COUNT)" @e-on-change="onPaging" />
             </div>
@@ -50,6 +50,7 @@ import { CALC_MODE, MAX_TAG_COUNT } from './constant';
 import { ActionTypes } from '@/store/actions';
 import { TagSet } from '@/interface/chart';
 import { CalculationMode } from '@/interface/constants';
+import { getPaginationPages } from '@/utils/utils';
 interface NewTagProps {
     noOfSelectTags: number;
 }
@@ -74,6 +75,8 @@ const cTableListSelect = computed(() =>
         };
     })
 );
+const pageIndex = ref<number>(0);
+const tagsPaged = computed(() => getPaginationPages(cTagsSearch.value));
 const onChangeTable = (aValue: string) => {
     tableSelected.value = aValue;
 };
@@ -130,7 +133,7 @@ const onChangeCalcMode = (data: CalculationMode, index: number) => {
     sSelectedTags[index].calculation_mode = data;
 };
 const onPaging = (index: number) => {
-    console.log(index, 'index');
+    pageIndex.value = index - 1;
 };
 const onSetting = () => {
     if (sSelectedTags.length <= 0) {
