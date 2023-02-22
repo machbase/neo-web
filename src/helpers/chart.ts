@@ -8,10 +8,10 @@ const isBar = (aType: string) => {
 
 const lineTypeArr = ['line', 'point', 'area'];
 
-const isChartType = (show_point?: 'Y' | 'N', stroke?: any) => {
-    if (show_point === 'N' && stroke === 1) return 'area';
-    else if (show_point === 'Y' && stroke === 1) return 'line';
-    else if (show_point === 'Y' && stroke === 0) return 'point';
+const isChartType = (fill?: number, stroke?: any) => {
+    if (fill >= 0 && stroke > 0) return 'area';
+    else if (stroke > 0) return 'line';
+    else if (stroke === 0) return 'point';
 };
 
 const pieChartTypes = {

@@ -81,8 +81,8 @@ const onSelectChart = (data: ChartType) => {
 };
 const mapChartType = {
     [ChartType.Line]: 'line',
-    [ChartType.Zone]: 'areaLine',
-    [ChartType.Dot]: 'pointLine',
+    [ChartType.Zone]: 'area',
+    [ChartType.Dot]: 'line',
 };
 watchEffect(() => {
     let border_color = colorBorder.value.trim().toLowerCase();
@@ -101,6 +101,7 @@ watchEffect(() => {
         stroke: isNaN(lineThick.value) ? 1.5 : parseFloat(lineThick.value as any),
         border_color,
     };
+    console.log('data', data);
     emit('eOnChange', data);
 });
 </script>

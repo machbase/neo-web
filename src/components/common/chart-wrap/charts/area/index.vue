@@ -15,7 +15,13 @@
             :is-stock-chart="sIsStockChart"
             @eOnChange="OnChangeTimeRangerViewPort"
         />
-        <ViewPort :range-time="data.sTimeRangeViewPort" :panel-info="props.panelInfo" @eOnChange="onChangeTimeRange" @eOnChangeAdjust="adjustViewportRange" />
+        <ViewPort
+            :range-time="data.sTimeRangeViewPort"
+            :panel-info="props.panelInfo"
+            @eOnChange="onChangeTimeRange"
+            @eOnChangeAdjust="adjustViewportRange"
+            @eOnChangeSRF="onChangeSRF"
+        />
     </ChartWrap>
 </template>
 
@@ -228,7 +234,6 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     }
     const sIntervalTime =
         aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(data.sTimeLine.startTime as string, data.sTimeLine.endTime as string, sChartWidth) : data.sIntervalData;
-
     for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
@@ -315,8 +320,17 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
     if (!sTagSet.length) return;
-    const sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
-    if (!aCustomRange) data.sTimeLine = sTimeRange;
+    let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
+    if (!aCustomRange) {
+        sTimeRange = {
+            // startTime: moment(sTimeRange.startTime).valueOf() - 133000,
+            startTime: moment(moment(sTimeRange.endTime).valueOf() - 133000).format('YYYY-MM-DDTHH:mm:ss'),
+            endTime: sTimeRange.endTime,
+        };
+        data.sTimeLine = sTimeRange;
+    } else {
+        sTimeRange = aCustomRange;
+    }
     for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagDataRaw, {
@@ -339,6 +353,7 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
         sConvertData = await convertData(sRes, aPanelInfo, sTag, i, sSumTagDatas);
         sDatasets = sConvertData;
     });
+    console.log('sDatasets', sDatasets);
     data.sDisplayData = { datasets: sDatasets };
 };
 const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aLimit?: any) => {
@@ -360,8 +375,16 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
     if (!sTagSet.length) return;
-    const sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
-    if (!aCustomRange) data.sTimeLine = sTimeRange;
+    let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
+    if (!aCustomRange)
+        data.sTimeRangeViewPort = {
+            startTime: sTimeRange.startTime,
+            endTime: sTimeRange.endTime,
+        };
+    else {
+        data.sTimeRangeViewPort = aCustomRange;
+        sTimeRange = aCustomRange;
+    }
     for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagDataRaw, {
@@ -408,6 +431,25 @@ const onChangeTimeRange = async (eValue: any) => {
         endTime: data.sTimeLine.endTime,
     });
     fetchViewPortData(props.panelInfo, aCustomRange);
+};
+const onChangeSRF = async (eValue: any) => {
+    console.log('eValue', eValue);
+    const aCustomRange = {
+        startTime: eValue.dateStart,
+        endTime: eValue.dateEnd,
+    };
+    switch (eValue) {
+        case 0:
+            fetchPanelData(props.panelInfo);
+            fetchViewPortData(props.panelInfo);
+            break;
+        case 1:
+            drawRawDataTable(props.panelInfo);
+            generateRawDataChart(props.panelInfo, null as any, null);
+            break;
+        default:
+            break;
+    }
 };
 
 const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) => {
@@ -462,7 +504,7 @@ const getMaxValue = (array: any) => {
 watch(
     () => props.panelInfo,
     () => {
-        intializePanelData()
+        intializePanelData();
     }
 );
 onMounted(() => {

@@ -2,16 +2,12 @@
     <!-- Loop show chart -->
     <div v-if="!chartDataSingle">
         <div v-for="(panel, index) in data.sPanels" :key="index">
-            <AreaChart v-if="isChartType(panel.show_point, panel.stroke) === 'area'" :panel-info="panel" :index="panel.i" />
-            <LineChart v-if="isChartType(panel.show_point, panel.stroke) === 'line'" :panel-info="panel" :index="panel.i" />
-            <PointChart v-if="isChartType(panel.show_point, panel.stroke) === 'point'" :panel-info="panel" :index="panel.i" />
+            <AreaChart :panel-info="panel" :index="panel.i" />
         </div>
     </div>
     <div v-else>
         <div v-for="(panel, index) in data.sPanel" :key="index">
-            <AreaChart v-if="isChartType(panel.show_point, panel.stroke) === 'area'" :panel-info="panel" :index="panel.i" />
-            <LineChart v-if="isChartType(panel.show_point, panel.stroke) === 'line'" :panel-info="panel" :index="panel.i" />
-            <PointChart v-if="isChartType(panel.show_point, panel.stroke) === 'point'" :panel-info="panel" :index="panel.i" />
+            <AreaChart :panel-info="panel" :index="panel.i" />
         </div>
     </div>
 </template>

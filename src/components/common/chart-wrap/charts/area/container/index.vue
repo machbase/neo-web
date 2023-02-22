@@ -63,7 +63,6 @@ watch(
 watch(data.sTimeChartXaxis, () => {
     emit('eOnChange', data.sTimeChartXaxis);
 });
-
 const cChartOptions = computed(() => {
     return {
         colors: formatColors(props.panelInfo.color_set),
@@ -93,12 +92,19 @@ const cChartOptions = computed(() => {
         // option chart
         plotOptions: {
             series: {
-                // lineWidth: 1,
                 lineWidth: props.panelInfo.stroke,
-                fillOpacity: 0.1,
+                fillOpacity: props.panelInfo.fill,
                 cursor: 'pointer',
                 marker: {
                     enabled: props.panelInfo.show_point === 'Y',
+                    radius: props.panelInfo.point_radius,
+                },
+                states: {
+                    hover: {
+                        enabled: true,
+                        lineWidthPlus: 0,
+                        lineWidth: 0,
+                    },
                 },
                 point: {
                     events: {
@@ -306,9 +312,13 @@ defineExpose({
 });
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 /* @import 'index.scss'; */
 :deep(.highcharts-legend.highcharts-no-tooltip) {
     display: v-bind("props.panelInfo.show_legend === 'B'? '': 'none'");
 }
+/* .chart-wrap {
+    border: 1px solid !important ;
+    border-color: v-bind("props.panelInfo.border_color === ''? 'red': 'blue'");
+} */
 </style>

@@ -28,9 +28,9 @@
                 </div>
             </div>
             <div class="view-port__header--events">
-                <div class="button" @click="onChangeEmit('1')">STAT</div>
-                <div class="button" @click="onChangeEmit('2')">RAW</div>
-                <div class="button" @click="onChangeEmit('3')">FAST</div>
+                <div class="button" @click="onChangeEmit(0)">STAT</div>
+                <div class="button" @click="onChangeEmit(1)">RAW</div>
+                <div class="button" @click="onChangeEmit(2)">FAST</div>
                 <div class="date-picker button" @click="onOpenPopup(true)">{{ sDateRight }}</div>
             </div>
         </div>
@@ -66,15 +66,15 @@ interface ViewPortProps {
     rangeTime: TimeLineType;
 }
 const props = withDefaults(defineProps<ViewPortProps>(), {});
-const emit = defineEmits(['eOnChange', 'eOnChangeAdjust']);
+const emit = defineEmits(['eOnChange', 'eOnChangeAdjust', 'eOnChangeSRF']);
 const store = useStore();
 const sDialog = ref<boolean>(false);
 const sDateLeft = ref<string | number>('');
 const sDateRight = ref<string | number>('');
 const sIsFromTime = ref<boolean>(false);
 const cRangeData = computed(() => store.state.gRangeData);
-const onChangeEmit = (aValue: any) => {
-    console.log('aValue', aValue);
+const onChangeEmit = (aValue: number) => {
+    emit('eOnChangeSRF', aValue);
 };
 const adjustViewportRange = (aEvent: { type: 'O' | 'I'; zoom: number }) => {
     emit('eOnChangeAdjust', aEvent);
@@ -97,7 +97,7 @@ watch(
         sDateLeft.value =
             typeof props.rangeTime.startTime === 'string' ? moment(formatDate(props.rangeTime.startTime as string)).format(FORMAT_FULL_DATE) : props.rangeTime.startTime;
         sDateRight.value = typeof props.rangeTime.endTime === 'string' ? moment(formatDate(props.rangeTime.endTime as string)).format(FORMAT_FULL_DATE) : props.rangeTime.endTime;
-    },    
+    }
 );
 </script>
 
