@@ -79,6 +79,8 @@ const cTableListSelect = computed(() =>
         };
     })
 );
+
+const pageIndex = ref<number>(0);
 const onChangeTable = (aValue: string) => {
     tableSelected.value = aValue;
 };
@@ -136,6 +138,7 @@ const onChangeCalcMode = (data: CalculationMode, index: number) => {
     sSelectedTags[index].calculation_mode = data;
 };
 const onPaging = (index: number) => {
+    pageIndex.value = index;
     console.log(index, 'index');
 };
 const onSetting = () => {

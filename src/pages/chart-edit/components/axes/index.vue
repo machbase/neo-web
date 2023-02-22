@@ -211,7 +211,7 @@ watchEffect(() => {
         show_x_tickline: isShowTickLineX.value ? 'Y' : 'N',
         show_y_tickline: isShowTickLineY.value ? 'Y' : 'N',
         show_y_tickline2: isShowTickLineY2.value ? 'Y' : 'N',
-        pixels_per_tick: pixel.value,
+        pixels_per_tick: parseInt(pixel.value as any),
         zero_base: isZeroBase.value ? 'Y' : 'N',
         zero_base2: isZeroBase2.value ? 'Y' : 'N',
         custom_min: parseFloat(sCustomScale.input1 as string),
