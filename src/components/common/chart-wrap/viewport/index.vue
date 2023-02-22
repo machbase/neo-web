@@ -42,7 +42,9 @@
             :p-show="sDialog"
             :p-is-from-time="sIsFromTime"
             @e-close-popup="onClosePopup"
+            @eSettingPopup="onSettingPopup"
         />
+        <!-- @eSettingPopup="onSettingPopup" -->
     </div>
 </template>
 
@@ -81,7 +83,10 @@ const onOpenPopup = (isFrom: boolean) => {
     sIsFromTime.value = isFrom;
     sDialog.value = true;
 };
-const onClosePopup = (aDate: any) => {
+const onClosePopup = () => {
+    sDialog.value = false;
+};
+const onSettingPopup = (aDate: any) => {
     sDialog.value = false;
     emit('eOnChange', aDate);
 };
@@ -89,15 +94,10 @@ const onClosePopup = (aDate: any) => {
 watch(
     () => props.rangeTime,
     () => {
-        console.log(props);
-        if (!props.rangeTime) return;
         sDateLeft.value =
             typeof props.rangeTime.startTime === 'string' ? moment(formatDate(props.rangeTime.startTime as string)).format(FORMAT_FULL_DATE) : props.rangeTime.startTime;
         sDateRight.value = typeof props.rangeTime.endTime === 'string' ? moment(formatDate(props.rangeTime.endTime as string)).format(FORMAT_FULL_DATE) : props.rangeTime.endTime;
-    },
-    {
-        immediate: true,
-    }
+    },    
 );
 </script>
 

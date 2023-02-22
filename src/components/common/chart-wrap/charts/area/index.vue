@@ -1,6 +1,6 @@
 <template>
     <ChartWrap>
-        <ChartHeader :panel-info="props.panelInfo" @eOnChange="onChangeTineRange" />
+        <ChartHeader :panel-info="props.panelInfo" />
         <AreaChart
             :id="`chart-${props.index}`"
             ref="areaChart"
@@ -15,12 +15,7 @@
             :is-stock-chart="sIsStockChart"
             @eOnChange="OnChangeTimeRangerViewPort"
         />
-        <ViewPort
-            :range-time="{ startTime: data.sTimeRangeViewPort.startTime, endTime: data.sTimeRangeViewPort.endTime }"
-            :panel-info="props.panelInfo"
-            @eOnChange="onChangeTineRange"
-            @eOnChangeAdjust="adjustViewportRange"
-        />
+        <ViewPort :range-time="data.sTimeRangeViewPort" :panel-info="props.panelInfo" @eOnChange="onChangeTimeRange" @eOnChangeAdjust="adjustViewportRange" />
     </ChartWrap>
 </template>
 
@@ -392,7 +387,7 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
     data.sDisplayData = { datasets: sDatasets };
 };
 
-const intializePanelData = (aCustomRange?: startTimeToendTimeType) => {
+const intializePanelData = async (aCustomRange?: startTimeToendTimeType) => {
     data.sIsLoading = true;
     try {
         fetchPanelData(props.panelInfo);
@@ -403,13 +398,11 @@ const intializePanelData = (aCustomRange?: startTimeToendTimeType) => {
     data.sIsLoading = false;
 };
 
-const onChangeTineRange = async (eValue: any) => {
+const onChangeTimeRange = async (eValue: any) => {
     const aCustomRange = {
-        startTime: eValue.dateStart.value,
-        endTime: eValue.dateEnd.value,
+        startTime: eValue.dateStart,
+        endTime: eValue.dateEnd,
     };
-    data.sTimeRangeViewPort.startTime = eValue.dateStart;
-    data.sTimeRangeViewPort.endTime = eValue.dateEnd;
     fetchPanelData(props.panelInfo, {
         startTime: data.sTimeLine.startTime,
         endTime: data.sTimeLine.endTime,
@@ -469,8 +462,6 @@ const getMaxValue = (array: any) => {
 onMounted(() => {
     intializePanelData();
 });
-
-// watch(contact, () => {});
 </script>
 
 <style lang="scss" scoped>

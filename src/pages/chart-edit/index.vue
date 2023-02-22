@@ -4,7 +4,9 @@
         <div class="tabs">
             <div class="header">
                 <ul class="nav-pills">
-                    <li v-for="(item, index) in tabs" :key="index" :style="{ color: tabIndex === index ? '#2ec0df !important' : undefined }" @click="onClickTab(index)">{{ item }}</li>
+                    <li v-for="(item, index) in tabs" :key="index" :style="{ color: tabIndex === index ? '#2ec0df !important' : undefined }" @click="onClickTab(index)">
+                        {{ item }}
+                    </li>
                 </ul>
                 <div><img :src="i_b_save_2" alt="Clear icon" @click="onSave" /><img :src="i_b_close" alt="Clear icon" /></div>
             </div>
@@ -27,7 +29,7 @@ import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { MutationTypes } from '@/store/mutations';
-import { computed, ref, watch, reactive } from 'vue';
+import { computed, ref, watch, reactive, watchEffect } from 'vue';
 import { useRoute } from 'vue-router';
 import AxesTab from '../chart-edit/components/axes/index.vue';
 import DataTab from '../chart-edit/components/data/index.vue';
@@ -80,7 +82,7 @@ watch(
 watch(
     CPanels,
     () => {
-        if (route.params.id) {
+        if (CPanels.value) {
             sDataChart.value = CPanels.value[route.params.id as any];
         } else {
             sDataChart.value = CPanels.value[0];
@@ -88,6 +90,7 @@ watch(
     },
     { immediate: true }
 );
+
 </script>
 
 <style lang="scss" scoped>

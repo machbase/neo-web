@@ -71,17 +71,16 @@ const OnTimeRange = (data: any) => {
         : (dateStart.value = moment(dateEnd.value).subtract(data.number, data.format).format(FORMAT_FULL_DATE));
 };
 const onSetting = () => {
-    emit('eClosePopup', {
-        dateStart,
-        dateEnd,
+    emit('eSettingPopup', {
+        dateStart: dateStart.value,
+        dateEnd: dateEnd.value,
     });
-    onClosePopup();
 };
 
 const onClosePopup = () => {
     emit('eClosePopup');
 };
-const emit = defineEmits(['eClosePopup']);
+const emit = defineEmits(['eClosePopup', 'eSettingPopup']);
 
 onMounted(() => {
     if (props.pTimeRange) {

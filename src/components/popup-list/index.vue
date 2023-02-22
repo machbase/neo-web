@@ -19,7 +19,13 @@
                 <Preferences v-if="pType === PopupType.PREFERENCES" @eClosePopup="onClosePopup" />
                 <SaveDashboard v-if="pType === PopupType.SAVE_DASHBOARD" @eClosePopup="onClosePopup" />
                 <TimeRange v-if="pType === PopupType.TIME_RANGE" @eClosePopup="onClosePopup" />
-                <TimeDuration v-if="pType === PopupType.TIME_DURATION" :p-is-from-time="pIsFromTime" :p-time-range="pTimeRange" @eClosePopup="onClosePopup" />
+                <TimeDuration
+                    v-if="pType === PopupType.TIME_DURATION"
+                    :p-is-from-time="pIsFromTime"
+                    :p-time-range="pTimeRange"
+                    @eClosePopup="onClosePopup"
+                    @eSettingPopup="onSettingPopup"
+                />
             </div>
         </div>
     </v-dialog>
@@ -51,20 +57,25 @@ interface PopupWrapProps {
     pTimeRange?: TimeLineType;
 }
 const props = defineProps<PopupWrapProps>();
-const emit = defineEmits(['eClosePopup', 'eSubmitTags']);
+const emit = defineEmits(['eClosePopup', 'eSubmitTags', 'eSettingPopup']);
 const store = useStore();
 const sDialog = ref<boolean>(false);
 
-const onClosePopup = (aValue: any) => {
+const onClosePopup = () => {
     sDialog.value = false;
-    emit('eClosePopup', aValue);
+    emit('eClosePopup');
+};
+const onSettingPopup = (aValue: any) => {
+    sDialog.value = false;
+    emit('eSettingPopup', aValue);
 };
 
 watch(
     () => props.pShow,
-    () => {
+    () => {        
         if (props.pShow === true) sDialog.value = true;
-    }
+    },
+    // { immediate: true }
 );
 
 // Test

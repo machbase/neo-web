@@ -35,18 +35,29 @@ const data = reactive({
 });
 
 const chart = ref();
-// watchEffect
 
 watch(
-    () => [props.chartData, props.viewData],
+    () => props.chartData,
     () => {
-        if (props.chartData && props.viewData) {
-            createStockChart();
+        if (props.chartData) {
+            data.sMasterSeriesData = props.chartData.datasets;
         }
         data.sChartWidth = chart.value.chart.plotWidth;
     },
     {
-        deep: true,
+        // deep: true,
+    }
+);
+watch(
+    () => props.viewData,
+    () => {
+        if (props.viewData) {
+            data.sViewPortSeriesData = props.viewData.datasets;
+        }
+        data.sChartWidth = chart.value.chart.plotWidth;
+    },
+    {
+        // deep: true,
     }
 );
 watch(data.sTimeChartXaxis, () => {
@@ -191,7 +202,7 @@ const cChartOptions = computed(() => {
             //     });
             //     return result;
             // }, 0),
-            max: props.maxYChart,
+            max: props.maxYChart === 0 ? '' : props.maxYChart,
             // tickAmount: 6,
             gridLineWidth: 1,
             gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
@@ -262,7 +273,7 @@ const cChartOptions = computed(() => {
                 fontSize: '24px',
                 color: '#9ca2ab',
                 fontStyle: 'italic',
-                fontWeight: 'normal'
+                fontWeight: 'normal',
             },
         },
         // show link web
@@ -290,10 +301,6 @@ function afterSetExtremes(e) {
     //     .catch((error) => console.error(error.message));
 }
 
-const createStockChart = () => {
-    data.sMasterSeriesData = props.chartData.datasets;
-    data.sViewPortSeriesData = props.viewData.datasets;
-};
 defineExpose({
     chart,
 });
