@@ -43,13 +43,13 @@ const tabIndex = ref<number>(1);
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
 const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const sPanels = ref(null);
-const sTabData = ref<any>({});
+const sTabData = ref<Partial<PanelInfo>>();
 const onClickTab = (index: number) => {
     console.log('onClickTab ~ index', index);
     tabIndex.value = index;
 };
 
-const onChangeTabData = (data: any) => {
+const onChangeTabData = (data: Partial<PanelInfo>) => {
     sTabData.value = { ...sTabData.value, ...data };
     console.log('🚀 ~ file: index.vue:54 ~ onChangeTabData ~ sTabData.value', sTabData.value);
 };

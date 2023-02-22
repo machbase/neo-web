@@ -113,11 +113,11 @@ watchEffect(() => {
     }
     const data: Partial<PanelInfo> = {
         chart_title: title.value,
-        chart_width: width.value,
-        chart_height: height.value,
-        use_detail: actionIndex.value,
-        detail_count: detailCount.value,
-        detail_rows: detailRows.value,
+        chart_width: parseInt(width.value as any),
+        chart_height: parseInt(height.value as any),
+        use_detail: parseInt(actionIndex.value as any),
+        detail_count: parseInt(detailCount.value as any),
+        detail_rows: parseInt(detailRows.value as any),
         use_zoom: zoom.value ? 'Y' : 'N',
         drilldown_zoom: drillDown.value ? 'Y' : 'N',
         start_with_vport: zoomStart.value ? 'Y' : 'N',
