@@ -4,6 +4,7 @@
         <AreaChart
             :id="`chart-${props.index}`"
             ref="areaChart"
+            :max-y-chart="data.sMaxYChart"
             :chart-data="data.sDisplayData"
             :view-data="data.sViewPortData"
             :panel-info="props.panelInfo"
@@ -58,6 +59,7 @@ const data = reactive({
     sTimeRangeViewPort: {} as TimeLineType,
     sIntervalData: { IntervalType: convertInterType(props.panelInfo.interval_type.toLowerCase()), IntervalValue: 0 } as { IntervalValue: number; IntervalType: string },
     sIsLoading: false,
+    sMaxYChart: 0 as number,
 });
 const lineChart = ref();
 const sIsStockChart = ref<boolean>(true);
@@ -257,6 +259,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
         sDatasets = sConvertData;
     });
     data.sDisplayData = { datasets: sDatasets };
+    data.sMaxYChart = getMaxValue(sDatasets);
 };
 const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
@@ -455,6 +458,14 @@ async function OnChangeTimeRangerViewPort(params: any) {
     });
 }
 
+const getMaxValue = (array: any) => {
+    return array.reduce((result: number, current: any) => {
+        current.data.forEach((a: any) => {
+            if (a[1] > result) result = a[1];
+        });
+        return result;
+    }, 0);
+};
 onMounted(() => {
     intializePanelData();
 });

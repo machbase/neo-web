@@ -7,7 +7,6 @@ import { toTimeUtcChart } from '@/utils/utils';
 import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults, defineEmits } from 'vue';
 import { formatColors } from '@/utils/utils';
 import { watchEffect } from 'vue';
-
 interface BarChartContainerProps {
     chartData: LineDataset;
     viewData: LineDataset;
@@ -17,6 +16,7 @@ interface BarChartContainerProps {
     xMinTimeRangeViewPort: string | number;
     xMaxTimeRangeViewPort: string | number;
     isStockChart?: boolean;
+    maxYChart?: number;
 }
 
 const props = withDefaults(defineProps<BarChartContainerProps>(), {});
@@ -78,7 +78,7 @@ const cChartOptions = computed(() => {
         // data Chart
         series: data.sMasterSeriesData,
         // data
-        data: {},
+        // data: {},
         // option chart
         plotOptions: {
             series: {
@@ -185,8 +185,13 @@ const cChartOptions = computed(() => {
             // showFirstLabel: false,
             // min: props.panelInfo.zero_base === 'Y' ? 0 : props.panelInfo.custom_min || null,
             //           max: props.panelInfo.custom_max || null,
-            max: 10, // data
-
+            // max: props.chartData.datasets.reduce((result: number, current: any) => {
+            //     current.data.forEach((a: any) => {
+            //         if (a[1] > result) result = a[1];
+            //     });
+            //     return result;
+            // }, 0),
+            max: props.maxYChart,
             // tickAmount: 6,
             gridLineWidth: 1,
             gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
@@ -249,13 +254,15 @@ const cChartOptions = computed(() => {
         },
         // No data
         lang: {
-            noData: 'Nichts zu anzeigen',
+            noData: 'No data',
         },
         noData: {
             style: {
-                fontWeight: 'bold',
-                fontSize: '15px',
-                color: '#303030',
+                fontFamily: 'Open Sans,Helvetica,Arial,sans-serif',
+                fontSize: '24px',
+                color: '#9ca2ab',
+                fontStyle: 'italic',
+                fontWeight: 'normal'
             },
         },
         // show link web

@@ -10,7 +10,9 @@ import HighCharts from 'highcharts';
 import HighchartsVue from 'highcharts-vue';
 import More from 'highcharts/highcharts-more';
 import Stock from 'highcharts/modules/stock';
+import HighchartsNoData from '@/assets/no-data-to-display';
 
+HighchartsNoData(HighCharts)
 Stock(HighCharts);
 createApp(App)
     .use(store, key)
