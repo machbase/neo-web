@@ -95,9 +95,9 @@ watchEffect(() => {
     const data: Partial<PanelInfo> = {
         chart_type,
         show_point: showPoint.value ? 'Y' : 'N',
-        point_radius: isNaN(pointRadius.value) ? 3 : pointRadius.value,
+        point_radius: isNaN(pointRadius.value) ? 3 : parseFloat(pointRadius.value as any),
         show_legend: showLegend.value ? 'B' : 'N',
-        fill: isNaN(fillOpacity.value) ? 0.15 : fillOpacity.value,
+        fill: isNaN(fillOpacity.value) ? 0.15 : parseFloat(fillOpacity.value as any),
         stroke: isNaN(lineThick.value) ? 1.5 : parseFloat(lineThick.value as any),
         border_color,
     };
