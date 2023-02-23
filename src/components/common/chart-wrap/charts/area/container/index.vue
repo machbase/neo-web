@@ -41,6 +41,7 @@ watch(
     () => {
         if (props.chartData) {
             data.sMasterSeriesData = props.chartData.datasets;
+            console.log('props.chartData.datasets', props.chartData.datasets);
         }
         data.sChartWidth = chart.value.chart.plotWidth;
     },
@@ -52,6 +53,7 @@ watch(
     () => props.viewData,
     () => {
         if (props.viewData) {
+            console.log('props.chartData.datasets', props.viewData.datasets);
             data.sViewPortSeriesData = props.viewData.datasets;
         }
         data.sChartWidth = chart.value.chart.plotWidth;

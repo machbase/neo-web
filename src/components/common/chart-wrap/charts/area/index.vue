@@ -1,6 +1,6 @@
 <template>
     <ChartWrap>
-        <ChartHeader :panel-info="props.panelInfo" />
+        <ChartHeader :panel-info="props.panelInfo" :x-axis-max-range="data.sTimeLine.endTime" :x-axis-min-range="data.sTimeLine.startTime" @eOnReload="onReload" />
         <AreaChart
             :id="`chart-${props.index}`"
             ref="areaChart"
@@ -414,11 +414,11 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPo
     data.sIsLoading = true;
     try {
         if (!aCustomRange && !aViewPortRange) {
-            fetchPanelData(props.panelInfo);
-            fetchViewPortData(props.panelInfo);
+            await fetchPanelData(props.panelInfo);
+            await fetchViewPortData(props.panelInfo);
         } else {
-            fetchPanelData(props.panelInfo, aCustomRange);
-            fetchViewPortData(props.panelInfo, aViewPortRange);
+            await fetchPanelData(props.panelInfo, aCustomRange);
+            await fetchViewPortData(props.panelInfo, aViewPortRange);
         }
     } catch (error) {
         console.log(error);
@@ -426,16 +426,19 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPo
     data.sIsLoading = false;
 };
 
+const onReload = async () => {
+    intializePanelData();
+};
 const onChangeTimeRange = async (eValue: any) => {
     const aCustomRange = {
         startTime: eValue.dateStart,
         endTime: eValue.dateEnd,
     };
-    fetchPanelData(props.panelInfo, {
+    await fetchPanelData(props.panelInfo, {
         startTime: data.sTimeLine.startTime,
         endTime: data.sTimeLine.endTime,
     });
-    fetchViewPortData(props.panelInfo, aCustomRange);
+    await fetchViewPortData(props.panelInfo, aCustomRange);
 };
 const onChangeSRF = async (eValue: any) => {
     console.log('eValue', eValue);
@@ -445,12 +448,12 @@ const onChangeSRF = async (eValue: any) => {
     };
     switch (eValue) {
         case 0:
-            fetchPanelData(props.panelInfo);
-            fetchViewPortData(props.panelInfo);
+            await fetchPanelData(props.panelInfo);
+            await fetchViewPortData(props.panelInfo);
             break;
         case 1:
-            drawRawDataTable(props.panelInfo);
-            generateRawDataChart(props.panelInfo, null as any, null);
+            await drawRawDataTable(props.panelInfo);
+            await generateRawDataChart(props.panelInfo, null as any, null);
             break;
         default:
             break;
@@ -480,11 +483,11 @@ const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) =>
     }
     data.sTimeRangeViewPort.startTime = moment(sNewTimeBgn).format(FORMAT_FULL_DATE);
     data.sTimeRangeViewPort.endTime = moment(sNewTimeEnd).format(FORMAT_FULL_DATE);
-    fetchPanelData(props.panelInfo, {
+    await fetchPanelData(props.panelInfo, {
         startTime: data.sTimeLine.startTime,
         endTime: data.sTimeLine.endTime,
     });
-    fetchViewPortData(props.panelInfo, {
+    await fetchViewPortData(props.panelInfo, {
         startTime: moment(sNewTimeBgn).format(FORMAT_FULL_DATE),
         endTime: moment(sNewTimeEnd).format(FORMAT_FULL_DATE),
     });
@@ -492,7 +495,7 @@ const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) =>
 async function OnChangeTimeRangerViewPort(params: any) {
     data.sTimeLine.startTime = moment(params.min).utc().format(FORMAT_FULL_DATE);
     data.sTimeLine.endTime = moment(params.max).utc().format(FORMAT_FULL_DATE);
-    fetchPanelData(props.panelInfo, {
+    await fetchPanelData(props.panelInfo, {
         startTime: data.sTimeLine.startTime,
         endTime: data.sTimeLine.endTime,
     });

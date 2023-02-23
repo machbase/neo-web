@@ -4,7 +4,10 @@
             <p></p>
             <span>{{ props.panelInfo.chart_title }}</span>
         </div>
-        <div>2022-12-30 16:05:19 ~ 2022-12-30 16:07:32 ( interval : 1 sec )</div>
+        <div>
+            {{ moment(xAxisMinRange).format(FORMAT_FULL_DATE) }} ~ {{ moment(xAxisMaxRange).format(FORMAT_FULL_DATE) }} ( interval : {{ props.panelInfo.interval_value }}
+            {{ convertInterType(props.panelInfo.interval_type.toLowerCase()) }} )
+        </div>
         <!--  -->
         <div v-if="cIsDarkMode" class="chart-wrap__header-icons">
             <v-icon size="small" class="icon" icon="mdi-content-save"></v-icon>
@@ -17,7 +20,7 @@
             >
                 <img :src="i_b_edit" class="icon" />
             </router-link>
-            <img :src="i_b_refresh" class="icon" />
+            <img :src="i_b_refresh" class="icon" @click="onReloadChart" />
             <img v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW && route.name !== RouteNames.VIEW" :src="i_b_del" class="icon" />
         </div>
         <!--  -->
@@ -41,7 +44,7 @@ import { LinePanel } from '@/interface/chart';
 import { useStore } from '@/store';
 import { FORMAT_FULL_DATE } from '@/utils/constants';
 import moment from 'moment';
-import { computed, defineProps, ref, withDefaults } from 'vue';
+import { computed, defineProps, ref, withDefaults, defineEmits } from 'vue';
 import { useRoute } from 'vue-router';
 import i_b_newwin from '@/assets/image/i_b_newwin.png';
 import i_b_edit from '@/assets/image/i_b_edit.png';
@@ -54,8 +57,11 @@ import i_w_del from '@/assets/image/i_w_del.png';
 
 interface ChartHeaderProps {
     panelInfo: LinePanel;
+    xAxisMinRange: string | number;
+    xAxisMaxRange: string | number;
 }
 const props = withDefaults(defineProps<ChartHeaderProps>(), {});
+const emit = defineEmits(['eOnReload']);
 
 const store = useStore();
 const route = useRoute();
@@ -63,7 +69,23 @@ const route = useRoute();
 const sDateLeft = ref<string>(moment().format(FORMAT_FULL_DATE));
 const sDateRight = ref<string>(moment().format(FORMAT_FULL_DATE));
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
-
+function convertInterType(gUnit: string) {
+    switch (gUnit) {
+        case 's':
+            return 'sec';
+        case 'm':
+            return 'min';
+        case 'h':
+            return 'hour';
+        case 'd':
+            return 'day';
+        default:
+            return gUnit;
+    }
+}
+const onReloadChart = () => {
+    emit('eOnReload');
+};
 // watch(
 //     () => sDate.value,
 //     () => {
