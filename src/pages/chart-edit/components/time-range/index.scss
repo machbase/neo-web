@@ -2,14 +2,12 @@
 $height: 30px;
 @include common-input;
 .time-range-wrapper {
-    padding: 20px;
     @include font-12;
     width: 710px;
     min-height: 450px;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-
     .col-left {
         display: flex;
         flex-direction: column;

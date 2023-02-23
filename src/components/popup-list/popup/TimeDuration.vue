@@ -16,7 +16,7 @@
                 <div class="row"><input :value="duration" type="text" class="input" /></div>
             </div>
         </div>
-        <div>
+        <div class="col-right">
             <TimeDuration @eOnTimeDuration="OnTimeRange" />
             <div class="popup__btn-group">
                 <v-btn variant="outlined" class="button-effect-color" @click="onSetting"> Ok </v-btn>

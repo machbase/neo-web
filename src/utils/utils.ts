@@ -93,23 +93,28 @@ function formatColors(colors: string) {
 function convertChartType(aType: number) {
     let show_point = 'Y';
     let stroke = 0;
+    let fill = 0;
     switch (aType) {
         case 0:
             show_point = 'N';
             stroke = 1;
+            fill = 0.15;
             break;
         case 1:
             show_point = 'Y';
             stroke = 0;
+            fill = 0;
             break;
         case 2:
             show_point = 'Y';
             stroke = 1;
+            fill = 0;
             break;
     }
     return {
         show_point,
         stroke,
+        fill,
     };
 }
 function convertTagChartType(aTags: []) {
@@ -135,7 +140,7 @@ function convertChartDefault(aChartDefault: PanelInfo, aTag: TempNewChartData): 
         color_set: COLOR_SET,
         show_point: chart.show_point,
         stroke: chart.stroke,
-        fill: 0,
+        fill: chart.fill,
         tag_set: tagSet,
     };
 }

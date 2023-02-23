@@ -16,7 +16,7 @@
                 <div class="row"><ComboboxTime @e-on-change="changeRefresh" /><v-btn class="button-apply" variant="outlined" @click="onSetting"> Apply </v-btn></div>
             </div>
         </div>
-        <TimeRange @eOnTimeRange="OnTimeRange" />
+        <TimeRange class="col-right" @eOnTimeRange="OnTimeRange" />
     </div>
 </template>
 
