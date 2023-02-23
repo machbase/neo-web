@@ -55,7 +55,7 @@ const store = useStore();
 const route = useRoute();
 const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const chartSelected = CPanels.value[route.params.id as any];
-const tagSets = chartSelected[0].tag_set;
+const tagSets = [...chartSelected[0].tag_set];
 const tempTagSets = ref<TagSet[]>(tagSets);
 const sDialog = ref<boolean>(false);
 const onChangeTagName = (aEvent: Event, aIndex: number) => {
