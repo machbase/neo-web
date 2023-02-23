@@ -64,9 +64,9 @@
                 <div class="cfg-input">
                     <label>Position of Y-axis</label>
                     <div class="input radio-wrapper" style="width: 270px">
-                        <input type="radio" id="one" value="l" v-model="picked" />
+                        <input id="one" v-model="picked" type="radio" value="l" />
                         <label for="one">Left side</label>
-                        <input type="radio" id="two" value="r" v-model="picked" />
+                        <input id="two" v-model="picked" type="radio" value="r" />
                         <label for="two">Right side</label>
                     </div>
                 </div>
@@ -165,7 +165,6 @@ const sCustomScaleRaw2 = reactive<CustomScaleInput>({
 });
 const onChangeInput = (aEvent: Event) => {
     const sTemp = splitTimeDuration((aEvent.target as HTMLInputElement).value);
-    console.log('🚀 ~ file: index.vue:145 ~ onChangeInput ~ sTemp', sTemp);
     intervalValue.value = sTemp.value;
     intervalUnit.value = sTemp.type;
 };
@@ -204,7 +203,6 @@ watchEffect(() => {
     tagsSelected.value.forEach((item: any) => {
         tag_set[item].use_y2 = 'Y';
     });
-    console.log('🚀 ~ file: index.vue:202 ~ watchEffect ~ tag_set', tag_set);
     const data: Partial<PanelInfo> = {
         interval_type: intervalUnit.value,
         interval_value: intervalValue.value,
@@ -257,7 +255,6 @@ watch(
                     id: index,
                     name: value.calculation_mode + ' : ' + value.tag_names,
                 };
-                console.log('🚀 ~ file: index.vue:105 ~ tagSets.forEach ~ option', option);
                 tagOptions.value.push(option);
             }
         });

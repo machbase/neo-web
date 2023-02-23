@@ -45,7 +45,6 @@ import TimeDuration from './popup/TimeDuration.vue';
 import TimeRange from './popup/TimeRange.vue';
 import { TimeLineType } from '@/interface/date';
 const onSubmitTag = (data: any) => {
-    console.log('🚀 ~ file: index.vue:41 ~ test ~ data', data);
     emit('eSubmitTags', data);
 };
 interface PopupWrapProps {
@@ -72,9 +71,9 @@ const onSettingPopup = (aValue: any) => {
 
 watch(
     () => props.pShow,
-    () => {        
+    () => {
         if (props.pShow === true) sDialog.value = true;
-    },
+    }
     // { immediate: true }
 );
 

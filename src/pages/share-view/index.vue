@@ -18,7 +18,6 @@ const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
 const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const sPanels = ref(null);
 const onClickTab = (index: number) => {
-    console.log('onClickTab ~ index', index);
     tabIndex.value = index;
 };
 function onOpenPopup() {

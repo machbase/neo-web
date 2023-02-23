@@ -104,7 +104,6 @@ watch(
         store.dispatch(ActionTypes.fetchTagList, tableSelected.value);
     }
 );
-console.log('🚀 ~ file: NewChart.vue:72 ~ cTableList', cTableList.value);
 const onSearch = () => {
     if (searchText.value != '') {
         isSearchClick.value = true;
@@ -139,7 +138,6 @@ const onChangeCalcMode = (data: CalculationMode, index: number) => {
 };
 const onPaging = (index: number) => {
     pageIndex.value = index;
-    console.log(index, 'index');
 };
 const onSetting = () => {
     if (sSelectedTags.length <= 0) {

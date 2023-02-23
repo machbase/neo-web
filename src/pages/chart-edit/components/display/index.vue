@@ -101,7 +101,6 @@ watchEffect(() => {
         stroke: isNaN(lineThick.value) ? 1.5 : parseFloat(lineThick.value as any),
         border_color,
     };
-    console.log('data', data);
     emit('eOnChange', data);
 });
 </script>

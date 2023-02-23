@@ -5,8 +5,8 @@
             <span>{{ props.panelInfo.chart_title }}</span>
         </div>
         <div>
-            {{ moment(xAxisMinRange).format(FORMAT_FULL_DATE) }} ~ {{ moment(xAxisMaxRange).format(FORMAT_FULL_DATE) }} ( interval : {{ props.panelInfo.interval_value }}
-            {{ convertInterType(props.panelInfo.interval_type.toLowerCase()) }} )
+            {{ moment(xAxisMinRange).format(FORMAT_FULL_DATE) }} ~ {{ moment(xAxisMaxRange).format(FORMAT_FULL_DATE) }} ( interval : {{ pIntervalData.IntervalValue }}
+            {{ pIntervalData.IntervalType }} )
         </div>
         <!--  -->
         <div v-if="cIsDarkMode" class="chart-wrap__header-icons">
@@ -59,6 +59,7 @@ interface ChartHeaderProps {
     panelInfo: LinePanel;
     xAxisMinRange: string | number;
     xAxisMaxRange: string | number;
+    pIntervalData: { IntervalValue: number; IntervalType: string };
 }
 const props = withDefaults(defineProps<ChartHeaderProps>(), {});
 const emit = defineEmits(['eOnReload']);

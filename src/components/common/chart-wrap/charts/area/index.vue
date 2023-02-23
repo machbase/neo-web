@@ -1,6 +1,13 @@
 <template>
     <ChartWrap>
-        <ChartHeader :panel-info="props.panelInfo" :x-axis-max-range="data.sTimeLine.endTime" :x-axis-min-range="data.sTimeLine.startTime" @eOnReload="onReload" />
+        <ChartHeader
+            :panel-info="props.panelInfo"
+            :x-axis-max-range="data.sTimeLine.endTime"
+            :x-axis-min-range="data.sTimeLine.startTime"
+            :p-inner-value="sInnerValue"
+            :p-interval-data="data.sIntervalData"
+            @eOnReload="onReload"
+        />
         <AreaChart
             :id="`chart-${props.index}`"
             ref="areaChart"
@@ -83,12 +90,12 @@ const sInnerValue = reactive({
 });
 
 function calcInterval(aBgn: string, aEnd: string, aWidth: number): { IntervalType: string; IntervalValue: number } {
-    var sBgn = new Date(aBgn);
-    var sEnd = new Date(aEnd);
-    var sDiff = sEnd.getTime() - sBgn.getTime();
-    var sSecond = Math.floor(sDiff / 1000);
-    var sCalc = sSecond / (aWidth / sInnerValue.sTickPixels);
-    var sRet = { type: 'sec', value: 1 };
+    let sBgn = new Date(aBgn);
+    let sEnd = new Date(aEnd);
+    let sDiff = sEnd.getTime() - sBgn.getTime();
+    let sSecond = Math.floor(sDiff / 1000);
+    let sCalc = sSecond / (aWidth / sInnerValue.sTickPixels);
+    let sRet = { type: 'sec', value: 1 };
     if (sCalc > 60 * 60 * 12) {
         // interval > 12H
         sRet.type = 'day';
@@ -234,6 +241,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     }
     const sIntervalTime =
         aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(data.sTimeLine.startTime as string, data.sTimeLine.endTime as string, sChartWidth) : data.sIntervalData;
+    data.sIntervalData = sIntervalTime;
     for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
@@ -283,7 +291,10 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
         sTimeRange = aCustomRange;
     }
     const sIntervalTime =
-        aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(data.sTimeLine.startTime as string, data.sTimeLine.endTime as string, sChartWidth) : data.sIntervalData;
+        aPanelInfo.interval_type.toLowerCase() === ''
+            ? calcInterval(data.sTimeRangeViewPort.startTime as string, data.sTimeRangeViewPort.endTime as string, sChartWidth)
+            : data.sIntervalData;
+    data.sIntervalData = sIntervalTime;
     for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
@@ -353,7 +364,6 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
         sConvertData = await convertData(sRes, aPanelInfo, sTag, i, sSumTagDatas);
         sDatasets = sConvertData;
     });
-    console.log('sDatasets', sDatasets);
     data.sDisplayData = { datasets: sDatasets };
 };
 const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aLimit?: any) => {
@@ -369,7 +379,7 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
     if (aLimit === null) {
         aLimit = gRawChartLimit;
     }
-    var sLimit = aLimit;
+    let sLimit = aLimit;
 
     let sDatasets = [] as HighchartsDataset[];
     const sTagList: ReturnTagData[][] = [];
@@ -441,7 +451,6 @@ const onChangeTimeRange = async (eValue: any) => {
     await fetchViewPortData(props.panelInfo, aCustomRange);
 };
 const onChangeSRF = async (eValue: any) => {
-    console.log('eValue', eValue);
     const aCustomRange = {
         startTime: eValue.dateStart,
         endTime: eValue.dateEnd,

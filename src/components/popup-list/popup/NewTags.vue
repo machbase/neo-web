@@ -11,7 +11,7 @@
                 <div class="tagtitle floatleft">Tag</div>
                 <div class="search-wrapper">
                     <input v-model="searchText" type="text" class="form-control taginput input" style="width: 180px" />
-                    <span @click="onReset" style="text-align: center" class="input clear-icon"><img :src="i_b_close" alt="Clear icon" /></span>
+                    <span style="text-align: center" class="input clear-icon" @click="onReset"><img :src="i_b_close" alt="Clear icon" /></span>
                     <v-btn class="button-effect-color" variant="outlined" :height="30" @click="onSearch">Search</v-btn>
                 </div>
                 <div class="countGroup">
@@ -19,13 +19,13 @@
                     <div>Select : {{ selectCount }}</div>
                 </div>
                 <div class="taglistdiv taglistscroll">
-                    <div style="margin-bottom: 5px" v-for="(aTime, aIndex) in cTagsSearch" :key="aIndex" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
+                    <div v-for="(aTime, aIndex) in cTagsSearch" :key="aIndex" style="margin-bottom: 5px" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
                 </div>
                 <Pagination :total="Math.ceil(cTags.length / MAX_TAG_COUNT)" @e-on-change="onPaging" />
             </div>
             <div class="col-sm-6 newchart-right">
                 <div class="selectedlistdiv taglistscroll" style="height: 300px">
-                    <div v-for="(aTime, aIndex) in sSelectedTags" style="margin-bottom: 5px" :key="aIndex" class="wrapperTagSelect">
+                    <div v-for="(aTime, aIndex) in sSelectedTags" :key="aIndex" style="margin-bottom: 5px" class="wrapperTagSelect">
                         <span @click="onRemoveTag(aIndex)"> {{ aTime.tag_names }}</span>
                         <ComboboxSelect :p-show-default-option="false" :p-data="CALC_MODE" :p-value="'avg'" @e-on-change="(item) => onChangeCalcMode(item, aIndex)" />
                     </div>
@@ -98,7 +98,6 @@ watch(
         store.dispatch(ActionTypes.fetchTagList, tableSelected.value);
     }
 );
-console.log('🚀 ~ file: NewChart.vue:72 ~ cTableList', cTableList.value);
 const onSearch = () => {
     if (searchText.value != '') {
         isSearchClick.value = true;
@@ -124,14 +123,11 @@ const onSelectTag = (data: { NAME: string }) => {
 const onRemoveTag = (index: number) => {
     selectCount.value--;
     sSelectedTags.splice(index, 1);
-    console.log(index, 'index');
 };
 const onChangeCalcMode = (data: CalculationMode, index: number) => {
     sSelectedTags[index].calculation_mode = data;
 };
-const onPaging = (index: number) => {
-    console.log(index, 'index');
-};
+const onPaging = (index: number) => {};
 const onSetting = () => {
     if (sSelectedTags.length <= 0) {
         alert('Select tags for the chart.');

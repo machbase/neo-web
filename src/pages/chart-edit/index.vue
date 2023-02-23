@@ -47,13 +47,11 @@ const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const sPanels = ref(null);
 const sTabData = ref<Partial<PanelInfo>>();
 const onClickTab = (index: number) => {
-    console.log('onClickTab ~ index', index);
     tabIndex.value = index;
 };
 
 const onChangeTabData = (data: Partial<PanelInfo>) => {
     sTabData.value = { ...sTabData.value, ...data };
-    console.log('🚀 ~ file: index.vue:54 ~ onChangeTabData ~ sTabData.value', sTabData.value);
 };
 const onSave = () => {
     const payload = {
@@ -80,15 +78,16 @@ watch(
     }
 );
 watch(
-    CPanels,
+    () => CPanels.value,
     () => {
+        if (CPanels.value.length === 0) return;
         if (CPanels.value) {
             sDataChart.value = CPanels.value[route.params.id as any];
         } else {
             sDataChart.value = CPanels.value[0];
         }
     },
-    { immediate: true }
+    { immediate: true, deep: true }
 );
 </script>
 
