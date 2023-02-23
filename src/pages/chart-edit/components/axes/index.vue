@@ -123,17 +123,30 @@ const customScaleRawInit2: CustomScaleInput = {
     input2: chartSelected[0].custom_drilldown_max2,
 };
 
-const tagSets = [...chartSelected[0].tag_set];
-const tagOptions = ref<any>([]);
+const tagSets = computed((): any => {
+    return chartSelected[0].tag_set.reduce((res: any, item: any, index: number) => {
+        const item1 = item;
+        item1.id = index;
+        res.push(item1);
+        return res;
+    }, []);
+});
+const tagOptions = computed((): any => {
+    return tagSets.value.reduce((res: any, item: any, index: number) => {
+        if (item.use_y2 != 'Y') {
+            const option = {
+                id: item.id,
+                name: item.calculation_mode + ' : ' + item.tag_names,
+            };
+            res.push(option);
+            return res;
+        }
+        return res;
+    }, []);
+});
 const tagsSelected = ref<any>([]);
 const tagSetsSelected = computed((): any => {
-    const newArr: any[] = [];
-    tagsSelected.value.forEach((item: any) => {
-        const newItem: any = tagSets[item];
-        newItem.id = item;
-        newArr.push(newItem);
-    });
-    return newArr;
+    return tagSets.value.filter((item: TagSet) => item.use_y2 == 'Y');
 });
 
 const picked = ref('r');
@@ -165,23 +178,15 @@ const sCustomScaleRaw2 = reactive<CustomScaleInput>({
 });
 const onChangeInput = (aEvent: Event) => {
     const sTemp = splitTimeDuration((aEvent.target as HTMLInputElement).value);
+    console.log('🚀 ~ file: index.vue:145 ~ onChangeInput ~ sTemp', sTemp);
     intervalValue.value = sTemp.value;
     intervalUnit.value = sTemp.type;
 };
 const onChangeTag = (data: string) => {
-    const index = tagOptions.value.findIndex((item: any) => item.id === data);
-    tagOptions.value.splice(index, 1);
-    tagsSelected.value.push(parseInt(data));
+    if (tagSets.value[parseInt(data)]) tagSets.value[parseInt(data)].use_y2 = 'Y';
 };
 const onRemove = (item: any, index: number) => {
-    tagsSelected.value.splice(index, 1);
-    // name: value.calculation_mode + ' : ' + value.tag_names,
-    const name = item.calculation_mode + ' : ' + item.tag_names;
-    const option = {
-        id: item.id,
-        name,
-    };
-    tagOptions.value.push(option);
+    tagSets.value[item.id].use_y2 = 'N';
 };
 const onChangeCustomScale = (data: CustomScaleInput, type: number) => {
     if (type === 0) {
@@ -199,17 +204,13 @@ const onChangeCustomScale = (data: CustomScaleInput, type: number) => {
     }
 };
 watchEffect(() => {
-    const tag_set: TagSet[] = tagSets;
-    tagsSelected.value.forEach((item: any) => {
-        tag_set[item].use_y2 = 'Y';
-    });
     const data: Partial<PanelInfo> = {
         interval_type: intervalUnit.value,
         interval_value: intervalValue.value,
         show_x_tickline: isShowTickLineX.value ? 'Y' : 'N',
         show_y_tickline: isShowTickLineY.value ? 'Y' : 'N',
         show_y_tickline2: isShowTickLineY2.value ? 'Y' : 'N',
-        pixels_per_tick: parseInt(pixel.value as any),
+        pixels_per_tick: pixel.value,
         zero_base: isZeroBase.value ? 'Y' : 'N',
         zero_base2: isZeroBase2.value ? 'Y' : 'N',
         custom_min: parseFloat(sCustomScale.input1 as string),
@@ -221,7 +222,7 @@ watchEffect(() => {
         custom_drilldown_min2: parseFloat(sCustomScaleRaw2.input1 as string),
         custom_drilldown_max2: parseFloat(sCustomScaleRaw2.input2 as string),
         use_right_y2: picked.value == 'r' ? 'Y' : 'N',
-        tag_set,
+        tag_set: [...tagSets.value],
     };
     emit('eOnChange', data);
 });
@@ -246,18 +247,8 @@ watch(
         if (pixel.value <= 0) pixel.value = 1;
         isZeroBase.value = chartSelected[0].zero_base.toUpperCase() == 'Y';
         isZeroBase2.value = chartSelected[0].zero_base2.toUpperCase() == 'Y';
-        if (tagSets[0].use_y2 == 'Y') isAdditionalYAxis.value = true;
+        if (tagSets.value[0].use_y2 == 'Y') isAdditionalYAxis.value = true;
         picked.value = chartSelected[0].use_right_y2.toUpperCase() == 'Y' ? 'r' : 'l';
-
-        tagSets.forEach((value, index) => {
-            if (value.use_y2 != 'Y') {
-                const option = {
-                    id: index,
-                    name: value.calculation_mode + ' : ' + value.tag_names,
-                };
-                tagOptions.value.push(option);
-            }
-        });
     },
     { immediate: true }
 );
