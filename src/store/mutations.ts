@@ -2,6 +2,7 @@ import { TempNewChartData } from './../interface/tagView';
 import { ResBoardList, ResPreferences, TimeRange } from '@/interface/tagView';
 import { RootState } from './state';
 import { BoardInfo, PanelInfo, RangeData } from '@/interface/chart';
+import { cloneDeep } from 'lodash';
 
 enum MutationTypes {
     /* Global */

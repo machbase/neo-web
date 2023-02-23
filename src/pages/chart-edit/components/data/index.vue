@@ -49,14 +49,13 @@ import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { useRoute } from 'vue-router';
 import { PanelInfo, TagSet } from '@/interface/chart';
+import { cloneDeep } from 'lodash';
 
 const emit = defineEmits(['eOnChange']);
 const store = useStore();
 const route = useRoute();
 const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
-const chartSelected = CPanels.value[route.params.id as any];
-const tagSets = [...chartSelected[0].tag_set];
-const tempTagSets = ref<TagSet[]>(tagSets);
+const tempTagSets = ref<TagSet[]>([]);
 const sDialog = ref<boolean>(false);
 const onChangeTagName = (aEvent: Event, aIndex: number) => {
     const value = (aEvent.target as HTMLInputElement).value;
@@ -81,12 +80,28 @@ const onAdd = () => {
 const onSubmitTag = (data: any) => {
     tempTagSets.value.push(...data);
 };
-watchEffect(() => {
-    const data: Partial<PanelInfo> = {
-        tag_set: tempTagSets.value,
-    };
-    emit('eOnChange', data);
-});
+watch(
+    CPanels,
+    () => {
+        tempTagSets.value = cloneDeep(CPanels.value[route.params.id as any][0].tag_set);
+    },
+    {
+        immediate: true,
+    }
+);
+watch(
+    () => tempTagSets.value,
+    () => {
+        const data: Partial<PanelInfo> = {
+            tag_set: tempTagSets.value,
+        };
+        console.log('🚀 ~ file: index.vue:90 ~ data:', data);
+        emit('eOnChange', data);
+    },
+    {
+        deep: true,
+    }
+);
 </script>
 
 <style lang="scss" scoped>
