@@ -232,7 +232,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     if (!aCustomRange) {
         sTimeRange = {
             // startTime: moment(sTimeRange.startTime).valueOf() - 133000,
-            startTime: moment(moment(sTimeRange.endTime).valueOf() - 133000).format('YYYY-MM-DDTHH:mm:ss'),
+            startTime: moment(moment(sTimeRange.endTime).valueOf() - 100000).format('YYYY-MM-DDTHH:mm:ss'),
             endTime: sTimeRange.endTime,
         };
         data.sTimeLine = sTimeRange;

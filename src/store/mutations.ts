@@ -18,6 +18,7 @@ enum MutationTypes {
     setChartEdit = 'setChartEdit',
     setNewChartBoard = 'setNewChartBoard',
     setNewBoard = 'setNewBoard',
+    setDeleteChart = 'setDeleteChart',
 }
 
 const mutations = {
@@ -81,6 +82,9 @@ const mutations = {
     },
     [MutationTypes.setChartEdit](state: RootState, payload: { index: number; item: Partial<PanelInfo> }) {
         state.gBoard.panels[payload.index][0] = { ...state.gBoard.panels[payload.index][0], ...payload.item };
+    },
+    [MutationTypes.setDeleteChart](state: RootState, payload: number) {
+        state.gBoard.panels.splice(payload, 1);
     },
 };
 

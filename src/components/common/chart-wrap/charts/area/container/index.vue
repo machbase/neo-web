@@ -36,33 +36,6 @@ const data = reactive({
 
 const chart = ref();
 
-watch(
-    () => props.chartData,
-    () => {
-        if (props.chartData) {
-            data.sMasterSeriesData = props.chartData.datasets;
-        }
-        data.sChartWidth = chart.value.chart.plotWidth;
-    },
-    {
-        // deep: true,
-    }
-);
-watch(
-    () => props.viewData,
-    () => {
-        if (props.viewData) {
-            data.sViewPortSeriesData = props.viewData.datasets;
-        }
-        data.sChartWidth = chart.value.chart.plotWidth;
-    },
-    {
-        // deep: true,
-    }
-);
-watch(data.sTimeChartXaxis, () => {
-    emit('eOnChange', data.sTimeChartXaxis);
-});
 const cChartOptions = computed(() => {
     return {
         colors: formatColors(props.panelInfo.color_set),
@@ -293,8 +266,33 @@ function afterSetExtremes(e) {
     const { chart } = e.target;
     data.sTimeChartXaxis.min = e.min;
     data.sTimeChartXaxis.max = e.max;
+    emit('eOnChange', data.sTimeChartXaxis);
 }
 
+watch(
+    () => props.chartData,
+    () => {
+        if (props.chartData) {
+            data.sMasterSeriesData = props.chartData.datasets;
+        }
+        data.sChartWidth = chart.value.chart.plotWidth;
+    },
+    {
+        // deep: true,
+    }
+);
+watch(
+    () => props.viewData,
+    () => {
+        if (props.viewData) {
+            data.sViewPortSeriesData = props.viewData.datasets;
+        }
+        data.sChartWidth = chart.value.chart.plotWidth;
+    },
+    {
+        // deep: true,
+    }
+);
 defineExpose({
     chart,
 });
