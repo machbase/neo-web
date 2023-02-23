@@ -123,7 +123,7 @@ const customScaleRawInit2: CustomScaleInput = {
     input2: chartSelected[0].custom_drilldown_max2,
 };
 
-const tagSets = chartSelected[0].tag_set;
+const tagSets = [...chartSelected[0].tag_set];
 const tagOptions = ref<any>([]);
 const tagsSelected = ref<any>([]);
 const tagSetsSelected = computed((): any => {
