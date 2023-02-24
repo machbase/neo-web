@@ -17,6 +17,7 @@ interface BarChartContainerProps {
     xMaxTimeRangeViewPort: string | number;
     isStockChart?: boolean;
     maxYChart?: number;
+    pIsZoom: boolean;
 }
 
 const props = withDefaults(defineProps<BarChartContainerProps>(), {});
@@ -33,7 +34,6 @@ const data = reactive({
     },
     sChartWidth: 0 as number,
 });
-
 const chart = ref();
 
 const cChartOptions = computed(() => {
@@ -101,7 +101,7 @@ const cChartOptions = computed(() => {
         },
         // view point navigator
         navigator: {
-            enabled: true,
+            enabled: props.pIsZoom,
             adaptToUpdatedData: false,
             handles: {
                 // width: 0.5,
@@ -269,6 +269,9 @@ function afterSetExtremes(e) {
     emit('eOnChange', data.sTimeChartXaxis);
 }
 
+const onCloseNavigator = () => {
+    console.log('firs123t');
+};
 watch(
     () => props.chartData,
     () => {

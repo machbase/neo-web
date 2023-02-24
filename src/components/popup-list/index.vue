@@ -18,7 +18,7 @@
                 <NewTags v-if="pType === PopupType.NEW_TAGS" :no-of-select-tags="props.pNoOfSelectTags as number" @eClosePopup="onClosePopup" @e-submit="onSubmitTag" />
                 <Preferences v-if="pType === PopupType.PREFERENCES" @eClosePopup="onClosePopup" />
                 <SaveDashboard v-if="pType === PopupType.SAVE_DASHBOARD" @eClosePopup="onClosePopup" />
-                <TimeRange v-if="pType === PopupType.TIME_RANGE" @eClosePopup="onClosePopup" />
+                <TimeRange v-if="pType === PopupType.TIME_RANGE" :p-time-range="pTimeRange" @eClosePopup="onClosePopup" />
                 <TimeDuration
                     v-if="pType === PopupType.TIME_DURATION"
                     :p-is-from-time="pIsFromTime"

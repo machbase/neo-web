@@ -38,6 +38,11 @@ const mutations = {
     },
     [MutationTypes.setTimeRange](state: RootState, aTimeRange: TimeRange) {
         state.gTimeRange = aTimeRange;
+        state.gBoard = {
+            ...state.gBoard,
+            range_end: aTimeRange.end,
+            range_bgn: aTimeRange.start,
+        };
     },
     [MutationTypes.setTableList](state: RootState, aTableList: any) {
         const mutateTables = [];

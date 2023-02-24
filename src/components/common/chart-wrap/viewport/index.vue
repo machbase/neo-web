@@ -1,5 +1,5 @@
 <template>
-    <div class="view-port">
+    <div v-if="pIsZoom" class="view-port">
         <div class="view-port__header">
             <div class="view-port__header--events">
                 <div class="date-picker button" @click="onOpenPopup(false)">{{ sDateLeft }}</div>
@@ -34,7 +34,7 @@
                 <div class="date-picker button" @click="onOpenPopup(true)">{{ sDateRight }}</div>
             </div>
         </div>
-        <v-icon icon="mdi-close-thick" class="icon-close"></v-icon>
+        <v-icon icon="mdi-close-thick" class="icon-close" @click="emit('eonCloseNavigator')"></v-icon>
         <PopupWrap
             :width="'667px'"
             :p-type="PopupType.TIME_DURATION"
@@ -64,9 +64,10 @@ import { TimeLineType } from '@/interface/date';
 interface ViewPortProps {
     panelInfo: LinePanel;
     rangeTime: TimeLineType;
+    pIsZoom: boolean;
 }
 const props = withDefaults(defineProps<ViewPortProps>(), {});
-const emit = defineEmits(['eOnChange', 'eOnChangeAdjust', 'eOnChangeSRF', 'eOnFocus']);
+const emit = defineEmits(['eOnChange', 'eOnChangeAdjust', 'eOnChangeSRF', 'eOnFocus', 'eonCloseNavigator']);
 const store = useStore();
 const sDialog = ref<boolean>(false);
 const sDateLeft = ref<string | number>('');
@@ -97,9 +98,13 @@ const onSettingPopup = (aDate: any) => {
 watch(
     () => props.rangeTime,
     () => {
+        console.log(props.rangeTime);
         sDateLeft.value =
             typeof props.rangeTime.startTime === 'string' ? moment(formatDate(props.rangeTime.startTime as string)).format(FORMAT_FULL_DATE) : props.rangeTime.startTime;
         sDateRight.value = typeof props.rangeTime.endTime === 'string' ? moment(formatDate(props.rangeTime.endTime as string)).format(FORMAT_FULL_DATE) : props.rangeTime.endTime;
+    },
+    {
+        deep: true,
     }
 );
 </script>

@@ -259,7 +259,8 @@ const onClickPopupItem = (aPopupName: PopupType) => {
 // };
 //
 const onReload = () => {
-    store.dispatch(ActionTypes.fetchTable);
+    let id = route.query.id || cBoardList.value[0]?.board_id;
+    store.dispatch(ActionTypes.fetchBoard, id);
 };
 store.dispatch(ActionTypes.fetchBoardList);
 
