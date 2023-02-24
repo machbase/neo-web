@@ -42,7 +42,7 @@ import i_b_close from '@/assets/image/i_b_close.png';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import { CALC_MODE } from '@/components/popup-list/popup/constant';
 import { CalculationMode } from '@/interface/constants';
-import { computed, ref, watch, defineEmits, watchEffect } from 'vue';
+import { computed, ref, watch, defineEmits, watchEffect, defineProps } from 'vue';
 import { PopupType } from '@/enums/app';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { useStore } from '@/store';
@@ -51,6 +51,10 @@ import { useRoute } from 'vue-router';
 import { PanelInfo, TagSet } from '@/interface/chart';
 import { cloneDeep } from 'lodash';
 
+interface PropsTab {
+    pChartData: PanelInfo;
+}
+const props = defineProps<PropsTab>();
 const emit = defineEmits(['eOnChange']);
 const store = useStore();
 const route = useRoute();
@@ -81,9 +85,9 @@ const onSubmitTag = (data: any) => {
     tempTagSets.value.push(...data);
 };
 watch(
-    CPanels,
+    props,
     () => {
-        tempTagSets.value = cloneDeep(CPanels.value[route.params.id as any][0].tag_set);
+        tempTagSets.value = cloneDeep(props.pChartData.tag_set);
     },
     {
         immediate: true,

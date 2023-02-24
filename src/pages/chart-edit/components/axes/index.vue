@@ -90,41 +90,39 @@
 <script setup lang="ts" name="AxesTab">
 import i_b_close from '@/assets/image/i_b_close.png';
 import { splitTimeDuration } from '@/utils/utils';
-import { computed, defineEmits, reactive, ref, watch, watchEffect } from 'vue';
+import { computed, defineEmits, reactive, ref, watch, watchEffect, defineProps } from 'vue';
 import CustomScale, { CustomScaleInput } from '@/components/common/custom-scale/index.vue';
-import { useRoute } from 'vue-router';
-import { useStore } from '@/store';
 import { PanelInfo, TagSet } from '@/interface/chart';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 
+interface PropsTab {
+    pChartData: PanelInfo;
+}
+const props = defineProps<PropsTab>();
 const emit = defineEmits(['eOnChange']);
-const store = useStore();
-const route = useRoute();
-const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
-const chartSelected = CPanels.value[route.params.id as any];
 
 const customScaleInit: CustomScaleInput = {
-    input1: chartSelected[0].custom_min,
-    input2: chartSelected[0].custom_max,
+    input1: props.pChartData.custom_min,
+    input2: props.pChartData.custom_max,
 };
 
 const customScaleRawInit: CustomScaleInput = {
-    input1: chartSelected[0].custom_drilldown_min,
-    input2: chartSelected[0].custom_drilldown_max,
+    input1: props.pChartData.custom_drilldown_min,
+    input2: props.pChartData.custom_drilldown_max,
 };
 
 const customScaleInit2: CustomScaleInput = {
-    input1: chartSelected[0].custom_min2,
-    input2: chartSelected[0].custom_max2,
+    input1: props.pChartData.custom_min2,
+    input2: props.pChartData.custom_max2,
 };
 
 const customScaleRawInit2: CustomScaleInput = {
-    input1: chartSelected[0].custom_drilldown_min2,
-    input2: chartSelected[0].custom_drilldown_max2,
+    input1: props.pChartData.custom_drilldown_min2,
+    input2: props.pChartData.custom_drilldown_max2,
 };
 
 const tagSets = computed((): any => {
-    return chartSelected[0].tag_set.reduce((res: any, item: any, index: number) => {
+    return props.pChartData.tag_set.reduce((res: any, item: any, index: number) => {
         const item1 = item;
         item1.id = index;
         res.push(item1);
@@ -159,7 +157,7 @@ const isShowTickLineY2 = ref<boolean>(true);
 const intervalUnit = ref<string>('');
 const interval = ref<string>();
 const pixel = ref<number>(0);
-const intervalValue = ref<number>(chartSelected[0].interval_value);
+const intervalValue = ref<number>(props.pChartData.interval_value);
 const sCustomScale = reactive<CustomScaleInput>({
     input1: 0,
     input2: 0,
@@ -227,28 +225,28 @@ watchEffect(() => {
     emit('eOnChange', data);
 });
 watch(
-    CPanels,
+    props.pChartData,
     () => {
-        if (chartSelected[0].interval_type != '') {
-            interval.value = chartSelected[0].interval_value.toString() + chartSelected[0].interval_type.slice(0, 1);
-            intervalUnit.value = chartSelected[0].interval_type;
-            intervalValue.value = chartSelected[0].interval_value;
+        if (props.pChartData.interval_type != '') {
+            interval.value = props.pChartData.interval_value.toString() + props.pChartData.interval_type.slice(0, 1);
+            intervalUnit.value = props.pChartData.interval_type;
+            intervalValue.value = props.pChartData.interval_value;
         } else interval.value = '';
-        if (chartSelected[0].show_x_tickline) {
-            isShowTickLineX.value = chartSelected[0].show_x_tickline.toUpperCase() == 'Y';
+        if (props.pChartData.show_x_tickline) {
+            isShowTickLineX.value = props.pChartData.show_x_tickline.toUpperCase() == 'Y';
         } else isShowTickLineX.value = true;
-        if (chartSelected[0].show_y_tickline) {
-            isShowTickLineY.value = chartSelected[0].show_y_tickline.toUpperCase() == 'Y';
+        if (props.pChartData.show_y_tickline) {
+            isShowTickLineY.value = props.pChartData.show_y_tickline.toUpperCase() == 'Y';
         } else isShowTickLineY.value = true;
-        if (chartSelected[0].show_y_tickline2) {
-            isShowTickLineY2.value = chartSelected[0].show_y_tickline2.toUpperCase() == 'Y';
+        if (props.pChartData.show_y_tickline2) {
+            isShowTickLineY2.value = props.pChartData.show_y_tickline2.toUpperCase() == 'Y';
         } else isShowTickLineY2.value = true;
-        pixel.value = chartSelected[0].pixels_per_tick;
+        pixel.value = props.pChartData.pixels_per_tick;
         if (pixel.value <= 0) pixel.value = 1;
-        isZeroBase.value = chartSelected[0].zero_base.toUpperCase() == 'Y';
-        isZeroBase2.value = chartSelected[0].zero_base2.toUpperCase() == 'Y';
+        isZeroBase.value = props.pChartData.zero_base.toUpperCase() == 'Y';
+        isZeroBase2.value = props.pChartData.zero_base2.toUpperCase() == 'Y';
         if (tagSets.value[0].use_y2 == 'Y') isAdditionalYAxis.value = true;
-        picked.value = chartSelected[0].use_right_y2.toUpperCase() == 'Y' ? 'r' : 'l';
+        picked.value = props.pChartData.use_right_y2.toUpperCase() == 'Y' ? 'r' : 'l';
     },
     { immediate: true }
 );
