@@ -22,24 +22,20 @@
 
 <script setup lang="ts" name="TimeRangeTab">
 import DatePicker from '@/components/common/date-picker/index.vue';
-// import '@vuepic/vue-datepicker/dist/main.css';
 import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
 import TimeRange, { TimeRangeInput } from '@/components/common/date-list/date-time-range.vue';
-import { computed, defineEmits, reactive, ref, watch, watchEffect } from 'vue';
+import { computed, defineEmits, reactive, ref, watch, watchEffect, defineProps } from 'vue';
 import { formatDate } from '@/utils/utils';
-import { useStore } from '@/store';
-import { ActionTypes } from '@/store/actions';
-import { useRoute } from 'vue-router';
 import { PanelInfo } from '@/interface/chart';
 
+interface PropsTab {
+    pChartData: PanelInfo;
+}
+const props = defineProps<PropsTab>();
 const emit = defineEmits(['eOnChange']);
-const store = useStore();
-const route = useRoute();
-const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
-const chartSelected = CPanels.value[route.params.id as any];
-const dateStart = ref(chartSelected[0].range_bgn);
-const dateEnd = ref(chartSelected[0].range_end);
-const refresh = ref(chartSelected[0].refresh);
+const dateStart = ref(props.pChartData.range_bgn);
+const dateEnd = ref(props.pChartData.range_end);
+const refresh = ref(props.pChartData.refresh);
 const changeTimeStart = (data: Date) => {
     dateStart.value = formatDate(data);
 };
@@ -62,20 +58,6 @@ watchEffect(() => {
     };
     emit('eOnChange', data);
 });
-
-// const emit = defineEmits(['eChangeStart', 'eChangeEnd', 'eChangeRefresh']);
-// watch(
-//     () => dateStart.value,
-//     () => emit('eChangeStart', dateStart.value)
-// );
-// watch(
-//     () => dateEnd.value,
-//     () => emit('eChangeEnd', dateEnd.value)
-// );
-// watch(
-//     () => refresh.value,
-//     () => emit('eChangeRefresh', refresh.value)
-// );
 </script>
 
 <style lang="scss" scoped>
