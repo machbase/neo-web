@@ -28,6 +28,7 @@
             @eOnChange="onChangeTimeRange"
             @eOnChangeAdjust="adjustViewportRange"
             @eOnChangeSRF="onChangeSRF"
+            @eOnFocus="OnFocus"
         />
     </ChartWrap>
 </template>
@@ -438,6 +439,23 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPo
 
 const onReload = async () => {
     intializePanelData();
+    // let sTimeRange = await getDateRange(props.panelInfo, store.state.gBoard);
+    // let sBgn = sTimeRange.startTime;
+    // let sEnd = sTimeRange.endTime;
+
+    // await fetchViewPortData(props.panelInfo, {
+    //     startTime: sBgn,
+    //     endTime: sEnd,
+    // });
+    // data.sTimeRangeViewPort.startTime = sBgn;
+    // data.sTimeRangeViewPort.endTime = sEnd;
+
+    // await fetchPanelData(props.panelInfo, {
+    //     startTime: moment(moment(sEnd).valueOf() - 100000).format('YYYY-MM-DDTHH:mm:ss'),
+    //     endTime: moment(sEnd).format(FORMAT_FULL_DATE),
+    // });
+    // data.sTimeLine.startTime = moment(sBgn).format(FORMAT_FULL_DATE);
+    // data.sTimeLine.endTime = moment(sEnd).format(FORMAT_FULL_DATE);
 };
 const onChangeTimeRange = async (eValue: any) => {
     const aCustomRange = {
@@ -500,6 +518,29 @@ const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) =>
         startTime: moment(sNewTimeBgn).format(FORMAT_FULL_DATE),
         endTime: moment(sNewTimeEnd).format(FORMAT_FULL_DATE),
     });
+};
+const OnFocus = async () => {
+    let sBgn = data.sTimeLine.startTime;
+    let sEnd = data.sTimeLine.endTime;
+    let sTimeGap = moment(sEnd).valueOf() - moment(sBgn).valueOf();
+    let sNewTimeBgn = null;
+    let sNewTimeEnd = null;
+    sNewTimeBgn = moment(sBgn).valueOf() - sTimeGap * -0.25;
+    sNewTimeEnd = moment(sEnd).valueOf() + sTimeGap * -0.25;
+
+    await fetchViewPortData(props.panelInfo, {
+        startTime: sEnd,
+        endTime: sEnd,
+    });
+    data.sTimeRangeViewPort.startTime = sBgn;
+    data.sTimeRangeViewPort.endTime = sEnd;
+
+    await fetchPanelData(props.panelInfo, {
+        startTime: moment(sNewTimeBgn).format(FORMAT_FULL_DATE),
+        endTime: moment(sNewTimeEnd).format(FORMAT_FULL_DATE),
+    });
+    data.sTimeLine.startTime = moment(sNewTimeBgn).format(FORMAT_FULL_DATE);
+    data.sTimeLine.endTime = moment(sNewTimeEnd).format(FORMAT_FULL_DATE);
 };
 async function OnChangeTimeRangerViewPort(params: any) {
     data.sTimeLine.startTime = moment(params.min).utc().format(FORMAT_FULL_DATE);

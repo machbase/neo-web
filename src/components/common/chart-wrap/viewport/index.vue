@@ -15,7 +15,7 @@
                     <v-tooltip activator="parent" location="bottom">Zoom out x2</v-tooltip>
                 </div>
                 <div>
-                    <v-icon color="#fff" size="x-large" icon="mdi-image-filter-center-focus-strong-outline" @click="adjustViewportRange({ type: 'O', zoom: 1 })"></v-icon>
+                    <v-icon color="#fff" size="x-large" icon="mdi-image-filter-center-focus-strong-outline" @click="adjustViewportFocus"></v-icon>
                     <v-tooltip activator="parent" location="bottom">Focus</v-tooltip>
                 </div>
                 <div>
@@ -66,7 +66,7 @@ interface ViewPortProps {
     rangeTime: TimeLineType;
 }
 const props = withDefaults(defineProps<ViewPortProps>(), {});
-const emit = defineEmits(['eOnChange', 'eOnChangeAdjust', 'eOnChangeSRF']);
+const emit = defineEmits(['eOnChange', 'eOnChangeAdjust', 'eOnChangeSRF', 'eOnFocus']);
 const store = useStore();
 const sDialog = ref<boolean>(false);
 const sDateLeft = ref<string | number>('');
@@ -76,8 +76,11 @@ const cRangeData = computed(() => store.state.gRangeData);
 const onChangeEmit = (aValue: number) => {
     emit('eOnChangeSRF', aValue);
 };
-const adjustViewportRange = (aEvent: { type: 'O' | 'I'; zoom: number }) => {
+const adjustViewportRange = (aEvent: { type: 'O' | 'I' | 'F'; zoom: number }) => {
     emit('eOnChangeAdjust', aEvent);
+};
+const adjustViewportFocus = () => {
+    emit('eOnFocus');
 };
 const onOpenPopup = (isFrom: boolean) => {
     sIsFromTime.value = isFrom;

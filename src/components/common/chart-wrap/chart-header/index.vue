@@ -10,7 +10,7 @@
         </div>
         <!--  -->
         <div v-if="cIsDarkMode" class="chart-wrap__header-icons">
-            <v-icon size="small" class="icon" icon="mdi-content-save"></v-icon>
+            <!-- <v-icon size="small" class="icon" icon="mdi-content-save"></v-icon> -->
             <router-link
                 v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW"
                 :to="{ name: RouteNames.CHART_VIEW, params: { id: panelInfo.i } }"
