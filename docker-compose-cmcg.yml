@@ -7,4 +7,4 @@ services:
             context: .
             dockerfile: Dockerfile-cmcg
         ports:
-            - '5001:80'        
+            - '5002:80'        
