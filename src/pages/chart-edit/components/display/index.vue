@@ -37,11 +37,13 @@
 <script setup lang="ts" name="DisplayTab">
 import ChartSelect from '@/components/common/chart-select/index.vue';
 import { ChartType } from '@/enums/app';
-import { computed, defineEmits, reactive, ref, watch, watchEffect } from 'vue';
-import { useStore } from '@/store';
-import { useRoute } from 'vue-router';
+import { computed, defineEmits, reactive, ref, watch, watchEffect, defineProps } from 'vue';
 import { PanelInfo, TagSet } from '@/interface/chart';
 
+interface PropsTab {
+    pChartData: PanelInfo;
+}
+const props = defineProps<PropsTab>();
 const mapToPropsChartSelect: any = {
     line: ChartType.Line,
     areaLine: ChartType.Zone,
@@ -49,19 +51,15 @@ const mapToPropsChartSelect: any = {
 };
 
 const emit = defineEmits(['eOnChange']);
-const store = useStore();
-const route = useRoute();
-const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
-const chartSelected = CPanels.value[route.params.id as any];
 
-const chartTypeMapped = mapToPropsChartSelect[chartSelected[0].chart_type];
-const colorBorder = ref<string>(chartSelected[0].border_color.toUpperCase() || '');
-const showPoint = ref<boolean>(chartSelected[0].show_point.toUpperCase() == 'Y');
-const showLegend = ref<boolean>(chartSelected[0].show_legend.toUpperCase() == 'B');
-const fillOpacity = ref<number>(chartSelected[0].fill || 0);
-const lineThick = ref<number>(chartSelected[0].stroke || 0);
+const chartTypeMapped = mapToPropsChartSelect[props.pChartData.chart_type];
+const colorBorder = ref<string>(props.pChartData.border_color.toUpperCase() || '');
+const showPoint = ref<boolean>(props.pChartData.show_point.toUpperCase() == 'Y');
+const showLegend = ref<boolean>(props.pChartData.show_legend.toUpperCase() == 'B');
+const fillOpacity = ref<number>(props.pChartData.fill || 0);
+const lineThick = ref<number>(props.pChartData.stroke || 0);
 const chartType = ref<ChartType>(ChartType.Zone);
-const pointRadius = ref<number>(chartSelected[0].point_radius || 0);
+const pointRadius = ref<number>(props.pChartData.point_radius || 0);
 
 const onSelectChart = (data: ChartType) => {
     chartType.value = data;

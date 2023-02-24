@@ -72,28 +72,27 @@
 
 <script setup lang="ts" name="GeneralTab">
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
-import { computed, defineEmits, reactive, ref, watch, watchEffect } from 'vue';
-import { useStore } from '@/store';
-import { useRoute } from 'vue-router';
+import { computed, defineEmits, reactive, ref, watch, watchEffect, defineProps } from 'vue';
 import { PanelInfo, TagSet } from '@/interface/chart';
 
+interface PropsTab {
+    pChartData: PanelInfo;
+}
+const props = defineProps<PropsTab>();
 const emit = defineEmits(['eOnChange']);
-const store = useStore();
-const route = useRoute();
-const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
-const chartSelected = CPanels.value[route.params.id as any];
 
-const title = ref<string>(chartSelected[0].chart_title);
-const width = ref<number>(chartSelected[0].chart_width);
-const height = ref<number>(chartSelected[0].chart_height);
-const actionIndex = ref<number>(chartSelected[0].use_detail || 1); // on click point - 0: not use, 1: show raw data chart, 2: show raw data table
-const detailCount = ref<number>(chartSelected[0].detail_count || 0);
-const detailRows = ref<number>(chartSelected[0].detail_rows || 0);
-const zoom = ref<boolean>(chartSelected[0].use_zoom.toUpperCase() == 'Y');
-const zoomStart = ref<boolean>(chartSelected[0].start_with_vport.toUpperCase() == 'Y');
-const drillDown = ref<boolean>(chartSelected[0].drilldown_zoom.toUpperCase() == 'Y');
-const normalize = ref<boolean>(chartSelected[0]?.use_normalize.toUpperCase() == 'Y');
-let gRawChartThreshold = chartSelected[0]?.raw_chart_threshold; // >1 : count, <1 : ratio of total count, =0 : total / count * 2, <0 : not use
+const title = ref<string>(props.pChartData.chart_title);
+const width = ref<number>(props.pChartData.chart_width);
+const height = ref<number>(props.pChartData.chart_height);
+const actionIndex = ref<number>(props.pChartData.use_detail || 1); // on click point - 0: not use, 1: show raw data chart, 2: show raw data table
+const detailCount = ref<number>(props.pChartData.detail_count || 0);
+const detailRows = ref<number>(props.pChartData.detail_rows || 0);
+const zoom = ref<boolean>(props.pChartData.use_zoom.toUpperCase() == 'Y');
+const zoomStart = ref<boolean>(props.pChartData.start_with_vport.toUpperCase() == 'Y');
+const drillDown = ref<boolean>(props.pChartData.drilldown_zoom.toUpperCase() == 'Y');
+const normalize = ref<boolean>(props.pChartData?.use_normalize.toUpperCase() == 'Y');
+// eslint-disable-next-line vue/no-setup-props-destructure
+const gRawChartThreshold = props.pChartData?.raw_chart_threshold; // >1 : count, <1 : ratio of total count, =0 : total / count * 2, <0 : not use
 const rawChart = ref<number>(gRawChartThreshold < 0 ? gRawChartThreshold * -1 : gRawChartThreshold);
 
 const onChangeAction = (item: string) => {
