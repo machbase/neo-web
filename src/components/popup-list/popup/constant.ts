@@ -9,6 +9,6 @@ const CALC_MODE = [
     { id: 'cnt', name: 'Count' },
     { id: 'avg', name: 'Average' },
 ];
-const MAX_TAG_COUNT = 1;
+const MAX_TAG_COUNT = 12;
 
 export { SELECT_THEME, NOT_YET, DATA_TITLE, CALC_MODE, MAX_TAG_COUNT };

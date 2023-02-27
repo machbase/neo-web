@@ -114,7 +114,7 @@ export interface PanelInfo {
     use_custom_color: YorN;
     color_set: string;
     chart_height: number;
-    chart_width: number;
+    chart_width: number | string;
 
     timeout: number;
     x_axis_type: string;
@@ -182,8 +182,8 @@ export interface ReturnTagData {
     TagName: string;
 }
 export interface TimeInfo {
-    startTime: string;
-    endTime: string;
+    startTime: string | number;
+    endTime: string | number;
 }
 
 export interface FetchTagDataArg {

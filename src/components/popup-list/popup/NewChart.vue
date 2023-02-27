@@ -19,7 +19,7 @@
                     <div>Select : {{ selectCount }}</div>
                 </div>
                 <div class="taglistdiv taglistscroll">
-                    <div v-for="(aTime, aIndex) in tagsPaged[pageIndex]" :key="aIndex" style="margin-bottom: 5px" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
+                    <div v-for="(aTime, aIndex) in cTagsSearch" :key="aIndex" style="margin-bottom: 5px" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
                 </div>
                 <Pagination :total="Math.ceil(cTags.length / MAX_TAG_COUNT)" @e-on-change="onPaging" />
             </div>
@@ -60,7 +60,6 @@ import { fetchTablesData } from '@/api/repository/machiot';
 import { ActionTypes } from '@/store/actions';
 import { TagSet } from '@/interface/chart';
 import { CalculationMode } from '@/interface/constants';
-import { getPaginationPages } from '@/utils/utils';
 const emit = defineEmits(['eClosePopup']);
 const searchText = ref<string>('');
 const isSearchClick = ref<boolean>(false);
@@ -82,7 +81,6 @@ const cTableListSelect = computed(() =>
 );
 
 const pageIndex = ref<number>(0);
-const tagsPaged = computed(() => getPaginationPages(cTagsSearch.value, MAX_TAG_COUNT));
 const onChangeTable = (aValue: string) => {
     tableSelected.value = aValue;
 };
@@ -106,7 +104,6 @@ watch(
         store.dispatch(ActionTypes.fetchTagList, tableSelected.value);
     }
 );
-console.log('🚀 ~ file: NewChart.vue:72 ~ cTableList', cTableList.value);
 const onSearch = () => {
     if (searchText.value != '') {
         isSearchClick.value = true;
@@ -140,7 +137,7 @@ const onChangeCalcMode = (data: CalculationMode, index: number) => {
     sSelectedTags[index].calculation_mode = data;
 };
 const onPaging = (index: number) => {
-    pageIndex.value = index - 1;
+    pageIndex.value = index;
 };
 const onSetting = () => {
     if (sSelectedTags.length <= 0) {

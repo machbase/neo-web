@@ -19,6 +19,7 @@ enum MutationTypes {
     setChartEdit = 'setChartEdit',
     setNewChartBoard = 'setNewChartBoard',
     setNewBoard = 'setNewBoard',
+    setDeleteChart = 'setDeleteChart',
 }
 
 const mutations = {
@@ -37,6 +38,11 @@ const mutations = {
     },
     [MutationTypes.setTimeRange](state: RootState, aTimeRange: TimeRange) {
         state.gTimeRange = aTimeRange;
+        state.gBoard = {
+            ...state.gBoard,
+            range_end: aTimeRange.end,
+            range_bgn: aTimeRange.start,
+        };
     },
     [MutationTypes.setTableList](state: RootState, aTableList: any) {
         const mutateTables = [];
@@ -81,8 +87,10 @@ const mutations = {
         state.gTable = aTable;
     },
     [MutationTypes.setChartEdit](state: RootState, payload: { index: number; item: Partial<PanelInfo> }) {
-        console.log('🚀 ~ file: mutations.ts:73 ~ index', payload);
         state.gBoard.panels[payload.index][0] = { ...state.gBoard.panels[payload.index][0], ...payload.item };
+    },
+    [MutationTypes.setDeleteChart](state: RootState, payload: number) {
+        state.gBoard.panels.splice(payload, 1);
     },
 };
 

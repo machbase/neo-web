@@ -3,20 +3,20 @@
         <div class="col-left">
             <p class="title">From</p>
             <div class="row">
-                <DatePicker :p-init="formatDate(dateStart)" @e-change-time="changeTimeStart" />
-                <input :value="formatDate(dateStart)" type="text" class="input" />
+                <DatePicker :p-init="formatDate(dateStart)" :p-disabled="pIsFromTime" @e-change-time="changeTimeStart" />
+                <input :value="formatDate(dateStart)" type="text" class="input" :disabled="pIsFromTime" />
             </div>
             <p class="title">To</p>
             <div class="row">
-                <DatePicker :p-init="formatDate(dateEnd)" :p-disabled="false" @e-change-time="changeTimeEnd" />
-                <input :value="formatDate(dateEnd)" type="text" class="input" :disabled="false" />
+                <DatePicker :p-init="formatDate(dateEnd)" :p-disabled="!pIsFromTime" @e-change-time="changeTimeEnd" />
+                <input :value="formatDate(dateEnd)" type="text" class="input" :disabled="!pIsFromTime" />
             </div>
             <div>
                 <p class="title">Duration</p>
                 <div class="row"><input :value="duration" type="text" class="input" /></div>
             </div>
         </div>
-        <div>
+        <div class="col-right">
             <TimeDuration @eOnTimeDuration="OnTimeRange" />
             <div class="popup__btn-group">
                 <v-btn variant="outlined" class="button-effect-color" @click="onSetting"> Ok </v-btn>
@@ -32,13 +32,18 @@ import DatePicker from '@/components/common/date-picker/index.vue';
 import TimeDuration from '@/components/common/date-list/date-time-duration.vue';
 import '@vuepic/vue-datepicker/dist/main.css';
 import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
-import { computed, defineEmits, reactive, ref, onMounted } from 'vue';
+import { computed, defineEmits, reactive, ref, onMounted, defineProps } from 'vue';
 import { formatDate } from '@/utils/utils';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { fetchRangeData } from '@/api/repository/machiot';
 import { FORMAT_FULL_DATE } from '@/utils/constants';
-
+import { TimeLineType } from '@/interface/date';
+interface TimeDurationProps {
+    pIsFromTime?: boolean;
+    pTimeRange?: TimeLineType;
+}
+const props = defineProps<TimeDurationProps>();
 const store = useStore();
 const dateStart = ref();
 const dateEnd = ref();
@@ -48,7 +53,7 @@ const format = ref();
 
 const changeTimeStart = (data: Date) => {
     // console.log('data', data);
-    dateStart.value = data;
+    dateStart.value = moment(data).format(FORMAT_FULL_DATE);
     // if (duration.value) {
     //     const date = moment(data);
     //     dateEnd.value = date.add(number.value, format.value);
@@ -61,24 +66,31 @@ const OnTimeRange = (data: any) => {
     duration.value = data.value;
     number.value = data.number;
     format.value = data.format;
-    dateEnd.value = moment(dateStart.value).add(data.number, data.format).format(FORMAT_FULL_DATE);
+    props.pIsFromTime === false
+        ? (dateEnd.value = moment(dateStart.value).add(data.number, data.format).format(FORMAT_FULL_DATE))
+        : (dateStart.value = moment(dateEnd.value).subtract(data.number, data.format).format(FORMAT_FULL_DATE));
 };
 const onSetting = () => {
-    onClosePopup();
-    // store.dispatch(ActionTypes.setTimeRange, { start: dateStart.value, end: dateEnd.value }).then(() => onClosePopup());
+    emit('eSettingPopup', {
+        dateStart: dateStart.value,
+        dateEnd: dateEnd.value,
+    });
 };
 
 const onClosePopup = () => {
-    // emit('eClosePopup');
-    console.log('dateStart', dateStart.value);
-    console.log('dateEnd', dateEnd.value);
+    emit('eClosePopup');
 };
-const emit = defineEmits(['eClosePopup']);
+const emit = defineEmits(['eClosePopup', 'eSettingPopup']);
 
-onMounted(async () => {
-    const data: any = await fetchRangeData();
-    dateStart.value = formatDate(data.Data[0].MIN);
-    dateEnd.value = formatDate(data.Data[0].MAX);
+onMounted(() => {
+    if (props.pTimeRange) {
+        dateStart.value = formatDate(props.pTimeRange?.startTime as string);
+        dateEnd.value = formatDate(props.pTimeRange?.endTime as string);
+    } else {
+        const data: any = fetchRangeData();
+        dateStart.value = formatDate(data.Data[0].MIN);
+        dateEnd.value = formatDate(data.Data[0].MAX);
+    }
 });
 </script>
 

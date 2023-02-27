@@ -54,7 +54,7 @@ watchEffect(() => {
     const data: Partial<PanelInfo> = {
         range_bgn: dateStart.value,
         range_end: dateEnd.value,
-        refresh: refresh.value
+        refresh: refresh.value,
     };
     emit('eOnChange', data);
 });

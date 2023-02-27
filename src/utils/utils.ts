@@ -93,23 +93,28 @@ function formatColors(colors: string) {
 function convertChartType(aType: number) {
     let show_point = 'Y';
     let stroke = 0;
+    let fill = 0;
     switch (aType) {
         case 0:
             show_point = 'N';
             stroke = 1;
+            fill = 0.15;
             break;
         case 1:
             show_point = 'Y';
             stroke = 0;
+            fill = 0;
             break;
         case 2:
             show_point = 'Y';
             stroke = 1;
+            fill = 0;
             break;
     }
     return {
         show_point,
         stroke,
+        fill,
     };
 }
 function convertTagChartType(aTags: []) {
@@ -135,22 +140,22 @@ function convertChartDefault(aChartDefault: PanelInfo, aTag: TempNewChartData): 
         color_set: COLOR_SET,
         show_point: chart.show_point,
         stroke: chart.stroke,
-        fill: 0,
+        fill: chart.fill,
         tag_set: tagSet,
     };
 }
-const getPaginationPages = (items: any, pageSize: number): any => {
-    let lastItemOnPage = pageSize;
+const getPaginationPages = (items: any): any => {
+    let lastItemOnPage = MAX_TAG_COUNT - 1;
     let currentItemIndex = 0;
     const numberOfChunks = Math.ceil(items.length / lastItemOnPage);
     const paginationItems = [];
 
     for (let currentChunk = 0; currentChunk < numberOfChunks; currentChunk += 1) {
         paginationItems.push(items.slice(currentItemIndex, lastItemOnPage));
-        currentItemIndex += pageSize;
-        lastItemOnPage += pageSize;
+        currentItemIndex += MAX_TAG_COUNT - 1;
+        lastItemOnPage += MAX_TAG_COUNT - 1;
     }
-    console.log("🚀 ~ file: utils.ts:147 ~ getPaginationPages ~ paginationItems:", paginationItems)
+
     return paginationItems;
 };
 

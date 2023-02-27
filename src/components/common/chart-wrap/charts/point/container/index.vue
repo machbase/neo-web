@@ -53,7 +53,7 @@ const cChartOptions = computed(() => {
         colors: formatColors(props.panelInfo.color_set),
         chart: {
             height: 400,
-            width: props.panelInfo.chart_width <= 0 ? null : props.panelInfo.chart_width,
+            width: (props.panelInfo.chart_width as number) <= 0 ? null : props.panelInfo.chart_width,
             type: 'line',
             zoomType: 'x',
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',

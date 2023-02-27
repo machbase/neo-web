@@ -4,57 +4,44 @@
 import { HighchartsDataset, LineDataset, LinePanel } from '@/interface/chart';
 import { useStore } from '@/store';
 import { toTimeUtcChart } from '@/utils/utils';
-import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults } from 'vue';
+import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults, defineEmits } from 'vue';
 import { formatColors } from '@/utils/utils';
-
+import { watchEffect } from 'vue';
 interface BarChartContainerProps {
     chartData: LineDataset;
+    viewData: LineDataset;
     panelInfo: LinePanel;
     xAxisMinRange: string | number;
     xAxisMaxRange: string | number;
+    xMinTimeRangeViewPort: string | number;
+    xMaxTimeRangeViewPort: string | number;
     isStockChart?: boolean;
+    maxYChart?: number;
+    pIsZoom: boolean;
 }
 
 const props = withDefaults(defineProps<BarChartContainerProps>(), {});
 const store = useStore();
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
+const emit = defineEmits(['eOnChange']);
 
 const data = reactive({
     sMasterSeriesData: [] as HighchartsDataset[],
-    sTimeXaxis: {
-        min: '' as string | number,
-        max: '' as string | number,
-    },
+    sViewPortSeriesData: [] as HighchartsDataset[],
     sTimeChartXaxis: {
         min: '' as string | number,
         max: '' as string | number,
     },
     sChartWidth: 0 as number,
 });
-
 const chart = ref();
-watch(
-    () => props.chartData,
-    () => {
-        createStockChart();
-        console.log('panelInfo', props.panelInfo);
-        data.sTimeXaxis.min = props.xAxisMinRange;
-        data.sTimeXaxis.max = props.xAxisMaxRange;
-        data.sTimeChartXaxis.min = props.xAxisMinRange;
-        data.sTimeChartXaxis.max = props.xAxisMaxRange;
-        data.sChartWidth = chart.value.chart.plotWidth;
-    }
-);
-watch(data.sTimeChartXaxis, () => {
-    console.log('data', data.sTimeChartXaxis);
-});
 
 const cChartOptions = computed(() => {
     return {
         colors: formatColors(props.panelInfo.color_set),
         chart: {
-            // height: 400, ----------- chart_height
-            width: props.panelInfo.chart_width <= 0 ? null : props.panelInfo.chart_width,
+            height: props.panelInfo.chart_height < 400 ? 400 : props.panelInfo.chart_height,
+            width: (props.panelInfo.chart_width as number) <= 0 ? null : props.panelInfo.chart_width,
             type: 'area',
             zoomType: 'x',
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
@@ -74,16 +61,23 @@ const cChartOptions = computed(() => {
         // data Chart
         series: data.sMasterSeriesData,
         // data
-        data: {},
+        // data: {},
         // option chart
         plotOptions: {
             series: {
-                // lineWidth: 1,
                 lineWidth: props.panelInfo.stroke,
-                fillOpacity: 0.1,
+                fillOpacity: props.panelInfo.fill,
                 cursor: 'pointer',
                 marker: {
                     enabled: props.panelInfo.show_point === 'Y',
+                    radius: props.panelInfo.point_radius,
+                },
+                states: {
+                    hover: {
+                        enabled: true,
+                        lineWidthPlus: 0,
+                        lineWidth: 0,
+                    },
                 },
                 point: {
                     events: {
@@ -99,9 +93,15 @@ const cChartOptions = computed(() => {
             liveRedraw: false,
             enabled: false,
         },
+        rangeSelector: {
+            buttons: [],
+            allButtonsEnabled: false,
+            inputEnabled: false,
+            selected: 1,
+        },
         // view point navigator
         navigator: {
-            enabled: true,
+            enabled: props.pIsZoom,
             adaptToUpdatedData: false,
             handles: {
                 // width: 0.5,
@@ -110,16 +110,20 @@ const cChartOptions = computed(() => {
             },
             height: 26,
             maskFill: 'rgba(119, 119, 119, .3)',
-            series: {
-                showInNavigator: true,
-            },
+            // series: data.sViewPortSeriesData,
+            series: data.sViewPortSeriesData.map((i) => {
+                return {
+                    data: i.data,
+                    marker: i.marker,
+                };
+            }),
             outlineWidth: 1,
             // outlineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             xAxis: {
                 // width: data.sChartWidth - 80,
                 type: 'datetime',
-                min: toTimeUtcChart(data.sTimeXaxis.min as string),
-                max: toTimeUtcChart(data.sTimeXaxis.max as string),
+                min: toTimeUtcChart(props.xMinTimeRangeViewPort as string),
+                max: toTimeUtcChart(props.xMaxTimeRangeViewPort as string),
                 labels: {
                     align: 'center',
                     style: {
@@ -153,8 +157,8 @@ const cChartOptions = computed(() => {
             },
             minorTickColor: 'red',
 
-            min: toTimeUtcChart(data.sTimeChartXaxis.min as string),
-            max: toTimeUtcChart(data.sTimeChartXaxis.max as string),
+            min: toTimeUtcChart(props.xAxisMinRange as string),
+            max: toTimeUtcChart(props.xAxisMaxRange as string),
             events: {
                 setExtremes: afterSetExtremes,
             },
@@ -163,7 +167,6 @@ const cChartOptions = computed(() => {
                 width: 0.5,
                 color: 'red',
             },
-            startOnTick: true,
             tickColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
         },
         // Value chart
@@ -172,8 +175,13 @@ const cChartOptions = computed(() => {
             // showFirstLabel: false,
             // min: props.panelInfo.zero_base === 'Y' ? 0 : props.panelInfo.custom_min || null,
             //           max: props.panelInfo.custom_max || null,
-            max: 10, // data
-
+            // max: props.chartData.datasets.reduce((result: number, current: any) => {
+            //     current.data.forEach((a: any) => {
+            //         if (a[1] > result) result = a[1];
+            //     });
+            //     return result;
+            // }, 0),
+            max: props.maxYChart === 0 ? '' : props.maxYChart,
             // tickAmount: 6,
             gridLineWidth: 1,
             gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
@@ -236,18 +244,16 @@ const cChartOptions = computed(() => {
         },
         // No data
         lang: {
-            noData: 'No Data',
+            noData: 'No data',
         },
         noData: {
             style: {
-                fontWeight: 'bold',
+                fontFamily: 'Open Sans,Helvetica,Arial,sans-serif',
                 fontSize: '24px',
                 color: '#9ca2ab',
+                fontStyle: 'italic',
+                fontWeight: 'normal',
             },
-        },
-        // tool
-        rangeSelector: {
-            enabled: false,
         },
         // show link web
         credits: {
@@ -258,33 +264,50 @@ const cChartOptions = computed(() => {
 
 function afterSetExtremes(e) {
     const { chart } = e.target;
-    // console.log('chart :', chart);
-    // console.log('e :', e);
     data.sTimeChartXaxis.min = e.min;
     data.sTimeChartXaxis.max = e.max;
-
-    console.log(e);
-    // chart.showLoading('Loading data from server...');
-    // fetch(`${dataURL}?start=${Math.round(e.min)}&end=${Math.round(e.max)}`)
-    //     .then((res) => res.ok && res.json())
-    //     .then((data1) => {
-    //         data.sMasterSeriesData = data1;
-    //         chart.hideLoading();
-    //     })
-    //     .catch((error) => console.error(error.message));
+    emit('eOnChange', data.sTimeChartXaxis);
 }
 
-const createStockChart = () => {
-    data.sMasterSeriesData = JSON.parse(JSON.stringify(props.chartData.datasets));
+const onCloseNavigator = () => {
+    console.log('firs123t');
 };
+watch(
+    () => props.chartData,
+    () => {
+        if (props.chartData) {
+            data.sMasterSeriesData = props.chartData.datasets;
+        }
+        data.sChartWidth = chart.value.chart.plotWidth;
+    },
+    {
+        // deep: true,
+    }
+);
+watch(
+    () => props.viewData,
+    () => {
+        if (props.viewData) {
+            data.sViewPortSeriesData = props.viewData.datasets;
+        }
+        data.sChartWidth = chart.value.chart.plotWidth;
+    },
+    {
+        // deep: true,
+    }
+);
 defineExpose({
     chart,
 });
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 /* @import 'index.scss'; */
 :deep(.highcharts-legend.highcharts-no-tooltip) {
     display: v-bind("props.panelInfo.show_legend === 'B'? '': 'none'");
 }
+/* .chart-wrap {
+    border: 1px solid !important ;
+    border-color: v-bind("props.panelInfo.border_color === ''? 'red': 'blue'");
+} */
 </style>

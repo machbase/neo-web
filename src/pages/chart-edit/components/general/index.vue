@@ -29,7 +29,7 @@
             <div v-if="actionIndex === 2">
                 <label for="_cfg_chart_table_limit">Raw data table limits</label>
                 <div class="cfg-input">
-                    <input id="_cfg_chart_table_limit" style="width: 250px" v-model="detailRows" type="text" class="input" />
+                    <input id="_cfg_chart_table_limit" v-model="detailRows" style="width: 250px" type="text" class="input" />
                 </div>
                 <label for="_cfg_chart_row">Rows per page</label>
                 <div class="cfg-input">

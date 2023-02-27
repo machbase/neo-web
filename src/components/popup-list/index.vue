@@ -18,8 +18,14 @@
                 <NewTags v-if="pType === PopupType.NEW_TAGS" :no-of-select-tags="props.pNoOfSelectTags as number" @eClosePopup="onClosePopup" @e-submit="onSubmitTag" />
                 <Preferences v-if="pType === PopupType.PREFERENCES" @eClosePopup="onClosePopup" />
                 <SaveDashboard v-if="pType === PopupType.SAVE_DASHBOARD" @eClosePopup="onClosePopup" />
-                <TimeRange v-if="pType === PopupType.TIME_RANGE" @eClosePopup="onClosePopup" />
-                <TimeDuration v-if="pType === PopupType.TIME_DURATION" @eClosePopup="onClosePopup" />
+                <TimeRange v-if="pType === PopupType.TIME_RANGE" :p-time-range="pTimeRange" @eClosePopup="onClosePopup" />
+                <TimeDuration
+                    v-if="pType === PopupType.TIME_DURATION"
+                    :p-is-from-time="pIsFromTime"
+                    :p-time-range="pTimeRange"
+                    @eClosePopup="onClosePopup"
+                    @eSettingPopup="onSettingPopup"
+                />
             </div>
         </div>
     </v-dialog>
@@ -37,8 +43,8 @@ import Preferences from './popup/Preferences.vue';
 import SaveDashboard from './popup/SaveDashboard.vue';
 import TimeDuration from './popup/TimeDuration.vue';
 import TimeRange from './popup/TimeRange.vue';
+import { TimeLineType } from '@/interface/date';
 const onSubmitTag = (data: any) => {
-    console.log('🚀 ~ file: index.vue:41 ~ test ~ data', data);
     emit('eSubmitTags', data);
 };
 interface PopupWrapProps {
@@ -46,9 +52,11 @@ interface PopupWrapProps {
     pShow: boolean;
     pWidth?: string;
     pNoOfSelectTags?: number;
+    pIsFromTime?: boolean;
+    pTimeRange?: TimeLineType;
 }
 const props = defineProps<PopupWrapProps>();
-const emit = defineEmits(['eClosePopup', 'eSubmitTags']);
+const emit = defineEmits(['eClosePopup', 'eSubmitTags', 'eSettingPopup']);
 const store = useStore();
 const sDialog = ref<boolean>(false);
 
@@ -56,12 +64,17 @@ const onClosePopup = () => {
     sDialog.value = false;
     emit('eClosePopup');
 };
+const onSettingPopup = (aValue: any) => {
+    sDialog.value = false;
+    emit('eSettingPopup', aValue);
+};
 
 watch(
     () => props.pShow,
     () => {
         if (props.pShow === true) sDialog.value = true;
     }
+    // { immediate: true }
 );
 
 // Test

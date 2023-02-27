@@ -210,7 +210,6 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
         aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(data.sTimeLine.startTime as string, data.sTimeLine.endTime as string, sChartWidth) : data.sIntervalData;
     for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
-        console.log('sTagSetElement', sTagSetElement);
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
             Table: sTagSetElement.table,
             TagNames: sTagSetElement.tag_names,
@@ -366,8 +365,8 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType) => {
     data.sIsLoading = false;
 };
 
-onMounted(async () => {
-    await intializePanelData();
+onMounted(() => {
+    intializePanelData();
 });
 </script>
 

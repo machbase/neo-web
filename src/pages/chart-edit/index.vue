@@ -29,7 +29,7 @@ import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { MutationTypes } from '@/store/mutations';
-import { computed, ref, watch, reactive } from 'vue';
+import { computed, ref, watch, reactive, watchEffect } from 'vue';
 import { useRoute } from 'vue-router';
 import AxesTab from '../chart-edit/components/axes/index.vue';
 import DataTab from '../chart-edit/components/data/index.vue';
@@ -88,15 +88,16 @@ watch(
     }
 );
 watch(
-    CPanels,
+    () => CPanels.value,
     () => {
-        if (route.params.id) {
+        if (CPanels.value.length === 0) return;
+        if (CPanels.value) {
             sDataChart.value = CPanels.value[route.params.id as any];
         } else {
             sDataChart.value = CPanels.value[0];
         }
     },
-    { immediate: true }
+    { immediate: true, deep: true }
 );
 </script>
 

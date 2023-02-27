@@ -1,11 +1,11 @@
 <template>
     <div class="tag-view">
-        <ChartDashboard ref="sPanels" />
+        <ChartDashboard ref="sPanels" :chart-data-single="sDataChart" />
     </div>
 </template>
 <script setup lang="ts" name="ChartView">
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
-import { BoardInfo } from '@/interface/chart';
+import { BoardInfo, PanelInfo } from '@/interface/chart';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
@@ -19,6 +19,8 @@ const sData = ref<BoardInfo>();
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
 const cBoard = computed((): BoardInfo => store.state.gBoard);
 const sPanels = ref(null);
+const sDataChart = ref<PanelInfo[]>([]);
+const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 
 function onOpenPopup() {
     sDialog.value = true;
@@ -38,23 +40,22 @@ const onRefreshData = (aIsRangeTimeChange: boolean) => {
 onRefreshData(true);
 
 watch(
-    () => route.query.id,
+    () => cBoardList.value,
     () => {
-        if (route.query.id) {
-            setBoard(route.query.id as string);
-        }
+        setBoard(cBoardList.value[0]?.board_id as string);
     }
 );
 watch(
-    () => cBoardList.value,
+    () => CPanels.value,
     () => {
-        if (!route.query.id && cBoardList.value.length > 0) {
-            setBoard(cBoardList.value[0]?.board_id as string);
+        if (CPanels.value.length === 0) return;
+        if (CPanels.value) {
+            sDataChart.value = CPanels.value[route.params.id as any];
+        } else {
+            sDataChart.value = CPanels.value[0];
         }
-        if (route.query.id) {
-            setBoard(route.query.id as string);
-        }
-    }
+    },
+    { immediate: true, deep: true }
 );
 </script>
 

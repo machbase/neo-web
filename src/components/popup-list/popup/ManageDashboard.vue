@@ -7,7 +7,7 @@
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(aBoard, aIndex) in tagsPaged[pageIndex]" :key="aBoard.board_id">
+                <tr v-for="(aBoard, aIndex) in sBoardList" :key="aBoard.board_id">
                     <td class="text-row">{{ aIndex }}</td>
                     <td class="text-row">{{ aBoard.board_id }}</td>
                     <td class="text-row">
@@ -28,7 +28,7 @@
                 </tr>
             </tbody>
         </v-table>
-        <Pagination :total="cTotal" @e-on-change="onPaging" />
+        <Pagination :total="cTotal" />
     </div>
 </template>
 
@@ -45,7 +45,6 @@ import { MutationTypes } from '@/store/mutations';
 import { computed, defineEmits, ref, watch } from 'vue';
 import { DATA_TITLE } from './constant';
 import { LENGTH_LIST } from '@/utils/constants';
-import { getPaginationPages } from '@/utils/utils';
 export interface BoardInfo {
     board_id: string;
     board_name: string;
@@ -65,8 +64,7 @@ const sBoardList = ref<BoardInfo[]>(
     })
 );
 const cTotal = computed(() => Math.ceil(sBoardList.value.length / LENGTH_LIST));
-const pageIndex = ref<number>(0);
-const tagsPaged = computed(() => getPaginationPages(sBoardList.value, LENGTH_LIST));
+
 const onEditBoard = async (aBoard: BoardInfo) => {
     const sRes = await putBoard({ sId: aBoard.board_id, board_name: aBoard.board_name });
     await store.commit(MutationTypes.setBoardList, sRes);
@@ -89,9 +87,6 @@ const onDeleteBoard = async (sId: string, sName: string) => {
             edit: false,
         };
     });
-};
-const onPaging = (index: number) => {
-    pageIndex.value = index - 1;
 };
 </script>
 

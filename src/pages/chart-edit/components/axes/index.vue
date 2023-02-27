@@ -64,9 +64,9 @@
                 <div class="cfg-input">
                     <label>Position of Y-axis</label>
                     <div class="input radio-wrapper" style="width: 270px">
-                        <input type="radio" id="one" value="l" v-model="picked" />
+                        <input id="one" v-model="picked" type="radio" value="l" />
                         <label for="one">Left side</label>
-                        <input type="radio" id="two" value="r" v-model="picked" />
+                        <input id="two" v-model="picked" type="radio" value="r" />
                         <label for="two">Right side</label>
                     </div>
                 </div>

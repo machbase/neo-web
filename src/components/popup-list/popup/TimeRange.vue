@@ -16,7 +16,7 @@
                 <div class="row"><ComboboxTime @e-on-change="changeRefresh" /><v-btn class="button-apply" variant="outlined" @click="onSetting"> Apply </v-btn></div>
             </div>
         </div>
-        <TimeRange @eOnTimeRange="OnTimeRange" />
+        <TimeRange class="col-right" @eOnTimeRange="OnTimeRange" />
     </div>
 </template>
 
@@ -25,12 +25,20 @@ import DatePicker from '@/components/common/date-picker/index.vue';
 // import '@vuepic/vue-datepicker/dist/main.css';
 import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
 import TimeRange, { TimeRangeInput } from '@/components/common/date-list/date-time-range.vue';
-import { computed, defineEmits, reactive, ref } from 'vue';
+import { computed, defineEmits, reactive, ref, onMounted, defineProps } from 'vue';
 import { formatDate } from '@/utils/utils';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
+import { TimeLineType } from '@/interface/date';
+interface TimeRangeProps {
+    pTimeRange?: TimeLineType;
+}
+const props = defineProps<TimeRangeProps>();
+const cTimeRange = computed(() => store.state.gBoard);
+const dateStart = ref('');
+const dateEnd = ref('');
+const refresh = ref();
 const store = useStore();
-const cTimeRange = computed(() => store.state.gTimeRange);
 const changeTimeStart = (data: Date) => {
     dateStart.value = formatDate(data);
 };
@@ -52,9 +60,6 @@ const onClosePopup = () => {
     emit('eClosePopup');
 };
 const emit = defineEmits(['eClosePopup']);
-const dateStart = ref(cTimeRange.value.start);
-const dateEnd = ref(cTimeRange.value.end);
-const refresh = ref(cTimeRange.value.refresh);
 </script>
 
 <style lang="scss" scoped>
