@@ -87,7 +87,7 @@ const onSubmitTag = (data: any) => {
 watch(
     props,
     () => {
-        tempTagSets.value = cloneDeep(props.pChartData.tag_set);
+        tempTagSets.value = cloneDeep(props.pChartData?.tag_set);
     },
     {
         immediate: true,

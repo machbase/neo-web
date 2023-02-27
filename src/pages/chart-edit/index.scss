@@ -34,16 +34,15 @@
 
     .nav-pills li {
         @include font-12;
-        display: inline;
-        margin-right: 30px;
+        display: inline-block;
+        width: 70px;
         cursor: pointer;
 
         @include theme() {
             color: theme-get('text-title-tab') !important;
         }
 
-        font-weight: 500;
-        font-style: normal;
+        font-weight: bold;
         margin-left: 20px;
     }
 
