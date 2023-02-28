@@ -4,12 +4,12 @@
             <p class="title">From</p>
             <div class="row">
                 <DatePicker :p-init="formatDate(dateStart)" :p-disabled="pIsFromTime" @e-change-time="changeTimeStart" />
-                <input :value="formatDate(dateStart)" type="text" class="input" :disabled="pIsFromTime" />
+                <input :value="formatDate(dateStart)" type="text" class="input disable-icon" :disabled="pIsFromTime" />
             </div>
             <p class="title">To</p>
             <div class="row">
                 <DatePicker :p-init="formatDate(dateEnd)" :p-disabled="!pIsFromTime" @e-change-time="changeTimeEnd" />
-                <input :value="formatDate(dateEnd)" type="text" class="input" :disabled="!pIsFromTime" />
+                <input :value="formatDate(dateEnd)" type="text" class="input disable-icon" :disabled="!pIsFromTime" />
             </div>
             <div>
                 <p class="title">Duration</p>

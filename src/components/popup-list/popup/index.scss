@@ -159,6 +159,10 @@ $height: 30px;
     .col-right {
         width: 45%;
     }
+    .disable-icon:disabled {
+        cursor: not-allowed;
+        color: rgb(119, 119, 119);
+    }
 }
 
 .manage-dashboard {

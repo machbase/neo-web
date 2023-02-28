@@ -34,15 +34,27 @@
         </div>
         <!--  -->
         <div v-else class="chart-wrap__header-icons">
-            <v-icon v-if="route.name !== RouteNames.CHART_EDIT" size="small" class="icon" icon="mdi-content-save"></v-icon>
-            <router-link v-if="route.name !== RouteNames.CHART_EDIT" :to="{ name: RouteNames.CHART_VIEW }" target="_blank">
+            <!-- <v-icon v-if="route.name !== RouteNames.CHART_EDIT" size="small" class="icon" icon="mdi-content-save"></v-icon> -->
+            <router-link
+                v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW"
+                :to="{ name: RouteNames.CHART_VIEW, params: { id: panelInfo.i } }"
+                target="_blank"
+            >
                 <img :src="i_w_newwin" class="icon" />
             </router-link>
-            <router-link v-if="route.name !== RouteNames.CHART_EDIT" :to="{ name: RouteNames.CHART_EDIT, params: { id: panelInfo.i } }">
+            <router-link
+                v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW && route.name !== RouteNames.VIEW"
+                :to="{ name: RouteNames.CHART_EDIT, params: { id: panelInfo.i } }"
+            >
                 <img :src="i_w_edit" class="icon" />
             </router-link>
-            <img v-if="route.name === RouteNames.CHART_EDIT || route.name === RouteNames.TAG_VIEW" :src="i_w_refresh" class="icon" />
-            <img v-if="route.name !== RouteNames.CHART_EDIT" :src="i_w_del" class="icon" />
+            <img :src="i_w_refresh" class="icon" @click="onReloadChart" />
+            <img
+                v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW && route.name !== RouteNames.VIEW"
+                :src="i_w_del"
+                class="icon"
+                @click="onDeleteBoard"
+            />
         </div>
     </div>
 </template>
@@ -94,6 +106,9 @@ function convertInterType(gUnit: string) {
     }
 }
 const onDeleteBoard = () => {
+    if (!confirm(`Are you sure you want to delete this chart(${props.panelInfo.chart_title})?`)) {
+        return;
+    }
     store.commit(MutationTypes.setDeleteChart, props.panelInfo.i);
 };
 const onReloadChart = () => {

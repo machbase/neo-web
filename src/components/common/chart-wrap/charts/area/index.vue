@@ -233,7 +233,6 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
     if (!sTagSet.length) return;
-    console.log('aCustomRange', aCustomRange);
     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
     if (!aCustomRange) {
         sTimeRange = {
@@ -546,7 +545,6 @@ watch(
 );
 onMounted(() => {
     intializePanelData();
-    console.log('first');
 });
 </script>
 
