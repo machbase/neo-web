@@ -15,7 +15,7 @@
                     <v-tooltip activator="parent" location="bottom">Zoom out x2</v-tooltip>
                 </div>
                 <div>
-                    <v-icon color="#fff" size="x-large" icon="mdi-image-filter-center-focus-strong-outline" @click="adjustViewportFocus"></v-icon>
+                    <v-icon :color="cIsDarkMode ? '#fff' : '#2ec0df'" size="x-large" icon="mdi-image-filter-center-focus-strong-outline" @click="adjustViewportFocus"></v-icon>
                     <v-tooltip activator="parent" location="bottom">Focus</v-tooltip>
                 </div>
                 <div>
@@ -74,6 +74,8 @@ const sDateLeft = ref<string | number>('');
 const sDateRight = ref<string | number>('');
 const sIsFromTime = ref<boolean>(false);
 const cRangeData = computed(() => store.state.gRangeData);
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
+
 const onChangeEmit = (aValue: number) => {
     emit('eOnChangeSRF', aValue);
 };
