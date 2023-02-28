@@ -48,7 +48,7 @@ watch(
               }) as PanelInfo[])
             : [];
     },
-    { immediate: true, deep: true }
+    { immediate: true }
 );
 watch(
     () => props.chartDataSingle,
