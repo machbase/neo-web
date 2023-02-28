@@ -122,7 +122,7 @@ const customScaleRawInit2: CustomScaleInput = {
 };
 
 const tagSets = computed((): any => {
-    return props.pChartData.tag_set.reduce((res: any, item: any, index: number) => {
+    return props.pChartData?.tag_set.reduce((res: any, item: any, index: number) => {
         const item1 = item;
         item1.id = index;
         res.push(item1);
@@ -142,7 +142,6 @@ const tagOptions = computed((): any => {
         return res;
     }, []);
 });
-const tagsSelected = ref<any>([]);
 const tagSetsSelected = computed((): any => {
     return tagSets.value.filter((item: TagSet) => item.use_y2 == 'Y');
 });
