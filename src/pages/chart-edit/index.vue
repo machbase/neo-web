@@ -53,6 +53,7 @@ const sShowTab = ref<boolean>(true);
 
 const onChangeTabData = (data: Partial<PanelInfo>) => {
     sTabData.value = { ...sTabData.value, ...data };
+    // sDataChart.value[0] = { ...sTabData.value, ...data };
 };
 const onSave = () => {
     const payload = {
@@ -97,7 +98,7 @@ watch(
             sDataChart.value = CPanels.value[0];
         }
     },
-    { immediate: true, deep: true }
+    { immediate: true }
 );
 </script>
 

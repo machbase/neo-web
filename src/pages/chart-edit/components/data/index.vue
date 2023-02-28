@@ -29,7 +29,7 @@
             :width="'667px'"
             :p-type="PopupType.NEW_TAGS"
             :p-show="sDialog"
-            :p-no-of-select-tags="tempTagSets.length"
+            :p-no-of-select-tags="tempTagSets?.length"
             @e-close-popup="onClosePopup"
             @e-submit-tags="onSubmitTag"
         />
