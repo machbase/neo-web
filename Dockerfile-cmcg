@@ -3,7 +3,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm config set fetch-retry-mintimeout 20000
 RUN npm config set fetch-retry-maxtimeout 120000
-RUN npm install -f
+RUN npm i -g npm@9.5.1
+RUN npm install -f --prefer-offline --no-audit --no-fund
 COPY ./ .
 RUN npm run build:cmcgdev
 
