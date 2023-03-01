@@ -82,7 +82,7 @@ const props = defineProps<PropsTab>();
 const emit = defineEmits(['eOnChange']);
 
 const title = ref<string>(props.pChartData.chart_title);
-const width = ref<number>(props.pChartData.chart_width);
+const width = ref<number | string>(props.pChartData.chart_width);
 const height = ref<number>(props.pChartData.chart_height);
 const actionIndex = ref<number>(props.pChartData.use_detail || 1); // on click point - 0: not use, 1: show raw data chart, 2: show raw data table
 const detailCount = ref<number>(props.pChartData.detail_count || 0);

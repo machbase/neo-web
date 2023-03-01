@@ -223,32 +223,28 @@ watchEffect(() => {
     };
     emit('eOnChange', data);
 });
-watch(
-    props.pChartData,
-    () => {
-        if (props.pChartData.interval_type != '') {
-            interval.value = props.pChartData.interval_value.toString() + props.pChartData.interval_type.slice(0, 1);
-            intervalUnit.value = props.pChartData.interval_type;
-            intervalValue.value = props.pChartData.interval_value;
-        } else interval.value = '';
-        if (props.pChartData.show_x_tickline) {
-            isShowTickLineX.value = props.pChartData.show_x_tickline.toUpperCase() == 'Y';
-        } else isShowTickLineX.value = true;
-        if (props.pChartData.show_y_tickline) {
-            isShowTickLineY.value = props.pChartData.show_y_tickline.toUpperCase() == 'Y';
-        } else isShowTickLineY.value = true;
-        if (props.pChartData.show_y_tickline2) {
-            isShowTickLineY2.value = props.pChartData.show_y_tickline2.toUpperCase() == 'Y';
-        } else isShowTickLineY2.value = true;
-        pixel.value = props.pChartData.pixels_per_tick;
-        if (pixel.value <= 0) pixel.value = 1;
-        isZeroBase.value = props.pChartData.zero_base.toUpperCase() == 'Y';
-        isZeroBase2.value = props.pChartData.zero_base2.toUpperCase() == 'Y';
-        if (tagSets.value[0].use_y2 == 'Y') isAdditionalYAxis.value = true;
-        picked.value = props.pChartData.use_right_y2.toUpperCase() == 'Y' ? 'r' : 'l';
-    },
-    { immediate: true }
-);
+watch(props.pChartData, () => {
+    if (props.pChartData.interval_type != '') {
+        interval.value = props.pChartData.interval_value.toString() + props.pChartData.interval_type.slice(0, 1);
+        intervalUnit.value = props.pChartData.interval_type;
+        intervalValue.value = props.pChartData.interval_value;
+    } else interval.value = '';
+    if (props.pChartData.show_x_tickline) {
+        isShowTickLineX.value = props.pChartData.show_x_tickline.toUpperCase() == 'Y';
+    } else isShowTickLineX.value = true;
+    if (props.pChartData.show_y_tickline) {
+        isShowTickLineY.value = props.pChartData.show_y_tickline.toUpperCase() == 'Y';
+    } else isShowTickLineY.value = true;
+    if (props.pChartData.show_y_tickline2) {
+        isShowTickLineY2.value = props.pChartData.show_y_tickline2.toUpperCase() == 'Y';
+    } else isShowTickLineY2.value = true;
+    pixel.value = props.pChartData.pixels_per_tick;
+    if (pixel.value <= 0) pixel.value = 1;
+    isZeroBase.value = props.pChartData.zero_base.toUpperCase() == 'Y';
+    isZeroBase2.value = props.pChartData.zero_base2.toUpperCase() == 'Y';
+    if (tagSets.value[0].use_y2 == 'Y') isAdditionalYAxis.value = true;
+    picked.value = props.pChartData.use_right_y2.toUpperCase() == 'Y' ? 'r' : 'l';
+});
 </script>
 
 <style lang="scss" scoped>
