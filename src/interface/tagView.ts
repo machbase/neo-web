@@ -1,4 +1,4 @@
-import { TagSet } from './chart';
+import { PanelInfo, TagSet } from './chart';
 import { ChartType } from './../enums/app';
 export interface ResBoardList {
     board_id: string;
@@ -24,3 +24,9 @@ export interface TempNewChartData {
     chartType: ChartType;
     tagSet: TagSet[];
 }
+
+export interface BoardPanelEdit {
+    index: number;
+    item: PanelInfo;
+}
+

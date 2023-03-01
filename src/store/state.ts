@@ -1,5 +1,5 @@
-import { ResBoardList, ResPreferences, TempNewChartData, TimeRange } from '@/interface/tagView';
-import { BoardInfo, RangeData } from '@/interface/chart';
+import { BoardPanelEdit, ResBoardList, ResPreferences, TempNewChartData, TimeRange } from '@/interface/tagView';
+import { BoardInfo, RangeData, PanelInfo } from '@/interface/chart';
 
 const state = {
     /* Global */
@@ -28,6 +28,11 @@ const state = {
         range_bgn: '',
         panels: [],
     } as BoardInfo,
+
+    gBoardPanelEdit: {
+        index: 0,
+        item: {},
+    } as BoardPanelEdit,
 
     // Range Time chart
     gRangeData: {} as RangeData,
