@@ -54,7 +54,7 @@ watch(
         }
     }
 );
-
+store.dispatch(ActionTypes.fetchTableList);
 store.dispatch(ActionTypes.fetchRangeData);
 </script>
 

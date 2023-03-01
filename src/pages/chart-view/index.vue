@@ -57,6 +57,7 @@ watch(
     },
     { immediate: true, deep: true }
 );
+store.dispatch(ActionTypes.fetchTableList);
 </script>
 
 <style lang="scss" scoped>

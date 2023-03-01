@@ -46,6 +46,7 @@ watch(
     },
     { immediate: true }
 );
+store.dispatch(ActionTypes.fetchTableList);
 store.dispatch(ActionTypes.fetchRangeData);
 </script>
 

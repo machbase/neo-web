@@ -1,5 +1,8 @@
 <template>
     <div class="header">
+        <div v-if="sLoading" class="loading-rollUp">
+            <img :src="cIsDarkMode ? loader_b : loader_w" class="icon" />
+        </div>
         <div class="header__link">
             <img :src="logo" class="icon" />
             <ComboboxSelect
@@ -17,7 +20,7 @@
                     <div ref="childGroup" class="child-group">
                         <div class="item" @click="onClickPopupItem(PopupType.PREFERENCES)">{{ PREFERENCE }}</div>
                         <div class="item" @click="onClickPopupItem(PopupType.MANAGE_DASHBOARD)">{{ MANAGE_DASHBOARD }}</div>
-                        <div class="item">{{ REQUEST_ROLLUP }}</div>
+                        <div class="item" @click="onRollUp">{{ REQUEST_ROLLUP }}</div>
                     </div>
                 </div>
                 <img :src="i_b_menu_1" class="icon" />
@@ -71,6 +74,8 @@ import i_b_refresh from '@/assets/image/i_b_refresh.png';
 import i_b_save_2 from '@/assets/image/i_b_save_2.png';
 import i_b_share from '@/assets/image/i_b_share.png';
 import i_b_timerange from '@/assets/image/i_b_timerange.png';
+import loader_b from '@/assets/image/ajax-loader-b.gif';
+import loader_w from '@/assets/image/ajax-loader-w.gif';
 import logo from '@/assets/image/i_logo.png';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
@@ -83,6 +88,7 @@ import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from './constant';
 import { BarPanel, startTimeToendTimeType } from '@/interface/chart';
+import { fetchRollUp } from '@/api/repository/machiot';
 
 export type headerType = RouteNames.TAG_VIEW | RouteNames.VIEW | RouteNames.CHART_VIEW | RouteNames.CHART_EDIT | RouteNames.NEW;
 const store = useStore();
@@ -94,8 +100,11 @@ const sDialog = ref<boolean>(false);
 const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
 const childGroup = ref();
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
+const cTableList = computed((): [] => store.state.gTableList);
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const boardSelected = computed((): string => cBoardList.value.find(({ board_id }) => board_id === route.params.id)?.board_name as string);
 const gBoard = computed(() => store.state.gBoard);
+const sLoading = ref<boolean>(false);
 const cBoardListSelect = computed(() =>
     cBoardList.value.map((aItem) => {
         return {
@@ -261,6 +270,27 @@ const onClickPopupItem = (aPopupName: PopupType) => {
 const onReload = () => {
     let id = route.query.id || cBoardList.value[0]?.board_id;
     store.dispatch(ActionTypes.fetchBoard, id);
+};
+const onRollUp = async () => {
+    sLoading.value = true;
+    for (let i = 0; i < cTableList.value.length; i++) {
+        let aTable = cTableList.value[i];
+        await fetchRollUp(aTable)
+            .then((res: any) => {
+                var sRes = res.Data;
+                if (sRes.length > 0 && sRes[0][0].hasOwnProperty('EXECUTE RESULT')) {
+                    alert(aTable + ' : ' + sRes[0][0]['EXECUTE RESULT']);
+                } else if (res.ErrorMessage != '') {
+                    alert(res.ErrorMessage);
+                } else {
+                    alert("'EXEC ROLLUP_FORCE(" + aTable + ")' does not respond.");
+                }
+            })
+            .catch((err) => {
+                alert('code:' + err.status + '\n' + 'message:' + err.responseText + '\n' + 'error:' + err);
+            });
+    }
+    sLoading.value = false;
 };
 store.dispatch(ActionTypes.fetchBoardList);
 

@@ -100,6 +100,7 @@ watch(
     },
     { immediate: true }
 );
+store.dispatch(ActionTypes.fetchTableList);
 </script>
 
 <style lang="scss" scoped>
