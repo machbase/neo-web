@@ -79,7 +79,7 @@ const onSubmitTag = (data: any) => {
     tempTagSets.value.push(...data);
 };
 watch(
-    props,
+    () => props.pChartData,
     () => {
         tempTagSets.value = cloneDeep(props.pChartData?.tag_set);
     },
@@ -93,7 +93,6 @@ watch(
         const data: Partial<PanelInfo> = {
             tag_set: tempTagSets.value,
         };
-        console.log('🚀 ~ file: index.vue:90 ~ data:', data);
         emit('eOnChange', data);
     },
     {

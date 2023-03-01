@@ -51,6 +51,7 @@ watchEffect(
     }
     // { immediate: true }
 );
+
 watch(
     () => props.chartDataSingle,
     () => {
@@ -66,7 +67,7 @@ watch(
                 : [];
         }
     },
-    { immediate: true }
+    { immediate: true, deep: true }
 );
 
 defineExpose({});

@@ -36,6 +36,7 @@ import DataTab from '../chart-edit/components/data/index.vue';
 import DisplayTab from '../chart-edit/components/display/index.vue';
 import GeneralTab from '../chart-edit/components/general/index.vue';
 import TimeRangeTab from '../chart-edit/components/time-range/index.vue';
+import { cloneDeep } from 'lodash';
 
 const tabs = ['General', 'Data', 'Axes', 'Display', 'Time range'];
 const route = useRoute();
@@ -77,10 +78,6 @@ const setBoard = async (sId: string) => {
     await store.dispatch(ActionTypes.fetchRangeData);
     await store.dispatch(ActionTypes.fetchBoard, sId);
 };
-const onRefreshData = (aIsRangeTimeChange: boolean) => {
-    (sPanels.value as any)?.refreshData(aIsRangeTimeChange);
-};
-onRefreshData(true);
 
 watch(
     () => cBoardList.value,
@@ -92,10 +89,11 @@ watch(
     () => CPanels.value,
     () => {
         if (CPanels.value.length === 0) return;
+        let clone = cloneDeep(CPanels.value);
         if (CPanels.value) {
-            sDataChart.value = CPanels.value[route.params.id as any];
+            sDataChart.value = clone[route.params.id as any];
         } else {
-            sDataChart.value = CPanels.value[0];
+            sDataChart.value = clone[0];
         }
     },
     { immediate: true }
