@@ -56,5 +56,11 @@ const fetchTags = async (table: string) => {
         url: `/machiot-rest-api/tags/list/?table=${table}`,
     });
 };
+const fetchRollUp = async (table: string) => {
+    return await request({
+        method: 'GET',
+        url: `/machiot-rest-api/rollup/?table=${table}`,
+    });
+};
 
-export { fetchCalculationData, fetchRawData, fetchTablesData, fetchRollupData, fetchRangeData, fetchTags };
+export { fetchCalculationData, fetchRawData, fetchTablesData, fetchRollupData, fetchRangeData, fetchTags, fetchRollUp };
