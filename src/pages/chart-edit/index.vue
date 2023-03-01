@@ -53,13 +53,13 @@ const sShowTab = ref<boolean>(true);
 
 const onChangeTabData = (data: Partial<PanelInfo>) => {
     sTabData.value = { ...sTabData.value, ...data };
-    // sDataChart.value[0] = { ...sTabData.value, ...data };
 };
 const onSave = () => {
     const payload = {
         index: route.params.id,
         item: sTabData.value,
     };
+    sDataChart.value[0] = { ...sDataChart.value[0], ...sTabData.value };
     store.commit(MutationTypes.setChartEdit, payload);
 };
 

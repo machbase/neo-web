@@ -45,9 +45,6 @@ import { CalculationMode } from '@/interface/constants';
 import { computed, ref, watch, defineEmits, watchEffect, defineProps } from 'vue';
 import { PopupType } from '@/enums/app';
 import PopupWrap from '@/components/popup-list/index.vue';
-import { useStore } from '@/store';
-import { ActionTypes } from '@/store/actions';
-import { useRoute } from 'vue-router';
 import { PanelInfo, TagSet } from '@/interface/chart';
 import { cloneDeep } from 'lodash';
 
@@ -56,9 +53,6 @@ interface PropsTab {
 }
 const props = defineProps<PropsTab>();
 const emit = defineEmits(['eOnChange']);
-const store = useStore();
-const route = useRoute();
-const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const tempTagSets = ref<TagSet[]>([]);
 const sDialog = ref<boolean>(false);
 const onChangeTagName = (aEvent: Event, aIndex: number) => {
@@ -79,7 +73,7 @@ const onRemove = (aIndex: number) => {
     tempTagSets.value.splice(aIndex, 1);
 };
 const onAdd = () => {
-    tempTagSets.value.push(tempTagSets.value[tempTagSets.value.length - 1]);
+    tempTagSets.value.push(tempTagSets.value[tempTagSets.value?.length - 1]);
 };
 const onSubmitTag = (data: any) => {
     tempTagSets.value.push(...data);

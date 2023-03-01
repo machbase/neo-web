@@ -87,7 +87,8 @@ const mutations = {
         state.gTable = aTable;
     },
     [MutationTypes.setChartEdit](state: RootState, payload: { index: number; item: Partial<PanelInfo> }) {
-        state.gBoard.panels[payload.index][0] = { ...state.gBoard.panels[payload.index][0], ...payload.item };
+        state.gBoardPanelEdit.index = payload.index;
+        state.gBoardPanelEdit.item = { ...state.gBoard.panels[payload.index][0], ...payload.item };
     },
     [MutationTypes.setDeleteChart](state: RootState, payload: number) {
         state.gBoard.panels.splice(payload, 1);
