@@ -268,10 +268,6 @@ function afterSetExtremes(e) {
     data.sTimeChartXaxis.max = e.max;
     emit('eOnChange', data.sTimeChartXaxis);
 }
-
-const onCloseNavigator = () => {
-    console.log('firs123t');
-};
 watch(
     () => props.chartData,
     () => {
