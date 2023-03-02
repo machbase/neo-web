@@ -57,9 +57,7 @@
             >
                 <img v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" :src="i_b_share" class="icon" />
             </router-link>
-            <router-link v-if="sHeaderType === RouteNames.CHART_EDIT" :to="{ name: RouteNames.TAG_VIEW }" class="icon">
-                <img :src="i_b_save_2" />
-            </router-link>
+            <img v-if="sHeaderType === RouteNames.CHART_EDIT" class="icon" :src="i_b_save_2" @click="onSaveEdit" />
             <a class="icon"><img v-if="sHeaderType === RouteNames.CHART_EDIT" :src="i_b_close" style="margin-top: 7px" @click="router.go(-1)" /></a>
         </div>
     </div>
@@ -84,6 +82,7 @@ import { RouteNames } from '@/enums/routes';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
+import { MutationTypes } from '@/store/mutations';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from './constant';
@@ -291,6 +290,12 @@ const onRollUp = async () => {
             });
     }
     sLoading.value = false;
+};
+const onSaveEdit = async () => {
+    await store.commit(MutationTypes.setChartBoardEdit);
+    router.push({
+        name: RouteNames.TAG_VIEW,
+    });
 };
 store.dispatch(ActionTypes.fetchBoardList);
 

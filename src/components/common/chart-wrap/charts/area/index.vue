@@ -1,5 +1,8 @@
 <template>
     <ChartWrap>
+        <div v-if="sLoading" class="loading-chart">
+            <img :src="cIsDarkMode ? loader_b : loader_w" class="icon" />
+        </div>
         <ChartHeader
             :panel-info="props.panelInfo"
             :x-axis-max-range="data.sTimeLine.endTime"
@@ -37,6 +40,8 @@
 </template>
 
 <script lang="ts" setup>
+import loader_b from '@/assets/image/ajax-loader-b.gif';
+import loader_w from '@/assets/image/ajax-loader-w.gif';
 import ChartWrap from '@/components/common/chart-wrap/index.vue';
 import ViewPort from '@/components/common/chart-wrap/viewport/index.vue';
 import ChartHeader from '@/components/common/chart-wrap/chart-header/index.vue';
@@ -63,6 +68,7 @@ const props = withDefaults(defineProps<AreaChartProps>(), {
 
 const store = useStore();
 const slots = useSlots();
+const sLoading = ref<boolean>(false);
 const areaChart = ref<any>();
 const data = reactive({
     sDisplayData: {} as LineDataset,
@@ -93,6 +99,7 @@ function convertInterType(gUnit: string) {
 const sInnerValue = reactive({
     sTickPixels: props.panelInfo.pixels_per_tick <= 0 ? (1 as number) : (props.panelInfo.pixels_per_tick as number),
 });
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 function calcInterval(aBgn: string, aEnd: string, aWidth: number): { IntervalType: string; IntervalValue: number } {
     let sBgn = new Date(aBgn);
@@ -223,6 +230,7 @@ const convertData = async (aTagData: ReturnTagData[], aPanelInfo: PanelInfo, aTa
 };
 
 const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
+    sLoading.value = true;
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
     let sLimit = aPanelInfo.count;
     let sCount = -1;
@@ -271,6 +279,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     });
     data.sDisplayData = { datasets: sDatasets };
     data.sMaxYChart = getMaxValue(sDatasets);
+    sLoading.value = false;
 };
 const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
@@ -319,6 +328,7 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
 };
 
 const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
+    sLoading.value = true;
     let gDetailLimit = 0;
     gDetailLimit = aPanelInfo.detail_count;
     let sRawLimit = gDetailLimit;
@@ -360,6 +370,7 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
         sDatasets = sConvertData;
     });
     data.sDisplayData = { datasets: sDatasets };
+    sLoading.value = false;
 };
 const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aLimit?: any) => {
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
@@ -526,21 +537,6 @@ watch(
     () => props.panelInfo,
     () => {
         intializePanelData();
-
-        // if (props.panelInfo.range_bgn === '' && props.panelInfo.range_end === '') {
-        //     intializePanelData(
-        //         {
-        //             startTime: data.sTimeLine.startTime,
-        //             endTime: data.sTimeLine.endTime,
-        //         },
-        //         {
-        //             startTime: data.sTimeRangeViewPort.startTime,
-        //             endTime: data.sTimeRangeViewPort.endTime,
-        //         }
-        //     );
-        // } else {
-        //     intializePanelData();
-        // }
     }
 );
 onMounted(() => {
