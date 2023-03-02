@@ -74,7 +74,11 @@
         </div>
         <div v-if="isAdditionalYAxis" class="col1">
             <div class="first-text">Select tags for Y-axis 2.</div>
-            <ComboboxSelect style="width: 250px" class="input" p-string-default="Select a tag for the additional Y-axis." :p-data="tagOptions" @e-on-change="onChangeTag" />
+            <select v-model="sSelect" class="combobox-select input" style="width: 250px">
+                <img class="icon" :src="ic_arrow_s_down" />
+                <option class="combobox-select__item" value="default">Select a tag for the additional Y-axis.</option>
+                <option v-for="aItem in tagOptions" :key="aItem.id" class="combobox-select__item" :value="aItem.id">{{ aItem.name }}</option>
+            </select>
             <div class="tag-list">
                 <div v-for="(item, index) in tagSetsSelected" :key="index" class="tag-item-wrapper">
                     <div class="tag-item">
@@ -88,17 +92,18 @@
 </template>
 
 <script setup lang="ts" name="AxesTab">
+import ic_arrow_s_down from '@/assets/image/ic_arrow_s_down.svg';
 import i_b_close from '@/assets/image/i_b_close.png';
 import { splitTimeDuration } from '@/utils/utils';
-import { computed, defineEmits, reactive, ref, watch, watchEffect, defineProps } from 'vue';
+import { defineEmits, reactive, ref, watch, watchEffect, defineProps } from 'vue';
 import CustomScale, { CustomScaleInput } from '@/components/common/custom-scale/index.vue';
 import { PanelInfo, TagSet } from '@/interface/chart';
-import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import { cloneDeep } from 'lodash';
 
 interface PropsTab {
     pChartData: PanelInfo;
 }
+const sSelect = ref<any>('default');
 const props = defineProps<PropsTab>();
 const emit = defineEmits(['eOnChange']);
 
@@ -122,32 +127,40 @@ const customScaleRawInit2: CustomScaleInput = {
     input2: props.pChartData.custom_drilldown_max2,
 };
 
-const tagSets = computed((): any => {
-    // return props.pChartData?.tag_set.reduce((res: any, item: any, index: number) => {
-    //     const item1 = item;
-    //     item1.id = index;
-    //     res.push(item1);
-    //     return res;
-    // }, []);
-    const newArr = props.pChartData?.tag_set.map((item, idx) => ({ ...item, id: idx }));
-    return newArr;
-});
-const tagOptions = computed((): any => {
-    return tagSets.value.reduce((res: any, item: any, index: number) => {
-        if (item.use_y2 != 'Y') {
-            const option = {
-                id: item.id,
-                name: item.calculation_mode + ' : ' + item.tag_names,
-            };
-            res.push(option);
+const tagSets = ref<any>([]);
+const tagOptions = ref<any>([]);
+const tagSetsSelected = ref<any>([]);
+
+watch(
+    () => tagSets.value,
+    () => {
+        console.log('tagSets.value:');
+        tagOptions.value = tagSets.value.reduce((res: any, item: any, index: number) => {
+            if (item.use_y2 != 'Y') {
+                const option = {
+                    id: item.id,
+                    name: item.calculation_mode + ' : ' + item.tag_names,
+                };
+                res.push(option);
+                return res;
+            }
             return res;
-        }
-        return res;
-    }, []);
-});
-const tagSetsSelected = computed((): any => {
-    return tagSets.value.filter((item: TagSet) => item.use_y2 == 'Y');
-});
+        }, []);
+        tagSetsSelected.value = tagSets.value.filter((item: TagSet) => item.use_y2 == 'Y');
+    },
+    {
+        immediate: true,
+        deep: true,
+    }
+);
+
+watch(
+    () => sSelect.value,
+    () => {
+        if (sSelect.value != 'default' && tagSets.value[parseInt(sSelect.value)]) tagSets.value[parseInt(sSelect.value)].use_y2 = 'Y';
+        sSelect.value = 'default';
+    }
+);
 
 const picked = ref('r');
 const isZeroBase = ref<boolean>(false);
@@ -182,9 +195,7 @@ const onChangeInput = (aEvent: Event) => {
     intervalValue.value = sTemp.value;
     intervalUnit.value = sTemp.type;
 };
-const onChangeTag = (data: string) => {
-    if (tagSets.value[parseInt(data)]) tagSets.value[parseInt(data)].use_y2 = 'Y';
-};
+
 const onRemove = (item: any, index: number) => {
     tagSets.value[item.id].use_y2 = 'N';
 };
@@ -204,6 +215,10 @@ const onChangeCustomScale = (data: CustomScaleInput, type: number) => {
     }
 };
 watchEffect(() => {
+    const tag_set = cloneDeep(tagSets.value);
+    tag_set.forEach((item: any, index: number) => {
+        delete tag_set[index].id;
+    });
     const data: Partial<PanelInfo> = {
         interval_type: intervalUnit.value,
         interval_value: intervalValue.value,
@@ -222,32 +237,39 @@ watchEffect(() => {
         custom_drilldown_min2: parseFloat(sCustomScaleRaw2.input1 as string),
         custom_drilldown_max2: parseFloat(sCustomScaleRaw2.input2 as string),
         use_right_y2: picked.value == 'r' ? 'Y' : 'N',
-        tag_set: [...tagSets.value],
+        tag_set,
     };
     emit('eOnChange', data);
 });
-watch(props.pChartData, () => {
-    if (props.pChartData.interval_type != '') {
-        interval.value = props.pChartData.interval_value.toString() + props.pChartData.interval_type.slice(0, 1);
-        intervalUnit.value = props.pChartData.interval_type;
-        intervalValue.value = props.pChartData.interval_value;
-    } else interval.value = '';
-    if (props.pChartData.show_x_tickline) {
-        isShowTickLineX.value = props.pChartData.show_x_tickline.toUpperCase() == 'Y';
-    } else isShowTickLineX.value = true;
-    if (props.pChartData.show_y_tickline) {
-        isShowTickLineY.value = props.pChartData.show_y_tickline.toUpperCase() == 'Y';
-    } else isShowTickLineY.value = true;
-    if (props.pChartData.show_y_tickline2) {
-        isShowTickLineY2.value = props.pChartData.show_y_tickline2.toUpperCase() == 'Y';
-    } else isShowTickLineY2.value = true;
-    pixel.value = props.pChartData.pixels_per_tick;
-    if (pixel.value <= 0) pixel.value = 1;
-    isZeroBase.value = props.pChartData.zero_base.toUpperCase() == 'Y';
-    isZeroBase2.value = props.pChartData.zero_base2.toUpperCase() == 'Y';
-    if (tagSets.value[0].use_y2 == 'Y') isAdditionalYAxis.value = true;
-    picked.value = props.pChartData.use_right_y2.toUpperCase() == 'Y' ? 'r' : 'l';
-});
+watch(
+    () => props.pChartData,
+    () => {
+        tagSets.value = props.pChartData?.tag_set.map((item, idx) => ({ ...item, id: idx }));
+        if (props.pChartData.interval_type != '') {
+            interval.value = props.pChartData.interval_value.toString() + props.pChartData.interval_type.slice(0, 1);
+            intervalUnit.value = props.pChartData.interval_type;
+            intervalValue.value = props.pChartData.interval_value;
+        } else interval.value = '';
+        if (props.pChartData.show_x_tickline) {
+            isShowTickLineX.value = props.pChartData.show_x_tickline.toUpperCase() == 'Y';
+        } else isShowTickLineX.value = true;
+        if (props.pChartData.show_y_tickline) {
+            isShowTickLineY.value = props.pChartData.show_y_tickline.toUpperCase() == 'Y';
+        } else isShowTickLineY.value = true;
+        if (props.pChartData.show_y_tickline2) {
+            isShowTickLineY2.value = props.pChartData.show_y_tickline2.toUpperCase() == 'Y';
+        } else isShowTickLineY2.value = true;
+        pixel.value = props.pChartData.pixels_per_tick;
+        if (pixel.value <= 0) pixel.value = 1;
+        isZeroBase.value = props.pChartData.zero_base.toUpperCase() == 'Y';
+        isZeroBase2.value = props.pChartData.zero_base2.toUpperCase() == 'Y';
+        if (tagSets.value[0].use_y2 == 'Y') isAdditionalYAxis.value = true;
+        picked.value = props.pChartData.use_right_y2.toUpperCase() == 'Y' ? 'r' : 'l';
+    },
+    {
+        immediate: true,
+    }
+);
 </script>
 
 <style lang="scss" scoped>
