@@ -94,6 +94,7 @@ import { computed, defineEmits, reactive, ref, watch, watchEffect, defineProps }
 import CustomScale, { CustomScaleInput } from '@/components/common/custom-scale/index.vue';
 import { PanelInfo, TagSet } from '@/interface/chart';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
+import { cloneDeep } from 'lodash';
 
 interface PropsTab {
     pChartData: PanelInfo;
@@ -122,12 +123,14 @@ const customScaleRawInit2: CustomScaleInput = {
 };
 
 const tagSets = computed((): any => {
-    return props.pChartData?.tag_set.reduce((res: any, item: any, index: number) => {
-        const item1 = item;
-        item1.id = index;
-        res.push(item1);
-        return res;
-    }, []);
+    // return props.pChartData?.tag_set.reduce((res: any, item: any, index: number) => {
+    //     const item1 = item;
+    //     item1.id = index;
+    //     res.push(item1);
+    //     return res;
+    // }, []);
+    const newArr = props.pChartData?.tag_set.map((item, idx) => ({ ...item, id: idx }));
+    return newArr;
 });
 const tagOptions = computed((): any => {
     return tagSets.value.reduce((res: any, item: any, index: number) => {
@@ -242,7 +245,7 @@ watch(props.pChartData, () => {
     if (pixel.value <= 0) pixel.value = 1;
     isZeroBase.value = props.pChartData.zero_base.toUpperCase() == 'Y';
     isZeroBase2.value = props.pChartData.zero_base2.toUpperCase() == 'Y';
-    // if (tagSets.value[0].use_y2 == 'Y') isAdditionalYAxis.value = true;
+    if (tagSets.value[0].use_y2 == 'Y') isAdditionalYAxis.value = true;
     picked.value = props.pChartData.use_right_y2.toUpperCase() == 'Y' ? 'r' : 'l';
 });
 </script>
