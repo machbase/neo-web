@@ -7,6 +7,8 @@ import { toTimeUtcChart } from '@/utils/utils';
 import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults, defineEmits } from 'vue';
 import { formatColors } from '@/utils/utils';
 import { watchEffect } from 'vue';
+import moment from 'moment';
+import { isEmpty } from 'lodash';
 interface BarChartContainerProps {
     chartData: LineDataset;
     viewData: LineDataset;
@@ -48,7 +50,7 @@ const cChartOptions = computed(() => {
             lineWidth: 1,
             events: {
                 selectedpoints: function (event) {
-                    console.log('event click chart', event);
+                    console.log('event click chart', chart);
                 },
                 // xAxis: when click chart
                 // 0: axis: a2, value: 1672415796649.6125
@@ -156,7 +158,6 @@ const cChartOptions = computed(() => {
                 y: 30,
             },
             minorTickColor: 'red',
-
             min: toTimeUtcChart(props.xAxisMinRange as string),
             max: toTimeUtcChart(props.xAxisMaxRange as string),
             events: {
@@ -268,30 +269,18 @@ function afterSetExtremes(e) {
     data.sTimeChartXaxis.max = e.max;
     emit('eOnChange', data.sTimeChartXaxis);
 }
-watch(
-    () => props.chartData,
-    () => {
-        if (props.chartData) {
-            data.sMasterSeriesData = props.chartData.datasets;
-        }
-        data.sChartWidth = chart.value.chart.plotWidth;
-    },
-    {
-        // deep: true,
-    }
-);
-watch(
-    () => props.viewData,
-    () => {
-        if (props.viewData) {
-            data.sViewPortSeriesData = props.viewData.datasets;
-        }
-        data.sChartWidth = chart.value.chart.plotWidth;
-    },
-    {
-        // deep: true,
-    }
-);
+watch([() => props.xAxisMinRange], () => {
+    console.log('props.xAxisMinRange', props.xAxisMinRange);
+    chart.value.chart.xAxis[0].setExtremes(moment.utc(props.xAxisMinRange).valueOf(), moment.utc(props.xAxisMaxRange).valueOf());
+});
+
+watch([() => props.chartData, () => props.viewData], () => {
+    data.sMasterSeriesData = props.chartData.datasets;
+    data.sViewPortSeriesData = props.viewData.datasets;
+    data.sChartWidth = chart.value.chart.plotWidth;
+    console.log(1);
+});
+
 defineExpose({
     chart,
 });

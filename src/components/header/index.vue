@@ -50,13 +50,15 @@
                 @click="onClickPopupItem(PopupType.TIME_RANGE)"
             />
             <img :src="i_b_refresh" class="icon" @click="onReload" />
-            <router-link
-                v-if="route.params.id || cBoardListSelect[0]?.id"
-                :to="{ name: RouteNames.VIEW, params: { id: route.params.id || route.query.id as string || cBoardListSelect[0]?.id } }"
-                target="_blank"
-            >
-                <img v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" :src="i_b_share" class="icon" />
-            </router-link>
+            <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW">
+                <router-link
+                    v-if="route.params.id || cBoardListSelect[0]?.id"
+                    :to="{ name: RouteNames.VIEW, params: { id: route.params.id || route.query.id as string || cBoardListSelect[0]?.id } }"
+                    target="_blank"
+                >
+                    <img :src="i_b_share" class="icon" />
+                </router-link>
+            </div>
             <img v-if="sHeaderType === RouteNames.CHART_EDIT" class="icon" :src="i_b_save_2" @click="onSaveEdit" />
             <a class="icon"><img v-if="sHeaderType === RouteNames.CHART_EDIT" :src="i_b_close" style="margin-top: 7px" @click="router.go(-1)" /></a>
         </div>

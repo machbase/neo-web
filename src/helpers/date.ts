@@ -223,4 +223,4 @@ const convertDurationToSecond = (aDuration: any) => {
     }
 };
 
-export { stringParseNewDate, changeUtcToText, setChangeUtcTime, setUtcTime, getIntervalTime, getDateRange, changeTextToUtc, convertDurationToSecond };
+export { stringParseNewDate, changeUtcToText, setChangeUtcTime, setUtcTime, getIntervalTime, getDateRange, changeTextToUtc, convertDurationToSecond, _convertTimeToFullDate };

@@ -18,6 +18,12 @@
         display: flex;
         align-items: baseline;
         gap: 10px;
+        .file-import-icon {
+            
+        }
+        .file-import {
+            display: none;
+        }
     }
     .icon {
         cursor: pointer;
