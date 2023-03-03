@@ -1,5 +1,5 @@
 import { TempNewChartData } from './../interface/tagView';
-import { ResBoardList, ResPreferences, TimeRange } from '@/interface/tagView';
+import { ResBoardList, ResPreferences, TimeRange, BoardPanelEdit } from '@/interface/tagView';
 import { RootState } from './state';
 import { BoardInfo, PanelInfo, RangeData } from '@/interface/chart';
 import { cloneDeep, isEmpty } from 'lodash';
@@ -21,6 +21,7 @@ enum MutationTypes {
     setNewBoard = 'setNewBoard',
     setDeleteChart = 'setDeleteChart',
     setChartBoardEdit = 'setChartBoardEdit',
+    setBoardByFileUpload = 'setBoardByFileUpload',
 }
 
 const mutations = {
@@ -97,6 +98,9 @@ const mutations = {
     [MutationTypes.setChartBoardEdit](state: RootState) {
         if (isEmpty(state.gBoardPanelEdit.item)) return;
         state.gBoard.panels[state.gBoardPanelEdit.index][0] = state.gBoardPanelEdit.item;
+    },
+    [MutationTypes.setBoardByFileUpload](state: RootState, payload: any) {
+        state.gBoard.panels[payload.index][0] = payload.item;
     },
 };
 

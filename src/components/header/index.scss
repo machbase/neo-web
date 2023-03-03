@@ -1,6 +1,6 @@
 @import '@/assets/scss/theme.scss';
 .header {
-    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
+    font-family: 'Open Sans', Helvetica, Arial, sans-serif;
     height: 44px;
     display: flex;
     justify-content: space-between;
@@ -63,13 +63,17 @@
     &__tool {
         display: flex;
         align-items: center;
+        gap: 20px;
         .time-range {
             color: $text-b;
             font-size: $font-12;
         }
         .icon {
-            padding: $px-10;
+            // padding: $px-10;
             cursor: pointer;
+            font-size: inherit;
+            vertical-align: middle;
+
         }
     }
     .share-header {
