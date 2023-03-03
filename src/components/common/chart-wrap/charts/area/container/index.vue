@@ -269,16 +269,15 @@ function afterSetExtremes(e) {
     data.sTimeChartXaxis.max = e.max;
     emit('eOnChange', data.sTimeChartXaxis);
 }
-watch([() => props.xAxisMinRange], () => {
-    console.log('props.xAxisMinRange', props.xAxisMinRange);
-    chart.value.chart.xAxis[0].setExtremes(moment.utc(props.xAxisMinRange).valueOf(), moment.utc(props.xAxisMaxRange).valueOf());
-});
+// watch([() => props.xAxisMinRange], () => {
+//     console.log('props.xAxisMinRange', props.xAxisMinRange);
+//     chart.value.chart.xAxis[0].setExtremes(moment.utc(props.xAxisMinRange).valueOf(), moment.utc(props.xAxisMaxRange).valueOf());
+// });
 
 watch([() => props.chartData, () => props.viewData], () => {
     data.sMasterSeriesData = props.chartData.datasets;
     data.sViewPortSeriesData = props.viewData.datasets;
     data.sChartWidth = chart.value.chart.plotWidth;
-    console.log(1);
 });
 
 defineExpose({
