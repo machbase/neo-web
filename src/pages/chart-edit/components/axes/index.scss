@@ -1,5 +1,34 @@
 @import '@/assets/scss/theme.scss';
-
+.combobox-select {
+    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
+    @include theme() {
+        border: 1px solid theme-get('border-color-input');
+        color: theme-get('text-color');
+        background-color: theme-get('bg-color-input');
+    }
+    color: $text-w;
+    outline: none;
+    // margin: 0 8px;
+    padding: 0 $px-15;
+    // min-width: 200px;
+    min-height: 24px;
+    font-size: $font-12;
+    position: relative;
+    &:focus {
+        @include box-shadow;
+    }
+    &__item {
+        background-color: $d-background;
+        padding: 0 $px-15;
+        @include font-12;
+        @include theme() {
+            background-color: theme-get('bg-color');
+            color: theme-get('text-color');
+        }
+    }
+    -webkit-appearance: auto;
+    appearance: auto;
+}
 .axe-tab {
     padding: 20px;
     font-family: 'Open Sans', Helvetica, Arial, sans-serif;
