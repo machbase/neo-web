@@ -216,9 +216,6 @@ const onChangeCustomScale = (data: CustomScaleInput, type: number) => {
 };
 watchEffect(() => {
     const tag_set = cloneDeep(tagSets.value);
-    tag_set.forEach((item: any, index: number) => {
-        delete tag_set[index].id;
-    });
     const data: Partial<PanelInfo> = {
         interval_type: intervalUnit.value,
         interval_value: intervalValue.value,
