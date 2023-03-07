@@ -91,6 +91,11 @@ const mutations = {
     [MutationTypes.setChartEdit](state: RootState, payload: { index: number; item: Partial<PanelInfo> }) {
         state.gBoardPanelEdit.index = payload.index;
         state.gBoardPanelEdit.item = { ...state.gBoard.panels[payload.index][0], ...payload.item };
+        state.gBoardPanelEdit.item.tag_set.forEach((item: any, index: number) => {
+            if (item.id) {
+                delete (state.gBoardPanelEdit.item.tag_set[index] as any).id;
+            }
+        });
     },
     [MutationTypes.setDeleteChart](state: RootState, payload: number) {
         state.gBoard.panels.splice(payload, 1);

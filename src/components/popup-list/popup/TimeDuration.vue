@@ -13,7 +13,7 @@
             </div>
             <div>
                 <p class="title">Duration</p>
-                <div class="row"><input :value="duration" type="text" class="input" /></div>
+                <div class="row"><input v-model="duration" type="text" class="input" /></div>
             </div>
         </div>
         <div class="col-right">

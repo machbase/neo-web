@@ -61,6 +61,11 @@ const onSave = () => {
         item: sTabData.value,
     };
     sDataChart.value[0] = { ...sDataChart.value[0], ...sTabData.value };
+    sDataChart.value[0].tag_set.forEach((item: any, index: number) => {
+        if (item.id) {
+            delete (sDataChart.value[0].tag_set[index] as any).id;
+        }
+    });
     store.commit(MutationTypes.setChartEdit, payload);
 };
 
