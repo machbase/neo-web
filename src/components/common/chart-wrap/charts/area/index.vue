@@ -280,6 +280,10 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     data.sDisplayData = { datasets: sDatasets };
     data.sMaxYChart = getMaxValue(sDatasets);
     sLoading.value = false;
+    if (moment.utc(sTimeRange.startTime).valueOf() === areaChart.value.chart.chart.xAxis[0].min) {
+        return;
+    }
+    areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 };
 const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
@@ -372,6 +376,10 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
     });
     data.sDisplayData = { datasets: sDatasets };
     sLoading.value = false;
+    if (moment.utc(sTimeRange.startTime).valueOf() === areaChart.value.chart.chart.xAxis[0].min) {
+        return;
+    }
+    areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 };
 const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aLimit?: any) => {
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
@@ -438,7 +446,7 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPo
 
 const onReload = async () => {
     await intializePanelData();
-    areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
+    // areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 };
 const onChangeTimeRange = async (eValue: any) => {
     await fetchViewPortData(props.panelInfo, {
@@ -464,7 +472,7 @@ const onChangeSRF = async (eValue: any) => {
         default:
             break;
     }
-    areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
+    //    areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 };
 
 const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) => {
@@ -537,7 +545,7 @@ watch(
     () => props.panelInfo,
     () => {
         intializePanelData();
-        areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
+        //    areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
     }
 );
 onMounted(() => {
