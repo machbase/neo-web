@@ -204,19 +204,19 @@ const convertData = async (aTagData: ReturnTagData[], aPanelInfo: PanelInfo, aTa
                 return [toTimeUtcChart(aItem.TimeStamp), aItem.Value];
             }),
 
-            yAxis: aTagInfo.use_y2 === 'Y' ? 1 : 0,
+            // yAxis: aTagInfo.use_y2 === 'Y' ? 1 : 0,
             // color: sTagColor,
-            type: props.panelInfo.chart_type === 'areaLine' ? 'area' : null,
-            fillColor:
-                props.panelInfo.chart_type === 'areaLine'
-                    ? {
-                          linearGradient: [0, 0, 0, 600],
-                          stops: [
-                              [0, sTagColor],
-                              [1, 'rgba(54,127,235,0)'],
-                          ],
-                      }
-                    : null,
+            // type: props.panelInfo.chart_type === 'areaLine' ? 'area' : null,
+            // fillColor:
+            //     props.panelInfo.chart_type === 'areaLine'
+            //         ? {
+            //               linearGradient: [0, 0, 0, 600],
+            //               stops: [
+            //                   [0, sTagColor],
+            //                   [1, 'rgba(54,127,235,0)'],
+            //               ],
+            //           }
+            //         : null,
             marker: {
                 symbol: 'circle',
                 lineColor: null,
@@ -227,7 +227,7 @@ const convertData = async (aTagData: ReturnTagData[], aPanelInfo: PanelInfo, aTa
     return sDataset;
 };
 
-const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
+const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aIsNavigator?: boolean) => {
     sLoading.value = true;
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
     let sLimit = aPanelInfo.count;
@@ -238,9 +238,9 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     let sDatasets = [] as HighchartsDataset[];
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
-    if (!sTagSet.length) return;
+    // if (!sTagSet.length) return;
     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
-    if (!aCustomRange) {
+    if (!aCustomRange && !aIsNavigator) {
         sTimeRange = {
             startTime: moment(moment(sTimeRange.startTime).valueOf() - (moment(sTimeRange.endTime).valueOf() - moment(sTimeRange.startTime).valueOf()) * -0.8).format(
                 'YYYY-MM-DDTHH:mm:ss'
@@ -253,7 +253,6 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     const sIntervalTime =
         aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(data.sTimeLine.startTime as string, data.sTimeLine.endTime as string, sChartWidth) : data.sIntervalData;
     data.sIntervalData = sIntervalTime;
-    // updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
     for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
@@ -292,7 +291,7 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
     let sDatasets = [] as HighchartsDataset[];
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
-    if (!sTagSet.length) return;
+    // if (!sTagSet.length) return;
     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
     data.sTimeRangeViewPort.startTime = sTimeRange.startTime;
     data.sTimeRangeViewPort.endTime = sTimeRange.endTime;
@@ -337,7 +336,7 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
     let sDatasets = [] as HighchartsDataset[];
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
-    if (!sTagSet.length) return;
+    // if (!sTagSet.length) return;
     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
     if (!aCustomRange) {
         sTimeRange = {
@@ -392,7 +391,7 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
     let sDatasets = [] as HighchartsDataset[];
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
-    if (!sTagSet.length) return;
+    // if (!sTagSet.length) return;
     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
     data.sTimeRangeViewPort.startTime = sTimeRange.startTime;
     data.sTimeRangeViewPort.endTime = sTimeRange.endTime;
@@ -439,7 +438,7 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPo
 
 const onReload = async () => {
     await intializePanelData();
-    updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
+    areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 };
 const onChangeTimeRange = async (eValue: any) => {
     await fetchViewPortData(props.panelInfo, {
@@ -465,7 +464,7 @@ const onChangeSRF = async (eValue: any) => {
         default:
             break;
     }
-    updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
+    areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 };
 
 const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) => {
@@ -532,15 +531,13 @@ const getMaxValue = (array: any) => {
 };
 const onCloseNavigator = () => {
     sIsZoom.value = false;
-};
-const updateMinMaxChart = (start: any, end: any) => {
-    return areaChart.value.chart.chart.xAxis[0].setExtremes(moment.utc(start).valueOf(), moment.utc(end).valueOf());
+    fetchPanelData(props.panelInfo, undefined, true);
 };
 watch(
     () => props.panelInfo,
     () => {
         intializePanelData();
-        // updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
+        areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
     }
 );
 onMounted(() => {
