@@ -28,6 +28,7 @@ const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const emit = defineEmits(['eOnChange']);
 
 const data = reactive({
+    sIsTag: true as boolean,
     sMasterSeriesData: [] as HighchartsDataset[],
     sViewPortSeriesData: [] as HighchartsDataset[],
     sTimeChartXaxis: {
@@ -103,7 +104,7 @@ const cChartOptions = computed(() => {
         },
         // view point navigator
         navigator: {
-            enabled: props.pIsZoom,
+            enabled: data.sIsTag,
             adaptToUpdatedData: false,
             handles: {
                 // width: 0.5,
@@ -122,7 +123,8 @@ const cChartOptions = computed(() => {
             outlineWidth: 1,
             // outlineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             xAxis: {
-                // width: data.sChartWidth - 80,
+                left: 28,
+                width: data.sChartWidth - 28,
                 type: 'datetime',
                 min: toTimeUtcChart(props.xMinTimeRangeViewPort as string),
                 max: toTimeUtcChart(props.xMaxTimeRangeViewPort as string),
@@ -140,7 +142,7 @@ const cChartOptions = computed(() => {
                 gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
                 gridLineWidth: 1,
             },
-            margin: 65,
+            margin: data.sIsTag ? 65 : 0,
         },
         //  Time chart
         xAxis: {
@@ -269,12 +271,12 @@ function afterSetExtremes(e) {
     data.sTimeChartXaxis.max = e.max;
     emit('eOnChange', data.sTimeChartXaxis);
 }
-// watch([() => props.xAxisMinRange], () => {
-//     console.log('props.xAxisMinRange', props.xAxisMinRange);
-//     chart.value.chart.xAxis[0].setExtremes(moment.utc(props.xAxisMinRange).valueOf(), moment.utc(props.xAxisMaxRange).valueOf());
-// });
 
-watch([() => props.chartData, () => props.viewData], () => {
+const updateMinMaxChart = (start: any, end: any) => {
+    return chart.value.chart.xAxis[0].setExtremes(moment.utc(start).valueOf(), moment.utc(end).valueOf());
+};
+watch([() => props.chartData, () => props.viewData, () => props.pIsZoom], () => {
+    data.sIsTag = props.pIsZoom;
     data.sMasterSeriesData = props.chartData.datasets;
     data.sViewPortSeriesData = props.viewData.datasets;
     data.sChartWidth = chart.value.chart.plotWidth;
@@ -282,6 +284,7 @@ watch([() => props.chartData, () => props.viewData], () => {
 
 defineExpose({
     chart,
+    updateMinMaxChart,
 });
 </script>
 

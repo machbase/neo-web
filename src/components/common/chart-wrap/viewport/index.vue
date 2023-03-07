@@ -1,5 +1,5 @@
 <template>
-    <div v-if="pIsZoom" class="view-port">
+    <div v-if="sIsTool" class="view-port">
         <div class="view-port__header">
             <div class="view-port__header--events">
                 <div class="date-picker button" @click="onOpenPopup(false)">{{ sDateLeft }}</div>
@@ -57,7 +57,7 @@ import { FORMAT_FULL_DATE } from '@/utils/constants';
 import { formatDate } from '@/utils/utils';
 import Datepicker from '@vuepic/vue-datepicker';
 import moment from 'moment';
-import { ref, watch, defineEmits, defineProps, withDefaults, computed } from 'vue';
+import { ref, watch, defineEmits, defineProps, withDefaults, computed, watchEffect } from 'vue';
 import { PopupType } from '@/enums/app';
 import { TimeLineType } from '@/interface/date';
 
@@ -70,6 +70,7 @@ const props = withDefaults(defineProps<ViewPortProps>(), {});
 const emit = defineEmits(['eOnChange', 'eOnChangeAdjust', 'eOnChangeSRF', 'eOnFocus', 'eonCloseNavigator']);
 const store = useStore();
 const sDialog = ref<boolean>(false);
+const sIsTool = ref<boolean>(false);
 const sDateLeft = ref<string | number>('');
 const sDateRight = ref<string | number>('');
 const sIsFromTime = ref<boolean>(false);
@@ -100,7 +101,6 @@ const onSettingPopup = (aDate: any) => {
 watch(
     () => props.rangeTime,
     () => {
-        console.log(props.rangeTime);
         sDateLeft.value =
             typeof props.rangeTime.startTime === 'string' ? moment(formatDate(props.rangeTime.startTime as string)).format(FORMAT_FULL_DATE) : props.rangeTime.startTime;
         sDateRight.value = typeof props.rangeTime.endTime === 'string' ? moment(formatDate(props.rangeTime.endTime as string)).format(FORMAT_FULL_DATE) : props.rangeTime.endTime;
@@ -109,6 +109,10 @@ watch(
         deep: true,
     }
 );
+watchEffect(() => {
+    if (props.panelInfo.tag_set.length > 0) sIsTool.value = props.pIsZoom;
+    else sIsTool.value = false;
+});
 </script>
 
 <style lang="scss" scoped>
