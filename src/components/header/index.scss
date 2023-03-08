@@ -7,6 +7,9 @@
     padding: 0 $px-10;
     background-color: $d-background-opa;
     color: $text-w;
+    &__name {
+        @include font-12;
+    }
     &__link {
         display: flex;
         align-items: center;
@@ -80,5 +83,8 @@
         color: $text-w;
         margin: 0 $px-15;
         font-size: 12px;
+    }
+    .file-import {
+        display: none;
     }
 }
