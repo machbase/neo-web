@@ -5,12 +5,13 @@
         </div>
         <div class="header__link">
             <img :src="logo" class="icon" />
-            <ComboboxSelect
+            <span class="header__name">Dashboard Name</span>
+            <!-- <ComboboxSelect
                 v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
                 :p-data="cBoardListSelect"
                 :p-value="route.params.id || route.query.id || (cBoardListSelect[0]?.id && route.query.id !== null)"
                 @e-on-change="onChangeRoute"
-            />
+            /> -->
             <div v-if="sHeaderType === RouteNames.VIEW" class="share-header">{{ boardSelected }}</div>
             <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" class="header__link--group">
                 <router-link class="header__link--group-item" :to="{ name: RouteNames.NEW }" target="_blank">{{ NEW_DASHBOARD }}</router-link>
@@ -43,6 +44,10 @@
                 icon="mdi-content-save"
                 @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)"
             ></v-icon>
+            <label>
+                <v-icon size="small" class="icon file-import-icon" icon="mdi-upload"></v-icon>
+                <input class="file-import" type="file" @change="onUploadChart"/>
+            </label>
             <img
                 v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW || sHeaderType === RouteNames.VIEW"
                 :src="i_b_timerange"
@@ -115,6 +120,19 @@ const cBoardListSelect = computed(() =>
         };
     })
 );
+const onUploadChart = (aEvent: any) => {
+    const file = aEvent.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (event: any) => {
+        const fileContent = JSON.parse(event.target.result);
+        console.log("🚀 ~ file: index.vue:127 ~ onUploadChart ~ fileContent:", fileContent);
+        // store.commit(MutationTypes.setBoardByFileUpload, {
+        //     index: props.panelInfo.i,
+        //     item: fileContent,
+        // } as BoardPanelEdit);
+    };
+    reader.readAsText(file);
+};
 const cWidthPopup = computed((): string => {
     switch (sPopupType.value) {
         case PopupType.PREFERENCES:
