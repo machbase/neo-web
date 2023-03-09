@@ -56,6 +56,7 @@ import { toTimeUtcChart } from '@/utils/utils';
 import moment from 'moment';
 import { computed, defineProps, onMounted, reactive, ref, useSlots, watch, withDefaults } from 'vue';
 import AreaChart from './container/index.vue';
+import { isEmpty } from 'lodash';
 
 interface AreaChartProps {
     panelInfo: LinePanel;
@@ -228,6 +229,8 @@ const convertData = async (aTagData: ReturnTagData[], aPanelInfo: PanelInfo, aTa
 };
 
 const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aIsNavigator?: boolean) => {
+    console.log('aPanelInfo', aPanelInfo);
+
     sLoading.value = true;
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
     let sLimit = aPanelInfo.count;
@@ -238,7 +241,12 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     let sDatasets = [] as HighchartsDataset[];
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
-    // if (!sTagSet.length) return;
+    if (!sTagSet.length) {
+        sLoading.value = false;
+        data.sDisplayData = { datasets: sDatasets };
+        return;
+    }
+    console.log('object');
     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
     if (!aCustomRange && !aIsNavigator) {
         sTimeRange = {
@@ -248,12 +256,13 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
             endTime: sTimeRange.endTime,
         };
     }
+
     data.sTimeLine.startTime = sTimeRange.startTime;
     data.sTimeLine.endTime = sTimeRange.endTime;
     const sIntervalTime =
         aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(data.sTimeLine.startTime as string, data.sTimeLine.endTime as string, sChartWidth) : data.sIntervalData;
     data.sIntervalData = sIntervalTime;
-    for (let index = 0; index < sTagSet.length; index++) {
+    for (let index = 0; index < sTagSet?.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
             Table: sTagSetElement.table,
@@ -280,6 +289,15 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     data.sDisplayData = { datasets: sDatasets };
     data.sMaxYChart = getMaxValue(sDatasets);
     sLoading.value = false;
+    if (moment.utc(sTimeRange.startTime).valueOf() !== areaChart.value.chart.chart.xAxis[0].min) {
+        areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
+    }
+    console.log('sDatasets', sDatasets);
+
+    // if (moment.utc(sTimeRange.startTime).valueOf() === areaChart.value.chart.chart.xAxis[0].min) {
+    //     return;
+    // }
+    // if (areaChart.value.chart.chart.xAxis[0].min !== null) areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 };
 const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
@@ -291,7 +309,11 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
     let sDatasets = [] as HighchartsDataset[];
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
-    // if (!sTagSet.length) return;
+    if (!sTagSet.length) {
+        sLoading.value = false;
+        data.sViewPortData = { datasets: sDatasets };
+        return;
+    }
     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
     data.sTimeRangeViewPort.startTime = sTimeRange.startTime;
     data.sTimeRangeViewPort.endTime = sTimeRange.endTime;
@@ -300,7 +322,7 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
             ? calcInterval(data.sTimeRangeViewPort.startTime as string, data.sTimeRangeViewPort.endTime as string, sChartWidth)
             : data.sIntervalData;
     data.sIntervalData = sIntervalTime;
-    for (let index = 0; index < sTagSet.length; index++) {
+    for (let index = 0; index < sTagSet?.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
             Table: sTagSetElement.table,
@@ -336,7 +358,11 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
     let sDatasets = [] as HighchartsDataset[];
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
-    // if (!sTagSet.length) return;
+    if (!sTagSet.length) {
+        sLoading.value = false;
+        data.sDisplayData = { datasets: sDatasets };
+        return;
+    }
     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
     if (!aCustomRange) {
         sTimeRange = {
@@ -348,7 +374,7 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
     }
     data.sTimeLine.startTime = sTimeRange.startTime;
     data.sTimeLine.endTime = sTimeRange.endTime;
-    for (let index = 0; index < sTagSet.length; index++) {
+    for (let index = 0; index < sTagSet?.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagDataRaw, {
             Table: sTagSetElement.table,
@@ -372,6 +398,13 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
     });
     data.sDisplayData = { datasets: sDatasets };
     sLoading.value = false;
+    if (moment.utc(sTimeRange.startTime).valueOf() !== areaChart.value.chart.chart.xAxis[0].min) {
+        areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
+    }
+    // if (moment.utc(sTimeRange.startTime).valueOf() === areaChart.value.chart.chart.xAxis[0].min) {
+    //     return;
+    // }
+    // if (areaChart.value.chart.chart.xAxis[0].min !== null) areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 };
 const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aLimit?: any) => {
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
@@ -391,11 +424,15 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
     let sDatasets = [] as HighchartsDataset[];
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
-    // if (!sTagSet.length) return;
+    if (!sTagSet.length) {
+        sLoading.value = false;
+        data.sViewPortData = { datasets: sDatasets };
+        return;
+    }
     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
     data.sTimeRangeViewPort.startTime = sTimeRange.startTime;
     data.sTimeRangeViewPort.endTime = sTimeRange.endTime;
-    for (let index = 0; index < sTagSet.length; index++) {
+    for (let index = 0; index < sTagSet?.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagDataRaw, {
             Table: sTagSetElement.table,
@@ -417,7 +454,7 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
         sConvertData = await convertData(sRes, aPanelInfo, sTag, i, sSumTagDatas);
         sDatasets = sConvertData;
     });
-    data.sDisplayData = { datasets: sDatasets };
+    data.sViewPortData = { datasets: sDatasets };
 };
 
 const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPortRange?: startTimeToendTimeType) => {
@@ -438,7 +475,7 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPo
 
 const onReload = async () => {
     await intializePanelData();
-    areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
+    // areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 };
 const onChangeTimeRange = async (eValue: any) => {
     await fetchViewPortData(props.panelInfo, {
@@ -464,7 +501,7 @@ const onChangeSRF = async (eValue: any) => {
         default:
             break;
     }
-    areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
+    //    areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 };
 
 const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) => {
@@ -536,8 +573,9 @@ const onCloseNavigator = () => {
 watch(
     () => props.panelInfo,
     () => {
+        if (isEmpty(props.panelInfo)) return;
         intializePanelData();
-        areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
+        //    areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
     }
 );
 onMounted(() => {

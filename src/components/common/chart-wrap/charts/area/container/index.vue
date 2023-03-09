@@ -1,7 +1,7 @@
 <template><highcharts ref="chart" constructor-type="stockChart" :options="cChartOptions"></highcharts></template>
 
 <script lang="ts" setup name="AreaChart">
-import { HighchartsDataset, LineDataset, LinePanel } from '@/interface/chart';
+import { HighchartsDataset, LineDataset, LinePanel, TagSet } from '@/interface/chart';
 import { useStore } from '@/store';
 import { toTimeUtcChart } from '@/utils/utils';
 import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults, defineEmits } from 'vue';
@@ -29,6 +29,7 @@ const emit = defineEmits(['eOnChange']);
 
 const data = reactive({
     sIsTag: true as boolean,
+    sYaxis: [] as any[],
     sMasterSeriesData: [] as HighchartsDataset[],
     sViewPortSeriesData: [] as HighchartsDataset[],
     sTimeChartXaxis: {
@@ -53,9 +54,6 @@ const cChartOptions = computed(() => {
                 selectedpoints: function (event) {
                     console.log('event click chart', chart);
                 },
-                // xAxis: when click chart
-                // 0: axis: a2, value: 1672415796649.6125
-                // 1: axis: a2, value: 1672415905801.4258
                 render() {},
             },
             // margin: [0, 40, 100, 40],
@@ -173,35 +171,8 @@ const cChartOptions = computed(() => {
             tickColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
         },
         // Value chart
-        yAxis: {
-            showLastLabel: true,
-            // showFirstLabel: false,
-            // min: props.panelInfo.zero_base === 'Y' ? 0 : props.panelInfo.custom_min || null,
-            //           max: props.panelInfo.custom_max || null,
-            // max: props.chartData.datasets.reduce((result: number, current: any) => {
-            //     current.data.forEach((a: any) => {
-            //         if (a[1] > result) result = a[1];
-            //     });
-            //     return result;
-            // }, 0),
-            max: props.maxYChart === 0 ? '' : props.maxYChart,
-            // tickAmount: 6,
-            gridLineWidth: 1,
-            gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
-            lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
-            opposite: false,
-            startOnTick: true,
-            endOnTick: true,
-            labels: {
-                align: 'center',
-                style: {
-                    color: cIsDarkMode.value ? '#afb5bc' : '#6c6e70',
-                    fontSize: '10px',
-                },
-                x: -5,
-                y: 3,
-            },
-        },
+        yAxis: updateYaxis(props.panelInfo.tag_set),
+
         // Info tag chart
         tooltip: {
             valueDecimals: 2,
@@ -275,10 +246,45 @@ function afterSetExtremes(e) {
 const updateMinMaxChart = (start: any, end: any) => {
     return chart.value.chart.xAxis[0].setExtremes(moment.utc(start).valueOf(), moment.utc(end).valueOf());
 };
-watch([() => props.chartData, () => props.viewData, () => props.pIsZoom], () => {
+
+const getMaxValue = (array: number[][]) => {
+    return array.reduce((result: number, current: any) => {
+        if (current[1] > result) result = current[1];
+        return result;
+    }, 0);
+};
+
+const updateYaxis = (aInfo: TagSet[]) => {
+    if (aInfo.length === 0) return [];
+    return aInfo.map((i, index) => {
+        return {
+            showLastLabel: true,
+            // max: data.sMasterSeriesData[index]?.data.length > 0 && getMaxValue(data.sMasterSeriesData[index]?.data),
+            max: props.maxYChart && props.maxYChart === 0 ? '' : props.maxYChart,
+            gridLineWidth: 1,
+            gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+            lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+            startOnTick: true,
+            endOnTick: true,
+            labels: {
+                align: 'center',
+                style: {
+                    color: cIsDarkMode.value ? '#afb5bc' : '#6c6e70',
+                    fontSize: '10px',
+                },
+                x: -5,
+                y: 3,
+            },
+            opposite: i.use_y2 === 'N' ? false : true,
+        };
+    });
+};
+
+watch([() => props.chartData.datasets, () => props.viewData.datasets, () => props.pIsZoom], () => {
+    console.log('long change', props.chartData.datasets);
     data.sIsTag = props.pIsZoom;
-    data.sMasterSeriesData = props.chartData.datasets;
-    data.sViewPortSeriesData = props.viewData.datasets;
+    data.sMasterSeriesData = props.chartData.datasets || [];
+    data.sViewPortSeriesData = props.viewData.datasets || [];
     data.sChartWidth = chart.value.chart.plotWidth;
 });
 

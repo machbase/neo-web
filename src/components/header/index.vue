@@ -5,7 +5,7 @@
         </div>
         <div class="header__link">
             <img :src="logo" class="icon" />
-            <span class="header__name">Dashboard Name</span>
+            <span class="header__name">{{ cBoard.board_name }}</span>
             <!-- <ComboboxSelect
                 v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
                 :p-data="cBoardListSelect"
@@ -44,9 +44,9 @@
                 icon="mdi-content-save"
                 @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)"
             ></v-icon>
-            <label>
+            <label v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW">
                 <v-icon size="small" class="icon file-import-icon" icon="mdi-upload"></v-icon>
-                <input class="file-import" type="file" @change="onUploadChart"/>
+                <input class="file-import" type="file" @change="onUploadChart" />
             </label>
             <img
                 v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW || sHeaderType === RouteNames.VIEW"
@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts" name="Header">
-import { isEmpty } from 'lodash';
+import { clone, cloneDeep, isEmpty } from 'lodash';
 import i_b_close from '@/assets/image/i_b_close.png';
 import i_b_menu_1 from '@/assets/image/i_b_menu_1.png';
 import i_b_refresh from '@/assets/image/i_b_refresh.png';
@@ -93,7 +93,7 @@ import { MutationTypes } from '@/store/mutations';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from './constant';
-import { BarPanel, startTimeToendTimeType } from '@/interface/chart';
+import { BarPanel, BoardInfo, startTimeToendTimeType } from '@/interface/chart';
 import { fetchRollUp } from '@/api/repository/machiot';
 
 export type headerType = RouteNames.TAG_VIEW | RouteNames.VIEW | RouteNames.CHART_VIEW | RouteNames.CHART_EDIT | RouteNames.NEW;
@@ -108,6 +108,8 @@ const childGroup = ref();
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
 const cTableList = computed((): [] => store.state.gTableList);
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
+const cBoard = computed(() => store.state.gBoard);
+const cBoardOld = computed(() => store.state.gBoardOld);
 const boardSelected = computed((): string => cBoardList.value.find(({ board_id }) => board_id === route.params.id)?.board_name as string);
 const gBoard = computed(() => store.state.gBoard);
 const sLoading = ref<boolean>(false);
@@ -125,11 +127,8 @@ const onUploadChart = (aEvent: any) => {
     const reader = new FileReader();
     reader.onload = (event: any) => {
         const fileContent = JSON.parse(event.target.result);
-        console.log("🚀 ~ file: index.vue:127 ~ onUploadChart ~ fileContent:", fileContent);
-        // store.commit(MutationTypes.setBoardByFileUpload, {
-        //     index: props.panelInfo.i,
-        //     item: fileContent,
-        // } as BoardPanelEdit);
+        store.commit(MutationTypes.setBoardOld, cloneDeep(fileContent) as BoardInfo);
+        store.commit(MutationTypes.setBoardByFileUpload, cloneDeep(fileContent) as BoardInfo);
     };
     reader.readAsText(file);
 };
@@ -287,8 +286,9 @@ const onClickPopupItem = (aPopupName: PopupType) => {
 // };
 //
 const onReload = () => {
-    let id = route.query.id || cBoardList.value[0]?.board_id;
-    store.dispatch(ActionTypes.fetchBoard, id);
+    // let id = route.query.id || cBoardList.value[0]?.board_id;
+    const newBord = cloneDeep(cBoardOld.value);
+    store.commit(MutationTypes.setBoardByFileUpload, newBord);
 };
 const onRollUp = async () => {
     sLoading.value = true;

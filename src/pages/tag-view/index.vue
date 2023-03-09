@@ -10,6 +10,7 @@ import ButtonCreate from '@/components/common/button-create/index.vue';
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { PopupType } from '@/enums/app';
+import { BoardInfo } from '@/interface/chart';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
@@ -20,6 +21,7 @@ const route = useRoute();
 const store = useStore();
 const sDialog = ref<boolean>(false);
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
+const cDashBoard = computed((): BoardInfo => store.state.gBoard);
 const sPanels = ref(null);
 
 function onOpenPopup() {
@@ -29,31 +31,39 @@ const onClosePopup = () => {
     sDialog.value = false;
 };
 
-const setBoard = async (sId: string) => {
-    // await store.dispatch(ActionTypes.fetchTable);
-    await store.dispatch(ActionTypes.fetchBoard, sId);
-};
+// const setBoard = async (sId: string) => {
+//     // await store.dispatch(ActionTypes.fetchTable);
+//     await store.dispatch(ActionTypes.fetchBoard, sId);
+// };
 
-watch(
-    () => route.query.id,
-    () => {
-        if (route.query.id) {
-            setBoard(route.query.id as string);
-        }
-    }
-);
+// watch(
+//     () => cDashBoard.value,
+//     () => {
+//         setBoard(cBoardList.value[0]?.board_id as string);
+//     }
+// );
 
-watch(
-    () => cBoardList.value,
-    () => {
-        if (!route.query.id && cBoardList.value.length > 0) {
-            setBoard(cBoardList.value[0]?.board_id as string);
-        }
-        if (route.query.id) {
-            setBoard(route.query.id as string);
-        }
-    }
-);
+// watch(
+//     () => route.query.id,
+//     () => {
+//         if (route.query.id) {
+//             setBoard(route.query.id as string);
+//         }
+//     }
+// );
+
+// watch(
+//     () => cBoardList.value,
+//     () => {
+//         if (!route.query.id && cBoardList.value.length > 0) {
+//             setBoard(cBoardList.value[0]?.board_id as string);
+//         }
+//         if (route.query.id) {
+//             setBoard(route.query.id as string);
+//         }
+//     }
+// );
+
 store.dispatch(ActionTypes.fetchTableList);
 store.dispatch(ActionTypes.fetchRangeData);
 </script>

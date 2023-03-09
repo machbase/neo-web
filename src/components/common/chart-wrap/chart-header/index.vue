@@ -10,13 +10,13 @@
         </div>
         <!--  -->
         <div class="chart-wrap__header-icons">
-            <div class="save-chart-ex" @click="onSaveChart">
+            <!-- <div class="save-chart-ex" @click="onSaveChart">
                 <v-icon size="small" class="icon" icon="mdi-content-save"></v-icon>
             </div>
             <label>
                 <v-icon size="small" class="icon file-import-icon" icon="mdi-upload"></v-icon>
                 <input class="file-import" type="file" @change="onUploadChart" />
-            </label>
+            </label> -->
             <router-link
                 v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW"
                 :to="{ name: RouteNames.CHART_VIEW, params: { id: panelInfo.i } }"

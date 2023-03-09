@@ -28,6 +28,15 @@ const state = {
         range_bgn: '',
         panels: [],
     } as BoardInfo,
+    // old
+    gBoardOld: {
+        board_id: '',
+        range_end: '',
+        refresh: '',
+        board_name: '',
+        range_bgn: '',
+        panels: [],
+    } as BoardInfo,
 
     gBoardPanelEdit: {
         index: 0,

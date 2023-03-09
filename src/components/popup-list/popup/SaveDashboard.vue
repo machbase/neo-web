@@ -25,6 +25,7 @@ import { PopupType } from '@/enums/app';
 import { RouteNames } from '@/enums/routes';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
+import { MutationTypes } from '@/store/mutations';
 import { computed, defineEmits, reactive, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -62,10 +63,32 @@ const onSetting = () => {
         board_name: sData.boardTitle,
         old_id: route.name !== RouteNames.NEW ? sData.boardId : sData.oldId,
     };
-    store.dispatch(ActionTypes.fetchNewDashboard, newBoard).then((res) => {
-        alert(res.msg);
-        onClosePopup();
-    });
+    store.commit(MutationTypes.setValueDashBoard, newBoard);
+    const jsonString = JSON.stringify(cBoard.value);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${newBoard.board_name}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    onClosePopup();
+
+    // store.dispatch(ActionTypes.fetchNewDashboard, newBoard).then((res) => {
+    //     console.log('res', res);
+    // alert(res.msg);
+    // onClosePopup();
+    //     // const jsonString = JSON.stringify(store.state.gBoard.panels[props.panelInfo.i as number][0]);
+    //     // const blob = new Blob([jsonString], { type: 'application/json' });
+    //     // const url = URL.createObjectURL(blob);
+    //     // const link = document.createElement('a');
+    //     // link.href = url;
+    //     // link.download = `${props.panelInfo.chart_title}.json`;
+    //     // document.body.appendChild(link);
+    //     // link.click();
+    //     // document.body.removeChild(link);
+    // });
 };
 
 const onClosePopup = () => {

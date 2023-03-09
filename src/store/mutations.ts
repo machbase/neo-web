@@ -22,6 +22,8 @@ enum MutationTypes {
     setDeleteChart = 'setDeleteChart',
     setChartBoardEdit = 'setChartBoardEdit',
     setBoardByFileUpload = 'setBoardByFileUpload',
+    setBoardOld = 'setBoardOld',
+    setValueDashBoard = 'setValueDashBoard',
 }
 
 const mutations = {
@@ -82,6 +84,12 @@ const mutations = {
             old_id: aTemp.old_id,
         };
     },
+    [MutationTypes.setValueDashBoard](state: RootState, aTemp: any) {
+        state.gBoard = {
+            ...state.gBoard,
+            ...aTemp,
+        };
+    },
     [MutationTypes.setRangeData](state: RootState, aRangeData: RangeData) {
         state.gRangeData = aRangeData;
     },
@@ -104,8 +112,11 @@ const mutations = {
         if (isEmpty(state.gBoardPanelEdit.item)) return;
         state.gBoard.panels[state.gBoardPanelEdit.index][0] = state.gBoardPanelEdit.item;
     },
-    [MutationTypes.setBoardByFileUpload](state: RootState, payload: any) {
-        state.gBoard.panels[payload.index][0] = payload.item;
+    [MutationTypes.setBoardByFileUpload](state: RootState, payload: BoardInfo) {
+        state.gBoard = payload;
+    },
+    [MutationTypes.setBoardOld](state: RootState, payload: BoardInfo) {
+        state.gBoardOld = payload;
     },
 };
 
