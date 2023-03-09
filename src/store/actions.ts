@@ -64,7 +64,7 @@ const actions = {
         context.commit(MutationTypes.setNewChartBoard, chartFormat);
     },
     async [ActionTypes.fetchNewDashboard](context: MyActionContext, payload: any) {
-        const res =
+        const res: any =
             payload.old_id === ''
                 ? await postNewBoard({
                       ...context.state.gBoard,

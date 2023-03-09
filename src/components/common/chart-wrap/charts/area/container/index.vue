@@ -171,7 +171,7 @@ const cChartOptions = computed(() => {
             tickColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
         },
         // Value chart
-        yAxis: data.sYaxis,
+        yAxis: updateYaxis(props.panelInfo.tag_set),
 
         // Info tag chart
         tooltip: {
@@ -247,11 +247,20 @@ const updateMinMaxChart = (start: any, end: any) => {
     return chart.value.chart.xAxis[0].setExtremes(moment.utc(start).valueOf(), moment.utc(end).valueOf());
 };
 
+const getMaxValue = (array: number[][]) => {
+    return array.reduce((result: number, current: any) => {
+        if (current[1] > result) result = current[1];
+        return result;
+    }, 0);
+};
+
 const updateYaxis = (aInfo: TagSet[]) => {
-    data.sYaxis = aInfo.map((i) => {
+    if (aInfo.length === 0) return [];
+    return aInfo.map((i, index) => {
         return {
             showLastLabel: true,
-            max: props.maxYChart === 0 ? '' : props.maxYChart,
+            // max: data.sMasterSeriesData[index]?.data.length > 0 && getMaxValue(data.sMasterSeriesData[index]?.data),
+            max: props.maxYChart && props.maxYChart === 0 ? '' : props.maxYChart,
             gridLineWidth: 1,
             gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
@@ -271,12 +280,12 @@ const updateYaxis = (aInfo: TagSet[]) => {
     });
 };
 
-watch([() => props.chartData, () => props.viewData, () => props.pIsZoom], () => {
+watch([() => props.chartData.datasets, () => props.viewData.datasets, () => props.pIsZoom], () => {
+    console.log('long change', props.chartData.datasets);
     data.sIsTag = props.pIsZoom;
-    data.sMasterSeriesData = props.chartData.datasets;
-    data.sViewPortSeriesData = props.viewData.datasets;
+    data.sMasterSeriesData = props.chartData.datasets || [];
+    data.sViewPortSeriesData = props.viewData.datasets || [];
     data.sChartWidth = chart.value.chart.plotWidth;
-    updateYaxis(props.panelInfo.tag_set);
 });
 
 defineExpose({
