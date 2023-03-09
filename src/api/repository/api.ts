@@ -38,14 +38,15 @@ const getPreference = async (): Promise<ResPreferences> => {
 };
 
 const postSetting = async (params: any): Promise<ResPreferences> => {
-    const { theme, home_board, timeout } = params;
+    const { theme, ip, port, timeout } = params;
     return ResponseData<ResPreferences>(
         await request({
             method: 'POST',
             url: '/api/machiotboard/setting/',
             data: {
                 theme,
-                home_board,
+                ip,
+                port,
                 timeout,
             },
         }),

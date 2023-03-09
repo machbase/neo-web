@@ -6,7 +6,8 @@ export interface ResBoardList {
     last_edit: string;
 }
 export interface ResPreferences {
-    home_board: string;
+    ip: string;
+    port: string;
     theme: string;
     timeout: number;
 }

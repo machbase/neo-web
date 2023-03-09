@@ -3,13 +3,13 @@
         <div class="popup__input">
             <p class="popup__input-label">IP</p>
             <div class="popup__input-group-content">
-                <input :value="DEFAULT_PREFERENCE.IP" class="popup__input-group-text" @change="onChangeInput" />
+                <input v-model="sData.ip" class="popup__input-group-text" @change="onChangeInput" />
             </div>
         </div>
         <div class="popup__input">
             <p class="popup__input-label">PORT</p>
             <div class="popup__input-group-content">
-                <input :value="DEFAULT_PREFERENCE.PORT" class="popup__input-group-text" @change="onChangeInput" />
+                <input v-model="sData.port" class="popup__input-group-text" @change="onChangeInput" />
             </div>
         </div>
         <div class="popup__input">
@@ -40,14 +40,15 @@ import { THEME_MODE } from '@/utils/constants';
 import { computed, reactive, defineEmits } from 'vue';
 import { DEFAULT_PREFERENCE, NOT_YET, SELECT_THEME } from './constant';
 
+const cPreferences = computed(() => store.state.gPreference);
 const emit = defineEmits(['eClosePopup']);
 const store = useStore();
 const sData = reactive({
     theme: '' as string,
-    board: '' as string,
-    time: '0' as string,
+    ip: DEFAULT_PREFERENCE.IP as string,
+    port: DEFAULT_PREFERENCE.PORT as string,
+    timeout: cPreferences.value.timeout as any,
 });
-const cPreferences = computed(() => store.state.gPreference);
 const cBoardList = computed(() =>
     store.state.gBoardList.map((aItem) => {
         return {
@@ -61,10 +62,10 @@ const cBoardList = computed(() =>
 const aIsChangeTheme = (aValue: string, aType: boolean) => {
     if (aType) {
         sData.theme = aValue;
-    } else sData.board = aValue;
+    }
 };
 const onChangeInput = (aEvent: Event) => {
-    sData.time = (aEvent.target as HTMLInputElement).value;
+    sData.timeout = (aEvent.target as HTMLInputElement).value;
 };
 const onSetting = () => {
     store.dispatch(ActionTypes.postPreference, sData).then(() => onClosePopup());
