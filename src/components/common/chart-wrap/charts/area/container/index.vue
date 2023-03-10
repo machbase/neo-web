@@ -8,7 +8,8 @@ import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults
 import { formatColors } from '@/utils/utils';
 import { watchEffect } from 'vue';
 import moment from 'moment';
-import { isEmpty } from 'lodash';
+import { cloneDeep, isEmpty } from 'lodash';
+import { onMounted } from 'vue';
 interface BarChartContainerProps {
     chartData: LineDataset;
     viewData: LineDataset;
@@ -171,8 +172,46 @@ const cChartOptions = computed(() => {
             tickColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
         },
         // Value chart
-        yAxis: updateYaxis(props.panelInfo.tag_set),
-
+        yAxis: [
+            {
+                showLastLabel: true,
+                // max: data.sMasterSeriesData[index].data.length > 0 ? getMaxValue(data.sMasterSeriesData[index]?.data) : null,
+                gridLineWidth: 1,
+                gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+                lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+                startOnTick: true,
+                endOnTick: true,
+                labels: {
+                    align: 'center',
+                    style: {
+                        color: cIsDarkMode.value ? '#afb5bc' : '#6c6e70',
+                        fontSize: '10px',
+                    },
+                    x: -5,
+                    y: 3,
+                },
+                opposite: false,
+            },
+            {
+                showLastLabel: true,
+                // max: data.sMasterSeriesData[index].data.length > 0 ? getMaxValue(data.sMasterSeriesData[index]?.data) : null,
+                gridLineWidth: 1,
+                gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+                lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+                startOnTick: true,
+                endOnTick: true,
+                labels: {
+                    align: 'center',
+                    style: {
+                        color: cIsDarkMode.value ? '#afb5bc' : '#6c6e70',
+                        fontSize: '10px',
+                    },
+                    x: -5,
+                    y: 3,
+                },
+                opposite: true,
+            },
+        ],
         // Info tag chart
         tooltip: {
             valueDecimals: 2,
@@ -237,7 +276,9 @@ const cChartOptions = computed(() => {
 });
 
 function afterSetExtremes(e) {
+    console.log('e', e);
     const { chart } = e.target;
+    console.log('chart ', chart);
     data.sTimeChartXaxis.min = e.min;
     data.sTimeChartXaxis.max = e.max;
     emit('eOnChange', data.sTimeChartXaxis);
@@ -259,8 +300,7 @@ const updateYaxis = (aInfo: TagSet[]) => {
     return aInfo.map((i, index) => {
         return {
             showLastLabel: true,
-            // max: data.sMasterSeriesData[index]?.data.length > 0 && getMaxValue(data.sMasterSeriesData[index]?.data),
-            max: props.maxYChart && props.maxYChart === 0 ? '' : props.maxYChart,
+            // max: data.sMasterSeriesData[index].data.length > 0 ? getMaxValue(data.sMasterSeriesData[index]?.data) : null,
             gridLineWidth: 1,
             gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
@@ -280,11 +320,16 @@ const updateYaxis = (aInfo: TagSet[]) => {
     });
 };
 
-watch([() => props.chartData.datasets, () => props.viewData.datasets, () => props.pIsZoom], () => {
-    console.log('long change', props.chartData.datasets);
-    data.sIsTag = props.pIsZoom;
+watch([() => props.chartData.datasets], () => {
     data.sMasterSeriesData = props.chartData.datasets || [];
+});
+watch([() => props.viewData.datasets], () => {
     data.sViewPortSeriesData = props.viewData.datasets || [];
+});
+watch([() => props.pIsZoom], () => {
+    data.sIsTag = props.pIsZoom;
+});
+onMounted(() => {
     data.sChartWidth = chart.value.chart.plotWidth;
 });
 

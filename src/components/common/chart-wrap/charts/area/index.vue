@@ -204,8 +204,7 @@ const convertData = async (aTagData: ReturnTagData[], aPanelInfo: PanelInfo, aTa
             data: aTag.Samples.map((aItem) => {
                 return [toTimeUtcChart(aItem.TimeStamp), aItem.Value];
             }),
-
-            // yAxis: aTagInfo.use_y2 === 'Y' ? 1 : 0,
+            yAxis: aTagInfo.use_y2 === 'Y' ? 1 : 0,
             // color: sTagColor,
             // type: props.panelInfo.chart_type === 'areaLine' ? 'area' : null,
             // fillColor:
@@ -229,8 +228,6 @@ const convertData = async (aTagData: ReturnTagData[], aPanelInfo: PanelInfo, aTa
 };
 
 const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aIsNavigator?: boolean) => {
-    console.log('aPanelInfo', aPanelInfo);
-
     sLoading.value = true;
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
     let sLimit = aPanelInfo.count;
@@ -239,14 +236,12 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
         sCount = Math.ceil(sChartWidth / sInnerValue.sTickPixels);
     }
     let sDatasets = [] as HighchartsDataset[];
-    const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
-    if (!sTagSet.length) {
+    if (sTagSet.length === 0) {
         sLoading.value = false;
         data.sDisplayData = { datasets: sDatasets };
         return;
     }
-    console.log('object');
     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
     if (!aCustomRange && !aIsNavigator) {
         sTimeRange = {
@@ -262,7 +257,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     const sIntervalTime =
         aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(data.sTimeLine.startTime as string, data.sTimeLine.endTime as string, sChartWidth) : data.sIntervalData;
     data.sIntervalData = sIntervalTime;
-    for (let index = 0; index < sTagSet?.length; index++) {
+    for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
             Table: sTagSetElement.table,
@@ -274,30 +269,23 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
             Count: sCount,
             Direction: 0,
         });
-        sTagList.push(sFetchResult);
-    }
-    const sSumTagDatas = getCalcStackedPercentage(sTagList); // [72.19, ....]
-    await sTagList.forEach(async (_, i: number) => {
-        const sTag = aPanelInfo.tag_set[i];
-        const sRes: ReturnTagData[] = sTagList.map((tag) => {
-            return tag[0];
+        await sDatasets.push({
+            name: `${sFetchResult[0].TagName}(${sFetchResult[0].CalculationMode})`,
+            data:
+                sFetchResult[0].Samples.length > 0
+                    ? sFetchResult[0].Samples.map((aItem: any) => {
+                          return [toTimeUtcChart(aItem.TimeStamp), aItem.Value];
+                      })
+                    : [],
+            yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
+            marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
         });
-        let sConvertData;
-        sConvertData = await convertData(sRes, aPanelInfo, sTag, i, sSumTagDatas);
-        sDatasets = sConvertData;
-    });
-    data.sDisplayData = { datasets: sDatasets };
-    data.sMaxYChart = getMaxValue(sDatasets);
+    }
+    data.sDisplayData = await { datasets: sDatasets };
     sLoading.value = false;
     if (moment.utc(sTimeRange.startTime).valueOf() !== areaChart.value.chart.chart.xAxis[0].min) {
         areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
     }
-    console.log('sDatasets', sDatasets);
-
-    // if (moment.utc(sTimeRange.startTime).valueOf() === areaChart.value.chart.chart.xAxis[0].min) {
-    //     return;
-    // }
-    // if (areaChart.value.chart.chart.xAxis[0].min !== null) areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 };
 const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
@@ -309,7 +297,7 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
     let sDatasets = [] as HighchartsDataset[];
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
-    if (!sTagSet.length) {
+    if (sTagSet.length === 0) {
         sLoading.value = false;
         data.sViewPortData = { datasets: sDatasets };
         return;
@@ -322,7 +310,7 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
             ? calcInterval(data.sTimeRangeViewPort.startTime as string, data.sTimeRangeViewPort.endTime as string, sChartWidth)
             : data.sIntervalData;
     data.sIntervalData = sIntervalTime;
-    for (let index = 0; index < sTagSet?.length; index++) {
+    for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
             Table: sTagSetElement.table,
@@ -334,19 +322,19 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
             Count: sCount,
             Direction: 0,
         });
-        sTagList.push(sFetchResult);
-    }
-    const sSumTagDatas = getCalcStackedPercentage(sTagList); // [72.19, ....]
-    await sTagList.forEach(async (_, i: number) => {
-        const sTag = aPanelInfo.tag_set[i];
-        const sRes: ReturnTagData[] = sTagList.map((tag) => {
-            return tag[0];
+        await sDatasets.push({
+            name: `${sFetchResult[0].TagName}(${sFetchResult[0].CalculationMode})`,
+            data:
+                sFetchResult[0].Samples.length > 0
+                    ? sFetchResult[0].Samples.map((aItem: any) => {
+                          return [toTimeUtcChart(aItem.TimeStamp), aItem.Value];
+                      })
+                    : [],
+            yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
+            marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
         });
-        let sConvertData;
-        sConvertData = await convertData(sRes, aPanelInfo, sTag, i, sSumTagDatas);
-        sDatasets = sConvertData;
-    });
-    data.sViewPortData = { datasets: sDatasets };
+    }
+    data.sViewPortData = await { datasets: sDatasets };
 };
 
 const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
@@ -358,7 +346,7 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
     let sDatasets = [] as HighchartsDataset[];
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
-    if (!sTagSet.length) {
+    if (sTagSet.length === 0) {
         sLoading.value = false;
         data.sDisplayData = { datasets: sDatasets };
         return;
@@ -374,7 +362,7 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
     }
     data.sTimeLine.startTime = sTimeRange.startTime;
     data.sTimeLine.endTime = sTimeRange.endTime;
-    for (let index = 0; index < sTagSet?.length; index++) {
+    for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagDataRaw, {
             Table: sTagSetElement.table,
@@ -384,27 +372,22 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
             Count: sRawLimit,
             Direction: 0,
         });
-        sTagList.push(sFetchResult);
-    }
-    const sSumTagDatas = getCalcStackedPercentage(sTagList); // [72.19, ....]
-    await sTagList.forEach(async (_, i: number) => {
-        const sTag = aPanelInfo.tag_set[i];
-        const sRes: ReturnTagData[] = sTagList.map((tag) => {
-            return tag[0];
+        await sDatasets.push({
+            name: `${sFetchResult[0].TagName}(${sFetchResult[0].CalculationMode})`,
+            data:
+                sFetchResult[0].Samples.length > 0
+                    ? sFetchResult[0].Samples.map((aItem: any) => {
+                          return [toTimeUtcChart(aItem.TimeStamp), aItem.Value];
+                      })
+                    : [],
+            yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
+            marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
         });
-        let sConvertData;
-        sConvertData = await convertData(sRes, aPanelInfo, sTag, i, sSumTagDatas);
-        sDatasets = sConvertData;
-    });
-    data.sDisplayData = { datasets: sDatasets };
+    }
     sLoading.value = false;
     if (moment.utc(sTimeRange.startTime).valueOf() !== areaChart.value.chart.chart.xAxis[0].min) {
         areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
     }
-    // if (moment.utc(sTimeRange.startTime).valueOf() === areaChart.value.chart.chart.xAxis[0].min) {
-    //     return;
-    // }
-    // if (areaChart.value.chart.chart.xAxis[0].min !== null) areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 };
 const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aLimit?: any) => {
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
@@ -424,7 +407,7 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
     let sDatasets = [] as HighchartsDataset[];
     const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
-    if (!sTagSet.length) {
+    if (sTagSet.length === 0) {
         sLoading.value = false;
         data.sViewPortData = { datasets: sDatasets };
         return;
@@ -432,7 +415,7 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
     data.sTimeRangeViewPort.startTime = sTimeRange.startTime;
     data.sTimeRangeViewPort.endTime = sTimeRange.endTime;
-    for (let index = 0; index < sTagSet?.length; index++) {
+    for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagDataRaw, {
             Table: sTagSetElement.table,
@@ -442,18 +425,18 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
             Count: sLimit,
             Direction: 0,
         });
-        sTagList.push(sFetchResult);
-    }
-    const sSumTagDatas = getCalcStackedPercentage(sTagList); // [72.19, ....]
-    await sTagList.forEach(async (_, i: number) => {
-        const sTag = aPanelInfo.tag_set[i];
-        const sRes: ReturnTagData[] = sTagList.map((tag) => {
-            return tag[0];
+        await sDatasets.push({
+            name: `${sFetchResult[0].TagName}(${sFetchResult[0].CalculationMode})`,
+            data:
+                sFetchResult[0].Samples.length > 0
+                    ? sFetchResult[0].Samples.map((aItem: any) => {
+                          return [toTimeUtcChart(aItem.TimeStamp), aItem.Value];
+                      })
+                    : [],
+            yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
+            marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
         });
-        let sConvertData;
-        sConvertData = await convertData(sRes, aPanelInfo, sTag, i, sSumTagDatas);
-        sDatasets = sConvertData;
-    });
+    }
     data.sViewPortData = { datasets: sDatasets };
 };
 
@@ -475,33 +458,31 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPo
 
 const onReload = async () => {
     await intializePanelData();
-    // areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 };
 const onChangeTimeRange = async (eValue: any) => {
-    await fetchViewPortData(props.panelInfo, {
-        startTime: eValue.dateStart,
-        endTime: eValue.dateEnd,
-    });
     await fetchPanelData(props.panelInfo, {
         startTime: data.sTimeLine.startTime,
         endTime: data.sTimeLine.endTime,
+    });
+    await fetchViewPortData(props.panelInfo, {
+        startTime: eValue.dateStart,
+        endTime: eValue.dateEnd,
     });
 };
 const onChangeSRF = async (eValue: any) => {
     switch (eValue) {
         case 0:
-            await fetchViewPortData(props.panelInfo);
             await fetchPanelData(props.panelInfo);
+            await fetchViewPortData(props.panelInfo);
             break;
         case 1:
             // await generateRawDataChart(props.panelInfo, null as any, null);
-            await fetchViewPortData(props.panelInfo);
             await drawRawDataTable(props.panelInfo);
+            await fetchViewPortData(props.panelInfo);
             break;
         default:
             break;
     }
-    //    areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 };
 
 const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) => {
@@ -525,13 +506,13 @@ const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) =>
         alert('The time range is too small to perform this function.');
         return;
     }
-    await fetchViewPortData(props.panelInfo, {
-        startTime: moment(sNewTimeBgn).format(FORMAT_FULL_DATE),
-        endTime: moment(sNewTimeEnd).format(FORMAT_FULL_DATE),
-    });
     await fetchPanelData(props.panelInfo, {
         startTime: data.sTimeLine.startTime,
         endTime: data.sTimeLine.endTime,
+    });
+    await fetchViewPortData(props.panelInfo, {
+        startTime: moment(sNewTimeBgn).format(FORMAT_FULL_DATE),
+        endTime: moment(sNewTimeEnd).format(FORMAT_FULL_DATE),
     });
 };
 const OnFocus = async () => {
@@ -543,13 +524,14 @@ const OnFocus = async () => {
     sNewTimeBgn = moment(sBgn).valueOf() - sTimeGap * -0.25;
     sNewTimeEnd = moment(sEnd).valueOf() + sTimeGap * -0.25;
 
-    await fetchViewPortData(props.panelInfo, {
-        startTime: sBgn,
-        endTime: sEnd,
-    });
     await fetchPanelData(props.panelInfo, {
         startTime: moment(sNewTimeBgn).format(FORMAT_FULL_DATE),
         endTime: moment(sNewTimeEnd).format(FORMAT_FULL_DATE),
+    });
+
+    await fetchViewPortData(props.panelInfo, {
+        startTime: sBgn,
+        endTime: sEnd,
     });
 };
 async function OnChangeTimeRangerViewPort(params: any) {
@@ -575,7 +557,6 @@ watch(
     () => {
         if (isEmpty(props.panelInfo)) return;
         intializePanelData();
-        //    areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
     }
 );
 onMounted(() => {

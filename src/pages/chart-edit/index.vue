@@ -60,12 +60,16 @@ const onSave = () => {
         index: route.params.id,
         item: sTabData.value,
     };
-    sDataChart.value[0] = { ...sDataChart.value[0], ...sTabData.value };
-    sDataChart.value[0].tag_set.forEach((item: any, index: number) => {
-        if (item.id) {
-            delete (sDataChart.value[0].tag_set[index] as any).id;
-        }
-    });
+    sDataChart.value[0] = sTabData.value as PanelInfo;
+    // console.log('sTabData.value', sTabData.value);
+    // console.log('dataa', sDataChart);
+    // sDataChart.value[0] = sTabData.value
+    // sDataChart.value[0] = { ...sDataChart.value[0], ...sTabData.value };
+    // sDataChart.value[0].tag_set.forEach((item: any, index: number) => {
+    //     if (item.id) {
+    //         delete (sDataChart.value[0].tag_set[index] as any).id;
+    //     }
+    // });
     store.commit(MutationTypes.setChartEdit, payload);
 };
 
@@ -97,8 +101,10 @@ watch(
         let clone = cloneDeep(CPanels.value);
         if (CPanels.value) {
             sDataChart.value = clone[route.params.id as any];
+            sTabData.value = clone[route.params.id as any][0];
         } else {
             sDataChart.value = clone[0];
+            sTabData.value = clone[0][0];
         }
     },
     { immediate: true }
