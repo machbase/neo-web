@@ -283,7 +283,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     }
     data.sDisplayData = await { datasets: sDatasets };
     sLoading.value = false;
-    if (moment.utc(sTimeRange.startTime).valueOf() !== areaChart.value.chart.chart.xAxis[0].min) {
+    if (moment.utc(sTimeRange.startTime).valueOf() - areaChart.value.chart.chart.xAxis[0].min > 1) {
         areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
     }
 };
@@ -385,7 +385,7 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
         });
     }
     sLoading.value = false;
-    if (moment.utc(sTimeRange.startTime).valueOf() !== areaChart.value.chart.chart.xAxis[0].min) {
+    if (moment.utc(sTimeRange.startTime).valueOf() - areaChart.value.chart.chart.xAxis[0].min > 1) {
         areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
     }
 };
@@ -557,6 +557,9 @@ watch(
     () => {
         if (isEmpty(props.panelInfo)) return;
         intializePanelData();
+    },
+    {
+        // immediate: true
     }
 );
 onMounted(() => {

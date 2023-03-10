@@ -30,16 +30,18 @@ import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { MutationTypes } from '@/store/mutations';
 import { computed, ref, watch, reactive, watchEffect } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import AxesTab from '../chart-edit/components/axes/index.vue';
 import DataTab from '../chart-edit/components/data/index.vue';
 import DisplayTab from '../chart-edit/components/display/index.vue';
 import GeneralTab from '../chart-edit/components/general/index.vue';
 import TimeRangeTab from '../chart-edit/components/time-range/index.vue';
 import { cloneDeep } from 'lodash';
+import { RouteNames } from '@/enums/routes';
 
 const tabs = ['General', 'Data', 'Axes', 'Display', 'Time range'];
 const route = useRoute();
+const router = useRouter();
 const sDataChart = ref<PanelInfo[]>([]);
 const store = useStore();
 const tabIndex = ref<number>(1);
@@ -82,34 +84,36 @@ const onCancel = () => {
     sShowTab.value = false;
 };
 
-const setBoard = async (sId: string) => {
-    await store.dispatch(ActionTypes.fetchTable);
-    await store.dispatch(ActionTypes.fetchRangeData);
-    await store.dispatch(ActionTypes.fetchBoard, sId);
-};
+// const setBoard = async (sId: string) => {
+//     await store.dispatch(ActionTypes.fetchTable);
+//     await store.dispatch(ActionTypes.fetchRangeData);
+//     // await store.dispatch(ActionTypes.fetchBoard, sId);
+// };
 
-watch(
-    () => cBoardList.value,
-    () => {
-        setBoard(cBoardList.value[0]?.board_id as string);
-    }
-);
+// watch(
+//     () => cBoardList.value,
+//     () => {
+//         setBoard(cBoardList.value[0]?.board_id as string);
+//     }
+// );
 watch(
     () => CPanels.value,
     () => {
-        if (CPanels.value.length === 0) return;
-        let clone = cloneDeep(CPanels.value);
-        if (CPanels.value) {
-            sDataChart.value = clone[route.params.id as any];
-            sTabData.value = clone[route.params.id as any][0];
-        } else {
-            sDataChart.value = clone[0];
-            sTabData.value = clone[0][0];
+        if (CPanels.value.length === 0) {
+            router.push({
+                name: RouteNames.TAG_VIEW,
+            });
+            return;
         }
+        let clone = cloneDeep(CPanels.value);
+        sDataChart.value = clone[0];
+        sTabData.value = clone[0][0];
     },
     { immediate: true }
 );
 store.dispatch(ActionTypes.fetchTableList);
+store.dispatch(ActionTypes.fetchTable);
+store.dispatch(ActionTypes.fetchRangeData);
 </script>
 
 <style lang="scss" scoped>

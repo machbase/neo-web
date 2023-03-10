@@ -5,14 +5,19 @@
 </template>
 <script setup lang="ts" name="ChartView">
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
+import { RouteNames } from '@/enums/routes';
 import { BoardInfo, PanelInfo } from '@/interface/chart';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
+import { MutationTypes } from '@/store/mutations';
+import { cloneDeep } from 'lodash';
+import { onMounted } from 'vue';
 import { computed, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
+const router = useRouter();
 const store = useStore();
 const sDialog = ref<boolean>(false);
 const sData = ref<BoardInfo>();
@@ -29,34 +34,29 @@ const onClosePopup = () => {
     sDialog.value = false;
 };
 
-const setBoard = async (sId: string) => {
-    await store.dispatch(ActionTypes.fetchTable);
-    await store.dispatch(ActionTypes.fetchRangeData);
-    await store.dispatch(ActionTypes.fetchBoard, sId);
-};
-const onRefreshData = (aIsRangeTimeChange: boolean) => {
-    (sPanels.value as any)?.refreshData(aIsRangeTimeChange);
-};
-onRefreshData(true);
+// const setBoard = async (sId: string) => {
+//     await store.dispatch(ActionTypes.fetchBoard, sId);
+// };
+// const onRefreshData = (aIsRangeTimeChange: boolean) => {
+//     (sPanels.value as any)?.refreshData(aIsRangeTimeChange);
+// };
+// onRefreshData(true);
 
-watch(
-    () => cBoardList.value,
-    () => {
-        setBoard(cBoardList.value[0]?.board_id as string);
-    }
-);
-watch(
-    () => CPanels.value,
-    () => {
-        if (CPanels.value.length === 0) return;
-        if (CPanels.value) {
-            sDataChart.value = CPanels.value[route.params.id as any];
-        } else {
-            sDataChart.value = CPanels.value[0];
-        }
-    },
-    { immediate: true, deep: true }
-);
+// watch(
+//     () => cBoardList.value,
+//     () => {
+//         setBoard(cBoardList.value[0]?.board_id as string);
+//     }
+// );
+
+onMounted(() => {
+    const sData = JSON.parse(localStorage.getItem('gBoard') || '');
+    store.commit(MutationTypes.setBoardByFileUpload, sData);
+    sDataChart.value = sData.panels[0];
+});
+
+store.dispatch(ActionTypes.fetchTable);
+store.dispatch(ActionTypes.fetchRangeData);
 store.dispatch(ActionTypes.fetchTableList);
 </script>
 

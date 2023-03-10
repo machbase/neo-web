@@ -17,13 +17,13 @@
                 <v-icon size="small" class="icon file-import-icon" icon="mdi-upload"></v-icon>
                 <input class="file-import" type="file" @change="onUploadChart" />
             </label> -->
-            <router-link
+
+            <img
                 v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW"
-                :to="{ name: RouteNames.CHART_VIEW, params: { id: panelInfo.i } }"
-                target="_blank"
-            >
-                <img :src="cIsDarkMode ? i_b_newwin : i_w_newwin" class="icon" />
-            </router-link>
+                :src="cIsDarkMode ? i_b_newwin : i_w_newwin"
+                class="icon"
+                @click="openNewChartPage"
+            />
             <router-link
                 v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW && route.name !== RouteNames.VIEW"
                 :to="{ name: RouteNames.CHART_EDIT, params: { id: panelInfo.i } }"
@@ -51,13 +51,15 @@ import i_w_edit from '@/assets/image/i_w_edit.png';
 import i_w_newwin from '@/assets/image/i_w_newwin.png';
 import i_w_refresh from '@/assets/image/i_w_refresh.png';
 import { RouteNames } from '@/enums/routes';
-import { LinePanel } from '@/interface/chart';
+import { BoardInfo, LinePanel, PanelInfo } from '@/interface/chart';
 import { BoardPanelEdit } from '@/interface/tagView';
+import router from '@/routes';
 import { useStore } from '@/store';
 import { MutationTypes } from '@/store/mutations';
 import { FORMAT_FULL_DATE } from '@/utils/constants';
 import fs from 'fs';
 import moment from 'moment';
+import { watch } from 'vue';
 import { computed, defineEmits, defineProps, ref, withDefaults } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -74,6 +76,7 @@ const store = useStore();
 const route = useRoute();
 const sDateLeft = ref<string>(moment().format(FORMAT_FULL_DATE));
 const sDateRight = ref<string>(moment().format(FORMAT_FULL_DATE));
+const CBoard = computed((): BoardInfo => store.state.gBoard);
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 function convertInterType(gUnit: string) {
     switch (gUnit) {
@@ -118,15 +121,19 @@ const onUploadChart = (aEvent: any) => {
     };
     reader.readAsText(file);
 };
+const openNewChartPage = () => {
+    const routeData = router.resolve({ name: RouteNames.CHART_VIEW });
+    localStorage.setItem('gBoard', JSON.stringify(CBoard.value));
+    window.open(routeData.href, '_blank');
+    // router.push({
+    //     name: RouteNames.CHART_VIEW,
+    //     // params: { id: panelInfo.i }
+    //     // target = '_blank',
+    // });
+};
 const onReloadChart = () => {
     emit('eOnReload');
 };
-// watch(
-//     () => sDate.value,
-//     () => {
-//         emit('eChangeTime', sDate.value);
-//     }
-// );
 </script>
 
 <style lang="scss" scoped>
