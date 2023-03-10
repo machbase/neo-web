@@ -258,7 +258,7 @@ watch(
         if (pixel.value <= 0) pixel.value = 1;
         isZeroBase.value = props.pChartData.zero_base.toUpperCase() == 'Y';
         isZeroBase2.value = props.pChartData.zero_base2.toUpperCase() == 'Y';
-        if (tagSets.value[0].use_y2 == 'Y') isAdditionalYAxis.value = true;
+        if (tagSets.value.some(({ use_y2 }: any) => use_y2 == 'Y')) isAdditionalYAxis.value = true;
         picked.value = props.pChartData.use_right_y2.toUpperCase() == 'Y' ? 'r' : 'l';
     },
     {

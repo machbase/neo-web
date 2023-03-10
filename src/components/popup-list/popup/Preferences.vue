@@ -1,15 +1,21 @@
 <template>
     <div class="popup">
         <div class="popup__input">
-            <p class="popup__input-label">UI Theme</p>
-            <div class="popup__input-content">
-                <ComboboxSelect :p-data="THEME_MODE" :p-string-default="SELECT_THEME" :p-value="cPreferences.theme" @e-on-change="(aValue) => aIsChangeTheme(aValue, true)" />
+            <p class="popup__input-label">IP</p>
+            <div class="popup__input-group-content">
+                <input :value="DEFAULT_PREFERENCE.IP" class="popup__input-group-text" @change="onChangeInput" />
             </div>
         </div>
         <div class="popup__input">
-            <p class="popup__input-label">Home Dashboard</p>
+            <p class="popup__input-label">PORT</p>
+            <div class="popup__input-group-content">
+                <input :value="DEFAULT_PREFERENCE.PORT" class="popup__input-group-text" @change="onChangeInput" />
+            </div>
+        </div>
+        <div class="popup__input">
+            <p class="popup__input-label">UI Theme</p>
             <div class="popup__input-content">
-                <ComboboxSelect :p-data="cBoardList" :p-string-default="NOT_YET" @e-on-change="aIsChangeTheme" />
+                <ComboboxSelect :p-data="THEME_MODE" :p-string-default="SELECT_THEME" :p-value="cPreferences.theme" @e-on-change="(aValue) => aIsChangeTheme(aValue, true)" />
             </div>
         </div>
         <div class="popup__input-group">
@@ -32,7 +38,7 @@ import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { THEME_MODE } from '@/utils/constants';
 import { computed, reactive, defineEmits } from 'vue';
-import { NOT_YET, SELECT_THEME } from './constant';
+import { DEFAULT_PREFERENCE, NOT_YET, SELECT_THEME } from './constant';
 
 const emit = defineEmits(['eClosePopup']);
 const store = useStore();

@@ -20,7 +20,6 @@
                     {{ SET }}
                     <div ref="childGroup" class="child-group">
                         <div class="item" @click="onClickPopupItem(PopupType.PREFERENCES)">{{ PREFERENCE }}</div>
-                        <div class="item" @click="onClickPopupItem(PopupType.MANAGE_DASHBOARD)">{{ MANAGE_DASHBOARD }}</div>
                         <div class="item" @click="onRollUp">{{ REQUEST_ROLLUP }}</div>
                     </div>
                 </div>
