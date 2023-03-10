@@ -167,6 +167,7 @@ export interface HighchartsDataset {
     name: string;
     data: number[][];
     marker: { symbol: string; lineColor: null; lineWidth: number };
+    yAxis?: number;
 }
 export interface ChartData {
     Quality: number;

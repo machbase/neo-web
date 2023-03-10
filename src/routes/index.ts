@@ -44,7 +44,7 @@ const routes: Array<RouteRecordRaw> = [
         beforeEnter: protectedRoute,
     },
     {
-        path: `${PageRoutes.TAG_VIEW}${PageRoutes.CHART_VIEW}/:id`,
+        path: `${PageRoutes.TAG_VIEW}${PageRoutes.CHART_VIEW}`,
         name: RouteNames.CHART_VIEW,
         components: {
             default: ChartView,

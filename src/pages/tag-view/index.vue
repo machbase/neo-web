@@ -10,10 +10,11 @@ import ButtonCreate from '@/components/common/button-create/index.vue';
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { PopupType } from '@/enums/app';
-import { BoardInfo } from '@/interface/chart';
+import { BoardInfo, PanelInfo } from '@/interface/chart';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
+import { cloneDeep } from 'lodash';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -23,6 +24,7 @@ const sDialog = ref<boolean>(false);
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
 const cDashBoard = computed((): BoardInfo => store.state.gBoard);
 const sPanels = ref(null);
+const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 
 function onOpenPopup() {
     sDialog.value = true;
@@ -46,18 +48,6 @@ const onClosePopup = () => {
 // watch(
 //     () => route.query.id,
 //     () => {
-//         if (route.query.id) {
-//             setBoard(route.query.id as string);
-//         }
-//     }
-// );
-
-// watch(
-//     () => cBoardList.value,
-//     () => {
-//         if (!route.query.id && cBoardList.value.length > 0) {
-//             setBoard(cBoardList.value[0]?.board_id as string);
-//         }
 //         if (route.query.id) {
 //             setBoard(route.query.id as string);
 //         }

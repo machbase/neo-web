@@ -55,18 +55,15 @@ watchEffect(
 watch(
     () => props.chartDataSingle,
     () => {
-        console.log('sDataChart', props.chartDataSingle);
         if (props.chartDataSingle?.length === 0) return;
-        if (props.chartDataSingle) {
-            data.sPanel = props.chartDataSingle
-                ? (props.chartDataSingle.map((v: any, i: number) => {
-                      return {
-                          ...v,
-                          i: i,
-                      };
-                  }) as PanelInfo[])
-                : [];
-        }
+        data.sPanel = props.chartDataSingle
+            ? (props.chartDataSingle.map((v: any, i: number) => {
+                  return {
+                      ...v,
+                      i: i,
+                  };
+              }) as PanelInfo[])
+            : [];
     },
     { immediate: true, deep: true }
 );

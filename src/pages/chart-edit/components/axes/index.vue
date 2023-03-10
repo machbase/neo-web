@@ -134,7 +134,6 @@ const tagSetsSelected = ref<any>([]);
 watch(
     () => tagSets.value,
     () => {
-        console.log('tagSets.value:');
         tagOptions.value = tagSets.value.reduce((res: any, item: any, index: number) => {
             if (item.use_y2 != 'Y') {
                 const option = {
@@ -191,7 +190,6 @@ const sCustomScaleRaw2 = reactive<CustomScaleInput>({
 });
 const onChangeInput = (aEvent: Event) => {
     const sTemp = splitTimeDuration((aEvent.target as HTMLInputElement).value);
-    console.log('🚀 ~ file: index.vue:145 ~ onChangeInput ~ sTemp', sTemp);
     intervalValue.value = sTemp.value;
     intervalUnit.value = sTemp.type;
 };
