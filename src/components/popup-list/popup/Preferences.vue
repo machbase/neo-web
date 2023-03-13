@@ -44,10 +44,10 @@ const cPreferences = computed(() => store.state.gPreference);
 const emit = defineEmits(['eClosePopup']);
 const store = useStore();
 const sData = reactive({
-    theme: '' as string,
-    ip: DEFAULT_PREFERENCE.IP as string,
-    port: DEFAULT_PREFERENCE.PORT as string,
-    timeout: cPreferences.value.timeout as any,
+    theme: cPreferences.value.theme || DEFAULT_PREFERENCE.THEME,
+    ip: cPreferences.value.ip || DEFAULT_PREFERENCE.IP,
+    port: cPreferences.value.port || DEFAULT_PREFERENCE.PORT,
+    timeout: cPreferences.value.timeout || DEFAULT_PREFERENCE.TIMEOUT,
 });
 const cBoardList = computed(() =>
     store.state.gBoardList.map((aItem) => {
@@ -65,7 +65,7 @@ const aIsChangeTheme = (aValue: string, aType: boolean) => {
     }
 };
 const onChangeInput = (aEvent: Event) => {
-    sData.timeout = (aEvent.target as HTMLInputElement).value;
+    sData.timeout = parseInt((aEvent.target as HTMLInputElement).value);
 };
 const onSetting = () => {
     store.dispatch(ActionTypes.postPreference, sData).then(() => onClosePopup());
