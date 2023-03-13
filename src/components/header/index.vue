@@ -45,7 +45,7 @@
             ></v-icon>
             <label v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW">
                 <v-icon size="small" class="icon file-import-icon" icon="mdi-upload"></v-icon>
-                <input class="file-import" type="file" @change="onUploadChart" />
+                <input class="file-import" type="file" accept="application/JSON" @change="onUploadChart" />
             </label>
             <img
                 v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW || sHeaderType === RouteNames.VIEW"
@@ -121,16 +121,36 @@ const cBoardListSelect = computed(() =>
         };
     })
 );
+
+function validateObject(obj: any) {
+    // for (let key in template) {
+    //     if (typeof obj[key] === 'undefined') {
+    //         return false;
+    //     }
+    //     if (typeof template[key] === 'object') {
+    //         if (!validateObject(obj[key], template[key])) {
+    //             return false;
+    //         }
+    //     }
+    // }
+    return true;
+}
+
 const onUploadChart = (aEvent: any) => {
     const file = aEvent.target.files[0];
     const reader = new FileReader();
     reader.onload = (event: any) => {
-        const fileContent = JSON.parse(event.target.result);
-        store.commit(MutationTypes.setBoardOld, cloneDeep(fileContent) as BoardInfo);
-        store.commit(MutationTypes.setBoardByFileUpload, cloneDeep(fileContent) as BoardInfo);
+        try {
+            const fileContent: BoardInfo = JSON.parse(event.target.result);
+            store.commit(MutationTypes.setBoardOld, cloneDeep(fileContent) as BoardInfo);
+            store.commit(MutationTypes.setBoardByFileUpload, cloneDeep(fileContent) as BoardInfo);
+        } catch (error) {
+            console.log('fileContent', error);
+        }
     };
     reader.readAsText(file);
 };
+
 const cWidthPopup = computed((): string => {
     switch (sPopupType.value) {
         case PopupType.PREFERENCES:
