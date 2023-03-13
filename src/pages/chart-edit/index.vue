@@ -106,8 +106,8 @@ watch(
             return;
         }
         let clone = cloneDeep(CPanels.value);
-        sDataChart.value = clone[0];
-        sTabData.value = clone[0][0];
+        sDataChart.value = clone[Number(route.params.id)];
+        sTabData.value = clone[Number(route.params.id)][0];
     },
     { immediate: true }
 );
