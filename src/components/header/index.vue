@@ -94,7 +94,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from './constant';
 import { BarPanel, BoardInfo, startTimeToendTimeType } from '@/interface/chart';
 import { fetchRollUp } from '@/api/repository/machiot';
-
+import Joi from 'joi';
 export type headerType = RouteNames.TAG_VIEW | RouteNames.VIEW | RouteNames.CHART_VIEW | RouteNames.CHART_EDIT | RouteNames.NEW;
 const store = useStore();
 const cTimeRange = computed(() => store.state.gTimeRange);
@@ -122,33 +122,157 @@ const cBoardListSelect = computed(() =>
     })
 );
 
-function validateObject(obj: any) {
-    // for (let key in template) {
-    //     if (typeof obj[key] === 'undefined') {
-    //         return false;
-    //     }
-    //     if (typeof template[key] === 'object') {
-    //         if (!validateObject(obj[key], template[key])) {
-    //             return false;
-    //         }
-    //     }
-    // }
-    return true;
-}
+const schema = Joi.object({
+    board_id: Joi.string().required(),
+    range_end: Joi.string().allow('').required(),
+    range_bgn: Joi.string().allow('').required(),
+    refresh: Joi.string().allow('').required(),
+    board_name: Joi.string().required(),
+    old_id: Joi.string(),
+    panels: Joi.array()
+        .items(
+            Joi.array().items(
+                Joi.object({
+                    chart_id: Joi.string().allow('').required(),
+                    tag_set: Joi.array()
+                        .required()
+                        .items(
+                            Joi.object({
+                                weight: Joi.number().required(),
+                                offset: Joi.number(),
+                                min: Joi.number().required(),
+                                max: Joi.number().required(),
+                                alias: Joi.string().allow('').required(),
+                                use_y2: Joi.string().required().pattern(/Y|N/),
+                                tag_names: Joi.string().required(),
+                                table: Joi.string().required(),
+                                calculation_mode: Joi.string()
+                                    .required()
+                                    .pattern(/avg|cnt|min|max|sum|raw/),
+                            })
+                        ),
+                    range_bgn: Joi.string().allow('').required(),
+                    range_end: Joi.string().allow('').required(),
+                    count: Joi.number().required(),
+                    interval_type: Joi.string().allow('').required(),
+                    interval_value: Joi.number().required(),
+                    refresh: Joi.string().allow('').required(),
+                    csstype: Joi.string()
+                        .required()
+                        .pattern(/machIoTchartBlack|machIoTchartWhite/),
+                    show_legend: Joi.string().required().pattern(/N|R|B/),
+                    start_with_vport: Joi.string().required().pattern(/Y|N/),
+                    raw_chart_limit: Joi.number().required(),
+                    raw_chart_threshold: Joi.number().required(),
+                    fill: Joi.number().required(),
+                    stroke: Joi.number().required(),
+                    show_point: Joi.string().required().pattern(/Y|N/),
+                    point_radius: Joi.number().required(),
+                    pixels_per_tick: Joi.number().required(),
+                    use_zoom: Joi.string().required().pattern(/Y|N/),
+                    drilldown_zoom: Joi.string().required().pattern(/Y|N/),
+                    use_normalize: Joi.string().required().pattern(/Y|N/),
+                    border_color: Joi.string().allow('').required(),
+                    chart_title: Joi.string().required(),
+                    zero_base: Joi.string().required().pattern(/Y|N/),
+                    use_custom_max: Joi.string().required().pattern(/Y|N/),
+                    custom_max: Joi.number().required(),
+                    use_custom_min: Joi.string().required().pattern(/Y|N/),
+                    custom_min: Joi.number().required(),
+                    use_custom_drilldown_max: Joi.string().required().pattern(/Y|N/),
+                    custom_drilldown_max: Joi.number().required(),
+                    use_custom_drilldown_min: Joi.string().required().pattern(/Y|N/),
+                    custom_drilldown_min: Joi.number().required(),
+
+                    use_right_y2: Joi.string().required().pattern(/Y|N/),
+                    zero_base2: Joi.string().pattern(/Y|N/),
+                    use_custom_max2: Joi.string().required().pattern(/Y|N/),
+                    custom_max2: Joi.number().required(),
+                    use_custom_min2: Joi.string().required().pattern(/Y|N/),
+                    custom_min2: Joi.number().required(),
+                    use_custom_drilldown_max2: Joi.string().required().pattern(/Y|N/),
+                    custom_drilldown_max2: Joi.number().required(),
+                    use_custom_drilldown_min2: Joi.string().required().pattern(/Y|N/),
+                    custom_drilldown_min2: Joi.number().required(),
+
+                    show_x_tickline: Joi.string().required().pattern(/Y|N/),
+                    show_y_tickline: Joi.string().required().pattern(/Y|N/),
+                    show_y_tickline2: Joi.string().required().pattern(/Y|N/),
+
+                    use_custom_color: Joi.string().required().pattern(/Y|N/),
+                    color_set: Joi.string().required(),
+                    chart_height: Joi.number().required(),
+                    chart_width: Joi.number().required(),
+
+                    timeout: Joi.number().required(),
+                    x_axis_type: Joi.string().required(),
+                    chart_type: Joi.string().required(),
+                    sec_rollup: Joi.object({
+                        TAG: Joi.string(),
+                        MYTAG: Joi.string(),
+                    }),
+
+                    legend_width: Joi.number().required(),
+                    show_legend_value: Joi.object({
+                        max: Joi.string(),
+                        sum: Joi.string(),
+                        avg: Joi.string(),
+                        min: Joi.string(),
+                    }).required(),
+                    name_legend_value: Joi.array()
+                        .items(Joi.string().pattern(/avg|cnt|min|max|sum|raw/))
+                        .required(),
+                    use_detail: Joi.number().required(),
+                    detail_count: Joi.number().required(),
+                    detail_rows: Joi.number().required(),
+
+                    i: Joi.number(),
+                    panel_title: Joi.string(),
+                    panel_type: Joi.string(),
+                    select_count_type: Joi.string(),
+                    font_size: Joi.number(),
+                    connect_info: Joi.any(),
+                    inner_radius: Joi.number(), // for pie chart
+                    outer_radius: Joi.number(), // for pie chart
+                    min_value: Joi.number(),
+                    background_color: Joi.number(),
+                    min_width: Joi.number(), // for bar chart
+                    bar_width: Joi.number(), // for bar chart
+                    total_width: Joi.number(), // for bar chart
+                    percent_text_annotation: Joi.string(), // for bar chart
+                    usage: Joi.any(), // for 1.4 All panels in the dashboard have a parameter usage keyW
+                    url: Joi.string(), // url store for path 2.3 information panel
+                    timezone_key: Joi.string(),
+                    timezone_value: Joi.string(),
+                })
+            )
+        )
+        .required()
+        .allow(),
+});
+const validateTest = async (joiSchema: any, testObject: any) => {
+    try {
+        await joiSchema.validateAsync(testObject);
+        return true;
+    } catch (err) {
+        console.error('err', err);
+        alert('Incorrect data format');
+        return false;
+    }
+};
 
 const onUploadChart = (aEvent: any) => {
+    sLoading.value = true;
     const file = aEvent.target.files[0];
     const reader = new FileReader();
-    reader.onload = (event: any) => {
-        try {
-            const fileContent: BoardInfo = JSON.parse(event.target.result);
-            store.commit(MutationTypes.setBoardOld, cloneDeep(fileContent) as BoardInfo);
-            store.commit(MutationTypes.setBoardByFileUpload, cloneDeep(fileContent) as BoardInfo);
-        } catch (error) {
-            console.log('fileContent', error);
-        }
+    reader.onload = async (event: any) => {
+        const fileContent: BoardInfo = await JSON.parse(event.target.result);
+        if (await !validateTest(schema, fileContent)) return;
+        store.commit(MutationTypes.setBoardOld, cloneDeep(fileContent) as BoardInfo);
+        store.commit(MutationTypes.setBoardByFileUpload, cloneDeep(fileContent) as BoardInfo);
     };
     reader.readAsText(file);
+    sLoading.value = false;
 };
 
 const cWidthPopup = computed((): string => {

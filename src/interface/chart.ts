@@ -96,7 +96,7 @@ export interface PanelInfo {
     use_custom_drilldown_min: YorN;
     custom_drilldown_min: number;
 
-    use_right_y2: string;
+    use_right_y2: YorN;
     zero_base2: YorN;
     use_custom_max2: YorN;
     custom_max2: number;
