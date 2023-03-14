@@ -49,15 +49,14 @@ const onClosePopup = () => {
 //     }
 // );
 
-onMounted(() => {
+onMounted(async () => {
+    store.dispatch(ActionTypes.fetchTable);
+    await store.dispatch(ActionTypes.fetchRangeData);
+    store.dispatch(ActionTypes.fetchTableList);
     const sData = JSON.parse(localStorage.getItem('gBoard') || '');
-    store.commit(MutationTypes.setBoardByFileUpload, sData);
-    sDataChart.value = sData.panels[0];
+    await store.commit(MutationTypes.setBoardByFileUpload, sData);
+    sDataChart.value = await sData.panels[route.params.id as string];
 });
-
-store.dispatch(ActionTypes.fetchTable);
-store.dispatch(ActionTypes.fetchRangeData);
-store.dispatch(ActionTypes.fetchTableList);
 </script>
 
 <style lang="scss" scoped>

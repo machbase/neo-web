@@ -122,7 +122,7 @@ const onUploadChart = (aEvent: any) => {
     reader.readAsText(file);
 };
 const openNewChartPage = () => {
-    const routeData = router.resolve({ name: RouteNames.CHART_VIEW });
+    const routeData = router.resolve({ name: RouteNames.CHART_VIEW, params: { id: props.panelInfo.i } });
     localStorage.setItem('gBoard', JSON.stringify(CBoard.value));
     window.open(routeData.href, '_blank');
     // router.push({

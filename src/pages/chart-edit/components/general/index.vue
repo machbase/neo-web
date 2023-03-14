@@ -87,10 +87,10 @@ const height = ref<number>(props.pChartData.chart_height);
 const actionIndex = ref<number>(props.pChartData.use_detail || 1); // on click point - 0: not use, 1: show raw data chart, 2: show raw data table
 const detailCount = ref<number>(props.pChartData.detail_count || 0);
 const detailRows = ref<number>(props.pChartData.detail_rows || 0);
-const zoom = ref<boolean>(props.pChartData.use_zoom.toUpperCase() == 'Y');
-const zoomStart = ref<boolean>(props.pChartData.start_with_vport.toUpperCase() == 'Y');
-const drillDown = ref<boolean>(props.pChartData.drilldown_zoom.toUpperCase() == 'Y');
-const normalize = ref<boolean>(props.pChartData?.use_normalize.toUpperCase() == 'Y');
+const zoom = ref<boolean>(props.pChartData.use_zoom.toUpperCase() === 'Y');
+const zoomStart = ref<boolean>(props.pChartData.start_with_vport.toUpperCase() === 'Y');
+const drillDown = ref<boolean>(props.pChartData.drilldown_zoom.toUpperCase() === 'Y');
+const normalize = ref<boolean>(props.pChartData?.use_normalize.toUpperCase() === 'Y');
 // eslint-disable-next-line vue/no-setup-props-destructure
 const gRawChartThreshold = props.pChartData?.raw_chart_threshold; // >1 : count, <1 : ratio of total count, =0 : total / count * 2, <0 : not use
 const rawChart = ref<number>(gRawChartThreshold < 0 ? gRawChartThreshold * -1 : gRawChartThreshold);
@@ -123,6 +123,7 @@ watchEffect(() => {
         use_normalize: normalize.value ? 'Y' : 'N',
         raw_chart_threshold,
     };
+    console.log(data.use_zoom);
     emit('eOnChange', data);
 });
 </script>
