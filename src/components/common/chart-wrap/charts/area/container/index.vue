@@ -48,7 +48,7 @@ const cChartOptions = computed(() => {
             height: props.panelInfo.chart_height < 400 ? 400 : props.panelInfo.chart_height,
             width: (props.panelInfo.chart_width as number) <= 0 ? null : props.panelInfo.chart_width,
             type: 'area',
-            zoomType: props.panelInfo.drilldown_zoom === 'Y' ? 'x' : 'y',
+            zoomType: 'x',
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
             lineWidth: 1,
             events: {
@@ -147,7 +147,7 @@ const cChartOptions = computed(() => {
         },
         //  Time chart
         xAxis: {
-            zoomEnabled: props.panelInfo.use_zoom === 'Y' ? true : false,
+            zoomEnabled: props.panelInfo.use_zoom === 'Y',
             type: 'datetime',
             ordinal: false,
             gridLineWidth: 1,
