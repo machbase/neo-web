@@ -124,6 +124,18 @@ const onUploadChart = (aEvent: any) => {
 const openNewChartPage = () => {
     const routeData = router.resolve({ name: RouteNames.CHART_VIEW, params: { id: props.panelInfo.i } });
     localStorage.setItem('gBoard', JSON.stringify(CBoard.value));
+    document.cookie = `data=${JSON.stringify(CBoard.value)}; expires=${new Date(Date.now() + 10000).toUTCString()}`;
+    setInterval(() => {
+        const cookieData = document.cookie.split('; ').find((row) => row.startsWith('data='));
+        if (cookieData) {
+            const json = cookieData.split('=')[1];
+            const data = JSON.parse(json);
+            const expiration = cookieData.split(';')[1].split('=')[1];
+            if (new data(expiration) < new Date()) {
+                document.cookie = 'data=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            }
+        }
+    }, 1000);
     window.open(routeData.href, '_blank');
     // router.push({
     //     name: RouteNames.CHART_VIEW,

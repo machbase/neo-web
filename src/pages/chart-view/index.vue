@@ -53,9 +53,15 @@ onMounted(async () => {
     store.dispatch(ActionTypes.fetchTable);
     await store.dispatch(ActionTypes.fetchRangeData);
     store.dispatch(ActionTypes.fetchTableList);
-    const sData = JSON.parse(localStorage.getItem('gBoard') || '');
-    await store.commit(MutationTypes.setBoardByFileUpload, sData);
-    sDataChart.value = await sData.panels[route.params.id as string];
+    const cookieValue = await document.cookie.replace(/(?:(?:^|.*;\s*)data\s*\=\s*([^;]*).*$)|^.*$/, '$1');
+    if (!cookieValue) {
+        router.push({
+            name: RouteNames.TAG_VIEW,
+        });
+        return;
+    }
+    await store.commit(MutationTypes.setBoardByFileUpload, JSON.parse(cookieValue));
+    sDataChart.value = await JSON.parse(cookieValue).panels[route.params.id as string];
 });
 </script>
 
