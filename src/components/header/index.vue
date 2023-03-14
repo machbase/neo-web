@@ -12,7 +12,6 @@
                 :p-value="route.params.id || route.query.id || (cBoardListSelect[0]?.id && route.query.id !== null)"
                 @e-on-change="onChangeRoute"
             /> -->
-            <div v-if="sHeaderType === RouteNames.VIEW" class="share-header">{{ boardSelected }}</div>
             <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" class="header__link--group">
                 <router-link class="header__link--group-item" :to="{ name: RouteNames.NEW }" target="_blank">{{ NEW_DASHBOARD }}</router-link>
                 <img :src="i_b_menu_1" class="icon" />
@@ -109,7 +108,6 @@ const cTableList = computed((): [] => store.state.gTableList);
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const cBoard = computed(() => store.state.gBoard);
 const cBoardOld = computed(() => store.state.gBoardOld);
-const boardSelected = computed((): string => cBoardList.value.find(({ board_id }) => board_id === route.params.id)?.board_name as string);
 const gBoard = computed(() => store.state.gBoard);
 const sLoading = ref<boolean>(false);
 const cBoardListSelect = computed(() =>
