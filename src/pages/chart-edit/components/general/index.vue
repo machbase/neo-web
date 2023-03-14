@@ -29,11 +29,11 @@
             <div v-if="actionIndex === 2">
                 <label for="_cfg_chart_table_limit">Raw data table limits</label>
                 <div class="cfg-input">
-                    <input id="_cfg_chart_table_limit" v-model="detailRows" style="width: 250px" type="text" class="input" />
+                    <input id="_cfg_chart_table_limit" v-model="detailCount" style="width: 250px" type="text" class="input" />
                 </div>
                 <label for="_cfg_chart_row">Rows per page</label>
                 <div class="cfg-input">
-                    <input id="_cfg_chart_row" style="width: 250px" type="text" class="input" />
+                    <input id="_cfg_chart_row" v-model="detailRows" style="width: 250px" type="text" class="input" />
                 </div>
             </div>
         </div>
@@ -84,7 +84,7 @@ const emit = defineEmits(['eOnChange']);
 const title = ref<string>(props.pChartData.chart_title);
 const width = ref<number | string>(props.pChartData.chart_width);
 const height = ref<number>(props.pChartData.chart_height);
-const actionIndex = ref<number>(props.pChartData.use_detail || 1); // on click point - 0: not use, 1: show raw data chart, 2: show raw data table
+const actionIndex = ref<number>(props.pChartData.use_detail); // on click point - 0: not use, 1: show raw data chart, 2: show raw data table
 const detailCount = ref<number>(props.pChartData.detail_count || 0);
 const detailRows = ref<number>(props.pChartData.detail_rows || 0);
 const zoom = ref<boolean>(props.pChartData.use_zoom.toUpperCase() === 'Y');
