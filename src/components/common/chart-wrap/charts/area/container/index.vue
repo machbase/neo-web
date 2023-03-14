@@ -52,8 +52,9 @@ const cChartOptions = computed(() => {
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
             lineWidth: 1,
             events: {
-                selectedpoints: function (event) {
-                    console.log('event click chart', chart);
+                click: function (event) {
+                    if (props.panelInfo.use_detail === 0) return false;
+                    return console.log(event);
                 },
                 render() {},
             },
@@ -84,7 +85,8 @@ const cChartOptions = computed(() => {
                 point: {
                     events: {
                         click: function (e) {
-                            console.log('select point', e);
+                            if (props.panelInfo.use_detail === 0) return false;
+                            return console.log(e);
                         },
                     },
                 },
@@ -145,6 +147,7 @@ const cChartOptions = computed(() => {
         },
         //  Time chart
         xAxis: {
+            zoomEnabled: props.panelInfo.use_zoom === 'Y',
             type: 'datetime',
             ordinal: false,
             gridLineWidth: 1,
@@ -320,7 +323,7 @@ const updateYaxis = (aInfo: TagSet[]) => {
     });
 };
 
-watch([() => props.chartData.datasets], () => {
+watch([() => props.chartData.datasets, () => props.panelInfo], () => {
     data.sMasterSeriesData = props.chartData.datasets || [];
 });
 watch([() => props.viewData.datasets], () => {

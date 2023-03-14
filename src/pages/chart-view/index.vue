@@ -49,15 +49,20 @@ const onClosePopup = () => {
 //     }
 // );
 
-onMounted(() => {
-    const sData = JSON.parse(localStorage.getItem('gBoard') || '');
-    store.commit(MutationTypes.setBoardByFileUpload, sData);
-    sDataChart.value = sData.panels[0];
+onMounted(async () => {
+    store.dispatch(ActionTypes.fetchTable);
+    await store.dispatch(ActionTypes.fetchRangeData);
+    store.dispatch(ActionTypes.fetchTableList);
+    const cookieValue = await document.cookie.replace(/(?:(?:^|.*;\s*)data\s*\=\s*([^;]*).*$)|^.*$/, '$1');
+    if (!cookieValue) {
+        router.push({
+            name: RouteNames.TAG_VIEW,
+        });
+        return;
+    }
+    await store.commit(MutationTypes.setBoardByFileUpload, JSON.parse(cookieValue));
+    sDataChart.value = await JSON.parse(cookieValue).panels[route.params.id as string];
 });
-
-store.dispatch(ActionTypes.fetchTable);
-store.dispatch(ActionTypes.fetchRangeData);
-store.dispatch(ActionTypes.fetchTableList);
 </script>
 
 <style lang="scss" scoped>

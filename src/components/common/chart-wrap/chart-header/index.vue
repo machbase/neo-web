@@ -58,6 +58,7 @@ import { useStore } from '@/store';
 import { MutationTypes } from '@/store/mutations';
 import { FORMAT_FULL_DATE } from '@/utils/constants';
 import fs from 'fs';
+import { isUndefined } from 'lodash';
 import moment from 'moment';
 import { watch } from 'vue';
 import { computed, defineEmits, defineProps, ref, withDefaults } from 'vue';
@@ -121,15 +122,25 @@ const onUploadChart = (aEvent: any) => {
     };
     reader.readAsText(file);
 };
+const intervalId = setInterval(() => {
+    const cookieData = document.cookie.split('; ').find((row) => row.startsWith('data='));
+    if (cookieData) {
+        const json = cookieData.split('=')[1];
+        const data = JSON.parse(json);
+        const expiration = cookieData.split(';')[1].split('=')[1];
+        if (new data(expiration) < new Date()) {
+            document.cookie = 'data=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        }
+    } else {
+        clearInterval(intervalId);
+    }
+}, 1000);
+
 const openNewChartPage = () => {
-    const routeData = router.resolve({ name: RouteNames.CHART_VIEW });
-    localStorage.setItem('gBoard', JSON.stringify(CBoard.value));
+    const routeData = router.resolve({ name: RouteNames.CHART_VIEW, params: { id: props.panelInfo.i } });
+    document.cookie = `data=${JSON.stringify(CBoard.value)}; expires=${new Date(Date.now() + 10000).toUTCString()}`;
+    intervalId;
     window.open(routeData.href, '_blank');
-    // router.push({
-    //     name: RouteNames.CHART_VIEW,
-    //     // params: { id: panelInfo.i }
-    //     // target = '_blank',
-    // });
 };
 const onReloadChart = () => {
     emit('eOnReload');

@@ -270,9 +270,9 @@ const onUploadChart = (aEvent: any) => {
         if (await !validateTest(schema, fileContent)) return;
         store.commit(MutationTypes.setBoardOld, cloneDeep(fileContent) as BoardInfo);
         store.commit(MutationTypes.setBoardByFileUpload, cloneDeep(fileContent) as BoardInfo);
+        sLoading.value = false;
     };
     reader.readAsText(file);
-    sLoading.value = false;
 };
 
 const cWidthPopup = computed((): string => {
