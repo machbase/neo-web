@@ -60,7 +60,7 @@
                     :to="{ name: RouteNames.VIEW, params: { id: route.params.id || route.query.id as string || cBoardListSelect[0]?.id } }"
                     target="_blank"
                 >
-                    <img :src="i_b_share" class="icon" />
+                    <img :src="i_b_share" class="icon" @click="openNewChartPage" />
                 </router-link>
             </div>
             <img v-if="sHeaderType === RouteNames.CHART_EDIT" class="icon" :src="i_b_save_2" @click="onSaveEdit" />
@@ -121,6 +121,24 @@ const cBoardListSelect = computed(() =>
         };
     })
 );
+const intervalId = setInterval(() => {
+    const cookieData = document.cookie?.split('; ').find((row) => row.startsWith('data='));
+    if (cookieData) {
+        const json = cookieData.split('=')[1];
+        const data = JSON.parse(json);
+        const expiration = cookieData.split(';')[1].split('=')[1];
+        if (new data(expiration) < new Date()) {
+            document.cookie = 'data=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        }
+    } else {
+        clearInterval(intervalId);
+    }
+}, 1000);
+
+const openNewChartPage = () => {
+    document.cookie = `data=${JSON.stringify(cBoard.value)}; expires=${new Date(Date.now() + 10000).toUTCString()}`;
+    intervalId;
+};
 
 const schema = Joi.object({
     board_id: Joi.string().required(),
