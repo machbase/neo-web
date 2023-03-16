@@ -48,10 +48,10 @@
                     <div class="checkbox-wrapper"><input id="_cfg_zero_base" v-model="isZeroBase2" type="checkbox" /></div>
                     <input type="text" class="input" data-for="_cfg_zero_base" value="The scale of the y-axis start at zero." readonly />
                 </div>
-                <label for="_cfg_line_y">Show tick line</label>
+                <label for="_cfg_line_y2">Show tick line</label>
                 <div class="cfg-input input-wrapper">
-                    <div class="checkbox-wrapper"><input id="_cfg_line_y" v-model="isShowTickLineY2" type="checkbox" /></div>
-                    <input type="text" class="input" data-for="_cfg_line_y" value="Displays the Y-axis tick line." readonly />
+                    <div class="checkbox-wrapper"><input id="_cfg_line_y2" v-model="isShowTickLineY2" type="checkbox" /></div>
+                    <input type="text" class="input" data-for="_cfg_line_y2" value="Displays the Y-axis tick line." readonly />
                 </div>
                 <div class="cfg-input">
                     <label>Custom scale</label>
