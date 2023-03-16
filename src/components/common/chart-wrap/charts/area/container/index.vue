@@ -26,7 +26,7 @@ interface BarChartContainerProps {
 const props = withDefaults(defineProps<BarChartContainerProps>(), {});
 const store = useStore();
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
-const emit = defineEmits(['eOnChange']);
+const emit = defineEmits(['eOnChange', 'eOnChangeIsZoom', 'eOnChangeRaw', 'eOnClick']);
 
 const data = reactive({
     sIsTag: true as boolean,
@@ -53,8 +53,14 @@ const cChartOptions = computed(() => {
             lineWidth: 1,
             events: {
                 click: function (event) {
+                    emit('eOnChangeIsZoom');
                     if (props.panelInfo.use_detail === 0) return false;
-                    return console.log(event);
+                    const chart = this;
+                    var point = chart.xAxis[0].toValue(event.clientX - chart.plotLeft);
+                    emit('eOnClick', {
+                        min: point,
+                        max: point + 1000,
+                    });
                 },
                 render() {},
             },
@@ -62,7 +68,7 @@ const cChartOptions = computed(() => {
             // spacingTop: 50,
         },
         // data Chart
-        series: data.sMasterSeriesData,
+        series: props.chartData.datasets,
         // data
         // data: {},
         // option chart
@@ -84,9 +90,13 @@ const cChartOptions = computed(() => {
                 },
                 point: {
                     events: {
-                        click: function (e) {
+                        click: function (event) {
+                            emit('eOnChangeIsZoom');
                             if (props.panelInfo.use_detail === 0) return false;
-                            return console.log(e);
+                            emit('eOnClick', {
+                                min: event.point.x,
+                                max: event.point.x + 1000,
+                            });
                         },
                     },
                 },
@@ -105,7 +115,7 @@ const cChartOptions = computed(() => {
         },
         // view point navigator
         navigator: {
-            enabled: data.sIsTag,
+            enabled: props.pIsZoom,
             adaptToUpdatedData: false,
             handles: {
                 // width: 0.5,
@@ -113,14 +123,19 @@ const cChartOptions = computed(() => {
                 height: 26,
             },
             height: 26,
-            maskFill: 'rgba(119, 119, 119, .3)',
+            maskFill:
+                toTimeUtcChart(props.xAxisMinRange as string) - toTimeUtcChart(props.xAxisMaxRange as string) > props.panelInfo.raw_chart_threshold
+                    ? '#2D2E57'
+                    : 'rgba(119, 119, 119, .3)',
             // series: data.sViewPortSeriesData,
-            series: data.sViewPortSeriesData.map((i) => {
-                return {
-                    data: i.data,
-                    marker: i.marker,
-                };
-            }),
+            series: props.viewData.datasets
+                ? props.viewData.datasets.map((i) => {
+                      return {
+                          data: i.data,
+                          marker: i.marker,
+                      };
+                  })
+                : [],
             outlineWidth: 1,
             // outlineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             xAxis: {
@@ -143,14 +158,14 @@ const cChartOptions = computed(() => {
                 gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
                 gridLineWidth: 1,
             },
-            margin: data.sIsTag ? 65 : 0,
+            margin: props.pIsZoom ? 65 : 0,
         },
         //  Time chart
         xAxis: {
             zoomEnabled: props.panelInfo.use_zoom === 'Y',
             type: 'datetime',
             ordinal: false,
-            gridLineWidth: 1,
+            gridLineWidth: props.panelInfo.show_x_tickline === 'Y' ? 1 : 0,
             gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             labels: {
@@ -177,9 +192,18 @@ const cChartOptions = computed(() => {
         // Value chart
         yAxis: [
             {
-                showLastLabel: true,
+                // top: 0,
+                // tickInterval: updateYaxis().left[0],
+                reversed: props.panelInfo.use_normalize === 'Y',
+
+                tickAmount: updateYaxis().left[0] === updateYaxis().left[1] && 1,
+                tickPositions: updateYaxis().left[0] === updateYaxis().left[1] && [updateYaxis().left[0]],
+                min: props.panelInfo.custom_min === 0 ? (props.panelInfo.use_normalize === 'Y' ? 0 : updateYaxis().left[0]) : props.panelInfo.custom_min,
+                max: props.panelInfo.custom_max === 0 ? (props.panelInfo.use_normalize === 'Y' ? 100 : updateYaxis().left[1]) : props.panelInfo.custom_max,
+                // tickInterval: 100,
+                showLastLabel: props.panelInfo.use_normalize === 'N',
                 // max: data.sMasterSeriesData[index].data.length > 0 ? getMaxValue(data.sMasterSeriesData[index]?.data) : null,
-                gridLineWidth: 1,
+                gridLineWidth: props.panelInfo.show_y_tickline === 'Y' ? 1 : 0,
                 gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
                 lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
                 startOnTick: true,
@@ -196,7 +220,16 @@ const cChartOptions = computed(() => {
                 opposite: false,
             },
             {
-                showLastLabel: true,
+                // top: 0,
+                // tickInterval: 2,
+                reversed: props.panelInfo.use_normalize === 'Y',
+
+                tickAmount: updateYaxis().right[0] === updateYaxis().right[1] && 1,
+                tickPositions: updateYaxis().right[0] === updateYaxis().right[1] && [updateYaxis().right[0]],
+                min: props.panelInfo.custom_min2 === 0 ? (props.panelInfo.use_normalize === 'Y' ? 0 : updateYaxis().right[0]) : props.panelInfo.custom_min2,
+                max: props.panelInfo.custom_max2 === 0 ? (props.panelInfo.use_normalize === 'Y' ? 100 : updateYaxis().right[1]) : props.panelInfo.custom_max2,
+                // tickInterval: 100,
+                showLastLabel: props.panelInfo.use_normalize === 'N',
                 // max: data.sMasterSeriesData[index].data.length > 0 ? getMaxValue(data.sMasterSeriesData[index]?.data) : null,
                 gridLineWidth: 1,
                 gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
@@ -212,7 +245,7 @@ const cChartOptions = computed(() => {
                     x: -5,
                     y: 3,
                 },
-                opposite: true,
+                opposite: props.panelInfo.use_right_y2 === 'Y',
             },
         ],
         // Info tag chart
@@ -234,8 +267,7 @@ const cChartOptions = computed(() => {
         },
         // list tag
         legend: {
-            enabled: true,
-            // props.panelInfo.show_legend === 'B'
+            enabled: props.panelInfo.show_legend === 'B',
             align: 'left',
             itemDistance: 15,
             squareSymbol: false,
@@ -279,12 +311,13 @@ const cChartOptions = computed(() => {
 });
 
 function afterSetExtremes(e) {
-    console.log('e', e);
+    const status = e.min - e.max > props.panelInfo.raw_chart_threshold;
+    emit('eOnChangeIsZoom');
     const { chart } = e.target;
-    console.log('chart ', chart);
     data.sTimeChartXaxis.min = e.min;
     data.sTimeChartXaxis.max = e.max;
-    emit('eOnChange', data.sTimeChartXaxis);
+    emit('eOnChange', data.sTimeChartXaxis, status);
+    emit('eOnChangeRaw', status);
 }
 
 const updateMinMaxChart = (start: any, end: any) => {
@@ -292,46 +325,50 @@ const updateMinMaxChart = (start: any, end: any) => {
 };
 
 const getMaxValue = (array: number[][]) => {
-    return array.reduce((result: number, current: any) => {
-        if (current[1] > result) result = current[1];
-        return result;
-    }, 0);
+    return array.reduce(
+        (result: number, current: any) => {
+            if (current[1] > result) result = current[1];
+            return result;
+        },
+        props.panelInfo.zero_base === 'Y' ? 0 : array[0]?.[1]
+    );
+};
+const getMinValue = (array: number[][]) => {
+    return array.reduce(
+        (result: number, current: any) => {
+            if (current[1] < result) result = current[1];
+            return result;
+        },
+        props.panelInfo.zero_base === 'Y' ? 0 : array[0]?.[1]
+    );
 };
 
-const updateYaxis = (aInfo: TagSet[]) => {
-    if (aInfo.length === 0) return [];
-    return aInfo.map((i, index) => {
-        return {
-            showLastLabel: true,
-            // max: data.sMasterSeriesData[index].data.length > 0 ? getMaxValue(data.sMasterSeriesData[index]?.data) : null,
-            gridLineWidth: 1,
-            gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
-            lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
-            startOnTick: true,
-            endOnTick: true,
-            labels: {
-                align: 'center',
-                style: {
-                    color: cIsDarkMode.value ? '#afb5bc' : '#6c6e70',
-                    fontSize: '10px',
-                },
-                x: -5,
-                y: 3,
-            },
-            opposite: i.use_y2 === 'N' ? false : true,
-        };
+const updateYaxis = () => {
+    let yAxis = {
+        left: [] as number[],
+        right: [] as number[],
+    };
+    const newData = cloneDeep(props.chartData.datasets);
+    newData?.forEach((item) => {
+        if (item.yAxis === 0) {
+            if (!yAxis.left[0] || yAxis.left[0] > getMinValue(item.data)) {
+                yAxis.left[0] = getMinValue(item.data);
+            }
+            if (!yAxis.left[1] || yAxis.left[1] < getMaxValue(item.data)) {
+                yAxis.left[1] = getMaxValue(item.data);
+            }
+        }
+        if (item.yAxis === 1) {
+            if (!yAxis.right[0] || yAxis.right[0] > getMinValue(item.data)) {
+                yAxis.right[0] = getMinValue(item.data);
+            }
+            if (!yAxis.right[1] || yAxis.right[1] < getMaxValue(item.data)) {
+                yAxis.right[1] = getMaxValue(item.data);
+            }
+        }
     });
+    return yAxis;
 };
-
-watch([() => props.chartData.datasets, () => props.panelInfo], () => {
-    data.sMasterSeriesData = props.chartData.datasets || [];
-});
-watch([() => props.viewData.datasets], () => {
-    data.sViewPortSeriesData = props.viewData.datasets || [];
-});
-watch([() => props.pIsZoom], () => {
-    data.sIsTag = props.pIsZoom;
-});
 onMounted(() => {
     data.sChartWidth = chart.value.chart.plotWidth;
 });
