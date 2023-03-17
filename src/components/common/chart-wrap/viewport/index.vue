@@ -1,5 +1,5 @@
 <template>
-    <div v-if="sIsTool" class="view-port">
+    <div v-if="props.pIsZoom" class="view-port">
         <div class="view-port__header">
             <div class="view-port__header--events">
                 <div class="date-picker button" @click="onOpenPopup(false)">{{ sDateLeft }}</div>
@@ -109,10 +109,11 @@ watch(
         deep: true,
     }
 );
-watchEffect(() => {
-    if (props.panelInfo.tag_set.length > 0) sIsTool.value = props.pIsZoom;
-    else sIsTool.value = false;
-});
+// watchEffect(() => {
+//     console.log('props.pIsZoom', props.pIsZoom);
+//     if (props.panelInfo.tag_set.length > 0) sIsTool.value = props.pIsZoom;
+//     else sIsTool.value = false;
+// });
 </script>
 
 <style lang="scss" scoped>

@@ -154,6 +154,7 @@ const schema = Joi.object({
                         .required()
                         .items(
                             Joi.object({
+                                id: Joi.number(),
                                 weight: Joi.number().required(),
                                 offset: Joi.number(),
                                 min: Joi.number().required(),
@@ -283,7 +284,11 @@ const onUploadChart = (aEvent: any) => {
     const reader = new FileReader();
     reader.onload = async (event: any) => {
         const fileContent: BoardInfo = await JSON.parse(event.target.result);
-        if (await !validateTest(schema, fileContent)) return;
+        const status = await validateTest(schema, fileContent);
+        if (status === false) {
+            sLoading.value = false;
+            return;
+        }
         store.commit(MutationTypes.setBoardOld, cloneDeep(fileContent) as BoardInfo);
         store.commit(MutationTypes.setBoardByFileUpload, cloneDeep(fileContent) as BoardInfo);
         sLoading.value = false;

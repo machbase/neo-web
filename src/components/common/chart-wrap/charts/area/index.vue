@@ -1,5 +1,6 @@
 <template>
     <ChartWrap>
+        {{ data.sIsRaw }}
         <div v-if="sLoading" class="loading-chart">
             <img :src="cIsDarkMode ? loader_b : loader_w" class="icon" />
         </div>
@@ -25,6 +26,9 @@
             :is-stock-chart="sIsStockChart"
             :p-is-zoom="sIsZoom"
             @eOnChange="OnChangeTimeRangerViewPort"
+            @eOnClick="OnChangeTimeClick"
+            @eOnChangeRaw="OnChangeRaw"
+            @eOnChangeIsZoom="onChangeZoom"
         />
         <ViewPort
             :range-time="data.sTimeRangeViewPort"
@@ -71,11 +75,12 @@ const slots = useSlots();
 const sLoading = ref<boolean>(false);
 const areaChart = ref<any>();
 const data = reactive({
+    sIsRaw: false as boolean,
     sDisplayData: {} as LineDataset,
     sViewPortData: {} as LineDataset,
     sTimeLine: {} as TimeLineType,
     sTimeRangeViewPort: {} as TimeLineType,
-    sIntervalData: { IntervalType: convertInterType(props.panelInfo.interval_type.toLowerCase()), IntervalValue: 0 } as { IntervalValue: number; IntervalType: string },
+    sIntervalData: { IntervalType: convertInterType(props.panelInfo.interval_type?.toLowerCase()), IntervalValue: 0 } as { IntervalValue: number; IntervalType: string },
     sIsLoading: false,
     sMaxYChart: 0 as number,
 });
@@ -96,9 +101,10 @@ function convertInterType(gUnit: string) {
     }
 }
 const sInnerValue = reactive({
-    sTickPixels: props.panelInfo.pixels_per_tick <= 0 ? (1 as number) : (props.panelInfo.pixels_per_tick as number),
+    sTickPixels: 0,
 });
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
+const cTimeRange = computed(() => store.state.gRangeData);
 
 function calcInterval(aBgn: string, aEnd: string, aWidth: number): { IntervalType: string; IntervalValue: number } {
     let sBgn = new Date(aBgn);
@@ -251,7 +257,6 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
             endTime: sTimeRange.endTime,
         };
     }
-
     data.sTimeLine.startTime = sTimeRange.startTime;
     data.sTimeLine.endTime = sTimeRange.endTime;
     const sIntervalTime =
@@ -267,14 +272,13 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
             CalculationMode: sTagSetElement.calculation_mode.toLowerCase(),
             ...sIntervalTime,
             Count: sCount,
-            Direction: 0,
         });
         await sDatasets.push({
             name: `${sFetchResult[0].TagName}(${sFetchResult[0].CalculationMode})`,
             data:
                 sFetchResult[0].Samples.length > 0
                     ? sFetchResult[0].Samples.map((aItem: any) => {
-                          return [toTimeUtcChart(aItem.TimeStamp), aItem.Value];
+                          return [props.panelInfo.drilldown_zoom === 'N' ? toTimeUtcChart(cTimeRange.value.MIN) : toTimeUtcChart(aItem.TimeStamp), aItem.Value];
                       })
                     : [],
             yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
@@ -283,9 +287,6 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     }
     data.sDisplayData = await { datasets: sDatasets };
     sLoading.value = false;
-    if (moment.utc(sTimeRange.startTime).valueOf() - areaChart.value.chart.chart.xAxis[0].min > 1) {
-        areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
-    }
 };
 const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
@@ -320,7 +321,6 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
             CalculationMode: sTagSetElement.calculation_mode.toLowerCase(),
             ...sIntervalTime,
             Count: sCount,
-            Direction: 0,
         });
         await sDatasets.push({
             name: `${sFetchResult[0].TagName}(${sFetchResult[0].CalculationMode})`,
@@ -344,7 +344,6 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
     let sRawLimit = gDetailLimit;
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
     let sDatasets = [] as HighchartsDataset[];
-    const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
     if (sTagSet.length === 0) {
         sLoading.value = false;
@@ -385,11 +384,9 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
         });
     }
     sLoading.value = false;
-    if (moment.utc(sTimeRange.startTime).valueOf() - areaChart.value.chart.chart.xAxis[0].min > 1) {
-        areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
-    }
 };
-const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aLimit?: any) => {
+const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aIsNavigator?: boolean, aLimit?: any) => {
+    sLoading.value = true;
     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
     let gRawChartLimit = 0;
     gRawChartLimit = aPanelInfo.raw_chart_limit;
@@ -399,22 +396,30 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
     } else if (aPanelInfo.raw_chart_limit == 0) {
         gRawChartLimit = sChartWidth;
     }
-    if (aLimit === null) {
-        aLimit = gRawChartLimit;
-    }
-    let sLimit = aLimit;
+    // if (aLimit === null) {
+    //     aLimit = gRawChartLimit;
+    // }
+    let sLimit = aLimit || gRawChartLimit;
+    console.log('sLimit', sLimit);
 
     let sDatasets = [] as HighchartsDataset[];
-    const sTagList: ReturnTagData[][] = [];
     const sTagSet = aPanelInfo.tag_set || [];
     if (sTagSet.length === 0) {
         sLoading.value = false;
-        data.sViewPortData = { datasets: sDatasets };
+        data.sDisplayData = { datasets: sDatasets };
         return;
     }
     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
-    data.sTimeRangeViewPort.startTime = sTimeRange.startTime;
-    data.sTimeRangeViewPort.endTime = sTimeRange.endTime;
+    if (!aCustomRange && !aIsNavigator) {
+        sTimeRange = {
+            startTime: moment(moment(sTimeRange.startTime).valueOf() - (moment(sTimeRange.endTime).valueOf() - moment(sTimeRange.startTime).valueOf()) * -0.8).format(
+                'YYYY-MM-DDTHH:mm:ss'
+            ),
+            endTime: sTimeRange.endTime,
+        };
+    }
+    data.sTimeLine.startTime = sTimeRange.startTime;
+    data.sTimeLine.endTime = sTimeRange.endTime;
     for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagDataRaw, {
@@ -430,14 +435,15 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
             data:
                 sFetchResult[0].Samples.length > 0
                     ? sFetchResult[0].Samples.map((aItem: any) => {
-                          return [toTimeUtcChart(aItem.TimeStamp), aItem.Value];
+                          return [props.panelInfo.drilldown_zoom === 'N' ? toTimeUtcChart(cTimeRange.value.MIN) : toTimeUtcChart(aItem.TimeStamp), aItem.Value];
                       })
                     : [],
             yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
             marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
         });
     }
-    data.sViewPortData = { datasets: sDatasets };
+    data.sDisplayData = await { datasets: sDatasets };
+    sLoading.value = false;
 };
 
 const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPortRange?: startTimeToendTimeType) => {
@@ -457,28 +463,38 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPo
 };
 
 const onReload = async () => {
-    await intializePanelData();
+    await fetchViewPortData(props.panelInfo);
+    const { startTime, endTime } = getTimeReset({ startTime: data.sTimeRangeViewPort.startTime, endTime: data.sTimeRangeViewPort.endTime });
+    areaChart.value.updateMinMaxChart(startTime, endTime);
+};
+const onChangeZoom = () => {
+    sIsZoom.value = true;
 };
 const onChangeTimeRange = async (eValue: any) => {
-    await fetchPanelData(props.panelInfo, {
-        startTime: data.sTimeLine.startTime,
-        endTime: data.sTimeLine.endTime,
-    });
+    console.log(1);
+    // await fetchPanelData(props.panelInfo, {
+    //     startTime: data.sTimeLine.startTime,
+    //     endTime: data.sTimeLine.endTime,
+    // });
     await fetchViewPortData(props.panelInfo, {
         startTime: eValue.dateStart,
         endTime: eValue.dateEnd,
     });
 };
 const onChangeSRF = async (eValue: any) => {
+    console.log(2);
+    const { startTime, endTime } = getTimeReset({ startTime: data.sTimeRangeViewPort.startTime, endTime: data.sTimeRangeViewPort.endTime });
     switch (eValue) {
         case 0:
             await fetchPanelData(props.panelInfo);
             await fetchViewPortData(props.panelInfo);
+            areaChart.value.updateMinMaxChart(startTime, endTime);
             break;
         case 1:
             // await generateRawDataChart(props.panelInfo, null as any, null);
-            await drawRawDataTable(props.panelInfo);
+            await generateRawDataChart(props.panelInfo);
             await fetchViewPortData(props.panelInfo);
+            areaChart.value.updateMinMaxChart(startTime, endTime);
             break;
         default:
             break;
@@ -486,6 +502,7 @@ const onChangeSRF = async (eValue: any) => {
 };
 
 const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) => {
+    console.log(3);
     let sType = aEvent.type;
     let sZoom = aEvent.zoom / 2; // left & right
 
@@ -506,16 +523,18 @@ const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) =>
         alert('The time range is too small to perform this function.');
         return;
     }
-    await fetchPanelData(props.panelInfo, {
-        startTime: data.sTimeLine.startTime,
-        endTime: data.sTimeLine.endTime,
-    });
+    // await fetchPanelData(props.panelInfo, {
+    //     startTime: data.sTimeLine.startTime,
+    //     endTime: data.sTimeLine.endTime,
+    // });
     await fetchViewPortData(props.panelInfo, {
         startTime: moment(sNewTimeBgn).format(FORMAT_FULL_DATE),
         endTime: moment(sNewTimeEnd).format(FORMAT_FULL_DATE),
     });
 };
 const OnFocus = async () => {
+    console.log(4);
+
     let sBgn = data.sTimeLine.startTime;
     let sEnd = data.sTimeLine.endTime;
     let sTimeGap = moment(sEnd).valueOf() - moment(sBgn).valueOf();
@@ -534,11 +553,24 @@ const OnFocus = async () => {
         endTime: sEnd,
     });
 };
-async function OnChangeTimeRangerViewPort(params: any) {
-    await fetchPanelData(props.panelInfo, {
-        startTime: moment(params.min).utc().format(FORMAT_FULL_DATE),
-        endTime: moment(params.max).utc().format(FORMAT_FULL_DATE),
-    });
+async function OnChangeTimeRangerViewPort(params: any, aStatus?: boolean) {
+    if (aStatus) {
+        await generateRawDataChart(props.panelInfo, {
+            startTime: moment(params.min).utc().format(FORMAT_FULL_DATE),
+            endTime: moment(params.max).utc().format(FORMAT_FULL_DATE),
+        });
+    } else {
+        await fetchPanelData(props.panelInfo, {
+            startTime: moment(params.min).utc().format(FORMAT_FULL_DATE),
+            endTime: moment(params.max).utc().format(FORMAT_FULL_DATE),
+        });
+    }
+}
+async function OnChangeTimeClick(params: any) {
+    areaChart.value.updateMinMaxChart(params.min, params.max);
+}
+function OnChangeRaw(aStatus: boolean) {
+    data.sIsRaw = aStatus;
 }
 const getMaxValue = (array: any) => {
     return array.reduce((result: number, current: any) => {
@@ -548,20 +580,79 @@ const getMaxValue = (array: any) => {
         return result;
     }, 0);
 };
+const getTimeReset = (sTimeRange: TimeLineType) => {
+    return {
+        startTime: moment(moment(sTimeRange.startTime).valueOf() - (moment(sTimeRange.endTime).valueOf() - moment(sTimeRange.startTime).valueOf()) * -0.8).format(
+            'YYYY-MM-DDTHH:mm:ss'
+        ),
+        endTime: sTimeRange.endTime,
+    };
+};
+
 const onCloseNavigator = () => {
     sIsZoom.value = false;
     fetchPanelData(props.panelInfo, undefined, true);
 };
 watch(
-    () => props.panelInfo,
+    () => props.panelInfo.pixels_per_tick,
     () => {
-        if (isEmpty(props.panelInfo)) return;
-        intializePanelData();
+        props.panelInfo.pixels_per_tick <= 0 ? (sInnerValue.sTickPixels = 1) : (sInnerValue.sTickPixels = props.panelInfo.pixels_per_tick);
     },
     {
-        // immediate: true
+        immediate: true,
     }
 );
+watch([() => props.panelInfo.interval_value], () => {
+    data.sIntervalData.IntervalValue = props.panelInfo.interval_value;
+    data.sIntervalData.IntervalType = props.panelInfo.interval_type;
+    // fetchViewPortData(props.panelInfo);
+    // areaChart.value.updateMinMaxChart(data.sTimeRangeViewPort.startTime, data.sTimeRangeViewPort.endTime);
+});
+watch(
+    [
+        () => props.panelInfo,
+        // () => props.panelInfo.chart_height,
+        // () => props.panelInfo.chart_width,
+        // () => props.panelInfo.use_detail,
+        // () => props.panelInfo.use_zoom,
+        // () => props.panelInfo.drilldown_zoom,
+        // () => props.panelInfo.use_normalize,
+    ],
+    () => {
+        console.log(5);
+        if (props.panelInfo.start_with_vport === 'Y') {
+            onReload();
+            sIsZoom.value = true;
+        } else {
+            fetchViewPortData(props.panelInfo);
+            areaChart.value.updateMinMaxChart(data.sTimeRangeViewPort.startTime, data.sTimeRangeViewPort.endTime);
+            sIsZoom.value = false;
+        }
+    }
+);
+
+// watch(
+//     () => props.panelInfo.raw_chart_threshold,
+//     () => {
+//         if (toTimeUtcChart(data.sTimeLine.startTime as string) - toTimeUtcChart(data.sTimeLine.endTime as string) > props.panelInfo.raw_chart_threshold) data.sIsRaw = true;
+//         else data.sIsRaw = false;
+//         console.log('data.sIsRaw', data.sIsRaw);
+//     },
+//     {
+//         immediate: true,
+//     }
+// );
+// watch(
+//     () => props.panelInfo,
+//     () => {
+//         if (isEmpty(props.panelInfo)) return;
+//         intializePanelData();
+//     },
+//     {
+//         // immediate: true
+//     }
+// );
+
 onMounted(() => {
     intializePanelData();
 });
