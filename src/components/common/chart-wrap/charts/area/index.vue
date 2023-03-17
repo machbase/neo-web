@@ -25,6 +25,7 @@
             :x-max-time-range-view-port="data.sTimeRangeViewPort.endTime"
             :is-stock-chart="sIsStockChart"
             :p-is-zoom="sIsZoom"
+            :p-is-raw="data.sIsRaw"
             @eOnChange="OnChangeTimeRangerViewPort"
             @eOnClick="OnChangeTimeClick"
             @eOnChangeRaw="OnChangeRaw"
