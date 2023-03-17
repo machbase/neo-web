@@ -21,6 +21,7 @@ interface BarChartContainerProps {
     isStockChart?: boolean;
     maxYChart?: number;
     pIsZoom: boolean;
+    pIsRaw: boolean;
 }
 
 const props = withDefaults(defineProps<BarChartContainerProps>(), {});
@@ -198,8 +199,28 @@ const cChartOptions = computed(() => {
 
                 tickAmount: updateYaxis().left[0] === updateYaxis().left[1] && 1,
                 tickPositions: updateYaxis().left[0] === updateYaxis().left[1] && [updateYaxis().left[0]],
-                min: props.panelInfo.custom_min === 0 ? (props.panelInfo.use_normalize === 'Y' ? 0 : updateYaxis().left[0]) : props.panelInfo.custom_min,
-                max: props.panelInfo.custom_max === 0 ? (props.panelInfo.use_normalize === 'Y' ? 100 : updateYaxis().left[1]) : props.panelInfo.custom_max,
+                min: !props.pIsRaw
+                    ? props.panelInfo.custom_min === 0
+                        ? props.panelInfo.use_normalize === 'Y'
+                            ? 0
+                            : updateYaxis().left[0]
+                        : props.panelInfo.custom_min
+                    : props.panelInfo.custom_drilldown_min === 0
+                    ? props.panelInfo.use_normalize === 'Y'
+                        ? 0
+                        : updateYaxis().left[0]
+                    : props.panelInfo.custom_drilldown_min,
+                max: !props.pIsRaw
+                    ? props.panelInfo.custom_max === 0
+                        ? props.panelInfo.use_normalize === 'Y'
+                            ? 100
+                            : updateYaxis().left[1]
+                        : props.panelInfo.custom_max
+                    : props.panelInfo.custom_drilldown_max2 === 0
+                    ? props.panelInfo.use_normalize === 'Y'
+                        ? 100
+                        : updateYaxis().left[1]
+                    : props.panelInfo.custom_drilldown_max2,
                 // tickInterval: 100,
                 showLastLabel: props.panelInfo.use_normalize === 'N',
                 // max: data.sMasterSeriesData[index].data.length > 0 ? getMaxValue(data.sMasterSeriesData[index]?.data) : null,
