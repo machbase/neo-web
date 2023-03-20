@@ -48,24 +48,9 @@ const mutations = {
             range_bgn: aTimeRange.start,
         };
     },
-    [MutationTypes.setTableList](state: RootState, aTableList: any) {
-        const mutateTables = [];
-        const gTagTables = state.gTableList;
-        if (gTagTables.length > 0) {
-            gTagTables.splice(0, gTagTables.length);
-            state.gSecRollupExist = {};
-        }
-        for (let i = 0; i < aTableList.length; i++) {
-            if (aTableList[i].length > 3 && aTableList[i][2] == 'Y' && aTableList[i][3] == 'Y') {
-                const sTagTable = aTableList[i][0];
-                mutateTables.push(sTagTable);
-                state.gSecRollupExist[sTagTable] = aTableList[i][1];
-            }
-        }
-        state.gTableList = mutateTables;
-        if (state.gTableList.length < 1) {
-            state.gTableList.push('TAG');
-        }
+    [MutationTypes.setTableList](state: RootState, aTableList: { name: string }[]) {
+        const newTable = aTableList.map((aTable) => aTable.name);
+        state.gTableList = newTable;
     },
     [MutationTypes.setTagList](state: RootState, aTagList: any) {
         state.gTagList = aTagList;

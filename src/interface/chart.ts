@@ -18,8 +18,8 @@ export type ChartType =
 
 export type startTimeToendTimeType = { startTime: string | number; endTime: string | number };
 export interface RangeData {
-    MAX: string;
-    MIN: string;
+    max: string;
+    min: string;
 }
 export interface GaugeColorset {
     color: string;
@@ -120,7 +120,7 @@ export interface PanelInfo {
     x_axis_type: string;
     chart_type: string;
     ////////////////////////////////////////// not used yet(Planned for future use), for storing Rollup table exists.
-    sec_rollup: SecRollup;
+    sec_rollup?: SecRollup;
 
     ////////////////////////////////////////// not used(Removed feature), for right side legend("show_legend" = "R")
     legend_width: number;
@@ -177,7 +177,7 @@ export interface ChartData {
 export interface ReturnTagData {
     CalculationMode: string;
     DataType: string;
-    ErrorCode: number;
+    error_code: number;
     Query: string;
     Samples: ChartData[];
     TagName: string;

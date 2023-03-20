@@ -276,9 +276,7 @@ const cChartOptions = computed(() => {
 });
 
 function afterSetExtremes(e) {
-    console.log('e', e);
     const { chart } = e.target;
-    console.log('chart ', chart);
     data.sTimeChartXaxis.min = e.min;
     data.sTimeChartXaxis.max = e.max;
     emit('eOnChange', data.sTimeChartXaxis);

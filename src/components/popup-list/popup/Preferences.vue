@@ -69,11 +69,11 @@ const onChangeInput = (aEvent: Event) => {
 };
 const onSetting = () => {
     store.dispatch(ActionTypes.postPreference, sData).then(() => onClosePopup());
+    localStorage.setItem('gPreference', JSON.stringify(sData));
 };
 const onClosePopup = () => {
     emit('eClosePopup');
 };
-store.dispatch(ActionTypes.fetchPreference);
 </script>
 
 <style lang="scss" scoped>

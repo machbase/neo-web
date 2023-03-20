@@ -13,7 +13,7 @@ import { PopupType } from '@/enums/app';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
@@ -38,8 +38,11 @@ const onClosePopup = () => {
 //         }
 //     }
 // );
-store.dispatch(ActionTypes.fetchTableList);
-store.dispatch(ActionTypes.fetchRangeData);
+onMounted(async () => {
+    await store.dispatch(ActionTypes.fetchTableList);
+    await store.dispatch(ActionTypes.fetchTagList, store.state.gTableList[0]);
+    await store.dispatch(ActionTypes.fetchRangeData, { table: store.state.gTableList[0], tagName: store.state.gTagList[0].name });
+});
 </script>
 
 <style lang="scss" scoped>

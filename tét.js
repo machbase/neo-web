@@ -1842,14 +1842,14 @@ function machIoTtimechart() {
                 ajaxErrorProcess(request, status, error, gTimeOut, sUrl);
             },
             success: function (d) {
-                if (d.ErrorCode != 0) {
+                if (d.error_code != 0) {
                     alert(d.ErrorMessage);
                 } else {
                     var sTotalCount = 0;
                     for (var i = 0; i < d.Data.length; i++) {
                         var sDatas = d.Data[i].Samples;
                         var sDType = d.Data[i].DataType;
-                        var sError = d.Data[i].ErrorCode;
+                        var sError = d.Data[i].error_code;
                         var sTagNm = d.Data[i].TagName;
                         var sTable = d.Data[i].hasOwnProperty('Table') ? d.Data[i].Table : 'TAG';
                         var sCMode = '';
@@ -2952,7 +2952,7 @@ function machIoTtimechart() {
                 ajaxErrorProcess(request, status, error, gTimeOut, sUrl);
             },
             success: function (d) {
-                if (d.ErrorCode != 0) {
+                if (d.error_code != 0) {
                     alert(d.ErrorMessage);
                 } else {
                     gCurrentPage = 1;
@@ -3226,13 +3226,13 @@ function machIoTtimechart() {
                 ajaxErrorProcess(request, status, error, gTimeOut, sUrl);
             },
             success: function (d) {
-                if (d.ErrorCode != 0) {
+                if (d.error_code != 0) {
                     alert(d.ErrorMessage);
                 } else {
                     for (var i = 0; i < d.Data.length; i++) {
                         var sDatas = d.Data[i].Samples;
                         var sDType = d.Data[i].DataType;
-                        var sError = d.Data[i].ErrorCode;
+                        var sError = d.Data[i].error_code;
                         var sTagNm = d.Data[i].TagName;
                         var sTable = d.Data[i].hasOwnProperty('Table') ? d.Data[i].Table : 'TAG';
                         var sCMode = '';
@@ -3338,13 +3338,13 @@ function machIoTtimechart() {
                 ajaxErrorProcess(request, status, error, gTimeOut, sUrl);
             },
             success: function (d) {
-                if (d.ErrorCode != 0) {
+                if (d.error_code != 0) {
                     alert(d.ErrorMessage);
                 } else {
                     for (var i = 0; i < d.Data.length; i++) {
                         var sDatas = d.Data[i].Samples;
                         var sDType = d.Data[i].DataType;
-                        var sError = d.Data[i].ErrorCode;
+                        var sError = d.Data[i].error_code;
                         var sTagNm = d.Data[i].TagName;
                         var sTable = d.Data[i].hasOwnProperty('Table') ? d.Data[i].Table : 'TAG';
                         var sCMode = '';
@@ -4959,7 +4959,7 @@ function getMinMaxDate(aTag, aTimeOut, aTRSet, aServerInfo) {
             ajaxErrorProcess(request, status, error, sTimeOut, sUrl);
         },
         success: function (d) {
-            if (d.ErrorCode != 0) {
+            if (d.error_code != 0) {
                 aTRSet.begin = '';
                 aTRSet.end = '';
             } else {

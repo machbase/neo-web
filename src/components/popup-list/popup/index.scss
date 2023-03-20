@@ -283,7 +283,7 @@ $height: 30px;
                 font-size: 12px;
                 overflow-x: hidden;
                 //  overflow-y: auto;
-                overflow-y: hidden;
+                overflow-y: auto;
                 @include theme() {
                     color: theme-get('text-color1');
                     background-color: theme-get('bg-color');

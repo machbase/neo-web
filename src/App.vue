@@ -15,7 +15,6 @@ import { ActionTypes } from './store/actions';
 
 const store = useStore();
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
-store.dispatch(ActionTypes.fetchPreference);
 </script>
 <style lang="scss">
 @import './index.scss';

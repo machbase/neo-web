@@ -19,7 +19,7 @@
                     <div>Select : {{ selectCount }}</div>
                 </div>
                 <div class="taglistdiv taglistscroll">
-                    <div v-for="(aTime, aIndex) in cTagsSearch" :key="aIndex" style="margin-bottom: 5px" class="text" @click="onSelectTag(aTime)">{{ aTime.NAME }}</div>
+                    <div v-for="(aTime, aIndex) in tagsPaged[pageIndex]" :key="aIndex" style="margin-bottom: 5px" class="text" @click="onSelectTag(aTime)">{{ aTime.name }}</div>
                 </div>
                 <Pagination :total="Math.ceil(cTags.length / MAX_TAG_COUNT)" @e-on-change="onPaging" />
             </div>
@@ -60,6 +60,7 @@ import { fetchTablesData } from '@/api/repository/machiot';
 import { ActionTypes } from '@/store/actions';
 import { TagSet } from '@/interface/chart';
 import { CalculationMode } from '@/interface/constants';
+import { getPaginationPages } from '@/utils/utils';
 const emit = defineEmits(['eClosePopup']);
 const searchText = ref<string>('');
 const isSearchClick = ref<boolean>(false);
@@ -79,8 +80,8 @@ const cTableListSelect = computed(() =>
         };
     })
 );
-
 const pageIndex = ref<number>(0);
+const tagsPaged = computed(() => getPaginationPages(cTagsSearch.value, MAX_TAG_COUNT));
 const onChangeTable = (aValue: string) => {
     tableSelected.value = aValue;
 };
@@ -115,7 +116,7 @@ const onSearch = () => {
             sRegExp = sSplit.length > 2 ? new RegExp(sSplit[1], sSplit[2]) : new RegExp(sSplit[1]);
         }
         cTagsSearch.value = cTags.value.filter(function (aVal: any) {
-            return aVal['NAME'].search(sRegExp) != -1;
+            return aVal['name'].search(sRegExp) != -1;
         });
     }
 };
@@ -125,9 +126,9 @@ const onReset = () => {
 const onSelectChart = (data: ChartType) => {
     chartType.value = data;
 };
-const onSelectTag = (data: { NAME: string }) => {
+const onSelectTag = (data: { name: string }) => {
     selectCount.value++;
-    sSelectedTags.push({ tag_names: data.NAME, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0 });
+    sSelectedTags.push({ tag_names: data.name, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0 });
 };
 const onRemoveTag = (index: number) => {
     selectCount.value--;
@@ -137,7 +138,7 @@ const onChangeCalcMode = (data: CalculationMode, index: number) => {
     sSelectedTags[index].calculation_mode = data;
 };
 const onPaging = (index: number) => {
-    pageIndex.value = index;
+    pageIndex.value = index - 1;
 };
 const onSetting = () => {
     if (sSelectedTags.length <= 0) {

@@ -393,7 +393,6 @@ const updateYaxis = () => {
 onMounted(() => {
     data.sChartWidth = chart.value.chart.plotWidth;
 });
-
 defineExpose({
     chart,
     updateMinMaxChart,

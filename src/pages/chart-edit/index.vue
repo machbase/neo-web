@@ -29,7 +29,7 @@ import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { MutationTypes } from '@/store/mutations';
-import { computed, ref, watch, reactive, watchEffect } from 'vue';
+import { computed, ref, watch, reactive, watchEffect, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AxesTab from '../chart-edit/components/axes/index.vue';
 import DataTab from '../chart-edit/components/data/index.vue';
@@ -111,9 +111,12 @@ watch(
     },
     { immediate: true }
 );
-store.dispatch(ActionTypes.fetchTableList);
-store.dispatch(ActionTypes.fetchTable);
-store.dispatch(ActionTypes.fetchRangeData);
+
+onMounted(async () => {
+    await store.dispatch(ActionTypes.fetchTableList);
+    await store.dispatch(ActionTypes.fetchTagList, store.state.gTableList[0]);
+    await store.dispatch(ActionTypes.fetchRangeData, { table: store.state.gTableList[0], tagName: store.state.gTagList[0].name });
+});
 </script>
 
 <style lang="scss" scoped>

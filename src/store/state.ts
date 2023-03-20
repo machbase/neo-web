@@ -5,7 +5,15 @@ const state = {
     /* Global */
     gActiveHeader: false as boolean,
     /* Popup */
-    gPreference: {} as ResPreferences,
+    gPreference:
+        JSON.parse(localStorage.getItem('gPreference') as string) ||
+        ({
+            ip: '127.0.0.1',
+            theme: 'machIoTchartBlack',
+            home_board: '',
+            timeout: 20000,
+            port: '5657',
+        } as ResPreferences),
     gTimeRange: {} as TimeRange,
     gTimeRangeSetting: {} as TimeRange,
     // New chart
