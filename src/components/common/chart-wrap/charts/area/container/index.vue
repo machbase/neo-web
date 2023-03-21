@@ -75,6 +75,7 @@ const cChartOptions = computed(() => {
         // option chart
         plotOptions: {
             series: {
+                showInNavigator: false,
                 lineWidth: props.panelInfo.stroke,
                 fillOpacity: props.panelInfo.fill,
                 cursor: 'pointer',
