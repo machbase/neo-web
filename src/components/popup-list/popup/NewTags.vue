@@ -25,8 +25,8 @@
             </div>
             <div class="col-sm-6 newchart-right">
                 <div class="selectedlistdiv taglistscroll" style="height: 300px">
-                    <div v-for="(aTime, aIndex) in sSelectedTags" :key="aIndex" style="margin-bottom: 5px" class="wrapperTagSelect" @click="onRemoveTag(aIndex)">
-                        <span> {{ aTime.tag_names }}</span>
+                    <div v-for="(aTime, aIndex) in sSelectedTags" :key="aIndex" style="margin-bottom: 5px" class="wrapperTagSelect">
+                        <span @click="onRemoveTag(aIndex)"> {{ aTime.tag_names }}</span>
                         <ComboboxSelect :p-show-default-option="false" :p-data="CALC_MODE" :p-value="'avg'" @e-on-change="(item) => onChangeCalcMode(item, aIndex)" />
                     </div>
                 </div>
