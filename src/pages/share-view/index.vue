@@ -18,7 +18,7 @@ const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const sPanels = ref(null);
 const router = useRouter();
 const setBoard = async () => {
-    await store.dispatch(ActionTypes.fetchTable);
+    // await store.dispatch(ActionTypes.fetchTable);
     await store.dispatch(ActionTypes.fetchRangeData);
     await store.dispatch(ActionTypes.fetchTableList);
 };
@@ -39,7 +39,11 @@ onMounted(async () => {
     await store.commit(MutationTypes.setBoardByFileUpload, JSON.parse(cookieValue));
     // sDataChart.value = await JSON.parse(cookieValue).panels[route.params.id as string];
 });
-
+onMounted(async () => {
+    await store.dispatch(ActionTypes.fetchTableList);
+    await store.dispatch(ActionTypes.fetchTagList, store.state.gTableList[0]);
+    await store.dispatch(ActionTypes.fetchRangeData, { table: store.state.gTableList[0], tagName: store.state.gTagList[0].name });
+});
 // watch(
 //     () => route.params.id,
 //     () => {

@@ -1,6 +1,5 @@
 <template>
     <ChartWrap>
-        {{ data.sIsRaw }}
         <div v-if="sLoading" class="loading-chart">
             <img :src="cIsDarkMode ? loader_b : loader_w" class="icon" />
         </div>
@@ -209,7 +208,7 @@ const convertData = async (aTagData: ReturnTagData[], aPanelInfo: PanelInfo, aTa
         return {
             name: `${aTag.TagName}(${aTag.CalculationMode})`,
             data: aTag.Samples.map((aItem) => {
-                return [toTimeUtcChart(aItem.TimeStamp), aItem.Value];
+                return [toTimeUtcChart(aItem.time), aItem.avg];
             }),
             yAxis: aTagInfo.use_y2 === 'Y' ? 1 : 0,
             // color: sTagColor,
@@ -274,12 +273,13 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
             ...sIntervalTime,
             Count: sCount,
         });
+        if (typeof sFetchResult === 'string') alert('Interval type is not valid for Rest API');
         await sDatasets.push({
-            name: `${sFetchResult[0].TagName}(${sFetchResult[0].CalculationMode})`,
+            name: `${sTagSetElement.tag_names}(${sTagSetElement.calculation_mode.toLowerCase()})`,
             data:
-                sFetchResult[0].Samples.length > 0
-                    ? sFetchResult[0].Samples.map((aItem: any) => {
-                          return [props.panelInfo.drilldown_zoom === 'N' ? toTimeUtcChart(cTimeRange.value.MIN) : toTimeUtcChart(aItem.TimeStamp), aItem.Value];
+                sFetchResult.length > 0
+                    ? sFetchResult.map((aItem: any) => {
+                          return [props.panelInfo.drilldown_zoom === 'N' ? toTimeUtcChart(cTimeRange.value.min) : toTimeUtcChart(aItem.time), aItem.avg];
                       })
                     : [],
             yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
@@ -304,6 +304,7 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
         data.sViewPortData = { datasets: sDatasets };
         return;
     }
+
     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
     data.sTimeRangeViewPort.startTime = sTimeRange.startTime;
     data.sTimeRangeViewPort.endTime = sTimeRange.endTime;
@@ -323,12 +324,13 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
             ...sIntervalTime,
             Count: sCount,
         });
+        if (typeof sFetchResult === 'string') alert('Interval type is not valid for Rest API');
         await sDatasets.push({
-            name: `${sFetchResult[0].TagName}(${sFetchResult[0].CalculationMode})`,
+            name: `${sTagSetElement.tag_names}(${sTagSetElement.calculation_mode.toLowerCase()})`,
             data:
-                sFetchResult[0].Samples.length > 0
-                    ? sFetchResult[0].Samples.map((aItem: any) => {
-                          return [toTimeUtcChart(aItem.TimeStamp), aItem.Value];
+                sFetchResult.length > 0
+                    ? sFetchResult.map((aItem: any) => {
+                          return [toTimeUtcChart(aItem.time), aItem.avg];
                       })
                     : [],
             yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
@@ -372,12 +374,13 @@ const drawRawDataTable = async (aPanelInfo: BarPanel, aCustomRange?: startTimeTo
             Count: sRawLimit,
             Direction: 0,
         });
+        if (typeof sFetchResult === 'string') alert('Interval type is not valid for Rest API');
         await sDatasets.push({
             name: `${sFetchResult[0].TagName}(${sFetchResult[0].CalculationMode})`,
             data:
                 sFetchResult[0].Samples.length > 0
                     ? sFetchResult[0].Samples.map((aItem: any) => {
-                          return [toTimeUtcChart(aItem.TimeStamp), aItem.Value];
+                          return [toTimeUtcChart(aItem.time), aItem.avg];
                       })
                     : [],
             yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
@@ -401,8 +404,6 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
     //     aLimit = gRawChartLimit;
     // }
     let sLimit = aLimit || gRawChartLimit;
-    console.log('sLimit', sLimit);
-
     let sDatasets = [] as HighchartsDataset[];
     const sTagSet = aPanelInfo.tag_set || [];
     if (sTagSet.length === 0) {
@@ -431,12 +432,13 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
             Count: sLimit,
             Direction: 0,
         });
+        if (typeof sFetchResult === 'string') alert('Interval type is not valid for Rest API');
         await sDatasets.push({
-            name: `${sFetchResult[0].TagName}(${sFetchResult[0].CalculationMode})`,
+            name: `${sTagSetElement.tag_names}(${sTagSetElement.calculation_mode.toLowerCase()})`,
             data:
-                sFetchResult[0].Samples.length > 0
-                    ? sFetchResult[0].Samples.map((aItem: any) => {
-                          return [props.panelInfo.drilldown_zoom === 'N' ? toTimeUtcChart(cTimeRange.value.MIN) : toTimeUtcChart(aItem.TimeStamp), aItem.Value];
+                sFetchResult.length > 0
+                    ? sFetchResult.map((aItem: any) => {
+                          return [props.panelInfo.drilldown_zoom === 'N' ? toTimeUtcChart(cTimeRange.value.min) : toTimeUtcChart(aItem.time), aItem.avg];
                       })
                     : [],
             yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
@@ -472,7 +474,6 @@ const onChangeZoom = () => {
     sIsZoom.value = true;
 };
 const onChangeTimeRange = async (eValue: any) => {
-    console.log(1);
     // await fetchPanelData(props.panelInfo, {
     //     startTime: data.sTimeLine.startTime,
     //     endTime: data.sTimeLine.endTime,
@@ -483,7 +484,6 @@ const onChangeTimeRange = async (eValue: any) => {
     });
 };
 const onChangeSRF = async (eValue: any) => {
-    console.log(2);
     const { startTime, endTime } = getTimeReset({ startTime: data.sTimeRangeViewPort.startTime, endTime: data.sTimeRangeViewPort.endTime });
     switch (eValue) {
         case 0:
@@ -503,7 +503,6 @@ const onChangeSRF = async (eValue: any) => {
 };
 
 const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) => {
-    console.log(3);
     let sType = aEvent.type;
     let sZoom = aEvent.zoom / 2; // left & right
 
@@ -534,8 +533,6 @@ const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) =>
     });
 };
 const OnFocus = async () => {
-    console.log(4);
-
     let sBgn = data.sTimeLine.startTime;
     let sEnd = data.sTimeLine.endTime;
     let sTimeGap = moment(sEnd).valueOf() - moment(sBgn).valueOf();
@@ -611,16 +608,18 @@ watch([() => props.panelInfo.interval_value], () => {
 });
 watch(
     [
-        () => props.panelInfo,
-        // () => props.panelInfo.chart_height,
-        // () => props.panelInfo.chart_width,
-        // () => props.panelInfo.use_detail,
-        // () => props.panelInfo.use_zoom,
-        // () => props.panelInfo.drilldown_zoom,
-        // () => props.panelInfo.use_normalize,
+        () => props.panelInfo.chart_title,
+        () => props.panelInfo.chart_height,
+        () => props.panelInfo.chart_width,
+        () => props.panelInfo.use_detail,
+        () => props.panelInfo.use_zoom,
+        () => props.panelInfo.drilldown_zoom,
+        () => props.panelInfo.use_normalize,
+        () => props.panelInfo.start_with_vport,
+        () => props.panelInfo.raw_chart_threshold,
+        () => props.panelInfo.tag_set,
     ],
     () => {
-        console.log(5);
         if (props.panelInfo.start_with_vport === 'Y') {
             onReload();
             sIsZoom.value = true;
@@ -629,6 +628,9 @@ watch(
             areaChart.value.updateMinMaxChart(data.sTimeRangeViewPort.startTime, data.sTimeRangeViewPort.endTime);
             sIsZoom.value = false;
         }
+    },
+    {
+        deep: true,
     }
 );
 

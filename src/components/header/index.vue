@@ -481,7 +481,7 @@ const onSaveEdit = async () => {
         name: RouteNames.TAG_VIEW,
     });
 };
-store.dispatch(ActionTypes.fetchBoardList);
+// store.dispatch(ActionTypes.fetchBoardList);
 
 watch(
     () => route.name,

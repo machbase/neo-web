@@ -55,7 +55,6 @@ watchEffect(
 watch(
     () => props.chartDataSingle,
     () => {
-        console.log('props.chartDataSingle', props.chartDataSingle);
         if (props.chartDataSingle?.length === 0) return;
         data.sPanel = props.chartDataSingle
             ? (props.chartDataSingle.map((v: any, i: number) => {

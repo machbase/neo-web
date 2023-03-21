@@ -123,7 +123,6 @@ watchEffect(() => {
         use_normalize: normalize.value ? 'Y' : 'N',
         raw_chart_threshold,
     };
-    console.log(data.use_zoom);
     emit('eOnChange', data);
 });
 </script>

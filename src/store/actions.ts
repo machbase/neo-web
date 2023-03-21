@@ -4,10 +4,11 @@ import { ActionContext } from 'vuex';
 import { MutationTypes, Mutations } from './mutations';
 import { RootState } from './state';
 import { ResPreferences, TimeRange } from '@/interface/tagView';
-import { BoardInfo, FetchTagDataArg, RangeData } from '@/interface/chart';
+import { BoardInfo, FetchTagDataArg, PanelInfo, RangeData } from '@/interface/chart';
 import { fetchCalculationData, fetchRangeData, fetchRawData, fetchTablesData, fetchTags } from '@/api/repository/machiot';
 import { ResType } from '@/assets/ts/common';
 import { convertChartDefault } from '../utils/utils';
+import { DEFAULT_CHART } from '@/utils/constants';
 
 type MyActionContext = {
     commit<K extends keyof Mutations>(key: K, payload?: Parameters<Mutations[K]>[1]): ReturnType<Mutations[K]>;
@@ -24,10 +25,8 @@ enum ActionTypes {
     fetchNewChartBoard = 'fetchNewChartBoard',
     fetchNewDashboard = 'fetchNewDashboard',
     fetchRangeData = 'fetchRangeData',
-    fetchTable = 'fetchTable',
     fetchTagData = 'fetchTagData',
     fetchTagDataRaw = 'fetchTagDataRaw',
-    fetchBoardDetail = 'fetchBoardDetail',
 }
 
 const actions = {
@@ -44,23 +43,22 @@ const actions = {
         context.commit(MutationTypes.setPreference, res);
     },
     async [ActionTypes.postPreference](context: MyActionContext, payload: ResPreferences) {
-        const res = await postSetting(payload);
-        context.commit(MutationTypes.setPreference, res);
+        // const res = await postSetting(payload);
+        context.commit(MutationTypes.setPreference, payload);
     },
     [ActionTypes.setTimeRange](context: MyActionContext, payload: TimeRange) {
         context.commit(MutationTypes.setTimeRange, payload);
     },
     async [ActionTypes.fetchTableList](context: MyActionContext) {
         const res = await fetchTablesData();
-        context.commit(MutationTypes.setTableList, (res as any).Data);
+        context.commit(MutationTypes.setTableList, res.data);
     },
     async [ActionTypes.fetchTagList](context: MyActionContext, payload: string) {
         const res = await fetchTags(payload);
-        context.commit(MutationTypes.setTagList, (res as any).Data);
+        context.commit(MutationTypes.setTagList, res.data);
     },
     async [ActionTypes.fetchNewChartBoard](context: MyActionContext, payload: TempNewChartData) {
-        const res = await getDataDefault();
-        const chartFormat = await convertChartDefault(res.data, payload);
+        const chartFormat = await convertChartDefault(DEFAULT_CHART as PanelInfo, payload);
         context.commit(MutationTypes.setNewChartBoard, chartFormat);
     },
     async [ActionTypes.fetchNewDashboard](context: MyActionContext, payload: any) {
@@ -92,37 +90,26 @@ const actions = {
         }
         return res;
     },
-    async [ActionTypes.fetchBoardDetail](context: MyActionContext, payload: string) {
-        // const res = await fetchTags(payload);
-        // console.log("🚀 ~ file: actions.ts:38 ~ res", res);
-        // context.commit(MutationTypes.setTagList, (res as any).Data);
-    },
-    async [ActionTypes.fetchRangeData](context: MyActionContext) {
-        const res: any = await fetchRangeData();
-        context.commit(MutationTypes.setRangeData, res.Data[0]);
-    },
-
-    // lấy ActionTypes.fetchTableList
-    async [ActionTypes.fetchTable](context: MyActionContext) {
-        const res: any = await fetchTablesData();
-        context.commit(MutationTypes.setTable, { ...res.Data.map((aItem: any) => aItem[0]) });
+    async [ActionTypes.fetchRangeData](context: MyActionContext, payload: { table: string; tagName: string }) {
+        const res: any = await fetchRangeData(payload.table, payload.tagName);
+        context.commit(MutationTypes.setRangeData, res.data[0]);
     },
 
     //
     async [ActionTypes.fetchTagData](context: MyActionContext, aParams: FetchTagDataArg) {
         const res = aParams.CalculationMode === 'raw' ? ((await fetchRawData(aParams)) as any) : ((await fetchCalculationData(aParams)) as any);
-        if (res.ErrorCode === 0) {
-            return res.Data;
+        if (res.error_code === 0) {
+            return res.data;
         } else {
-            return 'fail';
+            return res.error_message;
         }
     },
     async [ActionTypes.fetchTagDataRaw](context: MyActionContext, aParams: FetchTagDataArg) {
         const res = (await fetchRawData(aParams)) as any;
-        if (res.ErrorCode === 0) {
-            return res.Data;
+        if (res.error_code === 0) {
+            return res.data;
         } else {
-            return 'fail';
+            return res.error_message;
         }
     },
 };

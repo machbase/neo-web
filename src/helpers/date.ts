@@ -30,10 +30,9 @@ const setTimeRange = async (aPanelInfo: PanelInfo, aDashboard: BoardInfo) => {
     if (!aDashboard.range_end || !aDashboard.range_bgn) {
         // timeRange = await tag.actions.getTimeRange();
         timeRange = store.state.gRangeData;
-        console.log('store.state.gRangeData', store.state.gRangeData);
     }
-    const startTime = _convertTimeToFullDate(aPanelInfo.range_bgn || aDashboard.range_bgn || timeRange.MIN);
-    const endTime = _convertTimeToFullDate(aPanelInfo.range_end || aDashboard.range_end || timeRange.MAX);
+    const startTime = _convertTimeToFullDate(aPanelInfo.range_bgn || aDashboard.range_bgn || timeRange.min);
+    const endTime = _convertTimeToFullDate(aPanelInfo.range_end || aDashboard.range_end || timeRange.max);
     return { startTime, endTime };
 };
 const getDateRange = async (aPanelInfo: PanelInfo, aDashboard: BoardInfo, aCustomRange = undefined as startTimeToendTimeType | undefined): Promise<TimeInfo> => {

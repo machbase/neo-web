@@ -88,8 +88,8 @@ onMounted(() => {
         dateEnd.value = formatDate(props.pTimeRange?.endTime as string);
     } else {
         const data: any = fetchRangeData();
-        dateStart.value = formatDate(data.Data[0].MIN);
-        dateEnd.value = formatDate(data.Data[0].MAX);
+        dateStart.value = formatDate(data.Data[0].min);
+        dateEnd.value = formatDate(data.Data[0].max);
     }
 });
 </script>
