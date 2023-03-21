@@ -321,6 +321,9 @@ $height: 30px;
                     flex-direction: row;
                     justify-content: space-between;
                     align-items: center;
+                    & > span {
+                        flex: 1;
+                    }
                 }
                 div {
                     cursor: pointer;
