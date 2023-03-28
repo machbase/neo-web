@@ -6,18 +6,18 @@
                 <img src="@/assets/image/i_logo.png" alt="" />
             </div>
             <div class="input-form">
-                <input v-model="sLoginName" type="text" placeholder="ID" class="input normal-text" />
-                <input v-model="sPassword" type="password" placeholder="Password" class="input normal-text" />
+                <input v-model="sLoginName" type="text" placeholder="ID" class="input normal-text" @keydown.enter="login" />
+                <input v-model="sPassword" type="password" placeholder="Password" class="input normal-text" @keydown.enter="login" />
             </div>
             <div class="button-form">
-                <button class="login-button" @click="sLogin">LOGIN</button>
+                <button class="login-button" @click="login">LOGIN</button>
             </div>
         </div>
         <!-- </div> -->
     </div>
 </template>
 
-<script setup lang="ts" name="Login">
+<script setup="setup" lang="ts" name="Login">
 import { ref } from 'vue';
 import { postLogin } from '@/api/repository/login';
 import router from '../../routes';
@@ -25,25 +25,26 @@ import { RouteNames } from '../../enums/routes';
 const sLoginName = ref<string>('');
 const sPassword = ref<string>('');
 
-const sLogin = async () => {
-    const sParams = { loginName: sLoginName.value, password: sPassword.value };
+const login = async () => {
+    const sParams = {
+        LoginName: sLoginName.value,
+        Password: sPassword.value,
+    };
 
     // API 요청 방지 ID Password check
-    if (sParams.loginName === '' || sParams.password === '') {
+    if (sParams.LoginName === '' || sParams.Password === '') {
         alert('typed ID or Password');
         return;
     }
 
     // api call
-    const sReturn = await postLogin(sParams);
+    const sReturn: any = await postLogin(sParams);
 
     // status 상태에 따라 처리
-    if (sReturn?.status === 200) {
-        localStorage.setItem('accessToken', sReturn.data.accessToken);
-        localStorage.setItem('refreshToken', sReturn.data.refreshToken);
-        router.push({
-            name: RouteNames.TAG_VIEW,
-        });
+    if (sReturn && sReturn.success) {
+        localStorage.setItem('accessToken', sReturn.accessToken);
+        localStorage.setItem('refreshToken', sReturn.refreshToken);
+        router.push({ name: RouteNames.TAG_VIEW });
     } else {
         alert('check ID or Password');
         sPassword.value = '';
@@ -51,6 +52,6 @@ const sLogin = async () => {
 };
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss" scoped="scoped">
 @import 'index.scss';
 </style>

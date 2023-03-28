@@ -23,9 +23,8 @@ request.interceptors.request.use(
         // do something before request is sent
         const sHeaders = config.headers;
 
-        console.log(config.url);
-        if (sHeaders && config.url !== '/web/api/login') {
-            sHeaders.Authorization = `Bearer ${localStorage.getItem('AccessToken')}`;
+        if (sHeaders && config.url !== '/web/api/login' && config.url !== '/web/api/login') {
+            sHeaders.Authorization = `Bearer ${localStorage.getItem('accessToken')}`;
             // if (import.meta.env.VITE_IS_TEST_CHART) {
             //     sHeaders.Authorization = `${localStorage.getItem(LocalStorageKeys.ACCESS_TOKEN)}`;
             //     sHeaders.company_id = `${localStorage.getItem(LocalStorageKeys.COMPANY_ID)}`;
@@ -70,9 +69,9 @@ request.interceptors.response.use(
                 //     }
                 if (error.response.config.url !== 'api/login') {
                     request(error.config);
+                } else {
+                    return router.push('/login').then(() => {});
                 }
-            } else {
-                return router.push('/login').then(() => {});
             }
             // }
             // if (error.message === 'Network Error') {
