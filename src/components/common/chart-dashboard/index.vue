@@ -13,8 +13,6 @@
 </template>
 
 <script lang="ts" setup name="ChartDashboard">
-import LineChart from '@/components/common/chart-wrap/charts/line/index.vue';
-import PointChart from '@/components/common/chart-wrap/charts/point/index.vue';
 import AreaChart from '@/components/common/chart-wrap/charts/area/index.vue';
 import { isChartType } from '@/helpers/chart';
 import { PanelInfo } from '@/interface/chart';

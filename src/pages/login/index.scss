@@ -1,0 +1,75 @@
+@import '@/assets/scss/theme.scss';
+
+.login-form {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.input-form {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    width: 80%;
+    input {
+        margin-bottom: 8px;
+    }
+    margin-bottom: -4vh;
+}
+.login-card {
+    padding: 12px;
+    height: 30vh;
+    width: 30vh;
+    flex-direction: column;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 8px;
+    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
+    @include theme() {
+        background-color: theme-get('bg-color-button') !important;
+        border-color: theme-get('border-color') !important;
+    }
+    .button-form {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        .login-button {
+            @include theme() {
+                border: 1px solid theme-get('border-color-input') !important;
+                color: theme-get('border-color-input') !important;                    
+
+            }
+            border-radius: 4px;
+            width: 80%;
+            padding : 4px 6px
+        }
+        .login-button:hover{
+            @include theme(){
+                background-color: theme-get('border-color') !important;
+               color: theme-get('login-btn') !important;                    
+               border-color: theme-get('l-border') !important;                    
+            }
+        }
+    }
+
+    .input {
+        @include theme() {
+            border: 1px solid theme-get('border-color-input');
+        }
+        border-radius: 4px;
+        padding: 4px 6px;
+        width: 100%;
+    }
+    .normal-text {
+        @include theme() {
+            color: theme-get('text-color') !important;
+        }
+        font-style: italic;
+    }
+}

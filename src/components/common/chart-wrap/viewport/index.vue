@@ -2,8 +2,8 @@
     <div v-if="props.pIsZoom" class="view-port">
         <div class="view-port__header">
             <div class="view-port__header--events">
-                <div class="date-picker button" @click="onOpenPopup(false)">{{ sDateLeft }}</div>
-                <div class="button blue">Undo</div>
+                <div class="date-picker button" @click="onOpenPopup(false)">{{ toDateUtcChart(sDateLeft) }}</div>
+                <div class="button blue" @click="onUndoTime()">Undo</div>
             </div>
             <div class="view-port__header--events icon">
                 <div>
@@ -31,7 +31,7 @@
                 <div class="button" @click="onChangeEmit(0)">STAT</div>
                 <div class="button" @click="onChangeEmit(1)">RAW</div>
                 <div class="button" @click="onChangeEmit(2)">FAST</div>
-                <div class="date-picker button" @click="onOpenPopup(true)">{{ sDateRight }}</div>
+                <div class="date-picker button" @click="onOpenPopup(true)">{{ toDateUtcChart(sDateRight) }}</div>
             </div>
         </div>
         <v-icon icon="mdi-close-thick" class="icon-close" @click="emit('eonCloseNavigator')"></v-icon>
@@ -49,32 +49,27 @@
 </template>
 
 <script setup lang="ts" name="ViewPort">
-import i_b_close from '@/assets/image/i_b_close.png';
-import { LinePanel } from '@/interface/chart';
 import PopupWrap from '@/components/popup-list/index.vue';
-import { useStore } from '@/store';
-import { FORMAT_FULL_DATE } from '@/utils/constants';
-import { formatDate } from '@/utils/utils';
-import Datepicker from '@vuepic/vue-datepicker';
-import moment from 'moment';
-import { ref, watch, defineEmits, defineProps, withDefaults, computed, watchEffect } from 'vue';
 import { PopupType } from '@/enums/app';
+import { LinePanel } from '@/interface/chart';
 import { TimeLineType } from '@/interface/date';
+import { useStore } from '@/store';
+import { computed, defineEmits, defineProps, ref, watch, withDefaults } from 'vue';
+import { toDateUtcChart, toTimeUtcChart } from '@/utils/utils';
 
 interface ViewPortProps {
     panelInfo: LinePanel;
     rangeTime: TimeLineType;
     pIsZoom: boolean;
 }
+
 const props = withDefaults(defineProps<ViewPortProps>(), {});
-const emit = defineEmits(['eOnChange', 'eOnChangeAdjust', 'eOnChangeSRF', 'eOnFocus', 'eonCloseNavigator']);
+const emit = defineEmits(['eOnChange', 'eOnChangeAdjust', 'eOnChangeSRF', 'eOnFocus', 'eonCloseNavigator', 'eOnUndoTime']);
 const store = useStore();
 const sDialog = ref<boolean>(false);
-const sIsTool = ref<boolean>(false);
-const sDateLeft = ref<string | number>('');
-const sDateRight = ref<string | number>('');
+const sDateLeft = ref<number>(0);
+const sDateRight = ref<number>(0);
 const sIsFromTime = ref<boolean>(false);
-const cRangeData = computed(() => store.state.gRangeData);
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const onChangeEmit = (aValue: number) => {
@@ -97,23 +92,20 @@ const onSettingPopup = (aDate: any) => {
     sDialog.value = false;
     emit('eOnChange', aDate);
 };
+const onUndoTime = () => {
+    emit('eOnUndoTime');
+};
 
 watch(
     () => props.rangeTime,
     () => {
-        sDateLeft.value =
-            typeof props.rangeTime.startTime === 'string' ? moment(formatDate(props.rangeTime.startTime as string)).format(FORMAT_FULL_DATE) : props.rangeTime.startTime;
-        sDateRight.value = typeof props.rangeTime.endTime === 'string' ? moment(formatDate(props.rangeTime.endTime as string)).format(FORMAT_FULL_DATE) : props.rangeTime.endTime;
+        sDateLeft.value = props.rangeTime.startTime;
+        sDateRight.value = props.rangeTime.endTime;
     },
     {
         deep: true,
     }
 );
-// watchEffect(() => {
-//     console.log('props.pIsZoom', props.pIsZoom);
-//     if (props.panelInfo.tag_set.length > 0) sIsTool.value = props.pIsZoom;
-//     else sIsTool.value = false;
-// });
 </script>
 
 <style lang="scss" scoped>

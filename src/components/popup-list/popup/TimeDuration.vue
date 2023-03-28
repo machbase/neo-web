@@ -3,13 +3,13 @@
         <div class="col-left">
             <p class="title">From</p>
             <div class="row">
-                <DatePicker :p-init="formatDate(dateStart)" :p-disabled="pIsFromTime" @e-change-time="changeTimeStart" />
-                <input :value="formatDate(dateStart)" type="text" class="input disable-icon" :disabled="pIsFromTime" />
+                <DatePicker :p-init="dateStart" :p-disabled="pIsFromTime" @e-change-time="changeTimeStart" />
+                <input :value="dateStart" type="text" class="input disable-icon" :disabled="pIsFromTime" />
             </div>
             <p class="title">To</p>
             <div class="row">
-                <DatePicker :p-init="formatDate(dateEnd)" :p-disabled="!pIsFromTime" @e-change-time="changeTimeEnd" />
-                <input :value="formatDate(dateEnd)" type="text" class="input disable-icon" :disabled="!pIsFromTime" />
+                <DatePicker :p-init="dateEnd" :p-disabled="!pIsFromTime" @e-change-time="changeTimeEnd" />
+                <input :value="dateEnd" type="text" class="input disable-icon" :disabled="!pIsFromTime" />
             </div>
             <div>
                 <p class="title">Duration</p>
@@ -33,12 +33,13 @@ import TimeDuration from '@/components/common/date-list/date-time-duration.vue';
 import '@vuepic/vue-datepicker/dist/main.css';
 import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
 import { computed, defineEmits, reactive, ref, onMounted, defineProps } from 'vue';
-import { formatDate } from '@/utils/utils';
+import { formatDate, toDateUtcChart } from '@/utils/utils';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { fetchRangeData } from '@/api/repository/machiot';
 import { FORMAT_FULL_DATE } from '@/utils/constants';
 import { TimeLineType } from '@/interface/date';
+
 interface TimeDurationProps {
     pIsFromTime?: boolean;
     pTimeRange?: TimeLineType;
@@ -52,12 +53,7 @@ const number = ref();
 const format = ref();
 
 const changeTimeStart = (data: Date) => {
-    // console.log('data', data);
     dateStart.value = moment(data).format(FORMAT_FULL_DATE);
-    // if (duration.value) {
-    //     const date = moment(data);
-    //     dateEnd.value = date.add(number.value, format.value);
-    // }
 };
 const changeTimeEnd = (data: Date) => {
     dateEnd.value = moment(data).format(FORMAT_FULL_DATE);
@@ -84,12 +80,12 @@ const emit = defineEmits(['eClosePopup', 'eSettingPopup']);
 
 onMounted(() => {
     if (props.pTimeRange) {
-        dateStart.value = formatDate(props.pTimeRange?.startTime as string);
-        dateEnd.value = formatDate(props.pTimeRange?.endTime as string);
+        dateStart.value = toDateUtcChart(props.pTimeRange.startTime);
+        dateEnd.value = toDateUtcChart(props.pTimeRange.endTime);
     } else {
-        const data: any = fetchRangeData();
-        dateStart.value = formatDate(data.Data[0].min);
-        dateEnd.value = formatDate(data.Data[0].max);
+        const data: any = store.dispatch(ActionTypes.fetchRangeData, { table: store.state.gTableList[0], tagName: store.state.gTagList[0].name });
+        dateStart.value = toDateUtcChart(data.Data[0].min);
+        dateEnd.value = toDateUtcChart(data.Data[0].max);
     }
 });
 </script>

@@ -50,9 +50,10 @@ const onClosePopup = () => {
 // );
 
 onMounted(async () => {
-    await store.dispatch(ActionTypes.fetchRangeData);
-    store.dispatch(ActionTypes.fetchTableList);
     const cookieValue = await document.cookie.replace(/(?:(?:^|.*;\s*)data\s*\=\s*([^;]*).*$)|^.*$/, '$1');
+    await store.dispatch(ActionTypes.fetchTableList);
+    await store.dispatch(ActionTypes.fetchTagList, store.state.gTableList[0]);
+    await store.dispatch(ActionTypes.fetchRangeData, { table: store.state.gTableList[0], tagName: store.state.gTagList[0].name });
     if (!cookieValue) {
         router.push({
             name: RouteNames.TAG_VIEW,
@@ -61,12 +62,6 @@ onMounted(async () => {
     }
     await store.commit(MutationTypes.setBoardByFileUpload, JSON.parse(cookieValue));
     sDataChart.value = await JSON.parse(cookieValue).panels[route.params.id as string];
-});
-
-onMounted(async () => {
-    await store.dispatch(ActionTypes.fetchTableList);
-    await store.dispatch(ActionTypes.fetchTagList, store.state.gTableList[0]);
-    await store.dispatch(ActionTypes.fetchRangeData, { table: store.state.gTableList[0], tagName: store.state.gTagList[0].name });
 });
 </script>
 

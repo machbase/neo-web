@@ -20,7 +20,7 @@
             </span>
             <span
                 ><span>Alias </span>
-                <input type="text" class="taginput input" :value="aItem.alias" />
+                <input type="text" class="taginput input" :value="aItem.alias" @change="(event) => onChangeAliasName(event, aIndex)" />
             </span>
             <span @click="onRemove(aIndex)"><img :src="i_b_close" alt="Clear icon" /></span>
         </div>
@@ -59,6 +59,10 @@ const onChangeTagName = (aEvent: Event, aIndex: number) => {
     const value = (aEvent.target as HTMLInputElement).value;
     tempTagSets.value[aIndex].tag_names = value;
 };
+const onChangeAliasName = (aEvent: Event, aIndex: number) => {
+    const value = (aEvent.target as HTMLInputElement).value;
+    tempTagSets.value[aIndex].alias = value;
+};
 
 const onOpenPopup = () => {
     sDialog.value = true;
@@ -73,6 +77,7 @@ const onRemove = (aIndex: number) => {
     tempTagSets.value.splice(aIndex, 1);
 };
 const onAdd = () => {
+    if (tempTagSets.value.length === 0) return;
     tempTagSets.value.push(tempTagSets.value[tempTagSets.value?.length - 1]);
 };
 const onSubmitTag = (data: any) => {

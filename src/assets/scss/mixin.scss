@@ -15,6 +15,7 @@ $themes: (
         'bg-vport-chart': $d-bg-vport-chart,
         'border-vport-chart': $d-bd-vport-chart,
         'text-title-tab': $d-text-tab-title,
+        'login-btn': $d-bg-login-btn,
         'bg-tab-content': $d-bg-tab-content ),
     light: ('text-color': $l-text,
         'text-color1': $l-text,
@@ -31,6 +32,7 @@ $themes: (
         'text-vport-chart': $l-text-vport-chart,
         'bg-vport-chart': $l-bg-vport-chart,
         'border-vport-chart': $l-bd-vport-chart,
+        'login-btn': $d-bg-login-btn,
         'text-title-tab': $l-text-tab-title,
         'bg-tab-content': $l-bg-tab-content ),
 );

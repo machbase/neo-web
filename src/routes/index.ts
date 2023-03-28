@@ -5,12 +5,24 @@ import New from '@/pages/new/index.vue';
 import ChartEdit from '@/pages/chart-edit/index.vue';
 import ChartView from '@/pages/chart-view/index.vue';
 import ShareView from '@/pages/share-view/index.vue';
+import Login from '@/pages/login/index.vue';
 import { PageRoutes } from '@/enums/routes';
 import { RouteRecordRaw, createRouter, createWebHistory } from 'vue-router';
 import protectedRoute from '../middlewares/protected';
 import { RouteNames } from './../enums/routes';
 
 const routes: Array<RouteRecordRaw> = [
+    {
+        path: PageRoutes.LOGIN,
+        name: RouteNames.LOGIN,
+        alias: ['/login'],
+        components: {
+            default: Login,
+            Footer,
+        },
+        beforeEnter: protectedRoute,
+    },
+
     {
         path: PageRoutes.TAG_VIEW,
         name: RouteNames.TAG_VIEW,
@@ -55,7 +67,7 @@ const routes: Array<RouteRecordRaw> = [
         beforeEnter: protectedRoute,
     },
     {
-        path: `${PageRoutes.TAG_VIEW}${PageRoutes.VIEW}/:id`,
+        path: `${PageRoutes.TAG_VIEW}${PageRoutes.VIEW}`,
         name: RouteNames.VIEW,
         components: {
             default: ShareView,
@@ -64,10 +76,16 @@ const routes: Array<RouteRecordRaw> = [
         },
         beforeEnter: protectedRoute,
     },
+    {
+        // path: '*',
+        path: '/:catchAll(.*)',
+        redirect: '/',
+        beforeEnter: protectedRoute,
+    },
 ];
 
 const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHistory('/ui'),
     routes,
 });
 

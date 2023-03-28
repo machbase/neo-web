@@ -54,15 +54,12 @@
             />
             <img :src="i_b_refresh" class="icon" @click="onReload" />
             <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW">
-                <router-link
-                    v-if="route.params.id || cBoardListSelect[0]?.id"
-                    :to="{ name: RouteNames.VIEW, params: { id: route.params.id || route.query.id as string || cBoardListSelect[0]?.id } }"
-                    target="_blank"
-                >
+                <router-link :to="{ name: RouteNames.VIEW }" target="_blank">
                     <img :src="i_b_share" class="icon" @click="openNewChartPage" />
                 </router-link>
             </div>
             <img v-if="sHeaderType === RouteNames.CHART_EDIT" class="icon" :src="i_b_save_2" @click="onSaveEdit" />
+            <img :src="i_b_logout" class="icon" @click="logout" />
             <a class="icon"><img v-if="sHeaderType === RouteNames.CHART_EDIT" :src="i_b_close" style="margin-top: 7px" @click="router.go(-1)" /></a>
         </div>
     </div>
@@ -75,6 +72,7 @@ import i_b_close from '@/assets/image/i_b_close.png';
 import i_b_menu_1 from '@/assets/image/i_b_menu_1.png';
 import i_b_refresh from '@/assets/image/i_b_refresh.png';
 import i_b_save_2 from '@/assets/image/i_b_save_2.png';
+import i_b_logout from '@/assets/image/i_b_logout.png';
 import i_b_share from '@/assets/image/i_b_share.png';
 import i_b_timerange from '@/assets/image/i_b_timerange.png';
 import loader_b from '@/assets/image/ajax-loader-b.gif';
@@ -94,6 +92,7 @@ import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SE
 import { BarPanel, BoardInfo, startTimeToendTimeType } from '@/interface/chart';
 import { fetchRollUp } from '@/api/repository/machiot';
 import Joi from 'joi';
+import { logOut } from '../../api/repository/login';
 export type headerType = RouteNames.TAG_VIEW | RouteNames.VIEW | RouteNames.CHART_VIEW | RouteNames.CHART_EDIT | RouteNames.NEW;
 const store = useStore();
 const cTimeRange = computed(() => store.state.gTimeRange);
@@ -119,23 +118,9 @@ const cBoardListSelect = computed(() =>
         };
     })
 );
-const intervalId = setInterval(() => {
-    const cookieData = document.cookie?.split('; ').find((row) => row.startsWith('data='));
-    if (cookieData) {
-        const json = cookieData.split('=')[1];
-        const data = JSON.parse(json);
-        const expiration = cookieData.split(';')[1].split('=')[1];
-        if (new data(expiration) < new Date()) {
-            document.cookie = 'data=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        }
-    } else {
-        clearInterval(intervalId);
-    }
-}, 1000);
 
 const openNewChartPage = () => {
     document.cookie = `data=${JSON.stringify(cBoard.value)}; expires=${new Date(Date.now() + 10000).toUTCString()}`;
-    intervalId;
 };
 
 const schema = Joi.object({
@@ -275,6 +260,17 @@ const validateTest = async (joiSchema: any, testObject: any) => {
         console.error('err', err);
         alert('Incorrect data format');
         return false;
+    }
+};
+
+const logout = async () => {
+    const sLogout = await logOut();
+    if (sLogout.data.success) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        router.push({
+            name: RouteNames.LOGIN,
+        });
     }
 };
 

@@ -59,6 +59,7 @@ const props = defineProps<PopupWrapProps>();
 const emit = defineEmits(['eClosePopup', 'eSubmitTags', 'eSettingPopup']);
 const store = useStore();
 const sDialog = ref<boolean>(false);
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const onClosePopup = () => {
     sDialog.value = false;
@@ -76,9 +77,6 @@ watch(
     }
     // { immediate: true }
 );
-
-// Test
-const cIsDarkMode = computed(() => store.getters.getDarkMode);
 </script>
 
 <style lang="scss" scoped>
