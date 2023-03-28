@@ -7,7 +7,7 @@ import { baseURL } from '../../../env';
 import { reLogin } from '@/api/repository/login';
 // create an axios instance
 const request = axios.create({
-    baseURL: baseURL(),
+    // baseURL: baseURL(),
     // baseURL: import.meta.env.VITE_BASE_URL,
     timeout: 5000, // request timeout
     headers: {
