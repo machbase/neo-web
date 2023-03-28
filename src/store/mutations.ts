@@ -48,12 +48,16 @@ const mutations = {
             range_bgn: aTimeRange.start,
         };
     },
-    [MutationTypes.setTableList](state: RootState, aTableList: { name: string }[]) {
-        const newTable = aTableList.map((aTable) => aTable.name);
+    [MutationTypes.setTableList](state: RootState, aTableList: { columns: string[]; rows: string[]; types: string[] }) {
+        const newTable = aTableList.rows.map((aTable) => {
+            return aTable[0];
+        });
         state.gTableList = newTable;
     },
     [MutationTypes.setTagList](state: RootState, aTagList: any) {
-        state.gTagList = aTagList;
+        state.gTagList = aTagList.rows.map((aItem: string[]) => {
+            return aItem[0];
+        });
     },
     [MutationTypes.setTempNewChartData](state: RootState, aTemp: TempNewChartData) {
         state.gTempNewChartData = aTemp;

@@ -46,7 +46,7 @@ const fetchTablesData = async () => {
 const fetchTags = async (table: string) => {
     return await request({
         method: 'GET',
-        url: `/machiot/tags/list/${table}`,
+        url: `/machbase?q=select name from _${table}_META order by name`,
     });
 };
 const fetchRollUp = async (table: string) => {

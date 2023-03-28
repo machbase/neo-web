@@ -264,8 +264,8 @@ const validateTest = async (joiSchema: any, testObject: any) => {
 };
 
 const logout = async () => {
-    const sLogout = await logOut();
-    if (sLogout.data.success) {
+    const sLogout: any = await logOut();
+    if (sLogout.success) {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         router.push({
