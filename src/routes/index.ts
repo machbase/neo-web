@@ -10,6 +10,7 @@ import { PageRoutes } from '@/enums/routes';
 import { RouteRecordRaw, createRouter, createWebHistory } from 'vue-router';
 import protectedRoute from '../middlewares/protected';
 import { RouteNames } from './../enums/routes';
+import { BasePrefix} from './../api/repository/login'
 
 const routes: Array<RouteRecordRaw> = [
     {
@@ -85,7 +86,7 @@ const routes: Array<RouteRecordRaw> = [
 ];
 
 const router = createRouter({
-    history: createWebHistory('/ui'),
+    history: createWebHistory(BasePrefix+'/ui'),
     routes,
 });
 

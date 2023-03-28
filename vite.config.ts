@@ -16,18 +16,10 @@ export default defineConfig(() => {
         server: {
             proxy: {
                 '/api': {
-                    target: `http://192.168.1.166:5654`,
+                    target: `http://127.0.0.1:5654/web`,
                     changeOrigin: true,
-                    rewrite: (path) => path.replace(/^\/api/, ''),
                     secure: false,
-                    ws: true,
-                },
-                '/ui': {
-                    target: `http://192.168.1.166:5654`,
-                    changeOrigin: true,
-                    rewrite: (path) => path.replace(/^\/ui/, ''),
-                    secure: false,
-                    ws: true,
+                    ws: false,
                 },
             },
         },
@@ -38,7 +30,7 @@ export default defineConfig(() => {
                 target: 'es2020',
             },
         },
-
+        base: './',
         build: {
             target: 'es2020',
         },
