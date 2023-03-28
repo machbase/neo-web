@@ -1,15 +1,11 @@
 <template><highcharts ref="chart" constructor-type="stockChart" :options="cChartOptions"></highcharts></template>
 
 <script lang="ts" setup name="AreaChart">
-import { HighchartsDataset, LineDataset, LinePanel, TagSet } from '@/interface/chart';
+import { HighchartsDataset, LineDataset, LinePanel } from '@/interface/chart';
 import { useStore } from '@/store';
-import { toTimeUtcChart } from '@/utils/utils';
-import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults, defineEmits } from 'vue';
-import { formatColors } from '@/utils/utils';
-import { watchEffect } from 'vue';
-import moment from 'moment';
-import { cloneDeep, isEmpty } from 'lodash';
-import { onMounted } from 'vue';
+import { formatColors, toTimeUtcChart } from '@/utils/utils';
+import { cloneDeep } from 'lodash';
+import { computed, defineEmits, defineExpose, defineProps, onMounted, reactive, ref, withDefaults } from 'vue';
 interface BarChartContainerProps {
     chartData: LineDataset;
     viewData: LineDataset;
@@ -27,7 +23,7 @@ interface BarChartContainerProps {
 const props = withDefaults(defineProps<BarChartContainerProps>(), {});
 const store = useStore();
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
-const emit = defineEmits(['eOnChange', 'eOnChangeIsZoom', 'eOnChangeRaw', 'eOnClick']);
+const emit = defineEmits(['eOnChange', 'eOnChangeIsZoom', 'eOnChangeRaw', 'eOnClick', 'eOnChangeNavigator', 'eResetSquare']);
 
 const data = reactive({
     sIsTag: true as boolean,
@@ -53,26 +49,19 @@ const cChartOptions = computed(() => {
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
             lineWidth: 1,
             events: {
-                click: function (event) {
+                click: function (event: any) {
                     emit('eOnChangeIsZoom');
                     if (props.panelInfo.use_detail === 0) return false;
-                    const chart = this;
+                    const chart = this as any;
                     var point = chart.xAxis[0].toValue(event.clientX - chart.plotLeft);
                     emit('eOnClick', {
                         min: point,
                         max: point + 1000,
                     });
                 },
-                render() {},
             },
-            // margin: [0, 40, 100, 40],
-            // spacingTop: 50,
         },
-        // data Chart
         series: props.chartData.datasets,
-        // data
-        // data: {},
-        // option chart
         plotOptions: {
             series: {
                 showInNavigator: false,
@@ -92,7 +81,7 @@ const cChartOptions = computed(() => {
                 },
                 point: {
                     events: {
-                        click: function (event) {
+                        click: function (event: any) {
                             emit('eOnChangeIsZoom');
                             if (props.panelInfo.use_detail === 0) return false;
                             emit('eOnClick', {
@@ -104,7 +93,6 @@ const cChartOptions = computed(() => {
                 },
             },
         },
-        // view point
         scrollbar: {
             liveRedraw: false,
             enabled: false,
@@ -112,15 +100,13 @@ const cChartOptions = computed(() => {
         rangeSelector: {
             buttons: [],
             allButtonsEnabled: false,
-            inputEnabled: false,
             selected: 1,
+            inputEnabled: false,
         },
-        // view point navigator
         navigator: {
             enabled: props.pIsZoom,
             adaptToUpdatedData: false,
             handles: {
-                // width: 0.5,
                 opacity: 0,
                 height: 26,
             },
@@ -129,7 +115,6 @@ const cChartOptions = computed(() => {
                 toTimeUtcChart(props.xAxisMinRange as string) - toTimeUtcChart(props.xAxisMaxRange as string) > props.panelInfo.raw_chart_threshold
                     ? '#2D2E57'
                     : 'rgba(119, 119, 119, .3)',
-            // series: data.sViewPortSeriesData,
             series: props.viewData.datasets
                 ? props.viewData.datasets.map((i) => {
                       return {
@@ -139,7 +124,7 @@ const cChartOptions = computed(() => {
                   })
                 : [],
             outlineWidth: 1,
-            // outlineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+            outlineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             xAxis: {
                 left: 28,
                 width: data.sChartWidth - 28,
@@ -154,6 +139,9 @@ const cChartOptions = computed(() => {
                     },
                     y: 20,
                 },
+                events: {
+                    setExtremes: setExtremesNavigator,
+                },
                 gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             },
             yAxis: {
@@ -162,7 +150,6 @@ const cChartOptions = computed(() => {
             },
             margin: props.pIsZoom ? 65 : 0,
         },
-        //  Time chart
         xAxis: {
             zoomEnabled: props.panelInfo.use_zoom === 'Y',
             type: 'datetime',
@@ -170,6 +157,7 @@ const cChartOptions = computed(() => {
             gridLineWidth: props.panelInfo.show_x_tickline === 'Y' ? 1 : 0,
             gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
+            minTickInterval: 1,
             labels: {
                 align: 'center',
                 style: {
@@ -182,7 +170,7 @@ const cChartOptions = computed(() => {
             min: toTimeUtcChart(props.xAxisMinRange as string),
             max: toTimeUtcChart(props.xAxisMaxRange as string),
             events: {
-                setExtremes: afterSetExtremes,
+                setExtremes: setExtremes,
             },
             crosshair: {
                 snap: false,
@@ -191,13 +179,9 @@ const cChartOptions = computed(() => {
             },
             tickColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
         },
-        // Value chart
         yAxis: [
             {
-                // top: 0,
-                // tickInterval: updateYaxis().left[0],
-                reversed: props.panelInfo.use_normalize === 'Y',
-
+                // reversed: props.panelInfo.use_normalize === 'Y',
                 tickAmount: updateYaxis().left[0] === updateYaxis().left[1] && 1,
                 tickPositions: updateYaxis().left[0] === updateYaxis().left[1] && [updateYaxis().left[0]],
                 min: !props.pIsRaw
@@ -222,9 +206,8 @@ const cChartOptions = computed(() => {
                         ? 100
                         : updateYaxis().left[1]
                     : props.panelInfo.custom_drilldown_max2,
-                // tickInterval: 100,
                 showLastLabel: props.panelInfo.use_normalize === 'N',
-                // max: data.sMasterSeriesData[index].data.length > 0 ? getMaxValue(data.sMasterSeriesData[index]?.data) : null,
+                minTickInterval: 1,
                 gridLineWidth: props.panelInfo.show_y_tickline === 'Y' ? 1 : 0,
                 gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
                 lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
@@ -242,17 +225,13 @@ const cChartOptions = computed(() => {
                 opposite: false,
             },
             {
-                // top: 0,
-                // tickInterval: 2,
-                reversed: props.panelInfo.use_normalize === 'Y',
-
+                // reversed: props.panelInfo.use_normalize === 'Y',
                 tickAmount: updateYaxis().right[0] === updateYaxis().right[1] && 1,
                 tickPositions: updateYaxis().right[0] === updateYaxis().right[1] && [updateYaxis().right[0]],
                 min: props.panelInfo.custom_min2 === 0 ? (props.panelInfo.use_normalize === 'Y' ? 0 : updateYaxis().right[0]) : props.panelInfo.custom_min2,
                 max: props.panelInfo.custom_max2 === 0 ? (props.panelInfo.use_normalize === 'Y' ? 100 : updateYaxis().right[1]) : props.panelInfo.custom_max2,
-                // tickInterval: 100,
+                minTickInterval: 1,
                 showLastLabel: props.panelInfo.use_normalize === 'N',
-                // max: data.sMasterSeriesData[index].data.length > 0 ? getMaxValue(data.sMasterSeriesData[index]?.data) : null,
                 gridLineWidth: 1,
                 gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
                 lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
@@ -270,7 +249,6 @@ const cChartOptions = computed(() => {
                 opposite: props.panelInfo.use_right_y2 === 'Y',
             },
         ],
-        // Info tag chart
         tooltip: {
             valueDecimals: 2,
             split: false,
@@ -287,14 +265,11 @@ const cChartOptions = computed(() => {
                 '<p style="color: {series.color}">{point.y}</p></div>',
             footerFormat: '</div>',
         },
-        // list tag
         legend: {
             enabled: props.panelInfo.show_legend === 'B',
             align: 'left',
             itemDistance: 15,
             squareSymbol: false,
-            // symbolHeight: 5,
-            // symbolWidth: 10,
             symbolRadius: 1,
             itemHoverStyle: {
                 color: '#23527c',
@@ -310,9 +285,7 @@ const cChartOptions = computed(() => {
                 'text-decoration': 'none',
             },
             margin: 30,
-            // x: 20,
         },
-        // No data
         lang: {
             noData: 'No data',
         },
@@ -325,25 +298,41 @@ const cChartOptions = computed(() => {
                 fontWeight: 'normal',
             },
         },
-        // show link web
         credits: {
             enabled: false,
         },
     };
 });
 
-function afterSetExtremes(e) {
+// call when change select box in navigator
+function setExtremes(e: any) {
     const status = e.min - e.max > props.panelInfo.raw_chart_threshold;
+    const rangeChart = e.max - e.min;
+    const rangeNavigator =
+        toTimeUtcChart(props.xMaxTimeRangeViewPort) -
+        (toTimeUtcChart(props.xMinTimeRangeViewPort) - (toTimeUtcChart(props.xMaxTimeRangeViewPort) - toTimeUtcChart(props.xMinTimeRangeViewPort)) * -0.97);
+    if (!status && rangeChart - rangeNavigator < 0) {
+        emit('eResetSquare', { min: e.min, max: e.max });
+        return;
+    }
     emit('eOnChangeIsZoom');
-    const { chart } = e.target;
     data.sTimeChartXaxis.min = e.min;
     data.sTimeChartXaxis.max = e.max;
     emit('eOnChange', data.sTimeChartXaxis, status);
     emit('eOnChangeRaw', status);
 }
+// call when change navigator
+function setExtremesNavigator(e: any) {
+    emit('eOnChangeNavigator', { min: e.min, max: e.max });
+}
 
+// Update location for select box in navigator
 const updateMinMaxChart = (start: any, end: any) => {
-    return chart.value.chart.xAxis[0].setExtremes(moment.utc(start).valueOf(), moment.utc(end).valueOf());
+    return chart.value.chart.xAxis[0].setExtremes(toTimeUtcChart(start), toTimeUtcChart(end));
+};
+// Update time range for navigator
+const updateMinMaxNavigator = (start: any, end: any) => {
+    return chart.value.chart.navigator.xAxis.setExtremes(start, toTimeUtcChart(end));
 };
 
 const getMaxValue = (array: number[][]) => {
@@ -394,19 +383,16 @@ const updateYaxis = () => {
 onMounted(() => {
     data.sChartWidth = chart.value.chart.plotWidth;
 });
+
 defineExpose({
     chart,
     updateMinMaxChart,
+    updateMinMaxNavigator,
 });
 </script>
 
 <style lang="scss">
-/* @import 'index.scss'; */
 :deep(.highcharts-legend.highcharts-no-tooltip) {
     display: v-bind("props.panelInfo.show_legend === 'B'? '': 'none'");
 }
-/* .chart-wrap {
-    border: 1px solid !important ;
-    border-color: v-bind("props.panelInfo.border_color === ''? 'red': 'blue'");
-} */
 </style>

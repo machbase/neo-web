@@ -26,7 +26,7 @@ import DatePicker from '@/components/common/date-picker/index.vue';
 import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
 import TimeRange, { TimeRangeInput } from '@/components/common/date-list/date-time-range.vue';
 import { computed, defineEmits, reactive, ref, onMounted, defineProps } from 'vue';
-import { formatDate } from '@/utils/utils';
+import { formatDate, toDateUtcChart } from '@/utils/utils';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { TimeLineType } from '@/interface/date';

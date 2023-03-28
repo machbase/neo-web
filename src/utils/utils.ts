@@ -76,7 +76,7 @@ function splitTimeDuration(aTime: string) {
     return sRet;
 }
 
-function toTimeUtcChart(date: string | number) {
+function toTimeUtcChart(date: string | number): number {
     if (typeof date === 'string') {
         const newDate = date.split(' ');
         const newFormat: string[] = newDate.join(' ').replace(/-|:|T/gi, ' ').split(' ');
@@ -84,6 +84,9 @@ function toTimeUtcChart(date: string | number) {
     } else {
         return date;
     }
+}
+function toDateUtcChart(date: number) {
+    return moment.utc(date).format(FORMAT_FULL_DATE)
 }
 
 function formatColors(colors: string) {
@@ -157,4 +160,4 @@ const getPaginationPages = (items: any, pageSize: number): any => {
     }
     return paginationItems;
 };
-export { utils, splitTimeDuration, formatDate, toTimeUtcChart, formatColors, convertChartDefault, convertChartType, convertTagChartType, getPaginationPages };
+export { utils, splitTimeDuration, formatDate, toTimeUtcChart, formatColors, convertChartDefault, convertChartType, convertTagChartType, getPaginationPages, toDateUtcChart };

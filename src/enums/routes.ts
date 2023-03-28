@@ -4,6 +4,7 @@ export enum PageRoutes {
     TAG_VIEW = '/tag-view',
     NEW = '/new',
     CHART_VIEW = '/chart-view',
+    LOGIN = '/login',
 }
 
 export enum RouteNames {
@@ -12,4 +13,5 @@ export enum RouteNames {
     TAG_VIEW = 'tag-view',
     NEW = 'new',
     CHART_VIEW = 'chart-view',
+    LOGIN = 'login',
 }

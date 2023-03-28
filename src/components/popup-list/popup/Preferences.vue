@@ -39,6 +39,7 @@ import { ActionTypes } from '@/store/actions';
 import { THEME_MODE } from '@/utils/constants';
 import { computed, reactive, defineEmits } from 'vue';
 import { DEFAULT_PREFERENCE, NOT_YET, SELECT_THEME } from './constant';
+import { isEqual } from 'lodash';
 
 const cPreferences = computed(() => store.state.gPreference);
 const emit = defineEmits(['eClosePopup']);
@@ -69,6 +70,10 @@ const onChangeInput = (aEvent: Event) => {
 };
 const onSetting = () => {
     store.dispatch(ActionTypes.postPreference, sData).then(() => onClosePopup());
+    if (isEqual(store.state.gPreference, JSON.parse(localStorage.getItem('gPreference') || ''))) {
+        return;
+    }
+    location.reload();
     localStorage.setItem('gPreference', JSON.stringify(sData));
 };
 const onClosePopup = () => {
