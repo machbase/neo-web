@@ -3,6 +3,7 @@ import { ResBoardList, ResPreferences, TimeRange, BoardPanelEdit } from '@/inter
 import { RootState } from './state';
 import { BoardInfo, PanelInfo, RangeData } from '@/interface/chart';
 import { cloneDeep, isEmpty } from 'lodash';
+import moment from 'moment';
 
 enum MutationTypes {
     /* Global */
@@ -79,8 +80,14 @@ const mutations = {
             ...aTemp,
         };
     },
-    [MutationTypes.setRangeData](state: RootState, aRangeData: RangeData) {
-        state.gRangeData = aRangeData;
+    [MutationTypes.setRangeData](state: RootState, aRangeData: any) {
+        if (aRangeData) {
+            const sRangeData = {
+                max: aRangeData.rows[0][1],
+                min: aRangeData.rows[0][0],
+            };
+            state.gRangeData = sRangeData;
+        }
     },
     [MutationTypes.setTable](state: RootState, aTable: any) {
         state.gTable = aTable;

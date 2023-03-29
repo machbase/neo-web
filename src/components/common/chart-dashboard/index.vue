@@ -35,7 +35,7 @@ const gBoard = computed(() => store.state.gBoard);
 
 watchEffect(
     // () => gBoard.value.panels,
-    (newValue) => {
+    (newValue: any) => {
         if (!newValue) return;
         data.sPanels = gBoard.value.panels
             ? (gBoard.value.panels.map((v: any, i: number) => {

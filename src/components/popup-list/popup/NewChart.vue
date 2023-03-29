@@ -10,7 +10,7 @@
             <div class="col-sm-6 newchart-left">
                 <div class="tagtitle floatleft">Tag</div>
                 <div class="search-wrapper">
-                    <input v-model="searchText" type="text" class="form-control taginput input" style="width: 180px" />
+                    <input v-model="searchText" type="text" class="form-control taginput input" style="width: 180px" @keydown.enter="onSearch" />
                     <span class="input clear-icon" @click="onReset"><img :src="i_b_close" alt="Clear icon" /></span>
                     <v-btn class="button-effect-color" variant="outlined" :height="30" @click="onSearch">Search</v-btn>
                 </div>
@@ -116,7 +116,7 @@ const onSearch = () => {
             sRegExp = sSplit.length > 2 ? new RegExp(sSplit[1], sSplit[2]) : new RegExp(sSplit[1]);
         }
         cTagsSearch.value = cTags.value.filter(function (aVal: any) {
-            return aVal['name'].search(sRegExp) != -1;
+            return aVal.search(sRegExp) != -1;
         });
     }
 };
@@ -127,8 +127,6 @@ const onSelectChart = (data: ChartType) => {
     chartType.value = data;
 };
 const onSelectTag = (data: string) => {
-    console.log(data);
-    console.log(tableSelected);
     selectCount.value++;
     sSelectedTags.push({ tag_names: data, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0 });
 };

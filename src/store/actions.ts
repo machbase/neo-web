@@ -92,24 +92,28 @@ const actions = {
     },
     async [ActionTypes.fetchRangeData](context: MyActionContext, payload: { table: string; tagName: string }) {
         const res: any = await fetchRangeData(payload.table, payload.tagName);
-        context.commit(MutationTypes.setRangeData, res.data[0]);
+        context.commit(MutationTypes.setRangeData, res.data);
     },
 
     //
     async [ActionTypes.fetchTagData](context: MyActionContext, aParams: FetchTagDataArg) {
         const res = aParams.CalculationMode === 'raw' ? ((await fetchRawData(aParams)) as any) : ((await fetchCalculationData(aParams)) as any);
-        if (res.error_code === 0) {
-            return res.data;
+        if (res.success) {
+            return res.data.rows.map((aItem: any) => {
+                return aParams.CalculationMode ? { time: aItem[0], avg: aItem[1] } : { TIME: aItem[0], VALUE: aItem[1] };
+            });
         } else {
-            return res.error_message;
+            return res.reason;
         }
     },
     async [ActionTypes.fetchTagDataRaw](context: MyActionContext, aParams: FetchTagDataArg) {
         const res = (await fetchRawData(aParams)) as any;
-        if (res.error_code === 0) {
-            return res.data;
+        if (res.success) {
+            return res.data.rows.map((aItem: any) => {
+                return { TIME: aItem[0], VALUE: aItem[1] };
+            });
         } else {
-            return res.error_message;
+            return res.reason;
         }
     },
 };

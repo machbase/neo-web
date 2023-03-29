@@ -16,13 +16,13 @@ export default defineConfig(() => {
         server: {
             proxy: {
                 '/api': {
-                    target: `http://192.168.1.166:5654/web`,
+                    target: `http://127.0.0.1:5654/web`,
                     changeOrigin: true,
                     secure: false,
                     ws: false,
                 },
                 '/machbase': {
-                    target: `http://192.168.1.166:5654/web`,
+                    target: `http://127.0.0.1:5654/web`,
                     changeOrigin: true,
                     secure: false,
                     ws: false,
