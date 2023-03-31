@@ -76,17 +76,38 @@ function splitTimeDuration(aTime: string) {
     return sRet;
 }
 
-function toTimeUtcChart(date: string | number): number {
+function toTimeUtcChart(date: string | number, a?: any): number {
     if (typeof date === 'string') {
         const newDate = date.split(' ');
+
         const newFormat: string[] = newDate.join(' ').replace(/-|:|T/gi, ' ').split(' ');
         return Date.UTC(Number(newFormat[0]), Number(newFormat[1]) - 1, Number(newFormat[2]), Number(newFormat[3]), Number(newFormat[4]), Number(newFormat[5]));
     } else {
         return date;
     }
 }
+
+function makeNanoTime(aDate: number, aForm: string) {
+    if (String(aDate).length >= 13) {
+        return Number(Math.floor(aDate / 1000) + String(aForm).split(' ')[2].replaceAll(':', ''));
+    } else {
+        return aDate;
+    }
+}
+
+function makeMilliTime(aTime: number | string) {
+    if (typeof aTime === 'string') return aTime;
+    if (String(aTime).length === 19) {
+        return Number(Math.floor(aTime / 1000000));
+    } else if (String(aTime).length === 16) {
+        return Number(Math.floor(aTime / 1000000) * 1000);
+    } else {
+        return aTime;
+    }
+}
+
 function toDateUtcChart(date: number) {
-    return moment.utc(date).format(FORMAT_FULL_DATE)
+    return moment.utc(date).format(FORMAT_FULL_DATE);
 }
 
 function formatColors(colors: string) {
@@ -160,4 +181,17 @@ const getPaginationPages = (items: any, pageSize: number): any => {
     }
     return paginationItems;
 };
-export { utils, splitTimeDuration, formatDate, toTimeUtcChart, formatColors, convertChartDefault, convertChartType, convertTagChartType, getPaginationPages, toDateUtcChart };
+export {
+    utils,
+    splitTimeDuration,
+    makeNanoTime,
+    formatDate,
+    toTimeUtcChart,
+    makeMilliTime,
+    formatColors,
+    convertChartDefault,
+    convertChartType,
+    convertTagChartType,
+    getPaginationPages,
+    toDateUtcChart,
+};

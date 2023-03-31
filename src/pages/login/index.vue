@@ -10,7 +10,7 @@
                 <input v-model="sPassword" type="password" placeholder="Password" class="input normal-text" @keydown.enter="login" />
             </div>
             <div class="button-form">
-                <button class="login-button" @click="login">LOGIN</button>
+                <button :class="sLoginName !== '' && sPassword !== '' ? 'no-input' : 'login-button'" @click="login">LOGIN</button>
             </div>
         </div>
         <!-- </div> -->

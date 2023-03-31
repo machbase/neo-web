@@ -1,6 +1,8 @@
-<template><highcharts ref="chart" constructor-type="stockChart" :options="cChartOptions"></highcharts></template>
+<template>
+    <highcharts ref="chart" constructor-type="stockChart" :options="cChartOptions"></highcharts>
+</template>
 
-<script lang="ts" setup name="AreaChart">
+<script lang="ts" setup="setup" name="AreaChart">
 import { HighchartsDataset, LineDataset, LinePanel, TagSet } from '@/interface/chart';
 import { useStore } from '@/store';
 import { toTimeUtcChart } from '@/utils/utils';
@@ -57,14 +59,11 @@ const cChartOptions = computed(() => {
                 },
                 render() {},
             },
-            // margin: [0, 40, 100, 40],
-            // spacingTop: 50,
+            // margin: [0, 40, 100, 40], spacingTop: 50,
         },
         // data Chart
         series: data.sMasterSeriesData,
-        // data
-        // data: {},
-        // option chart
+        // data data: {}, option chart
         plotOptions: {
             series: {
                 lineWidth: props.panelInfo.stroke,
@@ -114,10 +113,7 @@ const cChartOptions = computed(() => {
             maskFill: 'rgba(119, 119, 119, .3)',
             // series: data.sViewPortSeriesData,
             series: data.sViewPortSeriesData.map((i) => {
-                return {
-                    data: i.data,
-                    marker: i.marker,
-                };
+                return { data: i.data, marker: i.marker };
             }),
             outlineWidth: 1,
             // outlineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
@@ -175,7 +171,8 @@ const cChartOptions = computed(() => {
         yAxis: [
             {
                 showLastLabel: true,
-                // max: data.sMasterSeriesData[index].data.length > 0 ? getMaxValue(data.sMasterSeriesData[index]?.data) : null,
+                // max: data.sMasterSeriesData[index].data.length > 0 ?
+                // getMaxValue(data.sMasterSeriesData[index]?.data) : null,
                 gridLineWidth: 1,
                 gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
                 lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
@@ -194,7 +191,8 @@ const cChartOptions = computed(() => {
             },
             {
                 showLastLabel: true,
-                // max: data.sMasterSeriesData[index].data.length > 0 ? getMaxValue(data.sMasterSeriesData[index]?.data) : null,
+                // max: data.sMasterSeriesData[index].data.length > 0 ?
+                // getMaxValue(data.sMasterSeriesData[index]?.data) : null,
                 gridLineWidth: 1,
                 gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
                 lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
@@ -225,8 +223,9 @@ const cChartOptions = computed(() => {
             xDateFormat: '%Y-%m-%d %H:%M:%S.%L',
             headerFormat: `<div style="minWidth:200px;paddingLeft:10px; fontSize:10px"><div style="color: ${cIsDarkMode.value ? '#afb5bc' : '#2a313b'}">{point.key}</div>`,
             pointFormat:
-                '<div style="display: flex; justifyContent: space-between"><p style="color: {series.color}">{series.name} </p>' +
-                '<p style="color: {series.color}">{point.y}</p></div>',
+                '<div style="display: flex; justifyContent: space-between"><p style="color: {se' +
+                'ries.color}">{series.name} </p><p style="color: {series.color}">{point.y}</p><' +
+                '/div>',
             footerFormat: '</div>',
         },
         // list tag
@@ -236,8 +235,7 @@ const cChartOptions = computed(() => {
             align: 'left',
             itemDistance: 15,
             squareSymbol: false,
-            // symbolHeight: 5,
-            // symbolWidth: 10,
+            // symbolHeight: 5, symbolWidth: 10,
             symbolRadius: 1,
             itemHoverStyle: {
                 color: '#23527c',
@@ -298,7 +296,8 @@ const updateYaxis = (aInfo: TagSet[]) => {
     return aInfo.map((i, index) => {
         return {
             showLastLabel: true,
-            // max: data.sMasterSeriesData[index].data.length > 0 ? getMaxValue(data.sMasterSeriesData[index]?.data) : null,
+            // max: data.sMasterSeriesData[index].data.length > 0 ?
+            // getMaxValue(data.sMasterSeriesData[index]?.data) : null,
             gridLineWidth: 1,
             gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
@@ -331,10 +330,7 @@ onMounted(() => {
     data.sChartWidth = chart.value.chart.plotWidth;
 });
 
-defineExpose({
-    chart,
-    updateMinMaxChart,
-});
+defineExpose({ chart, updateMinMaxChart });
 </script>
 
 <style lang="scss">

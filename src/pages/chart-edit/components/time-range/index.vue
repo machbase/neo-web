@@ -37,14 +37,12 @@ const dateStart = ref(props.pChartData.range_bgn);
 const dateEnd = ref(props.pChartData.range_end);
 const refresh = ref(props.pChartData.refresh);
 const changeTimeStart = (data: Date) => {
-    console.log('changeTimeStart', data);
     dateStart.value = formatDate(data);
 };
 const changeRefresh = (data: string) => {
     refresh.value = data;
 };
 const changeTimeEnd = (data: Date) => {
-    console.log('changeTimeEnd', data);
     dateEnd.value = formatDate(data);
 };
 const OnTimeRange = (data: TimeRangeInput) => {

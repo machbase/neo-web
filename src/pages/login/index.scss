@@ -43,7 +43,6 @@
             @include theme() {
                 border: 1px solid theme-get('border-color-input') !important;
                 color: theme-get('border-color-input') !important;                    
-
             }
             border-radius: 4px;
             width: 80%;
@@ -53,11 +52,22 @@
             @include theme(){
                 background-color: theme-get('border-color') !important;
                color: theme-get('login-btn') !important;                    
-               border-color: theme-get('l-border') !important;                    
+               border-color: theme-get('login-btn') !important;                    
             }
         }
+        .no-input {
+            @include theme(){
+                border: 1px solid theme-get('border-color-input') !important;
+                background-color: theme-get('border-color') !important;
+               color: theme-get('login-btn') !important;                    
+               border-color: theme-get('login-btn') !important;                  
+            }
+            border-radius: 4px;
+            width: 80%;
+            padding : 4px 6px
+        }
     }
-
+   
     .input {
         @include theme() {
             border: 1px solid theme-get('border-color-input');
