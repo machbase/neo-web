@@ -83,7 +83,7 @@ onMounted(() => {
         dateStart.value = toDateUtcChart(props.pTimeRange.startTime);
         dateEnd.value = toDateUtcChart(props.pTimeRange.endTime);
     } else {
-        const data: any = store.dispatch(ActionTypes.fetchRangeData, { table: store.state.gTableList[0], tagName: store.state.gTagList[0].name });
+        const data: any = store.dispatch(ActionTypes.fetchRangeData, { table: store.state.gTableList[0], tagName: store.state.gTagList[0] });
         dateStart.value = toDateUtcChart(data.Data[0].min);
         dateEnd.value = toDateUtcChart(data.Data[0].max);
     }

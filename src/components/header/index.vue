@@ -5,7 +5,7 @@
         </div>
         <div class="header__link">
             <img :src="logo" class="icon" />
-            <span class="header__name">{{ cBoard.board_name }}</span>
+            <!-- <span class="header__name">{{ cBoard.board_name }}</span> -->
             <!-- <ComboboxSelect
                 v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
                 :p-data="cBoardListSelect"
@@ -22,8 +22,8 @@
                         <div class="item" @click="onRollUp">{{ REQUEST_ROLLUP }}</div>
                     </div>
                 </div>
-                <img :src="i_b_menu_1" class="icon" />
-                <div class="header__link--group-item">{{ LOGOUT }}</div>
+                <!-- <img :src="i_b_menu_1" class="icon" /> -->
+                <!-- <div class="header__link--group-item">{{ LOGOUT }}</div> -->
             </div>
         </div>
         <div class="header__tool">
@@ -53,13 +53,13 @@
                 @click="onClickPopupItem(PopupType.TIME_RANGE)"
             />
             <img :src="i_b_refresh" class="icon" @click="onReload" />
-            <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW">
+            <!-- <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW">
                 <router-link :to="{ name: RouteNames.VIEW }" target="_blank">
                     <img :src="i_b_share" class="icon" @click="openNewChartPage" />
                 </router-link>
-            </div>
+            </div> -->
             <img v-if="sHeaderType === RouteNames.CHART_EDIT" class="icon" :src="i_b_save_2" @click="onSaveEdit" />
-            <img :src="i_b_logout" class="icon" @click="logout" />
+            <img v-if="sHeaderType === RouteNames.TAG_VIEW" :src="i_b_logout" class="icon" @click="logout" />
             <a class="icon"><img v-if="sHeaderType === RouteNames.CHART_EDIT" :src="i_b_close" style="margin-top: 7px" @click="router.go(-1)" /></a>
         </div>
     </div>
