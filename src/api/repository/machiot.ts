@@ -8,14 +8,25 @@ const fetchCalculationData = async (params: any) => {
     const sValue = 'Value';
     let sSubQuery = '';
     let sMainQuery = '';
+    let sTimeCalc = '';
+    let sOnedayOversize = '';
+
+    if (IntervalType == 'day' && IntervalValue > 1) {
+        sTimeCalc = '1hour';
+
+        sOnedayOversize = `to_char(mTime / ${IntervalValue * 60 * 60 * 24 * 1000000000}  * ${IntervalValue * 60 * 60 * 24 * 1000000000})`;
+    } else {
+        sTimeCalc = IntervalValue + IntervalType;
+        sOnedayOversize = 'to_char(mTime)';
+    }
 
     if (CalculationMode === 'sum' || CalculationMode === 'min' || CalculationMode === 'max') {
-        sSubQuery = `select to_char(${sTime} rollup ${IntervalValue}${IntervalType}) as mTime, ${CalculationMode}(${sValue}) as mValue from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between to_date('${Start}') and to_date('${End}') group by mTime`;
-        sMainQuery = `select mTime as time, ${CalculationMode}(mvalue) as value from (${sSubQuery}) Group by ${sTime} order by ${sTime}  LIMIT ${Count * 1}`;
+        sSubQuery = `select ${sTime} rollup ${sTimeCalc} as mTime, ${CalculationMode}(${sValue}) as mValue from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between to_date('${Start}') and to_date('${End}') group by mTime`;
+        sMainQuery = `select ${sOnedayOversize} as time, ${CalculationMode}(mvalue) as value from (${sSubQuery}) Group by ${sTime} order by ${sTime}  LIMIT ${Count * 1}`;
     }
     if (CalculationMode === 'avg') {
-        sSubQuery = `select to_char(${sTime} rollup ${IntervalValue}${IntervalType}) as mtime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between to_date('${Start}') and to_date('${End}') group by mTime`;
-        sMainQuery = `SELECT MTIME AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by ${sTime} order by ${sTime} LIMIT ${Count * 1}`;
+        sSubQuery = `select ${sTime} rollup ${sTimeCalc} as mtime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between to_date('${Start}') and to_date('${End}') group by mTime`;
+        sMainQuery = `SELECT ${sOnedayOversize} AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by ${sTime} order by ${sTime} LIMIT ${Count * 1}`;
     }
 
     if (CalculationMode === 'cnt') {
@@ -82,11 +93,12 @@ const fetchCalculationData = async (params: any) => {
     // if (Count > 0) {
     //     sQuery = sQuery + ' LIMIT ' + String(Count * sMultiTagCount);
     // }
+
     const queryString = `/machbase?q=${sMainQuery}`;
 
     return await request({
         method: 'GET',
-        url: queryString,
+        url: encodeURI(queryString),
     });
 };
 
