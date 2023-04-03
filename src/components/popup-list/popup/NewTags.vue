@@ -19,7 +19,7 @@
                     <div>Select : {{ selectCount }}</div>
                 </div>
                 <div class="taglistdiv taglistscroll">
-                    <div v-for="(aTime, aIndex) in tagsPaged[pageIndex]" :key="aIndex" style="margin-bottom: 5px" class="text" @click="onSelectTag(aTime)">{{ aTime.name }}</div>
+                    <div v-for="(aTime, aIndex) in tagsPaged[pageIndex]" :key="aIndex" style="margin-bottom: 5px" class="text" @click="onSelectTag(aTime)">{{ aTime }}</div>
                 </div>
                 <Pagination :total="Math.ceil(cTags.length / MAX_TAG_COUNT)" @e-on-change="onPaging" />
             </div>
@@ -123,7 +123,7 @@ const onReset = () => {
 };
 const onSelectTag = (data: { name: string }) => {
     selectCount.value++;
-    sSelectedTags.push({ tag_names: data.name, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0, use_y2: 'N', max: 0, min: 0 });
+    sSelectedTags.push({ tag_names: data, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0, use_y2: 'N', max: 0, min: 0 });
 };
 const onRemoveTag = (index: number) => {
     selectCount.value--;

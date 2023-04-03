@@ -21,8 +21,8 @@ export default defineConfig(() => {
                     secure: false,
                     ws: false,
                 },
-                '/machbase': {
-                    target: `http://127.0.0.1:5654/web`,
+                '/web/machbase': {
+                    target: `http://127.0.0.1:5654/`,
                     changeOrigin: true,
                     secure: false,
                     ws: false,
