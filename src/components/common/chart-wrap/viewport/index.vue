@@ -30,7 +30,6 @@
             <div class="view-port__header--events">
                 <div class="button" @click="onChangeEmit(0)">STAT</div>
                 <div class="button" @click="onChangeEmit(1)">RAW</div>
-                <div class="button" @click="onChangeEmit(2)">FAST</div>
                 <div class="date-picker button" @click="onOpenPopup(true)">{{ toDateUtcChart(sDateRight) }}</div>
             </div>
         </div>
