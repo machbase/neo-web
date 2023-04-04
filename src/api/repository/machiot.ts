@@ -1,11 +1,27 @@
 import request from '@/api/core';
 
+const fetchTableName = async (aTable: any) => {
+    let DBName = '';
+    if (aTable.indexOf('.') === -1) DBName = String(-1);
+    else DBName = `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = 'MOUNTDB')`;
+    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MC.DATABASE_ID = ${DBName} AND MT.NAME = '${aTable}' AND MC.NAME <> '_RID' ORDER BY MC.ID`;
+
+    const queryString = `/machbase?q=${sSql}`;
+
+    return await request({
+        method: 'GET',
+        url: encodeURI(queryString),
+    });
+};
+
 const fetchCalculationData = async (params: any) => {
     const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue } = params;
 
-    const sTime = 'Time';
-    const sName = 'Name';
-    const sValue = 'Value';
+    const sTableName: any = await fetchTableName(Table);
+
+    const sName = sTableName.data.rows[0][0];
+    const sTime = sTableName.data.rows[1][0];
+    const sValue = sTableName.data.rows[2][0];
     let sSubQuery = '';
     let sMainQuery = '';
     let sTimeCalc = '';
