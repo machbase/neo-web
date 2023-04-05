@@ -1,9 +1,9 @@
-name: build ci
+name: CI-Release
 
 on:
   push:
-    branches:
-      - 'main'
+    tags:
+      - v*
 
 jobs:
   upload:
@@ -18,10 +18,10 @@ jobs:
         uses: actions/checkout@master
 
       - run: npm install
-      - run: npm run build --if-present
-      - uses: vimtor/action-zip@v1
+      - run: npm run build
+      - uses: vimtor/action-zip@v1.1
         with:
-            files: dist/ui/
+            files: dist/
             recursive: true
             dest: web-ui.zip
 

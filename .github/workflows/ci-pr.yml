@@ -1,0 +1,20 @@
+name: CI-PR
+
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+            node-version: 16.x
+
+      - name: Checkout
+        uses: actions/checkout@master
+
+      - run: npm install
+      - run: npm run build --if-present
