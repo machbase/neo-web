@@ -51,16 +51,16 @@ const cChartOptions = computed(() => {
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
             lineWidth: 1,
             events: {
-                click: function (event: any) {
-                    emit('eOnChangeIsZoom');
-                    if (props.panelInfo.use_detail === 0) return false;
-                    const chart = this as any;
-                    var point = chart.xAxis[0].toValue(event.clientX - chart.plotLeft);
-                    emit('eOnClick', {
-                        min: point,
-                        max: point + 1000,
-                    });
-                },
+                // click: function (event: any) {
+                //     emit('eOnChangeIsZoom');
+                //     if (props.panelInfo.use_detail === 0) return false;
+                //     const chart = this as any;
+                //     var point = chart.xAxis[0].toValue(event.clientX - chart.plotLeft);
+                //     emit('eOnClick', {
+                //         min: point,
+                //         max: point + 1000,
+                //     });
+                // },
             },
         },
         series: props.chartData.datasets,
