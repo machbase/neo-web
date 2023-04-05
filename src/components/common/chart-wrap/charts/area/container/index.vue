@@ -319,9 +319,11 @@ function setExtremes(e: any) {
     //     });
     //     return;
     // }
+
     emit('eOnChangeIsZoom');
     let sizeStatus;
-    if (data.sTimeChartXaxis.min < e.min) sizeStatus = true;
+
+    if (data.sTimeChartXaxis.max - data.sTimeChartXaxis.min >= e.max - e.min) sizeStatus = true;
     else sizeStatus = false;
     data.sTimeChartXaxis.min = e.min;
     data.sTimeChartXaxis.max = e.max;
