@@ -111,6 +111,7 @@ const cChartOptions = computed(() => {
             handles: {
                 opacity: 0,
                 height: 26,
+                width: 7,
             },
             height: 26,
             maskFill:
@@ -261,7 +262,7 @@ const cChartOptions = computed(() => {
             headerFormat: `<div style="minWidth:200px;paddingLeft:10px; fontSize:10px"><div style="color: ${cIsDarkMode.value ? '#afb5bc' : '#2a313b'}">{point.key}</div>`,
             pointFormat:
                 '<div style="display: flex; justifyContent: space-between"><p style="color: {se' +
-                'ries.color}">{series.name} </p><p style="color: {series.color}">{point.y}</p><' +
+                `ries.color}">{series.name} </p><p style="color: {series.color}">{point.y}</p><` +
                 '/div>',
             footerFormat: '</div>',
         },
@@ -319,10 +320,14 @@ function setExtremes(e: any) {
     //     return;
     // }
     emit('eOnChangeIsZoom');
+    let sizeStatus;
+    if (data.sTimeChartXaxis.min < e.min) sizeStatus = true;
+    else sizeStatus = false;
     data.sTimeChartXaxis.min = e.min;
     data.sTimeChartXaxis.max = e.max;
-    emit('eOnChange', data.sTimeChartXaxis, status);
-    emit('eOnChangeRaw', status);
+
+    emit('eOnChange', data.sTimeChartXaxis, props.pIsRaw ? (sizeStatus ? true : status) : status);
+    emit('eOnChangeRaw', props.pIsRaw ? (sizeStatus ? true : status) : status);
 }
 // call when change navigator
 function setExtremesNavigator(e: any) {

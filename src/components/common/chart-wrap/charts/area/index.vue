@@ -34,6 +34,7 @@
         />
         <ViewPort
             :range-time="data.sTimeRangeViewPort"
+            :p-is-raw="data.sIsRaw"
             :panel-info="props.panelInfo"
             :p-is-zoom="sIsZoom"
             @eOnChange="onChangeTimeRange"
@@ -57,7 +58,7 @@ import { BarPanel, HighchartsDataset, LineDataset, LinePanel, startTimeToendTime
 import { TimeLineType } from '@/interface/date';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
-import { toDateUtcChart, toTimeUtcChart } from '@/utils/utils';
+import { toDateUtcChart, toTimeUtcChart, rawtoTimeUtcChart } from '@/utils/utils';
 import { computed, defineProps, onMounted, reactive, ref, watch, withDefaults } from 'vue';
 import AreaChart from './container/index.vue';
 
@@ -234,7 +235,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
             sIsZoom.value = false;
         } else {
             await sDatasets.push({
-                name: sTagSetElement.alias || `${sTagSetElement.tag_names}(${sTagSetElement.calculation_mode.toLowerCase()})`,
+                name: sTagSetElement.alias || `${sTagSetElement.tag_names}(${data.sIsRaw ? 'raw' : sTagSetElement.calculation_mode.toLowerCase()})`,
                 data:
                     sFetchResult.length > 0
                         ? sFetchResult.map((aItem: any) => {
@@ -288,7 +289,7 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
             alert(sFetchResult);
         } else {
             await sDatasets.push({
-                name: sTagSetElement.alias || `${sTagSetElement.tag_names}(${sTagSetElement.calculation_mode.toLowerCase()})`,
+                name: sTagSetElement.alias || `${sTagSetElement.tag_names}(${data.sIsRaw ? 'raw' : sTagSetElement.calculation_mode.toLowerCase()})`,
                 data:
                     sFetchResult.length > 0
                         ? sFetchResult.map((aItem: any) => {
@@ -343,12 +344,12 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
         if (typeof sFetchResult === 'string') {
             alert(sFetchResult);
         } else {
-            await sDatasets.push({
-                name: sTagSetElement.alias || `${sTagSetElement.tag_names}(${sTagSetElement.calculation_mode.toLowerCase()})`,
+            sDatasets.push({
+                name: sTagSetElement.alias || `${sTagSetElement.tag_names}(raw)`,
                 data:
                     sFetchResult.length > 0
                         ? sFetchResult.map((aItem: any) => {
-                              return [props.panelInfo.drilldown_zoom === 'N' ? toTimeUtcChart(cTimeRange.value.min) : toTimeUtcChart(aItem.TIME), aItem.VALUE];
+                              return [props.panelInfo.drilldown_zoom === 'N' ? rawtoTimeUtcChart(cTimeRange.value.min) : rawtoTimeUtcChart(aItem.TIME), aItem.VALUE];
                           })
                         : [],
                 yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
@@ -356,7 +357,20 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
             });
         }
     }
-    data.sDisplayData = await { datasets: sDatasets };
+
+    // console.log(sLimit);
+    // console.log(sDatasets);
+
+    // const sMaxLengthList = sDatasets.map((aItem, aIdx) => {
+    //     if (sLimit === aItem.data.length) {
+    //         return aIdx;
+    //     }
+    // });
+    // if (typeof sMaxLengthList === `number`) {
+    //     data.sTimeLine = { startTime: sDatasets[sMaxLengthList].data[0][0], endTime: sDatasets[sMaxLengthList].data[sDatasets[sMaxLengthList].data.length - 1][0] };
+    // }
+
+    data.sDisplayData = { datasets: sDatasets };
     sLoading.value = false;
 };
 
@@ -364,11 +378,11 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPo
     data.sIsLoading = true;
     try {
         if (!aCustomRange && !aViewPortRange) {
-            await fetchViewPortData(props.panelInfo);
             await fetchPanelData(props.panelInfo);
+            await fetchViewPortData(props.panelInfo);
         } else {
-            await fetchViewPortData(props.panelInfo, aViewPortRange);
             await fetchPanelData(props.panelInfo, aCustomRange);
+            await fetchViewPortData(props.panelInfo, aViewPortRange);
         }
     } catch (error) {
         console.log(error);
@@ -404,24 +418,30 @@ const onChangeSRF = async (eValue: any) => {
                 onReload();
                 return;
             }
-            await fetchViewPortData(props.panelInfo, {
+            await fetchPanelData(props.panelInfo, {
                 startTime: data.sTimeLine.startTime,
                 endTime: data.sTimeLine.endTime,
             });
+            data.sIsRaw = false;
             areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
+
             break;
         case 1:
-            await generateRawDataChart(props.panelInfo);
-            await fetchViewPortData(props.panelInfo, {
-                startTime: data.sDisplayData.datasets[0].data[0][0],
-                endTime: data.sDisplayData.datasets[0].data[data.sDisplayData.datasets[0].data.length - 1][0],
+            await generateRawDataChart(props.panelInfo, {
+                startTime: data.sTimeLine.startTime,
+                endTime: data.sTimeLine.endTime,
             });
-            data.sIsRaw = true;
+
+            // await fetchViewPortData(props.panelInfo, {
+            //     startTime: data.sDisplayData.datasets[0].data[0][0],
+            //     endTime: data.sDisplayData.datasets[0].data[data.sDisplayData.datasets[0].data.length - 1][0],
+            // });
             await areaChart.value.chart.chart.xAxis[0].setExtremes(
                 data.sDisplayData.datasets[0].data[0][0],
                 data.sDisplayData.datasets[0].data[data.sDisplayData.datasets[0].data.length - 1][0]
             );
-            data.sIsRaw = false;
+            data.sIsRaw = true;
+            // data.sIsRaw = false;
             break;
         default:
             break;

@@ -28,8 +28,8 @@
                 </div>
             </div>
             <div class="view-port__header--events">
-                <div class="button" @click="onChangeEmit(0)">STAT</div>
-                <div class="button" @click="onChangeEmit(1)">RAW</div>
+                <button :class="props.pIsRaw ? '' : 'font-color'" class="button" @click="onChangeEmit(0)">STAT</button>
+                <button :class="props.pIsRaw ? 'font-color' : ''" class="button" @click="onChangeEmit(1)">RAW</button>
                 <div class="date-picker button" @click="onOpenPopup(true)">{{ toDateUtcChart(sDateRight) }}</div>
             </div>
         </div>
@@ -59,6 +59,7 @@ import { toDateUtcChart, toTimeUtcChart } from '@/utils/utils';
 interface ViewPortProps {
     panelInfo: LinePanel;
     rangeTime: TimeLineType;
+    pIsRaw: boolean;
     pIsZoom: boolean;
 }
 
@@ -109,4 +110,7 @@ watch(
 
 <style lang="scss" scoped>
 @import 'index.scss';
+.font-color {
+    color: #4050cd !important;
+}
 </style>
