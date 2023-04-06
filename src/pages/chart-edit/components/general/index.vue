@@ -15,7 +15,7 @@
             </div>
         </div>
         <div class="col1">
-            <label for="_cfg_chart_action">Action on click</label>
+            <!-- <label for="_cfg_chart_action">Action on click</label>
             <div class="cfg-input">
                 <ComboboxSelect
                     style="width: 250px"
@@ -35,7 +35,7 @@
                 <div class="cfg-input">
                     <input id="_cfg_chart_row" v-model="detailRows" style="width: 250px" type="text" class="input" />
                 </div>
-            </div>
+            </div> -->
         </div>
         <div class="col2">
             <label for="_cfg_zoom">Zoom</label>

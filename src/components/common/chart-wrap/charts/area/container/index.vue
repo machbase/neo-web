@@ -5,7 +5,7 @@
 <script lang="ts" setup="setup" name="AreaChart">
 import { HighchartsDataset, LineDataset, LinePanel } from '@/interface/chart';
 import { useStore } from '@/store';
-import { formatColors, toTimeUtcChart } from '@/utils/utils';
+import { formatColors, toTimeUtcChart, rawtoTimeUtcChart } from '@/utils/utils';
 import { cloneDeep } from 'lodash';
 import { computed, defineEmits, defineExpose, defineProps, onMounted, reactive, ref, withDefaults } from 'vue';
 interface BarChartContainerProps {
@@ -51,16 +51,16 @@ const cChartOptions = computed(() => {
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
             lineWidth: 1,
             events: {
-                click: function (event: any) {
-                    emit('eOnChangeIsZoom');
-                    if (props.panelInfo.use_detail === 0) return false;
-                    const chart = this as any;
-                    var point = chart.xAxis[0].toValue(event.clientX - chart.plotLeft);
-                    emit('eOnClick', {
-                        min: point,
-                        max: point + 1000,
-                    });
-                },
+                // click: function (event: any) {
+                //     emit('eOnChangeIsZoom');
+                //     if (props.panelInfo.use_detail === 0) return false;
+                //     const chart = this as any;
+                //     var point = chart.xAxis[0].toValue(event.clientX - chart.plotLeft);
+                //     emit('eOnClick', {
+                //         min: point,
+                //         max: point + 1000,
+                //     });
+                // },
             },
         },
         series: props.chartData.datasets,
@@ -111,6 +111,7 @@ const cChartOptions = computed(() => {
             handles: {
                 opacity: 0,
                 height: 26,
+                width: 7,
             },
             height: 26,
             maskFill:
@@ -261,7 +262,7 @@ const cChartOptions = computed(() => {
             headerFormat: `<div style="minWidth:200px;paddingLeft:10px; fontSize:10px"><div style="color: ${cIsDarkMode.value ? '#afb5bc' : '#2a313b'}">{point.key}</div>`,
             pointFormat:
                 '<div style="display: flex; justifyContent: space-between"><p style="color: {se' +
-                'ries.color}">{series.name} </p><p style="color: {series.color}">{point.y}</p><' +
+                `ries.color}">{series.name} </p><p style="color: {series.color}">{point.y}</p><` +
                 '/div>',
             footerFormat: '</div>',
         },
@@ -305,24 +306,31 @@ const cChartOptions = computed(() => {
 });
 
 // call when change select box in navigator
-function setExtremes(e: any) {
+function setExtremes(e: any, square: boolean) {
     const status = e.min - e.max > props.panelInfo.raw_chart_threshold;
     const rangeChart = e.max - e.min;
-    const rangeNavigator =
-        toTimeUtcChart(props.xMaxTimeRangeViewPort) -
-        (toTimeUtcChart(props.xMinTimeRangeViewPort) - (toTimeUtcChart(props.xMaxTimeRangeViewPort) - toTimeUtcChart(props.xMinTimeRangeViewPort)) * -0.97);
-    // if (!status && rangeChart - rangeNavigator < 0) {
-    //     emit('eResetSquare', {
-    //         min: e.min,
-    //         max: e.max,
-    //     });
-    //     return;
-    // }
+
+    if ((props.xMaxTimeRangeViewPort - props.xMinTimeRangeViewPort) / 100 > rangeChart) {
+        emit('eResetSquare', {
+            min: e.min,
+            max: e.max,
+        });
+        return;
+    }
     emit('eOnChangeIsZoom');
+    let sizeStatus;
+    if (props.xAxisMaxRange - props.xAxisMinRange < e.max - e.min) sizeStatus = 'expand';
+    else if (props.xAxisMaxRange - props.xAxisMinRange > e.max - e.min) sizeStatus = 'decrease';
+    else sizeStatus = 'move';
+
     data.sTimeChartXaxis.min = e.min;
     data.sTimeChartXaxis.max = e.max;
-    emit('eOnChange', data.sTimeChartXaxis, status);
-    emit('eOnChangeRaw', status);
+
+    if (status) {
+        if (sizeStatus === 'expand') emit('eOnChangeRaw', true);
+    }
+
+    emit('eOnChange', data.sTimeChartXaxis, sizeStatus);
 }
 // call when change navigator
 function setExtremesNavigator(e: any) {

@@ -1,7 +1,7 @@
 import { InjectionKey } from 'vue';
 import { createStore, useStore as baseUseStore, Store } from 'vuex';
-import { mutations } from './mutations';
 import { actions } from './actions';
+import { mutations } from './mutations';
 import { state, RootState } from './state';
 import { getters } from './getters';
 

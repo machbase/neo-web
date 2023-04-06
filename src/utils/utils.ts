@@ -87,6 +87,20 @@ function toTimeUtcChart(date: string | number, a?: any): number {
     }
 }
 
+function rawtoTimeUtcChart(date: string | number, a?: any): number {
+    if (typeof date === 'string') {
+        const newDate = date.split(' ');
+
+        const sMillisec = newDate[2].split(':')[0];
+        const newFormat: string[] = newDate.join(' ').replace(/-|:|T/gi, ' ').split(' ');
+        return Number(
+            Date.UTC(Number(newFormat[0]), Number(newFormat[1]) - 1, Number(newFormat[2]), Number(newFormat[3]), Number(newFormat[4]), Number(newFormat[5])) / 1000 + sMillisec
+        );
+    } else {
+        return date;
+    }
+}
+
 function makeNanoTime(aDate: number, aForm: string) {
     if (String(aDate).length >= 13) {
         return Number(Math.floor(aDate / 1000) + String(aForm).split(' ')[2].replaceAll(':', ''));
@@ -194,4 +208,5 @@ export {
     convertTagChartType,
     getPaginationPages,
     toDateUtcChart,
+    rawtoTimeUtcChart,
 };

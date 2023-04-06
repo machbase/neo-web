@@ -28,9 +28,25 @@
                 </div>
             </div>
             <div class="view-port__header--events">
-                <div class="button" @click="onChangeEmit(0)">STAT</div>
-                <div class="button" @click="onChangeEmit(1)">RAW</div>
-                <div class="button" @click="onChangeEmit(2)">FAST</div>
+                <div>
+                    <div class="cover-parent">
+                        <div v-if="props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold" class="cover"></div>
+                        <button
+                            :disabled="props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold"
+                            :class="props.pIsRaw ? '' : 'font-color'"
+                            class="button"
+                            @click="onChangeEmit(0)"
+                        >
+                            STAT
+                        </button>
+                    </div>
+                    <v-tooltip v-if="props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold" activator="parent" location="bottom"
+                        >The stat must be greater than <br />
+                        the raw data time range (millisecond) value.</v-tooltip
+                    >
+                </div>
+
+                <button :class="props.pIsRaw ? 'font-color' : ''" class="button" @click="onChangeEmit(1)">RAW</button>
                 <div class="date-picker button" @click="onOpenPopup(true)">{{ toDateUtcChart(sDateRight) }}</div>
             </div>
         </div>
@@ -60,6 +76,8 @@ import { toDateUtcChart, toTimeUtcChart } from '@/utils/utils';
 interface ViewPortProps {
     panelInfo: LinePanel;
     rangeTime: TimeLineType;
+    pIsRaw: boolean;
+    pTimeRange: TimeLineType;
     pIsZoom: boolean;
 }
 
@@ -110,4 +128,17 @@ watch(
 
 <style lang="scss" scoped>
 @import 'index.scss';
+.font-color {
+    color: #4050cd !important;
+}
+.cover {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: black;
+    opacity: 0.2;
+}
+.cover-parent {
+    position: relative;
+}
 </style>
