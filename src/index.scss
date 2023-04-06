@@ -54,7 +54,10 @@ body::-webkit-scrollbar-thumb {
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 999;
-
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    opacity: 0.2;
     .icon {
         position: absolute;
         top: 50%;
