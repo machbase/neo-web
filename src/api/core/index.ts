@@ -11,7 +11,7 @@ const baseURL = '/web';
 const request = axios.create({
     baseURL: baseURL,
     // baseURL: import.meta.env.VITE_BASE_URL,
-    timeout: 5000, // request timeout
+    // timeout: 5000, // request timeout
     headers: {
         'Content-Type': 'application/json',
     },
@@ -49,12 +49,14 @@ request.interceptors.response.use(
         // status code check
 
         if (error.response && error.response.status === 401) {
-            if (error.response.config.url !== `${baseURL}/api/relogin`) {
+            if (error.response.config.url !== `/api/relogin`) {
                 const sRefresh: any = await reLogin();
-                if (sRefresh) {
+
+                if (sRefresh.success) {
                     localStorage.setItem('accessToken', sRefresh.accessToken);
                     localStorage.setItem('refreshToken', sRefresh.refreshToken);
-                    if (error.response.config.url !== `${baseURL}/api/login`) {
+
+                    if (error.response.config.url !== `/api/login`) {
                         request(error.config);
                     } else {
                         router.push({
