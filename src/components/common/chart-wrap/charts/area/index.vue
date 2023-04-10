@@ -234,7 +234,6 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
             Count: sCount,
         });
         if (typeof sFetchResult === 'string') {
-            alert(sFetchResult);
             sIsZoom.value = false;
         } else {
             await sDatasets.push({
@@ -289,7 +288,7 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
             Count: sCount,
         });
         if (typeof sFetchResult === 'string') {
-            alert(sFetchResult);
+            // alert(sFetchResult);
         } else {
             await sDatasets.push({
                 name: sTagSetElement.alias || `${sTagSetElement.tag_names}(${data.sIsRaw ? 'raw' : sTagSetElement.calculation_mode.toLowerCase()})`,
@@ -345,7 +344,7 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
             Direction: 0,
         });
         if (typeof sFetchResult === 'string') {
-            alert(sFetchResult);
+            // alert(sFetchResult);
         } else {
             sDatasets.push({
                 name: sTagSetElement.alias || `${sTagSetElement.tag_names}(raw)`,

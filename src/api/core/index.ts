@@ -74,6 +74,9 @@ request.interceptors.response.use(
 
             return error;
         }
+        if (error.response && error.response.status !== 401) {
+            alert(error.response?.data.reason);
+        }
     }
 );
 
