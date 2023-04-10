@@ -57,8 +57,10 @@ const onClosePopup = () => {
 
 onMounted(async () => {
     await store.dispatch(ActionTypes.fetchTableList);
-    await store.dispatch(ActionTypes.fetchTagList, store.state.gTableList[0]);
-    await store.dispatch(ActionTypes.fetchRangeData, { table: store.state.gTableList[0], tagName: store.state.gTagList[0] });
+    if (store.state.gTableList[0]) {
+        await store.dispatch(ActionTypes.fetchTagList, store.state.gTableList[0]);
+        await store.dispatch(ActionTypes.fetchRangeData, { table: store.state.gTableList[0], tagName: store.state.gTagList[0] });
+    }
 });
 </script>
 

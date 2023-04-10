@@ -46,7 +46,6 @@ const login = async () => {
         localStorage.setItem('refreshToken', sReturn.refreshToken);
         router.push({ name: RouteNames.TAG_VIEW });
     } else {
-        alert('check ID or Password');
         sPassword.value = '';
     }
 };

@@ -19,7 +19,7 @@
                     {{ SET }}
                     <div ref="childGroup" class="child-group">
                         <div class="item" @click="onClickPopupItem(PopupType.PREFERENCES)">{{ PREFERENCE }}</div>
-                        <div class="item" @click="onRollUp">{{ REQUEST_ROLLUP }}</div>
+                        <!-- <div class="item" @click="onRollUp">{{ REQUEST_ROLLUP }}</div> -->
                     </div>
                 </div>
                 <!-- <img :src="i_b_menu_1" class="icon" /> -->

@@ -3,7 +3,14 @@
         <div class="row">
             <div class="newchart-all">
                 <div class="tagtitle floatleft">Table</div>
-                <ComboboxSelect class="input" :p-show-default-option="false" :p-data="cTableListSelect" :p-value="'TAG'" style="width: 100%" @e-on-change="onChangeTable" />
+                <ComboboxSelect
+                    class="input"
+                    :p-show-default-option="false"
+                    :p-data="cTableListSelect"
+                    :p-value="cTableListSelect[0].name"
+                    style="width: 100%"
+                    @e-on-change="onChangeTable"
+                />
             </div>
         </div>
         <div class="row">
@@ -102,7 +109,9 @@ watch(
 watch(
     () => tableSelected.value,
     () => {
-        store.dispatch(ActionTypes.fetchTagList, tableSelected.value);
+        if (tableSelected.value) {
+            store.dispatch(ActionTypes.fetchTagList, tableSelected.value);
+        }
     }
 );
 const onSearch = () => {
