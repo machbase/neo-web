@@ -15,8 +15,7 @@ const fetchTableName = async (aTable: any) => {
 };
 
 const fetchCalculationData = async (params: any) => {
-    const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue } = params;
-
+    const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue, Rollup } = params;
     const sTableName: any = await fetchTableName(Table);
 
     const sName = sTableName.data.rows[0][0];
@@ -37,78 +36,25 @@ const fetchCalculationData = async (params: any) => {
     }
 
     if (CalculationMode === 'sum' || CalculationMode === 'min' || CalculationMode === 'max') {
-        sSubQuery = `select ${sTime} rollup ${sTimeCalc} as mTime, ${CalculationMode}(${sValue}) as mValue from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between to_date('${Start}') and to_date('${End}') group by mTime`;
+        let sCol = `${sTime} rollup ${sTimeCalc}`;
+        if (!Rollup) {
+            sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
+        }
+        sSubQuery = `select ${sCol} as mTime, ${CalculationMode}(${sValue}) as mValue from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between to_date('${Start}') and to_date('${End}') group by mTime`;
         sMainQuery = `select ${sOnedayOversize} as time, ${CalculationMode}(mvalue) as value from (${sSubQuery}) Group by ${sTime} order by ${sTime}  LIMIT ${Count * 1}`;
     }
     if (CalculationMode === 'avg') {
-        sSubQuery = `select ${sTime} rollup ${sTimeCalc} as mtime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between to_date('${Start}') and to_date('${End}') group by mTime`;
+        let sCol = `${sTime} rollup ${sTimeCalc}`;
+        if (Rollup) {
+            sCol = `${sTime} / (${IntervalValue} * 60 * 1000000000) * (${IntervalValue} * 60 * 1000000000)`;
+        }
+        sSubQuery = `select ${sCol} as mtime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between to_date('${Start}') and to_date('${End}') group by mTime`;
         sMainQuery = `SELECT ${sOnedayOversize} AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by ${sTime} order by ${sTime} LIMIT ${Count * 1}`;
     }
 
     if (CalculationMode === 'cnt') {
         sMainQuery = `SELECT to_char(LAST(${sTime}, ${sTime})) AS time, Count(*) AS value FROM ${Table} WHERE ${sName} = '${TagNames}' AND ${sTime} BETWEEN TO_DATE('${Start}') AND TO_DATE('${End}')`;
     }
-
-    // const sMultiTagCount = 1;
-    // let sStart = '';
-    // let sEnd = '';
-    // let sTimeCalc = '';
-    // let sHint = '';
-    // let sHintType = '';
-
-    // if (IntervalType.toUpperCase() == 'DAY') {
-    //     sHintType = 'hour';
-    // } else {
-    //     sHintType = IntervalType;
-    // }
-    // let sMode = CalculationMode;
-    // if (CalculationMode == 'total') {
-    //     sMode = 'sum';
-    // }
-    // if (Start.length < 19) {
-    //     sStart = Start.substring(0, 10) + ' 00:00:00 000:000:000';
-    // } else {
-    //     sStart = Start.substring(0, 10) + ' ' + Start.substring(11, 19) + ' 000:000:000';
-    // }
-    // if (End.length < 19) {
-    //     sEnd = End.substring(0, 10) + ' 23:59:59 999:999:999';
-    // } else {
-    //     sEnd = End.substring(0, 10) + ' ' + End.substring(11, 19) + ' 999:999:999';
-    // }
-
-    // const sNameCol = 'Name';
-    // const sTimeCol = 'Time';
-    // const sValueCol = 'Value';
-
-    // if (IntervalValue == 1 && IntervalType != 'day') {
-    //     sTimeCalc = sTimeCol;
-    // } else {
-    //     if (IntervalType == 'min' || IntervalType == 'minute') {
-    //         sTimeCalc = "DATE_TRUNC('minute', " + sTimeCol + ', ' + String(IntervalValue) + ')';
-    //     } else if (IntervalType == 'hour') {
-    //         sTimeCalc = "DATE_TRUNC('hour', " + sTimeCol + ', ' + String(IntervalValue) + ')';
-    //     } else if (IntervalType == 'day') {
-    //         if (IntervalValue <= 1) {
-    //             sTimeCalc = "DATE_TRUNC('day', " + sTimeCol + ', ' + String(IntervalValue) + ')';
-    //         } else {
-    //             sTimeCalc = sTimeCol + '/' + String(IntervalValue * 86400) + '000000000 * ' + String(IntervalValue * 86400) + '000000000'; // 86400 = 60*60*24
-    //         }
-    //     } else {
-    //         //elif IntervalType == 'sec' or IntervalType == 'second':
-    //         sTimeCalc = "DATE_TRUNC('second', " + sTimeCol + ', ' + String(IntervalValue) + ')';
-    //     }
-    // }
-
-    // sHint = '/*%2B ROLLUP(' + Table + ', ' + sHintType + ', ' + sMode + ') */ ' + sTimeCol;
-    // const sCalcCol = sMode + '(' + sValueCol + ')';
-
-    // const sInlineQuery = `SELECT ${sHint}, ${sValueCol} FROM ${Table} WHERE ${sNameCol} = '${TagNames}' AND ${sTimeCol} BETWEEN TO_DATE('${sStart}') AND TO_DATE('${sEnd}')`;
-
-    // let sQuery = `SELECT TO_CHAR(${sTimeCalc}) as date, ${sCalcCol} as value FROM (${sInlineQuery}) GROUP BY date ORDER BY 1`;
-
-    // if (Count > 0) {
-    //     sQuery = sQuery + ' LIMIT ' + String(Count * sMultiTagCount);
-    // }
 
     const queryString = `/machbase?q=${sMainQuery}`;
 
@@ -207,5 +153,17 @@ const fetchRollUp = async (table: string) => {
         url: `/machiot/rollup/${table}`,
     });
 };
+const fetchOnMinMaxTable = async (table: string, tagName: string) => {
+    return await request({
+        method: 'GET',
+        url: `/machbase?q=select to_char(min_time),to_char(max_time) from v$${table}_stat where name = '${tagName}'`,
+    });
+};
+const fetchOnRollupTable = async (table: string) => {
+    return await request({
+        method: 'GET',
+        url: `/machbase?q=select * from v$rollup where root_table = '${table}' and ENABLED = 1 `,
+    });
+};
 
-export { fetchCalculationData, fetchRawData, fetchTablesData, fetchRollupData, fetchRangeData, fetchTags, fetchRollUp };
+export { fetchCalculationData, fetchRawData, fetchTablesData, fetchRollupData, fetchRangeData, fetchTags, fetchRollUp, fetchOnRollupTable, fetchOnMinMaxTable };

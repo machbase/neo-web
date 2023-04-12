@@ -221,7 +221,6 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     data.sTimeLine.endTime = sEndTime;
     const sIntervalTime = aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(sStartTime, sEndTime, sChartWidth) : data.sIntervalData;
     data.sIntervalData = sIntervalTime;
-
     for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
@@ -229,6 +228,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
             TagNames: sTagSetElement.tag_names,
             Start: toDateUtcChart(sStartTime),
             End: toDateUtcChart(sEndTime),
+            Rollup: sTagSetElement.onRollup,
             CalculationMode: sTagSetElement.calculation_mode.toLowerCase(),
             ...sIntervalTime,
             Count: sCount,
@@ -283,6 +283,7 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
             TagNames: sTagSetElement.tag_names,
             Start: toDateUtcChart(sStartTime),
             End: toDateUtcChart(sEndTime),
+            Rollup: sTagSetElement.onRollup,
             CalculationMode: sTagSetElement.calculation_mode.toLowerCase(),
             ...sIntervalTime,
             Count: sCount,

@@ -41,6 +41,7 @@ export interface TagSet {
     alias: string;
     use_y2: YorN;
     tag_names: string;
+    onRollup: boolean;
     table: string;
     calculation_mode: CalculationMode;
 }

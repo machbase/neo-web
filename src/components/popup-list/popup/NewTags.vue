@@ -7,7 +7,7 @@
                     class="input"
                     :p-show-default-option="false"
                     :p-data="cTableListSelect"
-                    :p-value="cTableListSelect[0].name"
+                    :p-value="cTableListSelect[0] ? cTableListSelect[0].name : 'TAG'"
                     style="width: 100%"
                     @e-on-change="onChangeTable"
                 />
