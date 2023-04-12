@@ -1,5 +1,11 @@
 <template>
     <div class="newchartdiv">
+        <div v-if="!sSelectTableOnRollup" class="row">
+            <div class="on-roll-up">* The table is slow because the roll-up table is not generated.</div>
+        </div>
+        <div v-if="!sSelectTableOnRollup" class="row">
+            <div class="on-roll-up">* If you want to improve the speed, please create a roll-up table and recreate the chart.</div>
+        </div>
         <div class="row">
             <div class="newchart-all">
                 <div class="tagtitle floatleft">Table</div>
@@ -7,7 +13,7 @@
                     class="input"
                     :p-show-default-option="false"
                     :p-data="cTableListSelect"
-                    :p-value="cTableListSelect[0].name"
+                    :p-value="cTableListSelect[0] ? cTableListSelect[0].name : 'TAG'"
                     style="width: 100%"
                     @e-on-change="onChangeTable"
                 />
@@ -26,7 +32,7 @@
                     <div>Select : {{ selectCount }}</div>
                 </div>
                 <div class="taglistdiv taglistscroll">
-                    <div v-for="(aTime, aIndex) in tagsPaged[pageIndex]" :key="aIndex" style="margin-bottom: 5px" class="text" @click="onSelectTag(aTime)">{{ aTime }}</div>
+                    <div v-for="(aTag, aIndex) in tagsPaged[pageIndex]" :key="aIndex" style="margin-bottom: 5px" class="text" @click="onSelectTag(aTag)">{{ aTag }}</div>
                 </div>
                 <Pagination :total="Math.ceil(cTags.length / MAX_TAG_COUNT)" @e-on-change="onPaging" />
             </div>
@@ -63,7 +69,7 @@ import { useStore } from '@/store';
 import { computed, defineEmits, reactive, ref, watch } from 'vue';
 import { ChartType } from '@/enums/app';
 import { CALC_MODE, MAX_TAG_COUNT } from './constant';
-import { fetchTablesData } from '@/api/repository/machiot';
+import { fetchTablesData, fetchOnRollupTable } from '@/api/repository/machiot';
 import { ActionTypes } from '@/store/actions';
 import { TagSet } from '@/interface/chart';
 import { CalculationMode } from '@/interface/constants';
@@ -74,6 +80,7 @@ const isSearchClick = ref<boolean>(false);
 const tableSelected = ref<string>('');
 const chartType = ref<ChartType>(ChartType.Zone);
 const selectCount = ref<number>(0);
+const sSelectTableOnRollup = ref<boolean>(false);
 const cTags = computed(() => store.state.gTagList);
 const cTagsSearch = ref<any>([]);
 const sSelectedTags = reactive<Partial<TagSet>[]>([]);
@@ -108,8 +115,14 @@ watch(
 );
 watch(
     () => tableSelected.value,
-    () => {
+    async () => {
         if (tableSelected.value) {
+            const sRes = await fetchOnRollupTable(tableSelected.value);
+            if (sRes.data.rows.length === 0) {
+                sSelectTableOnRollup.value = false;
+            } else {
+                sSelectTableOnRollup.value = true;
+            }
             store.dispatch(ActionTypes.fetchTagList, tableSelected.value);
         }
     }
@@ -137,7 +150,8 @@ const onSelectChart = (data: ChartType) => {
 };
 const onSelectTag = (data: string) => {
     selectCount.value++;
-    sSelectedTags.push({ tag_names: data, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0 });
+
+    sSelectedTags.push({ tag_names: data, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0, onRollup: sSelectTableOnRollup.value });
 };
 const onRemoveTag = (index: number) => {
     selectCount.value--;
@@ -173,4 +187,7 @@ store.dispatch(ActionTypes.fetchTableList);
 
 <style lang="scss" scoped>
 @import 'index.scss';
+.on-roll-up {
+    color: #ec7676;
+}
 </style>
