@@ -4,6 +4,7 @@ import { RootState } from './state';
 import { BoardInfo, PanelInfo, RangeData } from '@/interface/chart';
 import { cloneDeep, isEmpty } from 'lodash';
 import moment from 'moment';
+import { toTimeUtcChart, utils } from '@/utils/utils';
 
 enum MutationTypes {
     /* Global */
@@ -82,10 +83,18 @@ const mutations = {
     },
     [MutationTypes.setRangeData](state: RootState, aRangeData: any) {
         if (aRangeData) {
+            const mapData = aRangeData.rows.map((aItem: any, aIdx: number) => {
+                return { range: toTimeUtcChart(aItem[1]) - toTimeUtcChart(aItem[0]), index: aIdx };
+            });
+            const sReturn = mapData.sort(function (aItem: any, bItem: any) {
+                return parseFloat(bItem['range']) - parseFloat(aItem['range']);
+            });
+
             const sRangeData = {
-                max: aRangeData.rows[0][1],
-                min: aRangeData.rows[0][0],
+                max: aRangeData.rows[sReturn[0].index][1],
+                min: aRangeData.rows[sReturn[0].index][0],
             };
+
             state.gRangeData = sRangeData;
         }
     },
