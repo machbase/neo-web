@@ -156,7 +156,7 @@ const fetchRollUp = async (table: string) => {
 const fetchOnMinMaxTable = async (table: string, tagName: string) => {
     return await request({
         method: 'GET',
-        url: `/machbase?q=select to_char(min_time),to_char(max_time) from v$${table}_stat where name = '${tagName}'`,
+        url: `/machbase?q=select to_char(min_time),to_char(max_time) from v$${table}_stat`,
     });
 };
 const fetchOnRollupTable = async (table: string) => {
