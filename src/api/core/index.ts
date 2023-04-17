@@ -48,6 +48,7 @@ request.interceptors.response.use(
     async (error: AxiosError) => {
         // status code check
 
+        let sData;
         if (error.response && error.response.status === 401) {
             if (error.response.config.url !== `/api/relogin`) {
                 const sRefresh: any = await reLogin();
@@ -57,7 +58,7 @@ request.interceptors.response.use(
                     localStorage.setItem('refreshToken', sRefresh.refreshToken);
 
                     if (error.response.config.url !== `/api/login`) {
-                        request(error.config);
+                        sData = request(error.config);
                     } else {
                         router.push({
                             name: RouteNames.LOGIN,
@@ -71,7 +72,9 @@ request.interceptors.response.use(
                     name: RouteNames.LOGIN,
                 });
             }
-
+            if (sData) {
+                return sData;
+            }
             return error;
         }
         if (error.response && error.response.status !== 401) {
