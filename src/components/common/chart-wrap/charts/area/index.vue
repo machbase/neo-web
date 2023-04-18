@@ -39,6 +39,7 @@
             :p-time-range="data.sTimeLine"
             :panel-info="props.panelInfo"
             :p-is-zoom="sIsZoom"
+            @eMoveFocus="moveFocus"
             @eOnChange="onChangeTimeRange"
             @eOnUndoTime="OnUndoTime"
             @eOnChangeAdjust="adjustViewportRange"
@@ -61,7 +62,7 @@ import { TimeLineType } from '@/interface/date';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { toDateUtcChart, toTimeUtcChart, rawtoTimeUtcChart } from '@/utils/utils';
-import { computed, defineProps, onMounted, reactive, ref, watch, withDefaults } from 'vue';
+import { computed, defineProps, onMounted, reactive, ref, watch, withDefaults, defineExpose } from 'vue';
 import AreaChart from './container/index.vue';
 import { fetchRawData } from '../../../../../api/repository/machiot';
 
@@ -455,6 +456,24 @@ const onChangeSRF = async (eValue: any) => {
             break;
     }
 };
+
+const moveFocus = async (sType: string) => {
+    let sBgn = data.sTimeLine.startTime;
+    let sEnd = data.sTimeLine.endTime;
+    const sMoveRange = (data.sTimeLine.endTime - data.sTimeLine.startTime) / 2;
+
+    let sBgnN = data.sTimeRangeViewPort.startTime;
+    let sEndN = data.sTimeRangeViewPort.endTime;
+
+    if (sType === 'left') {
+        if (sBgn - sMoveRange < sBgnN) await areaChart.value.updateMinMaxNavigator(sBgn - sMoveRange, sEndN - sMoveRange);
+        await areaChart.value.updateMinMaxChart(sBgn - sMoveRange, sEnd - sMoveRange);
+    } else {
+        if (sEnd + sMoveRange > sEndN) await areaChart.value.updateMinMaxNavigator(sBgnN + sMoveRange, sEnd + sMoveRange);
+        await areaChart.value.updateMinMaxChart(sBgn + sMoveRange, sEnd + sMoveRange);
+    }
+    // await areaChart.value.updateMinMaxNavigator(sBgnN, sEndN);
+};
 const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) => {
     const rangeChart = data.sTimeLine.endTime - data.sTimeLine.startTime;
 
@@ -480,8 +499,10 @@ const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) =>
         sNewTimeBgnN = sBgnN + sTimeGap * sZoom;
         sNewTimeEndN = sEndN - sTimeGap * sZoom;
         if (sNewTimeBgn >= sNewTimeEnd) {
-            alert('The time range is too small to perform this function.');
-            return;
+            sNewTimeBgn = sNewTimeBgn - 10;
+
+            // alert('The time range is too small to perform this function.');
+            // return;
         }
         if (sBgn === sBgnN && sEnd === sEndN) {
             await areaChart.value.updateMinMaxChart(sNewTimeBgn, sNewTimeEnd);
@@ -500,8 +521,9 @@ const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) =>
         sNewTimeBgn = sBgn + sTimeGap * sZoom;
         sNewTimeEnd = sEnd - sTimeGap * sZoom;
         if (sNewTimeBgn >= sNewTimeEnd) {
-            alert('The time range is too small to perform this function.');
-            return;
+            sNewTimeBgn = sNewTimeBgn - 10;
+            // alert('The time range is too small to perform this function.');
+            // return;
         }
         const rangeNavigator = sNewTimeEnd - (sNewTimeBgn - (sNewTimeEnd - sNewTimeBgn) * -0.97);
         if (rangeChart - rangeNavigator < 0) {
@@ -666,6 +688,8 @@ watch(
 onMounted(() => {
     intializePanelData();
 });
+
+defineExpose({ onReload });
 </script>
 
 <style lang="scss" scoped>

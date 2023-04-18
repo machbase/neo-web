@@ -2,12 +2,12 @@
     <!-- Loop show chart -->
     <div v-if="!chartDataSingle">
         <div v-for="(panel, index) in data.sPanels" :key="index">
-            <AreaChart :panel-info="panel" :index="panel.i" />
+            <AreaChart ref="areaChart" :panel-info="panel" :index="panel.i" />
         </div>
     </div>
     <div v-else>
         <div v-for="(panel, index) in data.sPanel" :key="index">
-            <AreaChart :panel-info="panel" :index="panel.i" />
+            <AreaChart ref="areaChart" :panel-info="panel" :index="panel.i" />
         </div>
     </div>
 </template>
@@ -30,6 +30,7 @@ const data = reactive({
     sPanels: [] as PanelInfo[],
     sPanel: {} as PanelInfo[],
 });
+const areaChart = ref(null);
 const store = useStore();
 const gBoard = computed(() => store.state.gBoard);
 
@@ -48,6 +49,15 @@ watchEffect(
             : [];
     }
     // { immediate: true }
+);
+
+watch(
+    () => gBoard.value.range_bgn || gBoard.value.range_end,
+    () => {
+        areaChart.value.forEach((aItem: any) => {
+            aItem.onReload();
+        });
+    }
 );
 
 watch(
