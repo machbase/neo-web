@@ -28,7 +28,6 @@ const _convertTimeToFullDate = (aTime: string) => {
 const setTimeRange = async (aPanelInfo: PanelInfo, aDashboard: BoardInfo) => {
     let timeRange = {} as RangeData;
     if (!aDashboard.range_end || !aDashboard.range_bgn) {
-        // timeRange = await tag.actions.getTimeRange();
         timeRange = store.state.gRangeData;
     }
     const startTime = _convertTimeToFullDate(aPanelInfo.range_bgn || aDashboard.range_bgn || timeRange.min);
@@ -36,7 +35,7 @@ const setTimeRange = async (aPanelInfo: PanelInfo, aDashboard: BoardInfo) => {
     return { startTime, endTime };
 };
 const getDateRange = async (aPanelInfo: PanelInfo, aDashboard: BoardInfo, aCustomRange = undefined as startTimeToendTimeType | undefined): Promise<TimeInfo> => {
-    // @TODO changeTextToUtc를 사용해서, utc timestamp로 변환해서 api 요청을 날리도록 한다.
+    // @TODO change time format
     const { startTime, endTime } = aCustomRange || ((await setTimeRange(aPanelInfo, aDashboard)) as startTimeToendTimeType);
     return {
         startTime: startTime as string,

@@ -61,7 +61,7 @@ import { TimeLineType } from '@/interface/date';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { toDateUtcChart, toTimeUtcChart, rawtoTimeUtcChart } from '@/utils/utils';
-import { computed, defineProps, onMounted, reactive, ref, watch, withDefaults } from 'vue';
+import { computed, defineProps, onMounted, reactive, ref, watch, withDefaults, defineExpose } from 'vue';
 import AreaChart from './container/index.vue';
 import { fetchRawData } from '../../../../../api/repository/machiot';
 
@@ -666,6 +666,8 @@ watch(
 onMounted(() => {
     intializePanelData();
 });
+
+defineExpose({ onReload });
 </script>
 
 <style lang="scss" scoped>
