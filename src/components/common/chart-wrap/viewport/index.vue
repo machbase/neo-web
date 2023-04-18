@@ -1,5 +1,25 @@
 <template>
     <div v-if="props.pIsZoom" class="view-port">
+        <!-- <div class="move-chart-size">
+            
+            <div>
+                <div @mouseover="sDateMove = true" @mouseleave="sDateMove = false">asfd</div>
+                <v-icon v-if="sDateMove">mdi-chevron-right</v-icon>
+            </div>
+        </div> -->
+        <div :style="{ left: '7px' }" class="move-chart-size">
+            <div class="form" @click="moveChart('left')" @mouseover="sDateMove = true" @mouseleave="sDateMove = false">
+                <!-- <div class="form"></div> -->
+                <v-icon v-if="sDateMove">mdi-chevron-left</v-icon>
+            </div>
+        </div>
+        <div :style="{ right: '7px' }" class="move-chart-size">
+            <div class="form" @click="moveChart('right')" @mouseover="sDateMove = true" @mouseleave="sDateMove = false">
+                <!-- <div class="form"></div> -->
+                <v-icon v-if="sDateMove">mdi-chevron-right</v-icon>
+            </div>
+        </div>
+        <div></div>
         <div class="view-port__header">
             <div class="view-port__header--events">
                 <div class="date-picker button" @click="onOpenPopup(false)">{{ toDateUtcChart(sDateLeft) }}</div>
@@ -82,10 +102,11 @@ interface ViewPortProps {
 }
 
 const props = withDefaults(defineProps<ViewPortProps>(), {});
-const emit = defineEmits(['eOnChange', 'eOnChangeAdjust', 'eOnChangeSRF', 'eOnFocus', 'eonCloseNavigator', 'eOnUndoTime']);
+const emit = defineEmits(['eOnChange', 'eOnChangeAdjust', 'eOnChangeSRF', 'eOnFocus', 'eonCloseNavigator', 'eOnUndoTime', 'eMoveFocus']);
 const store = useStore();
 const sDialog = ref<boolean>(false);
 const sDateLeft = ref<number>(0);
+const sDateMove = ref<boolean>(false);
 const sDateRight = ref<number>(0);
 const sIsFromTime = ref<boolean>(false);
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
@@ -95,6 +116,9 @@ const onChangeEmit = (aValue: number) => {
 };
 const adjustViewportRange = (aEvent: { type: 'O' | 'I' | 'F'; zoom: number }) => {
     emit('eOnChangeAdjust', aEvent);
+};
+const moveChart = (aType: string) => {
+    emit('eMoveFocus', aType);
 };
 const adjustViewportFocus = () => {
     emit('eOnFocus');

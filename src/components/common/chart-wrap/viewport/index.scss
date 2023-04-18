@@ -5,6 +5,21 @@
     position: absolute;
     bottom: 115px;
     width: 100%;
+    .move-chart-size {
+        display: inline-block;
+        position: absolute;
+        top: -940%;
+        height: 795%;
+        width: 1%;
+        .form{
+            cursor: pointer;
+            display: flex;
+            width: 100%;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+    }
     &__header {
         display: flex;
         justify-content: space-between;
@@ -36,7 +51,7 @@
             }
         }
     }
-    .icon-close{
+    .icon-close {
         cursor: pointer;
         position: absolute;
         bottom: -35px;
