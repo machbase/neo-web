@@ -13,13 +13,13 @@
                     <td class="text-row">
                         <div v-if="!aBoard.edit">{{ aBoard.board_name }}</div>
                         <div v-else class="text-row-edit">
-                            <input v-model="aBoard.board_name" type="text" class="input" />
-                            <v-btn variant="outlined" class="button-effect-color" @click="onEditBoard(aBoard)"> Ok </v-btn>
-                            <v-btn variant="outlined" class="button-effect" @click="sBoardList[aIndex].edit = false"> Cancel </v-btn>
+                            <input v-model="aBoard.board_name" class="input" type="text" />
+                            <v-btn class="button-effect-color" variant="outlined" @click="onEditBoard(aBoard)"> Ok </v-btn>
+                            <v-btn class="button-effect" variant="outlined" @click="sBoardList[aIndex].edit = false"> Cancel </v-btn>
                         </div>
                     </td>
                     <td class="text-row imgs">
-                        <router-link :to="{ name: RouteNames.VIEW, params: { id: aBoard.board_id }, query: {} }" target="_blank">
+                        <router-link target="_blank" :to="{ name: RouteNames.VIEW, params: { id: aBoard.board_id }, query: {} }">
                             <img :src="i_b_newwin" />
                         </router-link>
                         <img :src="i_b_edit" @click="sBoardList[aIndex].edit = true" />

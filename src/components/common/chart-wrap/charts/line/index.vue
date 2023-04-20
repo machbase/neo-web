@@ -1,35 +1,35 @@
 <template>
     <ChartWrap>
         <div v-if="sLoading" class="loading-chart">
-            <img :src="cIsDarkMode ? loader_b : loader_w" class="icon" />
+            <img class="icon" :src="cIsDarkMode ? loader_b : loader_w" />
         </div>
         <ChartHeader
+            :p-inner-value="sInnerValue"
+            :p-interval-data="data.sIntervalData"
             :panel-info="props.panelInfo"
             :x-axis-max-range="data.sTimeLine.endTime"
             :x-axis-min-range="data.sTimeLine.startTime"
-            :p-inner-value="sInnerValue"
-            :p-interval-data="data.sIntervalData"
             @eOnReload="onReload"
         />
         <AreaChart
-            :id="`chart-${props.index}`"
             ref="areaChart"
-            :max-y-chart="data.sMaxYChart"
+            :id="`chart-${props.index}`"
             :chart-data="data.sDisplayData"
-            :view-data="data.sViewPortData"
+            :is-stock-chart="sIsStockChart"
+            :max-y-chart="data.sMaxYChart"
+            :p-is-zoom="sIsZoom"
             :panel-info="props.panelInfo"
+            :view-data="data.sViewPortData"
             :x-axis-max-range="data.sTimeLine.endTime"
             :x-axis-min-range="data.sTimeLine.startTime"
-            :x-min-time-range-view-port="data.sTimeRangeViewPort.startTime"
             :x-max-time-range-view-port="data.sTimeRangeViewPort.endTime"
-            :is-stock-chart="sIsStockChart"
-            :p-is-zoom="sIsZoom"
+            :x-min-time-range-view-port="data.sTimeRangeViewPort.startTime"
             @eOnChange="OnChangeTimeRangerViewPort"
         />
         <ViewPort
-            :range-time="data.sTimeRangeViewPort"
-            :panel-info="props.panelInfo"
             :p-is-zoom="sIsZoom"
+            :panel-info="props.panelInfo"
+            :range-time="data.sTimeRangeViewPort"
             @eOnChange="onChangeTimeRange"
             @eOnChangeAdjust="adjustViewportRange"
             @eOnChangeSRF="onChangeSRF"

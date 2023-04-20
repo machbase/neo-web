@@ -16,6 +16,26 @@ module.exports = {
         'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
         '@typescript-eslint/explicit-module-boundary-types': 'off',
         '@typescript-eslint/no-empty-function': 'off',
+        'vue/attributes-order': [
+            'error',
+            {
+                order: [
+                    'TWO_WAY_BINDING', // ex. `v-model`
+                    'LIST_RENDERING', // ex. `v-for item in items`
+                    'CONDITIONALS', // ex. `v-if`, `v-else-if`, `v-else`, `v-show`, `v-cloak`
+                    'CONTENT', // ex. `v-text`, `v-html`
+                    'UNIQUE', // ex. `ref`, `key`
+                    'GLOBAL', // ex. `id`
+                    'EVENTS', // ex. `@click="functionCall"`, `v-on="eventName"`
+                    'OTHER_ATTR', //class, style
+                    // ['', 'ATTR_STATIC', 'ATTR_SHORTHAND_BOOL'],
+                    'OTHER_DIRECTIVES', // ex. `v-custom-directive`
+                    'RENDER_MODIFIERS', // ex. `v-once`, `v-pre`
+                    'DEFINITION', // ex. `is`
+                ],
+                alphabetical: true,
+            },
+        ],
         'prettier/prettier': [
             'warn',
             {

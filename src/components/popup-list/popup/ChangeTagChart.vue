@@ -7,8 +7,8 @@
             </div>
         </div>
         <div class="popup__btn-group">
-            <v-btn variant="outlined" class="button-effect-color" @click="onSetting"> Ok </v-btn>
-            <v-btn variant="outlined" class="button-effect" @click="onClosePopup"> Cancel </v-btn>
+            <v-btn class="button-effect-color" variant="outlined" @click="onSetting"> Ok </v-btn>
+            <v-btn class="button-effect" variant="outlined" @click="onClosePopup"> Cancel </v-btn>
         </div>
     </div>
 </template>

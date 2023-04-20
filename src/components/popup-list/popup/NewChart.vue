@@ -11,8 +11,8 @@
                 <div class="tagtitle floatleft">Table</div>
                 <ComboboxSelect
                     class="input"
-                    :p-show-default-option="false"
                     :p-data="cTableListSelect"
+                    :p-show-default-option="false"
                     :p-value="cTableListSelect[0] ? cTableListSelect[0].name : 'TAG'"
                     style="width: 100%"
                     @e-on-change="onChangeTable"
@@ -23,16 +23,16 @@
             <div class="col-sm-6 newchart-left">
                 <div class="tagtitle floatleft">Tag</div>
                 <div class="search-wrapper">
-                    <input v-model="searchText" type="text" class="form-control taginput input" style="width: 180px" @keydown.enter="onSearch" />
-                    <span class="input clear-icon" @click="onReset"><img :src="i_b_close" alt="Clear icon" /></span>
-                    <v-btn class="button-effect-color" variant="outlined" :height="30" @click="onSearch">Search</v-btn>
+                    <input v-model="searchText" class="form-control taginput input" style="width: 180px" type="text" @keydown.enter="onSearch" />
+                    <span class="input clear-icon" @click="onReset"><img alt="Clear icon" :src="i_b_close" /></span>
+                    <v-btn class="button-effect-color" :height="30" variant="outlined" @click="onSearch">Search</v-btn>
                 </div>
                 <div class="countGroup">
                     <div>Total : {{ cTagsSearch.length }} / {{ cTags.length }}</div>
                     <div>Select : {{ selectCount }}</div>
                 </div>
                 <div class="taglistdiv taglistscroll">
-                    <div v-for="(aTag, aIndex) in tagsPaged[pageIndex]" :key="aIndex" style="margin-bottom: 5px" class="text" @click="onSelectTag(aTag)">{{ aTag }}</div>
+                    <div v-for="(aTag, aIndex) in tagsPaged[pageIndex]" :key="aIndex" class="text" style="margin-bottom: 5px" @click="onSelectTag(aTag)">{{ aTag }}</div>
                 </div>
                 <Pagination :total="Math.ceil(cTags.length / MAX_TAG_COUNT)" @e-on-change="onPaging" />
             </div>
@@ -41,14 +41,14 @@
                     <ChartSelect @e-on-change="onSelectChart" />
                 </div>
                 <div class="selectedlistdiv taglistscroll">
-                    <div v-for="(aTime, aIndex) in sSelectedTags" :key="aIndex" style="margin-bottom: 5px" class="wrapperTagSelect">
+                    <div v-for="(aTime, aIndex) in sSelectedTags" :key="aIndex" class="wrapperTagSelect" style="margin-bottom: 5px">
                         <span @click="onRemoveTag(aIndex)"> {{ aTime.tag_names }}</span>
-                        <ComboboxSelect :p-show-default-option="false" :p-data="CALC_MODE" :p-value="'avg'" @e-on-change="(item) => onChangeCalcMode(item, aIndex)" />
+                        <ComboboxSelect :p-data="CALC_MODE" :p-show-default-option="false" :p-value="'avg'" @e-on-change="(item) => onChangeCalcMode(item, aIndex)" />
                     </div>
                 </div>
                 <div class="popup__btn-group">
-                    <v-btn variant="outlined" class="button-effect-color" @click="onSetting"> Ok </v-btn>
-                    <v-btn variant="outlined" class="button-effect" @click="onClosePopup"> Cancel </v-btn>
+                    <v-btn class="button-effect-color" variant="outlined" @click="onSetting"> Ok </v-btn>
+                    <v-btn class="button-effect" variant="outlined" @click="onClosePopup"> Cancel </v-btn>
                 </div>
             </div>
         </div>

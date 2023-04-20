@@ -7,14 +7,14 @@
                 <v-icon v-if="sDateMove">mdi-chevron-right</v-icon>
             </div>
         </div> -->
-        <div :style="{ left: '7px' }" class="move-chart-size">
-            <div class="form" @click="moveChart('left')" @mouseover="sDateMove = true" @mouseleave="sDateMove = false">
+        <div class="move-chart-size" :style="{ left: '7px' }">
+            <div class="form" @click="moveChart('left')" @mouseleave="sDateMove = false" @mouseover="sDateMove = true">
                 <!-- <div class="form"></div> -->
                 <v-icon v-if="sDateMove">mdi-chevron-left</v-icon>
             </div>
         </div>
-        <div :style="{ right: '7px' }" class="move-chart-size">
-            <div class="form" @click="moveChart('right')" @mouseover="sDateMove = true" @mouseleave="sDateMove = false">
+        <div class="move-chart-size" :style="{ right: '7px' }">
+            <div class="form" @click="moveChart('right')" @mouseleave="sDateMove = false" @mouseover="sDateMove = true">
                 <!-- <div class="form"></div> -->
                 <v-icon v-if="sDateMove">mdi-chevron-right</v-icon>
             </div>
@@ -35,7 +35,7 @@
                     <v-tooltip activator="parent" location="bottom">Zoom out x2</v-tooltip>
                 </div>
                 <div>
-                    <v-icon :color="cIsDarkMode ? '#fff' : '#2ec0df'" size="x-large" icon="mdi-image-filter-center-focus-strong-outline" @click="adjustViewportFocus"></v-icon>
+                    <v-icon :color="cIsDarkMode ? '#fff' : '#2ec0df'" icon="mdi-image-filter-center-focus-strong-outline" size="x-large" @click="adjustViewportFocus"></v-icon>
                     <v-tooltip activator="parent" location="bottom">Focus</v-tooltip>
                 </div>
                 <div>
@@ -52,9 +52,9 @@
                     <div class="cover-parent">
                         <div v-if="props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold" class="cover"></div>
                         <button
-                            :disabled="props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold"
-                            :class="props.pIsRaw ? '' : 'font-color'"
                             class="button"
+                            :class="props.pIsRaw ? '' : 'font-color'"
+                            :disabled="props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold"
                             @click="onChangeEmit(0)"
                         >
                             STAT
@@ -66,17 +66,17 @@
                     >
                 </div>
 
-                <button :class="props.pIsRaw ? 'font-color' : ''" class="button" @click="onChangeEmit(1)">RAW</button>
+                <button class="button" :class="props.pIsRaw ? 'font-color' : ''" @click="onChangeEmit(1)">RAW</button>
                 <div class="date-picker button" @click="onOpenPopup(true)">{{ toDateUtcChart(sDateRight) }}</div>
             </div>
         </div>
-        <v-icon icon="mdi-close-thick" class="icon-close" @click="emit('eonCloseNavigator')"></v-icon>
+        <v-icon class="icon-close" icon="mdi-close-thick" @click="emit('eonCloseNavigator')"></v-icon>
         <PopupWrap
-            :width="'667px'"
-            :p-type="PopupType.TIME_DURATION"
-            :p-time-range="{ endTime: sDateRight, startTime: sDateLeft }"
-            :p-show="sDialog"
             :p-is-from-time="sIsFromTime"
+            :p-show="sDialog"
+            :p-time-range="{ endTime: sDateRight, startTime: sDateLeft }"
+            :p-type="PopupType.TIME_DURATION"
+            :width="'667px'"
             @e-close-popup="onClosePopup"
             @eSettingPopup="onSettingPopup"
         />
