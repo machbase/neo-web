@@ -4,18 +4,18 @@
         <div v-if="sShowTab" class="tabs">
             <div class="header">
                 <ul class="nav-pills">
-                    <li v-for="(item, index) in tabs" :key="index" :style="{ color: tabIndex === index ? '#2ec0df !important' : undefined }" @click="onClickTab(index)">
+                    <li v-for="(item, index) in tabs" :key="index" @click="onClickTab(index)" :style="{ color: tabIndex === index ? '#2ec0df !important' : undefined }">
                         {{ item }}
                     </li>
                 </ul>
-                <div><img :src="i_b_save_2" alt="Clear icon" @click="onSave" /><img :src="i_b_close" alt="Clear icon" @click="onCancel" /></div>
+                <div><img @click="onSave" alt="Clear icon" :src="i_b_save_2" /><img @click="onCancel" alt="Clear icon" :src="i_b_close" /></div>
             </div>
             <div class="inner-tab">
-                <GeneralTab v-if="tabIndex === 0" :p-chart-data="sDataChart[0]" @e-on-change="onChangeTabData" />
-                <DataTab v-if="tabIndex === 1" :p-chart-data="sDataChart[0]" @e-on-change="onChangeTabData" />
-                <AxesTab v-if="tabIndex === 2" :p-chart-data="sDataChart[0]" @e-on-change="onChangeTabData" />
-                <DisplayTab v-if="tabIndex === 3" :p-chart-data="sDataChart[0]" @e-on-change="onChangeTabData" />
-                <TimeRangeTab v-if="tabIndex === 4" :p-chart-data="sDataChart[0]" @e-on-change="onChangeTabData" />
+                <GeneralTab v-if="tabIndex === 0" @e-on-change="onChangeTabData" :p-chart-data="sDataChart[0]" />
+                <DataTab v-if="tabIndex === 1" @e-on-change="onChangeTabData" :p-chart-data="sDataChart[0]" />
+                <AxesTab v-if="tabIndex === 2" @e-on-change="onChangeTabData" :p-chart-data="sDataChart[0]" />
+                <DisplayTab v-if="tabIndex === 3" @e-on-change="onChangeTabData" :p-chart-data="sDataChart[0]" />
+                <TimeRangeTab v-if="tabIndex === 4" @e-on-change="onChangeTabData" :p-chart-data="sDataChart[0]" />
             </div>
         </div>
     </div>

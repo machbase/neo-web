@@ -1,34 +1,34 @@
 <template>
     <div class="display-wrapper">
-        <div class="chart-type-wrapper"><span>Chart Type</span><ChartSelect class="chart-type-div" :is-row="false" :p-data="chartTypeMapped" @e-on-change="onSelectChart" /></div>
+        <div class="chart-type-wrapper"><span>Chart Type</span><ChartSelect @e-on-change="onSelectChart" class="chart-type-div" :is-row="false" :p-data="chartTypeMapped" /></div>
         <div class="input-col2">
             <label for="_cfg_show_point">Show data points</label>
             <div class="cfg-input input-wrapper">
-                <div class="checkbox-wrapper"><input id="_cfg_show_point" v-model="showPoint" type="checkbox" /></div>
-                <input type="text" class="input" data-for="_cfg_show_point" value="Display data points in the line chart." readonly />
+                <div class="checkbox-wrapper"><input v-model="showPoint" id="_cfg_show_point" type="checkbox" /></div>
+                <input class="input" data-for="_cfg_show_point" readonly type="text" value="Display data points in the line chart." />
             </div>
             <label for="_cfg_point_radius">Point radius</label>
             <div class="cfg-input">
-                <input id="_cfg_point_radius" v-model="pointRadius" type="text" class="input point_radius_input" />
+                <input v-model="pointRadius" id="_cfg_point_radius" class="input point_radius_input" type="text" />
             </div>
             <label for="_cfg_show_bottom_legend">Legend</label>
             <div class="cfg-input input-wrapper">
-                <div class="checkbox-wrapper"><input id="_cfg_show_bottom_legend" v-model="showLegend" type="checkbox" /></div>
-                <input type="text" class="input" data-for="_cfg_show_bottom_legend" value="Display legend." readonly />
+                <div class="checkbox-wrapper"><input v-model="showLegend" id="_cfg_show_bottom_legend" type="checkbox" /></div>
+                <input class="input" data-for="_cfg_show_bottom_legend" readonly type="text" value="Display legend." />
             </div>
         </div>
         <div class="input-col2">
             <label for="_cfg_fill">Opacity of fill area</label>
             <div class="cfg-input">
-                <input id="_cfg_fill" v-model="fillOpacity" type="text" class="input point_radius_input" />
+                <input v-model="fillOpacity" id="_cfg_fill" class="input point_radius_input" type="text" />
             </div>
             <label for="_cfg_stroke">Line thickness</label>
             <div class="cfg-input">
-                <input id="_cfg_stroke" v-model="lineThick" type="text" class="input point_radius_input" />
+                <input v-model="lineThick" id="_cfg_stroke" class="input point_radius_input" type="text" />
             </div>
             <label for="_cfg_border_color">Border color</label>
             <div class="cfg-input">
-                <input id="_cfg_border_color" v-model="colorBorder" type="text" class="input point_radius_input" />
+                <input v-model="colorBorder" id="_cfg_border_color" class="input point_radius_input" type="text" />
             </div>
         </div>
     </div>

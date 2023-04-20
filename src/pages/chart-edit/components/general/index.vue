@@ -3,15 +3,15 @@
         <div class="first-col">
             <label for="_cfg_chart_title">Chart title</label>
             <div class="cfg-input">
-                <input id="_cfg_chart_title" v-model="title" type="text" class="input" />
+                <input v-model="title" id="_cfg_chart_title" class="input" type="text" />
             </div>
             <label for="_cfg_chart_width">Width</label>
             <div class="cfg-input">
-                <input id="_cfg_chart_width" v-model="width" type="text" class="input" />
+                <input v-model="width" id="_cfg_chart_width" class="input" type="text" />
             </div>
             <label for="_cfg_chart_height">Height</label>
             <div class="cfg-input">
-                <input id="_cfg_chart_height" v-model="height" type="text" class="input" />
+                <input v-model="height" id="_cfg_chart_height" class="input" type="text" />
             </div>
         </div>
         <div class="col1">
@@ -40,31 +40,31 @@
         <div class="col2">
             <label for="_cfg_zoom">Zoom</label>
             <div class="cfg-input input-wrapper">
-                <div class="checkbox-wrapper"><input id="_cfg_zoom" v-model="zoom" type="checkbox" /></div>
-                <input type="text" class="input" data-for="_cfg_zoom" value="Use zoom when dragging" readonly />
+                <div class="checkbox-wrapper"><input v-model="zoom" id="_cfg_zoom" type="checkbox" /></div>
+                <input class="input" data-for="_cfg_zoom" readonly type="text" value="Use zoom when dragging" />
             </div>
             <div v-if="zoom">
                 <label for="_cfg_drill">Drill down</label>
                 <div class="cfg-input input-wrapper">
-                    <div class="checkbox-wrapper"><input id="_cfg_drill" v-model="drillDown" type="checkbox" /></div>
-                    <input type="text" class="input" data-for="_cfg_drill" value="Use drill down when zooming" readonly />
+                    <div class="checkbox-wrapper"><input v-model="drillDown" id="_cfg_drill" type="checkbox" /></div>
+                    <input class="input" data-for="_cfg_drill" readonly type="text" value="Use drill down when zooming" />
                 </div>
             </div>
             <label for="_cfg_start">Start with Zoom</label>
             <div class="cfg-input input-wrapper">
-                <div class="checkbox-wrapper"><input id="_cfg_start" v-model="zoomStart" type="checkbox" /></div>
-                <input type="text" class="input" data-for="_cfg_start" value="Start with Zoom." readonly />
+                <div class="checkbox-wrapper"><input v-model="zoomStart" id="_cfg_start" type="checkbox" /></div>
+                <input class="input" data-for="_cfg_start" readonly type="text" value="Start with Zoom." />
             </div>
         </div>
         <div class="col3">
             <label for="_cfg_normalize">Normalize</label>
             <div class="cfg-input input-wrapper">
-                <div class="checkbox-wrapper"><input id="_cfg_normalize" v-model="normalize" type="checkbox" /></div>
-                <input type="text" class="input" data-for="_cfg_normalize" value="Adjusted values to a common scale" readonly />
+                <div class="checkbox-wrapper"><input v-model="normalize" id="_cfg_normalize" type="checkbox" /></div>
+                <input class="input" data-for="_cfg_normalize" readonly type="text" value="Adjusted values to a common scale" />
             </div>
             <label for="_cfg_raw_time_range">raw data time range (millisecond)</label>
             <div class="cfg-input">
-                <input id="_cfg_raw_time_range" v-model="rawChart" type="text" style="width: 270px" class="input" />
+                <input v-model="rawChart" id="_cfg_raw_time_range" class="input" style="width: 270px" type="text" />
             </div>
         </div>
     </div>

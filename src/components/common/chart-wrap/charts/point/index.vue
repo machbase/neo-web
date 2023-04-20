@@ -2,13 +2,13 @@
     <ChartWrap>
         <ChartHeader :panel-info="props.panelInfo" />
         <PointChart
-            :id="`chart-${props.index}`"
             ref="pointChart"
+            :id="`chart-${props.index}`"
             :chart-data="data.sDisplayData"
+            :is-stock-chart="sIsStockChart"
             :panel-info="props.panelInfo"
             :x-axis-max-range="data.sTimeLine.endTime"
             :x-axis-min-range="data.sTimeLine.startTime"
-            :is-stock-chart="sIsStockChart"
         />
         <ViewPort />
     </ChartWrap>

@@ -1,51 +1,51 @@
 <template>
     <ChartWrap>
         <div v-if="sLoading" class="loading-chart">
-            <img :src="cIsDarkMode ? loader_b : loader_w" class="icon" />
+            <img class="icon" :src="cIsDarkMode ? loader_b : loader_w" />
         </div>
         <ChartHeader
-            :panel-info="props.panelInfo"
-            :x-axis-max-range="data.sTimeLine.endTime"
-            :x-axis-min-range="data.sTimeLine.startTime"
+            @eOnReload="onReload"
             :p-inner-value="sInnerValue"
             :p-interval-data="data.sIntervalData"
-            @eOnReload="onReload"
-        />
-        <AreaChart
-            :id="`chart-${props.index}`"
-            ref="areaChart"
-            :max-y-chart="data.sMaxYChart"
-            :chart-data="data.sDisplayData"
-            :view-data="data.sViewPortData"
             :panel-info="props.panelInfo"
             :x-axis-max-range="data.sTimeLine.endTime"
             :x-axis-min-range="data.sTimeLine.startTime"
-            :x-min-time-range-view-port="data.sTimeRangeViewPort.startTime"
-            :x-max-time-range-view-port="data.sTimeRangeViewPort.endTime"
-            :is-stock-chart="sIsStockChart"
-            :p-is-zoom="sIsZoom"
-            :p-is-raw="data.sIsRaw"
+        />
+        <AreaChart
+            ref="areaChart"
+            :id="`chart-${props.index}`"
             @eOnChange="OnChangeTimeRangerViewPort"
-            @eOnChangeNavigator="OnChangeTimeRangerViewPortNavigator"
-            @eOnClick="OnChangeTimeClick"
-            @eOnChangeRaw="OnChangeRaw"
             @eOnChangeIsZoom="onChangeZoom"
+            @eOnChangeNavigator="OnChangeTimeRangerViewPortNavigator"
+            @eOnChangeRaw="OnChangeRaw"
+            @eOnClick="OnChangeTimeClick"
             @eResetSquare="onResetSquare"
+            :chart-data="data.sDisplayData"
+            :is-stock-chart="sIsStockChart"
+            :max-y-chart="data.sMaxYChart"
+            :p-is-raw="data.sIsRaw"
+            :p-is-zoom="sIsZoom"
+            :panel-info="props.panelInfo"
+            :view-data="data.sViewPortData"
+            :x-axis-max-range="data.sTimeLine.endTime"
+            :x-axis-min-range="data.sTimeLine.startTime"
+            :x-max-time-range-view-port="data.sTimeRangeViewPort.endTime"
+            :x-min-time-range-view-port="data.sTimeRangeViewPort.startTime"
         />
         <ViewPort
             v-if="data.sTimeLine"
-            :range-time="data.sTimeRangeViewPort"
-            :p-is-raw="data.sIsRaw"
-            :p-time-range="data.sTimeLine"
-            :panel-info="props.panelInfo"
-            :p-is-zoom="sIsZoom"
             @eMoveFocus="moveFocus"
             @eOnChange="onChangeTimeRange"
-            @eOnUndoTime="OnUndoTime"
             @eOnChangeAdjust="adjustViewportRange"
             @eOnChangeSRF="onChangeSRF"
             @eOnFocus="OnFocus"
+            @eOnUndoTime="OnUndoTime"
             @eonCloseNavigator="onCloseNavigator"
+            :p-is-raw="data.sIsRaw"
+            :p-is-zoom="sIsZoom"
+            :p-time-range="data.sTimeLine"
+            :panel-info="props.panelInfo"
+            :range-time="data.sTimeRangeViewPort"
         />
     </ChartWrap>
 </template>
@@ -215,11 +215,12 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     let sStartTime = toTimeUtcChart(sTimeRange.startTime);
     let sEndTime = toTimeUtcChart(sTimeRange.endTime);
 
-    if (!aCustomRange && !aIsNavigator) {
-        sStartTime = sStartTime - (sEndTime - sStartTime) * -0.8;
-    }
     data.sTimeLine.startTime = sStartTime;
     data.sTimeLine.endTime = sEndTime;
+    if (!aCustomRange && !aIsNavigator) {
+        data.sTimeLine.startTime = sStartTime - (sEndTime - sStartTime) * -0.4;
+        data.sTimeLine.endTime = sStartTime - (sEndTime - sStartTime) * -0.6;
+    }
     const sIntervalTime = aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(sStartTime, sEndTime, sChartWidth) : data.sIntervalData;
     data.sIntervalData = sIntervalTime;
     for (let index = 0; index < sTagSet.length; index++) {
@@ -329,11 +330,12 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
     let sStartTime = toTimeUtcChart(sTimeRange.startTime);
     let sEndTime = toTimeUtcChart(sTimeRange.endTime);
 
-    if (!aCustomRange && !aIsNavigator) {
-        sStartTime = sStartTime - (sEndTime - sStartTime) * -0.8;
-    }
     data.sTimeLine.startTime = sStartTime;
     data.sTimeLine.endTime = sEndTime;
+    if (!aCustomRange && !aIsNavigator) {
+        data.sTimeLine.startTime = sStartTime - (sEndTime - sStartTime) * -0.4;
+        data.sTimeLine.endTime = sStartTime - (sEndTime - sStartTime) * -0.6;
+    }
 
     for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
@@ -523,7 +525,7 @@ const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) =>
         if (sNewTimeBgn >= sNewTimeEnd) {
             sNewTimeBgn = sNewTimeBgn - 10;
             // alert('The time range is too small to perform this function.');
-            // return;
+            return;
         }
         const rangeNavigator = sNewTimeEnd - (sNewTimeBgn - (sNewTimeEnd - sNewTimeBgn) * -0.97);
         if (rangeChart - rangeNavigator < 0) {
@@ -556,8 +558,8 @@ function OnChangeRaw(aStatus: boolean) {
 }
 const getTimeReset = (sTimeRange: TimeLineType) => {
     return {
-        startTime: sTimeRange.startTime - (sTimeRange.endTime - sTimeRange.startTime) * -0.8,
-        endTime: sTimeRange.endTime,
+        startTime: sTimeRange.startTime - (sTimeRange.endTime - sTimeRange.startTime) * -0.4,
+        endTime: sTimeRange.startTime - (sTimeRange.endTime - sTimeRange.startTime) * -0.6,
     };
 };
 const onCloseNavigator = async () => {

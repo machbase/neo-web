@@ -3,14 +3,14 @@
         <!-- <div class="button-wrapper"> -->
         <div class="login-card">
             <div>
-                <img src="@/assets/image/i_logo.png" alt="" />
+                <img alt="" src="@/assets/image/i_logo.png" />
             </div>
             <div class="input-form">
-                <input v-model="sLoginName" type="text" placeholder="ID" class="input normal-text" @keydown.enter="login" />
-                <input v-model="sPassword" type="password" placeholder="Password" class="input normal-text" @keydown.enter="login" />
+                <input v-model="sLoginName" @keydown.enter="login" class="input normal-text" placeholder="ID" type="text" />
+                <input v-model="sPassword" @keydown.enter="login" class="input normal-text" placeholder="Password" type="password" />
             </div>
             <div class="button-form">
-                <button :class="sLoginName !== '' && sPassword !== '' ? 'no-input' : 'login-button'" @click="login">LOGIN</button>
+                <button @click="login" :class="sLoginName !== '' && sPassword !== '' ? 'no-input' : 'login-button'">LOGIN</button>
             </div>
         </div>
         <!-- </div> -->
