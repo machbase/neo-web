@@ -12,8 +12,8 @@ export const key: InjectionKey<Store<storeTypes>> = Symbol();
 export const store = createStore<storeTypes>({
     state: state,
     getters: getters,
-    mutations: mutations,
     actions: actions,
+    mutations: mutations,
 });
 
 // define your own `useStore` composition function

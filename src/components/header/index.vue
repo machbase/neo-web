@@ -1,10 +1,10 @@
 <template>
     <div class="header">
         <div v-if="sLoading" class="loading-rollUp">
-            <img :src="cIsDarkMode ? loader_b : loader_w" class="icon" />
+            <img class="icon" :src="cIsDarkMode ? loader_b : loader_w" />
         </div>
         <div class="header__link">
-            <img :src="logo" class="icon" />
+            <img class="icon" :src="logo" />
             <!-- <span class="header__name">{{ cBoard.board_name }}</span> -->
             <!-- <ComboboxSelect
                 v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
@@ -13,12 +13,12 @@
                 @e-on-change="onChangeRoute"
             /> -->
             <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" class="header__link--group">
-                <router-link class="header__link--group-item" :to="{ name: RouteNames.NEW }" target="_blank">{{ NEW_DASHBOARD }}</router-link>
-                <img :src="i_b_menu_1" class="icon" />
-                <div class="header__link--group-item drop" @click="onChildGroup">
+                <router-link class="header__link--group-item" target="_blank" :to="{ name: RouteNames.NEW }">{{ NEW_DASHBOARD }}</router-link>
+                <img class="icon" :src="i_b_menu_1" />
+                <div @click="onChildGroup" class="header__link--group-item drop">
                     {{ SET }}
                     <div ref="childGroup" class="child-group">
-                        <div class="item" @click="onClickPopupItem(PopupType.PREFERENCES)">{{ PREFERENCE }}</div>
+                        <div @click="onClickPopupItem(PopupType.PREFERENCES)" class="item">{{ PREFERENCE }}</div>
                         <!-- <div class="item" @click="onRollUp">{{ REQUEST_ROLLUP }}</div> -->
                     </div>
                 </div>
@@ -37,33 +37,33 @@
             <!-- <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new'" :src="i_b_timerange" class="icon" />             -->
             <v-icon
                 v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
-                size="small"
+                @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)"
                 class="icon"
                 icon="mdi-content-save"
-                @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)"
+                size="small"
             ></v-icon>
             <label v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW">
-                <v-icon size="small" class="icon file-import-icon" icon="mdi-upload"></v-icon>
-                <input class="file-import" type="file" accept="application/JSON" @change="onUploadChart" />
+                <v-icon class="icon file-import-icon" icon="mdi-upload" size="small"></v-icon>
+                <input @change="onUploadChart" accept="application/JSON" class="file-import" type="file" />
             </label>
             <img
                 v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW || sHeaderType === RouteNames.VIEW"
-                :src="i_b_timerange"
-                class="icon"
                 @click="onClickPopupItem(PopupType.TIME_RANGE)"
+                class="icon"
+                :src="i_b_timerange"
             />
-            <img :src="i_b_refresh" class="icon" @click="onReload" />
+            <img @click="onReload" class="icon" :src="i_b_refresh" />
             <!-- <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW">
                 <router-link :to="{ name: RouteNames.VIEW }" target="_blank">
                     <img :src="i_b_share" class="icon" @click="openNewChartPage" />
                 </router-link>
             </div> -->
-            <img v-if="sHeaderType === RouteNames.CHART_EDIT" class="icon" :src="i_b_save_2" @click="onSaveEdit" />
-            <img v-if="sHeaderType === RouteNames.TAG_VIEW" :src="i_b_logout" class="icon" @click="logout" />
-            <a class="icon"><img v-if="sHeaderType === RouteNames.CHART_EDIT" :src="i_b_close" style="margin-top: 7px" @click="router.go(-1)" /></a>
+            <img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="onSaveEdit" class="icon" :src="i_b_save_2" />
+            <img v-if="sHeaderType === RouteNames.TAG_VIEW" @click="logout" class="icon" :src="i_b_logout" />
+            <a class="icon"><img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="router.go(-1)" :src="i_b_close" style="margin-top: 7px" /></a>
         </div>
     </div>
-    <PopupWrap :p-type="sPopupType" :p-show="sDialog" :p-width="cWidthPopup" @eClosePopup="onClosePopup" />
+    <PopupWrap @eClosePopup="onClosePopup" :p-show="sDialog" :p-type="sPopupType" :p-width="cWidthPopup" />
 </template>
 
 <script setup lang="ts" name="Header">
@@ -118,6 +118,9 @@ const cBoardListSelect = computed(() =>
         };
     })
 );
+const cLocation = computed(() => {
+    return window.location.href.indexOf('web') === -1 ? false : true;
+});
 
 const openNewChartPage = () => {
     document.cookie = `data=${JSON.stringify(cBoard.value)}; expires=${new Date(Date.now() + 10000).toUTCString()}`;
@@ -139,6 +142,7 @@ const schema = Joi.object({
                         .required()
                         .items(
                             Joi.object({
+                                onRollup: Joi.boolean(),
                                 id: Joi.number(),
                                 weight: Joi.number().required(),
                                 offset: Joi.number(),
@@ -254,7 +258,7 @@ const schema = Joi.object({
 });
 const validateTest = async (joiSchema: any, testObject: any) => {
     try {
-        await joiSchema.validateAsync(testObject);
+        const sData = await joiSchema.validateAsync(testObject);
         return true;
     } catch (err) {
         console.error('err', err);

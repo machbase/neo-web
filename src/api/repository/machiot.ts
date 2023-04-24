@@ -1,5 +1,17 @@
 import request from '@/api/core';
 
+const fetchData = async (aSql: string, aLimit?: number) => {
+    let sSql;
+    if (aLimit) {
+        sSql = aSql + ` LIMIT ${aLimit * 20 - 20},${aLimit * 20}`;
+    } else {
+        sSql = aSql;
+    }
+    return await request({
+        method: 'GET',
+        url: `/machbase?q=${encodeURI(sSql)}`,
+    });
+};
 const fetchTableName = async (aTable: any) => {
     let DBName = '';
     if (aTable.indexOf('.') === -1) DBName = String(-1);
@@ -25,11 +37,21 @@ const fetchCalculationData = async (params: any) => {
     let sMainQuery = '';
     let sTimeCalc = '';
     let sOnedayOversize = '';
+    let sRollupValue = 0;
 
-    if (IntervalType == 'day' && IntervalValue > 1) {
+    if (Rollup && IntervalType == 'day' && IntervalValue > 1) {
         sTimeCalc = '1hour';
-
         sOnedayOversize = `to_char(mTime / ${IntervalValue * 60 * 60 * 24 * 1000000000}  * ${IntervalValue * 60 * 60 * 24 * 1000000000})`;
+    } else if (!Rollup) {
+        if (IntervalType === 'sec') {
+            sRollupValue = 1;
+        } else if (IntervalType === 'min') {
+            sRollupValue = 60;
+        } else if (IntervalType === 'hour') {
+            sRollupValue = 3600;
+        }
+        sTimeCalc = IntervalValue + IntervalType;
+        sOnedayOversize = 'to_char(mTime)';
     } else {
         sTimeCalc = IntervalValue + IntervalType;
         sOnedayOversize = 'to_char(mTime)';
@@ -37,23 +59,31 @@ const fetchCalculationData = async (params: any) => {
 
     if (CalculationMode === 'sum' || CalculationMode === 'min' || CalculationMode === 'max') {
         let sCol = `${sTime} rollup ${sTimeCalc}`;
+
         if (!Rollup) {
             sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
         }
+
         sSubQuery = `select ${sCol} as mTime, ${CalculationMode}(${sValue}) as mValue from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between to_date('${Start}') and to_date('${End}') group by mTime`;
         sMainQuery = `select ${sOnedayOversize} as time, ${CalculationMode}(mvalue) as value from (${sSubQuery}) Group by ${sTime} order by ${sTime}  LIMIT ${Count * 1}`;
     }
     if (CalculationMode === 'avg') {
         let sCol = `${sTime} rollup ${sTimeCalc}`;
-        if (Rollup) {
-            sCol = `${sTime} / (${IntervalValue} * 60 * 1000000000) * (${IntervalValue} * 60 * 1000000000)`;
+        if (!Rollup) {
+            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
         }
         sSubQuery = `select ${sCol} as mtime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between to_date('${Start}') and to_date('${End}') group by mTime`;
         sMainQuery = `SELECT ${sOnedayOversize} AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by ${sTime} order by ${sTime} LIMIT ${Count * 1}`;
     }
 
     if (CalculationMode === 'cnt') {
-        sMainQuery = `SELECT to_char(LAST(${sTime}, ${sTime})) AS time, Count(*) AS value FROM ${Table} WHERE ${sName} = '${TagNames}' AND ${sTime} BETWEEN TO_DATE('${Start}') AND TO_DATE('${End}')`;
+        let sCol = `${sTime} rollup ${sTimeCalc}`;
+        if (!Rollup) {
+            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
+        }
+
+        sSubQuery = `select ${sCol} as mtime, count(${sValue}) as mValue from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between to_date('${Start}') and to_date('${End}') group by mTime`;
+        sMainQuery = `SELECT ${sOnedayOversize} AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by ${sTime} order by ${sTime} LIMIT ${Count * 1}`;
     }
 
     const queryString = `/machbase?q=${sMainQuery}`;
@@ -76,7 +106,7 @@ const fetchRawData = async (params: any) => {
     } else if (Start.length < 22) {
         sStart = Start.substring(0, 10) + ' ' + Start.substring(11, 19) + ' 000:000:000';
     } else {
-        sStart = Start.substring(0, 10) + ' ' + Start.substring(11, 19) + Start.substring(20, 23) + ' 000:000:000';
+        sStart = Start.substring(0, 10) + ' ' + Start.substring(11, 19) + ' ' + Start.substring(20, 23) + ':000:000';
     }
 
     if (End.length < 19) {
@@ -84,7 +114,7 @@ const fetchRawData = async (params: any) => {
     } else if (End.length < 22) {
         sEnd = End.substring(0, 10) + ' ' + End.substring(11, 19) + ' 000:000:000';
     } else {
-        sEnd = End.substring(0, 10) + ' ' + End.substring(11, 19) + End.substring(20, 23) + ' 000:000:000';
+        sEnd = End.substring(0, 10) + ' ' + End.substring(11, 19) + ' ' + End.substring(20, 23) + ':000:000';
     }
 
     if (Direction == 1) {
@@ -166,4 +196,4 @@ const fetchOnRollupTable = async (table: string) => {
     });
 };
 
-export { fetchCalculationData, fetchRawData, fetchTablesData, fetchRollupData, fetchRangeData, fetchTags, fetchRollUp, fetchOnRollupTable, fetchOnMinMaxTable };
+export { fetchCalculationData, fetchRawData, fetchTablesData, fetchRollupData, fetchRangeData, fetchTags, fetchRollUp, fetchOnRollupTable, fetchOnMinMaxTable, fetchData };

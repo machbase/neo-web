@@ -10,12 +10,12 @@
             <div class="newchart-all">
                 <div class="tagtitle floatleft">Table</div>
                 <ComboboxSelect
+                    @e-on-change="onChangeTable"
                     class="input"
                     :p-data="cTableListSelect"
                     :p-show-default-option="false"
                     :p-value="cTableListSelect[0] ? cTableListSelect[0].name : 'TAG'"
                     style="width: 100%"
-                    @e-on-change="onChangeTable"
                 />
             </div>
         </div>
@@ -23,18 +23,18 @@
             <div class="col-sm-6 newchart-left">
                 <div class="tagtitle floatleft">Tag</div>
                 <div class="search-wrapper">
-                    <input v-model="searchText" class="form-control taginput input" style="width: 180px" type="text" @keydown.enter="onSearch" />
-                    <span class="input clear-icon" @click="onReset"><img alt="Clear icon" :src="i_b_close" /></span>
-                    <v-btn class="button-effect-color" :height="30" variant="outlined" @click="onSearch">Search</v-btn>
+                    <input v-model="searchText" @keydown.enter="onSearch" class="form-control taginput input" style="width: 180px" type="text" />
+                    <span @click="onReset" class="input clear-icon"><img alt="Clear icon" :src="i_b_close" /></span>
+                    <v-btn @click="onSearch" class="button-effect-color" :height="30" variant="outlined">Search</v-btn>
                 </div>
                 <div class="countGroup">
                     <div>Total : {{ cTagsSearch.length }} / {{ cTags.length }}</div>
                     <div>Select : {{ selectCount }}</div>
                 </div>
                 <div class="taglistdiv taglistscroll">
-                    <div v-for="(aTag, aIndex) in tagsPaged[pageIndex]" :key="aIndex" class="text" style="margin-bottom: 5px" @click="onSelectTag(aTag)">{{ aTag }}</div>
+                    <div v-for="(aTag, aIndex) in tagsPaged[pageIndex]" :key="aIndex" @click="onSelectTag(aTag)" class="text" style="margin-bottom: 5px">{{ aTag }}</div>
                 </div>
-                <Pagination :total="Math.ceil(cTags.length / MAX_TAG_COUNT)" @e-on-change="onPaging" />
+                <Pagination @e-on-change="onPaging" :total="Math.ceil(cTags.length / MAX_TAG_COUNT)" />
             </div>
             <div class="col-sm-6 newchart-right overflowhidden">
                 <div class="wrapcharttype overflowhidden">
@@ -43,12 +43,12 @@
                 <div class="selectedlistdiv taglistscroll">
                     <div v-for="(aTime, aIndex) in sSelectedTags" :key="aIndex" class="wrapperTagSelect" style="margin-bottom: 5px">
                         <span @click="onRemoveTag(aIndex)"> {{ aTime.tag_names }}</span>
-                        <ComboboxSelect :p-data="CALC_MODE" :p-show-default-option="false" :p-value="'avg'" @e-on-change="(item) => onChangeCalcMode(item, aIndex)" />
+                        <ComboboxSelect @e-on-change="(item) => onChangeCalcMode(item, aIndex)" :p-data="CALC_MODE" :p-show-default-option="false" :p-value="'avg'" />
                     </div>
                 </div>
                 <div class="popup__btn-group">
-                    <v-btn class="button-effect-color" variant="outlined" @click="onSetting"> Ok </v-btn>
-                    <v-btn class="button-effect" variant="outlined" @click="onClosePopup"> Cancel </v-btn>
+                    <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> Ok </v-btn>
+                    <v-btn @click="onClosePopup" class="button-effect" variant="outlined"> Cancel </v-btn>
                 </div>
             </div>
         </div>
@@ -116,7 +116,7 @@ watch(
 watch(
     () => tableSelected.value,
     async () => {
-        if (tableSelected.value) {
+        if (cTableListSelect.value[0]) {
             const sRes = await fetchOnRollupTable(tableSelected.value);
             if (sRes.data.rows.length === 0) {
                 sSelectTableOnRollup.value = false;
