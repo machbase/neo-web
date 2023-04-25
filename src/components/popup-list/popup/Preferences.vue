@@ -15,7 +15,7 @@
         <div class="popup__input">
             <p class="popup__input-label">UI Theme</p>
             <div class="popup__input-content">
-                <ComboboxSelect :p-data="THEME_MODE" :p-string-default="SELECT_THEME" :p-value="cPreferences.theme" @e-on-change="(aValue) => aIsChangeTheme(aValue, true)" />
+                <ComboboxSelect @e-on-change="(aValue) => aIsChangeTheme(aValue, true)" :p-data="THEME_MODE" :p-string-default="SELECT_THEME" :p-value="cPreferences.theme" />
             </div>
         </div>
         <!-- <div class="popup__input-group">
@@ -26,8 +26,8 @@
             </div>
         </div> -->
         <div class="popup__btn-group">
-            <v-btn variant="outlined" class="button-effect-color" @click="onSetting"> Ok </v-btn>
-            <v-btn variant="outlined" class="button-effect" @click="onClosePopup"> Cancel </v-btn>
+            <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> Ok </v-btn>
+            <v-btn @click="onClosePopup" class="button-effect" variant="outlined"> Cancel </v-btn>
         </div>
     </div>
 </template>
@@ -46,9 +46,9 @@ const emit = defineEmits(['eClosePopup']);
 const store = useStore();
 const sData = reactive({
     theme: cPreferences.value.theme || DEFAULT_PREFERENCE.THEME,
-    ip: cPreferences.value.ip || DEFAULT_PREFERENCE.IP,
-    port: cPreferences.value.port || DEFAULT_PREFERENCE.PORT,
-    timeout: cPreferences.value.timeout || DEFAULT_PREFERENCE.TIMEOUT,
+    // ip: cPreferences.value.ip || DEFAULT_PREFERENCE.IP,
+    // port: cPreferences.value.port || DEFAULT_PREFERENCE.PORT,
+    // timeout: cPreferences.value.timeout || DEFAULT_PREFERENCE.TIMEOUT,
 });
 const cBoardList = computed(() =>
     store.state.gBoardList.map((aItem) => {
@@ -70,9 +70,12 @@ const onChangeInput = (aEvent: Event) => {
 };
 const onSetting = () => {
     store.dispatch(ActionTypes.postPreference, sData).then(() => onClosePopup());
-    if (isEqual(store.state.gPreference, JSON.parse(localStorage.getItem('gPreference') || ''))) {
-        return;
+    if (localStorage.getItem('gPreference')) {
+        if (isEqual(store.state.gPreference, JSON.parse(localStorage.getItem('gPreference') || ''))) {
+            return;
+        }
     }
+
     location.reload();
     localStorage.setItem('gPreference', JSON.stringify(sData));
 };

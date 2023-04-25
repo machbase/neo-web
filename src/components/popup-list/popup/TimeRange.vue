@@ -4,19 +4,19 @@
             <p class="title">From</p>
             <div class="row">
                 <DatePicker @e-change-time="changeTimeStart" />
-                <input v-model="dateStart" type="text" class="input" />
+                <input v-model="dateStart" class="input" type="text" />
             </div>
             <p class="title">To</p>
             <div class="row">
                 <DatePicker @e-change-time="changeTimeEnd" />
-                <input v-model="dateEnd" type="text" class="input" />
+                <input v-model="dateEnd" class="input" type="text" />
             </div>
             <div>
                 <p class="title">Refreshing every</p>
-                <div class="row"><ComboboxTime @e-on-change="changeRefresh" /><v-btn class="button-apply" variant="outlined" @click="onSetting"> Apply </v-btn></div>
+                <div class="row"><ComboboxTime @e-on-change="changeRefresh" /><v-btn @click="onSetting" class="button-apply" variant="outlined"> Apply </v-btn></div>
             </div>
         </div>
-        <TimeRange class="col-right" @eOnTimeRange="OnTimeRange" />
+        <TimeRange @eOnTimeRange="OnTimeRange" class="col-right" />
     </div>
 </template>
 

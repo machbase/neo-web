@@ -9,7 +9,7 @@ const state = {
         JSON.parse(localStorage.getItem('gPreference') as string) ||
         ({
             ip: '127.0.0.1',
-            theme: 'machIoTchartBlack',
+            theme: 'machIoTchartWhite',
             home_board: '',
             timeout: 20000,
             port: '5657',

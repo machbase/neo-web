@@ -63,7 +63,14 @@ const cChartOptions = computed(() => {
                 // },
             },
         },
-        series: props.chartData.datasets,
+        series:
+            props.panelInfo.drilldown_zoom === 'Y'
+                ? props.chartData.datasets
+                : props.viewData.datasets
+                ? props.viewData.datasets.map((i) => {
+                      return { data: i.data, marker: i.marker };
+                  })
+                : [],
         plotOptions: {
             series: {
                 showInNavigator: false,

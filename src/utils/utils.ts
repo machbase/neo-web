@@ -8,6 +8,7 @@ import { TempNewChartData } from '@/interface/tagView';
 import { COLOR_SET } from './constants';
 import { MAX_TAG_COUNT } from '@/components/popup-list/popup/constant';
 import { YorN } from '@/interface/constants';
+import { string } from 'joi';
 
 const utils = {};
 const formatDate = (date: Date | string): string => {
@@ -121,7 +122,7 @@ function makeMilliTime(aTime: number | string) {
 }
 
 function toDateUtcChart(date: number) {
-    return moment.utc(date).format(FORMAT_FULL_DATE);
+    return moment.utc(date).format(FORMAT_FULL_DATE) + ' ' + String(Math.floor(date)).substring(9, 12);
 }
 
 function formatColors(colors: string) {
