@@ -4,26 +4,30 @@
             <p></p>
             <span>{{ props.panelInfo.chart_title }}</span>
         </div>
-        <div>{{ toDateUtcChart(xAxisMinRange) }} ~ {{ toDateUtcChart(xAxisMaxRange) }} ( interval : {{ pIntervalData.IntervalValue }} {{ pIntervalData.IntervalType }} )</div>
+        <div>
+            {{ toDateUtcChart(xAxisMinRange).split(' ')[0] + ' ' + toDateUtcChart(xAxisMinRange).split(' ')[1] }} ~
+            {{ toDateUtcChart(xAxisMaxRange).split(' ')[0] + ' ' + toDateUtcChart(xAxisMaxRange).split(' ')[1] }}
+            {{ props.panelInfo.drilldown_zoom === 'Y' ? '( interval :' + pIntervalData.IntervalValue + ' ' + pIntervalData.IntervalType + ' )' : '' }}
+        </div>
         <div class="chart-wrap__header-icons">
             <img
                 v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW"
-                :src="cIsDarkMode ? i_b_newwin : i_w_newwin"
-                class="icon"
                 @click="openNewChartPage"
+                class="icon"
+                :src="cIsDarkMode ? i_b_newwin : i_w_newwin"
             />
             <router-link
                 v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW && route.name !== RouteNames.VIEW"
                 :to="{ name: RouteNames.CHART_EDIT, params: { id: panelInfo.i } }"
             >
-                <img :src="cIsDarkMode ? i_b_edit : i_w_edit" class="icon" />
+                <img class="icon" :src="cIsDarkMode ? i_b_edit : i_w_edit" />
             </router-link>
-            <img :src="i_b_refresh" class="icon" @click="onReloadChart" />
+            <img @click="onReloadChart" class="icon" :src="i_b_refresh" />
             <img
                 v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW && route.name !== RouteNames.VIEW"
-                :src="cIsDarkMode ? i_b_del : i_w_del"
-                class="icon"
                 @click="onDeleteBoard"
+                class="icon"
+                :src="cIsDarkMode ? i_b_del : i_w_del"
             />
         </div>
     </div>

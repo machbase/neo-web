@@ -212,6 +212,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
         return;
     }
     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
+
     let sStartTime = toTimeUtcChart(sTimeRange.startTime);
     let sEndTime = toTimeUtcChart(sTimeRange.endTime);
 
@@ -243,7 +244,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
                 data:
                     sFetchResult.length > 0
                         ? sFetchResult.map((aItem: any) => {
-                              return [props.panelInfo.drilldown_zoom === 'N' ? toTimeUtcChart(cTimeRange.value.min) : toTimeUtcChart(aItem.time), aItem.avg];
+                              return [toTimeUtcChart(aItem.time), aItem.avg];
                           })
                         : [],
                 yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
@@ -355,7 +356,7 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
                 data:
                     sFetchResult.length > 0
                         ? sFetchResult.map((aItem: any) => {
-                              return [props.panelInfo.drilldown_zoom === 'N' ? rawtoTimeUtcChart(cTimeRange.value.min) : rawtoTimeUtcChart(aItem.TIME), aItem.VALUE];
+                              return [rawtoTimeUtcChart(aItem.TIME), aItem.VALUE];
                           })
                         : [],
                 yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
@@ -379,8 +380,8 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPo
             await fetchPanelData(props.panelInfo);
             await fetchViewPortData(props.panelInfo);
         } else {
-            await fetchPanelData(props.panelInfo, aCustomRange);
             await fetchViewPortData(props.panelInfo, aViewPortRange);
+            await fetchPanelData(props.panelInfo, aCustomRange);
         }
     } catch (error) {
         console.log(error);
@@ -687,8 +688,9 @@ watch(
     }
 );
 
-onMounted(() => {
+onMounted(async () => {
     intializePanelData();
+    onReload();
 });
 
 defineExpose({ onReload });
