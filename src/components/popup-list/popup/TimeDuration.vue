@@ -3,24 +3,24 @@
         <div class="col-left">
             <p class="title">From</p>
             <div class="row">
-                <DatePicker :p-init="dateStart" :p-disabled="pIsFromTime" @e-change-time="changeTimeStart" />
-                <input :value="dateStart" type="text" class="input disable-icon" :disabled="pIsFromTime" />
+                <DatePicker @e-change-time="changeTimeStart" :p-disabled="pIsFromTime" :p-init="dateStart" />
+                <input class="input disable-icon" :disabled="pIsFromTime" type="text" :value="dateStart" />
             </div>
             <p class="title">To</p>
             <div class="row">
-                <DatePicker :p-init="dateEnd" :p-disabled="!pIsFromTime" @e-change-time="changeTimeEnd" />
-                <input :value="dateEnd" type="text" class="input disable-icon" :disabled="!pIsFromTime" />
+                <DatePicker @e-change-time="changeTimeEnd" :p-disabled="!pIsFromTime" :p-init="dateEnd" />
+                <input class="input disable-icon" :disabled="!pIsFromTime" type="text" :value="dateEnd" />
             </div>
             <div>
                 <p class="title">Duration</p>
-                <div class="row"><input v-model="duration" type="text" class="input" /></div>
+                <div class="row"><input v-model="duration" class="input" type="text" /></div>
             </div>
         </div>
         <div class="col-right">
             <TimeDuration @eOnTimeDuration="OnTimeRange" />
             <div class="popup__btn-group">
-                <v-btn variant="outlined" class="button-effect-color" @click="onSetting"> Ok </v-btn>
-                <v-btn variant="outlined" class="button-effect" @click="onClosePopup"> Cancel </v-btn>
+                <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> Ok </v-btn>
+                <v-btn @click="onClosePopup" class="button-effect" variant="outlined"> Cancel </v-btn>
             </div>
         </div>
     </div>

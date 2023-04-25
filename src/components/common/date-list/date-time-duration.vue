@@ -3,7 +3,7 @@
         <p class="date-time__title title">Quick duration</p>
         <div class="date-time__body">
             <div v-for="(aItem, aIndex) in TIME_DURATION" :key="aIndex" class="col-duration">
-                <div v-for="aTime in aItem" :key="aTime.key" class="text" @click="onSendTime(aTime)">{{ aTime.name }}</div>
+                <div v-for="aTime in aItem" :key="aTime.key" @click="onSendTime(aTime)" class="text">{{ aTime.name }}</div>
             </div>
         </div>
     </div>
