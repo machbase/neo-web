@@ -5,8 +5,8 @@
             <span>{{ props.panelInfo.chart_title }}</span>
         </div>
         <div>
-            {{ toDateUtcChart(xAxisMinRange).split(' ')[0] + ' ' + toDateUtcChart(xAxisMinRange).split(' ')[1] }} ~
-            {{ toDateUtcChart(xAxisMaxRange).split(' ')[0] + ' ' + toDateUtcChart(xAxisMaxRange).split(' ')[1] }}
+            {{ toDateUtcChart(xAxisMinRange, true).split(' ')[0] + ' ' + toDateUtcChart(xAxisMinRange, true).split(' ')[1] }} ~
+            {{ toDateUtcChart(xAxisMaxRange, true).split(' ')[0] + ' ' + toDateUtcChart(xAxisMaxRange, true).split(' ')[1] }}
             {{ props.panelInfo.drilldown_zoom === 'Y' ? '( interval :' + pIntervalData.IntervalValue + ' ' + pIntervalData.IntervalType + ' )' : '' }}
         </div>
         <div class="chart-wrap__header-icons">

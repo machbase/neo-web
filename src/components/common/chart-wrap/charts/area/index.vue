@@ -229,8 +229,8 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
             Table: sTagSetElement.table,
             TagNames: sTagSetElement.tag_names,
-            Start: toDateUtcChart(sStartTime),
-            End: toDateUtcChart(sEndTime),
+            Start: toDateUtcChart(sStartTime, true),
+            End: toDateUtcChart(sEndTime, true),
             Rollup: sTagSetElement.onRollup,
             CalculationMode: sTagSetElement.calculation_mode.toLowerCase(),
             ...sIntervalTime,
@@ -284,8 +284,8 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
             Table: sTagSetElement.table,
             TagNames: sTagSetElement.tag_names,
-            Start: toDateUtcChart(sStartTime),
-            End: toDateUtcChart(sEndTime),
+            Start: toDateUtcChart(sStartTime, true),
+            End: toDateUtcChart(sEndTime, true),
             Rollup: sTagSetElement.onRollup,
             CalculationMode: sTagSetElement.calculation_mode.toLowerCase(),
             ...sIntervalTime,
@@ -343,8 +343,8 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagDataRaw, {
             Table: sTagSetElement.table,
             TagNames: sTagSetElement.tag_names,
-            Start: toDateUtcChart(sStartTime),
-            End: toDateUtcChart(sEndTime),
+            Start: toDateUtcChart(sStartTime, true),
+            End: toDateUtcChart(sEndTime, true),
             Count: sLimit,
             Direction: 0,
         });
