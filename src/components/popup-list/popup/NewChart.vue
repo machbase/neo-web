@@ -189,7 +189,6 @@ const onSetting = async () => {
             tagSet: sSelectedTags,
             defaultRange: { min: sMinMax.rows[0][0], max: sMinMax.rows[0][1] },
         };
-        console.log(newData);
 
         store.dispatch(ActionTypes.fetchNewChartBoard, newData).then(() => onClosePopup());
     }
