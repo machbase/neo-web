@@ -27,12 +27,12 @@ const fetchTableName = async (aTable: any) => {
 };
 
 const fetchCalculationData = async (params: any) => {
-    const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue, Rollup } = params;
-    const sTableName: any = await fetchTableName(Table);
+    const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue, Rollup, colName } = params;
 
-    const sName = sTableName.data.rows[0][0];
-    const sTime = sTableName.data.rows[1][0];
-    const sValue = sTableName.data.rows[2][0];
+    const sName = colName.name;
+    const sTime = colName.time;
+    const sValue = colName.value;
+
     let sSubQuery = '';
     let sMainQuery = '';
     let sTimeCalc = '';
@@ -95,7 +95,7 @@ const fetchCalculationData = async (params: any) => {
 };
 
 const fetchRawData = async (params: any) => {
-    const { Table, TagNames, Start, End, Direction, Count } = params;
+    const { Table, TagNames, Start, End, Direction, Count, colName } = params;
 
     let sStart = '';
     let sEnd = '';
@@ -123,9 +123,9 @@ const fetchRawData = async (params: any) => {
         sOrderBy = '1';
     }
 
-    const sNameCol = 'Name';
-    const sTimeCol = 'Time';
-    const sValueCol = 'Value';
+    const sNameCol = colName.name;
+    const sTimeCol = colName.time;
+    const sValueCol = colName.value;
 
     const sTimeQ = `TO_CHAR(${sTimeCol})` + ' as date';
     const sValueQ = sValueCol + ' as value';
@@ -186,7 +186,7 @@ const fetchRollUp = async (table: string) => {
 const fetchOnMinMaxTable = async (table: string, tagName: string) => {
     return await request({
         method: 'GET',
-        url: `/machbase?q=select to_char(min_time),to_char(max_time) from v$${table}_stat`,
+        url: `/machbase?q=select to_char(min(min_time)),to_char(max(max_time)) from v$${table}_stat where name = '${tagName}'`,
     });
 };
 const fetchOnRollupTable = async (table: string) => {
@@ -196,4 +196,16 @@ const fetchOnRollupTable = async (table: string) => {
     });
 };
 
-export { fetchCalculationData, fetchRawData, fetchTablesData, fetchRollupData, fetchRangeData, fetchTags, fetchRollUp, fetchOnRollupTable, fetchOnMinMaxTable, fetchData };
+export {
+    fetchCalculationData,
+    fetchRawData,
+    fetchTablesData,
+    fetchRollupData,
+    fetchRangeData,
+    fetchTableName,
+    fetchTags,
+    fetchRollUp,
+    fetchOnRollupTable,
+    fetchOnMinMaxTable,
+    fetchData,
+};

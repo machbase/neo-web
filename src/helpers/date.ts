@@ -28,7 +28,7 @@ const _convertTimeToFullDate = (aTime: string) => {
 const setTimeRange = async (aPanelInfo: PanelInfo, aDashboard: BoardInfo) => {
     let timeRange = {} as RangeData;
     if (!aDashboard.range_end || !aDashboard.range_bgn) {
-        timeRange = store.state.gRangeData;
+        timeRange = aPanelInfo.default_range;
     }
     const startTime = _convertTimeToFullDate(aPanelInfo.range_bgn || aDashboard.range_bgn || timeRange.min);
     const endTime = _convertTimeToFullDate(aPanelInfo.range_end || aDashboard.range_end || timeRange.max);

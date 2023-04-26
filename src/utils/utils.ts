@@ -180,6 +180,7 @@ function convertChartDefault(aChartDefault: PanelInfo, aTag: TempNewChartData): 
     // const timeout = 20000;
     return {
         ...aChartDefault,
+        default_range: aTag.defaultRange,
         color_set: COLOR_SET,
         show_point: chart.show_point as YorN,
         stroke: chart.stroke,

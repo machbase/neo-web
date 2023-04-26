@@ -24,6 +24,7 @@ export interface ResTableList {
 export interface TempNewChartData {
     chartType: ChartType;
     tagSet: TagSet[];
+    defaultRange: any;
 }
 
 export interface BoardPanelEdit {

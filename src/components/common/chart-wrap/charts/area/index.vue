@@ -237,6 +237,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
             Rollup: sTagSetElement.onRollup,
             CalculationMode: sTagSetElement.calculation_mode.toLowerCase(),
             ...sIntervalTime,
+            colName: sTagSetElement.colName,
             Count: sCount,
         });
         if (typeof sFetchResult === 'string') {
@@ -291,6 +292,7 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
             End: toDateUtcChart(sEndTime, true),
             Rollup: sTagSetElement.onRollup,
             CalculationMode: sTagSetElement.calculation_mode.toLowerCase(),
+            colName: sTagSetElement.colName,
             ...sIntervalTime,
             Count: sCount,
         });
@@ -349,6 +351,7 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
             Start: toDateUtcChart(sStartTime, true),
             End: toDateUtcChart(sEndTime, true),
             Count: sLimit,
+            colName: sTagSetElement.colName,
             Direction: 0,
         });
         if (typeof sFetchResult === 'string') {

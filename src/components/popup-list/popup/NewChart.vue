@@ -76,7 +76,7 @@ import { useStore } from '@/store';
 import { computed, defineEmits, reactive, ref, watch } from 'vue';
 import { ChartType } from '@/enums/app';
 import { CALC_MODE, MAX_TAG_COUNT } from './constant';
-import { fetchTablesData, fetchOnRollupTable, fetchRangeData } from '@/api/repository/machiot';
+import { fetchTablesData, fetchOnRollupTable, fetchRangeData, fetchOnMinMaxTable } from '@/api/repository/machiot';
 import { ActionTypes } from '@/store/actions';
 import { TagSet } from '@/interface/chart';
 import { CalculationMode } from '@/interface/constants';
@@ -155,10 +155,12 @@ const onReset = () => {
 const onSelectChart = (data: ChartType) => {
     chartType.value = data;
 };
-const onSelectTag = (data: string) => {
+const onSelectTag = async (data: string) => {
     selectCount.value++;
 
-    sSelectedTags.push({ tag_names: data, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0, onRollup: sSelectTableOnRollup.value });
+    const sData: any = await store.dispatch(ActionTypes.fetchTableNameValue, tableSelected.value as string);
+    const sValueForm = { name: sData.rows[0][0], time: sData.rows[1][0], value: sData.rows[2][0] };
+    sSelectedTags.push({ tag_names: data, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0, onRollup: sSelectTableOnRollup.value, colName: sValueForm });
 };
 const onRemoveTag = (index: number) => {
     selectCount.value--;
@@ -170,7 +172,7 @@ const onChangeCalcMode = (data: CalculationMode, index: number) => {
 const onPaging = (index: number) => {
     pageIndex.value = index - 1;
 };
-const onSetting = () => {
+const onSetting = async () => {
     if (sSelectedTags.length <= 0) {
         alert('Select tags for the chart.');
         return;
@@ -180,11 +182,17 @@ const onSetting = () => {
         return;
     }
 
-    const newData = {
-        chartType: chartType.value,
-        tagSet: sSelectedTags,
-    };
-    store.dispatch(ActionTypes.fetchNewChartBoard, newData).then(() => onClosePopup());
+    const sMinMax = await store.dispatch(ActionTypes.fetchRangeData, { table: sSelectedTags[0].table, tagName: sSelectedTags[0].tag_names });
+    if (sMinMax) {
+        const newData = {
+            chartType: chartType.value,
+            tagSet: sSelectedTags,
+            defaultRange: { min: sMinMax.rows[0][0], max: sMinMax.rows[0][1] },
+        };
+        console.log(newData);
+
+        store.dispatch(ActionTypes.fetchNewChartBoard, newData).then(() => onClosePopup());
+    }
 };
 
 const onClosePopup = () => {
