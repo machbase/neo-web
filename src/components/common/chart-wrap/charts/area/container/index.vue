@@ -123,7 +123,7 @@ const cChartOptions = computed(() => {
             height: 26,
             maskFill:
                 toTimeUtcChart(props.xAxisMinRange as string) - toTimeUtcChart(props.xAxisMaxRange as string) > props.panelInfo.raw_chart_threshold
-                    ? '#2D2E57'
+                    ? 'rgba(119, 119, 119, .3)'
                     : 'rgba(119, 119, 119, .3)',
             series: props.viewData.datasets
                 ? props.viewData.datasets.map((i) => {
