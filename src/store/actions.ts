@@ -5,7 +5,7 @@ import { MutationTypes, Mutations } from './mutations';
 import { RootState } from './state';
 import { ResPreferences, TimeRange } from '@/interface/tagView';
 import { BoardInfo, FetchTagDataArg, PanelInfo, RangeData } from '@/interface/chart';
-import { fetchCalculationData, fetchOnMinMaxTable, fetchRangeData, fetchRawData, fetchTablesData, fetchTags } from '@/api/repository/machiot';
+import { fetchCalculationData, fetchOnMinMaxTable, fetchRangeData, fetchRawData, fetchTablesData, fetchTags, fetchTableName } from '@/api/repository/machiot';
 import { ResType } from '@/assets/ts/common';
 import { convertChartDefault } from '../utils/utils';
 import { DEFAULT_CHART } from '@/utils/constants';
@@ -28,6 +28,7 @@ enum ActionTypes {
     fetchRangeData = 'fetchRangeData',
     fetchTagData = 'fetchTagData',
     fetchTagDataRaw = 'fetchTagDataRaw',
+    fetchTableNameValue = 'fetchTableNameValue',
 }
 
 const actions = {
@@ -96,9 +97,11 @@ const actions = {
         const sRes = await fetchOnMinMaxTable(payload.table, payload.tagName);
         if (sRes.data.rows[0]) {
             context.commit(MutationTypes.setRangeData, sRes.data);
+            return sRes.data;
         } else {
             const res: any = await fetchRangeData(payload.table, payload.tagName);
             context.commit(MutationTypes.setRangeData, res.data);
+            return res.data;
         }
     },
 
@@ -111,6 +114,11 @@ const actions = {
         } else {
             return res.reason;
         }
+    },
+    async [ActionTypes.fetchTableNameValue](context: MyActionContext, aTable: string) {
+        const sRes: any = await fetchTableName(aTable);
+        if (sRes.success) return sRes.data;
+        else return '';
     },
     async [ActionTypes.fetchTagDataRaw](context: MyActionContext, aParams: FetchTagDataArg) {
         const res = (await fetchRawData(aParams)) as any;

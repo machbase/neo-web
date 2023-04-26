@@ -1,11 +1,14 @@
 <template>
     <div class="newchartdiv">
-        <div v-if="!sSelectTableOnRollup" class="row">
-            <div class="on-roll-up">* The table is slow because the roll-up table is not generated.</div>
+        <div v-if="!cTableListSelect[0]">
+            <div class="on-roll-up">* There is no tag table.</div>
         </div>
-        <div v-if="!sSelectTableOnRollup" class="row">
-            <div class="on-roll-up">* If you want to improve the speed, please create a roll-up table and recreate the chart.</div>
+        <div v-else-if="!sSelectTableOnRollup" class="row">
+            <div class="row">
+                <div class="on-roll-up">* The table is slow because the roll-up table is not generated.</div>
+            </div>
         </div>
+
         <div class="row">
             <div class="newchart-all">
                 <div class="tagtitle floatleft">Table</div>
@@ -32,6 +35,8 @@
                     <div>Select : {{ selectCount }}</div>
                 </div>
                 <div class="taglistdiv taglistscroll">
+                    <!-- v-if="" -->
+                    <div v-if="tagsPaged[pageIndex] && tagsPaged[pageIndex][0] && tagsPaged[pageIndex].length === 0">NO TAG</div>
                     <div v-for="(aTag, aIndex) in tagsPaged[pageIndex]" :key="aIndex" @click="onSelectTag(aTag)" class="text" style="margin-bottom: 5px">{{ aTag }}</div>
                 </div>
                 <Pagination @e-on-change="onPaging" :total="Math.ceil(cTags.length / MAX_TAG_COUNT)" />
@@ -65,15 +70,17 @@ import ButtonCreate from '@/components/common/button-create/index.vue';
 import ChartSelect from '@/components/common/chart-select/index.vue';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
+import _ from 'lodash';
+
 import { useStore } from '@/store';
 import { computed, defineEmits, reactive, ref, watch } from 'vue';
 import { ChartType } from '@/enums/app';
 import { CALC_MODE, MAX_TAG_COUNT } from './constant';
-import { fetchTablesData, fetchOnRollupTable } from '@/api/repository/machiot';
+import { fetchTablesData, fetchOnRollupTable, fetchRangeData, fetchOnMinMaxTable } from '@/api/repository/machiot';
 import { ActionTypes } from '@/store/actions';
 import { TagSet } from '@/interface/chart';
 import { CalculationMode } from '@/interface/constants';
-import { getPaginationPages } from '@/utils/utils';
+import { getPaginationPages, toTimeUtcChart } from '@/utils/utils';
 const emit = defineEmits(['eClosePopup']);
 const searchText = ref<string>('');
 const isSearchClick = ref<boolean>(false);
@@ -148,10 +155,12 @@ const onReset = () => {
 const onSelectChart = (data: ChartType) => {
     chartType.value = data;
 };
-const onSelectTag = (data: string) => {
+const onSelectTag = async (data: string) => {
     selectCount.value++;
 
-    sSelectedTags.push({ tag_names: data, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0, onRollup: sSelectTableOnRollup.value });
+    const sData: any = await store.dispatch(ActionTypes.fetchTableNameValue, tableSelected.value as string);
+    const sValueForm = { name: sData.rows[0][0], time: sData.rows[1][0], value: sData.rows[2][0] };
+    sSelectedTags.push({ tag_names: data, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0, onRollup: sSelectTableOnRollup.value, colName: sValueForm });
 };
 const onRemoveTag = (index: number) => {
     selectCount.value--;
@@ -163,7 +172,7 @@ const onChangeCalcMode = (data: CalculationMode, index: number) => {
 const onPaging = (index: number) => {
     pageIndex.value = index - 1;
 };
-const onSetting = () => {
+const onSetting = async () => {
     if (sSelectedTags.length <= 0) {
         alert('Select tags for the chart.');
         return;
@@ -172,11 +181,17 @@ const onSetting = () => {
         alert('The maximum number of tags in a chart is ' + MAX_TAG_COUNT.toString() + '.');
         return;
     }
-    const newData = {
-        chartType: chartType.value,
-        tagSet: sSelectedTags,
-    };
-    store.dispatch(ActionTypes.fetchNewChartBoard, newData).then(() => onClosePopup());
+
+    const sMinMax = await store.dispatch(ActionTypes.fetchRangeData, { table: sSelectedTags[0].table, tagName: sSelectedTags[0].tag_names });
+    if (sMinMax) {
+        const newData = {
+            chartType: chartType.value,
+            tagSet: sSelectedTags,
+            defaultRange: { min: sMinMax.rows[0][0], max: sMinMax.rows[0][1] },
+        };
+
+        store.dispatch(ActionTypes.fetchNewChartBoard, newData).then(() => onClosePopup());
+    }
 };
 
 const onClosePopup = () => {

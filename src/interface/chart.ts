@@ -40,6 +40,7 @@ export interface TagSet {
     max: number;
     alias: string;
     use_y2: YorN;
+    colName: { name: string; time: string; value: string };
     tag_names: string;
     onRollup: boolean;
     table: string;
@@ -63,6 +64,7 @@ export interface BarPanel extends PanelInfo {
     stacked?: YorN; // for bar chart}PanelInfo;
 }
 export interface PanelInfo {
+    default_range: any;
     chart_id: string;
     tag_set: TagSet[];
     range_bgn: string;

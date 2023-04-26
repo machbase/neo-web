@@ -7,6 +7,7 @@
             @eOnReload="onReload"
             :p-inner-value="sInnerValue"
             :p-interval-data="data.sIntervalData"
+            :p-is-raw="data.sIsRaw"
             :panel-info="props.panelInfo"
             :x-axis-max-range="data.sTimeLine.endTime"
             :x-axis-min-range="data.sTimeLine.startTime"
@@ -223,7 +224,9 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
         data.sTimeLine.endTime = sStartTime - (sEndTime - sStartTime) * -0.6;
     }
     const sIntervalTime = aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(sStartTime, sEndTime, sChartWidth) : data.sIntervalData;
+
     data.sIntervalData = sIntervalTime;
+
     for (let index = 0; index < sTagSet.length; index++) {
         const sTagSetElement = sTagSet[index];
         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
@@ -234,6 +237,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
             Rollup: sTagSetElement.onRollup,
             CalculationMode: sTagSetElement.calculation_mode.toLowerCase(),
             ...sIntervalTime,
+            colName: sTagSetElement.colName,
             Count: sCount,
         });
         if (typeof sFetchResult === 'string') {
@@ -288,6 +292,7 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
             End: toDateUtcChart(sEndTime, true),
             Rollup: sTagSetElement.onRollup,
             CalculationMode: sTagSetElement.calculation_mode.toLowerCase(),
+            colName: sTagSetElement.colName,
             ...sIntervalTime,
             Count: sCount,
         });
@@ -346,6 +351,7 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
             Start: toDateUtcChart(sStartTime, true),
             End: toDateUtcChart(sEndTime, true),
             Count: sLimit,
+            colName: sTagSetElement.colName,
             Direction: 0,
         });
         if (typeof sFetchResult === 'string') {
@@ -383,9 +389,7 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPo
             await fetchViewPortData(props.panelInfo, aViewPortRange);
             await fetchPanelData(props.panelInfo, aCustomRange);
         }
-    } catch (error) {
-        console.log(error);
-    }
+    } catch (error) {}
     data.sIsLoading = false;
 };
 const onResetSquare = async (aParams: { min: number; max: number }) => {

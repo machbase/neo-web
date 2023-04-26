@@ -27,13 +27,13 @@
             </div>
         </div>
         <div class="header__tool">
-            <!-- <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.VIEW" class="time-range icon" @click="onClickPopupItem(PopupType.TIME_RANGE)">
+            <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.VIEW" @click="onClickPopupItem(PopupType.TIME_RANGE)" class="time-range icon">
                 {{
                     !isEmpty(cTimeRange)
                         ? `${cTimeRange.start ? cTimeRange.start : ''} ~ ${cTimeRange.end ? cTimeRange.end : ''} ${cTimeRange.refresh ? `refresh every ${cTimeRange.refresh}` : ''}`
                         : TIME_RANGE_NOT_SET
                 }}
-            </div> -->
+            </div>
             <!-- <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new'" :src="i_b_timerange" class="icon" />             -->
             <v-icon
                 v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"

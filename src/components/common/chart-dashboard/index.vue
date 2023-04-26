@@ -2,12 +2,12 @@
     <!-- Loop show chart -->
     <div v-if="!chartDataSingle">
         <div v-for="(panel, index) in data.sPanels" :key="index">
-            <AreaChart ref="areaChart" :panel-info="panel" :index="panel.i" />
+            <AreaChart ref="areaChart" :index="panel.i" :panel-info="panel" />
         </div>
     </div>
     <div v-else>
         <div v-for="(panel, index) in data.sPanel" :key="index">
-            <AreaChart ref="areaChart" :panel-info="panel" :index="panel.i" />
+            <AreaChart ref="areaChart" :index="panel.i" :panel-info="panel" />
         </div>
     </div>
 </template>
@@ -54,9 +54,10 @@ watchEffect(
 watch(
     () => gBoard.value.range_bgn || gBoard.value.range_end,
     () => {
-        areaChart.value.forEach((aItem: any) => {
-            aItem.onReload();
-        });
+        areaChart.value &&
+            areaChart.value.forEach((aItem: any) => {
+                aItem.onReload();
+            });
     }
 );
 
