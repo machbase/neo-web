@@ -256,7 +256,6 @@ function afterSetExtremes(e) {
     data.sTimeChartXaxis.min = e.min;
     data.sTimeChartXaxis.max = e.max;
 
-    console.log(e);
     // chart.showLoading('Loading data from server...');
     // fetch(`${dataURL}?start=${Math.round(e.min)}&end=${Math.round(e.max)}`)
     //     .then((res) => res.ok && res.json())

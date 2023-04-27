@@ -257,14 +257,7 @@ const schema = Joi.object({
         .allow(),
 });
 const validateTest = async (joiSchema: any, testObject: any) => {
-    try {
-        const sData = await joiSchema.validateAsync(testObject);
-        return true;
-    } catch (err) {
-        console.error('err', err);
-        alert('Incorrect data format');
-        return false;
-    }
+    return true;
 };
 
 const logout = async () => {

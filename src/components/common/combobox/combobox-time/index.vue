@@ -1,21 +1,21 @@
 <template>
     <div class="combobox-time">
-        <v-menu :transition="false" :class="cIsDarkMode ? 'dark' : 'light'">
+        <v-menu :class="cIsDarkMode ? 'dark' : 'light'" :transition="false">
             <template #activator="{ props }">
                 <img class="icon" :src="btn_dropdown_on" v-bind="props" />
             </template>
             <v-list>
-                <v-list-item v-for="aItem in COMBO_BOX_TIME" :key="aItem.value" class="item" @click="onChange(aItem)">
+                <v-list-item v-for="aItem in COMBO_BOX_TIME" :key="aItem.value" @click="onChange(aItem)" class="item">
                     <v-list-item-title>{{ aItem.name }}</v-list-item-title>
                 </v-list-item>
             </v-list>
         </v-menu>
-        <input v-model="sData.input" type="text" class="input" @change="onChangeInput" />
+        <input v-model="sData.input" @change="onChangeInput" class="input" type="text" />
     </div>
 </template>
 
 <script setup lang="ts" name="ComboboxTime">
-import btn_dropdown_on from '@/assets/image/btn_dropdown_on.svg';
+import btn_dropdown_on from '@/assets/image/btn_dropdown_on.png';
 import { useStore } from '@/store';
 import { COMBO_BOX_TIME } from '@/utils/constants';
 import { computed, defineEmits, reactive, ref } from 'vue';

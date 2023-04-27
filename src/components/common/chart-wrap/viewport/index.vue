@@ -28,11 +28,11 @@
             <div class="view-port__header--events icon">
                 <div>
                     <v-icon @click="adjustViewportRange({ type: 'O', zoom: 0.4 })" color="#2ec0df" icon="mdi-magnify-minus-outline"></v-icon>
-                    <v-tooltip activator="parent" location="bottom">Zoom out x4</v-tooltip>
+                    <v-tooltip activator="parent" location="bottom">Zoom in x4</v-tooltip>
                 </div>
                 <div>
                     <v-icon @click="adjustViewportRange({ type: 'O', zoom: 0.2 })" color="#2ec0df" icon="mdi-magnify-minus-outline"></v-icon>
-                    <v-tooltip activator="parent" location="bottom">Zoom out x2</v-tooltip>
+                    <v-tooltip activator="parent" location="bottom">Zoom in x2</v-tooltip>
                 </div>
                 <div>
                     <v-icon @click="adjustViewportFocus" :color="cIsDarkMode ? '#fff' : '#2ec0df'" icon="mdi-image-filter-center-focus-strong-outline" size="x-large"></v-icon>
@@ -40,11 +40,11 @@
                 </div>
                 <div>
                     <v-icon @click="adjustViewportRange({ type: 'I', zoom: 0.2 })" color="#2ec0df" icon="mdi-magnify-plus-outline"></v-icon>
-                    <v-tooltip activator="parent" location="bottom">Zoom in x2</v-tooltip>
+                    <v-tooltip activator="parent" location="bottom">Zoom out x2</v-tooltip>
                 </div>
                 <div>
                     <v-icon @click="adjustViewportRange({ type: 'I', zoom: 0.4 })" color="#2ec0df" icon="mdi-magnify-plus-outline"></v-icon>
-                    <v-tooltip activator="parent" location="bottom">Zoom in x4</v-tooltip>
+                    <v-tooltip activator="parent" location="bottom">Zoom out x4</v-tooltip>
                 </div>
             </div>
             <div class="view-port__header--events">
@@ -54,7 +54,7 @@
                         <button
                             @click="onChangeEmit(0)"
                             class="button"
-                            :class="props.pIsRaw ? '' : 'font-color'"
+                            :class="props.pIsRaw ? 'not-select-font-color' : 'font-color'"
                             :disabled="props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold"
                         >
                             STAT
@@ -66,7 +66,7 @@
                     >
                 </div>
 
-                <button @click="onChangeEmit(1)" class="button" :class="props.pIsRaw ? 'font-color' : ''">RAW</button>
+                <button @click="onChangeEmit(1)" class="button" :class="props.pIsRaw ? 'font-color' : 'not-select-font-color'">RAW</button>
                 <div @click="onOpenPopup(true)" class="date-picker button">{{ toDateUtcChart(sDateRight) }}</div>
             </div>
         </div>
@@ -154,6 +154,8 @@ watch(
 @import 'index.scss';
 .font-color {
     color: #4050cd !important;
+    border: 1px solid #4050cd;
+    box-shadow: inset 0 1px 1px rgb(0 0 0 / 8%), 0 0 8px rgb(102 175 233 / 30%);
 }
 .cover {
     position: absolute;
@@ -164,5 +166,8 @@ watch(
 }
 .cover-parent {
     position: relative;
+}
+.not-select-font-color {
+    border: 1px solid #383838;
 }
 </style>

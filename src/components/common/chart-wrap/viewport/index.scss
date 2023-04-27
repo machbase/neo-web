@@ -35,7 +35,7 @@
                 @include theme() {
                     background-color: theme-get('bg-vport-chart');
                     color: theme-get('text-vport-chart');
-                    border: 1px solid theme-get('border-vport-chart');
+                    // border: 1px solid theme-get('border-vport-chart');
                 }
                 cursor: pointer;
                 padding: 2px 12px;
