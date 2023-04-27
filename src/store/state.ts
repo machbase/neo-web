@@ -24,11 +24,21 @@ const state = {
     // * Request rollup
     gSecRollupExist: {} as any,
 
+    gTabList: [] as {
+        url: string;
+        type: string;
+        id: string;
+        name: string;
+        hover: boolean;
+    }[],
+
+    gSelectedTab: 'board1',
     // list board
     gBoardList: [] as ResBoardList[],
 
     // tag-view
     gBoard: {
+        type: 'new',
         board_id: '',
         range_end: '',
         refresh: '',
@@ -38,6 +48,7 @@ const state = {
     } as BoardInfo,
     // old
     gBoardOld: {
+        type: 'new',
         board_id: '',
         range_end: '',
         refresh: '',

@@ -23,14 +23,23 @@ const routes: Array<RouteRecordRaw> = [
         },
         beforeEnter: protectedRoute,
     },
-
     {
-        path: PageRoutes.TAG_VIEW,
+        path: `${PageRoutes.TAG_VIEW}`,
         name: RouteNames.TAG_VIEW,
         alias: ['/'],
         components: {
             default: TagView,
-            Header,
+            // Header,
+            Footer,
+        },
+        beforeEnter: protectedRoute,
+    },
+    {
+        path: `${PageRoutes.TAG_VIEW}/:type/:id`,
+        name: RouteNames.TAG_VIEW + '123',
+        components: {
+            default: TagView,
+            // Header,
             Footer,
         },
         beforeEnter: protectedRoute,
@@ -40,7 +49,7 @@ const routes: Array<RouteRecordRaw> = [
         name: RouteNames.NEW,
         components: {
             default: New,
-            Header,
+            // Header,
             Footer,
         },
         beforeEnter: protectedRoute,
@@ -50,7 +59,7 @@ const routes: Array<RouteRecordRaw> = [
         name: RouteNames.CHART_EDIT,
         components: {
             default: ChartEdit,
-            Header,
+            // Header,
             Footer,
         },
         props: true,
@@ -61,7 +70,7 @@ const routes: Array<RouteRecordRaw> = [
         name: RouteNames.CHART_VIEW,
         components: {
             default: ChartView,
-            Header,
+            // Header,
             Footer,
         },
         props: true,
@@ -72,7 +81,7 @@ const routes: Array<RouteRecordRaw> = [
         name: RouteNames.VIEW,
         components: {
             default: ShareView,
-            Header,
+            // Header,
             Footer,
         },
         beforeEnter: protectedRoute,

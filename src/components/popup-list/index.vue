@@ -1,31 +1,32 @@
 <template>
     <v-dialog
         v-model="sDialog"
-        transition="dialog-top-transition"
+        @update:model-value="onClosePopup"
         class="dialog-wrap"
         :class="cIsDarkMode ? 'dark' : 'light'"
+        transition="dialog-top-transition"
         :width="pWidth || '400px'"
-        @update:model-value="onClosePopup"
     >
         <div class="dialog-wrap__content">
             <div class="dialog-wrap__content--header">
                 <p>{{ pType === PopupType.TIME_DURATION ? PopupType.TIME_RANGE : pType }}</p>
-                <img :src="i_b_close" @click="onClosePopup" />
+                <img @click="onClosePopup" :src="i_b_close" />
             </div>
             <div class="dialog-wrap__content--body">
                 <ManageDashboard v-if="pType === PopupType.MANAGE_DASHBOARD" @eClosePopup="onClosePopup" />
                 <NewChart v-if="pType === PopupType.NEW_CHART" @eClosePopup="onClosePopup" />
-                <NewTags v-if="pType === PopupType.NEW_TAGS" :no-of-select-tags="props.pNoOfSelectTags as number" @eClosePopup="onClosePopup" @e-submit="onSubmitTag" />
+                <NewTags v-if="pType === PopupType.NEW_TAGS" @e-submit="onSubmitTag" @eClosePopup="onClosePopup" :no-of-select-tags="props.pNoOfSelectTags as number" />
                 <Preferences v-if="pType === PopupType.PREFERENCES" @eClosePopup="onClosePopup" />
                 <SaveDashboard v-if="pType === PopupType.SAVE_DASHBOARD" @eClosePopup="onClosePopup" />
-                <TimeRange v-if="pType === PopupType.TIME_RANGE" :p-time-range="pTimeRange" @eClosePopup="onClosePopup" />
+                <TimeRange v-if="pType === PopupType.TIME_RANGE" @eClosePopup="onClosePopup" :p-time-range="pTimeRange" />
                 <TimeDuration
                     v-if="pType === PopupType.TIME_DURATION"
-                    :p-is-from-time="pIsFromTime"
-                    :p-time-range="pTimeRange"
                     @eClosePopup="onClosePopup"
                     @eSettingPopup="onSettingPopup"
+                    :p-is-from-time="pIsFromTime"
+                    :p-time-range="pTimeRange"
                 />
+                <AddTab v-if="pType === PopupType.ADD_TAB" @eClosePopup="onClosePopup" />
             </div>
         </div>
     </v-dialog>
@@ -41,6 +42,7 @@ import NewChart from './popup/NewChart.vue';
 import NewTags from './popup/NewTags.vue';
 import Preferences from './popup/Preferences.vue';
 import SaveDashboard from './popup/SaveDashboard.vue';
+import AddTab from '@/components/popup-list/popup/AddTab.vue';
 import TimeDuration from './popup/TimeDuration.vue';
 import TimeRange from './popup/TimeRange.vue';
 import { TimeLineType } from '@/interface/date';

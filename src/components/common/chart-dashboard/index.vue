@@ -1,5 +1,6 @@
 <template>
     <!-- Loop show chart -->
+    <!-- v-if="" -->
     <div v-if="!chartDataSingle">
         <div v-for="(panel, index) in data.sPanels" :key="index">
             <AreaChart ref="areaChart" :index="panel.i" :panel-info="panel" />
@@ -19,6 +20,7 @@ import { PanelInfo } from '@/interface/chart';
 import { useStore } from '@/store';
 import { computed, onMounted, defineExpose, defineProps, reactive, ref, watch, withDefaults } from 'vue';
 import { watchEffect } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 
 interface DashboardPanelsProps {
     pIsViewMode?: boolean;
@@ -32,8 +34,13 @@ const data = reactive({
 });
 const areaChart = ref(null);
 const store = useStore();
+const router = useRouter() as any;
+const route = useRoute() as any;
 const gBoard = computed(() => store.state.gBoard);
-
+const gSelectedTab = computed(() => store.state.gSelectedTab);
+const cRouter = computed(() => {
+    return router.params && router.params.id ? router.params.id : '';
+});
 watchEffect(
     // () => gBoard.value.panels,
     (newValue: any) => {

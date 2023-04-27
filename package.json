@@ -25,10 +25,13 @@
         "core-js": "^3.8.3",
         "highcharts": "^10.3.1",
         "highcharts-vue": "^1.4.0",
+        "simple-code-editor": "^1.2.2",
         "joi": "^17.8.3",
+        "vue3-clipboard": "^1.0.0",
         "lodash": "^4.17.21",
         "moment": "^2.29.4",
         "vue": "^3.2.6",
+        "vue-resizer": "^1.1.9",
         "vue-router": "^4.0.11",
         "vuetify": "^3.0.3",
         "vuex": "^4.0.2"

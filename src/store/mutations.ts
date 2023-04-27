@@ -15,7 +15,10 @@ enum MutationTypes {
     setBoardList = 'setBoardList',
     setTimeRange = 'setTimeRange',
     setTableList = 'setTableList',
+    setSelectedTab = 'setSelectedTab',
     setTagList = 'setTagList',
+    setTabList = 'setTabList',
+    pushTab = 'pushTab',
     setTempNewChartData = 'setTempNewChartData',
     setRangeData = 'setRangeData',
     setChartEdit = 'setChartEdit',
@@ -41,6 +44,15 @@ const mutations = {
     },
     [MutationTypes.setPreference](state: RootState, aPreference: ResPreferences) {
         state.gPreference = aPreference;
+    },
+    [MutationTypes.setSelectedTab](state: RootState, aItem: string) {
+        state.gSelectedTab = aItem;
+    },
+    [MutationTypes.setTabList](state: RootState, aList: any) {
+        state.gSelectedTab = aList;
+    },
+    [MutationTypes.pushTab](state: RootState, aItem: any) {
+        state.gTabList.push(aItem);
     },
     [MutationTypes.setTimeRange](state: RootState, aTimeRange: TimeRange) {
         state.gTimeRange = aTimeRange;

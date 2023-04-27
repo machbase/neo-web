@@ -22,6 +22,7 @@
             >
                 <img class="icon" :src="cIsDarkMode ? i_b_edit : i_w_edit" />
             </router-link>
+
             <img @click="onReloadChart" class="icon" :src="i_b_refresh" />
             <img
                 v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW && route.name !== RouteNames.VIEW"
@@ -29,6 +30,7 @@
                 class="icon"
                 :src="cIsDarkMode ? i_b_del : i_w_del"
             />
+            <img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="router.go(-1)" :src="i_b_close" style="" />
         </div>
     </div>
 </template>
@@ -39,6 +41,7 @@ import i_b_edit from '@/assets/image/i_b_edit.png';
 import i_b_newwin from '@/assets/image/i_b_newwin.png';
 import i_b_refresh from '@/assets/image/i_b_refresh.png';
 import i_w_del from '@/assets/image/i_w_del.png';
+import i_b_close from '@/assets/image/i_b_close.png';
 import i_w_edit from '@/assets/image/i_w_edit.png';
 import i_w_newwin from '@/assets/image/i_w_newwin.png';
 import { RouteNames } from '@/enums/routes';
@@ -47,8 +50,9 @@ import router from '@/routes';
 import { useStore } from '@/store';
 import { MutationTypes } from '@/store/mutations';
 import { toDateUtcChart } from '@/utils/utils';
-import { computed, defineEmits, defineProps, withDefaults } from 'vue';
+import { ref, computed, defineEmits, defineProps, withDefaults } from 'vue';
 import { useRoute } from 'vue-router';
+export type headerType = RouteNames.TAG_VIEW | RouteNames.VIEW | RouteNames.CHART_VIEW | RouteNames.CHART_EDIT | RouteNames.NEW;
 
 interface ChartHeaderProps {
     panelInfo: LinePanel;
@@ -62,6 +66,7 @@ const emit = defineEmits(['eOnReload']);
 
 const store = useStore();
 const route = useRoute();
+const sHeaderType = ref<headerType>(route.name as headerType);
 const CBoard = computed((): BoardInfo => store.state.gBoard);
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 

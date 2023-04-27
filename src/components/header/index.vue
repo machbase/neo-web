@@ -1,32 +1,40 @@
 <template>
-    <div class="header">
+    <div v-if="route.name !== RouteNames.LOGIN" class="header">
         <div v-if="sLoading" class="loading-rollUp">
             <img class="icon" :src="cIsDarkMode ? loader_b : loader_w" />
         </div>
-        <div class="header__link">
+        <v-sheet color="transparent" width="4%">
             <img class="icon" :src="logo" />
-            <!-- <span class="header__name">{{ cBoard.board_name }}</span> -->
-            <!-- <ComboboxSelect
-                v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
-                :p-data="cBoardListSelect"
-                :p-value="route.params.id || route.query.id || (cBoardListSelect[0]?.id && route.query.id !== null)"
-                @e-on-change="onChangeRoute"
-            /> -->
-            <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" class="header__link--group">
-                <router-link class="header__link--group-item" target="_blank" :to="{ name: RouteNames.NEW }">{{ NEW_DASHBOARD }}</router-link>
-                <img class="icon" :src="i_b_menu_1" />
-                <div @click="onChildGroup" class="header__link--group-item drop">
-                    {{ SET }}
-                    <div ref="childGroup" class="child-group">
-                        <div @click="onClickPopupItem(PopupType.PREFERENCES)" class="item">{{ PREFERENCE }}</div>
-                        <!-- <div class="item" @click="onRollUp">{{ REQUEST_ROLLUP }}</div> -->
+        </v-sheet>
+        <v-sheet class="header__link" color="transparent" width="81%">
+            <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" class="tab-form">
+                <button
+                    v-for="(aTab, aIdx) in gTabList"
+                    :key="aIdx"
+                    @click="setSelectedTab(aTab.id)"
+                    @mouseleave="aTab.hover = false"
+                    @mouseover="aTab.hover = true"
+                    :style="
+                        gSelectedTab === aTab.id
+                            ? cIsDarkMode
+                                ? { backgroundColor: '#121212' }
+                                : { backgroundColor: '#ffffff', color: '#121212' }
+                            : { backgroundColor: '#202020' }
+                    "
+                >
+                    <div>
+                        <v-icon size="16px">{{ aTab.type === 'dashboard' ? 'mdi-chart-line' : aTab.type == 'new' ? 'mdi-autorenew' : 'mdi-file-document-outline' }}</v-icon>
+
+                        {{ aTab.name }}
                     </div>
-                </div>
-                <!-- <img :src="i_b_menu_1" class="icon" /> -->
-                <!-- <div class="header__link--group-item">{{ LOGOUT }}</div> -->
+                    <v-icon v-if="gSelectedTab === aTab.id || aTab.hover === true" @click="deleteTab(aTab.id)" size="16px"> mdi-close </v-icon>
+                </button>
             </div>
-        </div>
-        <div class="header__tool">
+            <button @click="onClickPopupItem(PopupType.ADD_TAB)">
+                <v-icon> mdi-plus </v-icon>
+            </button>
+        </v-sheet>
+        <v-sheet class="header__tool" color="transparent" width="15%">
             <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.VIEW" @click="onClickPopupItem(PopupType.TIME_RANGE)" class="time-range icon">
                 {{
                     !isEmpty(cTimeRange)
@@ -35,33 +43,60 @@
                 }}
             </div>
             <!-- <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new'" :src="i_b_timerange" class="icon" />             -->
-            <v-icon
-                v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
-                @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)"
-                class="icon"
-                icon="mdi-content-save"
-                size="small"
-            ></v-icon>
-            <label v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW">
-                <v-icon class="icon file-import-icon" icon="mdi-upload" size="small"></v-icon>
-                <input @change="onUploadChart" accept="application/JSON" class="file-import" type="file" />
-            </label>
-            <img
-                v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW || sHeaderType === RouteNames.VIEW"
-                @click="onClickPopupItem(PopupType.TIME_RANGE)"
-                class="icon"
-                :src="i_b_timerange"
-            />
+
             <img @click="onReload" class="icon" :src="i_b_refresh" />
             <!-- <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW">
                 <router-link :to="{ name: RouteNames.VIEW }" target="_blank">
                     <img :src="i_b_share" class="icon" @click="openNewChartPage" />
                 </router-link>
             </div> -->
-            <img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="onSaveEdit" class="icon" :src="i_b_save_2" />
-            <img v-if="sHeaderType === RouteNames.TAG_VIEW" @click="logout" class="icon" :src="i_b_logout" />
-            <a class="icon"><img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="router.go(-1)" :src="i_b_close" style="margin-top: 7px" /></a>
-        </div>
+            <img
+                v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW || sHeaderType === RouteNames.VIEW"
+                @click="onClickPopupItem(PopupType.TIME_RANGE)"
+                class="icon"
+                :src="i_b_timerange"
+            />
+            <div @click="onChildGroup" class="header__link--group-item drop">
+                <v-icon>mdi-cog</v-icon>
+                <div ref="childGroup" class="child-group">
+                    <div @click="onClickPopupItem(PopupType.PREFERENCES)" class="item">
+                        <v-icon
+                            v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
+                            @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)"
+                            class="icon"
+                            icon="mdi-cog-transfer-outline"
+                            size="small"
+                        ></v-icon>
+                        {{ PREFERENCE }}
+                    </div>
+                    <!-- <div @click="onClickPopupItem(PopupType.PREFERENCES)" class="item">{{ PREFERENCE }}</div> -->
+                    <label v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" class="item">
+                        <v-icon class="icon file-import-icon" icon="mdi-upload" size="small"></v-icon>
+                        Import
+                        <input @change="onUploadChart" accept="application/JSON" class="file-import" type="file" />
+                    </label>
+
+                    <div @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)" class="item">
+                        <v-icon
+                            v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
+                            @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)"
+                            class="icon"
+                            icon="mdi-content-save"
+                            size="small"
+                        ></v-icon>
+                        Export
+                    </div>
+                    <div>
+                        <img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="onSaveEdit" class="icon" :src="i_b_save_2" />
+                    </div>
+                    <div @click="logout" class="item">
+                        <v-icon class="icon" icon="mdi-logout" size="small"></v-icon>
+                        Logout
+                    </div>
+                </div>
+                <!-- <div ref="childGroup" class="child-group"></div> -->
+            </div>
+        </v-sheet>
     </div>
     <PopupWrap @eClosePopup="onClosePopup" :p-show="sDialog" :p-type="sPopupType" :p-width="cWidthPopup" />
 </template>
@@ -108,7 +143,10 @@ const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const cBoard = computed(() => store.state.gBoard);
 const cBoardOld = computed(() => store.state.gBoardOld);
 const gBoard = computed(() => store.state.gBoard);
+const gTabList = computed(() => store.state.gTabList);
+const gSelectedTab = computed(() => store.state.gSelectedTab);
 const sLoading = ref<boolean>(false);
+
 const cBoardListSelect = computed(() =>
     cBoardList.value.map((aItem) => {
         return {
@@ -256,6 +294,7 @@ const schema = Joi.object({
         .required()
         .allow(),
 });
+
 const validateTest = async (joiSchema: any, testObject: any) => {
     return true;
 };
@@ -269,6 +308,22 @@ const logout = async () => {
             name: RouteNames.LOGIN,
         });
     }
+};
+
+const addTab = () => {
+    // gTabList.push
+    // store.commit(MutationTypes.pushTab,gTabList);
+};
+
+const setSelectedTab = (aItem: string) => {
+    store.commit(MutationTypes.setSelectedTab, aItem);
+};
+
+const deleteTab = (aId: string) => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.id === aId);
+    const sCopyTabList = JSON.parse(JSON.stringify(gTabList.value));
+    sCopyTabList.splice(sIdx, 1);
+    console.log(sCopyTabList);
 };
 
 const onUploadChart = (aEvent: any) => {
@@ -301,6 +356,8 @@ const cWidthPopup = computed((): string => {
             return WIDTH_DEFAULT.MANAGE_DASHBOARD;
         case PopupType.SAVE_DASHBOARD:
             return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.ADD_TAB:
+            return WIDTH_DEFAULT.PREFERENCES;
         case PopupType.NEW_TAGS:
             return '667px';
         default:
@@ -319,6 +376,7 @@ const onChangeRoute = (aValue: string) => {
     if (route.name === RouteNames.NEW) router.replace({ name: RouteNames.TAG_VIEW, query: { id: aValue } });
 };
 const onClickPopupItem = (aPopupName: PopupType) => {
+    console.log(aPopupName);
     sPopupType.value = aPopupName;
     sDialog.value = true;
 };

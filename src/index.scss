@@ -3,16 +3,14 @@
     position: relative;
     list-style: none;
     display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    height: auto;
+    flex-direction: column; 
 }
 .body {
     @include theme() {
         background-color: theme-get('bg-color');
         color: theme-get('text-color');
     }
-    padding: 0 $px-20 !important;
+    padding: 0px $px-20 !important;
     flex: 1;
 }
 body {
@@ -65,3 +63,4 @@ body::-webkit-scrollbar-thumb {
         transform: translate(-50%, -50%);
     }
 }
+
