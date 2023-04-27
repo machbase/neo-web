@@ -127,7 +127,7 @@ const cChartOptions = computed(() => {
                     : 'rgba(119, 119, 119, .3)',
             series: props.viewData.datasets
                 ? props.viewData.datasets.map((i) => {
-                      return { data: i.data, marker: i.marker };
+                      return { data: i.data, marker: i.marker, animation: false };
                   })
                 : [],
             outlineWidth: 1,
