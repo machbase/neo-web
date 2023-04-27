@@ -1,14 +1,14 @@
 <template>
     <Datepicker
         v-model="sDate"
+        auto-apply
         class="date-picker"
         :class="{ disabled: pDisabled }"
+        :dark="cIsDarkMode"
+        :disabled="pDisabled"
+        enable-seconds
         :format="'yyyy-MM-dd HH:mm'"
         position="left"
-        :disabled="pDisabled"
-        :dark="cIsDarkMode"
-        auto-apply
-        enable-seconds
     >
         <template #trigger>
             <img class="input-slot-image" :src="icon" />
@@ -17,7 +17,7 @@
 </template>
 
 <script setup lang="ts" name="DatePicker">
-import icon from '@/assets/image/ic_calendar.svg';
+import icon from '@/assets/image/ic_calendar.png';
 import { useStore } from '@/store';
 import { FORMAT_FULL_DATE } from '@/utils/constants';
 import Datepicker from '@vuepic/vue-datepicker';

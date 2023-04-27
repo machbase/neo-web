@@ -589,6 +589,7 @@ async function OnChangeTimeRangerViewPort(params: any, aStatus?: string) {
                 endTime: params.max,
             });
             if (sLimit) {
+                data.sIsRaw = false;
                 areaChart.value.updateMinMaxChart(data.sDisplayData.datasets[0].data[0][0], data.sDisplayData.datasets[0].data[data.sDisplayData.datasets[0].data.length - 1][0]);
             }
         } else {

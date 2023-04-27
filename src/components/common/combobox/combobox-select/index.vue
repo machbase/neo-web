@@ -9,7 +9,7 @@
 <script setup lang="ts" name="ComboboxSelect">
 import { ref, defineProps, defineEmits, watch, withDefaults, watchEffect } from 'vue';
 import { isEmpty } from 'lodash';
-import ic_arrow_s_down from '@/assets/image/ic_arrow_s_down.svg';
+import ic_arrow_s_down from '@/assets/image/ic_arrow_s_down.png';
 import { SELECT_DASHBOARD } from './constant';
 interface ComboboxData {
     id: any;

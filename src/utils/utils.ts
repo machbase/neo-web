@@ -123,7 +123,7 @@ function makeMilliTime(aTime: number | string) {
 
 function toDateUtcChart(date: number, aMilli?: boolean) {
     if (aMilli) {
-        return moment.utc(date).format(FORMAT_FULL_DATE) + ' ' + String(Math.floor(date)).substring(9, 12);
+        return moment.utc(date).format(FORMAT_FULL_DATE) + ' ' + String(Math.floor(date)).substring(10, 13);
     }
     return moment.utc(date).format(FORMAT_FULL_DATE);
 }

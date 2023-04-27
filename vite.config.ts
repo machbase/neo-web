@@ -36,7 +36,7 @@ export default defineConfig(() => {
                 target: 'es2020',
             },
         },
-        base: './',
+        base: '/web',
         build: {
             target: 'es2020',
         },

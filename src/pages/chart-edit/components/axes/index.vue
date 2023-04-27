@@ -92,7 +92,7 @@
 </template>
 
 <script setup lang="ts" name="AxesTab">
-import ic_arrow_s_down from '@/assets/image/ic_arrow_s_down.svg';
+import ic_arrow_s_down from '@/assets/image/ic_arrow_s_down.png';
 import i_b_close from '@/assets/image/i_b_close.png';
 import { splitTimeDuration } from '@/utils/utils';
 import { defineEmits, reactive, ref, watch, watchEffect, defineProps } from 'vue';
