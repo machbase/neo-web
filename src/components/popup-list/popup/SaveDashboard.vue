@@ -3,19 +3,19 @@
         <div class="save-dashboard__input-group">
             <p class="save-dashboard__input-group-label">Board ID</p>
             <div class="save-dashboard__input-group-content">
-                <input class="save-dashboard__input-group-text check" :value="sData.boardId" @input="onChangeId" />
+                <input @input="onChangeId" class="save-dashboard__input-group-text check" :value="sData.boardId" />
                 <div class="save-dashboard__input-group-checkbox"><input v-model="sData.checked" type="checkbox" /> <span>Save as Copy</span></div>
             </div>
         </div>
         <div class="save-dashboard__input-group">
             <p class="save-dashboard__input-group-label">Board Title</p>
             <div class="save-dashboard__input-group-content">
-                <input class="save-dashboard__input-group-text" :value="sData.boardTitle" @change="onChangeTitle" />
+                <input @change="onChangeTitle" class="save-dashboard__input-group-text" :value="sData.boardTitle" />
             </div>
         </div>
         <div class="save-dashboard__btn-group">
-            <v-btn variant="outlined" class="button-effect-color" @click="onSetting"> Ok </v-btn>
-            <v-btn variant="outlined" class="button-effect" @click="onClosePopup"> Cancel </v-btn>
+            <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> Ok </v-btn>
+            <v-btn @click="onClosePopup" class="button-effect" variant="outlined"> Cancel </v-btn>
         </div>
     </div>
 </template>

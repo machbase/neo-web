@@ -30,32 +30,30 @@
                     <v-icon v-if="gSelectedTab === aTab.id || aTab.hover === true" @click="deleteTab(aTab.id)" size="16px"> mdi-close </v-icon>
                 </button>
             </div>
-            <button @click="onClickPopupItem(PopupType.ADD_TAB)">
-                <v-icon> mdi-plus </v-icon>
-            </button>
+            <v-btn @click="onClickPopupItem(PopupType.ADD_TAB)" density="comfortable" icon="mdi-plus" size="36px" variant="plain"> </v-btn>
         </v-sheet>
         <v-sheet class="header__tool" color="transparent" width="15%">
-            <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.VIEW" @click="onClickPopupItem(PopupType.TIME_RANGE)" class="time-range icon">
+            <!-- <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.VIEW" @click="onClickPopupItem(PopupType.TIME_RANGE)" class="time-range icon">
                 {{
                     !isEmpty(cTimeRange)
                         ? `${cTimeRange.start ? cTimeRange.start : ''} ~ ${cTimeRange.end ? cTimeRange.end : ''} ${cTimeRange.refresh ? `refresh every ${cTimeRange.refresh}` : ''}`
                         : TIME_RANGE_NOT_SET
                 }}
-            </div>
+            </div> -->
             <!-- <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new'" :src="i_b_timerange" class="icon" />             -->
 
-            <img @click="onReload" class="icon" :src="i_b_refresh" />
+            <!-- <img @click="onReload" class="icon" :src="i_b_refresh" /> -->
             <!-- <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW">
                 <router-link :to="{ name: RouteNames.VIEW }" target="_blank">
                     <img :src="i_b_share" class="icon" @click="openNewChartPage" />
                 </router-link>
             </div> -->
-            <img
+            <!-- <img
                 v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW || sHeaderType === RouteNames.VIEW"
                 @click="onClickPopupItem(PopupType.TIME_RANGE)"
                 class="icon"
                 :src="i_b_timerange"
-            />
+            /> -->
             <div @click="onChildGroup" class="header__link--group-item drop">
                 <v-icon>mdi-cog</v-icon>
                 <div ref="childGroup" class="child-group">
@@ -135,13 +133,13 @@ const router = useRouter();
 const route = useRoute();
 const sHeaderType = ref<headerType>(route.name as headerType);
 const sDialog = ref<boolean>(false);
-const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
 const childGroup = ref();
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
 const cTableList = computed((): [] => store.state.gTableList);
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const cBoard = computed(() => store.state.gBoard);
 const cBoardOld = computed(() => store.state.gBoardOld);
+const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
 const gBoard = computed(() => store.state.gBoard);
 const gTabList = computed(() => store.state.gTabList);
 const gSelectedTab = computed(() => store.state.gSelectedTab);
@@ -323,7 +321,6 @@ const deleteTab = (aId: string) => {
     const sIdx = gTabList.value.findIndex((aItem: any) => aItem.id === aId);
     const sCopyTabList = JSON.parse(JSON.stringify(gTabList.value));
     sCopyTabList.splice(sIdx, 1);
-    console.log(sCopyTabList);
 };
 
 const onUploadChart = (aEvent: any) => {
@@ -376,7 +373,6 @@ const onChangeRoute = (aValue: string) => {
     if (route.name === RouteNames.NEW) router.replace({ name: RouteNames.TAG_VIEW, query: { id: aValue } });
 };
 const onClickPopupItem = (aPopupName: PopupType) => {
-    console.log(aPopupName);
     sPopupType.value = aPopupName;
     sDialog.value = true;
 };

@@ -18,19 +18,35 @@
             />
             <router-link
                 v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW && route.name !== RouteNames.VIEW"
-                :to="{ name: RouteNames.CHART_EDIT, params: { id: panelInfo.i } }"
+                :to="{ name: RouteNames.CHART_EDIT, params: { type: route.params.type, id: route.params.id, panel_id: panelInfo.i } }"
             >
                 <img class="icon" :src="cIsDarkMode ? i_b_edit : i_w_edit" />
             </router-link>
 
-            <img @click="onReloadChart" class="icon" :src="i_b_refresh" />
-            <img
+            <v-icon @click="onReloadChart" class="icon" size="14px"> mdi-refresh </v-icon>
+            <!-- <img @click="onReloadChart" class="icon" :src="i_b_refresh" /> -->
+            <!-- <img
                 v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW && route.name !== RouteNames.VIEW"
                 @click="onDeleteBoard"
                 class="icon"
                 :src="cIsDarkMode ? i_b_del : i_w_del"
-            />
-            <img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="router.go(-1)" :src="i_b_close" style="" />
+            /> -->
+            <v-icon
+                v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW && route.name !== RouteNames.VIEW"
+                @click="onDeleteBoard"
+                class="icon"
+                size="14px"
+            >
+                mdi-delete
+            </v-icon>
+            <!-- <img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="onSaveEdit" class="icon" :src="i_b_save_2" /> -->
+            <v-icon v-if="sHeaderType === RouteNames.CHART_EDIT" @click="onSaveEdit" class="icon" size="14px"> mdi-check </v-icon>
+            <v-icon v-if="sHeaderType === RouteNames.CHART_EDIT" @click="router.go(-1)" class="icon" size="14px"> mdi-close </v-icon>
+
+            <!-- router.push({
+        
+         
+    }); -->
         </div>
     </div>
 </template>
@@ -40,6 +56,7 @@ import i_b_del from '@/assets/image/i_b_del.png';
 import i_b_edit from '@/assets/image/i_b_edit.png';
 import i_b_newwin from '@/assets/image/i_b_newwin.png';
 import i_b_refresh from '@/assets/image/i_b_refresh.png';
+import i_b_save_2 from '@/assets/image/i_b_save_2.png';
 import i_w_del from '@/assets/image/i_w_del.png';
 import i_b_close from '@/assets/image/i_b_close.png';
 import i_w_edit from '@/assets/image/i_w_edit.png';
@@ -83,6 +100,14 @@ const openNewChartPage = () => {
 };
 const onReloadChart = () => {
     emit('eOnReload');
+};
+
+const onSaveEdit = async () => {
+    await store.commit(MutationTypes.setChartBoardEdit);
+    router.push({
+        name: RouteNames.TAG_VIEW + 'frame',
+        params: { type: route.params.type, id: route.params.id },
+    });
 };
 </script>
 

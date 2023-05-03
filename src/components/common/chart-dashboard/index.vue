@@ -2,7 +2,7 @@
     <!-- Loop show chart -->
     <!-- v-if="" -->
     <div v-if="!chartDataSingle">
-        <div v-for="(panel, index) in data.sPanels" :key="index">
+        <div v-for="(panel, index) in cData" :key="index">
             <AreaChart ref="areaChart" :index="panel.i" :panel-info="panel" />
         </div>
     </div>
@@ -41,30 +41,36 @@ const gSelectedTab = computed(() => store.state.gSelectedTab);
 const cRouter = computed(() => {
     return router.params && router.params.id ? router.params.id : '';
 });
+
+const cData = computed(() => {
+    return gBoard.value.panels
+        ? (gBoard.value.panels.map((v: any, i: number) => {
+              const sPanel = v[0];
+              return {
+                  ...sPanel,
+                  i: i,
+              };
+          }) as PanelInfo[])
+        : [];
+});
 watchEffect(
     // () => gBoard.value.panels,
     (newValue: any) => {
         if (!newValue) return;
-        data.sPanels = gBoard.value.panels
-            ? (gBoard.value.panels.map((v: any, i: number) => {
-                  const sPanel = v[0];
-                  return {
-                      ...sPanel,
-                      i: i,
-                  };
-              }) as PanelInfo[])
-            : [];
     }
     // { immediate: true }
 );
 
+const onReload = () => {
+    areaChart.value &&
+        areaChart.value.forEach((aItem: any) => {
+            aItem.onReload();
+        });
+};
 watch(
     () => gBoard.value.range_bgn || gBoard.value.range_end,
     () => {
-        areaChart.value &&
-            areaChart.value.forEach((aItem: any) => {
-                aItem.onReload();
-            });
+        onReload();
     }
 );
 
@@ -84,7 +90,23 @@ watch(
     { immediate: true, deep: true }
 );
 
-defineExpose({});
+// watch(
+//     () => store.state.gBoard,
+//     () => {
+//         console.log(gBoard);
+
+//     }
+// );
+
+onMounted(async () => {
+    // if (props.chartDataSingle) {
+    // } else {
+    // }
+    // intializePanelData();
+    // onReload();
+});
+
+defineExpose({ onReload });
 </script>
 <style lang="scss" scoped>
 @import 'index.scss';

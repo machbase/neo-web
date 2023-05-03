@@ -1,21 +1,32 @@
 <template>
     <div class="tag-view" :class="!route.params.id ? '' : 'form-body'">
-        <v-sheet v-if="route.params.id" class="" color="transparent" height="100%" width="100%">
+        <v-sheet v-if="route.params.id" id="tagView" class="" color="transparent" height="100%" width="100%">
             <v-sheet v-show="gBoard.type === 'note'" color="transparent" height="100%" width="100%">
                 <Editor />
             </v-sheet>
+            <div class="time-range icon">
+                {{
+                    !isEmpty(cTimeRange)
+                        ? `${cTimeRange.start ? cTimeRange.start : ''} ~ ${cTimeRange.end ? cTimeRange.end : ''} ${cTimeRange.refresh ? `refresh every ${cTimeRange.refresh}` : ''}`
+                        : TIME_RANGE_NOT_SET
+                }}
+                <img @click="onReload" class="" :src="i_b_refresh" />
+                <img @click="onClickPopupItem(PopupType.TIME_RANGE)" class="" :src="i_b_timerange" />
+            </div>
             <v-sheet v-show="gBoard.type === 'dashboard'" class="chart-form" color="transparent" height="100%" width="100%">
-                <ChartDashboard ref="sPanels" />
-                <ButtonCreate :is-add-chart="true" :on-click="onOpenPopup" />
-                <PopupWrap @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="PopupType.NEW_CHART" :width="'667px'" />
+                <ChartDashboard v-if="route.params.id" ref="sPanels" />
+                <ButtonCreate @click="onClickPopupItem(PopupType.NEW_CHART)" :is-add-chart="true" />
+                <PopupWrap @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="sPopupType" :width="cWidthPopup" />
             </v-sheet>
+            <!-- <PopupWrap @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="sPopupType" :width="'667px'" /> -->
+
             <!-- <v-sheet v-if="gBoard.type === 'new'" class="form-body" color="transparent" height="100%" width="100%">
             </v-sheet> -->
         </v-sheet>
         <!-- <PopupWrap v-if="route.params.id" @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="PopupType.NEW_CHART" :width="'667px'" /> -->
 
         <div v-else>
-            <v-btn @click="sTest">123213</v-btn>
+            <!-- <v-btn @click="sTest">123213</v-btn> -->
 
             <div v-for="(aTab, aIdx) in gTabList" v-show="aTab.id === gSelectedTab" :key="aIdx">
                 <iframe
@@ -37,26 +48,33 @@ import ButtonCreate from '@/components/common/button-create/index.vue';
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { PopupType } from '@/enums/app';
+import i_b_timerange from '@/assets/image/i_b_timerange.png';
 import { BoardInfo, PanelInfo } from '@/interface/chart';
 import { ResBoardList } from '@/interface/tagView';
 import AddTab from '@/components/popup-list/popup/AddTab.vue';
+import i_b_refresh from '@/assets/image/i_b_refresh.png';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, isEmpty } from 'lodash';
 import { onMounted, nextTick } from 'vue';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import i_b_close from '@/assets/image/i_b_close.png';
 import { MutationTypes } from '../../store/mutations';
+import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from '@/components/header/constant';
 
 const iFrame0 = ref<any>(null);
 const route = useRoute();
 const store = useStore();
+const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
+const cTimeRange = computed(() => store.state.gTimeRange);
+
 const sDialog = ref<boolean>(false);
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
 const cDashBoard = computed((): BoardInfo => store.state.gBoard);
 const sPanels = ref(null);
 const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
+const cBoardOld = computed(() => store.state.gBoardOld);
 
 const gBoard = computed(() => store.state.gBoard);
 const gSelectedTab = computed(() => store.state.gSelectedTab);
@@ -66,20 +84,22 @@ const gSelectedTabInfo = computed(() => {
     return gTabList.value.find((aItem: any) => aItem.id === gSelectedTab.value);
 });
 
-function onOpenPopup() {
-    sDialog.value = true;
-}
+// function onOpenPopup() {
+//
+// }
 const onClosePopup = () => {
     sDialog.value = false;
 };
-const test = () => {
-    alert('test');
-};
 const sTest = () => {
     // const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
-    console.log((iFrame0 as any).contentWindow);
-    console.log((document.getElementById('iFrame0') as any).contentWindow);
-    console.log((document.getElementById('iFrame0') as any).contentWindow.test());
+    gTabList.value.forEach((aItem: any, aIdx: number) => {
+        (document.getElementById(`iFrame${aIdx}`) as any).contentWindow.postMessage("The user is 'bob' and the parents is 'secret'", window.location.href + 'parents');
+    });
+};
+
+const onClickPopupItem = (aPopupName: PopupType) => {
+    sPopupType.value = aPopupName;
+    sDialog.value = true;
 };
 
 // const setBoard = async (sId: string) => {
@@ -103,15 +123,59 @@ const sTest = () => {
 //     }
 // );
 
+const receiveMessage = (event: MessageEvent) => {
+    // Do we trust the sender of this message?  (might be
+    // different from what we originally opened, for example).
+    // if (event.origin !== '123') return;
+
+    if (event && String(event.data).includes('parents')) {
+        window.parent.postMessage(JSON.stringify(cDashBoard.value), '*');
+    } else if (typeof event.data === 'string' && JSON.parse(event.data)) {
+        console.log(event.data);
+    }
+
+    // event.source is popup
+    // event.data is "hi there yourself!  the secret response is: rheeeeet!"
+};
+const onReload = () => {
+    sPanels.value.onReload();
+    // let id = route.query.id || cBoardList.value[0]?.board_id;
+    // const newBord = cloneDeep(cBoardOld.value);
+    // store.commit(MutationTypes.setBoardByFileUpload, newBord);
+};
+
+const cWidthPopup = computed((): string => {
+    switch (sPopupType.value) {
+        case PopupType.PREFERENCES:
+            return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.TIME_RANGE:
+            return WIDTH_DEFAULT.TIME_RANGE;
+        case PopupType.TIME_DURATION:
+            return WIDTH_DEFAULT.TIME_DURATION;
+        case PopupType.MANAGE_DASHBOARD:
+            return WIDTH_DEFAULT.MANAGE_DASHBOARD;
+        case PopupType.SAVE_DASHBOARD:
+            return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.ADD_TAB:
+            return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.NEW_TAGS:
+            return '667px';
+        case PopupType.NEW_CHART:
+            return '667px';
+        default:
+            return WIDTH_DEFAULT.DEFAULT;
+    }
+});
+
 onMounted(async () => {
+    // receiveMessage();
+    window.addEventListener('message', receiveMessage);
+
     nextTick(() => {
-        console.log(route.params.type);
-        console.log(route.params);
         if (route.params.id) {
-            console.log(route.params.type);
-            store.commit(MutationTypes.setBoard, { type: route.params.type, board_id: '', range_end: '', refresh: '', board_name: '', range_bgn: '', panels: [] });
+            gBoard.value.type = route.params.type;
+            store.commit(MutationTypes.setBoard, gBoard);
         }
-        console.log(store.state.gBoard);
     });
     await store.dispatch(ActionTypes.fetchTableList);
     if (store.state.gTableList[0]) {
@@ -123,6 +187,7 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 @import './index.scss';
+
 .base-form {
     padding: 0 !important;
 }

@@ -72,7 +72,6 @@ const onSetting = () => {
         };
     }
 
-    console.log(window.location.href);
     store.commit(MutationTypes.pushTab, {
         url: `${window.location.href}/${sBoardType.value}/${String(new Date())}`,
         type: sBoardType.value,

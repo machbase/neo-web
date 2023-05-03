@@ -1,5 +1,12 @@
 <template>
     <div class="chart-edit-page">
+        <div class="header">
+            <img @click="onSaveEdit" class="icon" :src="i_b_save_2" />
+            <router-link :to="{ name: RouteNames.TAG_VIEW + 'frame', params: { type: route.params.type, id: route.params.id } }">
+                <img :src="i_b_close" style="" />
+            </router-link>
+        </div>
+
         <ChartDashboard ref="sPanels" :chart-data-single="sDataChart" />
         <div v-if="sShowTab" class="tabs">
             <div class="header">
@@ -59,7 +66,7 @@ const onChangeTabData = (data: Partial<PanelInfo>) => {
 };
 const onSave = () => {
     const payload = {
-        index: route.params.id,
+        index: route.params.panel_id,
         item: sTabData.value,
     };
     sDataChart.value[0] = sTabData.value as PanelInfo;
@@ -106,12 +113,19 @@ watch(
             return;
         }
         let clone = cloneDeep(CPanels.value);
-        sDataChart.value = clone[Number(route.params.id)];
-        sTabData.value = clone[Number(route.params.id)][0];
+        sDataChart.value = clone[Number(route.params.panel_id)];
+        sTabData.value = clone[Number(route.params.panel_id)][0];
     },
     { immediate: true }
 );
 
+const onSaveEdit = async () => {
+    await store.commit(MutationTypes.setChartBoardEdit);
+    router.push({
+        name: RouteNames.TAG_VIEW + 'frame',
+        params: { type: route.params.type, id: route.params.id },
+    });
+};
 onMounted(async () => {
     await store.dispatch(ActionTypes.fetchTableList);
     if (store.state.gTableList[0]) {

@@ -55,12 +55,9 @@ const mutations = {
         state.gTabList.push(aItem);
     },
     [MutationTypes.setTimeRange](state: RootState, aTimeRange: TimeRange) {
-        state.gTimeRange = aTimeRange;
-        state.gBoard = {
-            ...state.gBoard,
-            range_end: aTimeRange.end,
-            range_bgn: aTimeRange.start,
-        };
+        state.gTimeRange = JSON.parse(JSON.stringify(aTimeRange));
+        state.gBoard.range_end = aTimeRange.end;
+        state.gBoard.range_bgn = aTimeRange.start;
     },
     [MutationTypes.setTableList](state: RootState, aTableList: { columns: string[]; rows: string[]; types: string[] }) {
         const newTable = aTableList.rows.map((aTable) => {

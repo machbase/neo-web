@@ -63,7 +63,7 @@ import { TimeLineType } from '@/interface/date';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { toDateUtcChart, toTimeUtcChart, rawtoTimeUtcChart } from '@/utils/utils';
-import { computed, defineProps, onMounted, reactive, ref, watch, withDefaults, defineExpose } from 'vue';
+import { computed, defineProps, onMounted, reactive, ref, watch, withDefaults, defineExpose, nextTick } from 'vue';
 import AreaChart from './container/index.vue';
 import { fetchRawData } from '../../../../../api/repository/machiot';
 
@@ -74,6 +74,7 @@ interface AreaChartProps {
 const props = withDefaults(defineProps<AreaChartProps>(), {
     index: 0,
 });
+const gBoard = computed(() => store.state.gBoard);
 
 const store = useStore();
 const sLoading = ref<boolean>(false);
@@ -199,7 +200,8 @@ function calcInterval(aBgn: number, aEnd: number, aWidth: number): { IntervalTyp
 }
 const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aIsNavigator?: boolean) => {
     sLoading.value = true;
-    const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
+    let sChartWidth;
+    sChartWidth = areaChart.value.chart.$el.clientWidth;
     let sLimit = aPanelInfo.count;
     let sCount = -1;
     if (sLimit < 0) {
@@ -212,7 +214,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
         data.sDisplayData = { datasets: sDatasets };
         return;
     }
-    let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
+    let sTimeRange = await getDateRange(aPanelInfo, gBoard, aCustomRange);
 
     let sStartTime = toTimeUtcChart(sTimeRange.startTime);
     let sEndTime = toTimeUtcChart(sTimeRange.endTime);
@@ -260,7 +262,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     sLoading.value = false;
 };
 const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
-    const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
+    const sChartWidth: number = areaChart.value.chart.$el.clientWidth;
     let sLimit = aPanelInfo.count;
     let sCount = -1;
     if (sLimit < 0) {
@@ -268,13 +270,14 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
     }
     let sDatasets = [] as HighchartsDataset[];
     const sTagSet = aPanelInfo.tag_set || [];
+
     if (sTagSet.length === 0) {
         sLoading.value = false;
         data.sViewPortData = { datasets: sDatasets };
         return;
     }
 
-    let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
+    let sTimeRange = await getDateRange(aPanelInfo, gBoard, aCustomRange);
     let sStartTime = toTimeUtcChart(sTimeRange.startTime);
     let sEndTime = toTimeUtcChart(sTimeRange.endTime);
 
@@ -312,11 +315,12 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
             });
         }
     }
+
     data.sViewPortData = await { datasets: sDatasets };
 };
 const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aIsNavigator?: boolean, aLimit?: any) => {
     sLoading.value = true;
-    const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
+    const sChartWidth: number = areaChart.value.chart.$el.clientWidth;
     let gRawChartLimit = 0;
     gRawChartLimit = aPanelInfo.raw_chart_limit;
     if (aPanelInfo.raw_chart_limit < 0) {
@@ -332,7 +336,7 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
         data.sDisplayData = { datasets: sDatasets };
         return;
     }
-    let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
+    let sTimeRange = await getDateRange(aPanelInfo, gBoard, aCustomRange);
     let sStartTime = toTimeUtcChart(sTimeRange.startTime);
     let sEndTime = toTimeUtcChart(sTimeRange.endTime);
 
@@ -381,6 +385,7 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
 
 const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPortRange?: startTimeToendTimeType) => {
     data.sIsLoading = true;
+
     try {
         if (!aCustomRange && !aViewPortRange) {
             await fetchPanelData(props.panelInfo);
@@ -389,7 +394,9 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPo
             await fetchViewPortData(props.panelInfo, aViewPortRange);
             await fetchPanelData(props.panelInfo, aCustomRange);
         }
-    } catch (error) {}
+    } catch (error) {
+        //
+    }
     data.sIsLoading = false;
 };
 const onResetSquare = async (aParams: { min: number; max: number }) => {
@@ -414,9 +421,10 @@ const onResetSquare = async (aParams: { min: number; max: number }) => {
 };
 const onReload = async () => {
     data.sIsRaw = false;
+
     await fetchViewPortData(props.panelInfo);
     const { startTime, endTime } = getTimeReset({ startTime: data.sTimeRangeViewPort.startTime, endTime: data.sTimeRangeViewPort.endTime });
-    areaChart.value.updateMinMaxChart(startTime, endTime);
+    areaChart.value && areaChart.value.updateMinMaxChart(startTime, endTime);
 };
 const onChangeZoom = () => {
     if (props.panelInfo.tag_set.length === 0) return;
@@ -568,7 +576,7 @@ const getTimeReset = (sTimeRange: TimeLineType) => {
     };
 };
 const onCloseNavigator = async () => {
-    let { startTime, endTime } = await getDateRange(props.panelInfo, store.state.gBoard);
+    let { startTime, endTime } = await getDateRange(props.panelInfo, gBoard);
     let sStartTime = toTimeUtcChart(startTime);
     let sEndTime = toTimeUtcChart(endTime);
     areaChart.value.updateMinMaxChart(sStartTime, sEndTime);
@@ -693,9 +701,11 @@ watch(
     }
 );
 
-onMounted(async () => {
-    intializePanelData();
-    onReload();
+onMounted(() => {
+    nextTick(() => {
+        intializePanelData();
+        onReload();
+    });
 });
 
 defineExpose({ onReload });

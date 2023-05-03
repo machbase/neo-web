@@ -1,5 +1,13 @@
 @import '@/assets/scss/theme.scss';
 
-.tag-view {
-
+.time-range {
+    color: $text-b;
+    font-size: $font-12 !important;
+    display: flex;
+    margin-top: $px-20;
+    align-items: center;
+    justify-content: end;
+    img{
+        padding-left:5px;
+    }
 }
