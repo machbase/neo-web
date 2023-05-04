@@ -74,10 +74,12 @@
                         <input @change="onUploadChart" accept="application/JSON" class="file-import" type="file" />
                     </label>
 
-                    <div @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)" class="item">
+                    <div @click="download" class="item">
+                        <!-- @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)" -->
+                        <!-- onClickPopupItem(PopupType.SAVE_DASHBOARD) -->
                         <v-icon
                             v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
-                            @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)"
+                            @click="download"
                             class="icon"
                             icon="mdi-content-save"
                             size="small"
@@ -119,13 +121,16 @@ import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { MutationTypes } from '@/store/mutations';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, provide, defineEmits, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from './constant';
 import { BarPanel, BoardInfo, startTimeToendTimeType } from '@/interface/chart';
 import { fetchRollUp } from '@/api/repository/machiot';
 import Joi from 'joi';
 import { logOut } from '../../api/repository/login';
+
+const emit = defineEmits(['download']);
+
 export type headerType = RouteNames.TAG_VIEW | RouteNames.VIEW | RouteNames.CHART_VIEW | RouteNames.CHART_EDIT | RouteNames.NEW;
 const store = useStore();
 const cTimeRange = computed(() => store.state.gTimeRange);
@@ -320,7 +325,9 @@ const setSelectedTab = (aItem: string) => {
 const deleteTab = (aId: string) => {
     const sIdx = gTabList.value.findIndex((aItem: any) => aItem.id === aId);
     const sCopyTabList = JSON.parse(JSON.stringify(gTabList.value));
-    sCopyTabList.splice(sIdx, 1);
+    console.log(sCopyTabList.splice(sIdx, 1));
+
+    store.commit(MutationTypes.changeTabList, sCopyTabList as BoardInfo);
 };
 
 const onUploadChart = (aEvent: any) => {
@@ -328,14 +335,18 @@ const onUploadChart = (aEvent: any) => {
     const file = aEvent.target.files[0];
     const reader = new FileReader();
     reader.onload = async (event: any) => {
-        const fileContent: BoardInfo = await JSON.parse(event.target.result);
+        const fileContent: any = await JSON.parse(event.target.result);
         const status = await validateTest(schema, fileContent);
         if (status === false) {
             sLoading.value = false;
             return;
         }
-        store.commit(MutationTypes.setBoardOld, cloneDeep(fileContent) as BoardInfo);
-        store.commit(MutationTypes.setBoardByFileUpload, cloneDeep(fileContent) as BoardInfo);
+        store.commit(MutationTypes.setImportData, cloneDeep(fileContent.data) as BoardInfo);
+        store.commit(MutationTypes.changeTabList, cloneDeep(fileContent.tabList) as BoardInfo);
+
+        setSelectedTab(cloneDeep(fileContent.tabList)[0].id);
+        // store.commit(MutationTypes.setBoardByFileUpload, cloneDeep(fileContent) as BoardInfo);
+        onChildGroup();
         sLoading.value = false;
     };
     reader.readAsText(file);
@@ -530,12 +541,23 @@ const onSaveEdit = async () => {
 };
 // store.dispatch(ActionTypes.fetchBoardList);
 
+const download = () => {
+    store.commit(MutationTypes.setDownLoad, true);
+
+    onClickPopupItem(PopupType.SAVE_DASHBOARD);
+};
+
 watch(
     () => route.name,
     () => {
         if (route.name) sHeaderType.value = route.name as headerType;
     }
 );
+onMounted(async () => {
+    if (gTabList.value.length === 0) {
+        onClickPopupItem(PopupType.ADD_TAB);
+    }
+});
 </script>
 
 <style lang="scss" scoped>

@@ -27,11 +27,11 @@ const _convertTimeToFullDate = (aTime: string) => {
 };
 const setTimeRange = async (aPanelInfo: PanelInfo, aDashboard: BoardInfo) => {
     let timeRange = {} as RangeData;
-    if (!aDashboard.value.range_end || !aDashboard.value.range_bgn) {
+    if (!aDashboard.range_end || !aDashboard.range_bgn) {
         timeRange = aPanelInfo.default_range;
     }
-    const startTime = _convertTimeToFullDate(aPanelInfo.range_bgn || aDashboard.value.range_bgn || timeRange.min);
-    const endTime = _convertTimeToFullDate(aPanelInfo.range_end || aDashboard.value.range_end || timeRange.max);
+    const startTime = _convertTimeToFullDate(aPanelInfo.range_bgn || aDashboard.range_bgn || timeRange.min);
+    const endTime = _convertTimeToFullDate(aPanelInfo.range_end || aDashboard.range_end || timeRange.max);
     return { startTime, endTime };
 };
 const getDateRange = async (aPanelInfo: PanelInfo, aDashboard: BoardInfo, aCustomRange = undefined as startTimeToendTimeType | undefined): Promise<TimeInfo> => {

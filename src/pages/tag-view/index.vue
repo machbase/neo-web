@@ -1,10 +1,18 @@
 <template>
-    <div class="tag-view" :class="!route.params.id ? '' : 'form-body'">
-        <v-sheet v-if="route.params.id" id="tagView" class="" color="transparent" height="100%" width="100%">
+    <div class="tag-view" :style="route.params.id && gBoard.type !== 'note' ? { padding: '0px 20px', maxHeight: '100%' } : { maxHeight: '100%' }">
+        <v-sheet
+            v-if="route.params.id"
+            id="tagView"
+            class=""
+            color="transparent"
+            height="100%"
+            :style="route.params.id && gBoard.type !== 'note' ? { padding: '0px 10px' } : ''"
+            width="100%"
+        >
             <v-sheet v-show="gBoard.type === 'note'" color="transparent" height="100%" width="100%">
                 <Editor />
             </v-sheet>
-            <div class="time-range icon">
+            <v-sheet v-show="gBoard.type !== 'note'" class="time-range icon" color="transparent">
                 {{
                     !isEmpty(cTimeRange)
                         ? `${cTimeRange.start ? cTimeRange.start : ''} ~ ${cTimeRange.end ? cTimeRange.end : ''} ${cTimeRange.refresh ? `refresh every ${cTimeRange.refresh}` : ''}`
@@ -12,7 +20,7 @@
                 }}
                 <img @click="onReload" class="" :src="i_b_refresh" />
                 <img @click="onClickPopupItem(PopupType.TIME_RANGE)" class="" :src="i_b_timerange" />
-            </div>
+            </v-sheet>
             <v-sheet v-show="gBoard.type === 'dashboard'" class="chart-form" color="transparent" height="100%" width="100%">
                 <ChartDashboard v-if="route.params.id" ref="sPanels" />
                 <ButtonCreate @click="onClickPopupItem(PopupType.NEW_CHART)" :is-add-chart="true" />
@@ -32,6 +40,7 @@
                 <iframe
                     :ref="`iFrame${aIdx}`"
                     :id="`iFrame${aIdx}`"
+                    @load="onUpload"
                     frameborder="0"
                     height="100%"
                     :src="aTab.url"
@@ -56,18 +65,19 @@ import i_b_refresh from '@/assets/image/i_b_refresh.png';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { cloneDeep, isEmpty } from 'lodash';
-import { onMounted, nextTick } from 'vue';
+import { onMounted, nextTick, inject } from 'vue';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import i_b_close from '@/assets/image/i_b_close.png';
 import { MutationTypes } from '../../store/mutations';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from '@/components/header/constant';
 
-const iFrame0 = ref<any>(null);
 const route = useRoute();
 const store = useStore();
 const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
 const cTimeRange = computed(() => store.state.gTimeRange);
+
+const sLoading = ref(true);
 
 const sDialog = ref<boolean>(false);
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
@@ -76,10 +86,12 @@ const sPanels = ref(null);
 const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const cBoardOld = computed(() => store.state.gBoardOld);
 
+const sDownLoadData = ref<BoardInfo[]>([]);
 const gBoard = computed(() => store.state.gBoard);
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
-
+const gDownload = computed(() => store.state.gDownload);
+const gImportData = computed(() => store.state.gImportData);
 const gSelectedTabInfo = computed(() => {
     return gTabList.value.find((aItem: any) => aItem.id === gSelectedTab.value);
 });
@@ -90,10 +102,20 @@ const gSelectedTabInfo = computed(() => {
 const onClosePopup = () => {
     sDialog.value = false;
 };
-const sTest = () => {
+const onUpload = () => {
+    console.log('123');
+    gTabList.value.forEach((aItem: any, aIdx: number) => {
+        (document.getElementById(`iFrame${aIdx}`) as any).contentWindow.postMessage(
+            JSON.stringify({ status: 'upload', data: gImportData.value[aIdx] }),
+            window.location.href + 'parents'
+        );
+    });
+};
+
+const onDownload = () => {
     // const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
     gTabList.value.forEach((aItem: any, aIdx: number) => {
-        (document.getElementById(`iFrame${aIdx}`) as any).contentWindow.postMessage("The user is 'bob' and the parents is 'secret'", window.location.href + 'parents');
+        (document.getElementById(`iFrame${aIdx}`) as any).contentWindow.postMessage(JSON.stringify({ status: 'download' }), window.location.href + 'parents');
     });
 };
 
@@ -107,31 +129,27 @@ const onClickPopupItem = (aPopupName: PopupType) => {
 //     await store.dispatch(ActionTypes.fetchBoard, sId);
 // };
 
-// watch(
-//     () => cDashBoard.value,
-//     () => {
-//         setBoard(cBoardList.value[0]?.board_id as string);
-//     }
-// );
-
-// watch(
-//     () => route.query.id,
-//     () => {
-//         if (route.query.id) {
-//             setBoard(route.query.id as string);
-//         }
-//     }
-// );
-
 const receiveMessage = (event: MessageEvent) => {
+    if (typeof event.data !== 'string') {
+        sLoading.value = false;
+        return;
+    }
     // Do we trust the sender of this message?  (might be
     // different from what we originally opened, for example).
     // if (event.origin !== '123') return;
-
-    if (event && String(event.data).includes('parents')) {
+    // 자식에서 download 요청인지 확인하여 Data 전달
+    if (JSON.parse(event.data).status === 'download') {
         window.parent.postMessage(JSON.stringify(cDashBoard.value), '*');
-    } else if (typeof event.data === 'string' && JSON.parse(event.data)) {
-        console.log(event.data);
+    }
+    // upload 요청인지 처리
+    else if (JSON.parse(event.data).status === 'upload' && JSON.parse(event.data).data) {
+        // 업로드 요청일땐, 자식은 받은 data 를 저장
+        store.commit(MutationTypes.setBoardByFileUpload, JSON.parse(event.data).data);
+        sLoading.value = false;
+    }
+    // 다운로드를 요청한 부모에게 data 전달한 것을 전역으로 return
+    else {
+        store.commit(MutationTypes.setDownLoadData, JSON.parse(event.data));
     }
 
     // event.source is popup
@@ -166,6 +184,15 @@ const cWidthPopup = computed((): string => {
             return WIDTH_DEFAULT.DEFAULT;
     }
 });
+
+watch(
+    () => store.state.gDownload,
+    () => {
+        if (gDownload.value) {
+            onDownload();
+        }
+    }
+);
 
 onMounted(async () => {
     // receiveMessage();

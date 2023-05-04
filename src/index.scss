@@ -3,6 +3,8 @@
     position: relative;
     list-style: none;
     display: flex;
+    max-height: calc(100% - 44px);
+    height: calc(100% - 44px);
     flex-direction: column; 
 }
 .body {
@@ -10,7 +12,7 @@
         background-color: theme-get('bg-color');
         color: theme-get('text-color');
     }
-    padding: 0px $px-20 !important;
+    // padding: 0px $px-20 !important;
     flex: 1;
 }
 body {
@@ -64,3 +66,10 @@ body::-webkit-scrollbar-thumb {
     }
 }
 
+.dark { 
+    height: calc(100% - 44px);
+}
+.light {
+    height: calc(100% - 44px);
+
+}

@@ -45,8 +45,10 @@ const state = {
         board_name: '',
         range_bgn: '',
         panels: [],
+        code: '',
     } as BoardInfo,
     // old
+
     gBoardOld: {
         type: 'new',
         board_id: '',
@@ -55,6 +57,7 @@ const state = {
         board_name: '',
         range_bgn: '',
         panels: [],
+        code: '',
     } as BoardInfo,
 
     gBoardPanelEdit: {
@@ -67,6 +70,9 @@ const state = {
 
     //ActionTypes.fetchTableList
     gTable: {} as any,
+    gDownload: false,
+    gDownloadData: [] as any,
+    gImportData: [] as any,
 };
 
 type RootState = typeof state;

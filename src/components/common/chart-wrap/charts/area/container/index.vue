@@ -7,7 +7,7 @@ import { HighchartsDataset, LineDataset, LinePanel } from '@/interface/chart';
 import { useStore } from '@/store';
 import { formatColors, toTimeUtcChart, rawtoTimeUtcChart } from '@/utils/utils';
 import { cloneDeep } from 'lodash';
-import { computed, defineEmits, defineExpose, defineProps, onMounted, reactive, ref, withDefaults } from 'vue';
+import { computed, defineEmits, defineExpose, defineProps, onMounted, reactive, ref, withDefaults, nextTick } from 'vue';
 interface BarChartContainerProps {
     chartData: LineDataset;
     viewData: LineDataset;
@@ -20,6 +20,7 @@ interface BarChartContainerProps {
     maxYChart?: number;
     pIsZoom: boolean;
     pIsRaw: boolean;
+    pPanelWidth: number;
 }
 
 const props = withDefaults(defineProps<BarChartContainerProps>(), {});
@@ -134,7 +135,7 @@ const cChartOptions = computed(() => {
             outlineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             xAxis: {
                 left: 28,
-                width: data.sChartWidth - 28,
+                width: props.pPanelWidth,
                 type: 'datetime',
                 min: toTimeUtcChart(props.xMinTimeRangeViewPort as string),
                 max: toTimeUtcChart(props.xMaxTimeRangeViewPort as string),
@@ -402,7 +403,9 @@ const updateYaxis = () => {
     return yAxis;
 };
 onMounted(() => {
-    data.sChartWidth = chart.value.chart.plotWidth;
+    nextTick(() => {
+        data.sChartWidth = chart.value.chart.plotWidth;
+    });
 });
 
 defineExpose({ chart, updateMinMaxChart, updateMinMaxNavigator });

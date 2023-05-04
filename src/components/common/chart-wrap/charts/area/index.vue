@@ -26,6 +26,7 @@
             :max-y-chart="data.sMaxYChart"
             :p-is-raw="data.sIsRaw"
             :p-is-zoom="sIsZoom"
+            :p-panel-width="sClientWidth.value"
             :panel-info="props.panelInfo"
             :view-data="data.sViewPortData"
             :x-axis-max-range="data.sTimeLine.endTime"
@@ -76,6 +77,7 @@ const props = withDefaults(defineProps<AreaChartProps>(), {
 });
 const gBoard = computed(() => store.state.gBoard);
 
+const sClientWidth = ref(0);
 const store = useStore();
 const sLoading = ref<boolean>(false);
 const areaChart = ref<any>();
@@ -201,7 +203,8 @@ function calcInterval(aBgn: number, aEnd: number, aWidth: number): { IntervalTyp
 const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aIsNavigator?: boolean) => {
     sLoading.value = true;
     let sChartWidth;
-    sChartWidth = areaChart.value.chart.$el.clientWidth;
+    sChartWidth = areaChart.value.chart.$el.clientWidth ? areaChart.value.chart.$el.clientWidth : window.outerWidth - 62;
+    sClientWidth.value = sChartWidth;
     let sLimit = aPanelInfo.count;
     let sCount = -1;
     if (sLimit < 0) {
@@ -214,7 +217,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
         data.sDisplayData = { datasets: sDatasets };
         return;
     }
-    let sTimeRange = await getDateRange(aPanelInfo, gBoard, aCustomRange);
+    let sTimeRange = await getDateRange(aPanelInfo, gBoard.value, aCustomRange);
 
     let sStartTime = toTimeUtcChart(sTimeRange.startTime);
     let sEndTime = toTimeUtcChart(sTimeRange.endTime);
@@ -262,7 +265,7 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     sLoading.value = false;
 };
 const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
-    const sChartWidth: number = areaChart.value.chart.$el.clientWidth;
+    const sChartWidth: number = areaChart.value.chart.$el.clientWidth ? areaChart.value.chart.$el.clientWidth : window.outerWidth - 62;
     let sLimit = aPanelInfo.count;
     let sCount = -1;
     if (sLimit < 0) {
@@ -277,7 +280,7 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
         return;
     }
 
-    let sTimeRange = await getDateRange(aPanelInfo, gBoard, aCustomRange);
+    let sTimeRange = await getDateRange(aPanelInfo, gBoard.value, aCustomRange);
     let sStartTime = toTimeUtcChart(sTimeRange.startTime);
     let sEndTime = toTimeUtcChart(sTimeRange.endTime);
 
@@ -320,7 +323,7 @@ const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeT
 };
 const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType, aIsNavigator?: boolean, aLimit?: any) => {
     sLoading.value = true;
-    const sChartWidth: number = areaChart.value.chart.$el.clientWidth;
+    const sChartWidth: number = areaChart.value.chart.$el.clientWidth ? areaChart.value.chart.$el.clientWidth : window.outerWidth - 62;
     let gRawChartLimit = 0;
     gRawChartLimit = aPanelInfo.raw_chart_limit;
     if (aPanelInfo.raw_chart_limit < 0) {
@@ -336,7 +339,7 @@ const generateRawDataChart = async (aPanelInfo: BarPanel, aCustomRange?: startTi
         data.sDisplayData = { datasets: sDatasets };
         return;
     }
-    let sTimeRange = await getDateRange(aPanelInfo, gBoard, aCustomRange);
+    let sTimeRange = await getDateRange(aPanelInfo, gBoard.value, aCustomRange);
     let sStartTime = toTimeUtcChart(sTimeRange.startTime);
     let sEndTime = toTimeUtcChart(sTimeRange.endTime);
 
@@ -576,7 +579,7 @@ const getTimeReset = (sTimeRange: TimeLineType) => {
     };
 };
 const onCloseNavigator = async () => {
-    let { startTime, endTime } = await getDateRange(props.panelInfo, gBoard);
+    let { startTime, endTime } = await getDateRange(props.panelInfo, gBoard.value);
     let sStartTime = toTimeUtcChart(startTime);
     let sEndTime = toTimeUtcChart(endTime);
     areaChart.value.updateMinMaxChart(sStartTime, sEndTime);

@@ -1,6 +1,6 @@
 <template>
     <!-- theme="vs" -->
-    <DragRow width="100%" height="100%">
+    <DragRow height="100%" width="100%">
         <template #top>
             <!-- your content -->
             <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
@@ -18,30 +18,30 @@
                 <div class="editor-header">
                     <div class="header-toggle">MACHBASE</div>
                     <div class="header-btn-list">
-                        <button @click="copyData"><v-icon color="#ffffff">mdi-content-copy</v-icon></button>
-                        <button @click="getButtonData"><v-icon color="#ffffff">mdi-play</v-icon></button>
+                        <button @click="copyData"><v-icon>mdi-content-copy</v-icon></button>
+                        <button @click="getButtonData"><v-icon>mdi-play</v-icon></button>
                     </div>
                 </div>
 
                 <CodeEditor
+                    v-model="gBoard.code"
                     ref="text"
-                    v-model="sCode"
-                    hide_header
-                    theme=""
-                    :languages="sLang"
-                    width="100%"
-                    height="100%"
-                    min_height="100%"
-                    border_radius="0"
                     @keydown.ctrl="sFreshCtrl = true"
-                    @keyup.ctrl="sFreshCtrl = false"
                     @keydown.enter="setSQL($event)"
+                    @keyup.ctrl="sFreshCtrl = false"
+                    border_radius="0"
+                    height="calc(100% - 34px)"
+                    hide_header
+                    :languages="sLang"
+                    min_height="calc(100% - 34px)"
+                    theme=""
+                    width="100%"
                 />
             </div>
         </template>
         <template #bottom>
             <!-- your content -->
-            <Table :items="sData" :headers="sHeader" class="" @UpdateItems="UpdateItems" />
+            <Table @UpdateItems="UpdateItems" class="" :headers="sHeader" :items="sData" />
         </template>
     </DragRow>
 
@@ -55,11 +55,12 @@ import Table from './Table.vue';
 
 // import more codemirror resource...
 
-import { ref, defineEmits, defineProps, computed, onMounted } from 'vue';
+import { ref, watch, defineEmits, defineProps, computed, onMounted } from 'vue';
 import { store } from '../../store';
 import { fetchData } from '../../api/repository/machiot';
 import { copyText } from 'vue3-clipboard';
 import { DragCol, DragRow, ResizeCol, ResizeRow, Resize } from 'vue-resizer';
+import { MutationTypes } from '../../store/mutations';
 
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const sLang = [['SQL', 'MACHBASE']];
@@ -68,6 +69,7 @@ SELECT NAME
 FROM TAG
 WHERE NAME = 1;`);
 
+const gBoard = computed(() => store.state.gBoard);
 const sFreshCtrl = ref<boolean>(false);
 
 let sData = ref<any>([]);
@@ -97,6 +99,13 @@ const copyData = () => {
         });
     }
 };
+
+watch(
+    () => sCode.value,
+    () => {
+        store.commit(MutationTypes.updateCode, sCode.value);
+    }
+);
 
 const setSQL = async (event: any, aType?: string) => {
     const sPointer = event.target.selectionStart === 0 ? event.target.selectionStart : event.target.selectionStart - 1;
@@ -138,6 +147,7 @@ const getButtonData = async () => {
 };
 
 const handleChange = async () => {
+    console.log(sFreshCtrl.value);
     if (sFreshCtrl.value === true) {
         currentPage.value = 1;
         sData.value = [];
@@ -166,7 +176,7 @@ const getSQLData = async () => {
     z-index: 2;
     height: 34px;
     box-sizing: border-box;
-    /* padding: 0px 20px 0px 20px; */
+    padding: 0px 20px;
     justify-content: space-between;
     align-items: end;
 }
@@ -176,8 +186,55 @@ const getSQLData = async () => {
 .drager_top div {
     overflow: auto !important;
 }
+
+.drager_top div::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.drager_top div::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.drager_top div::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
+}
+
+.drager_bottom div::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.drager_bottom div::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.drager_bottom div::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
+}
 .drager_bottom div {
     overflow: auto !important;
+}
+.hide_header textarea::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.hide_header textarea::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.hide_header textarea::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
 }
 .hide_header .code_area {
     height: 100% !important;
@@ -186,6 +243,7 @@ const getSQLData = async () => {
 }
 
 .dark-sql {
+    height: 100%;
     /*!
   Theme: Windows 95
   Author: Fergus Collins (https://github.com/C-Fergus)

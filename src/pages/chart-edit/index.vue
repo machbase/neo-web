@@ -1,12 +1,5 @@
 <template>
     <div class="chart-edit-page">
-        <div class="header">
-            <img @click="onSaveEdit" class="icon" :src="i_b_save_2" />
-            <router-link :to="{ name: RouteNames.TAG_VIEW + 'frame', params: { type: route.params.type, id: route.params.id } }">
-                <img :src="i_b_close" style="" />
-            </router-link>
-        </div>
-
         <ChartDashboard ref="sPanels" :chart-data-single="sDataChart" />
         <div v-if="sShowTab" class="tabs">
             <div class="header">

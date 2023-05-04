@@ -13,6 +13,7 @@ enum MutationTypes {
     setBoard = 'setBoard',
     setTable = 'setTable',
     setBoardList = 'setBoardList',
+    updateCode = 'updateCode',
     setTimeRange = 'setTimeRange',
     setTableList = 'setTableList',
     setSelectedTab = 'setSelectedTab',
@@ -29,6 +30,10 @@ enum MutationTypes {
     setBoardByFileUpload = 'setBoardByFileUpload',
     setBoardOld = 'setBoardOld',
     setValueDashBoard = 'setValueDashBoard',
+    setDownLoad = 'setDownLoad',
+    setDownLoadData = 'setDownLoadData',
+    setImportData = 'setImportData',
+    changeTabList = 'changeTabList',
 }
 
 const mutations = {
@@ -53,6 +58,9 @@ const mutations = {
     },
     [MutationTypes.pushTab](state: RootState, aItem: any) {
         state.gTabList.push(aItem);
+    },
+    [MutationTypes.changeTabList](state: RootState, aTabList: any) {
+        state.gTabList = aTabList;
     },
     [MutationTypes.setTimeRange](state: RootState, aTimeRange: TimeRange) {
         state.gTimeRange = JSON.parse(JSON.stringify(aTimeRange));
@@ -83,6 +91,19 @@ const mutations = {
             board_name: aTemp.board_name,
             old_id: aTemp.old_id,
         };
+    },
+    [MutationTypes.updateCode](state: RootState, aCode: any) {
+        state.gBoard.code = aCode;
+    },
+
+    [MutationTypes.setDownLoad](state: RootState, aDownload: any) {
+        state.gDownload = aDownload;
+    },
+    [MutationTypes.setDownLoadData](state: RootState, aDownloadData: any) {
+        state.gDownloadData.push(aDownloadData);
+    },
+    [MutationTypes.setImportData](state: RootState, aImportData: any) {
+        state.gImportData = aImportData;
     },
     [MutationTypes.setValueDashBoard](state: RootState, aTemp: any) {
         state.gBoard = {
@@ -127,7 +148,14 @@ const mutations = {
         state.gBoard.panels[state.gBoardPanelEdit.index][0] = state.gBoardPanelEdit.item;
     },
     [MutationTypes.setBoardByFileUpload](state: RootState, payload: BoardInfo) {
-        state.gBoard = payload;
+        state.gBoard.board_id = payload.board_id;
+        state.gBoard.board_name = payload.board_name;
+        state.gBoard.code = payload.code;
+        state.gBoard.panels = payload.panels;
+        state.gBoard.range_bgn = payload.range_bgn;
+        state.gBoard.range_end = payload.range_end;
+        state.gBoard.refresh = payload.refresh;
+        state.gBoard.type = payload.type;
     },
     [MutationTypes.setBoardOld](state: RootState, payload: BoardInfo) {
         state.gBoardOld = payload;
