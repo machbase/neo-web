@@ -24,18 +24,13 @@ const state = {
     // * Request rollup
     gSecRollupExist: {} as any,
 
-    gTabList: [] as {
-        url: string;
-        type: string;
-        id: string;
-        name: string;
-        hover: boolean;
-    }[],
+    gTabList: [{ type: 'new', board_id: 'new', range_end: '', refresh: '', board_name: 'new', range_bgn: '', panels: [], code: '' }] as BoardInfo[],
 
     gSelectedTab: 'board1',
     // list board
-    gBoardList: [] as ResBoardList[],
+    // gBoardList: [] as ResBoardList[],
 
+    gTabBoardList: [] as BoardInfo[],
     // tag-view
     gBoard: {
         type: 'new',

@@ -8,6 +8,7 @@
             :p-inner-value="sInnerValue"
             :p-interval-data="data.sIntervalData"
             :p-is-raw="data.sIsRaw"
+            :p-tab-idx="props.pTabIdx"
             :panel-info="props.panelInfo"
             :x-axis-max-range="data.sTimeLine.endTime"
             :x-axis-min-range="data.sTimeLine.startTime"
@@ -71,11 +72,15 @@ import { fetchRawData } from '../../../../../api/repository/machiot';
 interface AreaChartProps {
     panelInfo: LinePanel;
     index: number;
+    pTabIdx: number;
 }
 const props = withDefaults(defineProps<AreaChartProps>(), {
     index: 0,
 });
-const gBoard = computed(() => store.state.gBoard);
+const gBoard = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    return gTabList.value[sIdx];
+});
 
 const sClientWidth = ref(0);
 const store = useStore();
@@ -113,8 +118,22 @@ const sInnerValue = reactive({
     sTickPixels: 0,
 });
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
-const cTimeRange = computed(() => store.state.gRangeData);
+// const cTimeRange = computed(() => store.state.gRangeData);
+const gTabList = computed(() => {
+    return store.state.gTabList;
+});
+const gSelectedTab = computed(() => store.state.gSelectedTab);
 
+const cTimeRange = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+
+    // export interface TimeRange {
+    // start: string;
+    // end: string;
+    // refresh: string;
+
+    return { start: gTabList.value[sIdx].range_bgn, end: gTabList.value[sIdx].range_end, refresh: gTabList.value[sIdx].refresh };
+});
 function calcInterval(aBgn: number, aEnd: number, aWidth: number): { IntervalType: string; IntervalValue: number } {
     let sDiff = aEnd - aBgn;
     let sSecond = Math.floor(sDiff / 1000);

@@ -61,6 +61,11 @@ import { fetchData } from '../../api/repository/machiot';
 import { copyText } from 'vue3-clipboard';
 import { DragCol, DragRow, ResizeCol, ResizeRow, Resize } from 'vue-resizer';
 import { MutationTypes } from '../../store/mutations';
+interface PropsNoteData {
+    pPanelData: boolean;
+}
+
+const props = defineProps<PropsNoteData>();
 
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const sLang = [['SQL', 'MACHBASE']];
@@ -68,8 +73,12 @@ const sCode = ref<string>(`SELECT * FROM TAG;
 SELECT NAME
 FROM TAG
 WHERE NAME = 1;`);
-
-const gBoard = computed(() => store.state.gBoard);
+const gSelectedTab = computed(() => store.state.gSelectedTab);
+const gTabList = computed(() => store.state.gTabList);
+const gBoard = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    return gTabList.value[sIdx];
+});
 const sFreshCtrl = ref<boolean>(false);
 
 let sData = ref<any>([]);
@@ -147,7 +156,6 @@ const getButtonData = async () => {
 };
 
 const handleChange = async () => {
-    console.log(sFreshCtrl.value);
     if (sFreshCtrl.value === true) {
         currentPage.value = 1;
         sData.value = [];

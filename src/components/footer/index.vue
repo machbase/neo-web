@@ -1,5 +1,5 @@
 <template>
-    <div v-if="!route.params.id" class="footer">Tag Analyzer {{ version }}</div>
+    <div class="footer">Tag Analyzer {{ version }}</div>
 </template>
 
 <script setup lang="ts" name="Footer">

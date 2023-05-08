@@ -1,6 +1,6 @@
 <template>
-    <div>
-        <div class="new-tab">
+    <v-sheet class="add-tab" color="transparent">
+        <v-sheet class="add-tab-form" color="transparent">
             <div>
                 <v-radio-group v-model="sBoardType" @update:modelValue="changeName" class="radio-tab" hide-detail>
                     <div>
@@ -21,8 +21,8 @@
                 <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> Ok </v-btn>
                 <!-- <v-btn variant="outlined" class="button-effect" @click="onClosePopup"> Cancel </v-btn> -->
             </div>
-        </div>
-    </div>
+        </v-sheet>
+    </v-sheet>
 </template>
 <script setup lang="ts">
 import Vue, { ref, computed, defineEmits } from 'vue';
@@ -41,6 +41,8 @@ const sBoardName = ref<string>('dashboard');
 //     });
 // });
 
+const gSelectedTab = computed(() => store.state.gSelectedTab);
+const gTabList = computed(() => store.state.gTabList);
 const changeName = (aItem: any) => {
     sBoardName.value = aItem;
 };
@@ -53,33 +55,25 @@ const onSetting = () => {
         alert('please enter Name');
         return;
     }
+    const sIdx = gTabList.value.findIndex((aItem) => aItem.board_id === gSelectedTab.value);
 
-    let sNode;
-    if (sBoardType.value === 'note') {
-        sNode = {
-            type: 'note',
-            name: sBoardName,
-            code: '',
-        };
-    } else {
-        sNode = {
-            type: 'board',
-            name: sBoardName,
-            range_end: '',
-            refresh: '',
-            range_bgn: '',
-            panels: [],
-        };
-    }
-
-    store.commit(MutationTypes.pushTab, {
-        url: `${window.location.href}/${sBoardType.value}/${String(new Date())}`,
+    const sNode = {
+        ...gTabList.value[sIdx],
+        board_id: String(new Date().getTime()),
         type: sBoardType.value,
-        id: String(new Date()),
-        name: sBoardName,
-        hover: false,
-    });
-    store.commit(MutationTypes.setSelectedTab, String(new Date()));
+        board_name: sBoardName,
+        edit: false,
+    };
+    //   type: 'new',
+    //   board_id: '',
+    //   range_end: '',
+    //   refresh: '',
+    //   board_name: '',
+    //   range_bgn: '',
+    //   panels: [],
+    //   code: '',
+    store.commit(MutationTypes.changeTab, sNode);
+    store.commit(MutationTypes.setSelectedTab, sNode.board_id);
     onClosePopup();
 };
 </script>
@@ -127,5 +121,20 @@ const onSetting = () => {
     display: flex;
     flex-direction: column;
     justify-content: center;
+}
+.add-tab {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+.add-tab-form {
+    width: 30%;
+    display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+    padding: 8px;
+    border: 1px solid $text-blue;
 }
 </style>

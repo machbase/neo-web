@@ -1,5 +1,6 @@
 @import '@/assets/scss/theme.scss';
 .header {
+    z-index: 1000;
     font-family: 'Open Sans', Helvetica, Arial, sans-serif;
     height: 44px;
     display: flex;
@@ -9,6 +10,8 @@
     padding: 0 $px-20;
     background-color: $d-background-opa;
     color: $text-w;
+    box-shadow: 0 0 10px 10px rgba(0, 0, 0, 0.2);
+
     .tab-form:hover{
         overflow: auto;
     }

@@ -3,8 +3,7 @@
     position: relative;
     list-style: none;
     display: flex;
-    max-height: calc(100% - 44px);
-    height: calc(100% - 44px);
+    height: 100vh;
     flex-direction: column; 
 }
 .body {
@@ -67,9 +66,9 @@ body::-webkit-scrollbar-thumb {
 }
 
 .dark { 
-    height: calc(100% - 44px);
+    height: calc(100%);
 }
 .light {
-    height: calc(100% - 44px);
+    height: calc(100%);
 
 }

@@ -16,6 +16,7 @@ enum MutationTypes {
     updateCode = 'updateCode',
     setTimeRange = 'setTimeRange',
     setTableList = 'setTableList',
+    changeTab = 'changeTab',
     setSelectedTab = 'setSelectedTab',
     setTagList = 'setTagList',
     setTabList = 'setTabList',
@@ -53,6 +54,10 @@ const mutations = {
     [MutationTypes.setSelectedTab](state: RootState, aItem: string) {
         state.gSelectedTab = aItem;
     },
+    [MutationTypes.changeTab](state: RootState, aItem: any) {
+        const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
+        state.gTabList[sIdx] = aItem;
+    },
     [MutationTypes.setTabList](state: RootState, aList: any) {
         state.gSelectedTab = aList;
     },
@@ -63,9 +68,12 @@ const mutations = {
         state.gTabList = aTabList;
     },
     [MutationTypes.setTimeRange](state: RootState, aTimeRange: TimeRange) {
+        const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
+
         state.gTimeRange = JSON.parse(JSON.stringify(aTimeRange));
-        state.gBoard.range_end = aTimeRange.end;
-        state.gBoard.range_bgn = aTimeRange.start;
+        state.gTabList[sIdx].range_end = aTimeRange.end;
+        state.gTabList[sIdx].range_bgn = aTimeRange.start;
+        state.gTabList[sIdx].refresh = aTimeRange.refresh || '';
     },
     [MutationTypes.setTableList](state: RootState, aTableList: { columns: string[]; rows: string[]; types: string[] }) {
         const newTable = aTableList.rows.map((aTable) => {
@@ -82,7 +90,9 @@ const mutations = {
         state.gTempNewChartData = aTemp;
     },
     [MutationTypes.setNewChartBoard](state: RootState, aTemp: PanelInfo) {
-        state.gBoard.panels.push([{ ...aTemp }]);
+        const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
+
+        state.gTabList[sIdx].panels.push([{ ...aTemp }]);
     },
     [MutationTypes.setNewBoard](state: RootState, aTemp: any) {
         state.gBoard = {
@@ -132,8 +142,9 @@ const mutations = {
         state.gTable = aTable;
     },
     [MutationTypes.setChartEdit](state: RootState, payload: { index: number; item: Partial<PanelInfo> }) {
+        const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
         state.gBoardPanelEdit.index = payload.index;
-        state.gBoardPanelEdit.item = { ...state.gBoard.panels[payload.index][0], ...payload.item };
+        state.gBoardPanelEdit.item = { ...state.gTabList[sIdx].panels[payload.index][0], ...payload.item };
         state.gBoardPanelEdit.item.tag_set.forEach((item: any, index: number) => {
             if (item.id) {
                 delete (state.gBoardPanelEdit.item.tag_set[index] as any).id;
@@ -145,7 +156,9 @@ const mutations = {
     },
     [MutationTypes.setChartBoardEdit](state: RootState) {
         if (isEmpty(state.gBoardPanelEdit.item)) return;
-        state.gBoard.panels[state.gBoardPanelEdit.index][0] = state.gBoardPanelEdit.item;
+        const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
+
+        state.gTabList[sIdx].panels[state.gBoardPanelEdit.index][0] = state.gBoardPanelEdit.item;
     },
     [MutationTypes.setBoardByFileUpload](state: RootState, payload: BoardInfo) {
         state.gBoard.board_id = payload.board_id;

@@ -63,7 +63,7 @@ onMounted(async () => {
         return;
     }
     await store.commit(MutationTypes.setBoardByFileUpload, JSON.parse(cookieValue));
-    sDataChart.value = await JSON.parse(cookieValue).panels[route.params.panel_id as string];
+    sDataChart.value = await JSON.parse(cookieValue).panels[route.params.id as string];
 });
 </script>
 

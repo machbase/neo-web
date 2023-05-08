@@ -1,14 +1,24 @@
 <template>
-    <!-- Loop show chart -->
-    <!-- v-if="" -->
     <div v-if="!chartDataSingle">
-        <div v-for="(panel, index) in cData" :key="index">
-            <AreaChart ref="areaChart" :index="panel.i" :panel-info="panel" />
+        <div
+            v-for="(panel, index) in cData"
+            :key="index"
+            :style="
+                index !== 0
+                    ? {
+                          padding: '10px 0',
+                      }
+                    : {
+                          padding: '0 0 10px',
+                      }
+            "
+        >
+            <AreaChart ref="areaChart" :index="panel.i" :p-tab-idx="props.pTabIdx" :panel-info="panel" />
         </div>
     </div>
     <div v-else>
         <div v-for="(panel, index) in data.sPanel" :key="index">
-            <AreaChart ref="areaChart" :index="panel.i" :panel-info="panel" />
+            <AreaChart ref="areaChart" :index="panel.i" :p-tab-idx="props.pTabIdx" :panel-info="panel" />
         </div>
     </div>
 </template>
@@ -16,7 +26,7 @@
 <script lang="ts" setup name="ChartDashboard">
 import AreaChart from '@/components/common/chart-wrap/charts/area/index.vue';
 import { isChartType } from '@/helpers/chart';
-import { PanelInfo } from '@/interface/chart';
+import { PanelInfo, BoardInfo } from '@/interface/chart';
 import { useStore } from '@/store';
 import { computed, onMounted, defineExpose, defineProps, reactive, ref, watch, withDefaults } from 'vue';
 import { watchEffect } from 'vue';
@@ -25,6 +35,8 @@ import { useRouter, useRoute } from 'vue-router';
 interface DashboardPanelsProps {
     pIsViewMode?: boolean;
     chartDataSingle?: PanelInfo[];
+    pTabIdx?: number;
+    pPanelInfo: BoardInfo;
 }
 const props = withDefaults(defineProps<DashboardPanelsProps>(), {});
 
@@ -36,22 +48,42 @@ const areaChart = ref(null);
 const store = useStore();
 const router = useRouter() as any;
 const route = useRoute() as any;
-const gBoard = computed(() => store.state.gBoard);
-const gSelectedTab = computed(() => store.state.gSelectedTab);
-const cRouter = computed(() => {
-    return router.params && router.params.id ? router.params.id : '';
+const gBoard = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    return gTabList.value[sIdx];
 });
 
+const gTabList = computed(() => {
+    return store.state.gTabList;
+});
+const cTimeRange = computed(() => {
+    return { start: props.pPanelInfo.range_bgn, end: props.pPanelInfo.range_end, refresh: props.pPanelInfo.refresh };
+});
+
+const gSelectedTab = computed(() => store.state.gSelectedTab);
+
 const cData = computed(() => {
-    return gBoard.value.panels
-        ? (gBoard.value.panels.map((v: any, i: number) => {
-              const sPanel = v[0];
-              return {
-                  ...sPanel,
-                  i: i,
-              };
-          }) as PanelInfo[])
-        : [];
+    if (props.chartDataSingle) {
+        return props.chartDataSingle.panels
+            ? (props.chartDataSingle.panels.map((v: any, i: number) => {
+                  const sPanel = v[0];
+                  return {
+                      ...sPanel,
+                      i: i,
+                  };
+              }) as PanelInfo[])
+            : [];
+    } else {
+        return props.pPanelInfo.panels
+            ? (props.pPanelInfo.panels.map((v: any, i: number) => {
+                  const sPanel = v[0];
+                  return {
+                      ...sPanel,
+                      i: i,
+                  };
+              }) as PanelInfo[])
+            : [];
+    }
 });
 watchEffect(
     // () => gBoard.value.panels,
@@ -68,7 +100,7 @@ const onReload = () => {
         });
 };
 watch(
-    () => gBoard.value.range_bgn || gBoard.value.range_end,
+    () => cTimeRange.value,
     () => {
         onReload();
     }
