@@ -110,23 +110,23 @@ const copyData = () => {
 };
 
 watch(
-    () => sCode.value,
+    () => gBoard.value.code,
     () => {
-        store.commit(MutationTypes.updateCode, sCode.value);
+        store.commit(MutationTypes.updateCode, gBoard.value.code);
     }
 );
 
 const setSQL = async (event: any, aType?: string) => {
     const sPointer = event.target.selectionStart === 0 ? event.target.selectionStart : event.target.selectionStart - 1;
 
-    const splitValue = sCode.value.split(';');
+    const splitValue = gBoard.value.code.split(';');
 
     const realValue = splitValue.map((aItem: string) => {
         return aItem + ';';
     });
 
     sSql.value = realValue.filter((aItem: string) => {
-        const sStartIdx = sCode.value.indexOf(aItem);
+        const sStartIdx = gBoard.value.code.indexOf(aItem);
         const sEndIdx = sStartIdx + aItem.length - 1;
         if (sStartIdx <= sPointer && sPointer <= sEndIdx && aItem !== undefined) return aItem;
     })[0];

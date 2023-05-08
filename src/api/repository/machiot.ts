@@ -2,11 +2,16 @@ import request from '@/api/core';
 
 const fetchData = async (aSql: string, aLimit?: number) => {
     let sSql;
-    if (aLimit) {
-        sSql = aSql + ` LIMIT ${aLimit * 20 - 20},${aLimit * 20}`;
+    if (aSql.toLowerCase().includes('select')) {
+        if (aLimit) {
+            sSql = aSql + ` LIMIT ${aLimit * 20 - 20},${aLimit * 20}`;
+        } else {
+            sSql = aSql;
+        }
     } else {
         sSql = aSql;
     }
+
     return await request({
         method: 'GET',
         url: `/machbase?q=${encodeURI(sSql)}`,
