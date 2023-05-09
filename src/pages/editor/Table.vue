@@ -1,30 +1,28 @@
 <template>
-    <v-sheet @scroll="handleScroll" class="scroll-wrapper" color="transparent" height="100%">
-        <div ref="scrollRef">
-            <table>
-                <thead class="header-fix">
-                    <tr>
-                        <th>
-                            <span>index</span>
-                        </th>
-                        <th v-for="(item, aIdx) in headers" :key="aIdx">
-                            <span>{{ item }}</span>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- :class="cIsDarkMode ? 'dark' : 'light'"  -->
-                    <tr v-for="(content, index) in items" :key="index" :class="[cIsDarkMode ? (Number(index) % 2 === 0 ? '' : 'dark-odd') : Number(index) % 2 === 0 ? '' : 'odd']">
-                        <td>
-                            <span>{{ index + 1 }}</span>
-                        </td>
-                        <td v-for="(value, aIdx) in content" :key="aIdx">
-                            <span>{{ value }}</span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+    <v-sheet ref="scrollRef" @scroll="handleScroll" class="scroll-wrapper" color="transparent" height="calc(100% - 40px)">
+        <table :style="{ position: `absolute` }">
+            <thead class="header-fix" :style="cIsDarkMode ? { backgroundColor: 'black', color: 'white' } : { backgroundColor: 'rgb(245, 245, 245)', color: 'black' }">
+                <tr>
+                    <th>
+                        <span>index</span>
+                    </th>
+                    <th v-for="(item, aIdx) in headers" :key="aIdx">
+                        <span>{{ item }}</span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- :class="cIsDarkMode ? 'dark' : 'light'"  -->
+                <tr v-for="(content, index) in items" :key="index" :class="[cIsDarkMode ? (Number(index) % 2 === 0 ? '' : 'dark-odd') : Number(index) % 2 === 0 ? '' : 'odd']">
+                    <td>
+                        <span>{{ index + 1 }}</span>
+                    </td>
+                    <td v-for="(value, aIdx) in content" :key="aIdx">
+                        <span>{{ value }}</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </v-sheet>
 </template>
 
@@ -52,8 +50,9 @@ const emits = defineEmits(['UpdateItems']);
 const scrollRef = ref();
 
 const handleScroll = (e: any) => {
-    let element = scrollRef.value;
-    if (element && element.getBoundingClientRect().bottom < window.innerHeight + 1) {
+    const { scrollHeight, scrollTop, clientHeight } = e.target;
+    const isAtTheBottom = scrollHeight === scrollTop + clientHeight;
+    if (isAtTheBottom) {
         emits('UpdateItems');
     }
 };
@@ -61,9 +60,11 @@ const handleScroll = (e: any) => {
 
 <style scoped>
 .scroll-wrapper {
+    /* padding: 0 16px; */
+    position: relative;
     overflow: auto;
     height: 100%;
-    border-bottom: 3px solid #1f2e3a;
+    /* border-bottom: 3px solid #1f2e3a; */
     background-color: white;
 }
 .scroll-wrapper::-webkit-scrollbar {
@@ -74,41 +75,51 @@ const handleScroll = (e: any) => {
     background-color: rgb(101, 111, 121);
 }
 table {
-    width: auto;
+    border-collapse: separate !important;
+    border-spacing: 0;
+    width: calc(100%);
+
     table-layout: auto;
 }
 table,
 th,
 td {
-    border: 1px solid #bfbfbf;
+    /* border: 1px solid #bfbfbf; */
+    vertical-align: center !important;
     border-collapse: collapse;
 }
 th {
     font-weight: bold;
     font-size: 13px;
-    padding: 0 10px;
-
+    padding: 0 16px;
+    border-bottom: 1px solid white;
     min-width: 100px;
     height: 35px;
+    text-align: start;
+    vertical-align: center !important;
+
+    /* justify-content: start; */
 }
 td {
     font-size: 12px;
     font-weight: 300;
-
-    padding: 0 10px;
+    vertical-align: center !important;
+    padding: 0 16px;
     height: 35px;
 }
 span {
-    display: flex;
+    height: 100%;
+    /* /* align-items: center; */
+    /* display: flex; */
+
     justify-content: start;
 }
 .header-fix {
     position: sticky;
     top: 0;
     z-index: 10;
-    background-color: black;
-    color: white;
-    border: 1px solid red;
+
+    /* border: 1px solid white; */
 }
 .odd {
     background-color: rgb(245, 245, 245);

@@ -1,5 +1,6 @@
 <template>
-    <div v-if="route.name !== RouteNames.LOGIN" class="header">
+    <!--  -->
+    <div v-if="route.name !== RouteNames.LOGIN" class="header" :style="cIsDarkMode ? { boxShadow: '0 0 10px 10px rgba(0, 0, 0, 0.2)' } : {}">
         <div v-if="sLoading" class="loading-rollUp">
             <img class="icon" :src="cIsDarkMode ? loader_b : loader_w" />
         </div>
@@ -137,12 +138,6 @@ export type headerType = RouteNames.TAG_VIEW | RouteNames.VIEW | RouteNames.CHAR
 const store = useStore();
 const cTimeRange = computed(() => {
     const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
-
-    // export interface TimeRange {
-    // start: string;
-    // end: string;
-    // refresh: string;
-
     return { start: gTabList.value[sIdx].range_bgn, end: gTabList.value[sIdx].range_end, refresh: gTabList.value[sIdx].refresh };
 });
 const router = useRouter();
@@ -351,6 +346,8 @@ const deleteTab = (aId: string) => {
     sCopyTabList.splice(sIdx, 1);
 
     store.commit(MutationTypes.changeTabList, sCopyTabList as BoardInfo);
+
+    setSelectedTab(gTabList.value[0].board_id);
 };
 
 const onUploadChart = (aEvent: any) => {

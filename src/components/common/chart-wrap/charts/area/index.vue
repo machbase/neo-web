@@ -612,6 +612,7 @@ const OnUndoTime = () => {
 
 // Call when data of chart reDraw
 async function OnChangeTimeRangerViewPort(params: any, aStatus?: string) {
+    console.log(aStatus);
     if (aStatus === 'expand') {
         if (data.sIsRaw) {
             const sLimit = await generateRawDataChart(props.panelInfo, {
@@ -620,6 +621,11 @@ async function OnChangeTimeRangerViewPort(params: any, aStatus?: string) {
             });
             if (sLimit) {
                 data.sIsRaw = false;
+                fetchPanelData(props.panelInfo, {
+                    startTime: params.min,
+                    endTime: params.max,
+                });
+            } else {
                 areaChart.value.updateMinMaxChart(data.sDisplayData.datasets[0].data[0][0], data.sDisplayData.datasets[0].data[data.sDisplayData.datasets[0].data.length - 1][0]);
             }
         } else {
@@ -667,14 +673,31 @@ async function OnChangeTimeRangerViewPortNavigator(params: any) {
     });
 }
 
-watch(
-    () => data.sTimeLine.startTime - data.sTimeLine.endTime,
-    () => {
-        if (data.sTimeLine.startTime - data.sTimeLine.endTime > props.panelInfo.raw_chart_threshold) {
-            data.sIsRaw = true;
-        }
-    }
-);
+// watch(
+//     () => data.sTimeLine.startTime - data.sTimeLine.endTime,
+//     () => {
+//         let gRawChartLimit = 0;
+
+//         gRawChartLimit = props.panelInfo.raw_chart_limit;
+//         if (props.panelInfo.raw_chart_limit < 0) {
+//             gRawChartLimit = Math.floor(sClientWidth.value / 2);
+//         } else if (props.panelInfo.raw_chart_limit == 0) {
+//             gRawChartLimit = sClientWidth.value;
+//         }
+//         let sLimit = gRawChartLimit;
+//         const sBoolean = data.sDisplayData.datasets && data.sDisplayData.datasets.find((aItem) => aItem.data.length === sLimit);
+//         // true 로 바꾸는 조건
+//         // 939 가 아니거나
+//         if (data.sTimeLine.startTime - data.sTimeLine.endTime > props.panelInfo.raw_chart_threshold) {
+//             // if (sBoolean) {
+//             //     //
+//             //     data.sIsRaw = false;
+//             // } else {
+//             //     data.sIsRaw = true;
+//             // }
+//         }
+//     }
+// );
 watch(
     () => props.panelInfo.pixels_per_tick,
     () => {

@@ -50,17 +50,20 @@
             <div class="view-port__header--events">
                 <div>
                     <div class="cover-parent">
-                        <div v-if="props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold" class="cover"></div>
+                        <div v-if="props.pIsRaw && props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold" class="cover"></div>
                         <button
                             @click="onChangeEmit(0)"
                             class="button"
                             :class="props.pIsRaw ? 'not-select-font-color' : 'font-color'"
-                            :disabled="props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold"
+                            :disabled="props.pIsRaw && props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold"
                         >
                             STAT
                         </button>
                     </div>
-                    <v-tooltip v-if="props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold" activator="parent" location="bottom"
+                    <v-tooltip
+                        v-if="props.pIsRaw && props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold"
+                        activator="parent"
+                        location="bottom"
                         >The stat must be greater than <br />
                         the raw data time range (millisecond) value.</v-tooltip
                     >

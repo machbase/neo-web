@@ -1,6 +1,6 @@
 <template>
     <!-- theme="vs" -->
-    <DragRow height="100%" width="100%">
+    <DragRow height="100%" slider-bg-color="#202020" width="100%">
         <template #top>
             <!-- your content -->
             <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
@@ -22,13 +22,10 @@
                         <button @click="getButtonData"><v-icon>mdi-play</v-icon></button>
                     </div>
                 </div>
-
                 <CodeEditor
                     v-model="gBoard.code"
                     ref="text"
-                    @keydown.ctrl="sFreshCtrl = true"
                     @keydown.enter="setSQL($event)"
-                    @keyup.ctrl="sFreshCtrl = false"
                     border_radius="0"
                     height="calc(100% - 34px)"
                     hide_header
@@ -39,9 +36,42 @@
                 />
             </div>
         </template>
+
         <template #bottom>
             <!-- your content -->
-            <Table @UpdateItems="UpdateItems" class="" :headers="sHeader" :items="sData" />
+            <!-- <v-sheet color="transparent" height="10%" width="100%"> -->
+
+            <v-sheet class="tab-list" color="#202020" fixed-tabs height="40px">
+                <button
+                    @click="changeTabMode('table')"
+                    :style="sTab === 'table' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
+                >
+                    <div>
+                        <v-icon>mdi-table</v-icon>
+                        TABLE
+                    </div>
+                </button>
+                <button
+                    @click="changeTabMode('log')"
+                    :style="sTab === 'log' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
+                >
+                    <div>
+                        <v-icon>mdi-information</v-icon>
+
+                        LOG
+                    </div>
+                </button>
+            </v-sheet>
+            <!-- </v-sheet> -->
+
+            <Table v-show="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" />
+
+            <v-sheet v-show="sTab === 'log'" class="log-form" color="transparent" height="calc(100% - 40px)">
+                <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">
+                    {{ aLog.query }}
+                    <!-- {{ aLog.query }} -->
+                </div>
+            </v-sheet>
         </template>
     </DragRow>
 
@@ -69,27 +99,33 @@ const props = defineProps<PropsNoteData>();
 
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const sLang = [['SQL', 'MACHBASE']];
-const sCode = ref<string>(`SELECT * FROM TAG; 
-SELECT NAME
-FROM TAG
-WHERE NAME = 1;`);
+
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
 const gBoard = computed(() => {
     const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
     return gTabList.value[sIdx];
 });
-const sFreshCtrl = ref<boolean>(false);
 
 let sData = ref<any>([]);
 let sHeader = ref<any>([]);
 let currentPage = ref<number>(1);
 let sSql = ref<string>('');
 
+let sTab = ref<string>('table');
+
+let sLogField = ref<{ query: string; color: string }[]>([]);
+
+const changeTab = (aItem: string) => {
+    sTab.value = aItem;
+};
 const UpdateItems = () => {
-    const sLimit = sSql.value.indexOf('limit'.toLowerCase());
+    const sLimit = sSql.value.toLowerCase().indexOf('limit'.toLowerCase());
     currentPage.value++;
     if (sLimit === -1) getSQLData();
+};
+const changeTabMode = (aItem: string) => {
+    sTab.value = aItem;
 };
 
 const copyData = () => {
@@ -131,7 +167,7 @@ const setSQL = async (event: any, aType?: string) => {
         if (sStartIdx <= sPointer && sPointer <= sEndIdx && aItem !== undefined) return aItem;
     })[0];
 
-    handleChange();
+    handleChange(event.ctrlKey);
 };
 
 const getButtonData = async () => {
@@ -143,20 +179,35 @@ const getButtonData = async () => {
     sData.value = [];
 
     if (selectText) {
-        const sLimit = selectText.indexOf('limit'.toLowerCase());
+        const sLimit = selectText.toLowerCase().indexOf('limit'.toLowerCase());
         sSql.value = selectText;
         const sResult: any = await fetchData(selectText.replace(';', ''), sLimit === -1 ? currentPage.value : '');
+        if (sResult.status >= 400) {
+            changeTab('log');
+            sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.data.reason, color: '#a85400' });
+        }
         if (sResult && sResult.success) {
-            sHeader.value = sResult.data.columns;
-            sResult.data.rows.forEach((aItem: any) => {
-                sData.value.push(aItem);
-            });
+            // sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '') + ' : ' + sResult.reason, color: '' });
+            console.log(sResult.reason);
+            if (sResult.reason === 'executed.') {
+                sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '#rgb(31,123,246)' });
+
+                changeTab('log');
+            } else {
+                sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '' });
+
+                changeTab('table');
+                sHeader.value = sResult.data.columns;
+                sResult.data.rows.forEach((aItem: any) => {
+                    sData.value.push(aItem);
+                });
+            }
         }
     }
 };
 
-const handleChange = async () => {
-    if (sFreshCtrl.value === true) {
+const handleChange = async (aKeyPress: boolean) => {
+    if (aKeyPress) {
         currentPage.value = 1;
         sData.value = [];
         getSQLData();
@@ -164,14 +215,28 @@ const handleChange = async () => {
 };
 
 const getSQLData = async () => {
-    const sLimit = sSql.value.indexOf('limit'.toLowerCase());
-
+    const sLimit = sSql.value.toLowerCase().indexOf('limit'.toLowerCase());
     const sResult: any = await fetchData(sSql.value.replaceAll(/\n/g, ' ').replace(';', ''), sLimit === -1 ? currentPage.value : '');
+
+    if (sResult.status >= 400) {
+        changeTab('log');
+        sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.data.reason, color: '#a85400' });
+    }
     if (sResult && sResult.success) {
-        sHeader.value = sResult.data.columns;
-        sResult.data.rows.forEach((aItem: any) => {
-            sData.value.push(aItem);
-        });
+        console.log(sResult.reason);
+        if (sResult.reason === 'executed.') {
+            sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '#217DF8' });
+
+            changeTab('log');
+        } else {
+            sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '' });
+
+            changeTab('table');
+            sHeader.value = sResult.data.columns;
+            sResult.data.rows.forEach((aItem: any) => {
+                sData.value.push(aItem);
+            });
+        }
     }
 };
 </script>
@@ -191,6 +256,23 @@ const getSQLData = async () => {
 </style>
 
 <style lang="scss">
+@import 'index.scss';
+
+.window {
+    height: calc(100% - 48px);
+}
+.window .v-window-item {
+    height: 100%;
+    padding: 0 5px;
+}
+.window .v-window__container {
+    height: 100%;
+}
+.tab-list {
+    display: flex;
+    height: 10%;
+}
+
 .drager_top div {
     overflow: auto !important;
 }
@@ -216,6 +298,9 @@ const getSQLData = async () => {
     height: 5px;
 }
 
+.log-form {
+    padding: 0 16px;
+}
 .drager_bottom div::-webkit-scrollbar-track {
     -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
     background: #141415;
@@ -353,8 +438,10 @@ const getSQLData = async () => {
     .hljs-meta-keyword {
         font-weight: 700;
     }
+    height: 100%;
 }
 .white-sql {
+    height: 100%;
     /*!
   Theme: Windows 95 Light
   Author: Fergus Collins (https://github.com/C-Fergus)
