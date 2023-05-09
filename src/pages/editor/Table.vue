@@ -4,7 +4,7 @@
             <thead class="header-fix" :style="cIsDarkMode ? { backgroundColor: 'black', color: 'white' } : { backgroundColor: 'rgb(245, 245, 245)', color: 'black' }">
                 <tr>
                     <th>
-                        <span>index</span>
+                        <span>INDEX</span>
                     </th>
                     <th v-for="(item, aIdx) in headers" :key="aIdx">
                         <span>{{ item }}</span>

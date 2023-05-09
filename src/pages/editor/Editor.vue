@@ -115,6 +115,7 @@ let sSql = ref<string>('');
 let sTab = ref<string>('table');
 
 let sLogField = ref<{ query: string; color: string }[]>([]);
+const gTableList = computed(() => store.state.gTableList);
 
 const changeTab = (aItem: string) => {
     sTab.value = aItem;
@@ -239,6 +240,13 @@ const getSQLData = async () => {
         }
     }
 };
+
+onMounted(async () => {
+    gBoard.value.code = `select * from ${gTableList.value[0]};`;
+    sSql.value = gBoard.value.code;
+    sLogField.value.push({ query: 'The connection is complete.', color: '#217DF8' });
+    await getSQLData();
+});
 </script>
 
 <style scoped>
