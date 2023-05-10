@@ -23,34 +23,34 @@ const routes: Array<RouteRecordRaw> = [
         },
         beforeEnter: protectedRoute,
     },
-
     {
-        path: PageRoutes.TAG_VIEW,
+        path: `${PageRoutes.TAG_VIEW}`,
         name: RouteNames.TAG_VIEW,
         alias: ['/'],
         components: {
             default: TagView,
-            Header,
+            // Header,
             Footer,
         },
         beforeEnter: protectedRoute,
     },
+
     {
         path: `${PageRoutes.TAG_VIEW}${PageRoutes.NEW}`,
         name: RouteNames.NEW,
         components: {
             default: New,
-            Header,
+            // Header,
             Footer,
         },
         beforeEnter: protectedRoute,
     },
     {
-        path: `${PageRoutes.TAG_VIEW}${PageRoutes.CHART_EDIT}/:id`,
+        path: `${PageRoutes.TAG_VIEW}${PageRoutes.CHART_EDIT}/:tab_id/:id`,
         name: RouteNames.CHART_EDIT,
         components: {
             default: ChartEdit,
-            Header,
+            // Header,
             Footer,
         },
         props: true,
@@ -61,7 +61,7 @@ const routes: Array<RouteRecordRaw> = [
         name: RouteNames.CHART_VIEW,
         components: {
             default: ChartView,
-            Header,
+            // Header,
             Footer,
         },
         props: true,
@@ -72,7 +72,7 @@ const routes: Array<RouteRecordRaw> = [
         name: RouteNames.VIEW,
         components: {
             default: ShareView,
-            Header,
+            // Header,
             Footer,
         },
         beforeEnter: protectedRoute,

@@ -1,6 +1,49 @@
 @import '@/assets/scss/theme.scss';
 
+.popup__btn-group{
+    display: flex;
+    justify-content: end;
+    .button-effect-color {
+        border-radius: 0;
+        background-color: $color-blue;
+        color: $text-w;
+        border: 1px solid #57d6f1;
+        text-transform: capitalize;
+        font-size: 12px;
+        height: 30px;
+        width: 70px;
+    
+        &:hover {
+            font-weight: bold;
+        }
+    }
+}
+
+.button-effect {
+    border-radius: 0;
+    color: $text-blue;
+    text-transform: capitalize;
+    font-size: 12px;
+    height: 30px;
+    width: 70px;
+
+    &:hover {
+        font-weight: bold;
+    }
+
+    @include theme() {
+        background-color: theme-get('bg-color-button');
+        border: 1px solid theme-get('border-color');
+    }
+}
+
+.popup__btn-group{
+    height: 40px;
+}
 .chart-edit-page {
+    margin-top: 20px;
+    // padding: 0 30px;
+    height: calc(100% - 45px);
     .tabs {
         margin-top: 20px;
 

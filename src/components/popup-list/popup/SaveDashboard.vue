@@ -1,21 +1,21 @@
 <template>
     <div class="save-dashboard">
-        <div class="save-dashboard__input-group">
+        <!-- <div class="save-dashboard__input-group">
             <p class="save-dashboard__input-group-label">Board ID</p>
             <div class="save-dashboard__input-group-content">
-                <input class="save-dashboard__input-group-text check" :value="sData.boardId" @input="onChangeId" />
+                <input @input="onChangeId" class="save-dashboard__input-group-text check" :value="sData.boardId" />
                 <div class="save-dashboard__input-group-checkbox"><input v-model="sData.checked" type="checkbox" /> <span>Save as Copy</span></div>
             </div>
-        </div>
+        </div> -->
         <div class="save-dashboard__input-group">
             <p class="save-dashboard__input-group-label">Board Title</p>
             <div class="save-dashboard__input-group-content">
-                <input class="save-dashboard__input-group-text" :value="sData.boardTitle" @change="onChangeTitle" />
+                <input @change="onChangeTitle" class="save-dashboard__input-group-text" :value="sData.boardTitle" />
             </div>
         </div>
         <div class="save-dashboard__btn-group">
-            <v-btn variant="outlined" class="button-effect-color" @click="onSetting"> Ok </v-btn>
-            <v-btn variant="outlined" class="button-effect" @click="onClosePopup"> Cancel </v-btn>
+            <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> Ok </v-btn>
+            <v-btn @click="onClosePopup" class="button-effect" variant="outlined"> Cancel </v-btn>
         </div>
     </div>
 </template>
@@ -38,8 +38,11 @@ const sData = reactive({
     boardTitle: 'New Dashboard' as string,
     checked: false as boolean,
 });
+
 const cPreferences = computed(() => store.state.gPreference);
 const cBoard = computed(() => store.state.gBoard);
+const gDownloadData = computed(() => store.state.gDownloadData);
+const gTabList = computed(() => store.state.gTabList);
 
 const onChangeId = (aEvent: Event) => {
     (document.querySelector('.check') as HTMLInputElement).value = (document.querySelector('.check') as HTMLInputElement).value.replace(/ /g, '');
@@ -50,26 +53,30 @@ const onChangeTitle = (aEvent: Event) => {
 };
 
 const onSetting = () => {
-    if (sData.boardId.trim().length <= 0) {
-        alert('Input Dashboard ID.');
-        return;
-    }
+    // if (sData.boardId.trim().length <= 0) {
+    //     alert('Input Dashboard ID.');
+    //     return;
+    // }
     if (sData.boardTitle.trim().length <= 0) {
         alert('Input Dashboard Title.');
         return;
     }
-    const newBoard = {
-        board_id: sData.boardId,
-        board_name: sData.boardTitle,
-        old_id: route.name !== RouteNames.NEW ? sData.boardId : sData.oldId,
-    };
-    store.commit(MutationTypes.setValueDashBoard, newBoard);
-    const jsonString = JSON.stringify(cBoard.value);
+    // const newBoard = {
+    //     board_id: sData.boardId,
+    //     board_name: sData.boardTitle,
+    //     old_id: route.name !== RouteNames.NEW ? sData.boardId : sData.oldId,
+    // };
+    // store.commit(MutationTypes.setValueDashBoard, newBoard);
+    // const saveBoard = {
+    //     tabList: gTabList.value,
+    //     data: gDownloadData.value,
+    // };
+    const jsonString = JSON.stringify(gTabList.value);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${newBoard.board_name}.json`;
+    link.download = `${sData.boardTitle}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -92,6 +99,8 @@ const onSetting = () => {
 };
 
 const onClosePopup = () => {
+    store.commit(MutationTypes.setDownLoad, false);
+
     emit('eClosePopup');
 };
 

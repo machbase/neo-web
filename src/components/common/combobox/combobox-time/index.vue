@@ -27,7 +27,19 @@ type DataTime = {
 };
 const emit = defineEmits(['eOnChange']);
 const store = useStore();
-const cTimeRange = computed(() => store.state.gTimeRange);
+const gSelectedTab = computed(() => store.state.gSelectedTab);
+const gTabList = computed(() => store.state.gTabList);
+const cTimeRange = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+
+    // export interface TimeRange {
+    // start: string;
+    // end: string;
+    // refresh: string;
+
+    return { start: gTabList.value[sIdx].range_bgn, end: gTabList.value[sIdx].range_end, refresh: gTabList.value[sIdx].refresh };
+});
+
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const sData = reactive({
     select: {} as DataTime,

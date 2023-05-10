@@ -1,5 +1,33 @@
 @import '@/assets/scss/theme.scss';
 
-.tag-view {
+.time-range {
+    color: $text-b;
+    font-size: $font-12 !important;
+    display: flex;
+    // margin-top: $px-20;
+    padding: 10px 30px;
+    align-items: center;
+    justify-content: end;
+    width: 100%;
 
+    img{
+        padding-left:5px;
+    }
+}
+.chart-form{
+    // padding-top: 44px;
+
+}
+.chart-form::-webkit-scrollbar {
+    width: 10px;
+    background: #141415;
+}
+
+.chart-form::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.chart-form::-webkit-scrollbar-thumb {
+    background: #383838;
 }

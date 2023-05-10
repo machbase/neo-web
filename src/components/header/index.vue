@@ -1,67 +1,105 @@
 <template>
-    <div class="header">
+    <!--  -->
+    <div v-if="route.name !== RouteNames.LOGIN" class="header" :style="cIsDarkMode ? { boxShadow: '0 0 10px 10px rgba(0, 0, 0, 0.2)' } : {}">
         <div v-if="sLoading" class="loading-rollUp">
             <img class="icon" :src="cIsDarkMode ? loader_b : loader_w" />
         </div>
-        <div class="header__link">
+        <v-sheet color="transparent" width="4%">
             <img class="icon" :src="logo" />
-            <!-- <span class="header__name">{{ cBoard.board_name }}</span> -->
-            <!-- <ComboboxSelect
-                v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
-                :p-data="cBoardListSelect"
-                :p-value="route.params.id || route.query.id || (cBoardListSelect[0]?.id && route.query.id !== null)"
-                @e-on-change="onChangeRoute"
-            /> -->
-            <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" class="header__link--group">
-                <router-link class="header__link--group-item" target="_blank" :to="{ name: RouteNames.NEW }">{{ NEW_DASHBOARD }}</router-link>
-                <img class="icon" :src="i_b_menu_1" />
-                <div @click="onChildGroup" class="header__link--group-item drop">
-                    {{ SET }}
-                    <div ref="childGroup" class="child-group">
-                        <div @click="onClickPopupItem(PopupType.PREFERENCES)" class="item">{{ PREFERENCE }}</div>
-                        <!-- <div class="item" @click="onRollUp">{{ REQUEST_ROLLUP }}</div> -->
+        </v-sheet>
+        <v-sheet class="header__link" color="transparent" width="81%">
+            <div class="tab-form">
+                <button
+                    v-for="(aTab, aIdx) in gTabList"
+                    :key="aIdx"
+                    @click="setSelectedTab(aTab.board_id)"
+                    @mouseleave="aTab.hover = false"
+                    @mouseover="aTab.hover = true"
+                    :style="
+                        gSelectedTab === aTab.board_id
+                            ? cIsDarkMode
+                                ? { backgroundColor: '#121212' }
+                                : { backgroundColor: '#ffffff', color: '#121212' }
+                            : { backgroundColor: '#202020' }
+                    "
+                >
+                    <div>
+                        <v-icon v-if="aTab.type === 'dashboard'" size="16px">mdi-chart-line</v-icon>
+                        <v-icon v-if="aTab.type == 'new'" size="16px">mdi-autorenew</v-icon>
+                        <v-icon v-if="aTab.type == 'note'" size="16px">mdi-file-document-outline</v-icon>
+
+                        {{ aTab.board_name }}
                     </div>
-                </div>
-                <!-- <img :src="i_b_menu_1" class="icon" /> -->
-                <!-- <div class="header__link--group-item">{{ LOGOUT }}</div> -->
+                    <v-icon v-if="gSelectedTab === aTab.id || aTab.hover === true" @click="deleteTab(aTab.board_id)" size="16px"> mdi-close </v-icon>
+                </button>
             </div>
-        </div>
-        <div class="header__tool">
-            <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.VIEW" @click="onClickPopupItem(PopupType.TIME_RANGE)" class="time-range icon">
+            <v-btn @click="addTab" density="comfortable" icon="mdi-plus" size="36px" variant="plain"> </v-btn>
+        </v-sheet>
+        <v-sheet class="header__tool" color="transparent" width="15%">
+            <!-- <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.VIEW" @click="onClickPopupItem(PopupType.TIME_RANGE)" class="time-range icon">
                 {{
                     !isEmpty(cTimeRange)
                         ? `${cTimeRange.start ? cTimeRange.start : ''} ~ ${cTimeRange.end ? cTimeRange.end : ''} ${cTimeRange.refresh ? `refresh every ${cTimeRange.refresh}` : ''}`
                         : TIME_RANGE_NOT_SET
                 }}
-            </div>
+            </div> -->
             <!-- <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new'" :src="i_b_timerange" class="icon" />             -->
-            <v-icon
-                v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
-                @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)"
-                class="icon"
-                icon="mdi-content-save"
-                size="small"
-            ></v-icon>
-            <label v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW">
-                <v-icon class="icon file-import-icon" icon="mdi-upload" size="small"></v-icon>
-                <input @change="onUploadChart" accept="application/JSON" class="file-import" type="file" />
-            </label>
-            <img
-                v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW || sHeaderType === RouteNames.VIEW"
-                @click="onClickPopupItem(PopupType.TIME_RANGE)"
-                class="icon"
-                :src="i_b_timerange"
-            />
-            <img @click="onReload" class="icon" :src="i_b_refresh" />
+
+            <!-- <img @click="onReload" class="icon" :src="i_b_refresh" /> -->
             <!-- <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW">
                 <router-link :to="{ name: RouteNames.VIEW }" target="_blank">
                     <img :src="i_b_share" class="icon" @click="openNewChartPage" />
                 </router-link>
             </div> -->
-            <img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="onSaveEdit" class="icon" :src="i_b_save_2" />
-            <img v-if="sHeaderType === RouteNames.TAG_VIEW" @click="logout" class="icon" :src="i_b_logout" />
-            <a class="icon"><img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="router.go(-1)" :src="i_b_close" style="margin-top: 7px" /></a>
-        </div>
+            <!-- <img
+                v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW || sHeaderType === RouteNames.VIEW"
+                @click="onClickPopupItem(PopupType.TIME_RANGE)"
+                class="icon"
+                :src="i_b_timerange"
+            /> -->
+            <div @click="onChildGroup" class="header__link--group-item drop">
+                <v-icon>mdi-cog</v-icon>
+                <div ref="childGroup" class="child-group">
+                    <div @click="onClickPopupItem(PopupType.PREFERENCES)" class="item">
+                        <v-icon
+                            v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
+                            @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)"
+                            class="icon"
+                            icon="mdi-cog-transfer-outline"
+                            size="small"
+                        ></v-icon>
+                        {{ PREFERENCE }}
+                    </div>
+                    <!-- <div @click="onClickPopupItem(PopupType.PREFERENCES)" class="item">{{ PREFERENCE }}</div> -->
+                    <label v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" class="item">
+                        <v-icon class="icon file-import-icon" icon="mdi-upload" size="small"></v-icon>
+                        Import
+                        <input @change="onUploadChart" accept="application/JSON" class="file-import" type="file" />
+                    </label>
+
+                    <div @click="download" class="item">
+                        <!-- @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)" -->
+                        <!-- onClickPopupItem(PopupType.SAVE_DASHBOARD) -->
+                        <v-icon
+                            v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
+                            @click="download"
+                            class="icon"
+                            icon="mdi-content-save"
+                            size="small"
+                        ></v-icon>
+                        Export
+                    </div>
+                    <div>
+                        <img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="onSaveEdit" class="icon" :src="i_b_save_2" />
+                    </div>
+                    <div @click="logout" class="item">
+                        <v-icon class="icon" icon="mdi-logout" size="small"></v-icon>
+                        Logout
+                    </div>
+                </div>
+                <!-- <div ref="childGroup" class="child-group"></div> -->
+            </div>
+        </v-sheet>
     </div>
     <PopupWrap @eClosePopup="onClosePopup" :p-show="sDialog" :p-type="sPopupType" :p-width="cWidthPopup" />
 </template>
@@ -86,29 +124,38 @@ import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { MutationTypes } from '@/store/mutations';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, provide, defineEmits, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from './constant';
 import { BarPanel, BoardInfo, startTimeToendTimeType } from '@/interface/chart';
 import { fetchRollUp } from '@/api/repository/machiot';
 import Joi from 'joi';
 import { logOut } from '../../api/repository/login';
+
+const emit = defineEmits(['download']);
+
 export type headerType = RouteNames.TAG_VIEW | RouteNames.VIEW | RouteNames.CHART_VIEW | RouteNames.CHART_EDIT | RouteNames.NEW;
 const store = useStore();
-const cTimeRange = computed(() => store.state.gTimeRange);
+const cTimeRange = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    return { start: gTabList.value[sIdx].range_bgn, end: gTabList.value[sIdx].range_end, refresh: gTabList.value[sIdx].refresh };
+});
 const router = useRouter();
 const route = useRoute();
 const sHeaderType = ref<headerType>(route.name as headerType);
 const sDialog = ref<boolean>(false);
-const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
 const childGroup = ref();
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
 const cTableList = computed((): [] => store.state.gTableList);
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const cBoard = computed(() => store.state.gBoard);
 const cBoardOld = computed(() => store.state.gBoardOld);
+const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
 const gBoard = computed(() => store.state.gBoard);
+const gTabList = computed(() => store.state.gTabList);
+const gSelectedTab = computed(() => store.state.gSelectedTab);
 const sLoading = ref<boolean>(false);
+
 const cBoardListSelect = computed(() =>
     cBoardList.value.map((aItem) => {
         return {
@@ -256,6 +303,7 @@ const schema = Joi.object({
         .required()
         .allow(),
 });
+
 const validateTest = async (joiSchema: any, testObject: any) => {
     return true;
 };
@@ -271,19 +319,55 @@ const logout = async () => {
     }
 };
 
+const addTab = () => {
+    const sId = String(new Date().getTime());
+    store.commit(MutationTypes.pushTab, {
+        type: 'new',
+        board_id: sId,
+        board_name: 'new',
+        range_end: '',
+        refresh: '',
+        range_bgn: '',
+        panels: [],
+        code: 'select * from tag;',
+        hover: false,
+    });
+    store.commit(MutationTypes.setSelectedTab, sId);
+};
+
+const setSelectedTab = (aItem: string) => {
+    store.commit(MutationTypes.setSelectedTab, aItem);
+};
+
+const deleteTab = (aId: string) => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === aId);
+
+    const sCopyTabList = JSON.parse(JSON.stringify(gTabList.value));
+    sCopyTabList.splice(sIdx, 1);
+
+    store.commit(MutationTypes.changeTabList, sCopyTabList as BoardInfo);
+
+    setSelectedTab(gTabList.value[0].board_id);
+};
+
 const onUploadChart = (aEvent: any) => {
     sLoading.value = true;
     const file = aEvent.target.files[0];
     const reader = new FileReader();
     reader.onload = async (event: any) => {
-        const fileContent: BoardInfo = await JSON.parse(event.target.result);
+        const fileContent: any = await JSON.parse(event.target.result);
         const status = await validateTest(schema, fileContent);
         if (status === false) {
             sLoading.value = false;
             return;
         }
-        store.commit(MutationTypes.setBoardOld, cloneDeep(fileContent) as BoardInfo);
-        store.commit(MutationTypes.setBoardByFileUpload, cloneDeep(fileContent) as BoardInfo);
+
+        store.commit(MutationTypes.changeTabList, cloneDeep(fileContent) as BoardInfo);
+        // store.commit(MutationTypes.changeTabList, cloneDeep(fileContent.tabList) as BoardInfo);
+
+        setSelectedTab(cloneDeep(fileContent)[0].board_id);
+        // store.commit(MutationTypes.setBoardByFileUpload, cloneDeep(fileContent) as BoardInfo);
+        // onChildGroup();
         sLoading.value = false;
     };
     reader.readAsText(file);
@@ -300,6 +384,8 @@ const cWidthPopup = computed((): string => {
         case PopupType.MANAGE_DASHBOARD:
             return WIDTH_DEFAULT.MANAGE_DASHBOARD;
         case PopupType.SAVE_DASHBOARD:
+            return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.ADD_TAB:
             return WIDTH_DEFAULT.PREFERENCES;
         case PopupType.NEW_TAGS:
             return '667px';
@@ -476,12 +562,24 @@ const onSaveEdit = async () => {
 };
 // store.dispatch(ActionTypes.fetchBoardList);
 
+const download = () => {
+    // store.commit(MutationTypes.setDownLoad, true);
+
+    onClickPopupItem(PopupType.SAVE_DASHBOARD);
+};
+
 watch(
     () => route.name,
     () => {
         if (route.name) sHeaderType.value = route.name as headerType;
     }
 );
+onMounted(async () => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    if (!(sIdx === -1)) {
+        store.commit(MutationTypes.setSelectedTab, gTabList.value[sIdx].board_id);
+    } else store.commit(MutationTypes.setSelectedTab, gTabList.value[0].board_id);
+});
 </script>
 
 <style lang="scss" scoped>

@@ -1,7 +1,7 @@
 <template>
     <div class="chart-edit-page">
-        <ChartDashboard ref="sPanels" :chart-data-single="sDataChart" />
-        <div v-if="sShowTab" class="tabs">
+        <ChartDashboard ref="sPanels" :chart-data-single="sDataChart" :p-panel-info="gBoard" :style="{ height: '53%' }" />
+        <div v-if="sShowTab" class="tabs" :style="{ height: '44%', overflow: 'auto' }">
             <div class="header">
                 <ul class="nav-pills">
                     <li v-for="(item, index) in tabs" :key="index" @click="onClickTab(index)" :style="{ color: tabIndex === index ? '#2ec0df !important' : undefined }">
@@ -19,6 +19,10 @@
             </div>
         </div>
     </div>
+    <div class="popup__btn-group">
+        <v-btn @click="onSaveEdit" class="button-effect-color" variant="outlined"> Ok </v-btn>
+        <v-btn @click="onClosePopup" class="button-effect" variant="outlined"> Cancel </v-btn>
+    </div>
 </template>
 <script setup lang="ts" name="ChartEdit">
 import i_b_close from '@/assets/image/i_b_close.png';
@@ -29,7 +33,7 @@ import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { MutationTypes } from '@/store/mutations';
-import { computed, ref, watch, reactive, watchEffect, onMounted } from 'vue';
+import { computed, ref, watch, reactive, watchEffect, onMounted, defineProps, defineEmits } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AxesTab from '../chart-edit/components/axes/index.vue';
 import DataTab from '../chart-edit/components/data/index.vue';
@@ -38,7 +42,12 @@ import GeneralTab from '../chart-edit/components/general/index.vue';
 import TimeRangeTab from '../chart-edit/components/time-range/index.vue';
 import { cloneDeep } from 'lodash';
 import { RouteNames } from '@/enums/routes';
-
+interface PropsModalEdit {
+    id: number;
+    pTabIdx: number;
+}
+const props = defineProps<PropsModalEdit>();
+const emit = defineEmits(['eClosePopup']);
 const tabs = ['General', 'Data', 'Axes', 'Display', 'Time range'];
 const route = useRoute();
 const router = useRouter();
@@ -46,20 +55,30 @@ const sDataChart = ref<PanelInfo[]>([]);
 const store = useStore();
 const tabIndex = ref<number>(1);
 const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
-const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
+const CPanels = computed((): PanelInfo[][] => gBoard.value.panels);
 const sPanels = ref(null);
 const sTabData = ref<Partial<PanelInfo>>();
 const onClickTab = (index: number) => {
     tabIndex.value = index;
 };
+const gSelectedTab = computed(() => store.state.gSelectedTab);
+
+const gTabList = computed(() => store.state.gTabList);
+const gBoard = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    return gTabList.value[sIdx];
+});
 const sShowTab = ref<boolean>(true);
 
 const onChangeTabData = (data: Partial<PanelInfo>) => {
     sTabData.value = { ...sTabData.value, ...data };
 };
+const onClosePopup = () => {
+    emit('eClosePopup');
+};
 const onSave = () => {
     const payload = {
-        index: route.params.id,
+        index: props.id,
         item: sTabData.value,
     };
     sDataChart.value[0] = sTabData.value as PanelInfo;
@@ -106,12 +125,20 @@ watch(
             return;
         }
         let clone = cloneDeep(CPanels.value);
-        sDataChart.value = clone[Number(route.params.id)];
-        sTabData.value = clone[Number(route.params.id)][0];
+        sDataChart.value = clone[Number(props.id)];
+        sTabData.value = clone[Number(props.id)][0];
     },
     { immediate: true }
 );
 
+const onSaveEdit = async () => {
+    await store.commit(MutationTypes.setChartBoardEdit);
+    onClosePopup();
+    // router.push({
+    //     name: RouteNames.TAG_VIEW + 'frame',
+    //     params: { type: route.params.type, id: props.id },
+    // });
+};
 onMounted(async () => {
     await store.dispatch(ActionTypes.fetchTableList);
     if (store.state.gTableList[0]) {

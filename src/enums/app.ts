@@ -30,4 +30,5 @@ export enum PopupType {
     SAVE_DASHBOARD = 'Save Dashboard',
     TIME_RANGE = 'Time range',
     TIME_DURATION = 'Time Duration',
+    ADD_TAB = 'Add Tab',
 }

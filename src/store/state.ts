@@ -24,26 +24,35 @@ const state = {
     // * Request rollup
     gSecRollupExist: {} as any,
 
-    // list board
-    gBoardList: [] as ResBoardList[],
+    gTabList: [{ type: 'new', board_id: 'new', range_end: '', refresh: '', board_name: 'new', range_bgn: '', panels: [], code: '' }] as BoardInfo[],
 
+    gSelectedTab: 'board1',
+    // list board
+    // gBoardList: [] as ResBoardList[],
+
+    gTabBoardList: [] as BoardInfo[],
     // tag-view
     gBoard: {
+        type: 'new',
         board_id: '',
         range_end: '',
         refresh: '',
         board_name: '',
         range_bgn: '',
         panels: [],
+        code: '',
     } as BoardInfo,
     // old
+
     gBoardOld: {
+        type: 'new',
         board_id: '',
         range_end: '',
         refresh: '',
         board_name: '',
         range_bgn: '',
         panels: [],
+        code: '',
     } as BoardInfo,
 
     gBoardPanelEdit: {
@@ -56,6 +65,9 @@ const state = {
 
     //ActionTypes.fetchTableList
     gTable: {} as any,
+    gDownload: false,
+    gDownloadData: [] as any,
+    gImportData: [] as any,
 };
 
 type RootState = typeof state;

@@ -1,7 +1,9 @@
 <template>
     <div :class="cIsDarkMode ? 'dark' : 'light'">
         <div class="app">
-            <router-view name="Header" />
+            <Header />
+            <!-- <router-view  /> -->
+
             <router-view class="body" />
             <router-view name="Footer" />
         </div>
@@ -10,9 +12,14 @@
 
 <script setup lang="ts" name="App">
 import { useStore } from '@/store';
-import { computed } from 'vue';
-import { ActionTypes } from './store/actions';
+import Header from '@/components/header/index.vue';
 
+import { computed, onMounted, nextTick } from 'vue';
+import { ActionTypes } from './store/actions';
+import { useRoute } from 'vue-router';
+import { MutationTypes } from './store/mutations';
+
+const route = useRoute();
 const store = useStore();
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 </script>

@@ -13,9 +13,14 @@ enum MutationTypes {
     setBoard = 'setBoard',
     setTable = 'setTable',
     setBoardList = 'setBoardList',
+    updateCode = 'updateCode',
     setTimeRange = 'setTimeRange',
     setTableList = 'setTableList',
+    changeTab = 'changeTab',
+    setSelectedTab = 'setSelectedTab',
     setTagList = 'setTagList',
+    setTabList = 'setTabList',
+    pushTab = 'pushTab',
     setTempNewChartData = 'setTempNewChartData',
     setRangeData = 'setRangeData',
     setChartEdit = 'setChartEdit',
@@ -26,6 +31,10 @@ enum MutationTypes {
     setBoardByFileUpload = 'setBoardByFileUpload',
     setBoardOld = 'setBoardOld',
     setValueDashBoard = 'setValueDashBoard',
+    setDownLoad = 'setDownLoad',
+    setDownLoadData = 'setDownLoadData',
+    setImportData = 'setImportData',
+    changeTabList = 'changeTabList',
 }
 
 const mutations = {
@@ -42,13 +51,29 @@ const mutations = {
     [MutationTypes.setPreference](state: RootState, aPreference: ResPreferences) {
         state.gPreference = aPreference;
     },
+    [MutationTypes.setSelectedTab](state: RootState, aItem: string) {
+        state.gSelectedTab = aItem;
+    },
+    [MutationTypes.changeTab](state: RootState, aItem: any) {
+        const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
+        state.gTabList[sIdx] = aItem;
+    },
+    [MutationTypes.setTabList](state: RootState, aList: any) {
+        state.gSelectedTab = aList;
+    },
+    [MutationTypes.pushTab](state: RootState, aItem: any) {
+        state.gTabList.push(aItem);
+    },
+    [MutationTypes.changeTabList](state: RootState, aTabList: any) {
+        state.gTabList = aTabList;
+    },
     [MutationTypes.setTimeRange](state: RootState, aTimeRange: TimeRange) {
-        state.gTimeRange = aTimeRange;
-        state.gBoard = {
-            ...state.gBoard,
-            range_end: aTimeRange.end,
-            range_bgn: aTimeRange.start,
-        };
+        const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
+
+        state.gTimeRange = JSON.parse(JSON.stringify(aTimeRange));
+        state.gTabList[sIdx].range_end = aTimeRange.end;
+        state.gTabList[sIdx].range_bgn = aTimeRange.start;
+        state.gTabList[sIdx].refresh = aTimeRange.refresh || '';
     },
     [MutationTypes.setTableList](state: RootState, aTableList: { columns: string[]; rows: string[]; types: string[] }) {
         const newTable = aTableList.rows.map((aTable) => {
@@ -65,7 +90,9 @@ const mutations = {
         state.gTempNewChartData = aTemp;
     },
     [MutationTypes.setNewChartBoard](state: RootState, aTemp: PanelInfo) {
-        state.gBoard.panels.push([{ ...aTemp }]);
+        const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
+
+        state.gTabList[sIdx].panels.push([{ ...aTemp }]);
     },
     [MutationTypes.setNewBoard](state: RootState, aTemp: any) {
         state.gBoard = {
@@ -74,6 +101,19 @@ const mutations = {
             board_name: aTemp.board_name,
             old_id: aTemp.old_id,
         };
+    },
+    [MutationTypes.updateCode](state: RootState, aCode: any) {
+        state.gBoard.code = aCode;
+    },
+
+    [MutationTypes.setDownLoad](state: RootState, aDownload: any) {
+        state.gDownload = aDownload;
+    },
+    [MutationTypes.setDownLoadData](state: RootState, aDownloadData: any) {
+        state.gDownloadData.push(aDownloadData);
+    },
+    [MutationTypes.setImportData](state: RootState, aImportData: any) {
+        state.gImportData = aImportData;
     },
     [MutationTypes.setValueDashBoard](state: RootState, aTemp: any) {
         state.gBoard = {
@@ -102,8 +142,9 @@ const mutations = {
         state.gTable = aTable;
     },
     [MutationTypes.setChartEdit](state: RootState, payload: { index: number; item: Partial<PanelInfo> }) {
+        const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
         state.gBoardPanelEdit.index = payload.index;
-        state.gBoardPanelEdit.item = { ...state.gBoard.panels[payload.index][0], ...payload.item };
+        state.gBoardPanelEdit.item = { ...state.gTabList[sIdx].panels[payload.index][0], ...payload.item };
         state.gBoardPanelEdit.item.tag_set.forEach((item: any, index: number) => {
             if (item.id) {
                 delete (state.gBoardPanelEdit.item.tag_set[index] as any).id;
@@ -115,10 +156,19 @@ const mutations = {
     },
     [MutationTypes.setChartBoardEdit](state: RootState) {
         if (isEmpty(state.gBoardPanelEdit.item)) return;
-        state.gBoard.panels[state.gBoardPanelEdit.index][0] = state.gBoardPanelEdit.item;
+        const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
+
+        state.gTabList[sIdx].panels[state.gBoardPanelEdit.index][0] = state.gBoardPanelEdit.item;
     },
     [MutationTypes.setBoardByFileUpload](state: RootState, payload: BoardInfo) {
-        state.gBoard = payload;
+        state.gBoard.board_id = payload.board_id;
+        state.gBoard.board_name = payload.board_name;
+        state.gBoard.code = payload.code;
+        state.gBoard.panels = payload.panels;
+        state.gBoard.range_bgn = payload.range_bgn;
+        state.gBoard.range_end = payload.range_end;
+        state.gBoard.refresh = payload.refresh;
+        state.gBoard.type = payload.type;
     },
     [MutationTypes.setBoardOld](state: RootState, payload: BoardInfo) {
         state.gBoardOld = payload;

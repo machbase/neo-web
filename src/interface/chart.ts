@@ -160,6 +160,9 @@ export interface BoardInfo {
     board_name: string;
     range_bgn: string;
     panels: PanelInfo[][];
+    type: string;
+    code: string;
+    value?: any;
     old_id?: string;
 }
 export interface LineDataset {
