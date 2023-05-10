@@ -13,6 +13,7 @@
             :x-axis-max-range="data.sTimeLine.endTime"
             :x-axis-min-range="data.sTimeLine.startTime"
         />
+
         <AreaChart
             ref="areaChart"
             :id="`chart-${props.index}`"
@@ -27,7 +28,16 @@
             :max-y-chart="data.sMaxYChart"
             :p-is-raw="data.sIsRaw"
             :p-is-zoom="sIsZoom"
-            :p-panel-width="sClientWidth.value"
+            :p-panel-width="
+                data.sViewPortData.datasets &&
+                data.sViewPortData.datasets
+                    .map((i) => {
+                        return { yAxis: i.yAxis };
+                    })
+                    .find((aItem) => aItem.yAxis === 1)
+                    ? sClientWidth
+                    : sClientWidth - 15
+            "
             :panel-info="props.panelInfo"
             :view-data="data.sViewPortData"
             :x-axis-max-range="data.sTimeLine.endTime"

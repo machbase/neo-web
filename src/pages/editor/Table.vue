@@ -1,6 +1,19 @@
 <template>
     <v-sheet ref="scrollRef" @scroll="handleScroll" class="scroll-wrapper" color="transparent" height="calc(100% - 40px)">
-        <table :style="{ position: `absolute` }">
+        <table
+            style="
+                 {
+                    position: `absolute`;
+                }
+            "
+            :style="
+                cIsDarkMode
+                    ? {
+                          color: `#e7e8ea`,
+                      }
+                    : {}
+            "
+        >
             <thead class="header-fix" :style="cIsDarkMode ? { backgroundColor: 'black', color: 'white' } : { backgroundColor: 'rgb(245, 245, 245)', color: 'black' }">
                 <tr>
                     <th>
@@ -78,7 +91,6 @@ table {
     border-collapse: separate !important;
     border-spacing: 0;
     width: calc(100%);
-
     table-layout: auto;
 }
 table,

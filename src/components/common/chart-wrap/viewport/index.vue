@@ -10,13 +10,15 @@
         <div class="move-chart-size" :style="{ left: '7px' }">
             <div @click="moveChart('left')" @mouseleave="sDateMove = false" @mouseover="sDateMove = true" class="form">
                 <!-- <div class="form"></div> -->
-                <v-icon v-if="sDateMove">mdi-chevron-left</v-icon>
+                <!--  -->
+                <v-icon v-if="sDateMove" size="24px">mdi-chevron-left</v-icon>
             </div>
         </div>
         <div class="move-chart-size" :style="{ right: '7px' }">
             <div @click="moveChart('right')" @mouseleave="sDateMove = false" @mouseover="sDateMove = true" class="form">
                 <!-- <div class="form"></div> -->
-                <v-icon v-if="sDateMove">mdi-chevron-right</v-icon>
+                <!--  -->
+                <v-icon v-if="sDateMove" size="24px">mdi-chevron-right</v-icon>
             </div>
         </div>
         <div></div>
@@ -27,23 +29,24 @@
             </div>
             <div class="view-port__header--events icon">
                 <div>
-                    <v-icon @click="adjustViewportRange({ type: 'O', zoom: 0.4 })" color="#2ec0df" icon="mdi-magnify-minus-outline"></v-icon>
+                    <!-- v-img -->
+                    <v-icon @click="adjustViewportRange({ type: 'O', zoom: 0.4 })" color="#2ec0df" icon="mdi-magnify-minus-outline" size="24px"></v-icon>
                     <v-tooltip activator="parent" location="bottom">Zoom in x4</v-tooltip>
                 </div>
                 <div>
-                    <v-icon @click="adjustViewportRange({ type: 'O', zoom: 0.2 })" color="#2ec0df" icon="mdi-magnify-minus-outline"></v-icon>
+                    <v-icon @click="adjustViewportRange({ type: 'O', zoom: 0.2 })" color="#2ec0df" icon="mdi-magnify-minus-outline" size="24px"></v-icon>
                     <v-tooltip activator="parent" location="bottom">Zoom in x2</v-tooltip>
                 </div>
                 <div>
-                    <v-icon @click="adjustViewportFocus" :color="cIsDarkMode ? '#fff' : '#2ec0df'" icon="mdi-image-filter-center-focus-strong-outline" size="x-large"></v-icon>
+                    <v-icon @click="adjustViewportFocus" :color="cIsDarkMode ? '#fff' : '#2ec0df'" icon="mdi-image-filter-center-focus-strong-outline" size="26px"></v-icon>
                     <v-tooltip activator="parent" location="bottom">Focus</v-tooltip>
                 </div>
                 <div>
-                    <v-icon @click="adjustViewportRange({ type: 'I', zoom: 0.2 })" color="#2ec0df" icon="mdi-magnify-plus-outline"></v-icon>
+                    <v-icon @click="adjustViewportRange({ type: 'I', zoom: 0.2 })" color="#2ec0df" icon="mdi-magnify-plus-outline" size="24px"></v-icon>
                     <v-tooltip activator="parent" location="bottom">Zoom out x2</v-tooltip>
                 </div>
                 <div>
-                    <v-icon @click="adjustViewportRange({ type: 'I', zoom: 0.4 })" color="#2ec0df" icon="mdi-magnify-plus-outline"></v-icon>
+                    <v-icon @click="adjustViewportRange({ type: 'I', zoom: 0.4 })" color="#2ec0df" icon="mdi-magnify-plus-outline" size="24px"></v-icon>
                     <v-tooltip activator="parent" location="bottom">Zoom out x4</v-tooltip>
                 </div>
             </div>

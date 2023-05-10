@@ -4,7 +4,7 @@ const fetchData = async (aSql: string, aLimit?: number) => {
     let sSql;
     if (aSql.toLowerCase().includes('select')) {
         if (aLimit) {
-            sSql = aSql + ` LIMIT ${aLimit * 20 - 20},${aLimit * 20}`;
+            sSql = aSql + ` LIMIT ${aLimit * 50 - 50},${aLimit * 50}`;
         } else {
             sSql = aSql;
         }

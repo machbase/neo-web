@@ -2,13 +2,6 @@
     <v-sheet class="add-tab" color="transparent">
         <v-sheet class="add-tab-form" color="transparent">
             <v-sheet class="header" color="transparent"> What kind of tab would you like to create? </v-sheet>
-            <v-sheet class="board-name-sheet" color="transparent">
-                <div class="set-board-name">
-                    <!-- <v-sheet color="transparent" width="25%"> Tab Name </v-sheet> -->
-                    <!-- <div v-if="!sBoardName">Please fill out the Tab name.</div> -->
-                    <input v-model="sBoardName" class="form-control taginput input" placeholder="Please fill out the Tab name." type="text" />
-                </div>
-            </v-sheet>
 
             <v-sheet class="card-form" color="transparent">
                 <v-btn
@@ -33,7 +26,13 @@
                     </div>
                 </v-btn>
             </v-sheet>
-
+            <v-sheet class="board-name-sheet" color="transparent">
+                <div class="set-board-name">
+                    <!-- <v-sheet color="transparent" width="25%"> Tab Name </v-sheet> -->
+                    <!-- <div v-if="!sBoardName">Please fill out the Tab name.</div> -->
+                    <input v-model="sBoardName" class="form-control taginput input" placeholder="Please fill out the Tab name." type="text" />
+                </div>
+            </v-sheet>
             <!-- <v-radio-group v-model="sBoardType" @update:modelValue="changeName" class="radio-tab" hide-detail>
                     <div>
                         <v-radio color="#3A65D0" hide-detail label="Dashboard" value="dashboard"> </v-radio>
@@ -157,7 +156,7 @@ const onSetting = () => {
 .set-board-name {
     display: flex;
     align-items: center;
-    width: 80%;
+    width: 40%;
     justify-content: center;
 }
 .new-tab {
@@ -179,11 +178,13 @@ const onSetting = () => {
 .header {
     justify-content: center;
     display: flex;
-    font-size: 44px;
+    font-size: 40px;
     font-weight: 600;
     letter-spacing: -2px;
 }
 .form-control {
+    box-shadow: inset 0 1px 1px rgb(0 0 0 / 8%), 0 0 8px rgb(102 175 233 / 60%);
+
     // text-transform: uppercase;
     // font-size: 12px !important;
 }

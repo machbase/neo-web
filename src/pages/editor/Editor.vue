@@ -1,7 +1,7 @@
 <template>
     <!-- theme="vs" -->
-    <DragRow height="100%" slider-bg-color="#202020" width="100%">
-        <template #top>
+    <DragCol height="100%" slider-bg-color="#202020" width="100%">
+        <template #left>
             <!-- your content -->
             <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
                 <!-- <MonacoEditor
@@ -18,8 +18,8 @@
                 <div class="editor-header">
                     <div class="header-toggle">MACHBASE</div>
                     <div class="header-btn-list">
-                        <button @click="copyData"><v-icon>mdi-content-copy</v-icon></button>
-                        <button @click="getButtonData"><v-icon>mdi-play</v-icon></button>
+                        <v-btn @click="copyData" density="comfortable" icon="mdi-content-copy" size="36px" variant="plain"></v-btn>
+                        <v-btn @click="getButtonData" density="comfortable" icon="mdi-play" size="36px" variant="plain"></v-btn>
                     </div>
                 </div>
                 <CodeEditor
@@ -37,7 +37,7 @@
             </div>
         </template>
 
-        <template #bottom>
+        <template #right>
             <!-- your content -->
             <!-- <v-sheet color="transparent" height="10%" width="100%"> -->
 
@@ -73,7 +73,7 @@
                 </div>
             </v-sheet>
         </template>
-    </DragRow>
+    </DragCol>
 
     <!-- <button :onClick="handleRun">run</button> -->
 </template>
@@ -175,6 +175,7 @@ const getButtonData = async () => {
     const selectText = window.getSelection()?.toString();
     if (!selectText) {
         alert('Drag the query you want to send.');
+        return;
     }
     currentPage.value = 1;
     sData.value = [];
@@ -308,6 +309,7 @@ onMounted(async () => {
 
 .log-form {
     padding: 0 16px;
+    overflow: auto;
 }
 .drager_bottom div::-webkit-scrollbar-track {
     -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
@@ -322,6 +324,7 @@ onMounted(async () => {
 .drager_bottom div {
     overflow: auto !important;
 }
+
 .hide_header textarea::-webkit-scrollbar {
     width: 5px;
     height: 5px;
@@ -333,6 +336,21 @@ onMounted(async () => {
 }
 
 .hide_header textarea::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
+}
+.log-form::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.log-form::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.log-form::-webkit-scrollbar-thumb {
     width: 5px;
     height: 5px;
     background-color: rgb(101, 111, 121);

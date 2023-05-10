@@ -46,7 +46,8 @@ const cChartOptions = computed(() => {
         colors: formatColors(props.panelInfo.color_set),
         chart: {
             height: props.panelInfo.chart_height < 400 ? 400 : props.panelInfo.chart_height,
-            width: (props.panelInfo.chart_width as number) <= 0 ? null : props.panelInfo.chart_width,
+            width: props.pPanelWidth,
+            // (props.panelInfo.chart_width as number) <= 0 ? null : props.panelInfo.chart_width,
             type: 'area',
             zoomType: 'x',
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
@@ -135,7 +136,7 @@ const cChartOptions = computed(() => {
             outlineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             xAxis: {
                 left: 28,
-                width: props.pPanelWidth,
+                // width: props.pPanelWidth,
                 type: 'datetime',
                 min: toTimeUtcChart(props.xMinTimeRangeViewPort as string),
                 max: toTimeUtcChart(props.xMaxTimeRangeViewPort as string),
