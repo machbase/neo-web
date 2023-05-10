@@ -622,7 +622,6 @@ const OnUndoTime = () => {
 
 // Call when data of chart reDraw
 async function OnChangeTimeRangerViewPort(params: any, aStatus?: string) {
-    console.log(aStatus);
     if (aStatus === 'expand') {
         if (data.sIsRaw) {
             const sLimit = await generateRawDataChart(props.panelInfo, {

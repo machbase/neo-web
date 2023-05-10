@@ -190,7 +190,6 @@ const getButtonData = async () => {
         }
         if (sResult && sResult.success) {
             // sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '') + ' : ' + sResult.reason, color: '' });
-            console.log(sResult.reason);
             if (sResult.reason === 'executed.') {
                 sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '#rgb(31,123,246)' });
 
@@ -225,7 +224,6 @@ const getSQLData = async () => {
         sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.data.reason, color: '#a85400' });
     }
     if (sResult && sResult.success) {
-        console.log(sResult.reason);
         if (sResult.reason === 'executed.') {
             sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '#217DF8' });
 
