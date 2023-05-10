@@ -305,7 +305,7 @@ const addTab = () => {
         refresh: '',
         range_bgn: '',
         panels: [],
-        code: 'select * from tag;',
+        code: '',
         hover: false,
     });
     store.commit(MutationTypes.setSelectedTab, sId);

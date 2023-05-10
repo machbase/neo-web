@@ -214,10 +214,12 @@ const getSQLData = async () => {
 };
 
 onMounted(async () => {
-    gBoard.value.code = `select * from ${gTableList.value[0]};`;
-    sSql.value = gBoard.value.code;
-    sLogField.value.push({ query: 'The connection is complete.', color: '#217DF8' });
-    await getSQLData();
+    if (!gBoard.value.code) {
+        gBoard.value.code = `select * from ${gTableList.value[0]};`;
+        sSql.value = gBoard.value.code;
+        sLogField.value.push({ query: 'The connection is complete.', color: '#217DF8' });
+        await getSQLData();
+    }
 });
 </script>
 
