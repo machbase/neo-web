@@ -1,7 +1,6 @@
 <template>
     <v-sheet class="tag-view" height="100%">
         <v-sheet id="tagView" class="tag-view-form" color="transparent" height="100%" width="100%">
-            <!-- <v-sheet v-show=""> </v-sheet> -->
             <v-sheet v-for="(aTab, aIdx) in gTabList" v-show="aTab.board_id === gSelectedTab" :key="aIdx" class="sheet" color="transparent" height="100%" width="100%">
                 <v-sheet v-if="aTab.type === 'note'" color="transparent" height="100%" width="100%">
                     <Editor ref="sPanels" :p-panel-data="aTab" />
@@ -15,6 +14,7 @@
                               }`
                             : TIME_RANGE_NOT_SET
                     }}
+
                     <img @click="onReload(aIdx)" class="" :src="i_b_refresh" />
                     <img @click="onClickPopupItem(PopupType.TIME_RANGE)" class="" :src="i_b_timerange" />
                 </v-sheet>
@@ -23,30 +23,8 @@
                     <ButtonCreate @click="onClickPopupItem(PopupType.NEW_CHART)" :is-add-chart="true" />
                 </v-sheet>
             </v-sheet>
-            <!-- <PopupWrap @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="sPopupType" :width="'667px'" /> -->
-
-            <!-- <v-sheet v-if="gBoard.type === 'new'" class="form-body" color="transparent" height="100%" width="100%">
-            </v-sheet> -->
         </v-sheet>
         <PopupWrap @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="sPopupType" :width="cWidthPopup" />
-
-        <!-- <PopupWrap v-if="route.params.id" @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="PopupType.NEW_CHART" :width="'667px'" /> -->
-
-        <!-- <div v-else>
-
-            <div v-for="(aTab, aIdx) in gTabList" v-show="aTab.id === gSelectedTab" :key="aIdx">
-                <iframe
-                    :ref="`iFrame${aIdx}`"
-                    :id="`iFrame${aIdx}`"
-                    @load="onUpload"
-                    frameborder="0"
-                    height="100%"
-                    :src="aTab.url"
-                    :style="{ display: 'block', width: '100%', height: '100vh' }"
-                    width="100%"
-                ></iframe>
-            </div>
-        </div> -->
     </v-sheet>
 </template>
 <script setup lang="ts" name="TagView">
@@ -76,12 +54,6 @@ const store = useStore();
 const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
 const cTimeRange = computed(() => {
     const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
-
-    // export interface TimeRange {
-    // start: string;
-    // end: string;
-    // refresh: string;
-
     return { start: gTabList.value[sIdx].range_bgn, end: gTabList.value[sIdx].range_end, refresh: gTabList.value[sIdx].refresh };
 });
 
@@ -103,10 +75,6 @@ const gImportData = computed(() => store.state.gImportData);
 const gSelectedTabInfo = computed(() => {
     return gTabList.value.find((aItem: any) => aItem.id === gSelectedTab.value);
 });
-
-// function onOpenPopup() {
-//
-// }
 const onClosePopup = () => {
     sDialog.value = false;
 };
@@ -120,7 +88,6 @@ const onUpload = () => {
 };
 
 const onDownload = () => {
-    // const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
     gTabList.value.forEach((aItem: any, aIdx: number) => {
         (document.getElementById(`iFrame${aIdx}`) as any).contentWindow.postMessage(JSON.stringify({ status: 'download' }), window.location.href + 'parents');
     });
@@ -131,11 +98,6 @@ const onClickPopupItem = (aPopupName: PopupType) => {
     sDialog.value = true;
 };
 
-// const setBoard = async (sId: string) => {
-//     // await store.dispatch(ActionTypes.fetchTable);
-//     await store.dispatch(ActionTypes.fetchBoard, sId);
-// };
-
 const receiveMessage = (event: MessageEvent) => {
     if (typeof event.data !== 'string') {
         sLoading.value = false;
@@ -143,31 +105,17 @@ const receiveMessage = (event: MessageEvent) => {
     }
     // Do we trust the sender of this message?  (might be
     // different from what we originally opened, for example).
-    // if (event.origin !== '123') return;
-    // 자식에서 download 요청인지 확인하여 Data 전달
     if (JSON.parse(event.data).status === 'download') {
         window.parent.postMessage(JSON.stringify(cDashBoard.value), '*');
-    }
-    // upload 요청인지 처리
-    else if (JSON.parse(event.data).status === 'upload' && JSON.parse(event.data).data) {
-        // 업로드 요청일땐, 자식은 받은 data 를 저장
+    } else if (JSON.parse(event.data).status === 'upload' && JSON.parse(event.data).data) {
         store.commit(MutationTypes.setBoardByFileUpload, JSON.parse(event.data).data);
         sLoading.value = false;
-    }
-    // 다운로드를 요청한 부모에게 data 전달한 것을 전역으로 return
-    else {
+    } else {
         store.commit(MutationTypes.setDownLoadData, JSON.parse(event.data));
     }
-
-    // event.source is popup
-    // event.data is "hi there yourself!  the secret response is: rheeeeet!"
 };
 const onReload = (aIdx: number) => {
     sPanels.value[aIdx].onReload();
-
-    // let id = route.query.id || cBoardList.value[0]?.board_id;
-    // const newBord = cloneDeep(cBoardOld.value);
-    // store.commit(MutationTypes.setBoardByFileUpload, newBord);
 };
 
 const cWidthPopup = computed((): string => {
@@ -203,7 +151,6 @@ watch(
 );
 
 onMounted(async () => {
-    // receiveMessage();
     window.addEventListener('message', receiveMessage);
 
     nextTick(() => {

@@ -4,12 +4,12 @@
             <p>From (default value)</p>
             <div class="row">
                 <DatePicker @e-change-time="changeTimeStart" />
-                <input v-model="dateStart" type="text" class="input" />
+                <input v-model="dateStart" class="input" type="text" />
             </div>
             <p>To (default value)</p>
             <div class="row">
                 <DatePicker @e-change-time="changeTimeEnd" />
-                <input v-model="dateEnd" type="text" class="input" />
+                <input v-model="dateEnd" class="input" type="text" />
             </div>
             <div>
                 <p>Refreshing every</p>

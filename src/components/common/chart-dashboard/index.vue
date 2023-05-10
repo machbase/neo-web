@@ -18,7 +18,7 @@
     </div>
     <div v-else>
         <div v-for="(panel, index) in data.sPanel" :key="index">
-            <AreaChart ref="areaChart" :index="panel.i" :p-tab-idx="props.pTabIdx" :panel-info="panel" />
+            <AreaChart ref="areaChart" :index="panel.i" :p-tab-idx="props.pTabIdx" :p-type="props.pType" :panel-info="panel" />
         </div>
     </div>
 </template>
@@ -36,6 +36,7 @@ interface DashboardPanelsProps {
     pIsViewMode?: boolean;
     chartDataSingle?: PanelInfo[];
     pTabIdx?: number;
+    pType?: string;
     pPanelInfo: BoardInfo;
 }
 const props = withDefaults(defineProps<DashboardPanelsProps>(), {});
@@ -85,13 +86,9 @@ const cData = computed(() => {
             : [];
     }
 });
-watchEffect(
-    // () => gBoard.value.panels,
-    (newValue: any) => {
-        if (!newValue) return;
-    }
-    // { immediate: true }
-);
+watchEffect((newValue: any) => {
+    if (!newValue) return;
+});
 
 const onReload = () => {
     areaChart.value &&
@@ -122,21 +119,7 @@ watch(
     { immediate: true, deep: true }
 );
 
-// watch(
-//     () => store.state.gBoard,
-//     () => {
-//         console.log(gBoard);
-
-//     }
-// );
-
-onMounted(async () => {
-    // if (props.chartDataSingle) {
-    // } else {
-    // }
-    // intializePanelData();
-    // onReload();
-});
+onMounted(async () => {});
 
 defineExpose({ onReload });
 </script>

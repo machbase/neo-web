@@ -4,7 +4,6 @@
     color: $text-b;
     font-size: $font-12 !important;
     display: flex;
-    // margin-top: $px-20;
     padding: 10px 30px;
     align-items: center;
     justify-content: end;
@@ -14,10 +13,7 @@
         padding-left:5px;
     }
 }
-.chart-form{
-    // padding-top: 44px;
 
-}
 .chart-form::-webkit-scrollbar {
     width: 10px;
     background: #141415;

@@ -45,7 +45,6 @@ const actions = {
         context.commit(MutationTypes.setPreference, res);
     },
     async [ActionTypes.postPreference](context: MyActionContext, payload: ResPreferences) {
-        // const res = await postSetting(payload);
         context.commit(MutationTypes.setPreference, payload);
     },
     [ActionTypes.setTimeRange](context: MyActionContext, payload: TimeRange) {

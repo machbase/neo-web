@@ -2,7 +2,7 @@
     <div class="new-dashboard">
         <ChartDashboard ref="sPanels" />
         <ButtonCreate :is-add-chart="true" :on-click="onOpenPopup" />
-        <PopupWrap :width="'667px'" :p-type="PopupType.NEW_CHART" :p-show="sDialog" @e-close-popup="onClosePopup" />
+        <PopupWrap @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="PopupType.NEW_CHART" :width="'667px'" />
     </div>
 </template>
 <script setup lang="ts" name="New">
@@ -27,17 +27,6 @@ function onOpenPopup() {
 const onClosePopup = () => {
     sDialog.value = false;
 };
-// watch(
-//     () => cBoardList.value,
-//     () => {
-//         if (!route.query.id && cBoardList.value.length > 0) {
-//             setBoard(cBoardList.value[0]?.board_id as string);
-//         }
-//         if (route.query.id) {
-//             setBoard(route.query.id as string);
-//         }
-//     }
-// );
 onMounted(async () => {
     await store.dispatch(ActionTypes.fetchTableList);
     if (store.state.gTableList[0]) {

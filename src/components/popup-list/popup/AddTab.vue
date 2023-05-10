@@ -28,27 +28,14 @@
             </v-sheet>
             <v-sheet class="board-name-sheet" color="transparent">
                 <div class="set-board-name">
-                    <!-- <v-sheet color="transparent" width="25%"> Tab Name </v-sheet> -->
-                    <!-- <div v-if="!sBoardName">Please fill out the Tab name.</div> -->
                     <input v-model="sBoardName" class="form-control taginput input" placeholder="Please fill out the Tab name." type="text" />
                 </div>
             </v-sheet>
-            <!-- <v-radio-group v-model="sBoardType" @update:modelValue="changeName" class="radio-tab" hide-detail>
-                    <div>
-                        <v-radio color="#3A65D0" hide-detail label="Dashboard" value="dashboard"> </v-radio>
-                        <v-icon color="#3A65D0" size="18px">mdi-chart-line</v-icon>
-                    </div>
-                    <div>
-                        <v-radio color="#3A65D0" hide-detail label="Note" value="note"></v-radio>
-                        <v-icon color="#3A65D0" size="18px">mdi-note-outline</v-icon>
-                    </div>
-                </v-radio-group> -->
             <div class="popup__btn-group next-btn">
                 <v-divider color="info" :thickness="2"></v-divider>
                 <div class="btn-form">
                     <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> next </v-btn>
                 </div>
-                <!-- <v-btn variant="outlined" class="button-effect" @click="onClosePopup"> Cancel </v-btn> -->
             </div>
         </v-sheet>
     </v-sheet>
@@ -65,18 +52,13 @@ const sBoardType = ref<string>('dashboard');
 const sBoardName = ref<string>('dashboard');
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
-// const gTabList = computed((): TabList[] => {
-//     return store.state.gNoteOrBoardList.map((aItem: any) => {
-//         return { id: aItem.Id, name: aItem.name, type: aItem.type, hover: false };
-//     });
-// });
-
 const sOptions = [
     { type: 'dashboard', icon: 'mdi-chart-line' },
     { type: 'note', icon: 'mdi-note-outline' },
 ];
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
+
 const changeName = (aItem: any) => {
     sBoardName.value = aItem;
 };
@@ -103,14 +85,7 @@ const onSetting = () => {
         board_name: sBoardName,
         edit: false,
     };
-    //   type: 'new',
-    //   board_id: '',
-    //   range_end: '',
-    //   refresh: '',
-    //   board_name: '',
-    //   range_bgn: '',
-    //   panels: [],
-    //   code: '',
+
     store.commit(MutationTypes.changeTab, sNode);
     store.commit(MutationTypes.setSelectedTab, sNode.board_id);
     onClosePopup();
@@ -184,19 +159,14 @@ const onSetting = () => {
 }
 .form-control {
     box-shadow: inset 0 1px 1px rgb(0 0 0 / 8%), 0 0 8px rgb(102 175 233 / 60%);
-
-    // text-transform: uppercase;
-    // font-size: 12px !important;
 }
 .add-tab-form {
     width: 80%;
     height: 60%;
-    // height: 100%;
     display: flex;
     justify-content: space-between;
     flex-direction: column;
     padding: 8px;
-    // border: 1px solid $text-blue;
 }
 .card-form {
     display: flex;

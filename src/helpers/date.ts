@@ -90,7 +90,6 @@ const setChangeUtcTime = (aUtcTime: number, atimezone: string): number => {
 
     const sParseTimezone = { timezone_value: atimezone };
     const sArray = [];
-    // 시간과 분에 나눠서 자름
     sArray.push(sParseTimezone.timezone_value.substr(0, 3));
     sArray.push(sParseTimezone.timezone_value.substr(3, 5));
     const sAddHoursTime = sThisDate.setHours(sThisDate.getHours() + Number(sArray[0])) / 1000;
@@ -112,7 +111,6 @@ const setUtcTime = (aDate: number, atimezone?: string) => {
     if (sTimezone) {
         const sParseTimezone = atimezone ? { timezone_value: sTimezone } : JSON.parse(sTimezone);
         const sArray = [];
-        // 시간과 분에 나눠서 자름
         sArray.push(sParseTimezone.timezone_value.substr(0, 3));
         sArray.push(sParseTimezone.timezone_value.substr(3, 5));
         const sAddHoursTime = sThisDate.setHours(sThisDate.getHours() + Number(sArray[0]));
@@ -165,26 +163,18 @@ const getIntervalTime = (aChartWidth: number, aPanelInfo: any, aStart: any, aEnd
         };
     } else {
         const panelType = aPanelInfo.panel_type;
-        // bar, line 타입 차트가 아니면 pixelsPerTick은 무조건 1.
-        // numberOfTick은 panel에 몇 분할할건지(divisions_number) 기본값은 100.
-        // 사용자가 입력하게 한다. 기본값은 100이다.
+
         const pixelsPerTick = 1;
         const numberOfTick = aPanelInfo.divisions_number;
-        // if (isLine(panelType) || isBar(panelType)) {
-        //     pixelsPerTick = isBar(panelType) ? getPixelsPerTickOfBar(aPanelInfo) : aPanelInfo.pixels_per_tick || 3;
-        //     numberOfTick = Math.floor(((isLine(panelType) ? aChartWidth - 60 : aChartWidth) - 16) / pixelsPerTick);
-        // }
+
         if (tags[0].calculation_mode === 'raw') return { count: numberOfTick };
         const rangeTime = moment(aEnd).diff(moment(aStart), 's');
-        //첫번째 날과 두번 째날의 차이를 구함
-        // 계산된 timestamp 시간 300 / 50 numberOfTick 패널이 표시 될 개수
+
         const intervalTime = _convertTimeToObject(Math.round(rangeTime / numberOfTick));
         return { ...intervalTime, count: numberOfTick };
     }
 };
 const changeTextToUtc = (aTextDate: string) => {
-    // localStorage.getItem('timezone');
-
     const sArr = stringParseNewDate(aTextDate);
     let sReturnDate;
 

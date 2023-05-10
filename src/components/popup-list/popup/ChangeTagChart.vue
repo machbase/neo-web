@@ -3,12 +3,12 @@
         <div class="popup__input-group">
             <p class="popup__input-group-label">Board Title</p>
             <div class="popup__input-group-content">
-                <input class="popup__input-group-text" @change="onChangeTitle" />
+                <input @change="onChangeTitle" class="popup__input-group-text" />
             </div>
         </div>
         <div class="popup__btn-group">
-            <v-btn class="button-effect-color" variant="outlined" @click="onSetting"> Ok </v-btn>
-            <v-btn class="button-effect" variant="outlined" @click="onClosePopup"> Cancel </v-btn>
+            <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> Ok </v-btn>
+            <v-btn @click="onClosePopup" class="button-effect" variant="outlined"> Cancel </v-btn>
         </div>
     </div>
 </template>

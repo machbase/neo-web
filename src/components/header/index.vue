@@ -1,5 +1,4 @@
 <template>
-    <!--  -->
     <div v-if="route.name !== RouteNames.LOGIN" class="header" :style="cIsDarkMode ? { boxShadow: '0 0 10px 10px rgba(0, 0, 0, 0.2)' } : {}">
         <div v-if="sLoading" class="loading-rollUp">
             <img class="icon" :src="cIsDarkMode ? loader_b : loader_w" />
@@ -30,33 +29,14 @@
 
                         {{ aTab.board_name }}
                     </div>
-                    <v-icon v-if="gSelectedTab === aTab.id || aTab.hover === true" @click="deleteTab(aTab.board_id)" size="16px"> mdi-close </v-icon>
+                    <v-icon v-if="gTabList.length !== 1 && (gSelectedTab === aTab.id || aTab.hover === true)" @click.stop="deleteTab(aTab.board_id)" size="16px">
+                        mdi-close
+                    </v-icon>
                 </button>
             </div>
             <v-btn @click="addTab" density="comfortable" icon="mdi-plus" size="36px" variant="plain"> </v-btn>
         </v-sheet>
         <v-sheet class="header__tool" color="transparent" width="15%">
-            <!-- <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.VIEW" @click="onClickPopupItem(PopupType.TIME_RANGE)" class="time-range icon">
-                {{
-                    !isEmpty(cTimeRange)
-                        ? `${cTimeRange.start ? cTimeRange.start : ''} ~ ${cTimeRange.end ? cTimeRange.end : ''} ${cTimeRange.refresh ? `refresh every ${cTimeRange.refresh}` : ''}`
-                        : TIME_RANGE_NOT_SET
-                }}
-            </div> -->
-            <!-- <img v-if="sHeaderType === 'tag-view' || sHeaderType === 'new'" :src="i_b_timerange" class="icon" />             -->
-
-            <!-- <img @click="onReload" class="icon" :src="i_b_refresh" /> -->
-            <!-- <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW">
-                <router-link :to="{ name: RouteNames.VIEW }" target="_blank">
-                    <img :src="i_b_share" class="icon" @click="openNewChartPage" />
-                </router-link>
-            </div> -->
-            <!-- <img
-                v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW || sHeaderType === RouteNames.VIEW"
-                @click="onClickPopupItem(PopupType.TIME_RANGE)"
-                class="icon"
-                :src="i_b_timerange"
-            /> -->
             <div @click="onChildGroup" class="header__link--group-item drop">
                 <v-icon>mdi-cog</v-icon>
                 <div ref="childGroup" class="child-group">
@@ -70,7 +50,6 @@
                         ></v-icon>
                         {{ PREFERENCE }}
                     </div>
-                    <!-- <div @click="onClickPopupItem(PopupType.PREFERENCES)" class="item">{{ PREFERENCE }}</div> -->
                     <label v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" class="item">
                         <v-icon class="icon file-import-icon" icon="mdi-upload" size="small"></v-icon>
                         Import
@@ -78,8 +57,6 @@
                     </label>
 
                     <div @click="download" class="item">
-                        <!-- @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)" -->
-                        <!-- onClickPopupItem(PopupType.SAVE_DASHBOARD) -->
                         <v-icon
                             v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
                             @click="download"
@@ -97,7 +74,6 @@
                         Logout
                     </div>
                 </div>
-                <!-- <div ref="childGroup" class="child-group"></div> -->
             </div>
         </v-sheet>
     </div>
@@ -343,11 +319,18 @@ const deleteTab = (aId: string) => {
     const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === aId);
 
     const sCopyTabList = JSON.parse(JSON.stringify(gTabList.value));
+
+    const sLength = sCopyTabList.length;
+
     sCopyTabList.splice(sIdx, 1);
 
-    store.commit(MutationTypes.changeTabList, sCopyTabList as BoardInfo);
+    if (sLength - 1 === sIdx) {
+        store.commit(MutationTypes.setSelectedTab, gTabList.value[sIdx - 1].board_id);
+    } else {
+        store.commit(MutationTypes.setSelectedTab, gTabList.value[sIdx + 1].board_id);
+    }
 
-    setSelectedTab(gTabList.value[0].board_id);
+    store.commit(MutationTypes.changeTabList, sCopyTabList as BoardInfo);
 };
 
 const onUploadChart = (aEvent: any) => {
@@ -363,11 +346,8 @@ const onUploadChart = (aEvent: any) => {
         }
 
         store.commit(MutationTypes.changeTabList, cloneDeep(fileContent) as BoardInfo);
-        // store.commit(MutationTypes.changeTabList, cloneDeep(fileContent.tabList) as BoardInfo);
 
         setSelectedTab(cloneDeep(fileContent)[0].board_id);
-        // store.commit(MutationTypes.setBoardByFileUpload, cloneDeep(fileContent) as BoardInfo);
-        // onChildGroup();
         sLoading.value = false;
     };
     reader.readAsText(file);
@@ -408,128 +388,7 @@ const onClickPopupItem = (aPopupName: PopupType) => {
     sPopupType.value = aPopupName;
     sDialog.value = true;
 };
-//
-// const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
-//     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
-//     let sLimit = aPanelInfo.count;
-//     let sCount = -1;
-//     if (sLimit < 0) {
-//         sCount = Math.ceil(sChartWidth / sInnerValue.sTickPixels);
-//     }
-//     let sDatasets = [] as HighchartsDataset[];
-//     const sTagList: ReturnTagData[][] = [];
-//     const sTagSet = aPanelInfo.tag_set || [];
-//     if (!sTagSet.length) return;
-//     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
-//     if (!aCustomRange) {
-//         sTimeRange = {
-//             // startTime: moment(sTimeRange.startTime).valueOf() - 133000,
-//             startTime: moment(moment(sTimeRange.endTime).valueOf() - 100000).format('YYYY-MM-DDTHH:mm:ss'),
-//             endTime: sTimeRange.endTime,
-//         };
-//         data.sTimeLine = sTimeRange;
-//     } else {
-//         sTimeRange = aCustomRange;
-//     }
-//     const sIntervalTime =
-//         aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(data.sTimeLine.startTime as string, data.sTimeLine.endTime as string, sChartWidth) : data.sIntervalData;
-//     data.sIntervalData = sIntervalTime;
-//     for (let index = 0; index < sTagSet.length; index++) {
-//         const sTagSetElement = sTagSet[index];
-//         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
-//             Table: sTagSetElement.table,
-//             TagNames: sTagSetElement.tag_names,
-//             Start: moment(sTimeRange.startTime).format(FORMAT_FULL_DATE),
-//             End: moment(sTimeRange.endTime).format(FORMAT_FULL_DATE),
-//             CalculationMode: sTagSetElement.calculation_mode.toLowerCase(),
-//             ...sIntervalTime,
-//             Count: sCount,
-//             Direction: 0,
-//         });
-//         sTagList.push(sFetchResult);
-//     }
-//     const sSumTagDatas = getCalcStackedPercentage(sTagList); // [72.19, ....]
-//     await sTagList.forEach(async (_, i: number) => {
-//         const sTag = aPanelInfo.tag_set[i];
-//         const sRes: ReturnTagData[] = sTagList.map((tag) => {
-//             return tag[0];
-//         });
-//         let sConvertData;
-//         sConvertData = await convertData(sRes, aPanelInfo, sTag, i, sSumTagDatas);
-//         sDatasets = sConvertData;
-//     });
-//     data.sDisplayData = { datasets: sDatasets };
-//     data.sMaxYChart = getMaxValue(sDatasets);
-// };
-// const fetchViewPortData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToendTimeType) => {
-//     const sChartWidth: number = (document.getElementById(`chart-${props.index}`) as HTMLElement)?.clientWidth;
-//     let sLimit = aPanelInfo.count;
-//     let sCount = -1;
-//     if (sLimit < 0) {
-//         sCount = Math.ceil(sChartWidth / sInnerValue.sTickPixels);
-//     }
-//     let sDatasets = [] as HighchartsDataset[];
-//     const sTagList: ReturnTagData[][] = [];
-//     const sTagSet = aPanelInfo.tag_set || [];
-//     if (!sTagSet.length) return;
-//     let sTimeRange = await getDateRange(aPanelInfo, store.state.gBoard, aCustomRange);
-//     if (!aCustomRange)
-//         data.sTimeRangeViewPort = {
-//             startTime: sTimeRange.startTime,
-//             endTime: sTimeRange.endTime,
-//         };
-//     else {
-//         data.sTimeRangeViewPort = aCustomRange;
-//         sTimeRange = aCustomRange;
-//     }
-//     const sIntervalTime =
-//         aPanelInfo.interval_type.toLowerCase() === ''
-//             ? calcInterval(data.sTimeRangeViewPort.startTime as string, data.sTimeRangeViewPort.endTime as string, sChartWidth)
-//             : data.sIntervalData;
-//     data.sIntervalData = sIntervalTime;
-//     for (let index = 0; index < sTagSet.length; index++) {
-//         const sTagSetElement = sTagSet[index];
-//         const sFetchResult = await store.dispatch(ActionTypes.fetchTagData, {
-//             Table: sTagSetElement.table,
-//             TagNames: sTagSetElement.tag_names,
-//             Start: moment(sTimeRange.startTime).format(FORMAT_FULL_DATE),
-//             End: moment(sTimeRange.endTime).format(FORMAT_FULL_DATE),
-//             CalculationMode: sTagSetElement.calculation_mode.toLowerCase(),
-//             ...sIntervalTime,
-//             Count: sCount,
-//             Direction: 0,
-//         });
-//         sTagList.push(sFetchResult);
-//     }
-//     const sSumTagDatas = getCalcStackedPercentage(sTagList); // [72.19, ....]
-//     await sTagList.forEach(async (_, i: number) => {
-//         const sTag = aPanelInfo.tag_set[i];
-//         const sRes: ReturnTagData[] = sTagList.map((tag) => {
-//             return tag[0];
-//         });
-//         let sConvertData;
-//         sConvertData = await convertData(sRes, aPanelInfo, sTag, i, sSumTagDatas);
-//         sDatasets = sConvertData;
-//     });
-//     data.sViewPortData = { datasets: sDatasets };
-// };
-
-// const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPortRange?: startTimeToendTimeType) => {
-//     try {
-//         if (!aCustomRange && !aViewPortRange) {
-//             await fetchPanelData(props.panelInfo);
-//             await fetchViewPortData(props.panelInfo);
-//         } else {
-//             await fetchPanelData(props.panelInfo, aCustomRange);
-//             await fetchViewPortData(props.panelInfo, aViewPortRange);
-//         }
-//     } catch (error) {
-//         console.log(error);
-//     }
-// };
-//
 const onReload = () => {
-    // let id = route.query.id || cBoardList.value[0]?.board_id;
     const newBord = cloneDeep(cBoardOld.value);
     store.commit(MutationTypes.setBoardByFileUpload, newBord);
 };
@@ -560,11 +419,8 @@ const onSaveEdit = async () => {
         name: RouteNames.TAG_VIEW,
     });
 };
-// store.dispatch(ActionTypes.fetchBoardList);
 
 const download = () => {
-    // store.commit(MutationTypes.setDownLoad, true);
-
     onClickPopupItem(PopupType.SAVE_DASHBOARD);
 };
 

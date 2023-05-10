@@ -1,6 +1,5 @@
 <template>
     <div class="login-form">
-        <!-- <div class="button-wrapper"> -->
         <div class="login-card">
             <div>
                 <img alt="" src="@/assets/image/i_logo.png" />
@@ -13,7 +12,6 @@
                 <button @click="login" :class="sLoginName !== '' && sPassword !== '' ? 'no-input' : 'login-button'">LOGIN</button>
             </div>
         </div>
-        <!-- </div> -->
     </div>
 </template>
 
@@ -30,17 +28,11 @@ const login = async () => {
         LoginName: sLoginName.value,
         Password: sPassword.value,
     };
-
-    // API 요청 방지 ID Password check
     if (sParams.LoginName === '' || sParams.Password === '') {
         alert('typed ID or Password');
         return;
     }
-
-    // api call
     const sReturn: any = await postLogin(sParams);
-
-    // status 상태에 따라 처리
     if (sReturn && sReturn.success) {
         localStorage.setItem('accessToken', sReturn.accessToken);
         localStorage.setItem('refreshToken', sReturn.refreshToken);

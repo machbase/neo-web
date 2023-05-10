@@ -25,7 +25,6 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- :class="cIsDarkMode ? 'dark' : 'light'"  -->
                 <tr v-for="(content, index) in items" :key="index" :class="[cIsDarkMode ? (Number(index) % 2 === 0 ? '' : 'dark-odd') : Number(index) % 2 === 0 ? '' : 'odd']">
                     <td>
                         <span>{{ index + 1 }}</span>
@@ -73,11 +72,9 @@ const handleScroll = (e: any) => {
 
 <style scoped>
 .scroll-wrapper {
-    /* padding: 0 16px; */
     position: relative;
     overflow: auto;
     height: 100%;
-    /* border-bottom: 3px solid #1f2e3a; */
     background-color: white;
 }
 .scroll-wrapper::-webkit-scrollbar {
@@ -96,7 +93,6 @@ table {
 table,
 th,
 td {
-    /* border: 1px solid #bfbfbf; */
     vertical-align: center !important;
     border-collapse: collapse;
 }
@@ -109,8 +105,6 @@ th {
     height: 35px;
     text-align: start;
     vertical-align: center !important;
-
-    /* justify-content: start; */
 }
 td {
     font-size: 12px;
@@ -121,17 +115,12 @@ td {
 }
 span {
     height: 100%;
-    /* /* align-items: center; */
-    /* display: flex; */
-
     justify-content: start;
 }
 .header-fix {
     position: sticky;
     top: 0;
     z-index: 10;
-
-    /* border: 1px solid white; */
 }
 .odd {
     background-color: rgb(245, 245, 245);

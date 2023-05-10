@@ -39,8 +39,6 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             overflow: hidden;
-            // background-color: $d-background-opa;
-            // background-color: white;
             flex-direction: row;
             width: 180px;
             height: 100%;
@@ -52,11 +50,6 @@
             align-items: center;
             font-size: $font-12;
             padding: 4px 8px;
-            // div {
-            //     height: 100%;
-            //     display: flex;
-                
-            // }
         }
 
     }
@@ -132,7 +125,6 @@
             font-size: $font-12 !important;
         }
         .icon {
-            // padding: $px-10;
             cursor: pointer;
             font-size: inherit;
             vertical-align: middle;

@@ -4,37 +4,37 @@
             <div class="title">X-axis</div>
             <label for="_cfg_interval">Interval</label>
             <div class="cfg-input">
-                <input id="_cfg_interval" v-model="interval" type="text" class="input" style="width: 240px" @change="onChangeInput" />
+                <input v-model="interval" id="_cfg_interval" @change="onChangeInput" class="input" style="width: 240px" type="text" />
             </div>
             <label for="_cfg_line_x">Show tick line</label>
             <div class="cfg-input input-wrapper">
-                <div class="checkbox-wrapper"><input id="_cfg_line_x" v-model="isShowTickLineX" type="checkbox" /></div>
-                <input type="text" class="input" data-for="_cfg_line_x" value="Displays the X-axis tick line." readonly style="width: 175px" />
+                <div class="checkbox-wrapper"><input v-model="isShowTickLineX" id="_cfg_line_x" type="checkbox" /></div>
+                <input class="input" data-for="_cfg_line_x" readonly style="width: 175px" type="text" value="Displays the X-axis tick line." />
             </div>
             <label for="_cfg_pixel">Pixels between tick marks</label>
             <div class="cfg-input">
-                <input id="_cfg_pixel" v-model="pixel" type="text" class="input" style="width: 240px" />
+                <input v-model="pixel" id="_cfg_pixel" class="input" style="width: 240px" type="text" />
             </div>
         </div>
         <div class="col1" style="width: 270px">
             <div class="title">Y-axis</div>
             <label for="_cfg_zero_base">Start at zero</label>
             <div class="cfg-input input-wrapper">
-                <div class="checkbox-wrapper"><input id="_cfg_zero_base" v-model="isZeroBase" type="checkbox" /></div>
-                <input type="text" class="input" data-for="_cfg_zero_base" value="The scale of the y-axis start at zero." readonly />
+                <div class="checkbox-wrapper"><input v-model="isZeroBase" id="_cfg_zero_base" type="checkbox" /></div>
+                <input class="input" data-for="_cfg_zero_base" readonly type="text" value="The scale of the y-axis start at zero." />
             </div>
             <label for="_cfg_line_y">Show tick line</label>
             <div class="cfg-input input-wrapper">
-                <div class="checkbox-wrapper"><input id="_cfg_line_y" v-model="isShowTickLineY" type="checkbox" /></div>
-                <input type="text" class="input" data-for="_cfg_line_y" value="Displays the Y-axis tick line." readonly />
+                <div class="checkbox-wrapper"><input v-model="isShowTickLineY" id="_cfg_line_y" type="checkbox" /></div>
+                <input class="input" data-for="_cfg_line_y" readonly type="text" value="Displays the Y-axis tick line." />
             </div>
             <div class="cfg-input">
                 <label>Custom scale</label>
-                <CustomScale :init-value="customScaleInit" style="width: 270px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 0)" />
+                <CustomScale @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 0)" :init-value="customScaleInit" style="width: 270px" />
             </div>
             <div class="cfg-input">
                 <label>Custom scale for raw data chart</label>
-                <CustomScale :init-value="customScaleRawInit" style="width: 270px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 1)" />
+                <CustomScale @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 1)" :init-value="customScaleRawInit" style="width: 270px" />
             </div>
         </div>
         <div class="col1" style="width: 270px">
@@ -45,28 +45,28 @@
             <div v-if="isAdditionalYAxis">
                 <label for="_cfg_zero_base">Start at zero</label>
                 <div class="cfg-input input-wrapper">
-                    <div class="checkbox-wrapper"><input id="_cfg_zero_base" v-model="isZeroBase2" type="checkbox" /></div>
-                    <input type="text" class="input" data-for="_cfg_zero_base" value="The scale of the y-axis start at zero." readonly />
+                    <div class="checkbox-wrapper"><input v-model="isZeroBase2" id="_cfg_zero_base" type="checkbox" /></div>
+                    <input class="input" data-for="_cfg_zero_base" readonly type="text" value="The scale of the y-axis start at zero." />
                 </div>
                 <label for="_cfg_line_y2">Show tick line</label>
                 <div class="cfg-input input-wrapper">
-                    <div class="checkbox-wrapper"><input id="_cfg_line_y2" v-model="isShowTickLineY2" type="checkbox" /></div>
-                    <input type="text" class="input" data-for="_cfg_line_y2" value="Displays the Y-axis tick line." readonly />
+                    <div class="checkbox-wrapper"><input v-model="isShowTickLineY2" id="_cfg_line_y2" type="checkbox" /></div>
+                    <input class="input" data-for="_cfg_line_y2" readonly type="text" value="Displays the Y-axis tick line." />
                 </div>
                 <div class="cfg-input">
                     <label>Custom scale</label>
-                    <CustomScale :init-value="customScaleInit2" style="width: 270px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 2)" />
+                    <CustomScale @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 2)" :init-value="customScaleInit2" style="width: 270px" />
                 </div>
                 <div class="cfg-input">
                     <label>Custom scale for raw data chart</label>
-                    <CustomScale :init-value="customScaleRawInit2" style="width: 270px" @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 3)" />
+                    <CustomScale @e-on-change="(data: CustomScaleInput) => onChangeCustomScale(data, 3)" :init-value="customScaleRawInit2" style="width: 270px" />
                 </div>
                 <div class="cfg-input">
                     <label>Position of Y-axis</label>
                     <div class="input radio-wrapper" style="width: 270px">
-                        <input id="one" v-model="picked" type="radio" value="l" />
+                        <input v-model="picked" id="one" type="radio" value="l" />
                         <label for="one">Left side</label>
-                        <input id="two" v-model="picked" type="radio" value="r" />
+                        <input v-model="picked" id="two" type="radio" value="r" />
                         <label for="two">Right side</label>
                     </div>
                 </div>
@@ -84,7 +84,7 @@
                     <div class="tag-item">
                         {{ item.calculation_mode }} <span>{{ item.tag_names }}</span>
                     </div>
-                    <img :src="i_b_close" alt="Clear icon" @click="onRemove(item, index)" />
+                    <img @click="onRemove(item, index)" alt="Clear icon" :src="i_b_close" />
                 </div>
             </div>
         </div>

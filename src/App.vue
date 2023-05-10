@@ -2,7 +2,6 @@
     <div :class="cIsDarkMode ? 'dark' : 'light'">
         <div class="app">
             <Header />
-            <!-- <router-view  /> -->
 
             <router-view class="body" />
             <router-view name="Footer" />
