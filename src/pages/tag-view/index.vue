@@ -1,40 +1,38 @@
 <template>
-    <div class="tag-view" :style="route.params.id && gBoard.type !== 'note' ? { padding: '0px 20px', maxHeight: '100%' } : { maxHeight: '100%' }">
-        <v-sheet
-            v-if="route.params.id"
-            id="tagView"
-            class=""
-            color="transparent"
-            height="100%"
-            :style="route.params.id && gBoard.type !== 'note' ? { padding: '0px 10px' } : ''"
-            width="100%"
-        >
-            <v-sheet v-show="gBoard.type === 'note'" color="transparent" height="100%" width="100%">
-                <Editor />
-            </v-sheet>
-            <v-sheet v-show="gBoard.type !== 'note'" class="time-range icon" color="transparent">
-                {{
-                    !isEmpty(cTimeRange)
-                        ? `${cTimeRange.start ? cTimeRange.start : ''} ~ ${cTimeRange.end ? cTimeRange.end : ''} ${cTimeRange.refresh ? `refresh every ${cTimeRange.refresh}` : ''}`
-                        : TIME_RANGE_NOT_SET
-                }}
-                <img @click="onReload" class="" :src="i_b_refresh" />
-                <img @click="onClickPopupItem(PopupType.TIME_RANGE)" class="" :src="i_b_timerange" />
-            </v-sheet>
-            <v-sheet v-show="gBoard.type === 'dashboard'" class="chart-form" color="transparent" height="100%" width="100%">
-                <ChartDashboard v-if="route.params.id" ref="sPanels" />
-                <ButtonCreate @click="onClickPopupItem(PopupType.NEW_CHART)" :is-add-chart="true" />
-                <PopupWrap @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="sPopupType" :width="cWidthPopup" />
+    <v-sheet class="tag-view" height="100%">
+        <v-sheet id="tagView" class="tag-view-form" color="transparent" height="100%" width="100%">
+            <!-- <v-sheet v-show=""> </v-sheet> -->
+            <v-sheet v-for="(aTab, aIdx) in gTabList" v-show="aTab.board_id === gSelectedTab" :key="aIdx" class="sheet" color="transparent" height="100%" width="100%">
+                <v-sheet v-if="aTab.type === 'note'" color="transparent" height="100%" width="100%">
+                    <Editor ref="sPanels" :p-panel-data="aTab" />
+                </v-sheet>
+                <AddTab v-if="aTab.type === 'new'" ref="sPanels" />
+                <v-sheet v-if="aTab.type === 'dashboard'" class="time-range icon" color="transparent" height="4%">
+                    {{
+                        !isEmpty(cTimeRange.start || cTimeRange.end)
+                            ? `${cTimeRange.start ? cTimeRange.start : ''} ~ ${cTimeRange.end ? cTimeRange.end : ''} ${
+                                  cTimeRange.refresh ? `refresh every ${cTimeRange.refresh}` : ''
+                              }`
+                            : TIME_RANGE_NOT_SET
+                    }}
+                    <img @click="onReload(aIdx)" class="" :src="i_b_refresh" />
+                    <img @click="onClickPopupItem(PopupType.TIME_RANGE)" class="" :src="i_b_timerange" />
+                </v-sheet>
+                <v-sheet v-if="aTab.type === 'dashboard'" class="chart-form" color="transparent" height="96%" width="100%">
+                    <ChartDashboard ref="sPanels" :p-panel-info="aTab" :p-tab-idx="aIdx" />
+                    <ButtonCreate @click="onClickPopupItem(PopupType.NEW_CHART)" :is-add-chart="true" />
+                </v-sheet>
             </v-sheet>
             <!-- <PopupWrap @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="sPopupType" :width="'667px'" /> -->
 
             <!-- <v-sheet v-if="gBoard.type === 'new'" class="form-body" color="transparent" height="100%" width="100%">
             </v-sheet> -->
         </v-sheet>
+        <PopupWrap @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="sPopupType" :width="cWidthPopup" />
+
         <!-- <PopupWrap v-if="route.params.id" @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="PopupType.NEW_CHART" :width="'667px'" /> -->
 
-        <div v-else>
-            <!-- <v-btn @click="sTest">123213</v-btn> -->
+        <!-- <div v-else>
 
             <div v-for="(aTab, aIdx) in gTabList" v-show="aTab.id === gSelectedTab" :key="aIdx">
                 <iframe
@@ -48,11 +46,12 @@
                     width="100%"
                 ></iframe>
             </div>
-        </div>
-    </div>
+        </div> -->
+    </v-sheet>
 </template>
 <script setup lang="ts" name="TagView">
 import Editor from '@/pages/editor/Editor.vue';
+
 import ButtonCreate from '@/components/common/button-create/index.vue';
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
@@ -75,7 +74,16 @@ import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SE
 const route = useRoute();
 const store = useStore();
 const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
-const cTimeRange = computed(() => store.state.gTimeRange);
+const cTimeRange = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+
+    // export interface TimeRange {
+    // start: string;
+    // end: string;
+    // refresh: string;
+
+    return { start: gTabList.value[sIdx].range_bgn, end: gTabList.value[sIdx].range_end, refresh: gTabList.value[sIdx].refresh };
+});
 
 const sLoading = ref(true);
 
@@ -103,7 +111,6 @@ const onClosePopup = () => {
     sDialog.value = false;
 };
 const onUpload = () => {
-    console.log('123');
     gTabList.value.forEach((aItem: any, aIdx: number) => {
         (document.getElementById(`iFrame${aIdx}`) as any).contentWindow.postMessage(
             JSON.stringify({ status: 'upload', data: gImportData.value[aIdx] }),
@@ -155,8 +162,9 @@ const receiveMessage = (event: MessageEvent) => {
     // event.source is popup
     // event.data is "hi there yourself!  the secret response is: rheeeeet!"
 };
-const onReload = () => {
-    sPanels.value.onReload();
+const onReload = (aIdx: number) => {
+    sPanels.value[aIdx].onReload();
+
     // let id = route.query.id || cBoardList.value[0]?.board_id;
     // const newBord = cloneDeep(cBoardOld.value);
     // store.commit(MutationTypes.setBoardByFileUpload, newBord);
@@ -239,14 +247,13 @@ onMounted(async () => {
     background: #383838;
 }
 .chart-form {
+    padding: 0 20px;
+
     display: flex;
     flex-direction: column;
+    overflow: auto;
 }
-.add-tab {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    height: 100%;
+.sheet {
+    padding-top: 44px;
 }
 </style>

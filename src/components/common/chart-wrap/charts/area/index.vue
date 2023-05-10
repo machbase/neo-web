@@ -8,10 +8,12 @@
             :p-inner-value="sInnerValue"
             :p-interval-data="data.sIntervalData"
             :p-is-raw="data.sIsRaw"
+            :p-tab-idx="props.pTabIdx"
             :panel-info="props.panelInfo"
             :x-axis-max-range="data.sTimeLine.endTime"
             :x-axis-min-range="data.sTimeLine.startTime"
         />
+
         <AreaChart
             ref="areaChart"
             :id="`chart-${props.index}`"
@@ -26,7 +28,16 @@
             :max-y-chart="data.sMaxYChart"
             :p-is-raw="data.sIsRaw"
             :p-is-zoom="sIsZoom"
-            :p-panel-width="sClientWidth.value"
+            :p-panel-width="
+                data.sViewPortData.datasets &&
+                data.sViewPortData.datasets
+                    .map((i) => {
+                        return { yAxis: i.yAxis };
+                    })
+                    .find((aItem) => aItem.yAxis === 1)
+                    ? sClientWidth
+                    : sClientWidth - 15
+            "
             :panel-info="props.panelInfo"
             :view-data="data.sViewPortData"
             :x-axis-max-range="data.sTimeLine.endTime"
@@ -71,11 +82,15 @@ import { fetchRawData } from '../../../../../api/repository/machiot';
 interface AreaChartProps {
     panelInfo: LinePanel;
     index: number;
+    pTabIdx: number;
 }
 const props = withDefaults(defineProps<AreaChartProps>(), {
     index: 0,
 });
-const gBoard = computed(() => store.state.gBoard);
+const gBoard = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    return gTabList.value[sIdx];
+});
 
 const sClientWidth = ref(0);
 const store = useStore();
@@ -113,8 +128,22 @@ const sInnerValue = reactive({
     sTickPixels: 0,
 });
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
-const cTimeRange = computed(() => store.state.gRangeData);
+// const cTimeRange = computed(() => store.state.gRangeData);
+const gTabList = computed(() => {
+    return store.state.gTabList;
+});
+const gSelectedTab = computed(() => store.state.gSelectedTab);
 
+const cTimeRange = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+
+    // export interface TimeRange {
+    // start: string;
+    // end: string;
+    // refresh: string;
+
+    return { start: gTabList.value[sIdx].range_bgn, end: gTabList.value[sIdx].range_end, refresh: gTabList.value[sIdx].refresh };
+});
 function calcInterval(aBgn: number, aEnd: number, aWidth: number): { IntervalType: string; IntervalValue: number } {
     let sDiff = aEnd - aBgn;
     let sSecond = Math.floor(sDiff / 1000);
@@ -601,6 +630,11 @@ async function OnChangeTimeRangerViewPort(params: any, aStatus?: string) {
             });
             if (sLimit) {
                 data.sIsRaw = false;
+                fetchPanelData(props.panelInfo, {
+                    startTime: params.min,
+                    endTime: params.max,
+                });
+            } else {
                 areaChart.value.updateMinMaxChart(data.sDisplayData.datasets[0].data[0][0], data.sDisplayData.datasets[0].data[data.sDisplayData.datasets[0].data.length - 1][0]);
             }
         } else {
@@ -648,14 +682,31 @@ async function OnChangeTimeRangerViewPortNavigator(params: any) {
     });
 }
 
-watch(
-    () => data.sTimeLine.startTime - data.sTimeLine.endTime,
-    () => {
-        if (data.sTimeLine.startTime - data.sTimeLine.endTime > props.panelInfo.raw_chart_threshold) {
-            data.sIsRaw = true;
-        }
-    }
-);
+// watch(
+//     () => data.sTimeLine.startTime - data.sTimeLine.endTime,
+//     () => {
+//         let gRawChartLimit = 0;
+
+//         gRawChartLimit = props.panelInfo.raw_chart_limit;
+//         if (props.panelInfo.raw_chart_limit < 0) {
+//             gRawChartLimit = Math.floor(sClientWidth.value / 2);
+//         } else if (props.panelInfo.raw_chart_limit == 0) {
+//             gRawChartLimit = sClientWidth.value;
+//         }
+//         let sLimit = gRawChartLimit;
+//         const sBoolean = data.sDisplayData.datasets && data.sDisplayData.datasets.find((aItem) => aItem.data.length === sLimit);
+//         // true 로 바꾸는 조건
+//         // 939 가 아니거나
+//         if (data.sTimeLine.startTime - data.sTimeLine.endTime > props.panelInfo.raw_chart_threshold) {
+//             // if (sBoolean) {
+//             //     //
+//             //     data.sIsRaw = false;
+//             // } else {
+//             //     data.sIsRaw = true;
+//             // }
+//         }
+//     }
+// );
 watch(
     () => props.panelInfo.pixels_per_tick,
     () => {

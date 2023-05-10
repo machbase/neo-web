@@ -34,16 +34,7 @@ const routes: Array<RouteRecordRaw> = [
         },
         beforeEnter: protectedRoute,
     },
-    {
-        path: `${PageRoutes.TAG_VIEW}/:type/:id`,
-        name: RouteNames.TAG_VIEW + 'frame',
-        components: {
-            default: TagView,
-            // Header,
-            Footer,
-        },
-        beforeEnter: protectedRoute,
-    },
+
     {
         path: `${PageRoutes.TAG_VIEW}${PageRoutes.NEW}`,
         name: RouteNames.NEW,
@@ -55,7 +46,7 @@ const routes: Array<RouteRecordRaw> = [
         beforeEnter: protectedRoute,
     },
     {
-        path: `${PageRoutes.TAG_VIEW}${PageRoutes.CHART_EDIT}/:type/:id/:panel_id`,
+        path: `${PageRoutes.TAG_VIEW}${PageRoutes.CHART_EDIT}/:tab_id/:id`,
         name: RouteNames.CHART_EDIT,
         components: {
             default: ChartEdit,
@@ -65,17 +56,6 @@ const routes: Array<RouteRecordRaw> = [
         props: true,
         beforeEnter: protectedRoute,
     },
-    // {
-    //     path: `${PageRoutes.TAG_VIEW}${PageRoutes.CHART_EDIT}/type/:id`,
-    //     name: RouteNames.CHART_EDIT,
-    //     components: {
-    //         default: ChartEdit,
-    //         // Header,
-    //         Footer,
-    //     },
-    //     props: true,
-    //     beforeEnter: protectedRoute,
-    // },
     {
         path: `${PageRoutes.TAG_VIEW}${PageRoutes.CHART_VIEW}/:id`,
         name: RouteNames.CHART_VIEW,

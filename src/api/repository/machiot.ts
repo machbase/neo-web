@@ -2,11 +2,16 @@ import request from '@/api/core';
 
 const fetchData = async (aSql: string, aLimit?: number) => {
     let sSql;
-    if (aLimit) {
-        sSql = aSql + ` LIMIT ${aLimit * 20 - 20},${aLimit * 20}`;
+    if (aSql.toLowerCase().includes('select')) {
+        if (aLimit) {
+            sSql = aSql + ` LIMIT ${aLimit * 50 - 50},${aLimit * 50}`;
+        } else {
+            sSql = aSql;
+        }
     } else {
         sSql = aSql;
     }
+
     return await request({
         method: 'GET',
         url: `/machbase?q=${encodeURI(sSql)}`,
@@ -20,10 +25,15 @@ const fetchTableName = async (aTable: any) => {
 
     const queryString = `/machbase?q=${sSql}`;
 
-    return await request({
+    const sData = await request({
         method: 'GET',
         url: encodeURI(queryString),
     });
+    if (sData.status >= 400) {
+        alert(sData.data.reason);
+    }
+
+    return sData;
 };
 
 const fetchCalculationData = async (params: any) => {
@@ -88,10 +98,15 @@ const fetchCalculationData = async (params: any) => {
 
     const queryString = `/machbase?q=${sMainQuery}`;
 
-    return await request({
+    const sData = await request({
         method: 'GET',
         url: encodeURI(queryString),
     });
+    if (sData.status >= 400) {
+        alert(sData.data.reason);
+    }
+
+    return sData;
 };
 
 const fetchRawData = async (params: any) => {
@@ -140,60 +155,96 @@ const fetchRawData = async (params: any) => {
     }
 
     const queryString = `/machbase?q=${sQuery}&timeformat=ns`;
-    return await request({
+
+    const sData = await request({
         method: 'GET',
         url: queryString,
     });
+    if (sData.status >= 400) {
+        alert(sData.data.reason);
+    }
+
+    return sData;
 };
 
 const fetchRangeData = async (Table: string, TagNames: string) => {
-    return await request({
+    const sData = await request({
         method: 'GET',
         url: `/machbase?q=SELECT TO_CHAR(min(time)) as MIN, TO_CHAR(max(time)) as MAX FROM ${Table} WHERE name = '${TagNames}'`,
     });
+    if (sData.status >= 400) {
+        alert(sData.data.reason);
+    }
+    return sData;
 };
 
 const fetchRollupData = async (params: any) => {
     const { Table } = params;
-    return await request({
+
+    const sData = await request({
         method: 'GET',
         url: `/machiot/rollup`,
         data: {
             Table,
         },
     });
+    if (sData.status >= 400) {
+        alert(sData.data.reason);
+    }
+    return sData;
 };
 
 const fetchTablesData = async () => {
-    return await request({
+    const sData = await request({
         method: 'GET',
         url: `/machbase?q=SELECT decode(s.DBID, -1, s.NAME, m.MOUNTDB || '.' || s.OWNER || ',' || s.NAME) AS name FROM (SELECT t.NAME AS name, u.NAME AS owner, t.DATABASE_ID AS dbid FROM m$sys_tables t, m$sys_users u WHERE t.USER_ID = u.USER_ID AND t.TYPE = 6 ORDER BY dbid, name) s LEFT OUTER JOIN V$STORAGE_MOUNT_DATABASES m ON s.DBID = m.BACKUP_TBSID ORDER BY name`,
     });
+    if (sData.status >= 400) {
+        alert(sData.data.reason);
+    }
+    return sData;
 };
 
 const fetchTags = async (table: string) => {
-    return await request({
+    const sData = await request({
         method: 'GET',
         url: `/machbase?q=select name from _${table}_META order by name`,
     });
+    if (sData.status >= 400) {
+        alert(sData.data.reason);
+    }
+    return sData;
 };
 const fetchRollUp = async (table: string) => {
-    return await request({
+    const sData = await request({
         method: 'GET',
         url: `/machiot/rollup/${table}`,
     });
+    if (sData.status >= 400) {
+        alert(sData.data.reason);
+    }
+    return sData;
 };
+
 const fetchOnMinMaxTable = async (table: string, tagName: string) => {
-    return await request({
+    const sData = await request({
         method: 'GET',
         url: `/machbase?q=select to_char(min(min_time)),to_char(max(max_time)) from v$${table}_stat where name = '${tagName}'`,
     });
+    if (sData.status >= 400) {
+        alert(sData.data.reason);
+    }
+    return sData;
 };
 const fetchOnRollupTable = async (table: string) => {
-    return await request({
+    const sData = await request({
         method: 'GET',
         url: `/machbase?q=select * from v$rollup where root_table = '${table}' and ENABLED = 1 `,
     });
+    if (sData.status >= 400) {
+        alert(sData.data.reason);
+    }
+    return sData;
 };
 
 export {

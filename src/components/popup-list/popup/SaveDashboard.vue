@@ -38,6 +38,7 @@ const sData = reactive({
     boardTitle: 'New Dashboard' as string,
     checked: false as boolean,
 });
+
 const cPreferences = computed(() => store.state.gPreference);
 const cBoard = computed(() => store.state.gBoard);
 const gDownloadData = computed(() => store.state.gDownloadData);
@@ -66,11 +67,11 @@ const onSetting = () => {
     //     old_id: route.name !== RouteNames.NEW ? sData.boardId : sData.oldId,
     // };
     // store.commit(MutationTypes.setValueDashBoard, newBoard);
-    const saveBoard = {
-        tabList: gTabList.value,
-        data: gDownloadData.value,
-    };
-    const jsonString = JSON.stringify(saveBoard);
+    // const saveBoard = {
+    //     tabList: gTabList.value,
+    //     data: gDownloadData.value,
+    // };
+    const jsonString = JSON.stringify(gTabList.value);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

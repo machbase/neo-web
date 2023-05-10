@@ -1,5 +1,6 @@
 <template>
-    <div v-if="route.name !== RouteNames.LOGIN" class="header">
+    <!--  -->
+    <div v-if="route.name !== RouteNames.LOGIN" class="header" :style="cIsDarkMode ? { boxShadow: '0 0 10px 10px rgba(0, 0, 0, 0.2)' } : {}">
         <div v-if="sLoading" class="loading-rollUp">
             <img class="icon" :src="cIsDarkMode ? loader_b : loader_w" />
         </div>
@@ -7,15 +8,15 @@
             <img class="icon" :src="logo" />
         </v-sheet>
         <v-sheet class="header__link" color="transparent" width="81%">
-            <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" class="tab-form">
+            <div class="tab-form">
                 <button
                     v-for="(aTab, aIdx) in gTabList"
                     :key="aIdx"
-                    @click="setSelectedTab(aTab.id)"
+                    @click="setSelectedTab(aTab.board_id)"
                     @mouseleave="aTab.hover = false"
                     @mouseover="aTab.hover = true"
                     :style="
-                        gSelectedTab === aTab.id
+                        gSelectedTab === aTab.board_id
                             ? cIsDarkMode
                                 ? { backgroundColor: '#121212' }
                                 : { backgroundColor: '#ffffff', color: '#121212' }
@@ -23,14 +24,16 @@
                     "
                 >
                     <div>
-                        <v-icon size="16px">{{ aTab.type === 'dashboard' ? 'mdi-chart-line' : aTab.type == 'new' ? 'mdi-autorenew' : 'mdi-file-document-outline' }}</v-icon>
+                        <v-icon v-if="aTab.type === 'dashboard'" size="16px">mdi-chart-line</v-icon>
+                        <v-icon v-if="aTab.type == 'new'" size="16px">mdi-autorenew</v-icon>
+                        <v-icon v-if="aTab.type == 'note'" size="16px">mdi-file-document-outline</v-icon>
 
-                        {{ aTab.name }}
+                        {{ aTab.board_name }}
                     </div>
-                    <v-icon v-if="gSelectedTab === aTab.id || aTab.hover === true" @click="deleteTab(aTab.id)" size="16px"> mdi-close </v-icon>
+                    <v-icon v-if="gSelectedTab === aTab.id || aTab.hover === true" @click="deleteTab(aTab.board_id)" size="16px"> mdi-close </v-icon>
                 </button>
             </div>
-            <v-btn @click="onClickPopupItem(PopupType.ADD_TAB)" density="comfortable" icon="mdi-plus" size="36px" variant="plain"> </v-btn>
+            <v-btn @click="addTab" density="comfortable" icon="mdi-plus" size="36px" variant="plain"> </v-btn>
         </v-sheet>
         <v-sheet class="header__tool" color="transparent" width="15%">
             <!-- <div v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.VIEW" @click="onClickPopupItem(PopupType.TIME_RANGE)" class="time-range icon">
@@ -133,7 +136,10 @@ const emit = defineEmits(['download']);
 
 export type headerType = RouteNames.TAG_VIEW | RouteNames.VIEW | RouteNames.CHART_VIEW | RouteNames.CHART_EDIT | RouteNames.NEW;
 const store = useStore();
-const cTimeRange = computed(() => store.state.gTimeRange);
+const cTimeRange = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    return { start: gTabList.value[sIdx].range_bgn, end: gTabList.value[sIdx].range_end, refresh: gTabList.value[sIdx].refresh };
+});
 const router = useRouter();
 const route = useRoute();
 const sHeaderType = ref<headerType>(route.name as headerType);
@@ -314,8 +320,19 @@ const logout = async () => {
 };
 
 const addTab = () => {
-    // gTabList.push
-    // store.commit(MutationTypes.pushTab,gTabList);
+    const sId = String(new Date().getTime());
+    store.commit(MutationTypes.pushTab, {
+        type: 'new',
+        board_id: sId,
+        board_name: 'new',
+        range_end: '',
+        refresh: '',
+        range_bgn: '',
+        panels: [],
+        code: 'select * from tag;',
+        hover: false,
+    });
+    store.commit(MutationTypes.setSelectedTab, sId);
 };
 
 const setSelectedTab = (aItem: string) => {
@@ -323,11 +340,14 @@ const setSelectedTab = (aItem: string) => {
 };
 
 const deleteTab = (aId: string) => {
-    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.id === aId);
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === aId);
+
     const sCopyTabList = JSON.parse(JSON.stringify(gTabList.value));
-    console.log(sCopyTabList.splice(sIdx, 1));
+    sCopyTabList.splice(sIdx, 1);
 
     store.commit(MutationTypes.changeTabList, sCopyTabList as BoardInfo);
+
+    setSelectedTab(gTabList.value[0].board_id);
 };
 
 const onUploadChart = (aEvent: any) => {
@@ -341,12 +361,13 @@ const onUploadChart = (aEvent: any) => {
             sLoading.value = false;
             return;
         }
-        store.commit(MutationTypes.setImportData, cloneDeep(fileContent.data) as BoardInfo);
-        store.commit(MutationTypes.changeTabList, cloneDeep(fileContent.tabList) as BoardInfo);
 
-        setSelectedTab(cloneDeep(fileContent.tabList)[0].id);
+        store.commit(MutationTypes.changeTabList, cloneDeep(fileContent) as BoardInfo);
+        // store.commit(MutationTypes.changeTabList, cloneDeep(fileContent.tabList) as BoardInfo);
+
+        setSelectedTab(cloneDeep(fileContent)[0].board_id);
         // store.commit(MutationTypes.setBoardByFileUpload, cloneDeep(fileContent) as BoardInfo);
-        onChildGroup();
+        // onChildGroup();
         sLoading.value = false;
     };
     reader.readAsText(file);
@@ -542,7 +563,7 @@ const onSaveEdit = async () => {
 // store.dispatch(ActionTypes.fetchBoardList);
 
 const download = () => {
-    store.commit(MutationTypes.setDownLoad, true);
+    // store.commit(MutationTypes.setDownLoad, true);
 
     onClickPopupItem(PopupType.SAVE_DASHBOARD);
 };
@@ -554,9 +575,10 @@ watch(
     }
 );
 onMounted(async () => {
-    if (gTabList.value.length === 0) {
-        onClickPopupItem(PopupType.ADD_TAB);
-    }
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    if (!(sIdx === -1)) {
+        store.commit(MutationTypes.setSelectedTab, gTabList.value[sIdx].board_id);
+    } else store.commit(MutationTypes.setSelectedTab, gTabList.value[0].board_id);
 });
 </script>
 

@@ -12,17 +12,21 @@
     }
 }
 .dialog-wrap {
+    
     font-family: 'Open Sans', Helvetica, Arial, sans-serif;
     align-items: flex-start;
     font-size: 13px;
-    margin-top: 5%;
+    // 
     &__content {
+        overflow:auto;
         border: 1px solid $text-blue;
         @include theme() {
             background-color: theme-get('bg-color');
             color: theme-get('text-color');
         }
         &--header {
+            height:45px;
+            align-items: center;
             padding: $px-10 $px-15;
             @include theme() {
                 border-bottom: 1px solid theme-get('border-color-input');
@@ -38,4 +42,21 @@
             padding: $px-15 $px-15;
         }
     }
+    &__content::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+    
+    &__content::-webkit-scrollbar-track {
+        -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        background: #141415;
+    }
+    
+    &__content::-webkit-scrollbar-thumb {
+        width: 5px;
+        height: 5px;
+        background-color: rgb(101, 111, 121);
+    }
+   
+
 }

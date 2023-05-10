@@ -161,7 +161,7 @@ export interface BoardInfo {
     range_bgn: string;
     panels: PanelInfo[][];
     type: string;
-    code: '';
+    code: string;
     value?: any;
     old_id?: string;
 }
