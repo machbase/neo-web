@@ -9,6 +9,7 @@
             :p-interval-data="data.sIntervalData"
             :p-is-raw="data.sIsRaw"
             :p-tab-idx="props.pTabIdx"
+            :p-type="props.pType"
             :panel-info="props.panelInfo"
             :x-axis-max-range="data.sTimeLine.endTime"
             :x-axis-min-range="data.sTimeLine.startTime"
@@ -83,6 +84,7 @@ interface AreaChartProps {
     panelInfo: LinePanel;
     index: number;
     pTabIdx: number;
+    pType?: string;
 }
 const props = withDefaults(defineProps<AreaChartProps>(), {
     index: 0,
@@ -128,7 +130,6 @@ const sInnerValue = reactive({
     sTickPixels: 0,
 });
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
-// const cTimeRange = computed(() => store.state.gRangeData);
 const gTabList = computed(() => {
     return store.state.gTabList;
 });
@@ -136,14 +137,9 @@ const gSelectedTab = computed(() => store.state.gSelectedTab);
 
 const cTimeRange = computed(() => {
     const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
-
-    // export interface TimeRange {
-    // start: string;
-    // end: string;
-    // refresh: string;
-
     return { start: gTabList.value[sIdx].range_bgn, end: gTabList.value[sIdx].range_end, refresh: gTabList.value[sIdx].refresh };
 });
+
 function calcInterval(aBgn: number, aEnd: number, aWidth: number): { IntervalType: string; IntervalValue: number } {
     let sDiff = aEnd - aBgn;
     let sSecond = Math.floor(sDiff / 1000);
@@ -489,15 +485,10 @@ const onChangeSRF = async (eValue: any) => {
                 endTime: data.sTimeLine.endTime,
             });
 
-            // await fetchViewPortData(props.panelInfo, {
-            //     startTime: data.sDisplayData.datasets[0].data[0][0],
-            //     endTime: data.sDisplayData.datasets[0].data[data.sDisplayData.datasets[0].data.length - 1][0],
-            // });
             await areaChart.value.chart.chart.xAxis[0].setExtremes(
                 data.sDisplayData.datasets[0].data[0][0],
                 data.sDisplayData.datasets[0].data[data.sDisplayData.datasets[0].data.length - 1][0]
             );
-            // data.sIsRaw = false;
             break;
         default:
             break;
@@ -519,7 +510,6 @@ const moveFocus = async (sType: string) => {
         if (sEnd + sMoveRange > sEndN) await areaChart.value.updateMinMaxNavigator(sBgnN + sMoveRange, sEnd + sMoveRange);
         await areaChart.value.updateMinMaxChart(sBgn + sMoveRange, sEnd + sMoveRange);
     }
-    // await areaChart.value.updateMinMaxNavigator(sBgnN, sEndN);
 };
 const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) => {
     const rangeChart = data.sTimeLine.endTime - data.sTimeLine.startTime;
@@ -547,9 +537,6 @@ const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) =>
         sNewTimeEndN = sEndN - sTimeGap * sZoom;
         if (sNewTimeBgn >= sNewTimeEnd) {
             sNewTimeBgn = sNewTimeBgn - 10;
-
-            // alert('The time range is too small to perform this function.');
-            // return;
         }
         if (sBgn === sBgnN && sEnd === sEndN) {
             await areaChart.value.updateMinMaxChart(sNewTimeBgn, sNewTimeEnd);
@@ -569,17 +556,12 @@ const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) =>
         sNewTimeEnd = sEnd - sTimeGap * sZoom;
         if (sNewTimeBgn >= sNewTimeEnd) {
             sNewTimeBgn = sNewTimeBgn - 10;
-            // alert('The time range is too small to perform this function.');
             return;
         }
         const rangeNavigator = sNewTimeEnd - (sNewTimeBgn - (sNewTimeEnd - sNewTimeBgn) * -0.97);
         if (rangeChart - rangeNavigator < 0) {
             return;
         }
-        // await areaChart.value.updateMinMaxNavigator(
-        //     moment.utc(moment(sNewTimeBgn).format(FORMAT_FULL_DATE)).valueOf(),
-        //     moment.utc(moment(sNewTimeEnd).format(FORMAT_FULL_DATE)).valueOf()
-        // );
         await areaChart.value.updateMinMaxChart(sNewTimeBgn, sNewTimeEnd);
     }
 };
@@ -682,31 +664,6 @@ async function OnChangeTimeRangerViewPortNavigator(params: any) {
     });
 }
 
-// watch(
-//     () => data.sTimeLine.startTime - data.sTimeLine.endTime,
-//     () => {
-//         let gRawChartLimit = 0;
-
-//         gRawChartLimit = props.panelInfo.raw_chart_limit;
-//         if (props.panelInfo.raw_chart_limit < 0) {
-//             gRawChartLimit = Math.floor(sClientWidth.value / 2);
-//         } else if (props.panelInfo.raw_chart_limit == 0) {
-//             gRawChartLimit = sClientWidth.value;
-//         }
-//         let sLimit = gRawChartLimit;
-//         const sBoolean = data.sDisplayData.datasets && data.sDisplayData.datasets.find((aItem) => aItem.data.length === sLimit);
-//         // true 로 바꾸는 조건
-//         // 939 가 아니거나
-//         if (data.sTimeLine.startTime - data.sTimeLine.endTime > props.panelInfo.raw_chart_threshold) {
-//             // if (sBoolean) {
-//             //     //
-//             //     data.sIsRaw = false;
-//             // } else {
-//             //     data.sIsRaw = true;
-//             // }
-//         }
-//     }
-// );
 watch(
     () => props.panelInfo.pixels_per_tick,
     () => {
@@ -720,22 +677,18 @@ watch([() => props.panelInfo.interval_value], () => {
     data.sIntervalData.IntervalValue = props.panelInfo.interval_value;
     data.sIntervalData.IntervalType = props.panelInfo.interval_type;
 });
-watch(
-    [() => props.panelInfo.start_with_vport, () => props.panelInfo.tag_set],
-    () => {
-        if (props.panelInfo.tag_set.length === 0) {
-            onCloseNavigator();
-            return;
-        }
-        if (props.panelInfo.start_with_vport === 'Y') {
-            onReload();
-            sIsZoom.value = true;
-        } else {
-            onCloseNavigator();
-        }
+watch([() => props.panelInfo.start_with_vport, () => props.panelInfo.tag_set], () => {
+    if (props.panelInfo.tag_set.length === 0) {
+        onCloseNavigator();
+        return;
     }
-    // { deep: true }
-);
+    if (props.panelInfo.start_with_vport === 'Y') {
+        onReload();
+        sIsZoom.value = true;
+    } else {
+        onCloseNavigator();
+    }
+});
 watch(
     [
         () => props.panelInfo.chart_title,

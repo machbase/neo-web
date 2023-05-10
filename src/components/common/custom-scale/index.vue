@@ -1,8 +1,8 @@
 <template>
     <div class="custom-scale">
-        <input v-model="sData.input1" type="text" class="input" style="max-width: 110px" @change="onChangeInput" />
+        <input v-model="sData.input1" @change="onChangeInput" class="input" style="max-width: 110px" type="text" />
         <span>~</span>
-        <input v-model="sData.input2" type="text" class="input" style="max-width: 110px" @change="onChangeInput" />
+        <input v-model="sData.input2" @change="onChangeInput" class="input" style="max-width: 110px" type="text" />
     </div>
 </template>
 

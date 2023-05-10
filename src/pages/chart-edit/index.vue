@@ -1,6 +1,6 @@
 <template>
     <div class="chart-edit-page">
-        <ChartDashboard ref="sPanels" :chart-data-single="sDataChart" :p-panel-info="gBoard" :style="{ height: '53%' }" />
+        <ChartDashboard ref="sPanels" :chart-data-single="sDataChart" :p-panel-info="gBoard" :p-type="'edit'" :style="{ height: '53%' }" />
         <div v-if="sShowTab" class="tabs" :style="{ height: '44%', overflow: 'auto' }">
             <div class="header">
                 <ul class="nav-pills">
@@ -8,8 +8,9 @@
                         {{ item }}
                     </li>
                 </ul>
-                <div><img @click="onSave" alt="Clear icon" :src="i_b_save_2" /><img @click="onCancel" alt="Clear icon" :src="i_b_close" /></div>
+                <div></div>
             </div>
+
             <div class="inner-tab">
                 <GeneralTab v-if="tabIndex === 0" @e-on-change="onChangeTabData" :p-chart-data="sDataChart[0]" />
                 <DataTab v-if="tabIndex === 1" @e-on-change="onChangeTabData" :p-chart-data="sDataChart[0]" />
@@ -61,6 +62,7 @@ const sTabData = ref<Partial<PanelInfo>>();
 const onClickTab = (index: number) => {
     tabIndex.value = index;
 };
+const defaultChartData = ref<PanelInfo[]>([]);
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 
 const gTabList = computed(() => store.state.gTabList);
@@ -72,6 +74,7 @@ const sShowTab = ref<boolean>(true);
 
 const onChangeTabData = (data: Partial<PanelInfo>) => {
     sTabData.value = { ...sTabData.value, ...data };
+    onSave();
 };
 const onClosePopup = () => {
     emit('eClosePopup');
@@ -82,15 +85,7 @@ const onSave = () => {
         item: sTabData.value,
     };
     sDataChart.value[0] = sTabData.value as PanelInfo;
-    // console.log('sTabData.value', sTabData.value);
-    // console.log('dataa', sDataChart);
-    // sDataChart.value[0] = sTabData.value
-    // sDataChart.value[0] = { ...sDataChart.value[0], ...sTabData.value };
-    // sDataChart.value[0].tag_set.forEach((item: any, index: number) => {
-    //     if (item.id) {
-    //         delete (sDataChart.value[0].tag_set[index] as any).id;
-    //     }
-    // });
+
     store.commit(MutationTypes.setChartEdit, payload);
 };
 
@@ -103,18 +98,6 @@ const onCancel = () => {
     sShowTab.value = false;
 };
 
-// const setBoard = async (sId: string) => {
-//     await store.dispatch(ActionTypes.fetchTable);
-//     await store.dispatch(ActionTypes.fetchRangeData);
-//     // await store.dispatch(ActionTypes.fetchBoard, sId);
-// };
-
-// watch(
-//     () => cBoardList.value,
-//     () => {
-//         setBoard(cBoardList.value[0]?.board_id as string);
-//     }
-// );
 watch(
     () => CPanels.value,
     () => {
@@ -126,6 +109,7 @@ watch(
         }
         let clone = cloneDeep(CPanels.value);
         sDataChart.value = clone[Number(props.id)];
+        defaultChartData.value = clone[Number(props.id)][0];
         sTabData.value = clone[Number(props.id)][0];
     },
     { immediate: true }
@@ -134,10 +118,6 @@ watch(
 const onSaveEdit = async () => {
     await store.commit(MutationTypes.setChartBoardEdit);
     onClosePopup();
-    // router.push({
-    //     name: RouteNames.TAG_VIEW + 'frame',
-    //     params: { type: route.params.type, id: props.id },
-    // });
 };
 onMounted(async () => {
     await store.dispatch(ActionTypes.fetchTableList);

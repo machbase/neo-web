@@ -8,9 +8,7 @@
     }
     color: $text-w;
     outline: none;
-    // margin: 0 8px;
     padding: 0 $px-15;
-    // min-width: 200px;
     min-height: 24px;
     font-size: $font-12;
     position: relative;
@@ -76,24 +74,6 @@
             }
         }
     }
-
-    // .input {
-    //     width: 210px;
-    //     height: 26px;
-    //     border: 1px solid $d-border;
-    //     outline: none;
-    //     flex: 1;
-
-    //     @include theme() {
-    //         background-color: theme-get('bg-color-input');
-    //         color: theme-get('text-color');
-    //         padding: $px-5 $px-10;
-    //     }
-
-    //     &:focus {
-    //         @include box-shadow;
-    //     }
-    // }
 
     .cfg-input {
         margin-top: 2px;

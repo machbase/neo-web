@@ -5,38 +5,8 @@
             <div class="cfg-input">
                 <input v-model="title" id="_cfg_chart_title" class="input" type="text" />
             </div>
-            <!-- <label for="_cfg_chart_width">Width</label>
-            <div class="cfg-input">
-                <input v-model="width" id="_cfg_chart_width" class="input" type="text" />
-            </div>
-            <label for="_cfg_chart_height">Height</label>
-            <div class="cfg-input">
-                <input v-model="height" id="_cfg_chart_height" class="input" type="text" />
-            </div> -->
         </div>
-        <div class="col1">
-            <!-- <label for="_cfg_chart_action">Action on click</label>
-            <div class="cfg-input">
-                <ComboboxSelect
-                    style="width: 250px"
-                    class="select input"
-                    :p-show-default-option="false"
-                    :p-data="actions"
-                    :p-value="actionIndex.toString()"
-                    @e-on-change="onChangeAction"
-                />
-            </div>
-            <div v-if="actionIndex === 2">
-                <label for="_cfg_chart_table_limit">Raw data table limits</label>
-                <div class="cfg-input">
-                    <input id="_cfg_chart_table_limit" v-model="detailCount" style="width: 250px" type="text" class="input" />
-                </div>
-                <label for="_cfg_chart_row">Rows per page</label>
-                <div class="cfg-input">
-                    <input id="_cfg_chart_row" v-model="detailRows" style="width: 250px" type="text" class="input" />
-                </div>
-            </div> -->
-        </div>
+        <div class="col1"></div>
         <div class="col2">
             <label for="_cfg_zoom">Zoom</label>
             <div class="cfg-input input-wrapper">
@@ -57,11 +27,6 @@
             </div>
         </div>
         <div class="col3">
-            <!-- <label for="_cfg_normalize">Normalize</label>
-            <div class="cfg-input input-wrapper">
-                <div class="checkbox-wrapper"><input v-model="normalize" id="_cfg_normalize" type="checkbox" /></div>
-                <input class="input" data-for="_cfg_normalize" readonly type="text" value="Adjusted values to a common scale" />
-            </div> -->
             <label for="_cfg_raw_time_range">raw data time range (millisecond)</label>
             <div class="cfg-input">
                 <input v-model="rawChart" id="_cfg_raw_time_range" class="input" style="width: 270px" type="text" />

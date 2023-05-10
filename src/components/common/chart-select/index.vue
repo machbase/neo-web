@@ -1,16 +1,16 @@
 <template>
     <div class="chart-select-wrapper" :style="{ flexDirection: props.isRow ? 'row' : 'column' }">
         <label>
-            <input type="radio" name="test" :checked="props.pData === ChartType.Zone" @click="() => onClick(ChartType.Zone)" />
-            <img :width="props.isRow ? '86' : '130'" :height="props.isRow ? undefined : '48'" :src="cIsDarkMode ? i_b_graph_1 : i_w_graph_1" alt="Option 1" />
+            <input @click="() => onClick(ChartType.Zone)" :checked="props.pData === ChartType.Zone" name="test" type="radio" />
+            <img alt="Option 1" :height="props.isRow ? undefined : '48'" :src="cIsDarkMode ? i_b_graph_1 : i_w_graph_1" :width="props.isRow ? '86' : '130'" />
         </label>
         <label>
-            <input type="radio" name="test" :checked="props.pData === ChartType.Dot" @click="() => onClick(ChartType.Dot)" />
-            <img :width="props.isRow ? '86' : '130'" :height="props.isRow ? undefined : '48'" :src="cIsDarkMode ? i_b_graph_2 : i_w_graph_2" alt="Option 2" />
+            <input @click="() => onClick(ChartType.Dot)" :checked="props.pData === ChartType.Dot" name="test" type="radio" />
+            <img alt="Option 2" :height="props.isRow ? undefined : '48'" :src="cIsDarkMode ? i_b_graph_2 : i_w_graph_2" :width="props.isRow ? '86' : '130'" />
         </label>
         <label>
-            <input type="radio" name="test" :checked="props.pData === ChartType.Line" @click="() => onClick(ChartType.Line)" />
-            <img :width="props.isRow ? '86' : '130'" :height="props.isRow ? undefined : '48'" :src="cIsDarkMode ? i_b_graph_3 : i_w_graph_3" alt="Option 3" />
+            <input @click="() => onClick(ChartType.Line)" :checked="props.pData === ChartType.Line" name="test" type="radio" />
+            <img alt="Option 3" :height="props.isRow ? undefined : '48'" :src="cIsDarkMode ? i_b_graph_3 : i_w_graph_3" :width="props.isRow ? '86' : '130'" />
         </label>
     </div>
 </template>

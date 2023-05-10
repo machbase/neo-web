@@ -55,12 +55,7 @@ $themes: (
     @return map-get($theme-map, $key);
 }
 
-// use
-// @include theme() {
-//     color: theme-get('text-color');
-//     background-color: theme-get('bg-color');
-//   }
-//
+
 
 @function toRem($value) {
     $remValue: $value / 16+rem;

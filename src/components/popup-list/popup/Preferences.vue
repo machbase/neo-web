@@ -1,30 +1,12 @@
 <template>
     <div class="popup">
-        <!-- <div class="popup__input">
-            <p class="popup__input-label">IP</p>
-            <div class="popup__input-group-content">
-                <input v-model="sData.ip" class="popup__input-group-text" @change="onChangeInput" />
-            </div>
-        </div> -->
-        <!-- <div class="popup__input">
-            <p class="popup__input-label">PORT</p>
-            <div class="popup__input-group-content">
-                <input v-model="sData.port" class="popup__input-group-text" @change="onChangeInput" />
-            </div>
-        </div> -->
         <div class="popup__input">
             <p class="popup__input-label">UI Theme</p>
             <div class="popup__input-content">
                 <ComboboxSelect @e-on-change="(aValue) => aIsChangeTheme(aValue, true)" :p-data="THEME_MODE" :p-string-default="SELECT_THEME" :p-value="cPreferences.theme" />
             </div>
         </div>
-        <!-- <div class="popup__input-group">
-            <p class="popup__input-group-label">Query Timeout</p>
-            <div class="popup__input-group-content">
-                <input :value="Math.floor(cPreferences.timeout / 1000) || 0" class="popup__input-group-text" @change="onChangeInput" />
-                <p>seconds</p>
-            </div>
-        </div> -->
+
         <div class="popup__btn-group">
             <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> Ok </v-btn>
             <v-btn @click="onClosePopup" class="button-effect" variant="outlined"> Cancel </v-btn>
@@ -46,9 +28,6 @@ const emit = defineEmits(['eClosePopup']);
 const store = useStore();
 const sData = reactive({
     theme: cPreferences.value.theme || DEFAULT_PREFERENCE.THEME,
-    // ip: cPreferences.value.ip || DEFAULT_PREFERENCE.IP,
-    // port: cPreferences.value.port || DEFAULT_PREFERENCE.PORT,
-    // timeout: cPreferences.value.timeout || DEFAULT_PREFERENCE.TIMEOUT,
 });
 const cBoardList = computed(() =>
     store.state.gBoardList.map((aItem) => {

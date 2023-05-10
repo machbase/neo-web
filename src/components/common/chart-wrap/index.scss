@@ -1,7 +1,6 @@
 @import '@/assets/scss/theme.scss';
 
 .chart-wrap {
-    // margin-top: $px-20;
     position: relative;
     @include theme() {
         background-color: theme-get('background-chart');

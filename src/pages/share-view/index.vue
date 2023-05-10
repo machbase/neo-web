@@ -36,17 +36,7 @@ onMounted(async () => {
         return;
     }
     await store.commit(MutationTypes.setBoardByFileUpload, JSON.parse(cookieValue));
-    // sDataChart.value = await JSON.parse(cookieValue).panels[route.params.id as string];
 });
-// watch(
-//     () => route.params.id,
-//     () => {
-//         if (route.params.id) {
-//             setBoard(route.params.id as string);
-//         }
-//     },
-//     { immediate: true }
-// );
 </script>
 
 <style lang="scss" scoped>

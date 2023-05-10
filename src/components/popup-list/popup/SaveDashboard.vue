@@ -1,12 +1,5 @@
 <template>
     <div class="save-dashboard">
-        <!-- <div class="save-dashboard__input-group">
-            <p class="save-dashboard__input-group-label">Board ID</p>
-            <div class="save-dashboard__input-group-content">
-                <input @input="onChangeId" class="save-dashboard__input-group-text check" :value="sData.boardId" />
-                <div class="save-dashboard__input-group-checkbox"><input v-model="sData.checked" type="checkbox" /> <span>Save as Copy</span></div>
-            </div>
-        </div> -->
         <div class="save-dashboard__input-group">
             <p class="save-dashboard__input-group-label">Board Title</p>
             <div class="save-dashboard__input-group-content">
@@ -53,24 +46,11 @@ const onChangeTitle = (aEvent: Event) => {
 };
 
 const onSetting = () => {
-    // if (sData.boardId.trim().length <= 0) {
-    //     alert('Input Dashboard ID.');
-    //     return;
-    // }
     if (sData.boardTitle.trim().length <= 0) {
         alert('Input Dashboard Title.');
         return;
     }
-    // const newBoard = {
-    //     board_id: sData.boardId,
-    //     board_name: sData.boardTitle,
-    //     old_id: route.name !== RouteNames.NEW ? sData.boardId : sData.oldId,
-    // };
-    // store.commit(MutationTypes.setValueDashBoard, newBoard);
-    // const saveBoard = {
-    //     tabList: gTabList.value,
-    //     data: gDownloadData.value,
-    // };
+
     const jsonString = JSON.stringify(gTabList.value);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -81,21 +61,6 @@ const onSetting = () => {
     link.click();
     document.body.removeChild(link);
     onClosePopup();
-
-    // store.dispatch(ActionTypes.fetchNewDashboard, newBoard).then((res) => {
-    //     console.log('res', res);
-    // alert(res.msg);
-    // onClosePopup();
-    //     // const jsonString = JSON.stringify(store.state.gBoard.panels[props.panelInfo.i as number][0]);
-    //     // const blob = new Blob([jsonString], { type: 'application/json' });
-    //     // const url = URL.createObjectURL(blob);
-    //     // const link = document.createElement('a');
-    //     // link.href = url;
-    //     // link.download = `${props.panelInfo.chart_title}.json`;
-    //     // document.body.appendChild(link);
-    //     // link.click();
-    //     // document.body.removeChild(link);
-    // });
 };
 
 const onClosePopup = () => {

@@ -47,23 +47,11 @@ const cChartOptions = computed(() => {
         chart: {
             height: props.panelInfo.chart_height < 400 ? 400 : props.panelInfo.chart_height,
             width: props.pPanelWidth,
-            // (props.panelInfo.chart_width as number) <= 0 ? null : props.panelInfo.chart_width,
             type: 'area',
             zoomType: 'x',
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
             lineWidth: 1,
-            events: {
-                // click: function (event: any) {
-                //     emit('eOnChangeIsZoom');
-                //     if (props.panelInfo.use_detail === 0) return false;
-                //     const chart = this as any;
-                //     var point = chart.xAxis[0].toValue(event.clientX - chart.plotLeft);
-                //     emit('eOnClick', {
-                //         min: point,
-                //         max: point + 1000,
-                //     });
-                // },
-            },
+            events: {},
         },
         series:
             props.panelInfo.drilldown_zoom === 'Y'
@@ -136,7 +124,6 @@ const cChartOptions = computed(() => {
             outlineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             xAxis: {
                 left: 28,
-                // width: props.pPanelWidth,
                 type: 'datetime',
                 min: toTimeUtcChart(props.xMinTimeRangeViewPort as string),
                 max: toTimeUtcChart(props.xMaxTimeRangeViewPort as string),
@@ -190,7 +177,6 @@ const cChartOptions = computed(() => {
         },
         yAxis: [
             {
-                // reversed: props.panelInfo.use_normalize === 'Y',
                 tickAmount: updateYaxis().left[0] === updateYaxis().left[1] && 1,
                 tickPositions: updateYaxis().left[0] === updateYaxis().left[1] && [updateYaxis().left[0]],
                 min: !props.pIsRaw
@@ -234,7 +220,6 @@ const cChartOptions = computed(() => {
                 opposite: false,
             },
             {
-                // reversed: props.panelInfo.use_normalize === 'Y',
                 tickAmount: updateYaxis().right[0] === updateYaxis().right[1] && 1,
                 tickPositions: updateYaxis().right[0] === updateYaxis().right[1] && [updateYaxis().right[0]],
                 min: props.panelInfo.custom_min2 === 0 ? (props.panelInfo.use_normalize === 'Y' ? 0 : updateYaxis().right[0]) : props.panelInfo.custom_min2,

@@ -1,24 +1,13 @@
 <template>
     <div v-if="props.pIsZoom" class="view-port">
-        <!-- <div class="move-chart-size">
-            
-            <div>
-                <div @mouseover="sDateMove = true" @mouseleave="sDateMove = false">asfd</div>
-                <v-icon v-if="sDateMove">mdi-chevron-right</v-icon>
-            </div>
-        </div> -->
         <div class="move-chart-size" :style="{ left: '7px' }">
             <div @click="moveChart('left')" @mouseleave="sDateMove = false" @mouseover="sDateMove = true" class="form">
-                <!-- <div class="form"></div> -->
-                <!--  -->
-                <v-icon v-if="sDateMove" size="24px">mdi-chevron-left</v-icon>
+                <v-icon color="#2EC0DF" size="36px">mdi-chevron-left</v-icon>
             </div>
         </div>
         <div class="move-chart-size" :style="{ right: '7px' }">
             <div @click="moveChart('right')" @mouseleave="sDateMove = false" @mouseover="sDateMove = true" class="form">
-                <!-- <div class="form"></div> -->
-                <!--  -->
-                <v-icon v-if="sDateMove" size="24px">mdi-chevron-right</v-icon>
+                <v-icon color="#2EC0DF" size="36px">mdi-chevron-right</v-icon>
             </div>
         </div>
         <div></div>
@@ -29,7 +18,6 @@
             </div>
             <div class="view-port__header--events icon">
                 <div>
-                    <!-- v-img -->
                     <v-icon @click="adjustViewportRange({ type: 'O', zoom: 0.4 })" color="#2ec0df" icon="mdi-magnify-minus-outline" size="24px"></v-icon>
                     <v-tooltip activator="parent" location="bottom">Zoom in x4</v-tooltip>
                 </div>
@@ -86,7 +74,6 @@
             :p-type="PopupType.TIME_DURATION"
             :width="'667px'"
         />
-        <!-- @eSettingPopup="onSettingPopup" -->
     </div>
 </template>
 

@@ -1,20 +1,7 @@
 <template>
-    <!-- theme="vs" -->
     <DragCol height="100%" slider-bg-color="#202020" width="100%">
         <template #left>
-            <!-- your content -->
             <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
-                <!-- <MonacoEditor
-            v-model:value="editorStr"
-            theme="vs"
-            :options="options"
-            language="javascript"
-            :width="800"
-            :height="600"
-            @change="handleChange(value)"
-            @mouseup="handleSelectText"
-        /> -->
-                <!-- hide_header -->
                 <div class="editor-header">
                     <div class="header-toggle">MACHBASE</div>
                     <div class="header-btn-list">
@@ -38,12 +25,10 @@
         </template>
 
         <template #right>
-            <!-- your content -->
-            <!-- <v-sheet color="transparent" height="10%" width="100%"> -->
-
             <v-sheet class="tab-list" color="#202020" fixed-tabs height="40px">
                 <button
                     @click="changeTabMode('table')"
+                    class="delete-left-border"
                     :style="sTab === 'table' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
                 >
                     <div>
@@ -57,49 +42,39 @@
                 >
                     <div>
                         <v-icon>mdi-information</v-icon>
-
                         LOG
                     </div>
                 </button>
             </v-sheet>
-            <!-- </v-sheet> -->
 
             <Table v-show="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" />
 
             <v-sheet v-show="sTab === 'log'" class="log-form" color="transparent" height="calc(100% - 40px)">
                 <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">
                     {{ aLog.query }}
-                    <!-- {{ aLog.query }} -->
                 </div>
             </v-sheet>
         </template>
     </DragCol>
-
-    <!-- <button :onClick="handleRun">run</button> -->
 </template>
 
 <script setup lang="ts" name="Editor">
 import CodeEditor from 'simple-code-editor';
 import Table from './Table.vue';
-// import base style
-
-// import more codemirror resource...
-
 import { ref, watch, defineEmits, defineProps, computed, onMounted } from 'vue';
 import { store } from '../../store';
 import { fetchData } from '../../api/repository/machiot';
 import { copyText } from 'vue3-clipboard';
 import { DragCol, DragRow, ResizeCol, ResizeRow, Resize } from 'vue-resizer';
 import { MutationTypes } from '../../store/mutations';
+
 interface PropsNoteData {
     pPanelData: boolean;
 }
 
 const props = defineProps<PropsNoteData>();
-
-const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const sLang = [['SQL', 'MACHBASE']];
-
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
 const gBoard = computed(() => {
@@ -111,7 +86,6 @@ let sData = ref<any>([]);
 let sHeader = ref<any>([]);
 let currentPage = ref<number>(1);
 let sSql = ref<string>('');
-
 let sTab = ref<string>('table');
 
 let sLogField = ref<{ query: string; color: string }[]>([]);
@@ -189,7 +163,6 @@ const getButtonData = async () => {
             sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.data.reason, color: '#a85400' });
         }
         if (sResult && sResult.success) {
-            // sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '') + ' : ' + sResult.reason, color: '' });
             if (sResult.reason === 'executed.') {
                 sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '#rgb(31,123,246)' });
 
@@ -355,10 +328,11 @@ onMounted(async () => {
 }
 .hide_header .code_area {
     height: 100% !important;
-    // padding: 0px 20px 20px 20px !important;
-    // padding-top: 0px !important;
 }
 
+.delete-left-border {
+    border-left: none !important;
+}
 .dark-sql {
     height: 100%;
     /*!

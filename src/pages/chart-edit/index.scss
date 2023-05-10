@@ -42,8 +42,22 @@
 }
 .chart-edit-page {
     margin-top: 20px;
-    // padding: 0 30px;
     height: calc(100% - 45px);
+    .tabs::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+
+    .tabs::-webkit-scrollbar-track {
+        -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        background: #141415;
+    }
+
+    .tabs::-webkit-scrollbar-thumb {
+        width: 5px;
+        height: 5px;
+        background-color: rgb(101, 111, 121);
+    }
     .tabs {
         margin-top: 20px;
 

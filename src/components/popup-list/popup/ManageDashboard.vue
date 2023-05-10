@@ -14,16 +14,16 @@
                         <div v-if="!aBoard.edit">{{ aBoard.board_name }}</div>
                         <div v-else class="text-row-edit">
                             <input v-model="aBoard.board_name" class="input" type="text" />
-                            <v-btn class="button-effect-color" variant="outlined" @click="onEditBoard(aBoard)"> Ok </v-btn>
-                            <v-btn class="button-effect" variant="outlined" @click="sBoardList[aIndex].edit = false"> Cancel </v-btn>
+                            <v-btn @click="onEditBoard(aBoard)" class="button-effect-color" variant="outlined"> Ok </v-btn>
+                            <v-btn @click="sBoardList[aIndex].edit = false" class="button-effect" variant="outlined"> Cancel </v-btn>
                         </div>
                     </td>
                     <td class="text-row imgs">
                         <router-link target="_blank" :to="{ name: RouteNames.VIEW, params: { id: aBoard.board_id }, query: {} }">
                             <img :src="i_b_newwin" />
                         </router-link>
-                        <img :src="i_b_edit" @click="sBoardList[aIndex].edit = true" />
-                        <img :src="i_b_del" @click="onDeleteBoard(aBoard.board_id, aBoard.board_name)" />
+                        <img @click="sBoardList[aIndex].edit = true" :src="i_b_edit" />
+                        <img @click="onDeleteBoard(aBoard.board_id, aBoard.board_name)" :src="i_b_del" />
                     </td>
                 </tr>
             </tbody>

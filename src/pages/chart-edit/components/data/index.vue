@@ -2,36 +2,36 @@
     <div class="data-tab-wrapper">
         <div class="row">
             <div>Tags</div>
-            <div class="plus" @click="onAdd()">+</div>
+            <div @click="onAdd()" class="plus">+</div>
         </div>
         <div v-for="(aItem, aIndex) in tempTagSets" :key="aIndex" class="tag-row">
             <span
                 ><span>Calc mode </span>
                 <ComboboxSelect
-                    class="select"
-                    :p-show-default-option="false"
-                    :p-data="CALC_MODE"
-                    :p-value="aItem.calculation_mode"
                     @e-on-change="(item) => onChangeCalcMode(item, aIndex)"
+                    class="select"
+                    :p-data="CALC_MODE"
+                    :p-show-default-option="false"
+                    :p-value="aItem.calculation_mode"
             /></span>
             <span
                 ><span>Tag Names </span>
-                <input type="text" class="taginput input" :value="aItem.tag_names" @change="(event) => onChangeTagName(event, aIndex)" />
+                <input @change="(event) => onChangeTagName(event, aIndex)" class="taginput input" type="text" :value="aItem.tag_names" />
             </span>
             <span
                 ><span>Alias </span>
-                <input type="text" class="taginput input" :value="aItem.alias" @change="(event) => onChangeAliasName(event, aIndex)" />
+                <input @change="(event) => onChangeAliasName(event, aIndex)" class="taginput input" type="text" :value="aItem.alias" />
             </span>
-            <span @click="onRemove(aIndex)"><img :src="i_b_close" alt="Clear icon" /></span>
+            <span @click="onRemove(aIndex)"><img alt="Clear icon" :src="i_b_close" /></span>
         </div>
         <ButtonCreate class="create-div" :is-add-chart="false" :on-click="onOpenPopup" />
         <PopupWrap
-            :width="'667px'"
-            :p-type="PopupType.NEW_TAGS"
-            :p-show="sDialog"
-            :p-no-of-select-tags="tempTagSets?.length"
             @e-close-popup="onClosePopup"
             @e-submit-tags="onSubmitTag"
+            :p-no-of-select-tags="tempTagSets?.length"
+            :p-show="sDialog"
+            :p-type="PopupType.NEW_TAGS"
+            :width="'667px'"
         />
     </div>
 </template>

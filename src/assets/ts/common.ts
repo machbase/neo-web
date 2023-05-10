@@ -11,7 +11,6 @@ export enum ResStatus {
 }
 
 // API Response
-// function ResponsePattern<Type>(aResult: AxiosResponse<Type>, aType: ResType): Type | string {
 function ResponseData<Type>(aResult: any, aType: ResType): Type {
     const sData: Type = aResult.data;
     if (aType === ResType.data) {

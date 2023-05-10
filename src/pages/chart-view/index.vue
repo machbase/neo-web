@@ -34,21 +34,6 @@ const onClosePopup = () => {
     sDialog.value = false;
 };
 
-// const setBoard = async (sId: string) => {
-//     await store.dispatch(ActionTypes.fetchBoard, sId);
-// };
-// const onRefreshData = (aIsRangeTimeChange: boolean) => {
-//     (sPanels.value as any)?.refreshData(aIsRangeTimeChange);
-// };
-// onRefreshData(true);
-
-// watch(
-//     () => cBoardList.value,
-//     () => {
-//         setBoard(cBoardList.value[0]?.board_id as string);
-//     }
-// );
-
 onMounted(async () => {
     const cookieValue = await document.cookie.replace(/(?:(?:^|.*;\s*)data\s*\=\s*([^;]*).*$)|^.*$/, '$1');
     await store.dispatch(ActionTypes.fetchTableList);

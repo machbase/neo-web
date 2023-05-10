@@ -10,47 +10,13 @@
             {{ props.panelInfo.drilldown_zoom !== 'Y' || !props.pIsRaw ? '( interval :' + pIntervalData.IntervalValue + ' ' + pIntervalData.IntervalType + ' )' : '' }}
         </div>
         <div class="chart-wrap__header-icons">
-            <img
-                v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW"
-                @click="openNewChartPage"
-                class="icon"
-                :src="cIsDarkMode ? i_b_newwin : i_w_newwin"
-            />
-            <button @click="onOpenPopup">
+            <button v-if="props.pType !== 'edit'" @click="onOpenPopup">
                 <img class="icon" :src="cIsDarkMode ? i_b_edit : i_w_edit" />
             </button>
-            <!-- <router-link
-                v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW && route.name !== RouteNames.VIEW"
-                :to="{ name: RouteNames.CHART_EDIT, params: { tab_id: props.pTabIdx, id: panelInfo.i } }"
-            >
-            </router-link> -->
 
             <v-icon @click="onReloadChart" class="icon" size="14px"> mdi-refresh </v-icon>
-            <!-- <img @click="onReloadChart" class="icon" :src="i_b_refresh" /> -->
-            <!-- <img
-                v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW && route.name !== RouteNames.VIEW"
-                @click="onDeleteBoard"
-                class="icon"
-                :src="cIsDarkMode ? i_b_del : i_w_del"
-            /> -->
-            <v-icon
-                v-if="route.name !== RouteNames.CHART_EDIT && route.name !== RouteNames.CHART_VIEW && route.name !== RouteNames.VIEW"
-                @click="onDeleteBoard"
-                class="icon"
-                size="14px"
-            >
-                mdi-delete
-            </v-icon>
-            <!-- <img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="onSaveEdit" class="icon" :src="i_b_save_2" /> -->
-            <v-icon v-if="sHeaderType === RouteNames.CHART_EDIT" @click="onSaveEdit" class="icon" size="14px"> mdi-check </v-icon>
-            <v-icon v-if="sHeaderType === RouteNames.CHART_EDIT" @click="router.go(-1)" class="icon" size="14px"> mdi-close </v-icon>
-            <!-- @eSettingPopup="onSettingPopup" -->
+            <v-icon v-if="props.pType !== 'edit'" @click="onDeleteBoard" class="icon" size="14px"> mdi-delete </v-icon>
             <PopupWrap :id="panelInfo.i" @e-close-popup="onClosePopup" :p-show="sDialog" :p-tab-idx="props.pTabIdx" :p-type="'EDIT CHART'" :p-width="'100vw'" />
-            <!-- :p-time-range="{ endTime: sDateRight, startTime: sDateLeft }" -->
-            <!-- router.push({
-        
-         :id="panelInfo.i" :tab-id="props.pTabIdx"
-    }); -->
         </div>
     </div>
 </template>
@@ -83,6 +49,7 @@ interface ChartHeaderProps {
     xAxisMinRange: number;
     xAxisMaxRange: number;
     pIntervalData: { IntervalValue: number; IntervalType: string };
+    pType?: string;
 }
 const props = withDefaults(defineProps<ChartHeaderProps>(), {});
 const emit = defineEmits(['eOnReload']);

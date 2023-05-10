@@ -173,8 +173,8 @@ $height: 30px;
             font-weight: 500;
         }
 
-        .text-title,
-        .text-row {
+        .text-row,
+        .text-title {
             height: 20px;
             padding-top: 4px;
             padding-bottom: 4px;
@@ -243,7 +243,7 @@ $height: 30px;
         }
         .newchart-left {
             width: 285px;
-            padding: 0px;
+            padding: 0;
 
             .tagtitle {
                 width: 30px;
@@ -276,6 +276,21 @@ $height: 30px;
                 flex-direction: row;
                 justify-content: space-between;
             }
+            .taglistdiv::-webkit-scrollbar {
+                width: 5px;
+                height: 5px;
+            }
+
+            .taglistdiv::-webkit-scrollbar-track {
+                -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+                background: #141415;
+            }
+
+            .taglistdiv::-webkit-scrollbar-thumb {
+                width: 5px;
+                height: 5px;
+                background-color: rgb(101, 111, 121);
+            }
             .taglistdiv {
                 //  height: 280px;
                 height: 240px;
@@ -296,14 +311,15 @@ $height: 30px;
                 div:hover {
                     font-weight: bold;
                 }
+
             }
         }
         .newchart-right {
             width: 295px;
-            padding: 0px 0px 0px 10px;
+            padding: 0 0 0 10px;
             .wrapcharttype {
                 height: 60px;
-                padding: 0px 0px 5px 0px;
+                padding: 0 0 5px;
             }
             .selectedlistdiv {
                 height: 240px;
@@ -332,8 +348,8 @@ $height: 30px;
                     font-weight: bold;
                 }
                 .taglistscroll::-webkit-scrollbar {
-                    width: 10px;
-                    background: #141415;
+                    width: 5px;
+                    height: 5px;
                 }
 
                 .taglistscroll::-webkit-scrollbar-track {
@@ -342,7 +358,9 @@ $height: 30px;
                 }
 
                 .taglistscroll::-webkit-scrollbar-thumb {
-                    background: #383838;
+                    width: 5px;
+                    height: 5px;
+                    background-color: rgb(101, 111, 121);
                 }
             }
         }

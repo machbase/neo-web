@@ -28,7 +28,6 @@ const state = {
 
     gSelectedTab: 'board1',
     // list board
-    // gBoardList: [] as ResBoardList[],
 
     gTabBoardList: [] as BoardInfo[],
     // tag-view
