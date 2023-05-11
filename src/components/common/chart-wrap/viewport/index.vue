@@ -41,15 +41,9 @@
             <div class="view-port__header--events">
                 <div>
                     <div class="cover-parent">
-                        <div v-if="props.pIsRaw && props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold" class="cover"></div>
-                        <button
-                            @click="onChangeEmit(0)"
-                            class="button"
-                            :class="props.pIsRaw ? 'not-select-font-color' : 'font-color'"
-                            :disabled="props.pIsRaw && props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold"
-                        >
-                            STAT
-                        </button>
+                        <!-- <div v-if="props.pIsRaw && props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold" class="cover"></div> -->
+                        <!-- :disabled="props.pIsRaw && props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold" -->
+                        <button @click="onChangeEmit(0)" class="button" :class="props.pIsRaw ? 'not-select-font-color' : 'font-color'">STAT</button>
                     </div>
                     <v-tooltip
                         v-if="props.pIsRaw && props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold"

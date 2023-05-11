@@ -25,7 +25,7 @@
                     <div>
                         <v-icon v-if="aTab.type === 'dashboard'" size="16px">mdi-chart-line</v-icon>
                         <v-icon v-if="aTab.type == 'new'" size="16px">mdi-autorenew</v-icon>
-                        <v-icon v-if="aTab.type == 'note'" size="16px">mdi-file-document-outline</v-icon>
+                        <v-icon v-if="aTab.type == 'SQL Editor'" size="16px">mdi-file-document-outline</v-icon>
 
                         {{ aTab.board_name }}
                     </div>
