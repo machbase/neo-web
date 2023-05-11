@@ -31,6 +31,13 @@
                 <ChartEdit v-if="pType === 'EDIT CHART'" :id="props.id" @eClosePopup="onClosePopup" :p-tab-idx="props.pTabIdx" />
 
                 <AddTab v-if="pType === PopupType.ADD_TAB" @eClosePopup="onClosePopup" />
+                <div v-if="pType === 'SHOW CONTENT'" @eClosePopup="onClosePopup">
+                    <div class="content-info">
+                        <div class="answer">
+                            {{ pInfo }}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </v-dialog>
@@ -63,6 +70,7 @@ interface PopupWrapProps {
     pTimeRange?: TimeLineType;
     id?: number;
     pTabIdx?: number;
+    pInfo?: string;
 }
 const props = defineProps<PopupWrapProps>();
 const emit = defineEmits(['eClosePopup', 'eSubmitTags', 'eSettingPopup']);
@@ -90,4 +98,14 @@ watch(
 
 <style lang="scss" scoped>
 @import 'index.scss';
+.content-info {
+    width: 100%;
+    word-break: break-all;
+    .header {
+        display: flex;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 600;
+    }
+}
 </style>

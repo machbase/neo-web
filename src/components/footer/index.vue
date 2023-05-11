@@ -1,5 +1,7 @@
 <template>
-    <div class="footer">Tag Analyzer {{ version }}</div>
+    <div class="footer">
+        <!-- Tag Analyzer {{ version }} -->
+    </div>
 </template>
 
 <script setup lang="ts" name="Footer">

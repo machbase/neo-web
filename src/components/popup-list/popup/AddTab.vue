@@ -1,7 +1,10 @@
 <template>
     <v-sheet class="add-tab" color="transparent">
         <v-sheet class="add-tab-form" color="transparent">
-            <v-sheet class="header" color="transparent"> What kind of tab would you like to create? </v-sheet>
+            <v-sheet class="header" color="transparent">
+                <div>New Tab...</div>
+                <!-- <div class="Information" :style="cIsDarkMode ? { color: '#374bff' } : { color: '#1248f8' }">Select A New Tab</div> -->
+            </v-sheet>
 
             <v-sheet class="card-form" color="transparent">
                 <v-btn
@@ -21,7 +24,7 @@
                             {{ option.icon }}
                         </v-icon>
                         <span :style="cIsDarkMode ? (sBoardType === option.type ? { color: '#E4F2FD' } : {}) : sBoardType === option.type ? {} : { color: '#9CA2AB' }">
-                            {{ option.type }}
+                            {{ option.name }}
                         </span>
                     </div>
                 </v-btn>
@@ -29,12 +32,14 @@
             <v-sheet class="board-name-sheet" color="transparent">
                 <div class="set-board-name">
                     <input v-model="sBoardName" class="form-control taginput input" placeholder="Please fill out the Tab name." type="text" />
+                    <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> OK </v-btn>
                 </div>
+                <!-- <div class="btn-form"></div> -->
             </v-sheet>
             <div class="popup__btn-group next-btn">
                 <v-divider color="info" :thickness="2"></v-divider>
                 <div class="btn-form">
-                    <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> next </v-btn>
+                    <!-- <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> next </v-btn> -->
                 </div>
             </div>
         </v-sheet>
@@ -53,14 +58,18 @@ const sBoardName = ref<string>('dashboard');
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const sOptions = [
-    { type: 'dashboard', icon: 'mdi-chart-line' },
-    { type: 'note', icon: 'mdi-note-outline' },
+    { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
+    { name: 'SQL', type: 'SQL Editor', icon: 'mdi-note-outline' },
 ];
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
 
 const changeName = (aItem: any) => {
-    sBoardName.value = aItem;
+    if (aItem === 'dashboard') {
+        sBoardName.value = 'Tag Analyzer';
+    } else if (aItem === 'SQL Editor') {
+        sBoardName.value = 'SQL';
+    }
 };
 
 const changeType = (aItem: string) => {
@@ -133,6 +142,10 @@ const onSetting = () => {
     align-items: center;
     width: 40%;
     justify-content: center;
+    button {
+        margin-left: 8px;
+        height: 46px !important;
+    }
 }
 .new-tab {
     padding: 12px;
@@ -151,14 +164,21 @@ const onSetting = () => {
     height: 100%;
 }
 .header {
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
     display: flex;
     font-size: 40px;
     font-weight: 600;
-    letter-spacing: -2px;
+    letter-spacing: 0px;
+    .Information {
+        font-weight: 600;
+        font-size: 20px;
+        opacity: 0.8;
+        letter-spacing: 0px;
+    }
 }
 .form-control {
-    box-shadow: inset 0 1px 1px rgb(0 0 0 / 8%), 0 0 8px rgb(102 175 233 / 60%);
 }
 .add-tab-form {
     width: 80%;

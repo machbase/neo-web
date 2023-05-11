@@ -2,7 +2,7 @@
     <div class="login-form">
         <div class="login-card">
             <div>
-                <img alt="" src="@/assets/image/i_logo.png" />
+                <img alt="" src="@/assets/image/logo_machbaseNeo_general_a.png" />
             </div>
             <div class="input-form">
                 <input v-model="sLoginName" @keydown.enter="login" class="input normal-text" placeholder="ID" type="text" />
@@ -46,4 +46,11 @@ const login = async () => {
 
 <style lang="scss" scoped="scoped">
 @import 'index.scss';
+.login-card div {
+    display: flex;
+    justify-content: center;
+    img {
+        width: 80%;
+    }
+}
 </style>

@@ -2,7 +2,7 @@
     <v-sheet class="tag-view" height="100%">
         <v-sheet id="tagView" class="tag-view-form" color="transparent" height="100%" width="100%">
             <v-sheet v-for="(aTab, aIdx) in gTabList" v-show="aTab.board_id === gSelectedTab" :key="aIdx" class="sheet" color="transparent" height="100%" width="100%">
-                <v-sheet v-if="aTab.type === 'note'" color="transparent" height="100%" width="100%">
+                <v-sheet v-if="aTab.type === 'SQL Editor'" color="transparent" height="100%" width="100%">
                     <Editor ref="sPanels" :p-panel-data="aTab" />
                 </v-sheet>
                 <AddTab v-if="aTab.type === 'new'" ref="sPanels" />

@@ -466,15 +466,24 @@ const onChangeSRF = async (eValue: any) => {
     switch (eValue) {
         case 0:
             data.sIsRaw = false;
-            if (data.sTimeLine.startTime - data.sTimeLine.endTime > props.panelInfo.raw_chart_threshold) {
-                onReload();
+            if (data.sTimeLine.endTime - data.sTimeLine.startTime < -1 * props.panelInfo.raw_chart_threshold) {
+                await fetchViewPortData(props.panelInfo, {
+                    startTime: data.sTimeLine.startTime,
+                    endTime: data.sTimeLine.startTime + 10000,
+                });
+                const { startTime, endTime } = {
+                    startTime: data.sTimeRangeViewPort.startTime - (data.sTimeRangeViewPort.endTime - data.sTimeRangeViewPort.startTime) * -0.25,
+                    endTime: data.sTimeRangeViewPort.startTime - (data.sTimeRangeViewPort.endTime - data.sTimeRangeViewPort.startTime) * -0.75,
+                };
+                areaChart.value && areaChart.value.updateMinMaxChart(startTime, endTime);
                 return;
+            } else {
+                await fetchPanelData(props.panelInfo, {
+                    startTime: data.sTimeLine.startTime,
+                    endTime: data.sTimeLine.endTime,
+                });
+                areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
             }
-            await fetchPanelData(props.panelInfo, {
-                startTime: data.sTimeLine.startTime,
-                endTime: data.sTimeLine.endTime,
-            });
-            areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, data.sTimeLine.endTime);
 
             break;
         case 1:
@@ -536,26 +545,28 @@ const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) =>
         sNewTimeBgnN = sBgnN + sTimeGap * sZoom;
         sNewTimeEndN = sEndN - sTimeGap * sZoom;
         if (sNewTimeBgn >= sNewTimeEnd) {
-            sNewTimeBgn = sNewTimeBgn - 10;
+            sNewTimeBgn = sNewTimeBgn - 1;
         }
         if (sBgn === sBgnN && sEnd === sEndN) {
             await areaChart.value.updateMinMaxChart(sNewTimeBgn, sNewTimeEnd);
             await areaChart.value.updateMinMaxNavigator(sNewTimeBgnN, sNewTimeEndN);
             return;
         }
+
         if (sNewTimeEnd > data.sTimeRangeViewPort.endTime) {
             sNewTimeEnd = data.sTimeRangeViewPort.endTime;
         }
         if (sNewTimeBgn < data.sTimeRangeViewPort.startTime) {
             sNewTimeBgn = data.sTimeRangeViewPort.startTime;
         }
+
         await areaChart.value.updateMinMaxChart(sNewTimeBgn, sNewTimeEnd);
         await areaChart.value.updateMinMaxNavigator(sBgnN, sEndN);
     } else {
         sNewTimeBgn = sBgn + sTimeGap * sZoom;
         sNewTimeEnd = sEnd - sTimeGap * sZoom;
         if (sNewTimeBgn >= sNewTimeEnd) {
-            sNewTimeBgn = sNewTimeBgn - 10;
+            sNewTimeBgn = sNewTimeBgn - 1;
             return;
         }
         const rangeNavigator = sNewTimeEnd - (sNewTimeBgn - (sNewTimeEnd - sNewTimeBgn) * -0.97);
@@ -610,14 +621,26 @@ async function OnChangeTimeRangerViewPort(params: any, aStatus?: string) {
                 startTime: params.min,
                 endTime: params.max,
             });
-            if (sLimit) {
-                data.sIsRaw = false;
-                fetchPanelData(props.panelInfo, {
-                    startTime: params.min,
-                    endTime: params.max,
-                });
-            } else {
-                areaChart.value.updateMinMaxChart(data.sDisplayData.datasets[0].data[0][0], data.sDisplayData.datasets[0].data[data.sDisplayData.datasets[0].data.length - 1][0]);
+            if (!sLimit) {
+                areaChart.value.updateMinMaxChart(
+                    data.sDisplayData.datasets[0].data[0][0],
+                    data.sDisplayData.datasets[0].data[data.sDisplayData.datasets[0].data.length - 1][0],
+                    true
+                );
+            } else if (sLimit) {
+                if (params.max - params.min >= -1 * props.panelInfo.raw_chart_threshold) {
+                    data.sIsRaw = false;
+                    fetchPanelData(props.panelInfo, {
+                        startTime: params.min,
+                        endTime: params.max,
+                    });
+                } else {
+                    areaChart.value.updateMinMaxChart(
+                        data.sDisplayData.datasets[0].data[0][0],
+                        data.sDisplayData.datasets[0].data[data.sDisplayData.datasets[0].data.length - 1][0],
+                        true
+                    );
+                }
             }
         } else {
             await fetchPanelData(props.panelInfo, {

@@ -3,16 +3,29 @@
         <template #left>
             <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
                 <div class="editor-header">
-                    <div class="header-toggle">MACHBASE</div>
+                    <div class="header-toggle">
+                        <!-- MACHBASE -->
+                    </div>
                     <div class="header-btn-list">
-                        <v-btn @click="copyData" density="comfortable" icon="mdi-content-copy" size="36px" variant="plain"></v-btn>
-                        <v-btn @click="getButtonData" density="comfortable" icon="mdi-play" size="36px" variant="plain"></v-btn>
+                        <v-tooltip location="bottom">
+                            <template #activator="{ props }">
+                                <v-icon v-bind="props"> mdi-help-circle-outline </v-icon>
+                            </template>
+                            <span>
+                                Enter the query statements to be executed.<br />
+                                - Separate each query statement with a semicolon. <br />- Place the cursor on the query statement you want to execute and press the Ctrl-Enter key
+                                or click the Execute button.
+                            </span>
+                        </v-tooltip>
+
+                        <!-- <v-btn @click="copyData" density="comfortable" icon="mdi-content-copy" size="36px" variant="plain"></v-btn> -->
+                        <!-- <v-btn @click="getButtonData" density="comfortable" icon="mdi-play" size="36px" variant="plain"></v-btn> -->
                     </div>
                 </div>
                 <CodeEditor
                     v-model="gBoard.code"
                     ref="text"
-                    @keydown.enter="setSQL($event)"
+                    @keydown.enter.stop="setSQL($event)"
                     border_radius="0"
                     height="calc(100% - 34px)"
                     hide_header
@@ -47,9 +60,9 @@
                 </button>
             </v-sheet>
 
-            <Table v-show="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" />
+            <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" />
 
-            <v-sheet v-show="sTab === 'log'" class="log-form" color="transparent" height="calc(100% - 40px)">
+            <v-sheet v-if="sTab === 'log'" class="log-form" color="transparent" height="calc(100% - 40px)">
                 <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">
                     {{ aLog.query }}
                 </div>
@@ -106,7 +119,7 @@ const changeTabMode = (aItem: string) => {
 const copyData = () => {
     const selectText = window.getSelection()?.toString();
     if (!selectText) {
-        alert('Drag the query you want to send.');
+        alert('Please drag the query.');
     } else {
         copyText(selectText, undefined, (error: string, event: string) => {
             if (error) {
@@ -142,13 +155,16 @@ const setSQL = async (event: any, aType?: string) => {
         if (sStartIdx <= sPointer && sPointer <= sEndIdx && aItem !== undefined) return aItem;
     })[0];
 
-    handleChange(event.ctrlKey);
+    if (event.ctrlKey) {
+        event.preventDefault();
+        handleChange(event.ctrlKey);
+    }
 };
 
 const getButtonData = async () => {
     const selectText = window.getSelection()?.toString();
     if (!selectText) {
-        alert('Drag the query you want to send.');
+        alert('Please drag the query.');
         return;
     }
     currentPage.value = 1;
@@ -197,7 +213,7 @@ const getSQLData = async () => {
         sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.data.reason, color: '#a85400' });
     }
     if (sResult && sResult.success) {
-        if (sResult.reason === 'executed.') {
+        if (!sResult.data) {
             sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '#217DF8' });
 
             changeTab('log');
@@ -215,10 +231,14 @@ const getSQLData = async () => {
 
 onMounted(async () => {
     if (!gBoard.value.code) {
-        gBoard.value.code = `select * from ${gTableList.value[0]};`;
-        sSql.value = gBoard.value.code;
-        sLogField.value.push({ query: 'The connection is complete.', color: '#217DF8' });
-        await getSQLData();
+        if (gTableList.value[0]) {
+            gBoard.value.code = `select * from ${gTableList.value[0]};`;
+            sSql.value = gBoard.value.code;
+            sLogField.value.push({ query: 'The connection is complete.', color: '#217DF8' });
+            await getSQLData();
+        } else {
+            sLogField.value.push({ query: 'Please create a table.', color: '#a85400' });
+        }
     }
 });
 </script>
@@ -357,8 +377,7 @@ onMounted(async () => {
     }
     .hljs ::selection,
     .hljs::selection {
-        background-color: #383838;
-        color: #a8a8a8;
+        background-color: rgba(56, 56, 56, 0.5);
     }
     .hljs-comment {
         color: #545454;
@@ -462,8 +481,7 @@ onMounted(async () => {
     }
     .hljs ::selection,
     .hljs::selection {
-        background-color: #c4c4c4;
-        color: #545454;
+        background-color: rgba(56, 56, 56, 0.5);
     }
     .hljs-comment {
         color: #a8a8a8;

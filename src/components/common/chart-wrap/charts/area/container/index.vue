@@ -27,7 +27,7 @@ const props = withDefaults(defineProps<BarChartContainerProps>(), {});
 const store = useStore();
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const emit = defineEmits(['eOnChange', 'eOnChangeIsZoom', 'eOnChangeRaw', 'eOnClick', 'eOnChangeNavigator', 'eResetSquare']);
-
+const sIsNotBtnZoom = ref(false);
 const data = reactive({
     sIsTag: true as boolean,
     sYaxis: [] as any[],
@@ -300,7 +300,7 @@ const cChartOptions = computed(() => {
 });
 
 // call when change select box in navigator
-function setExtremes(e: any, square: boolean) {
+function setExtremes(e: any) {
     const status = e.min - e.max > props.panelInfo.raw_chart_threshold;
     const rangeChart = e.max - e.min;
 
@@ -314,8 +314,9 @@ function setExtremes(e: any, square: boolean) {
     emit('eOnChangeIsZoom');
     let sizeStatus;
     if (props.xAxisMaxRange - props.xAxisMinRange < e.max - e.min) sizeStatus = 'expand';
-    else if (props.xAxisMaxRange - props.xAxisMinRange > e.max - e.min) sizeStatus = 'decrease';
-    else sizeStatus = 'move';
+    else if (props.xAxisMaxRange - props.xAxisMinRange > e.max - e.min) {
+        sizeStatus = 'decrease';
+    } else sizeStatus = 'move';
 
     data.sTimeChartXaxis.min = e.min;
     data.sTimeChartXaxis.max = e.max;
@@ -323,8 +324,11 @@ function setExtremes(e: any, square: boolean) {
     if (status) {
         if (sizeStatus === 'expand') emit('eOnChangeRaw', true);
     }
-
-    emit('eOnChange', data.sTimeChartXaxis, sizeStatus);
+    if (sIsNotBtnZoom.value) {
+        sIsNotBtnZoom.value = false;
+    } else {
+        emit('eOnChange', data.sTimeChartXaxis, sizeStatus);
+    }
 }
 // call when change navigator
 function setExtremesNavigator(e: any) {
@@ -335,8 +339,13 @@ function setExtremesNavigator(e: any) {
 }
 
 // Update location for select box in navigator
-const updateMinMaxChart = (start: any, end: any) => {
-    return chart.value.chart.xAxis[0].setExtremes(toTimeUtcChart(start), toTimeUtcChart(end));
+const updateMinMaxChart = (start: any, end: any, aItem?: boolean) => {
+    if (sIsNotBtnZoom.value) {
+        sIsNotBtnZoom.value = false;
+    } else {
+        sIsNotBtnZoom.value = aItem;
+        return chart.value.chart.xAxis[0].setExtremes(toTimeUtcChart(start), toTimeUtcChart(end));
+    }
 };
 // Update time range for navigator
 const updateMinMaxNavigator = (start: any, end: any) => {
