@@ -72,11 +72,11 @@
                 background-color: theme-get('bg-color-button') !important;
                 border: 1px solid theme-get('border-chart') !important;
             }
-
-            img {
+            div{
                 margin-right: 15px;
                 cursor: pointer;
             }
+            
         }
 
         .inner-tab {
