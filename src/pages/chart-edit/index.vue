@@ -8,7 +8,9 @@
                         {{ item }}
                     </li>
                 </ul>
-                <div></div>
+                <div>
+                    <v-icon @click="onSave" size="1px"> mdi-check </v-icon>
+                </div>
             </div>
 
             <div class="inner-tab">
@@ -74,7 +76,6 @@ const sShowTab = ref<boolean>(true);
 
 const onChangeTabData = (data: Partial<PanelInfo>) => {
     sTabData.value = { ...sTabData.value, ...data };
-    onSave();
 };
 const onClosePopup = () => {
     emit('eClosePopup');
