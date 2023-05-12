@@ -27,6 +27,12 @@ export default defineConfig(() => {
                     secure: false,
                     ws: false,
                 },
+                '/web/api/term': {
+                    target: `ws://127.0.0.1:5654`,
+                    changeOrigin: true,
+                    secure: false,
+                    ws: true,
+                },
             },
         },
         plugins: [vue(), vuetify({ autoImport: true }), viteCommonjs(), vueSetupExtend()],

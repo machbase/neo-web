@@ -6,6 +6,8 @@
                     <Editor ref="sPanels" :p-panel-data="aTab" />
                 </v-sheet>
                 <AddTab v-if="aTab.type === 'new'" ref="sPanels" />
+                <Terminal v-if="aTab.type === 'Terminal'" ref="sPanels" />
+
                 <v-sheet v-if="aTab.type === 'dashboard'" class="time-range icon" color="transparent" height="4%">
                     {{
                         !isEmpty(cTimeRange.start || cTimeRange.end)
@@ -38,6 +40,7 @@ import i_b_timerange from '@/assets/image/i_b_timerange.png';
 import { BoardInfo, PanelInfo } from '@/interface/chart';
 import { ResBoardList } from '@/interface/tagView';
 import AddTab from '@/components/popup-list/popup/AddTab.vue';
+import Terminal from '@/pages/terminal/index.vue';
 import i_b_refresh from '@/assets/image/i_b_refresh.png';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
