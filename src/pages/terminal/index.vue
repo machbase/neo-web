@@ -13,6 +13,10 @@ import { WebLinksAddon } from 'xterm-addon-web-links';
 import { AttachAddon } from 'xterm-addon-attach';
 import { postTerminalSize } from '../../api/repository/machiot';
 import { store } from '../../store';
+import { MutationTypes } from '../../store/mutations';
+import { BoardInfo } from '../../interface/chart';
+
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 // ref ele
 let term_view: Element | any = ref(null);
@@ -32,6 +36,7 @@ const sIsReSize = ref<boolean>(false);
 let selectedTab = '';
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gLastSelectedTab = computed(() => store.state.gLastSelectedTab);
+const gTabList = computed(() => store.state.gTabList);
 
 // 1 ~ 1000 random
 const makeTermId = () => {
@@ -58,9 +63,33 @@ const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
 onMounted(() => {
     selectedTab = gSelectedTab.value;
     sTerm = new Terminal({
+        theme: cIsDarkMode.value
+            ? {}
+            : {
+                  foreground: '#414141',
+                  background: '#ffffff',
+                  cursor: '#5e77c8',
+                  black: '#414141',
+                  brightBlack: '#3f3f3f',
+                  red: '#b23771',
+                  brightRed: '#db3365',
+                  green: '#66781e',
+                  brightGreen: '#829429',
+                  yellow: '#cd6f34',
+                  brightYellow: '#cd6f34',
+                  blue: '#3c5ea8',
+                  brightBlue: '#3c5ea8',
+                  magenta: '#a454b2',
+                  brightMagenta: '#a454b2',
+                  cyan: '#66781e',
+                  brightCyan: '#829429',
+                  white: '#ffffff',
+                  brightWhite: '#f2f2f2',
+              },
         fontFamily: '"Lucida Console", "Courier New", monospace',
         allowProposedApi: true,
         fontSize: 17,
+        windowsMode: true,
     });
     sTermId = makeTermId();
 
@@ -71,7 +100,14 @@ onMounted(() => {
     sTerm.loadAddon(new AttachAddon(sWebSoc, { bidirectional: true }));
     sTerm.loadAddon(sFitter);
 
-    sResizeObserver.observe(term_view.value);
+    sTerm.attachCustomKeyEventHandler(function (e) {
+        if (e.ctrlKey && e.shiftKey && e.keyCode == 67) {
+            e.preventDefault();
+
+            document.execCommand('copy');
+            return false;
+        }
+    });
     sTerm.open(term_view.value);
     sTerm.focus();
 
@@ -85,13 +121,12 @@ onMounted(() => {
         } catch (err) {
             console.log(err);
         }
-    });
-
+    }, 400);
     sResizeObserver.observe(term_view.value);
 });
 
 onUnmounted(() => {
-    sWebSoc.onclose = true;
+    sWebSoc.close();
 });
 </script>
 <style lang="scss" scoped>
@@ -129,7 +164,7 @@ onUnmounted(() => {
     user-select: none;
     -ms-user-select: none;
     -webkit-user-select: none;
-    overflow-y: scroll;
+    /* overflow-y: scroll; */
 }
 
 .xterm.focus,
@@ -182,7 +217,7 @@ onUnmounted(() => {
 .xterm .xterm-viewport {
     /* On OS X this is required in order for the scroll bar to appear fully opaque */
     background-color: #000;
-    /* overflow-y: scroll; */
+    overflow-y: scroll;
     cursor: default;
     position: absolute;
     right: 0;
@@ -190,17 +225,17 @@ onUnmounted(() => {
     top: 0;
     bottom: 0;
 }
-.xterm::-webkit-scrollbar {
+.xterm .xterm-viewport::-webkit-scrollbar {
     width: 10px;
     height: 5px;
 }
 
-.xterm::-webkit-scrollbar-track {
+.xterm .xterm-viewport::-webkit-scrollbar-track {
     -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
     background: #141415;
 }
 
-.xterm::-webkit-scrollbar-thumb {
+.xterm .xterm-viewport::-webkit-scrollbar-thumb {
     width: 5px;
     height: 5px;
     background-color: rgb(101, 111, 121);
