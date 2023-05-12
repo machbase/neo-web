@@ -26,6 +26,7 @@
                         <v-icon v-if="aTab.type === 'dashboard'" size="16px">mdi-chart-line</v-icon>
                         <v-icon v-if="aTab.type == 'new'" size="16px">mdi-autorenew</v-icon>
                         <v-icon v-if="aTab.type == 'SQL Editor'" size="16px">mdi-file-document-outline</v-icon>
+                        <v-icon v-if="aTab.type == 'Terminal'" size="16px">mdi-console</v-icon>
 
                         {{ aTab.board_name }}
                     </div>
@@ -308,10 +309,13 @@ const addTab = () => {
         code: '',
         hover: false,
     });
+    store.commit(MutationTypes.setLastSelectedTab, gSelectedTab.value);
+
     store.commit(MutationTypes.setSelectedTab, sId);
 };
 
 const setSelectedTab = (aItem: string) => {
+    store.commit(MutationTypes.setLastSelectedTab, gSelectedTab.value);
     store.commit(MutationTypes.setSelectedTab, aItem);
 };
 
@@ -323,6 +327,7 @@ const deleteTab = (aId: string) => {
     const sLength = sCopyTabList.length;
 
     sCopyTabList.splice(sIdx, 1);
+    store.commit(MutationTypes.setLastSelectedTab, gSelectedTab.value);
 
     if (sLength - 1 === sIdx) {
         store.commit(MutationTypes.setSelectedTab, gTabList.value[sIdx - 1].board_id);

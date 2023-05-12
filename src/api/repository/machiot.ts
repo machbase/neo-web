@@ -1,5 +1,12 @@
 import request from '@/api/core';
 
+const postTerminalSize = async (aTerminalId: number, aSize: any) => {
+    await request({
+        method: 'POST',
+        url: `/api/term/${aTerminalId}/windowsize`,
+        data: JSON.parse(JSON.stringify({ cols: aSize.cols, rows: aSize.rows })),
+    });
+};
 const fetchData = async (aSql: string, aLimit?: number) => {
     let sSql;
     if (aSql.toLowerCase().includes('select')) {
@@ -259,4 +266,5 @@ export {
     fetchOnRollupTable,
     fetchOnMinMaxTable,
     fetchData,
+    postTerminalSize,
 };

@@ -10,7 +10,7 @@
                 <v-btn
                     v-for="(option, aIdx) in sOptions"
                     :key="aIdx"
-                    @click="changeType(option.type)"
+                    @click="changeType(option.type, option.name)"
                     class="taginput input set-type"
                     size="200px"
                     stacked
@@ -60,21 +60,18 @@ const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const sOptions = [
     { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
     { name: 'SQL', type: 'SQL Editor', icon: 'mdi-note-outline' },
+    { name: 'Shell', type: 'Terminal', icon: 'mdi-console' },
 ];
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
 
 const changeName = (aItem: any) => {
-    if (aItem === 'dashboard') {
-        sBoardName.value = 'Tag Analyzer';
-    } else if (aItem === 'SQL Editor') {
-        sBoardName.value = 'SQL';
-    }
+    sBoardName.value = aItem;
 };
 
-const changeType = (aItem: string) => {
+const changeType = (aItem: string, aName: string) => {
     sBoardType.value = aItem;
-    changeName(aItem);
+    changeName(aName);
 };
 const onClosePopup = () => {
     emit('eClosePopup');

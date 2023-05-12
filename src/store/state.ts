@@ -27,6 +27,7 @@ const state = {
     gTabList: [{ type: 'new', board_id: 'new', range_end: '', refresh: '', board_name: 'new', range_bgn: '', panels: [], code: '' }] as BoardInfo[],
 
     gSelectedTab: 'board1',
+    gLastSelectedTab: '',
     // list board
 
     gTabBoardList: [] as BoardInfo[],
