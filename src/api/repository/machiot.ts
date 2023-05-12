@@ -1,10 +1,10 @@
 import request from '@/api/core';
 
 const postTerminalSize = async (aTerminalId: number, aSize: any) => {
-    return await request({
+    await request({
         method: 'POST',
         url: `/api/term/${aTerminalId}/windowsize`,
-        data: aSize,
+        data: JSON.parse(JSON.stringify({ cols: aSize.cols, rows: aSize.rows })),
     });
 };
 const fetchData = async (aSql: string, aLimit?: number) => {

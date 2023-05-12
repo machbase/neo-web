@@ -8,27 +8,11 @@
 <script setup lang="ts">
 import Vue, { ref, computed, defineEmits, onMounted, nextTick, onUnmounted, onUpdated, watch } from 'vue';
 import { Terminal } from 'xterm';
-/**
- * xterm-addon-fit
- * An addon for xterm.js that enables fitting the terminal's dimensions to a containing element.
- * ref: https://www.npmjs.com/package/xterm-addon-fit
- */
 import { FitAddon } from 'xterm-addon-fit';
-/**
- * xterm-addon-web-links
- * An addon for xterm.js that enables web links.
- * ref: https://www.npmjs.com/package/xterm-addon-web-links
- * h-link 옵션을 위해 사용
- */
 import { WebLinksAddon } from 'xterm-addon-web-links';
-/**
- * xterm-addon-attach
- * An addon for xterm.js that enables attaching to a web socket.
- * ref: https://www.npmjs.com/package/xterm-addon-attach
- * W-soc 양방향 옵션을 위해 사용
- */
 import { AttachAddon } from 'xterm-addon-attach';
 import { postTerminalSize } from '../../api/repository/machiot';
+import { store } from '../../store';
 
 // ref ele
 let term_view: Element | any = ref(null);
@@ -45,81 +29,69 @@ let sToken = localStorage.getItem('token');
 // close modal ctr
 const sIsReSize = ref<boolean>(false);
 
+let selectedTab = '';
+const gSelectedTab = computed(() => store.state.gSelectedTab);
+const gLastSelectedTab = computed(() => store.state.gLastSelectedTab);
+
 // 1 ~ 1000 random
 const makeTermId = () => {
-    return Math.floor(Math.random() * 1000) + 1;
+    return new Date().getTime();
 };
+
 // resize observer
 const sResizeObserver = new ResizeObserver(() => {
-    sFitter.fit();
+    if (selectedTab === gSelectedTab.value) {
+        try {
+            sFitter && sFitter.fit();
+        } catch (err) {
+            console.log(err);
+        }
+    }
 });
 
 let sCtrDebounce = undefined as undefined | NodeJS.Timeout;
 
-const onSendReSizeInfo = (aSize: { cols: number; rows: number }) => {
-    if (sIsReSize.value) {
-        clearTimeout(sCtrDebounce);
-    }
-
-    sIsReSize.value = true;
-    sCtrDebounce = setTimeout(async () => {
-        await postTerminalSize(sTermId, aSize);
-
-        sIsReSize.value = false;
-
-        clearTimeout(sCtrDebounce);
-    }, 400); // 0.4s
+const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
+    await postTerminalSize(sTermId, aSize);
 };
-// mounted
+
 onMounted(() => {
-    // init termasdf
+    selectedTab = gSelectedTab.value;
     sTerm = new Terminal({
         fontFamily: '"Lucida Console", "Courier New", monospace',
         allowProposedApi: true,
-        fontSize: 13,
-        rows: 69,
-        cols: 242,
+        fontSize: 17,
     });
-
     sTermId = makeTermId();
 
     sWebSoc = new WebSocket(`ws://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}`);
 
-    // set addons
     sFitter = new FitAddon();
     sTerm.loadAddon(new WebLinksAddon());
     sTerm.loadAddon(new AttachAddon(sWebSoc, { bidirectional: true }));
     sTerm.loadAddon(sFitter);
+
+    sResizeObserver.observe(term_view.value);
     sTerm.open(term_view.value);
     sTerm.focus();
 
-    // onSendReSizeInfo(sTerm);
     sTerm.onResize((aSize: { cols: number; rows: number }) => {
-        onSendReSizeInfo(sTerm);
+        onSendReSizeInfo(aSize);
     });
 
-    const sTmpTime = setTimeout(() => {
-        sFitter.fit();
-        clearTimeout(sTmpTime);
-    }, 300);
+    setTimeout(() => {
+        try {
+            sFitter && sFitter.fit();
+        } catch (err) {
+            console.log(err);
+        }
+    });
 
-    // start observing
     sResizeObserver.observe(term_view.value);
 });
 
 onUnmounted(() => {
-    // ref ele
-    term_view = null;
-    // web socket
-    sWebSoc = null;
-    // fitter
-    sFitter = null;
-    // term
-    sTerm = null;
-    // temr id
-    sTermId = null;
-    // token
-    sToken = null;
+    sWebSoc.onclose = true;
 });
 </script>
 <style lang="scss" scoped>
@@ -134,13 +106,15 @@ onUnmounted(() => {
 }
 
 .add-tab-form {
-    // width: 100%;
+    width: 100%;
     height: 100%;
     display: flex;
     justify-content: space-between;
     flex-direction: column;
-    padding: 8px;
+    padding: 8px 0;
 }
+</style>
+<style>
 #term_view {
     width: 100%;
     height: 100%;
@@ -150,10 +124,12 @@ onUnmounted(() => {
 }
 
 .xterm {
+    padding-left: 8px;
     position: relative;
     user-select: none;
     -ms-user-select: none;
     -webkit-user-select: none;
+    overflow-y: scroll;
 }
 
 .xterm.focus,
@@ -206,13 +182,28 @@ onUnmounted(() => {
 .xterm .xterm-viewport {
     /* On OS X this is required in order for the scroll bar to appear fully opaque */
     background-color: #000;
-    overflow-y: scroll;
+    /* overflow-y: scroll; */
     cursor: default;
     position: absolute;
     right: 0;
     left: 0;
     top: 0;
     bottom: 0;
+}
+.xterm::-webkit-scrollbar {
+    width: 10px;
+    height: 5px;
+}
+
+.xterm::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.xterm::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
 }
 
 .xterm .xterm-screen {

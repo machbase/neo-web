@@ -18,6 +18,7 @@ enum MutationTypes {
     setTableList = 'setTableList',
     changeTab = 'changeTab',
     setSelectedTab = 'setSelectedTab',
+    setLastSelectedTab = 'setLastSelectedTab',
     setTagList = 'setTagList',
     setTabList = 'setTabList',
     pushTab = 'pushTab',
@@ -53,6 +54,9 @@ const mutations = {
     },
     [MutationTypes.setSelectedTab](state: RootState, aItem: string) {
         state.gSelectedTab = aItem;
+    },
+    [MutationTypes.setLastSelectedTab](state: RootState, aItem: string) {
+        state.gLastSelectedTab = aItem;
     },
     [MutationTypes.changeTab](state: RootState, aItem: any) {
         const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
