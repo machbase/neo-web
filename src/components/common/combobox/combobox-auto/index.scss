@@ -1,0 +1,96 @@
+@import '@/assets/scss/theme.scss';
+.option-list::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.option-list::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.option-list::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
+}
+.option-list {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    max-height: 300px;
+    min-width: 200px;
+    max-width: 240px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    position: absolute;
+    z-index: 1001;
+    overflow: auto;
+    @include theme() {
+        border: 1px solid theme-get('border-color-input');
+        color: theme-get('text-color');
+        background-color: theme-get('bg-color-input');
+    }
+    button {
+        width: 100%;
+        background-color: transparent !important;
+        display: flex;
+    }
+}
+
+.combobox-select {
+    z-index: 1001;
+    cursor: text;
+    display: flex;
+    align-items: center;
+    .icon {
+        width: 14.5px;
+        height: 15px;
+        margin-right: 2px;
+    }
+
+    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
+    @include theme() {
+        border: 1px solid theme-get('border-color-input');
+        color: theme-get('text-color');
+        background-color: theme-get('bg-color-input');
+    }
+    color: $text-w;
+    outline: none;
+    min-height: 24px;
+    font-size: $font-12;
+    position: relative;
+    &:focus {
+        @include box-shadow;
+    }
+    input {
+        padding: 0 $px-15;
+        @include theme() {
+            color: theme-get('text-color');
+        }
+    }
+    &__item {
+        background-color: $d-background;
+        padding: 0 $px-15;
+        @include font-12;
+        @include theme() {
+            background-color: theme-get('bg-color');
+            color: theme-get('text-color');
+        }
+    }
+    -webkit-appearance: auto;
+    appearance: auto;
+}
+input:focus {
+    outline: none;
+}
+.cover {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1000;
+}
+// box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.08), 0 0 8px rgba(102, 175, 233, 0.6);
