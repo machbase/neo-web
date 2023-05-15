@@ -28,7 +28,7 @@ export default defineConfig(() => {
                     ws: false,
                 },
                 '/web/api/term': {
-                    target: `ws://127.0.0.1:5654`,
+                    target: `ws://127.0.0.1:5654/`,
                     changeOrigin: true,
                     secure: false,
                     ws: true,

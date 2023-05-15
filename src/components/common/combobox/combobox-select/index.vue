@@ -1,5 +1,5 @@
 <template>
-    <select v-model="sSelect" class="combobox-select">
+    <select v-model="sSelect" class="combobox-select" :disabled="pDisabled">
         <img class="icon" :src="ic_arrow_s_down" />
         <option v-if="props.pShowDefaultOption" class="combobox-select__item" value="">{{ pStringDefault }}</option>
         <option v-for="aItem in pData" :key="aItem.id" class="combobox-select__item" :value="aItem.id">{{ aItem.name }}</option>
@@ -20,6 +20,7 @@ interface ComboboxSelectProps {
     pValue?: any;
     pStringDefault?: string;
     pShowDefaultOption?: boolean;
+    pDisabled?: boolean;
 }
 
 const props = withDefaults(defineProps<ComboboxSelectProps>(), {

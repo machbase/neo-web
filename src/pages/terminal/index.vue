@@ -82,6 +82,7 @@ onMounted(() => {
                   magenta: '#a454b2',
                   brightMagenta: '#a454b2',
                   cyan: '#66781e',
+                  selection: '#000000',
                   brightCyan: '#829429',
                   white: '#ffffff',
                   brightWhite: '#f2f2f2',
@@ -225,6 +226,9 @@ onUnmounted(() => {
     top: 0;
     bottom: 0;
 }
+.xterm::selection {
+    background: #000 !important;
+}
 .xterm .xterm-viewport::-webkit-scrollbar {
     width: 10px;
     height: 5px;
@@ -232,7 +236,7 @@ onUnmounted(() => {
 
 .xterm .xterm-viewport::-webkit-scrollbar-track {
     -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
-    background: #141415;
+    background: transparent;
 }
 
 .xterm .xterm-viewport::-webkit-scrollbar-thumb {

@@ -5,8 +5,24 @@
                 <div class="editor-header">
                     <div class="header-toggle">
                         <!-- MACHBASE -->
+                        <v-btn @click="getButtonData" density="comfortable" icon="mdi-play" size="36px" variant="plain"></v-btn>
                     </div>
                     <div class="header-btn-list">
+                        <ComboboxSelect
+                            @e-on-change="(aValue) => changeTimeFormat(aValue)"
+                            class="select-width"
+                            :p-data="sTimeFormatList"
+                            :p-show-default-option="false"
+                            :p-value="sSelectedFormat"
+                        />
+                        <ComboboxAuto
+                            @e-on-change="(aValue) => changeTimezone(aValue)"
+                            class="select-width"
+                            :p-data="IANA_TIMEZONES"
+                            :p-disabled="sSelectedFormat === ''"
+                            :p-show-default-option="false"
+                            :p-value="sSelectedTimezone"
+                        />
                         <v-tooltip location="bottom">
                             <template #activator="{ props }">
                                 <v-icon v-bind="props"> mdi-help-circle-outline </v-icon>
@@ -17,14 +33,11 @@
                                 or click the Execute button.
                             </span>
                         </v-tooltip>
-
-                        <!-- <v-btn @click="copyData" density="comfortable" icon="mdi-content-copy" size="36px" variant="plain"></v-btn> -->
-                        <!-- <v-btn @click="getButtonData" density="comfortable" icon="mdi-play" size="36px" variant="plain"></v-btn> -->
                     </div>
                 </div>
                 <CodeEditor
                     v-model="gBoard.code"
-                    ref="text"
+                    ref="sText"
                     @keydown.enter.stop="setSQL($event)"
                     border_radius="0"
                     height="calc(100% - 34px)"
@@ -46,7 +59,7 @@
                 >
                     <div>
                         <v-icon>mdi-table</v-icon>
-                        TABLE
+                        RESULT
                     </div>
                 </button>
                 <button
@@ -60,9 +73,11 @@
                 </button>
             </v-sheet>
 
-            <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" />
+            <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" :p-type="sType" />
 
-            <v-sheet v-if="sTab === 'log'" class="log-form" color="transparent" height="calc(100% - 40px)">
+            <v-sheet v-if="sTab === 'log'" ref="rLog" class="log-form" color="transparent" height="calc(100% - 40px)">
+                <v-btn @click="deleteLog()" class="log-delete-icon" density="comfortable" icon="mdi-delete-circle-outline" size="36px" variant="plain"></v-btn>
+
                 <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">
                     {{ aLog.query }}
                 </div>
@@ -74,13 +89,15 @@
 <script setup lang="ts" name="Editor">
 import CodeEditor from 'simple-code-editor';
 import Table from './Table.vue';
-import { ref, watch, defineEmits, defineProps, computed, onMounted } from 'vue';
+import { ref, watch, defineEmits, defineProps, computed, onMounted, nextTick } from 'vue';
 import { store } from '../../store';
 import { fetchData } from '../../api/repository/machiot';
 import { copyText } from 'vue3-clipboard';
 import { DragCol, DragRow, ResizeCol, ResizeRow, Resize } from 'vue-resizer';
 import { MutationTypes } from '../../store/mutations';
-
+import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
+import ComboboxAuto from '@/components/common/combobox/combobox-auto/index.vue';
+import { IANA_TIMEZONES, IanaTimezone } from '@/assets/ts/timezones.ts';
 interface PropsNoteData {
     pPanelData: boolean;
 }
@@ -95,25 +112,67 @@ const gBoard = computed(() => {
     return gTabList.value[sIdx];
 });
 
+let sText = ref<any>('');
+let rLog = ref<any>('');
 let sData = ref<any>([]);
 let sHeader = ref<any>([]);
+let sType = ref<any>([]);
 let currentPage = ref<number>(1);
 let sSql = ref<string>('');
 let sTab = ref<string>('table');
 
+const sTimeFormatList = ref<any>([
+    { name: 'TIMESTAMP', id: '' },
+    { name: 'YYYY-MM-DD', id: '2006-01-02' },
+    { name: 'YYYY-DD-MM', id: '2006-02-01' },
+    { name: 'DD-MM-YYYY', id: '02-01-2006' },
+    { name: 'MM-DD-YYYY', id: '01-02-2006' },
+    { name: 'YY-DD-MM', id: '06-02-01' },
+    { name: 'YY-MM-DD', id: '06-01-02' },
+    { name: 'MM-DD-YY', id: '01-02-06' },
+    { name: 'DD-MM-YY', id: '02-01-06' },
+    { name: 'YYYY-MM-DD HH:MM:SS', id: '2006-01-02 15:04:05' },
+    { name: 'YYYY-MM-DD HH:MM:SS.SSS', id: '2006-01-02 15:04:05.999' },
+    { name: 'YYYY-MM-DD HH:MM:SS.SSSSSS', id: '2006-01-02 15:04:05.999999' },
+    { name: 'YYYY-MM-DD HH:MM:SS.SSSSSSSSS', id: '2006-01-02 15:04:05.999999999' },
+    { name: 'YYYY-MM-DD HH', id: '2006-01-02 15' },
+    { name: 'YYYY-MM-DD HH:MM', id: '2006-01-02 15:04' },
+    { name: 'HH:MM:SS', id: '03:04:05' },
+]);
+
+const sSelectedFormat = ref<any>('2006-01-02 15:04:05');
+const sSelectedTimezone = ref<any>('LOCAL');
+
 let sLogField = ref<{ query: string; color: string }[]>([]);
 const gTableList = computed(() => store.state.gTableList);
 
+const changeTimeFormat = (aItem: string) => {
+    sSelectedFormat.value = aItem;
+    if (aItem === 'TIMESTAMP') changeTimezone('UTC');
+};
+
+const changeTimezone = (aItem: string) => {
+    sSelectedTimezone.value = aItem;
+};
+
 const changeTab = (aItem: string) => {
     sTab.value = aItem;
+    nextTick(() => {
+        if (sTab.value === 'log') rLog.value.$el.scrollTop = rLog.value.$el.scrollHeight + 200;
+    });
 };
 const UpdateItems = () => {
     const sLimit = sSql.value.toLowerCase().indexOf('limit'.toLowerCase());
     currentPage.value++;
     if (sLimit === -1) getSQLData();
 };
+
 const changeTabMode = (aItem: string) => {
     sTab.value = aItem;
+};
+
+const deleteLog = () => {
+    sLogField.value.splice(0);
 };
 
 const copyData = () => {
@@ -161,39 +220,23 @@ const setSQL = async (event: any, aType?: string) => {
     }
 };
 
-const getButtonData = async () => {
-    const selectText = window.getSelection()?.toString();
-    if (!selectText) {
-        alert('Please drag the query.');
-        return;
-    }
-    currentPage.value = 1;
+const getButtonData = () => {
+    const sPointer = sText.value.$refs.textarea.selectionStart === 0 ? sText.value.$refs.textarea.selectionStart : sText.value.$refs.textarea.selectionStart - 1;
+    const splitValue = gBoard.value.code.split(';');
+
+    const realValue = splitValue.map((aItem: string) => {
+        return aItem + ';';
+    });
+
+    sSql.value = realValue.filter((aItem: string) => {
+        const sStartIdx = gBoard.value.code.indexOf(aItem);
+        const sEndIdx = sStartIdx + aItem.length - 1;
+        if (sStartIdx <= sPointer && sPointer <= sEndIdx && aItem !== undefined) return aItem;
+    })[0];
+
     sData.value = [];
-
-    if (selectText) {
-        const sLimit = selectText.toLowerCase().indexOf('limit'.toLowerCase());
-        sSql.value = selectText;
-        const sResult: any = await fetchData(selectText.replace(';', ''), sLimit === -1 ? currentPage.value : '');
-        if (sResult.status >= 400) {
-            changeTab('log');
-            sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.data.reason, color: '#a85400' });
-        }
-        if (sResult && sResult.success) {
-            if (sResult.reason === 'executed.') {
-                sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '#rgb(31,123,246)' });
-
-                changeTab('log');
-            } else {
-                sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '' });
-
-                changeTab('table');
-                sHeader.value = sResult.data.columns;
-                sResult.data.rows.forEach((aItem: any) => {
-                    sData.value.push(aItem);
-                });
-            }
-        }
-    }
+    currentPage.value = 1;
+    getSQLData();
 };
 
 const handleChange = async (aKeyPress: boolean) => {
@@ -206,7 +249,12 @@ const handleChange = async (aKeyPress: boolean) => {
 
 const getSQLData = async () => {
     const sLimit = sSql.value.toLowerCase().indexOf('limit'.toLowerCase());
-    const sResult: any = await fetchData(sSql.value.replaceAll(/\n/g, ' ').replace(';', ''), sLimit === -1 ? currentPage.value : '');
+    const sResult: any = await fetchData(
+        sSql.value.replaceAll(/\n/g, ' ').replace(';', ''),
+        sSelectedFormat.value,
+        sSelectedTimezone.value,
+        sLimit === -1 ? currentPage.value : ''
+    );
 
     if (sResult.status >= 400) {
         changeTab('log');
@@ -221,12 +269,16 @@ const getSQLData = async () => {
             sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '' });
 
             changeTab('table');
+            sType.value = sResult.data.types;
             sHeader.value = sResult.data.columns;
             sResult.data.rows.forEach((aItem: any) => {
                 sData.value.push(aItem);
             });
         }
     }
+    nextTick(() => {
+        if (sTab.value === 'log') rLog.value.$el.scrollTop = rLog.value.$el.scrollHeight + 200;
+    });
 };
 
 onMounted(async () => {
@@ -234,10 +286,7 @@ onMounted(async () => {
         if (gTableList.value[0]) {
             gBoard.value.code = `select * from ${gTableList.value[0]};`;
             sSql.value = gBoard.value.code;
-            sLogField.value.push({ query: 'The connection is complete.', color: '#217DF8' });
             await getSQLData();
-        } else {
-            sLogField.value.push({ query: 'Please create a table.', color: '#a85400' });
         }
     }
 });
@@ -253,13 +302,34 @@ onMounted(async () => {
     box-sizing: border-box;
     padding: 0px 20px;
     justify-content: space-between;
-    align-items: end;
+    align-items: center;
 }
 </style>
 
 <style lang="scss">
 @import 'index.scss';
-
+.select-width {
+    max-width: 200px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden !important;
+}
+.header-btn-list {
+    gap: 8px;
+    select {
+        background-color: #f6f7f8;
+        color: #202020;
+        border-color: #dbe2ea;
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+    display: flex;
+    align-items: center;
+}
+.header-toggle {
+    display: flex;
+    align-items: center;
+}
 .window {
     height: calc(100% - 48px);
 }
@@ -303,6 +373,40 @@ onMounted(async () => {
 .log-form {
     padding: 0 16px;
     overflow: auto;
+    position: relative;
+    .log-delete-icon {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+}
+::v-deep .v-field__input input {
+    font-family: 'Open Sans', Helvetica, Arial, sans-serif !important;
+    @include theme() {
+        border: 1px solid theme-get('border-color-input') !important;
+        color: theme-get('text-color') !important;
+        background-color: theme-get('bg-color-input') !important;
+    }
+    color: $text-w !important;
+    outline: none !important;
+    padding: 0 $px-15 !important;
+    min-height: 24px !important;
+    font-size: $font-12 !important;
+    position: relative !important;
+    &:focus {
+        @include box-shadow;
+    }
+    &__item {
+        background-color: $d-background !important;
+        padding: 0 $px-15 !important;
+        @include font-12;
+        @include theme() {
+            background-color: theme-get('bg-color') !important;
+            color: theme-get('text-color') !important;
+        }
+    }
+    -webkit-appearance: auto !important;
+    appearance: auto !important;
 }
 .drager_bottom div::-webkit-scrollbar-track {
     -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);

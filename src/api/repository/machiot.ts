@@ -7,11 +7,11 @@ const postTerminalSize = async (aTerminalId: number, aSize: any) => {
         data: JSON.parse(JSON.stringify({ cols: aSize.cols, rows: aSize.rows })),
     });
 };
-const fetchData = async (aSql: string, aLimit?: number) => {
+const fetchData = async (aSql: string, aFormat: string, aTimezone: any, aLimit?: any) => {
     let sSql;
     if (aSql.toLowerCase().includes('select')) {
         if (aLimit) {
-            sSql = aSql + ` LIMIT ${aLimit * 50 - 50},${aLimit * 50}`;
+            sSql = aSql + ` LIMIT ${aLimit * 50 - 50},${50}`;
         } else {
             sSql = aSql;
         }
@@ -21,7 +21,7 @@ const fetchData = async (aSql: string, aLimit?: number) => {
 
     return await request({
         method: 'GET',
-        url: `/machbase?q=${encodeURI(sSql)}`,
+        url: `/machbase?q=${encodeURI(sSql)}&timeformat=${aFormat}&tz=${aTimezone}`,
     });
 };
 const fetchTableName = async (aTable: any) => {
