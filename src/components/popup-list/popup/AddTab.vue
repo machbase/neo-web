@@ -3,7 +3,6 @@
         <v-sheet class="add-tab-form" color="transparent">
             <v-sheet class="header" color="transparent">
                 <div>New Tab...</div>
-                <!-- <div class="Information" :style="cIsDarkMode ? { color: '#374bff' } : { color: '#1248f8' }">Select A New Tab</div> -->
             </v-sheet>
 
             <v-sheet class="card-form" color="transparent">
@@ -31,16 +30,15 @@
             </v-sheet>
             <v-sheet class="board-name-sheet" color="transparent">
                 <div class="set-board-name">
-                    <input v-model="sBoardName" class="form-control taginput input" placeholder="Please fill out the Tab name." type="text" />
-                    <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> OK </v-btn>
+                    <!-- @TODO -->
+                    <!-- <input v-model="sBoardName" class="form-control taginput input" placeholder="Please fill out the Tab name." type="text" />
+                    <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> OK </v-btn> -->
                 </div>
                 <!-- <div class="btn-form"></div> -->
             </v-sheet>
             <div class="popup__btn-group next-btn">
                 <v-divider color="info" :thickness="2"></v-divider>
-                <div class="btn-form">
-                    <!-- <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> next </v-btn> -->
-                </div>
+                <div class="btn-form"></div>
             </div>
         </v-sheet>
     </v-sheet>
@@ -54,7 +52,7 @@ import { TabList } from '../../../interface/tagView';
 const emit = defineEmits(['eClosePopup']);
 
 const sBoardType = ref<string>('dashboard');
-const sBoardName = ref<string>('dashboard');
+const sBoardName = ref<string>('Tag Analyzer');
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const sOptions = [
@@ -65,13 +63,39 @@ const sOptions = [
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
 
-const changeName = (aItem: any) => {
-    sBoardName.value = aItem;
+const changeName = (aType: any, aName: string) => {
+    const sFilterList = gTabList.value.filter((bItem) => bItem.type === aType);
+    if (sFilterList.length === 0) sBoardName.value = aName;
+    else {
+        const sSortData = sFilterList
+            .map((aItem) => {
+                return aItem.board_name;
+            })
+            .sort();
+        const sData = sSortData.map((aItem, aIdx) => {
+            if (aIdx !== 0) {
+                if (aItem.split('-')[1] === String(aIdx)) {
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                return true;
+            }
+        });
+        const sIdx = sData.findIndex((aItem) => !aItem);
+        if (sIdx !== -1) {
+            sBoardName.value = aName + '-' + sIdx;
+        } else {
+            sBoardName.value = aName + '-' + sSortData.length;
+        }
+    }
 };
 
-const changeType = (aItem: string, aName: string) => {
+const changeType = (aItem: any, aName: string) => {
     sBoardType.value = aItem;
-    changeName(aName);
+    changeName(sBoardType.value, aName);
+    onSetting();
 };
 const onClosePopup = () => {
     emit('eClosePopup');

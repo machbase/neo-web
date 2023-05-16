@@ -6,7 +6,7 @@
                     <Editor ref="sPanels" :p-panel-data="aTab" />
                 </v-sheet>
                 <AddTab v-if="aTab.type === 'new'" ref="sPanels" />
-                <Terminal v-if="aTab.type === 'Terminal'" ref="sPanels" />
+                <Terminal v-if="terminalStatus && aTab.type === 'Terminal'" ref="sPanels" @eChangeStatus="changeTerminalStatus" />
 
                 <v-sheet v-if="aTab.type === 'dashboard'" class="time-range icon" color="transparent" height="4%">
                     {{
@@ -60,6 +60,8 @@ const cTimeRange = computed(() => {
     return { start: gTabList.value[sIdx].range_bgn, end: gTabList.value[sIdx].range_end, refresh: gTabList.value[sIdx].refresh };
 });
 
+const terminalStatus = ref(true);
+
 const sLoading = ref(true);
 
 const sDialog = ref<boolean>(false);
@@ -80,6 +82,13 @@ const gSelectedTabInfo = computed(() => {
 });
 const onClosePopup = () => {
     sDialog.value = false;
+};
+
+const changeTerminalStatus = (aStatus: boolean) => {
+    terminalStatus.value = false;
+    setTimeout(() => {
+        terminalStatus.value = true;
+    });
 };
 const onUpload = () => {
     gTabList.value.forEach((aItem: any, aIdx: number) => {

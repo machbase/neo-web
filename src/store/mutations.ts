@@ -134,12 +134,36 @@ const mutations = {
                 return parseFloat(bItem['range']) - parseFloat(aItem['range']);
             });
 
-            const sRangeData = {
-                max: aRangeData.rows[sReturn[0].index][1],
-                min: aRangeData.rows[sReturn[0].index][0],
-            };
+            if (aRangeData.rows[sReturn[0].index][1] === aRangeData.rows[sReturn[0].index][0]) {
+                String.prototype.replaceAt = function (index: number, replacement: string) {
+                    if (index >= this.length) {
+                        return this.valueOf();
+                    }
 
-            state.gRangeData = sRangeData;
+                    const chars = this.split('');
+                    chars[index] = replacement;
+                    return chars.join('');
+                };
+
+                let sStr1 = aRangeData.rows[sReturn[0].index][0];
+                let sStr2 = aRangeData.rows[sReturn[0].index][1];
+                sStr1 = sStr1.replaceAt(20, 0);
+                sStr2 = sStr2.replaceAt(20, 9);
+
+                const sRangeData = {
+                    max: sStr2,
+                    min: sStr1,
+                };
+
+                state.gRangeData = sRangeData;
+            } else {
+                const sRangeData = {
+                    max: aRangeData.rows[sReturn[0].index][1],
+                    min: aRangeData.rows[sReturn[0].index][0],
+                };
+
+                state.gRangeData = sRangeData;
+            }
         }
     },
     [MutationTypes.setTable](state: RootState, aTable: any) {

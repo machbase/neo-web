@@ -26,10 +26,13 @@
             <thead class="header-fix" :style="cIsDarkMode ? { backgroundColor: 'black', color: 'white' } : { backgroundColor: 'rgb(245, 245, 245)', color: 'black' }">
                 <tr>
                     <th>
-                        <span>INDEX</span>
+                        <span>ROWNUM</span>
                     </th>
                     <th v-for="(item, aIdx) in headers" :key="aIdx">
-                        <span>{{ item }}</span>
+                        <span
+                            >{{ item }}
+                            {{ pType[aIdx] === 'datetime' ? `(${pTimezone})` : '' }}
+                        </span>
                     </th>
                 </tr>
             </thead>
@@ -70,6 +73,12 @@ const props = defineProps({
     headers: {
         type: Object,
         default: [] as any[],
+    },
+    pType: {
+        type: Array,
+    },
+    pTimezone: {
+        type: String,
     },
 });
 const handleZeroScroll = () => {
@@ -112,7 +121,7 @@ const onClosePopup = () => {
 };
 const handleScroll = (e: any) => {
     const { scrollHeight, scrollTop, clientHeight } = e.target;
-    const isAtTheBottom = scrollHeight === scrollTop + clientHeight;
+    const isAtTheBottom = scrollTop + clientHeight - 5 < scrollHeight && scrollHeight < scrollTop + clientHeight + 5;
     if (isAtTheBottom) {
         emits('UpdateItems');
     }

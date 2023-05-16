@@ -51,7 +51,15 @@ function toTimeUtcChart(date: string | number, a?: any): number {
         const newDate = date.split(' ');
 
         const newFormat: string[] = newDate.join(' ').replace(/-|:|T/gi, ' ').split(' ');
-        return Date.UTC(Number(newFormat[0]), Number(newFormat[1]) - 1, Number(newFormat[2]), Number(newFormat[3]), Number(newFormat[4]), Number(newFormat[5]));
+        return Date.UTC(
+            Number(newFormat[0]),
+            Number(newFormat[1]) - 1,
+            Number(newFormat[2]),
+            Number(newFormat[3]),
+            Number(newFormat[4]),
+            Number(newFormat[5]),
+            Number(newFormat[6])
+        );
     } else {
         return date;
     }

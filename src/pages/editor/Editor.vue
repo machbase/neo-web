@@ -53,7 +53,7 @@
         <template #right>
             <v-sheet class="tab-list" color="#202020" fixed-tabs height="40px">
                 <button
-                    @click="changeTabMode('table')"
+                    @click="changeTab('table')"
                     class="delete-left-border"
                     :style="sTab === 'table' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
                 >
@@ -63,7 +63,7 @@
                     </div>
                 </button>
                 <button
-                    @click="changeTabMode('log')"
+                    @click="changeTab('log')"
                     :style="sTab === 'log' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
                 >
                     <div>
@@ -73,7 +73,7 @@
                 </button>
             </v-sheet>
 
-            <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" :p-type="sType" />
+            <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" :p-timezone="sPropsTypeOption" :p-type="sType" />
 
             <v-sheet v-if="sTab === 'log'" ref="rLog" class="log-form" color="transparent" height="calc(100% - 40px)">
                 <v-btn @click="deleteLog()" class="log-delete-icon" density="comfortable" icon="mdi-delete-circle-outline" size="36px" variant="plain"></v-btn>
@@ -112,6 +112,7 @@ const gBoard = computed(() => {
     return gTabList.value[sIdx];
 });
 
+let sPropsTypeOption = ref<string>('');
 let sText = ref<any>('');
 let rLog = ref<any>('');
 let sData = ref<any>([]);
@@ -131,13 +132,13 @@ const sTimeFormatList = ref<any>([
     { name: 'YY-MM-DD', id: '06-01-02' },
     { name: 'MM-DD-YY', id: '01-02-06' },
     { name: 'DD-MM-YY', id: '02-01-06' },
-    { name: 'YYYY-MM-DD HH:MM:SS', id: '2006-01-02 15:04:05' },
-    { name: 'YYYY-MM-DD HH:MM:SS.SSS', id: '2006-01-02 15:04:05.999' },
-    { name: 'YYYY-MM-DD HH:MM:SS.SSSSSS', id: '2006-01-02 15:04:05.999999' },
-    { name: 'YYYY-MM-DD HH:MM:SS.SSSSSSSSS', id: '2006-01-02 15:04:05.999999999' },
+    { name: 'YYYY-MM-DD HH:MI:SS', id: '2006-01-02 15:04:05' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSS', id: '2006-01-02 15:04:05.999' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSSSSS', id: '2006-01-02 15:04:05.999999' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSSSSSSSS', id: '2006-01-02 15:04:05.999999999' },
     { name: 'YYYY-MM-DD HH', id: '2006-01-02 15' },
-    { name: 'YYYY-MM-DD HH:MM', id: '2006-01-02 15:04' },
-    { name: 'HH:MM:SS', id: '03:04:05' },
+    { name: 'YYYY-MM-DD HH:MI', id: '2006-01-02 15:04' },
+    { name: 'HH:MI:SS', id: '03:04:05' },
 ]);
 
 const sSelectedFormat = ref<any>('2006-01-02 15:04:05');
@@ -169,6 +170,9 @@ const UpdateItems = () => {
 
 const changeTabMode = (aItem: string) => {
     sTab.value = aItem;
+    nextTick(() => {
+        if (sTab.value === 'log') rLog.value.$el.scrollTop = rLog.value.$el.scrollHeight + 200;
+    });
 };
 
 const deleteLog = () => {
@@ -269,6 +273,7 @@ const getSQLData = async () => {
             sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '' });
 
             changeTab('table');
+            sPropsTypeOption.value = sSelectedTimezone.value;
             sType.value = sResult.data.types;
             sHeader.value = sResult.data.columns;
             sResult.data.rows.forEach((aItem: any) => {

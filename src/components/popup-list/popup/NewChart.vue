@@ -183,14 +183,44 @@ const onSetting = async () => {
     }
 
     const sMinMax = await store.dispatch(ActionTypes.fetchRangeData, { table: sSelectedTags[0].table, tagName: sSelectedTags[0].tag_names });
-    if (sMinMax) {
-        const newData = {
-            chartType: chartType.value,
-            tagSet: sSelectedTags,
-            defaultRange: { min: sMinMax.rows[0][0], max: sMinMax.rows[0][1] },
-        };
 
-        store.dispatch(ActionTypes.fetchNewChartBoard, newData).then(() => onClosePopup());
+    if (sMinMax) {
+        if (sMinMax.rows[0][0] === sMinMax.rows[0][1]) {
+            String.prototype.replaceAt = function (index: number, replacement: string) {
+                if (index >= this.length) {
+                    return this.valueOf();
+                }
+
+                const chars = this.split('');
+                chars[index] = replacement;
+                return chars.join('');
+            };
+
+            let sStr1 = sMinMax.rows[0][0];
+            let sStr2 = sMinMax.rows[0][1];
+            sStr1 = sStr1.replaceAt(20, 0);
+            sStr2 = sStr2.replaceAt(20, 9);
+
+            const sRangeData = {
+                max: sStr2,
+                min: sStr1,
+            };
+            const newData = {
+                chartType: chartType.value,
+                tagSet: sSelectedTags,
+                defaultRange: sRangeData,
+            };
+
+            store.dispatch(ActionTypes.fetchNewChartBoard, newData).then(() => onClosePopup());
+        } else {
+            const newData = {
+                chartType: chartType.value,
+                tagSet: sSelectedTags,
+                defaultRange: { min: sMinMax.rows[0][0], max: sMinMax.rows[0][1] },
+            };
+
+            store.dispatch(ActionTypes.fetchNewChartBoard, newData).then(() => onClosePopup());
+        }
     }
 };
 
