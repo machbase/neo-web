@@ -132,13 +132,13 @@ const sTimeFormatList = ref<any>([
     { name: 'YY-MM-DD', id: '06-01-02' },
     { name: 'MM-DD-YY', id: '01-02-06' },
     { name: 'DD-MM-YY', id: '02-01-06' },
-    { name: 'YYYY-MM-DD HH:MM:SS', id: '2006-01-02 15:04:05' },
-    { name: 'YYYY-MM-DD HH:MM:SS.SSS', id: '2006-01-02 15:04:05.999' },
-    { name: 'YYYY-MM-DD HH:MM:SS.SSSSSS', id: '2006-01-02 15:04:05.999999' },
-    { name: 'YYYY-MM-DD HH:MM:SS.SSSSSSSSS', id: '2006-01-02 15:04:05.999999999' },
+    { name: 'YYYY-MM-DD HH:MI:SS', id: '2006-01-02 15:04:05' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSS', id: '2006-01-02 15:04:05.999' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSSSSS', id: '2006-01-02 15:04:05.999999' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSSSSSSSS', id: '2006-01-02 15:04:05.999999999' },
     { name: 'YYYY-MM-DD HH', id: '2006-01-02 15' },
-    { name: 'YYYY-MM-DD HH:MM', id: '2006-01-02 15:04' },
-    { name: 'HH:MM:SS', id: '03:04:05' },
+    { name: 'YYYY-MM-DD HH:MI', id: '2006-01-02 15:04' },
+    { name: 'HH:MI:SS', id: '03:04:05' },
 ]);
 
 const sSelectedFormat = ref<any>('2006-01-02 15:04:05');
