@@ -6,7 +6,7 @@
     </v-sheet>
 </template>
 <script setup lang="ts">
-import Vue, { ref, computed, defineEmits, onMounted, nextTick, onUnmounted, onUpdated, watch } from 'vue';
+import Vue, { withDefaults, ref, computed, defineEmits, defineProps, onMounted, nextTick, onUnmounted, onUpdated, watch } from 'vue';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
@@ -19,6 +19,12 @@ import { getLogin } from '../../api/repository/login';
 
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
+interface ChartSelectProps {
+    pId: string;
+}
+const props = withDefaults(defineProps<ChartSelectProps>(), {
+    pId: '',
+});
 // ref ele
 let term_view: Element | any = ref(null);
 // web socket

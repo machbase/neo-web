@@ -1,12 +1,14 @@
 <template>
     <v-sheet class="tag-view" height="100%">
         <v-sheet id="tagView" class="tag-view-form" color="transparent" height="100%" width="100%">
-            <v-sheet v-for="(aTab, aIdx) in gTabList" v-show="aTab.board_id === gSelectedTab" :key="aIdx" class="sheet" color="transparent" height="100%" width="100%">
+            <v-sheet v-for="(aTab, aIdx) in gTabList" v-show="aTab.board_id === gSelectedTab" :key="aTab.board_id" class="sheet" color="transparent" height="100%" width="100%">
                 <v-sheet v-if="aTab.type === 'SQL Editor'" color="transparent" height="100%" width="100%">
                     <Editor ref="sPanels" :p-panel-data="aTab" />
                 </v-sheet>
+
                 <AddTab v-if="aTab.type === 'new'" ref="sPanels" />
-                <Terminal v-if="terminalStatus && aTab.type === 'Terminal'" ref="sPanels" @eChangeStatus="changeTerminalStatus" />
+
+                <Terminal v-if="terminalStatus && aTab.type === 'Terminal'" ref="sPanels" @eChangeStatus="changeTerminalStatus" :p-id="aTab.board_id" />
 
                 <v-sheet v-if="aTab.type === 'dashboard'" class="time-range icon" color="transparent" height="4%">
                     {{
@@ -16,9 +18,13 @@
                               }`
                             : TIME_RANGE_NOT_SET
                     }}
-
                     <img @click="onReload(aIdx)" class="" :src="i_b_refresh" />
                     <img @click="onClickPopupItem(PopupType.TIME_RANGE)" class="" :src="i_b_timerange" />
+                    <v-icon @click="download" class="icon" icon="mdi-content-save" size="16px"></v-icon>
+                    <label class="item">
+                        <v-icon class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
+                        <input @change="onUploadChart" accept="application/JSON" class="file-import" type="file" />
+                    </label>
                 </v-sheet>
                 <v-sheet v-if="aTab.type === 'dashboard'" class="chart-form" color="transparent" height="96%" width="100%">
                     <ChartDashboard ref="sPanels" :p-panel-info="aTab" :p-tab-idx="aIdx" />
@@ -57,6 +63,7 @@ const store = useStore();
 const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
 const cTimeRange = computed(() => {
     const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    console.log(gTabList.value[sIdx].range_bgn);
     return { start: gTabList.value[sIdx].range_bgn, end: gTabList.value[sIdx].range_end, refresh: gTabList.value[sIdx].refresh };
 });
 
@@ -70,6 +77,7 @@ const cDashBoard = computed((): BoardInfo => store.state.gBoard);
 const sPanels = ref(null);
 const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);
 const cBoardOld = computed(() => store.state.gBoardOld);
+const sUploadData = ref(null);
 
 const sDownLoadData = ref<BoardInfo[]>([]);
 const gBoard = computed(() => store.state.gBoard);
@@ -126,6 +134,9 @@ const receiveMessage = (event: MessageEvent) => {
         store.commit(MutationTypes.setDownLoadData, JSON.parse(event.data));
     }
 };
+const download = () => {
+    onClickPopupItem(PopupType.SAVE_DASHBOARD);
+};
 const onReload = (aIdx: number) => {
     sPanels.value[aIdx].onReload();
 };
@@ -161,6 +172,25 @@ watch(
         }
     }
 );
+
+const onUploadChart = (aEvent: any) => {
+    sLoading.value = true;
+    const file = aEvent.target.files[0];
+    const reader = new FileReader();
+    reader.onload = async (event: any) => {
+        const fileContent: any = await JSON.parse(event.target.result);
+
+        sUploadData.value = cloneDeep(fileContent);
+
+        store.commit(MutationTypes.changeTab, fileContent as BoardInfo);
+        store.commit(MutationTypes.setSelectedTab, fileContent.board_id);
+        sLoading.value = false;
+    };
+    reader.readAsText(file);
+};
+const validateTest = async (joiSchema: any, testObject: any) => {
+    return true;
+};
 
 onMounted(async () => {
     window.addEventListener('message', receiveMessage);
@@ -204,6 +234,9 @@ onMounted(async () => {
 
 .form-body::-webkit-scrollbar-thumb {
     background: #383838;
+}
+.file-import {
+    display: none;
 }
 .chart-form {
     padding: 0 20px;
