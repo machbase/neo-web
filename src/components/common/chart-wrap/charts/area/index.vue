@@ -621,13 +621,7 @@ async function OnChangeTimeRangerViewPort(params: any, aStatus?: string) {
                 startTime: params.min,
                 endTime: params.max,
             });
-            if (!sLimit) {
-                areaChart.value.updateMinMaxChart(
-                    data.sDisplayData.datasets[0].data[0][0],
-                    data.sDisplayData.datasets[0].data[data.sDisplayData.datasets[0].data.length - 1][0],
-                    true
-                );
-            } else if (sLimit) {
+            if (sLimit) {
                 if (params.max - params.min >= -1 * props.panelInfo.raw_chart_threshold) {
                     data.sIsRaw = false;
                     fetchPanelData(props.panelInfo, {

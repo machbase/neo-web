@@ -65,6 +65,7 @@
         @include box-shadow;
     }
     input {
+        width: calc(100% - 16.5px);
         padding: 0 $px-15;
         @include theme() {
             color: theme-get('text-color');

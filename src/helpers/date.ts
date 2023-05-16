@@ -16,14 +16,16 @@ const _convertTimeToObject = (aDuration: any) => {
 const _convertTimeToFullDate = (aTime: string) => {
     if (aTime.indexOf('now') === -1) {
         const [dmy, hms] = aTime.split(' ');
-        return `${dmy}T${hms}`;
+        return aTime;
     }
     const subtime = aTime.split('-')[1];
     if (subtime) {
         const timeNumber = parseInt(subtime);
         const timeUnit: any = subtime.match(/[a-zA-Z]/g)?.join('');
         return moment().subtract(timeNumber, timeUnit).format('YYYY-MM-DDTHH:mm:ss');
-    } else return moment().format('YYYY-MM-DDTHH:mm:ss');
+    } else {
+        return moment().format('YYYY-MM-DDTHH:mm:ss');
+    }
 };
 const setTimeRange = async (aPanelInfo: PanelInfo, aDashboard: BoardInfo) => {
     let timeRange = {} as RangeData;

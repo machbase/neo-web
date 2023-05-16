@@ -15,6 +15,7 @@ import { postTerminalSize } from '../../api/repository/machiot';
 import { store } from '../../store';
 import { MutationTypes } from '../../store/mutations';
 import { BoardInfo } from '../../interface/chart';
+import { getLogin } from '../../api/repository/login';
 
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
@@ -60,8 +61,11 @@ const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
     await postTerminalSize(sTermId, aSize);
 };
 
-onMounted(() => {
+onMounted(async () => {
+    await getLogin();
+
     selectedTab = gSelectedTab.value;
+
     sTerm = new Terminal({
         theme: cIsDarkMode.value
             ? {}
