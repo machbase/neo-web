@@ -51,13 +51,13 @@ import { TabList } from '../../../interface/tagView';
 
 const emit = defineEmits(['eClosePopup']);
 
-const sBoardType = ref<string>('dashboard');
+const sBoardType = ref<string>();
 const sBoardName = ref<string>('Tag Analyzer');
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const sOptions = [
     { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
-    { name: 'SQL', type: 'SQL Editor', icon: 'mdi-note-outline' },
+    { name: 'SQL', type: 'SQL Editor', icon: 'mdi-file-document-outline' },
     { name: 'Shell', type: 'Terminal', icon: 'mdi-console' },
 ];
 const gSelectedTab = computed(() => store.state.gSelectedTab);

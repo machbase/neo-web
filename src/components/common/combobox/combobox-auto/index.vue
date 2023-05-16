@@ -1,7 +1,7 @@
 <template>
     <div @keydown="setOption">
         <div v-if="sIsOpenOption" @click="openList(false)" class="cover"></div>
-        <i ref="inputForm" @click="!pDisabled && openList(true)" class="combobox-select">
+        <div ref="inputForm" @click="!pDisabled && openList(true)" class="combobox-select">
             <input v-model="sSelect" ref="sInput" @input="handleSearch" :disabled="pDisabled" type="text" />
             <img
                 class="icon"
@@ -16,7 +16,7 @@
                           }
                 "
             />
-        </i>
+        </div>
         <div v-if="sIsOpenOption" ref="optionList" class="option-list">
             <button v-if="props.pShowDefaultOption" @click="selected(aItem.id)" class="combobox-select__item" value="">{{ pStringDefault }}</button>
             <button

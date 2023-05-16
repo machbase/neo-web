@@ -20,6 +20,9 @@ time, mark, audio, video {
 	padding: 0;
 	border: 0;
 }
+select{
+	-webkit-appearance:none;
+}
 /* HTML5 display-role reset for older browsers */
 article, aside, details, figcaption, figure, 
 footer, header, hgroup, menu, nav, section {

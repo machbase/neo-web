@@ -23,6 +23,11 @@
                             :p-show-default-option="false"
                             :p-value="sSelectedTimezone"
                         />
+                        <v-icon @click="download" class="icon" icon="mdi-content-save" size="16px"></v-icon>
+                        <label class="item">
+                            <v-icon class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
+                            <input @change="upload" accept=".sql" class="file-import" type="file" />
+                        </label>
                         <v-tooltip location="bottom">
                             <template #activator="{ props }">
                                 <v-icon v-bind="props"> mdi-help-circle-outline </v-icon>
@@ -78,9 +83,7 @@
             <v-sheet v-if="sTab === 'log'" ref="rLog" class="log-form" color="transparent" height="calc(100% - 40px)">
                 <v-btn @click="deleteLog()" class="log-delete-icon" density="comfortable" icon="mdi-delete-circle-outline" size="36px" variant="plain"></v-btn>
 
-                <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">
-                    {{ aLog.query }}
-                </div>
+                <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">{{ aLog.elapse }} / {{ aLog.query }}</div>
             </v-sheet>
         </template>
     </DragCol>
@@ -144,7 +147,7 @@ const sTimeFormatList = ref<any>([
 const sSelectedFormat = ref<any>('2006-01-02 15:04:05');
 const sSelectedTimezone = ref<any>('LOCAL');
 
-let sLogField = ref<{ query: string; color: string }[]>([]);
+let sLogField = ref<{ query: string; color: string; elapse: string }[]>([]);
 const gTableList = computed(() => store.state.gTableList);
 
 const changeTimeFormat = (aItem: string) => {
@@ -175,6 +178,28 @@ const changeTabMode = (aItem: string) => {
     });
 };
 
+const upload = (aEvent: any) => {
+    const file = aEvent.target.files[0];
+    const reader = new FileReader();
+    reader.onload = async (event: any) => {
+        const fileContent: any = event.target.result;
+
+        gBoard.value.code = fileContent;
+    };
+    reader.readAsText(file);
+};
+
+const download = () => {
+    const sSqlCode = gBoard.value.code;
+    const blob = new Blob([sSqlCode], { type: 'plain/text' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${gBoard.value.board_name}.sql`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
 const deleteLog = () => {
     sLogField.value.splice(0);
 };
@@ -252,38 +277,48 @@ const handleChange = async (aKeyPress: boolean) => {
 };
 
 const getSQLData = async () => {
-    const sLimit = sSql.value.toLowerCase().indexOf('limit'.toLowerCase());
-    const sResult: any = await fetchData(
-        sSql.value.replaceAll(/\n/g, ' ').replace(';', ''),
-        sSelectedFormat.value,
-        sSelectedTimezone.value,
-        sLimit === -1 ? currentPage.value : ''
-    );
+    if (sSql.value) {
+        const sLimit = sSql.value.toLowerCase().indexOf('limit'.toLowerCase());
+        const sResult: any = await fetchData(
+            sSql.value.replaceAll(/\n/g, ' ').replace(';', ''),
+            sSelectedFormat.value,
+            sSelectedTimezone.value,
+            sLimit === -1 ? currentPage.value : ''
+        );
 
-    if (sResult.status >= 400) {
-        changeTab('log');
-        sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.data.reason, color: '#a85400' });
-    }
-    if (sResult && sResult.success) {
-        if (!sResult.data) {
-            sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '#217DF8' });
-
+        if (sResult.status >= 400) {
             changeTab('log');
-        } else {
-            sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '' });
-
-            changeTab('table');
-            sPropsTypeOption.value = sSelectedTimezone.value;
-            sType.value = sResult.data.types;
-            sHeader.value = sResult.data.columns;
-            sResult.data.rows.forEach((aItem: any) => {
-                sData.value.push(aItem);
+            sLogField.value.push({
+                query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.data.reason,
+                color: '#a85400',
+                elapse: sResult.data.elapse,
             });
         }
+        if (sResult && sResult.success) {
+            if (!sResult.data) {
+                sLogField.value.push({
+                    query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason,
+                    color: '#217DF8',
+                    elapse: sResult.elapse,
+                });
+
+                changeTab('log');
+            } else {
+                sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '', elapse: sResult.elapse });
+
+                changeTab('table');
+                sPropsTypeOption.value = sSelectedTimezone.value;
+                sType.value = sResult.data.types;
+                sHeader.value = sResult.data.columns;
+                sResult.data.rows.forEach((aItem: any) => {
+                    sData.value.push(aItem);
+                });
+            }
+        }
+        nextTick(() => {
+            if (sTab.value === 'log') rLog.value.$el.scrollTop = rLog.value.$el.scrollHeight + 200;
+        });
     }
-    nextTick(() => {
-        if (sTab.value === 'log') rLog.value.$el.scrollTop = rLog.value.$el.scrollHeight + 200;
-    });
 };
 
 onMounted(async () => {
@@ -313,6 +348,9 @@ onMounted(async () => {
 
 <style lang="scss">
 @import 'index.scss';
+.file-import {
+    display: none;
+}
 .select-width {
     max-width: 200px;
     text-overflow: ellipsis;

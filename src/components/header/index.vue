@@ -24,7 +24,7 @@
                 >
                     <div>
                         <v-icon v-if="aTab.type === 'dashboard'" size="16px">mdi-chart-line</v-icon>
-                        <v-icon v-if="aTab.type == 'new'" size="16px">mdi-autorenew</v-icon>
+                        <v-icon v-if="aTab.type == 'new'" size="16px">mdi-note-outline</v-icon>
                         <v-icon v-if="aTab.type == 'SQL Editor'" size="16px">mdi-file-document-outline</v-icon>
                         <v-icon v-if="aTab.type == 'Terminal'" size="16px">mdi-console</v-icon>
 
@@ -50,22 +50,6 @@
                             size="small"
                         ></v-icon>
                         {{ PREFERENCE }}
-                    </div>
-                    <label v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW" class="item">
-                        <v-icon class="icon file-import-icon" icon="mdi-upload" size="small"></v-icon>
-                        Import
-                        <input @change="onUploadChart" accept="application/JSON" class="file-import" type="file" />
-                    </label>
-
-                    <div @click="download" class="item">
-                        <v-icon
-                            v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
-                            @click="download"
-                            class="icon"
-                            icon="mdi-content-save"
-                            size="small"
-                        ></v-icon>
-                        Export
                     </div>
                     <div>
                         <img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="onSaveEdit" class="icon" :src="i_b_save_2" />
@@ -324,17 +308,15 @@ const deleteTab = (aId: string) => {
 
     const sCopyTabList = JSON.parse(JSON.stringify(gTabList.value));
 
-    const sLength = sCopyTabList.length;
-
-    sCopyTabList.splice(sIdx, 1);
-    store.commit(MutationTypes.setLastSelectedTab, gSelectedTab.value);
-
-    if (sLength - 1 === sIdx) {
-        store.commit(MutationTypes.setSelectedTab, gTabList.value[sIdx - 1].board_id);
-    } else {
-        store.commit(MutationTypes.setSelectedTab, gTabList.value[sIdx + 1].board_id);
+    if (gSelectedTab.value === aId) {
+        if (sIdx === sCopyTabList.length - 1) {
+            store.commit(MutationTypes.setSelectedTab, sCopyTabList[sIdx - 1].board_id);
+        } else {
+            store.commit(MutationTypes.setSelectedTab, sCopyTabList[sIdx + 1].board_id);
+        }
     }
 
+    sCopyTabList.splice(sIdx, 1);
     store.commit(MutationTypes.changeTabList, sCopyTabList as BoardInfo);
 };
 

@@ -12,6 +12,16 @@
     img{
         padding-left:5px;
     }
+    .item{
+        width: 16px;
+        height: 16px;
+        display: flex;
+        margin-left: 5px;
+        cursor: pointer;
+    }
+    .icon{
+        margin-left: 5px;
+    }
 }
 
 .chart-form::-webkit-scrollbar {

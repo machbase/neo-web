@@ -44,14 +44,19 @@ const onChangeId = (aEvent: Event) => {
 const onChangeTitle = (aEvent: Event) => {
     sData.boardTitle = (aEvent.target as HTMLInputElement).value;
 };
+const gSelectedTab = computed(() => store.state.gSelectedTab);
 
+const gBoard = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    return gTabList.value[sIdx];
+});
 const onSetting = () => {
     if (sData.boardTitle.trim().length <= 0) {
         alert('Input Dashboard Title.');
         return;
     }
 
-    const jsonString = JSON.stringify(gTabList.value);
+    const jsonString = JSON.stringify(gBoard.value);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
