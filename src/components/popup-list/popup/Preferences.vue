@@ -48,15 +48,20 @@ const onChangeInput = (aEvent: Event) => {
     sData.timeout = parseInt((aEvent.target as HTMLInputElement).value);
 };
 const onSetting = () => {
-    store.dispatch(ActionTypes.postPreference, sData).then(() => onClosePopup());
     if (localStorage.getItem('gPreference')) {
-        if (isEqual(store.state.gPreference, JSON.parse(localStorage.getItem('gPreference') || ''))) {
+        if (isEqual(JSON.stringify(sData), localStorage.getItem('gPreference') || '')) {
+            onClosePopup();
             return;
         }
     }
-
-    location.reload();
     localStorage.setItem('gPreference', JSON.stringify(sData));
+    const sConfirm = confirm('It will be reflected after reload. Do you want to reload right away?');
+    if (sConfirm) {
+        onClosePopup();
+        location.reload();
+    } else {
+        onClosePopup();
+    }
 };
 const onClosePopup = () => {
     emit('eClosePopup');

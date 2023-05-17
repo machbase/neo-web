@@ -33,9 +33,8 @@
                                 <v-icon v-bind="props"> mdi-help-circle-outline </v-icon>
                             </template>
                             <span>
-                                Enter the query statements to be executed.<br />
-                                - Separate each query statement with a semicolon. <br />- Place the cursor on the query statement you want to execute and press the Ctrl-Enter key
-                                or click the Execute button.
+                                The semicolon is a statement terminator.<br />
+                                Ctrl+Enter executes the statement where the cursor places.<br />
                             </span>
                         </v-tooltip>
                     </div>
@@ -229,19 +228,27 @@ watch(
 );
 
 const setSQL = async (event: any, aType?: string) => {
+    if (!event.ctrlKey) return;
+
     const sPointer = event.target.selectionStart === 0 ? event.target.selectionStart : event.target.selectionStart - 1;
 
-    const splitValue = gBoard.value.code.split(';');
+    let sPointerString = '|';
+
+    const sStr = gBoard.value.code.slice(0, sPointer) + sPointerString + gBoard.value.code.slice(sPointer);
+
+    const splitValue = sStr.split(';');
 
     const realValue = splitValue.map((aItem: string) => {
         return aItem + ';';
     });
 
     sSql.value = realValue.filter((aItem: string) => {
-        const sStartIdx = gBoard.value.code.indexOf(aItem);
+        const sStartIdx = sStr.indexOf(aItem);
         const sEndIdx = sStartIdx + aItem.length - 1;
         if (sStartIdx <= sPointer && sPointer <= sEndIdx && aItem !== undefined) return aItem;
     })[0];
+
+    sSql.value = sSql.value && sSql.value.replace(sPointerString, '');
 
     if (event.ctrlKey) {
         event.preventDefault();
