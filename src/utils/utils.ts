@@ -17,6 +17,30 @@ const formatDate = (date: Date | string): string => {
     return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${se}`;
 };
 
+const changeNumberType = (aNumber: string) => {
+    if (!/\d+\.?\d*e[+-]*\d+/i.test(aNumber)) {
+        return aNumber;
+    }
+
+    const numberSign = Math.sign(Number(aNumber));
+    aNumber = Math.abs(Number(aNumber)).toString();
+
+    const [coefficient, exponent] = aNumber.toLowerCase().split('e');
+    let zeros = Math.abs(Number(exponent));
+    const exponentSign = Math.sign(Number(exponent));
+    const [integer, decimals] = (coefficient.indexOf('.') != -1 ? coefficient : `${coefficient}.`).split('.');
+
+    if (exponentSign === -1) {
+        zeros -= integer.length;
+        aNumber = zeros < 0 ? integer.slice(0, zeros) + '.' + integer.slice(zeros) + decimals : '0.' + '0'.repeat(zeros) + integer + decimals;
+    } else {
+        if (decimals) zeros -= decimals.length;
+        aNumber = zeros < 0 ? integer + decimals.slice(0, zeros) + '.' + decimals.slice(zeros) : integer + decimals + '0'.repeat(zeros);
+    }
+
+    return numberSign < 0 ? '-' + aNumber : aNumber;
+};
+
 function splitTimeDuration(aTime: string) {
     const sRet = { type: '', value: 1, error: '' };
     const sTemp = aTime.trim().toLowerCase();
@@ -191,4 +215,5 @@ export {
     getPaginationPages,
     toDateUtcChart,
     rawtoTimeUtcChart,
+    changeNumberType,
 };

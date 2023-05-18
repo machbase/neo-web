@@ -42,7 +42,7 @@
                         <span>{{ index + 1 }}</span>
                     </td>
                     <td v-for="(value, aIdx) in content" :key="aIdx" @contextmenu.prevent @mousedown.right.stop="openContextMenu($event, value)">
-                        <span>{{ value }}</span>
+                        <span> {{ pType[aIdx] === 'double' ? (String(value).indexOf('e') === -1 ? value : changeNumberType(value)) : value }}</span>
                     </td>
                 </tr>
             </tbody>
@@ -58,6 +58,7 @@ import { copyText } from 'vue3-clipboard';
 import { PopupType } from '../../enums/app';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from '@/components/header/constant';
 import PopupWrap from '@/components/popup-list/index.vue';
+import { changeNumberType } from '@/utils/utils';
 
 const onContext = ref(false);
 const contextMenu = ref();
@@ -96,6 +97,7 @@ const onClickPopupItem = (aPopupName: PopupType) => {
     sDialog.value = true;
     onContext.value = false;
 };
+
 const cWidthPopup = computed((): string => {
     switch (sPopupType.value) {
         case PopupType.PREFERENCES:
