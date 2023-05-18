@@ -63,7 +63,6 @@ const store = useStore();
 const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
 const cTimeRange = computed(() => {
     const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
-    console.log(gTabList.value[sIdx].range_bgn);
     return { start: gTabList.value[sIdx].range_bgn, end: gTabList.value[sIdx].range_end, refresh: gTabList.value[sIdx].refresh };
 });
 

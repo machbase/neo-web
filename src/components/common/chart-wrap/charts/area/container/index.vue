@@ -43,6 +43,9 @@ const chart = ref();
 
 const cChartOptions = computed(() => {
     return {
+        accessibility: {
+            enabled: false,
+        },
         colors: formatColors(props.panelInfo.color_set),
         chart: {
             height: props.panelInfo.chart_height < 400 ? 400 : props.panelInfo.chart_height,

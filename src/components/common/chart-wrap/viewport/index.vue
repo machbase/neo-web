@@ -18,24 +18,24 @@
             </div>
             <div class="view-port__header--events icon">
                 <div>
-                    <v-icon @click="adjustViewportRange({ type: 'O', zoom: 0.4 })" color="#2ec0df" icon="mdi-magnify-minus-outline" size="24px"></v-icon>
-                    <v-tooltip activator="parent" location="bottom">Zoom in x4</v-tooltip>
+                    <v-icon @click="adjustViewportRange({ type: 'I', zoom: 0.4 })" color="#2ec0df" icon="mdi-magnify-minus-outline" size="24px"></v-icon>
+                    <v-tooltip activator="parent" location="bottom">Zoom out x4</v-tooltip>
                 </div>
                 <div>
-                    <v-icon @click="adjustViewportRange({ type: 'O', zoom: 0.2 })" color="#2ec0df" icon="mdi-magnify-minus-outline" size="24px"></v-icon>
-                    <v-tooltip activator="parent" location="bottom">Zoom in x2</v-tooltip>
+                    <v-icon @click="adjustViewportRange({ type: 'I', zoom: 0.2 })" color="#2ec0df" icon="mdi-magnify-minus-outline" size="24px"></v-icon>
+                    <v-tooltip activator="parent" location="bottom">Zoom out x2</v-tooltip>
                 </div>
                 <div>
                     <v-icon @click="adjustViewportFocus" :color="cIsDarkMode ? '#fff' : '#2ec0df'" icon="mdi-image-filter-center-focus-strong-outline" size="26px"></v-icon>
                     <v-tooltip activator="parent" location="bottom">Focus</v-tooltip>
                 </div>
                 <div>
-                    <v-icon @click="adjustViewportRange({ type: 'I', zoom: 0.2 })" color="#2ec0df" icon="mdi-magnify-plus-outline" size="24px"></v-icon>
-                    <v-tooltip activator="parent" location="bottom">Zoom out x2</v-tooltip>
+                    <v-icon @click="adjustViewportRange({ type: 'O', zoom: 0.2 })" color="#2ec0df" icon="mdi-magnify-plus-outline" size="24px"></v-icon>
+                    <v-tooltip activator="parent" location="bottom">Zoom in x2</v-tooltip>
                 </div>
                 <div>
-                    <v-icon @click="adjustViewportRange({ type: 'I', zoom: 0.4 })" color="#2ec0df" icon="mdi-magnify-plus-outline" size="24px"></v-icon>
-                    <v-tooltip activator="parent" location="bottom">Zoom out x4</v-tooltip>
+                    <v-icon @click="adjustViewportRange({ type: 'O', zoom: 0.4 })" color="#2ec0df" icon="mdi-magnify-plus-outline" size="24px"></v-icon>
+                    <v-tooltip activator="parent" location="bottom">Zoom in x4</v-tooltip>
                 </div>
             </div>
             <div class="view-port__header--events">

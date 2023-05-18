@@ -7,6 +7,9 @@ import vueSetupExtend from 'vite-plugin-vue-setup-extend';
 
 export default defineConfig(() => {
     return {
+        configureWebpack: {
+            devtool: 'source-map'
+        },
         mode: 'development',
         resolve: {
             alias: {
