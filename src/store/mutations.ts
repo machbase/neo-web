@@ -180,7 +180,9 @@ const mutations = {
         });
     },
     [MutationTypes.setDeleteChart](state: RootState, payload: number) {
-        state.gBoard.panels.splice(payload, 1);
+        const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
+
+        state.gTabList[sIdx].panels.splice(payload, 1);
     },
     [MutationTypes.setChartBoardEdit](state: RootState) {
         if (isEmpty(state.gBoardPanelEdit.item)) return;
