@@ -34,7 +34,7 @@
                 <div v-if="pType === 'SHOW CONTENT'" @eClosePopup="onClosePopup">
                     <div class="content-info">
                         <div class="answer">
-                            {{ pInfo }}
+                            {{ changeNumberType(pInfo) }}
                         </div>
                     </div>
                 </div>
@@ -58,6 +58,8 @@ import TimeDuration from './popup/TimeDuration.vue';
 import TimeRange from './popup/TimeRange.vue';
 import ChartEdit from '@/pages/chart-edit/index.vue';
 import { TimeLineType } from '@/interface/date';
+import { changeNumberType } from '@/utils/utils';
+
 const onSubmitTag = (data: any) => {
     emit('eSubmitTags', data);
 };
