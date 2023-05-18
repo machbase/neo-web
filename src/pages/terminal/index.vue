@@ -76,7 +76,7 @@ onMounted(async () => {
         theme: cIsDarkMode.value
             ? {}
             : {
-                  foreground: '#414141',
+                  foreground: '#545454',
                   background: '#ffffff',
                   cursor: '#5e77c8',
                   black: '#414141',
@@ -97,7 +97,7 @@ onMounted(async () => {
                   white: '#ffffff',
                   brightWhite: '#f2f2f2',
               },
-        fontFamily: '"Lucida Console", "Courier New", monospace',
+        fontFamily: '"Open Sans", "Monaco", "Lucida Console", "Courier New", sans-serif, monospace',
         allowProposedApi: true,
         fontSize: 17,
         windowsMode: true,
