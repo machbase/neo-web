@@ -1,6 +1,6 @@
 <template>
     <div class="login-form">
-        <form class="login-card">
+        <form @submit="login" class="login-card">
             <div>
                 <img alt="" src="@/assets/image/logo_machbaseNeo_general_a.png" />
             </div>
@@ -9,7 +9,7 @@
                 <input v-model="sPassword" @keydown.enter="login" autocomplete="off" class="input normal-text" placeholder="Password" type="password" />
             </div>
             <div class="button-form">
-                <button @click="login" :class="sLoginName !== '' && sPassword !== '' ? 'no-input' : 'login-button'">LOGIN</button>
+                <button type="submit" :class="sLoginName !== '' && sPassword !== '' ? 'no-input' : 'login-button'">LOGIN</button>
             </div>
         </form>
     </div>
@@ -23,7 +23,8 @@ import { RouteNames } from '../../enums/routes';
 const sLoginName = ref<string>('');
 const sPassword = ref<string>('');
 
-const login = async () => {
+const login = async (e) => {
+    e.preventDefault();
     const sParams = {
         LoginName: sLoginName.value,
         Password: sPassword.value,
