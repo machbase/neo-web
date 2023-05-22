@@ -312,6 +312,7 @@ export const DEFAULT_CHART = {
     range_bgn: '',
     range_end: '',
     count: -1,
+    fftOption: false,
     interval_type: '',
     interval_value: 1,
     refresh: '',

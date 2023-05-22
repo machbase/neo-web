@@ -1,5 +1,12 @@
 import request from '@/api/core';
 
+const getChartData = async (aTagTables: string, option: boolean, range: number) => {
+    return await request({
+        method: 'GET',
+        url: `/api/chart?${aTagTables}&time=${'last'}&range=${range}s&format=${'json'}${option ? '&transform=fft' : ''}`,
+    });
+};
+
 const postTerminalSize = async (aTerminalId: number, aSize: any) => {
     await request({
         method: 'POST',
@@ -267,4 +274,5 @@ export {
     fetchOnMinMaxTable,
     fetchData,
     postTerminalSize,
+    getChartData,
 };

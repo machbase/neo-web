@@ -1,0 +1,60 @@
+@import '@/assets/scss/theme.scss';
+.view-port {
+    padding: 0 10px;
+    font-size: 12px;
+    position: absolute;
+    bottom: 58px;
+    width: 100%;
+    .move-chart-size {
+        display: inline-block;
+        position: absolute;
+        top: -940%;
+        height: 795%;
+        width: 1%;
+        .form{
+            cursor: pointer;
+            display: flex;
+            width: 100%;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+    }
+    &__header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        &--events.icon {
+            align-items: center;
+        }
+        &--events {
+            display: flex;
+            gap: 5px;
+            .button,
+            .icon {
+                @include theme() {
+                    background-color: theme-get('bg-vport-chart');
+                    color: theme-get('text-vport-chart');
+                    // border: 1px solid theme-get('border-vport-chart');
+                }
+                cursor: pointer;
+                padding: 2px 12px;
+            }
+            .button.date-picker {
+                font-size: 10px;
+            }
+            .button.blue {
+                color: $text-blue;
+            }
+            .v-icon {
+                cursor: pointer;
+            }
+        }
+    }
+    .icon-close {
+        cursor: pointer;
+        position: absolute;
+        bottom: -35px;
+        left: 5px;
+    }
+}

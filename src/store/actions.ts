@@ -5,7 +5,7 @@ import { MutationTypes, Mutations } from './mutations';
 import { RootState } from './state';
 import { ResPreferences, TimeRange } from '@/interface/tagView';
 import { BoardInfo, FetchTagDataArg, PanelInfo, RangeData } from '@/interface/chart';
-import { fetchCalculationData, fetchOnMinMaxTable, fetchRangeData, fetchRawData, fetchTablesData, fetchTags, fetchTableName } from '@/api/repository/machiot';
+import { fetchCalculationData, fetchOnMinMaxTable, fetchRangeData, fetchRawData, fetchTablesData, fetchTags, fetchTableName, getChartData } from '@/api/repository/machiot';
 import { ResType } from '@/assets/ts/common';
 import { convertChartDefault } from '../utils/utils';
 import { DEFAULT_CHART } from '@/utils/constants';
@@ -29,6 +29,7 @@ enum ActionTypes {
     fetchTagData = 'fetchTagData',
     fetchTagDataRaw = 'fetchTagDataRaw',
     fetchTableNameValue = 'fetchTableNameValue',
+    fetchxAxisChartData = 'fetchxAxisChartData',
 }
 
 const actions = {
@@ -102,6 +103,11 @@ const actions = {
             context.commit(MutationTypes.setRangeData, res.data);
             return res.data;
         }
+    },
+
+    async [ActionTypes.fetchxAxisChartData](context: MyActionContext, aParams: any) {
+        const res: any = await getChartData(aParams.tagTables, aParams.option, aParams.range);
+        return res;
     },
 
     async [ActionTypes.fetchTagData](context: MyActionContext, aParams: FetchTagDataArg) {

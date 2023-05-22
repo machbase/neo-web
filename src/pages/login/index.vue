@@ -39,7 +39,6 @@ const login = async (e) => {
         localStorage.setItem('refreshToken', sReturn.refreshToken);
         router.push({ name: RouteNames.TAG_VIEW });
     } else {
-        alert(sReturn.data.reason);
         sPassword.value = '';
     }
 };

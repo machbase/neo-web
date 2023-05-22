@@ -70,6 +70,7 @@ export interface PanelInfo {
     range_bgn: string;
     range_end: string;
     count: number;
+    fftOption: boolean;
     interval_type: string;
     interval_value: number;
     refresh: string;
