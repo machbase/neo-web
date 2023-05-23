@@ -27,7 +27,7 @@
                 </div>
                 <div class="icon-div">
                     <img @click="addChart('fft')" class="icon-size-fft" src="@/assets/image/btn_fft.png" />
-                    <img @click="addChart('rms')" class="icon-size icon-size-rms" src="@/assets/image/btn_rms.png" />
+                    <!-- <img @click="addChart('rms')" class="icon-size icon-size-rms" src="@/assets/image/btn_rms.png" /> -->
                 </div>
                 <div>
                     <v-icon @click="adjustViewportRange({ type: 'O', zoom: 0.2 })" color="#0fc9f0" icon="mdi-magnify-plus-outline" size="24px"></v-icon>
