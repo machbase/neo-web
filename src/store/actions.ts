@@ -106,7 +106,7 @@ const actions = {
     },
 
     async [ActionTypes.fetchxAxisChartData](context: MyActionContext, aParams: any) {
-        const res: any = await getChartData(aParams.tagTables, aParams.option, aParams.range);
+        const res: any = await getChartData(aParams.tagTables, aParams.option, aParams.range, aParams.time);
         return res;
     },
 

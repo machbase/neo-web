@@ -2,20 +2,10 @@
     <div class="chart-wrap__header">
         <div class="title">
             <p></p>
-            <span>{{ props.panelInfo.chart_title }}</span>
+            <span>{{ props.pPanelTitle || props.panelInfo.chart_title }}</span>
         </div>
-        <div>
-            {{ toDateUtcChart(xAxisMinRange, true).split(' ')[0] + ' ' + toDateUtcChart(xAxisMinRange, true).split(' ')[1] }} ~
-            {{ toDateUtcChart(xAxisMaxRange, true).split(' ')[0] + ' ' + toDateUtcChart(xAxisMaxRange, true).split(' ')[1] }}
-            {{ props.panelInfo.drilldown_zoom !== 'Y' || !props.pIsRaw ? '( interval :' + pIntervalData.IntervalValue + ' ' + pIntervalData.IntervalType + ' )' : '' }}
-        </div>
+        <div>{{ changeNaNoToDate(xAxisMaxRange - props.pDataRange * 1000000000) }} ~ {{ changeNaNoToDate(xAxisMaxRange) }}</div>
         <div class="chart-wrap__header-icons">
-            <!-- <v-icon> mdi-vibrate</v-icon> -->
-            <!-- <button v-if="props.pType !== 'edit'" @click="onOpenPopup">
-                <img class="icon" :src="cIsDarkMode ? i_b_edit : i_w_edit" />
-            </button> -->
-
-            <v-icon @click="addFftChart" class="icon" size="14px"> mdi-vibrate </v-icon>
             <v-icon @click="onReloadChart" class="icon" size="14px"> mdi-refresh </v-icon>
             <v-icon v-if="props.pType !== 'edit'" @click="onDeleteBoard" class="icon" size="14px"> mdi-delete </v-icon>
             <PopupWrap :id="panelInfo.i" @e-close-popup="onClosePopup" :p-show="sDialog" :p-tab-idx="props.pTabIdx" :p-type="'EDIT CHART'" :p-width="'100vw'" />
@@ -39,7 +29,7 @@ import { BoardInfo, LinePanel } from '@/interface/chart';
 import router from '@/routes';
 import { useStore } from '@/store';
 import { MutationTypes } from '@/store/mutations';
-import { toDateUtcChart } from '@/utils/utils';
+import { toDateUtcChart, toTimeUtcChart, changeNaNoToDate } from '@/utils/utils';
 import { ref, computed, defineEmits, defineProps, withDefaults } from 'vue';
 import { useRoute } from 'vue-router';
 export type headerType = RouteNames.TAG_VIEW | RouteNames.VIEW | RouteNames.CHART_VIEW | RouteNames.CHART_EDIT | RouteNames.NEW;
@@ -51,8 +41,10 @@ interface ChartHeaderProps {
     xAxisMinRange: number;
     xAxisMaxRange: number;
     pIntervalData: { IntervalValue: number; IntervalType: string };
+    pPanelTitle: string;
     pType?: string;
     pPanelIndex: number;
+    pDataRange: number;
 }
 const props = withDefaults(defineProps<ChartHeaderProps>(), {});
 const emit = defineEmits(['eOnReload']);
@@ -82,9 +74,6 @@ const openNewChartPage = () => {
 };
 const onReloadChart = () => {
     emit('eOnReload');
-};
-const addFftChart = () => {
-    store.commit(MutationTypes.setAddFftChart, { index: props.pPanelIndex });
 };
 
 const onSaveEdit = async () => {

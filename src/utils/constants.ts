@@ -307,6 +307,7 @@ export const THEME_MODE = [
 ];
 
 export const DEFAULT_CHART = {
+    index_key: new Date().getTime(),
     chart_id: '',
     tag_set: [{ tag_names: '', calculation_mode: 'count', use_y2: 'N', alias: '', weight: 1.0 }],
     range_bgn: '',

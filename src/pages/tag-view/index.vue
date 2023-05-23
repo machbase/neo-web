@@ -30,7 +30,7 @@
                     <ChartDashboard ref="sPanels" :p-panel-info="aTab" :p-tab-idx="aIdx" />
                     <ButtonCreate @click="onClickPopupItem(PopupType.NEW_CHART)" :is-add-chart="true" />
                 </v-sheet>
-                <v-sheet v-if="aTab.type === 'chart'" class="detail-chart-form" color="transparent" height="96%" width="100%">
+                <v-sheet v-if="aTab.type === 'chart'" class="detail-chart-form" color="transparent" height="100%" width="100%">
                     <ChartDetailDashboard ref="sPanels" :p-panel-info="aTab" :p-tab-idx="aIdx" />
                     <ButtonCreate @click="onClickPopupItem(PopupType.NEW_CHART)" :is-add-chart="true" />
                 </v-sheet>
@@ -249,13 +249,24 @@ onMounted(async () => {
     overflow: auto;
 }
 .detail-chart-form {
-    padding: 20px 20px;
+    padding: 20px 20px 0px;
     display: flex;
     flex-direction: column;
     overflow: auto;
     .button-wrapper {
         margin: 0 !important;
     }
+}
+.detail-chart-form::-webkit-scrollbar {
+    width: 10px;
+    background: #e7e8ea;
+}
+.detail-chart-form::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+    background: #e7e8ea;
+}
+.detail-chart-form::-webkit-scrollbar-thumb {
+    background: #f1f2f4;
 }
 .sheet {
     padding-top: 44px;

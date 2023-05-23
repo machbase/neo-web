@@ -5,7 +5,30 @@
                 <div>New Tab...</div>
             </v-sheet>
 
-            <v-sheet class="card-form" color="transparent">
+            <v-sheet v-if="cLocalStorageOption" class="card-form" color="transparent">
+                <v-btn
+                    v-for="(option, aIdx) in sExpOptions"
+                    :key="aIdx"
+                    @click="changeType(option.type, option.name)"
+                    class="taginput input set-type"
+                    size="200px"
+                    stacked
+                    :style="sBoardType === option.type ? { borderColor: '#46CA92 !important' } : {}"
+                >
+                    <div class="icon-header">
+                        <v-icon :color="sBoardType === option.type ? '#46CA92' : '#9CA2AB'"> mdi-check-circle-outline </v-icon>
+                    </div>
+                    <div class="icon-body">
+                        <v-icon :color="cIsDarkMode ? (sBoardType === option.type ? '#E4F2FD' : '') : sBoardType === option.type ? '' : '#212121'" size="36px">
+                            {{ option.icon }}
+                        </v-icon>
+                        <span :style="cIsDarkMode ? (sBoardType === option.type ? { color: '#E4F2FD' } : {}) : sBoardType === option.type ? {} : { color: '#212121' }">
+                            {{ option.name }}
+                        </span>
+                    </div>
+                </v-btn>
+            </v-sheet>
+            <v-sheet v-else class="card-form" color="transparent">
                 <v-btn
                     v-for="(option, aIdx) in sOptions"
                     :key="aIdx"
@@ -59,10 +82,16 @@ const sOptions = [
     { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
     { name: 'SQL', type: 'SQL Editor', icon: 'mdi-file-document-outline' },
     { name: 'Shell', type: 'Terminal', icon: 'mdi-console' },
+];
+const sExpOptions = [
+    { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
+    { name: 'SQL', type: 'SQL Editor', icon: 'mdi-file-document-outline' },
+    { name: 'Shell', type: 'Terminal', icon: 'mdi-console' },
     { name: 'Chart', type: 'chart', icon: 'mdi-chart-scatter-plot' },
 ];
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
+const cLocalStorageOption = computed(() => !!localStorage.getItem('experimentMode'));
 
 const changeName = (aType: any, aName: string) => {
     const sFilterList = gTabList.value.filter((bItem) => bItem.type === aType);

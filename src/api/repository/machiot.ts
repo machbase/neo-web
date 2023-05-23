@@ -1,9 +1,15 @@
 import request from '@/api/core';
 
-const getChartData = async (aTagTables: string, option: boolean, range: number) => {
+const getChartMinMaxData = async (aTable: string, aTag: string) => {
     return await request({
         method: 'GET',
-        url: `/api/chart?${aTagTables}&time=${'last'}&range=${range}s&format=${'json'}${option ? '&transform=fft' : ''}`,
+        url: `/api/tables/${aTable}/tags/${aTag}/stat?timeformat=ns`,
+    });
+};
+const getChartData = async (aTagTables: string, option: boolean, range: number, time: number) => {
+    return await request({
+        method: 'GET',
+        url: `/api/chart?${aTagTables}&time=${time}&range=${range}s&format=${'json'}&timeformat=ns${option ? `&transform=${option}` : ''}`,
     });
 };
 
@@ -275,4 +281,5 @@ export {
     fetchData,
     postTerminalSize,
     getChartData,
+    getChartMinMaxData,
 };

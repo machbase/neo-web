@@ -5,15 +5,16 @@
         </div>
         <ChartHeader
             @eOnReload="onReload"
+            :p-data-range="data.sDataRange"
             :p-inner-value="sInnerValue"
             :p-interval-data="data.sIntervalData"
             :p-is-raw="data.sIsRaw"
             :p-panel-index="props.index"
+            :p-panel-title="data.sPanelTitle"
             :p-tab-idx="props.pTabIdx"
             :p-type="props.pType"
             :panel-info="props.panelInfo"
-            :x-axis-max-range="data.sTimeLine.endTime"
-            :x-axis-min-range="data.sTimeLine.startTime"
+            :x-axis-max-range="data.sMaxTime"
         />
 
         <AreaChart
@@ -26,6 +27,7 @@
             @eOnClick="OnChangeTimeClick"
             @eResetSquare="onResetSquare"
             :chart-data="data.sDisplayData"
+            class="area-chart"
             :is-stock-chart="sIsStockChart"
             :max-y-chart="data.sMaxYChart"
             :p-is-raw="data.sIsRaw"
@@ -56,9 +58,12 @@
             @eOnFocus="OnFocus"
             @eOnUndoTime="OnUndoTime"
             @eonCloseNavigator="onCloseNavigator"
+            :p-data-range="data.sDataRange"
             :p-is-raw="data.sIsRaw"
             :p-is-zoom="sIsZoom"
+            :p-panel-index="props.index"
             :p-time-range="data.sTimeLine"
+            :p-x-axis-max-range="data.sMaxTime"
             :panel-info="props.panelInfo"
             :range-time="data.sTimeRangeViewPort"
         />
@@ -80,6 +85,7 @@ import { toDateUtcChart, toTimeUtcChart, rawtoTimeUtcChart } from '@/utils/utils
 import { computed, defineProps, onMounted, reactive, ref, watch, withDefaults, defineExpose, nextTick } from 'vue';
 import AreaChart from './container/index.vue';
 import { fetchRawData } from '../../../../../api/repository/machiot';
+import { getChartMinMaxData } from '../../../api/repository/machiot';
 
 interface AreaChartProps {
     panelInfo: LinePanel;
@@ -111,6 +117,9 @@ const data = reactive({
     sUndo: [] as TimeLineType[],
     sStatusUndo: false as boolean,
     sDataRange: 1,
+    sTimeFormat: 0,
+    sMaxTime: 0,
+    sPanelTitle: '',
 });
 const sIsZoom = ref<boolean>(true);
 const sIsStockChart = ref<boolean>(true);
@@ -258,21 +267,26 @@ const fetchPanelData = async (aPanelInfo: BarPanel, aCustomRange?: startTimeToen
     const sIntervalTime = aPanelInfo.interval_type.toLowerCase() === '' ? calcInterval(sStartTime, sEndTime, sChartWidth) : data.sIntervalData;
 
     data.sIntervalData = sIntervalTime;
-    props.panelInfo.tag_set.map((aItem) => {
-        return `tags=aItem.table,aItem.tag_names`;
-    });
+
     const sString = props.panelInfo.tag_set
         .map((aItem) => {
             return `tags=${aItem.table}/${aItem.tag_names}`;
         })
         .join('&');
 
-    const sData = await store.dispatch(ActionTypes.fetchxAxisChartData, { tagTables: sString, option: props.panelInfo.fftOption, range: data.sDataRange });
+    const sSplitOptionData = props.panelInfo.option ? props.panelInfo.option.split(' ') : '';
+
+    if (sSplitOptionData && sSplitOptionData.length >= 1) {
+        data.sDataRange = Number(sSplitOptionData[2]);
+        data.sMaxTime = Number(sSplitOptionData[1]);
+    }
+    const sData = await store.dispatch(ActionTypes.fetchxAxisChartData, { tagTables: sString, option: sSplitOptionData[0], range: data.sDataRange, time: data.sMaxTime });
 
     sData.data.datasets = sData.data.datasets.map((aItem) => {
         return { ...aItem, name: aItem.label };
     });
     data.sDisplayData = sData;
+    data.sPanelTitle = sData.options.plugins.title.text;
 
     sLoading.value = false;
 };
@@ -402,6 +416,10 @@ const intializePanelData = async (aCustomRange?: startTimeToendTimeType, aViewPo
     data.sIsLoading = true;
 
     try {
+        const sValue = await getChartMinMaxData(props.panelInfo.tag_set[0].table, props.panelInfo.tag_set[0].tag_names);
+
+        const sMaxIdx = sValue.data.columns.findIndex((aItem: string) => aItem === 'MAX_TIME');
+        data.sMaxTime = sValue.data.rows[0][sMaxIdx];
         await fetchPanelData(props.panelInfo, aCustomRange);
     } catch (err) {}
     data.sIsLoading = false;
@@ -485,22 +503,23 @@ const onChangeSRF = async (eValue: any) => {
 };
 
 const moveFocus = async (sType: string) => {
-    let sBgn = data.sTimeLine.startTime;
-    let sEnd = data.sTimeLine.endTime;
-    const sMoveRange = (data.sTimeLine.endTime - data.sTimeLine.startTime) / 2;
-
-    let sBgnN = data.sTimeRangeViewPort.startTime;
-    let sEndN = data.sTimeRangeViewPort.endTime;
-
-    if (sType === 'left') {
-        if (sBgn - sMoveRange < sBgnN) await areaChart.value.updateMinMaxNavigator(sBgn - sMoveRange, sEndN - sMoveRange);
-        await areaChart.value.updateMinMaxChart(sBgn - sMoveRange, sEnd - sMoveRange);
-    } else {
-        if (sEnd + sMoveRange > sEndN) await areaChart.value.updateMinMaxNavigator(sBgnN + sMoveRange, sEnd + sMoveRange);
-        await areaChart.value.updateMinMaxChart(sBgn + sMoveRange, sEnd + sMoveRange);
+    if (areaChart.value.chart.chart.resetZoomButton) {
+        areaChart.value.chart.chart.xAxis[0].setExtremes();
+        areaChart.value.chart.chart.resetZoomButton.destroy();
+        delete areaChart.value.chart.chart.resetZoomButton;
     }
+
+    const sNano = data.sDataRange * 1000000000;
+    if (sType === 'right') data.sMaxTime = data.sMaxTime + sNano / 2;
+    else data.sMaxTime = data.sMaxTime - sNano / 2;
+    fetchPanelData(props.panelInfo);
 };
 const adjustViewportRange = async (aEvent: { type: 'O' | 'I'; zoom: number }) => {
+    if (areaChart.value.chart.chart.resetZoomButton) {
+        areaChart.value.chart.chart.xAxis[0].setExtremes();
+        areaChart.value.chart.chart.resetZoomButton.destroy();
+        delete areaChart.value.chart.chart.resetZoomButton;
+    }
     let sRangeValue;
     if (aEvent.type === 'O') sRangeValue = data.sDataRange / (aEvent.zoom * 10);
     else sRangeValue = data.sDataRange * (aEvent.zoom * 10);
@@ -672,4 +691,8 @@ defineExpose({ onReload });
 
 <style lang="scss" scoped>
 @import 'index.scss';
+.area-chart {
+    display: flex;
+    justify-content: center;
+}
 </style>

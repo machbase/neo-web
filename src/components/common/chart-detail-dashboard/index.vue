@@ -2,7 +2,7 @@
     <div v-if="!chartDataSingle">
         <div
             v-for="(panel, index) in cData"
-            :key="index"
+            :key="panel.index_key"
             :style="
                 index !== 0
                     ? {

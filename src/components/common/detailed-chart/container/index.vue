@@ -51,8 +51,8 @@ const cChartOptions = computed(() => {
         },
         colors: formatColors(props.panelInfo.color_set),
         chart: {
-            height: props.panelInfo.chart_height < 400 ? 400 : props.panelInfo.chart_height,
-            width: props.pPanelWidth,
+            height: 400,
+            width: props.pPanelWidth - 40,
             type: 'area',
             zoomType: 'x',
             backgroundColor: cIsDarkMode.value ? '#1e1f1f' : '#f6f7f8',
@@ -91,8 +91,15 @@ const cChartOptions = computed(() => {
 
         xAxis: {
             scrollbar: {
-                barBorderRadius: 0,
-                barBorderWidth: 1,
+                showFull: false,
+                barBorderRadius: 8,
+                trackBorderRadius: 10,
+                trackBackgroundColor: cIsDarkMode.value ? '#1E1F1F' : '#F6F7F8',
+                barBorderColor: cIsDarkMode.value ? '#1E1F1F' : '#F6F7F8',
+                trackBorderColor: cIsDarkMode.value ? '#1E1F1F' : '#F6F7F8',
+                buttonArrowColor: cIsDarkMode.value ? '#1E1F1F' : '#F6F7F8',
+                buttonBorderColor: cIsDarkMode.value ? '#1E1F1F' : '#F6F7F8',
+                buttonBackgroundColor: cIsDarkMode.value ? '#1E1F1F' : '#F6F7F8',
                 liveRedraw: true,
                 enabled: true,
             },
@@ -104,12 +111,14 @@ const cChartOptions = computed(() => {
             lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
             minTickInterval: 1,
             labels: {
+                reserveSpace: true,
                 align: 'center',
                 style: {
                     color: cIsDarkMode.value ? '#afb5bc' : '#6c6e70',
                     fontSize: '10px',
                 },
-                y: 30,
+                rotation: -40,
+                y: 35,
             },
             minorTickColor: 'red',
             crosshair: {
@@ -124,8 +133,7 @@ const cChartOptions = computed(() => {
                 title: {
                     text: '',
                 },
-                // tickAmount: updateYaxis().left[0] === updateYaxis().left[1] && 1,
-                // tickPositions: updateYaxis().left[0] === updateYaxis().left[1] && [updateYaxis().left[0]],
+
                 min: !props.pIsRaw
                     ? props.panelInfo.custom_min === 0
                         ? props.panelInfo.use_normalize === 'Y'
@@ -153,8 +161,7 @@ const cChartOptions = computed(() => {
                 gridLineWidth: props.panelInfo.show_y_tickline === 'Y' ? 1 : 0,
                 gridLineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
                 lineColor: cIsDarkMode.value ? '#323333' : '#f0f1f3',
-                // startOnTick: true,
-                // endOnTick: true,
+
                 labels: {
                     align: 'center',
                     style: {

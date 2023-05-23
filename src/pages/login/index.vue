@@ -9,7 +9,7 @@
                 <input v-model="sPassword" @keydown.enter="login" autocomplete="off" class="input normal-text" placeholder="Password" type="password" />
             </div>
             <div class="button-form">
-                <button type="submit" :class="sLoginName !== '' && sPassword !== '' ? 'no-input' : 'login-button'">LOGIN</button>
+                <button :class="sLoginName !== '' && sPassword !== '' ? 'no-input' : 'login-button'" type="submit">LOGIN</button>
             </div>
         </form>
     </div>
@@ -37,8 +37,10 @@ const login = async (e) => {
     if (sReturn && sReturn.success) {
         localStorage.setItem('accessToken', sReturn.accessToken);
         localStorage.setItem('refreshToken', sReturn.refreshToken);
+        sReturn.option && sReturn.option.experimentMode ? localStorage.setItem('experimentMode', sReturn.option.experimentMode) : localStorage.removeItem('experimentMode');
         router.push({ name: RouteNames.TAG_VIEW });
     } else {
+        alert(sReturn.data.reason);
         sPassword.value = '';
     }
 };
