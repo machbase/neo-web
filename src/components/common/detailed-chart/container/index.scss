@@ -3,12 +3,12 @@
     padding: 0 10px;
     font-size: 12px;
     position: absolute;
-    bottom: 115px;
+    bottom: 58px;
     width: 100%;
     .move-chart-size {
         display: inline-block;
         position: absolute;
-        top: -1000%;
+        top: -940%;
         height: 795%;
         width: 1%;
         .form{
@@ -22,7 +22,7 @@
     }
     &__header {
         display: flex;
-        justify-content: space-between;
+        justify-content: center;
         align-items: center;
         &--events.icon {
             align-items: center;

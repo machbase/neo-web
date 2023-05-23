@@ -1,5 +1,18 @@
 import request from '@/api/core';
 
+const getChartMinMaxData = async (aTable: string, aTag: string) => {
+    return await request({
+        method: 'GET',
+        url: `/api/tables/${aTable}/tags/${aTag}/stat?timeformat=ns`,
+    });
+};
+const getChartData = async (aTagTables: string, option: boolean, range: number, time: number) => {
+    return await request({
+        method: 'GET',
+        url: `/api/chart?${aTagTables}&time=${time}&range=${range}s&format=${'json'}&timeformat=ns${option ? `&transform=${option}` : ''}`,
+    });
+};
+
 const postTerminalSize = async (aTerminalId: number, aSize: any) => {
     await request({
         method: 'POST',
@@ -267,4 +280,6 @@ export {
     fetchOnMinMaxTable,
     fetchData,
     postTerminalSize,
+    getChartData,
+    getChartMinMaxData,
 };

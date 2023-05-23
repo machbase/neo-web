@@ -30,6 +30,10 @@
                     <ChartDashboard ref="sPanels" :p-panel-info="aTab" :p-tab-idx="aIdx" />
                     <ButtonCreate @click="onClickPopupItem(PopupType.NEW_CHART)" :is-add-chart="true" />
                 </v-sheet>
+                <v-sheet v-if="aTab.type === 'chart'" class="detail-chart-form" color="transparent" height="100%" width="100%">
+                    <ChartDetailDashboard ref="sPanels" :p-panel-info="aTab" :p-tab-idx="aIdx" />
+                    <ButtonCreate @click="onClickPopupItem(PopupType.NEW_CHART)" :is-add-chart="true" />
+                </v-sheet>
             </v-sheet>
         </v-sheet>
         <PopupWrap @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="sPopupType" :width="cWidthPopup" />
@@ -40,6 +44,7 @@ import Editor from '@/pages/editor/Editor.vue';
 
 import ButtonCreate from '@/components/common/button-create/index.vue';
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
+import ChartDetailDashboard from '@/components/common/chart-detail-dashboard/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { PopupType } from '@/enums/app';
 import i_b_timerange from '@/assets/image/i_b_timerange.png';
@@ -178,8 +183,7 @@ const onUploadChart = (aEvent: any) => {
     const reader = new FileReader();
     reader.onload = async (event: any) => {
         const fileContent: any = await JSON.parse(event.target.result);
-
-        sUploadData.value = cloneDeep(fileContent);
+        fileContent.board_id = new Date().getTime();
 
         store.commit(MutationTypes.changeTab, fileContent as BoardInfo);
         store.commit(MutationTypes.setSelectedTab, fileContent.board_id);
@@ -243,6 +247,26 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
     overflow: auto;
+}
+.detail-chart-form {
+    padding: 20px 20px 0px;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    .button-wrapper {
+        margin: 0 !important;
+    }
+}
+.detail-chart-form::-webkit-scrollbar {
+    width: 10px;
+    background: #e7e8ea;
+}
+.detail-chart-form::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+    background: #e7e8ea;
+}
+.detail-chart-form::-webkit-scrollbar-thumb {
+    background: #f1f2f4;
 }
 .sheet {
     padding-top: 44px;

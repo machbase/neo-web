@@ -48,7 +48,7 @@
                 <div class="selectedlistdiv taglistscroll">
                     <div v-for="(aTime, aIndex) in sSelectedTags" :key="aIndex" class="wrapperTagSelect" style="margin-bottom: 5px">
                         <span @click="onRemoveTag(aIndex)"> {{ aTime.tag_names }}</span>
-                        <ComboboxSelect @e-on-change="(item) => onChangeCalcMode(item, aIndex)" :p-data="CALC_MODE" :p-show-default-option="false" :p-value="'avg'" />
+                        <ComboboxSelect v-if="gBoard.type !== 'chart'" @e-on-change="(item) => onChangeCalcMode(item, aIndex)" :p-data="CALC_MODE" :p-show-default-option="false" :p-value="'avg'" />
                     </div>
                 </div>
                 <div class="popup__btn-group">
@@ -106,6 +106,14 @@ const tagsPaged = computed(() => getPaginationPages(cTagsSearch.value, MAX_TAG_C
 const onChangeTable = (aValue: string) => {
     tableSelected.value = aValue;
 };
+const gTabList = computed(() => {
+    return store.state.gTabList;
+});
+const gSelectedTab = computed(() => store.state.gSelectedTab);
+const gBoard = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    return gTabList.value[sIdx];
+});
 watch(
     () => cTags.value,
     () => {

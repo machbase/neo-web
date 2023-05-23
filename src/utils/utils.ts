@@ -129,6 +129,10 @@ function toDateUtcChart(date: number, aMilli?: boolean) {
     return moment.utc(date).format(FORMAT_FULL_DATE);
 }
 
+function changeNaNoToDate(date: number) {
+    return moment.utc(new Date(Number(String(date).substring(0, 13)))).format(FORMAT_FULL_DATE);
+}
+
 function formatColors(colors: string) {
     const newFormat = colors.split(',').map((i) => '#' + i);
     return newFormat;
@@ -216,4 +220,5 @@ export {
     toDateUtcChart,
     rawtoTimeUtcChart,
     changeNumberType,
+    changeNaNoToDate,
 };

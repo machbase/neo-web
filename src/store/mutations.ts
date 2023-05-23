@@ -36,6 +36,7 @@ enum MutationTypes {
     setDownLoadData = 'setDownLoadData',
     setImportData = 'setImportData',
     changeTabList = 'changeTabList',
+    setAddFftChart = 'setAddFftChart',
 }
 
 const mutations = {
@@ -178,6 +179,14 @@ const mutations = {
                 delete (state.gBoardPanelEdit.item.tag_set[index] as any).id;
             }
         });
+    },
+    [MutationTypes.setAddFftChart](state: RootState, payload: { index: number; option: string; maxTime: number; range: number }) {
+        const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
+        // state.gBoardPanelEdit.index = payload.index;
+        const sData = JSON.parse(JSON.stringify(state.gTabList[sIdx].panels[payload.index]));
+        sData[0].option = payload.option + ' ' + payload.maxTime + ' ' + payload.range;
+        sData[0].index_key = new Date().getTime();
+        state.gTabList[sIdx].panels.splice(payload.index + 1, 0, sData);
     },
     [MutationTypes.setDeleteChart](state: RootState, payload: number) {
         const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
