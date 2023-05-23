@@ -34,7 +34,7 @@ const fetchData = async (aSql: string, aFormat: string, aTimezone: any, aLimit?:
 
     return await request({
         method: 'GET',
-        url: `/machbase?q=${encodeURI(sSql)}&timeformat=${aFormat}&tz=${aTimezone}`,
+        url: `/machbase?q=${encodeURIComponent(sSql)}&timeformat=${aFormat}&tz=${aTimezone}`,
     });
 };
 const fetchTableName = async (aTable: any) => {
