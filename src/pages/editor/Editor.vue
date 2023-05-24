@@ -1,5 +1,5 @@
 <template>
-    <DragCol height="100%" slider-bg-color="#202020" width="100%">
+    <DragCol v-if="!sVerticalType" height="100%" slider-bg-color="#202020" width="100%">
         <template #left>
             <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
                 <div class="editor-header">
@@ -8,18 +8,24 @@
                         <v-btn @click="getButtonData" density="comfortable" icon="mdi-play" size="36px" variant="plain"></v-btn>
                     </div>
                     <div class="header-btn-list">
-                        <ComboboxSelect
+                        <ComboboxAuto
                             @e-on-change="(aValue) => changeTimeFormat(aValue)"
                             class="select-width"
-                            :p-data="sTimeFormatList"
+                            :p-data="sList"
                             :p-show-default-option="false"
+                            p-use-name
                             :p-value="sSelectedFormat"
                         />
                         <ComboboxAuto
                             @e-on-change="(aValue) => changeTimezone(aValue)"
                             class="select-width"
                             :p-data="IANA_TIMEZONES"
-                            :p-disabled="sSelectedFormat === ''"
+                            :p-disabled="
+                                sSelectedFormat === 'TIMESTAMP(ns)' ||
+                                sSelectedFormat === 'TIMESTAMP(us)' ||
+                                sSelectedFormat === 'TIMESTAMP(ms)' ||
+                                sSelectedFormat === 'TIMESTAMP(s)'
+                            "
                             :p-show-default-option="false"
                             :p-value="sSelectedTimezone"
                         />
@@ -28,6 +34,7 @@
                             <v-icon class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
                             <input @change="upload" accept=".sql" class="file-import" type="file" />
                         </label>
+                        <v-icon @click="showConfluence">mdi-book-education</v-icon>
                         <v-tooltip location="bottom">
                             <template #activator="{ props }">
                                 <v-icon v-bind="props"> mdi-help-circle-outline </v-icon>
@@ -56,36 +63,164 @@
 
         <template #right>
             <v-sheet class="tab-list" color="#202020" fixed-tabs height="40px">
-                <button
-                    @click="changeTab('table')"
-                    class="delete-left-border"
-                    :style="sTab === 'table' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
-                >
-                    <div>
-                        <v-icon>mdi-table</v-icon>
-                        RESULT
-                    </div>
-                </button>
-                <button
-                    @click="changeTab('log')"
-                    :style="sTab === 'log' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
-                >
-                    <div>
-                        <v-icon>mdi-information</v-icon>
-                        LOG
-                    </div>
-                </button>
+                <v-sheet class="tab-form">
+                    <button
+                        @click="changeTab('table')"
+                        class="delete-left-border"
+                        :style="
+                            sTab === 'table' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }
+                        "
+                    >
+                        <div>
+                            <v-icon>mdi-table</v-icon>
+                            RESULT
+                        </div>
+                    </button>
+                    <button
+                        @click="changeTab('log')"
+                        :style="sTab === 'log' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
+                    >
+                        <div>
+                            <v-icon>mdi-information</v-icon>
+                            LOG
+                        </div>
+                    </button>
+                </v-sheet>
+
+                <v-sheet class="tool-bar" color="transparent">
+                    <v-btn v-if="sTab === 'log'" @click="deleteLog()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon size="20px">mdi-delete-circle-outline</v-icon>
+                    </v-btn>
+                    <v-btn @click="changeVerticalType(false)" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon size="20px">mdi-flip-horizontal</v-icon>
+                    </v-btn>
+                    <v-btn @click="changeVerticalType(true)" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon size="20px">mdi-flip-vertical</v-icon>
+                    </v-btn>
+                </v-sheet>
             </v-sheet>
 
             <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" :p-timezone="sPropsTypeOption" :p-type="sType" />
 
             <v-sheet v-if="sTab === 'log'" ref="rLog" class="log-form" color="transparent" height="calc(100% - 40px)">
-                <v-btn @click="deleteLog()" class="log-delete-icon" density="comfortable" icon="mdi-delete-circle-outline" size="36px" variant="plain"></v-btn>
-
-                <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">{{ aLog.elapse }} / {{ aLog.query }}</div>
+                <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">
+                    * {{ aLog.elapse }}
+                    <div>{{ aLog.query }}</div>
+                </div>
             </v-sheet>
         </template>
     </DragCol>
+    <DragRow v-if="sVerticalType" height="100%" slider-bg-color="#202020" width="100%">
+        <template #top>
+            <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
+                <div class="editor-header">
+                    <div class="header-toggle">
+                        <!-- MACHBASE -->
+                        <v-btn @click="getButtonData" density="comfortable" icon="mdi-play" size="36px" variant="plain"></v-btn>
+                    </div>
+                    <div class="header-btn-list">
+                        <ComboboxAuto
+                            @e-on-change="(aValue) => changeTimeFormat(aValue)"
+                            class="select-width"
+                            :p-data="sList"
+                            :p-show-default-option="false"
+                            p-use-name
+                            :p-value="sSelectedFormat"
+                        />
+                        <ComboboxAuto
+                            @e-on-change="(aValue) => changeTimezone(aValue)"
+                            class="select-width"
+                            :p-data="IANA_TIMEZONES"
+                            :p-disabled="
+                                sSelectedFormat === 'TIMESTAMP(ns)' ||
+                                sSelectedFormat === 'TIMESTAMP(us)' ||
+                                sSelectedFormat === 'TIMESTAMP(ms)' ||
+                                sSelectedFormat === 'TIMESTAMP(s)'
+                            "
+                            :p-show-default-option="false"
+                            :p-value="sSelectedTimezone"
+                        />
+                        <v-icon @click="download" class="icon" icon="mdi-content-save" size="16px"></v-icon>
+                        <label class="item">
+                            <v-icon class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
+                            <input @change="upload" accept=".sql" class="file-import" type="file" />
+                        </label>
+                        <v-icon @click="showConfluence">mdi-book-education</v-icon>
+                        <v-tooltip location="bottom">
+                            <template #activator="{ props }">
+                                <v-icon v-bind="props"> mdi-help-circle-outline </v-icon>
+                            </template>
+                            <span>
+                                The semicolon is a statement terminator.<br />
+                                Ctrl+Enter executes the statement where the cursor places.<br />
+                            </span>
+                        </v-tooltip>
+                    </div>
+                </div>
+                <CodeEditor
+                    v-model="gBoard.code"
+                    ref="sText"
+                    @keydown.enter.stop="setSQL($event)"
+                    border_radius="0"
+                    height="calc(100% - 34px)"
+                    hide_header
+                    :languages="sLang"
+                    min_height="calc(100% - 34px)"
+                    theme=""
+                    width="100%"
+                />
+            </div>
+        </template>
+
+        <template #bottom>
+            <v-sheet class="tab-list" color="#202020" fixed-tabs height="40px">
+                <v-sheet class="tab-form">
+                    <button
+                        @click="changeTab('table')"
+                        class="delete-left-border"
+                        :style="
+                            sTab === 'table' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }
+                        "
+                    >
+                        <div>
+                            <v-icon>mdi-table</v-icon>
+                            RESULT
+                        </div>
+                    </button>
+                    <button
+                        @click="changeTab('log')"
+                        :style="sTab === 'log' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
+                    >
+                        <div>
+                            <v-icon>mdi-information</v-icon>
+                            LOG
+                        </div>
+                    </button>
+                </v-sheet>
+
+                <v-sheet class="tool-bar" color="transparent">
+                    <v-btn v-if="sTab === 'log'" @click="deleteLog()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon size="20px">mdi-delete-circle-outline</v-icon>
+                    </v-btn>
+                    <v-btn @click="changeVerticalType(false)" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon size="20px">mdi-flip-horizontal</v-icon>
+                    </v-btn>
+                    <v-btn @click="changeVerticalType(true)" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon size="20px">mdi-flip-vertical</v-icon>
+                    </v-btn>
+                </v-sheet>
+            </v-sheet>
+
+            <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" :p-timezone="sPropsTypeOption" :p-type="sType" />
+
+            <v-sheet v-if="sTab === 'log'" ref="rLog" class="log-form" color="transparent" height="calc(100% - 40px)">
+                <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">
+                    {{ aLog.elapse }}
+                    <div>{{ aLog.query }}</div>
+                </div>
+            </v-sheet>
+        </template>
+    </DragRow>
 </template>
 
 <script setup lang="ts" name="Editor">
@@ -123,9 +258,19 @@ let sType = ref<any>([]);
 let currentPage = ref<number>(1);
 let sSql = ref<string>('');
 let sTab = ref<string>('table');
+let sVerticalType = ref<boolean>(false);
+
+const sList = computed(() =>
+    sTimeFormatList.value.map((aItem) => {
+        return { id: aItem.name };
+    })
+);
 
 const sTimeFormatList = ref<any>([
-    { name: 'TIMESTAMP', id: '' },
+    { name: 'TIMESTAMP(ns)', id: 'ns' },
+    { name: 'TIMESTAMP(us)', id: 'us' },
+    { name: 'TIMESTAMP(ms)', id: 'ms' },
+    { name: 'TIMESTAMP(s)', id: 's' },
     { name: 'YYYY-MM-DD', id: '2006-01-02' },
     { name: 'YYYY-DD-MM', id: '2006-02-01' },
     { name: 'DD-MM-YYYY', id: '02-01-2006' },
@@ -143,15 +288,26 @@ const sTimeFormatList = ref<any>([
     { name: 'HH:MI:SS', id: '03:04:05' },
 ]);
 
-const sSelectedFormat = ref<any>('2006-01-02 15:04:05');
+const sSelectedFormat = ref<any>('YYYY-MM-DD HH:MI:SS');
 const sSelectedTimezone = ref<any>('LOCAL');
 
 let sLogField = ref<{ query: string; color: string; elapse: string }[]>([]);
 const gTableList = computed(() => store.state.gTableList);
 
+const changeVerticalType = (aItem: boolean) => {
+    sVerticalType.value = aItem;
+};
 const changeTimeFormat = (aItem: string) => {
     sSelectedFormat.value = aItem;
-    if (aItem === 'TIMESTAMP') changeTimezone('UTC');
+    const sFormat = sTimeFormatList.value.findIndex((bItem) => bItem.name === aItem);
+
+    if (
+        sTimeFormatList.value[sFormat].id === 'ns' ||
+        sTimeFormatList.value[sFormat].id === 'us' ||
+        sTimeFormatList.value[sFormat].id === 'ms' ||
+        sTimeFormatList.value[sFormat].id === 's'
+    )
+        changeTimezone('UTC');
 };
 
 const changeTimezone = (aItem: string) => {
@@ -168,6 +324,9 @@ const UpdateItems = () => {
     const sLimit = sSql.value.toLowerCase().indexOf('limit'.toLowerCase());
     currentPage.value++;
     if (sLimit === -1) getSQLData();
+};
+const showConfluence = () => {
+    window.open(`http://endoc.machbase.com`, '_blank');
 };
 
 const changeTabMode = (aItem: string) => {
@@ -285,10 +444,12 @@ const handleChange = async (aKeyPress: boolean) => {
 
 const getSQLData = async () => {
     if (sSql.value) {
+        const sFormat = sTimeFormatList.value.findIndex((aItem) => aItem.name === sSelectedFormat.value);
+
         const sLimit = sSql.value.toLowerCase().indexOf('limit'.toLowerCase());
         const sResult: any = await fetchData(
             sSql.value.replaceAll(/\n/g, ' ').replace(';', ''),
-            sSelectedFormat.value,
+            sTimeFormatList.value[sFormat].id,
             sSelectedTimezone.value,
             sLimit === -1 ? currentPage.value : ''
         );
@@ -296,25 +457,34 @@ const getSQLData = async () => {
         if (sResult.status >= 400) {
             changeTab('log');
             sLogField.value.push({
-                query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.data.reason,
+                query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase(),
                 color: '#a85400',
-                elapse: sResult.data.elapse,
+                elapse: sResult.data.elapse + ' : ' + sResult.data.reason,
             });
         }
         if (sResult && sResult.success) {
             if (!sResult.data) {
                 sLogField.value.push({
-                    query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason,
+                    query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase(),
                     color: '#217DF8',
-                    elapse: sResult.elapse,
+                    elapse: sResult.elapse + ' : ' + sResult.reason,
                 });
 
                 changeTab('log');
             } else {
-                sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase() + ' : ' + sResult.reason, color: '', elapse: sResult.elapse });
+                sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase(), color: '', elapse: sResult.elapse + ' : ' + sResult.reason });
 
                 changeTab('table');
-                sPropsTypeOption.value = sSelectedTimezone.value;
+                if (
+                    sTimeFormatList.value[sFormat].id === 'ns' ||
+                    sTimeFormatList.value[sFormat].id === 'us' ||
+                    sTimeFormatList.value[sFormat].id === 'ms' ||
+                    sTimeFormatList.value[sFormat].id === 's'
+                ) {
+                    sPropsTypeOption.value = sTimeFormatList.value[sFormat].id;
+                } else {
+                    sPropsTypeOption.value = sSelectedTimezone.value;
+                }
                 sType.value = sResult.data.types;
                 sHeader.value = sResult.data.columns;
                 sResult.data.rows.forEach((aItem: any) => {
@@ -355,6 +525,15 @@ onMounted(async () => {
 
 <style lang="scss">
 @import 'index.scss';
+.drager_col {
+    textarea,
+    table,
+    .log-form,
+    .language-SQL {
+        font-family: 'D2Coding' !important;
+    }
+}
+
 .file-import {
     display: none;
 }
@@ -393,11 +572,25 @@ onMounted(async () => {
 .tab-list {
     display: flex;
     height: 10%;
+    justify-content: space-between;
+}
+.tab-form {
+    display: flex;
+}
+.tool-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-right: 20px;
+    gap: 12px;
+    button {
+        color: white;
+    }
 }
 
-.drager_top div {
-    overflow: auto !important;
-}
+// .drager_top div {
+//     overflow: auto !important;
+// }
 
 .drager_top div::-webkit-scrollbar {
     width: 5px;
@@ -424,6 +617,7 @@ onMounted(async () => {
     padding: 0 16px;
     overflow: auto;
     position: relative;
+    white-space: nowrap;
     .log-delete-icon {
         position: absolute;
         top: 10px;
@@ -497,6 +691,9 @@ onMounted(async () => {
     background: #141415;
 }
 
+.file-import-icon {
+    cursor: pointer;
+}
 .log-form::-webkit-scrollbar-thumb {
     width: 5px;
     height: 5px;
@@ -715,5 +912,10 @@ onMounted(async () => {
     .hljs-meta-keyword {
         font-weight: 700;
     }
+}
+
+@font-face {
+    font-family: 'D2Coding';
+    src: url('@/assets/font/D2Coding-Ver1.3.2-20180524.woff') format(woff);
 }
 </style>

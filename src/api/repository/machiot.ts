@@ -217,18 +217,19 @@ const fetchRollupData = async (params: any) => {
 const fetchTablesData = async () => {
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=SELECT decode(s.DBID, -1, s.NAME, m.MOUNTDB || '.' || s.OWNER || ',' || s.NAME) AS name FROM (SELECT t.NAME AS name, u.NAME AS owner, t.DATABASE_ID AS dbid FROM m$sys_tables t, m$sys_users u WHERE t.USER_ID = u.USER_ID AND t.TYPE = 6 ORDER BY dbid, name) s LEFT OUTER JOIN V$STORAGE_MOUNT_DATABASES m ON s.DBID = m.BACKUP_TBSID ORDER BY name`,
+        url: `/api/tables`,
     });
     if (sData.status >= 400) {
         alert(sData.data.reason);
     }
+
     return sData;
 };
 
 const fetchTags = async (table: string) => {
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=select name from _${table}_META order by name`,
+        url: `/api/tables/${table}/tags`,
     });
     if (sData.status >= 400) {
         alert(sData.data.reason);
