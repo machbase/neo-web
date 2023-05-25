@@ -81,14 +81,15 @@ const mutations = {
         state.gTabList[sIdx].refresh = aTimeRange.refresh || '';
     },
     [MutationTypes.setTableList](state: RootState, aTableList: { columns: string[]; rows: string[]; types: string[] }) {
+        const sIdx = aTableList.columns.findIndex((aItem) => aItem === 'NAME');
         const newTable = aTableList.rows.map((aTable) => {
-            return aTable[0];
+            return aTable[sIdx];
         });
         state.gTableList = newTable;
     },
     [MutationTypes.setTagList](state: RootState, aTagList: any) {
         state.gTagList = aTagList.rows.map((aItem: string[]) => {
-            return aItem[0];
+            return aItem[1];
         });
     },
     [MutationTypes.setTempNewChartData](state: RootState, aTemp: TempNewChartData) {

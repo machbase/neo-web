@@ -71,34 +71,35 @@ onMounted(async () => {
     await getLogin();
 
     selectedTab = gSelectedTab.value;
+    const sStorageData = localStorage.getItem('gPreference');
 
     sTerm = new Terminal({
         theme: cIsDarkMode.value
             ? {}
             : {
-                foreground: '#3b2322',
-                background: '#efefef',
-                cursor: '#73635a',
-                black: '#000000',
-                brightBlack: '#808080',
-                red: '#cc0000',
-                brightRed: '#cc0000',
-                green: '#009600',
-                brightGreen: '#009600',
-                yellow: '#d06b00',
-                brightYellow: '#d06b00',
-                blue: '#0000cc',
-                brightBlue: '#0000cc',
-                magenta: '#cc00cc',
-                brightMagenta: '#cc00cc',
-                cyan: '#0087cc',
-                brightCyan: '#0087cc',
-                white: '#cccccc',
-                brightWhite: '#ffffff'
-        },
-        fontFamily: '"Open Sans", "Monaco", "Lucida Console", "Courier New", sans-serif, monospace',
+                  foreground: '#3b2322',
+                  background: '#efefef',
+                  cursor: '#73635a',
+                  black: '#000000',
+                  brightBlack: '#808080',
+                  red: '#cc0000',
+                  brightRed: '#cc0000',
+                  green: '#009600',
+                  brightGreen: '#009600',
+                  yellow: '#d06b00',
+                  brightYellow: '#d06b00',
+                  blue: '#0000cc',
+                  brightBlue: '#0000cc',
+                  magenta: '#cc00cc',
+                  brightMagenta: '#cc00cc',
+                  cyan: '#0087cc',
+                  brightCyan: '#0087cc',
+                  white: '#cccccc',
+                  brightWhite: '#ffffff',
+              },
+        fontFamily: '"D2Coding", "Monaco", "Lucida Console", "Courier New", sans-serif, monospace',
         allowProposedApi: true,
-        fontSize: 17,
+        fontSize: sStorageData ? Number(JSON.parse(sStorageData).font) : 18,
         windowsMode: true,
     });
     sTermId = makeTermId();
