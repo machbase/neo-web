@@ -71,6 +71,7 @@ onMounted(async () => {
     await getLogin();
 
     selectedTab = gSelectedTab.value;
+    const sStorageData = localStorage.getItem('gPreference');
 
     sTerm = new Terminal({
         theme: cIsDarkMode.value
@@ -98,7 +99,7 @@ onMounted(async () => {
               },
         fontFamily: '"D2Coding", "Monaco", "Lucida Console", "Courier New", sans-serif, monospace',
         allowProposedApi: true,
-        fontSize: 17,
+        fontSize: sStorageData ? Number(JSON.parse(sStorageData).font) : 18,
         windowsMode: true,
     });
     sTermId = makeTermId();

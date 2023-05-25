@@ -51,6 +51,7 @@
                     ref="sText"
                     @keydown.enter.stop="setSQL($event)"
                     border_radius="0"
+                    :class="cFontSizeClassName"
                     height="calc(100% - 34px)"
                     hide_header
                     :languages="sLang"
@@ -99,13 +100,13 @@
                     </v-btn>
                 </v-sheet>
             </v-sheet>
-
             <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" :p-timezone="sPropsTypeOption" :p-type="sType" />
 
-            <v-sheet v-if="sTab === 'log'" ref="rLog" class="log-form" color="transparent" height="calc(100% - 40px)">
+            <v-sheet v-if="sTab === 'log'" ref="rLog" class="log-form" :class="cLogFormFontSizeClassName" color="transparent" height="calc(100% - 40px)">
                 <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">
-                    * {{ aLog.elapse }}
-                    <div>{{ aLog.query }}</div>
+                    <div class="log-query">{{ aLog.query }}</div>
+                    <div class="log-status">{{ aLog.elapse }}</div>
+                    <div class="log-padding"></div>
                 </div>
             </v-sheet>
         </template>
@@ -162,6 +163,7 @@
                     ref="sText"
                     @keydown.enter.stop="setSQL($event)"
                     border_radius="0"
+                    :class="cFontSizeClassName"
                     height="calc(100% - 34px)"
                     hide_header
                     :languages="sLang"
@@ -213,10 +215,11 @@
 
             <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" :p-timezone="sPropsTypeOption" :p-type="sType" />
 
-            <v-sheet v-if="sTab === 'log'" ref="rLog" class="log-form" color="transparent" height="calc(100% - 40px)">
+            <v-sheet v-if="sTab === 'log'" ref="rLog" class="log-form" :class="cLogFormFontSizeClassName" color="transparent" height="calc(100% - 40px)">
                 <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">
-                    {{ aLog.elapse }}
-                    <div>{{ aLog.query }}</div>
+                    <div class="log-query">{{ aLog.query }}</div>
+                    <div class="log-status">{{ aLog.elapse }}</div>
+                    <div class="log-padding"></div>
                 </div>
             </v-sheet>
         </template>
@@ -290,6 +293,53 @@ const sTimeFormatList = ref<any>([
 
 const sSelectedFormat = ref<any>('YYYY-MM-DD HH:MI:SS');
 const sSelectedTimezone = ref<any>('LOCAL');
+
+const cFontSizeClassName = computed(() => {
+    const sStorageData = localStorage.getItem('gPreference');
+    if (sStorageData) {
+        const sData = JSON.parse(sStorageData).font;
+        if (sData === '12') {
+            return 'editor-font-size-xx-small';
+        } else if (sData === '14') {
+            return 'editor-font-size-x-small';
+        } else if (sData === '16') {
+            return 'editor-font-size-small';
+        } else if (sData === '18') {
+            return 'editor-font-size-medium';
+        } else if (sData === '20') {
+            return 'editor-font-size-large';
+        } else if (sData === '22') {
+            return 'editor-font-size-x-large';
+        } else {
+            return 'editor-font-size-xx-large';
+        }
+    } else {
+        return 'editor-font-size-medium';
+    }
+});
+const cLogFormFontSizeClassName = computed(() => {
+    const sStorageData = localStorage.getItem('gPreference');
+    if (sStorageData) {
+        const sData = JSON.parse(sStorageData).font;
+        if (sData === '12') {
+            return 'log-size-xx-small';
+        } else if (sData === '14') {
+            return 'log-size-x-small';
+        } else if (sData === '16') {
+            return 'log-size-small';
+        } else if (sData === '18') {
+            return 'log-size-medium';
+        } else if (sData === '20') {
+            return 'log-size-large';
+        } else if (sData === '22') {
+            return 'log-size-x-large';
+        } else {
+            return 'log-size-xx-large';
+        }
+    } else {
+        return 'log-size-medium';
+    }
+});
 
 let sLogField = ref<{ query: string; color: string; elapse: string }[]>([]);
 const gTableList = computed(() => store.state.gTableList);
@@ -525,7 +575,17 @@ onMounted(async () => {
 
 <style lang="scss">
 @import 'index.scss';
+
 .drager_col {
+    textarea,
+    table,
+    .log-form,
+    .language-SQL {
+        font-family: 'D2Coding' !important;
+    }
+}
+.drager_top,
+.drager_bottom {
     textarea,
     table,
     .log-form,
@@ -663,7 +723,8 @@ onMounted(async () => {
     background-color: rgb(101, 111, 121);
 }
 .drager_bottom div {
-    overflow: auto !important;
+    overflow-x: auto !important;
+    overflow-y: hidden;
 }
 
 .hide_header textarea::-webkit-scrollbar {
@@ -701,6 +762,18 @@ onMounted(async () => {
 }
 .hide_header .code_area {
     height: 100% !important;
+}
+.log-query {
+    // overflow: hidden;
+}
+.log-status {
+    overflow: hidden;
+    font-style: italic;
+    line-height: 15px;
+}
+
+.log-padding {
+    height: 10px;
 }
 
 .delete-left-border {

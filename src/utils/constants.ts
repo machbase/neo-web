@@ -305,6 +305,36 @@ export const THEME_MODE = [
         name: 'machIoTchartBlack',
     },
 ];
+export const FONT_SIZE = [
+    {
+        name: 'xx-small',
+        id: '12',
+    },
+    {
+        name: 'x-small',
+        id: '14',
+    },
+    {
+        name: 'small',
+        id: '16',
+    },
+    {
+        name: 'medium',
+        id: '18',
+    },
+    {
+        name: 'large',
+        id: '20',
+    },
+    {
+        name: 'x-large',
+        id: '20',
+    },
+    {
+        name: 'xx-large',
+        id: '22',
+    },
+];
 
 export const DEFAULT_CHART = {
     index_key: new Date().getTime(),

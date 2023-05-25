@@ -6,6 +6,12 @@
                 <ComboboxSelect @e-on-change="(aValue) => aIsChangeTheme(aValue, true)" :p-data="THEME_MODE" :p-string-default="SELECT_THEME" :p-value="cPreferences.theme" />
             </div>
         </div>
+        <div class="popup__input">
+            <p class="popup__input-label">Font Size</p>
+            <div class="popup__input-content">
+                <ComboboxSelect @e-on-change="(aValue) => ChangeFont(aValue, true)" :p-data="FONT_SIZE" :p-value="cPreferences.font" />
+            </div>
+        </div>
 
         <div class="popup__btn-group">
             <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> Ok </v-btn>
@@ -18,7 +24,7 @@
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
-import { THEME_MODE } from '@/utils/constants';
+import { THEME_MODE, FONT_SIZE } from '@/utils/constants';
 import { computed, reactive, defineEmits } from 'vue';
 import { DEFAULT_PREFERENCE, NOT_YET, SELECT_THEME } from './constant';
 import { isEqual } from 'lodash';
@@ -28,7 +34,9 @@ const emit = defineEmits(['eClosePopup']);
 const store = useStore();
 const sData = reactive({
     theme: cPreferences.value.theme || DEFAULT_PREFERENCE.THEME,
+    font: cPreferences.value.font || DEFAULT_PREFERENCE.font,
 });
+
 const cBoardList = computed(() =>
     store.state.gBoardList.map((aItem) => {
         return {
@@ -42,6 +50,11 @@ const cBoardList = computed(() =>
 const aIsChangeTheme = (aValue: string, aType: boolean) => {
     if (aType) {
         sData.theme = aValue;
+    }
+};
+const ChangeFont = (aValue: string, aType: boolean) => {
+    if (aType) {
+        sData.font = aValue;
     }
 };
 const onChangeInput = (aEvent: Event) => {

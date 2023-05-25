@@ -10,6 +10,7 @@ const state = {
         ({
             ip: '127.0.0.1',
             theme: 'machIoTchartWhite',
+            font: '16',
             home_board: '',
             timeout: 20000,
             port: '5657',

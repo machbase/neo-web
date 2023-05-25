@@ -14,6 +14,7 @@ const MAX_TAG_COUNT = 12;
 const DEFAULT_PREFERENCE = {
     IP: '127.0.0.1',
     PORT: '5657',
+    font: '16',
     THEME: 'machIoTchartBlack',
     TIMEOUT: 20000,
 };

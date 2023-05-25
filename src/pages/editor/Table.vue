@@ -1,5 +1,5 @@
 <template>
-    <v-sheet ref="scrollRef" @scroll="handleScroll" class="scroll-wrapper" color="transparent" height="calc(100% - 40px)">
+    <v-sheet ref="scrollRef" @scroll="handleScroll" class="scroll-wrapper" :class="cTableFontSizeClassName" color="transparent" height="calc(100% - 40px)">
         <div v-if="onContext" @contextmenu.prevent @mousedown="onContext = false" class="cover"></div>
         <Transition>
             <div v-show="onContext" ref="contextMenu" @contextmenu.prevent class="contextOption">
@@ -85,7 +85,29 @@ const props = defineProps({
 const handleZeroScroll = () => {
     window.scrollTo(0, 0);
 };
-
+const cTableFontSizeClassName = computed(() => {
+    const sStorageData = localStorage.getItem('gPreference');
+    if (sStorageData) {
+        const sData = JSON.parse(sStorageData).font;
+        if (sData === '12') {
+            return 'table-font-size-xx-small';
+        } else if (sData === '14') {
+            return 'table-font-size-x-small';
+        } else if (sData === '16') {
+            return 'table-font-size-small';
+        } else if (sData === '18') {
+            return 'table-font-size-medium';
+        } else if (sData === '20') {
+            return 'table-font-size-large';
+        } else if (sData === '22') {
+            return 'table-font-size-x-large';
+        } else {
+            return 'table-font-size-xx-large';
+        }
+    } else {
+        return 'table-font-size-medium';
+    }
+});
 const sData = ref('');
 
 const emits = defineEmits(['UpdateItems']);
@@ -151,6 +173,50 @@ const openContextMenu = (e: any, aValue: string) => {
 
 <style lang="scss" scoped>
 @import '@/assets/scss/theme.scss';
+// table
+
+.table-font-size-xx-small {
+    th,
+    td {
+        font-size: 9px !important;
+    }
+}
+.table-font-size-x-small {
+    th,
+    td {
+        font-size: 11px !important;
+    }
+}
+.table-font-size-small {
+    th,
+    td {
+        font-size: 13px !important;
+    }
+}
+.table-font-size-medium {
+    th,
+    td {
+        font-size: 15px !important;
+    }
+}
+.table-font-size-large {
+    th,
+    td {
+        font-size: 17px !important;
+    }
+}
+.table-font-size-x-large {
+    th,
+    td {
+        font-size: 19px !important;
+    }
+}
+.table-font-size-xx-large {
+    th,
+    td {
+        font-size: 21px !important;
+    }
+}
 .contextOption {
     position: fixed;
     z-index: 1001;
@@ -236,7 +302,6 @@ td {
 th {
     max-width: 300px;
     font-weight: bold;
-    font-size: 13px;
     padding: 0 16px;
     border-bottom: 1px solid white;
     min-width: 100px;
@@ -252,7 +317,6 @@ td {
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 20vw;
-    font-size: 12px;
     font-weight: 300;
     vertical-align: center !important;
     padding: 0 16px;
