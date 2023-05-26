@@ -9,7 +9,7 @@
         <div class="popup__input">
             <p class="popup__input-label">Font Size</p>
             <div class="popup__input-content">
-                <ComboboxSelect @e-on-change="(aValue) => ChangeFont(aValue, true)" :p-data="FONT_SIZE" :p-value="cPreferences.font" />
+                <ComboboxSelect @e-on-change="(aValue) => ChangeFont(aValue, true)" :p-data="FONT_SIZE" :p-show-default-option="false" :p-value="cPreferences.font" />
             </div>
         </div>
 
