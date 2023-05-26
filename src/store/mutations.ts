@@ -199,6 +199,7 @@ const mutations = {
         const sIdx = state.gTabList.findIndex((aItem) => aItem.board_id === state.gSelectedTab);
 
         state.gTabList[sIdx].panels[state.gBoardPanelEdit.index][0] = state.gBoardPanelEdit.item;
+        state.gBoardPanelEdit.item = {} as BoardPanelEdit;
     },
     [MutationTypes.setBoardByFileUpload](state: RootState, payload: BoardInfo) {
         state.gBoard.board_id = payload.board_id;

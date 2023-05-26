@@ -1,8 +1,9 @@
 @import '@/assets/scss/theme.scss';
 
-.popup__btn-group{
+.popup__btn-group {
     display: flex;
     justify-content: end;
+    gap: 8px;
     .button-effect-color {
         border-radius: 0;
         background-color: $color-blue;
@@ -12,7 +13,21 @@
         font-size: 12px;
         height: 30px;
         width: 70px;
-    
+
+        &:hover {
+            font-weight: bold;
+        }
+    }
+    .button-effect-color-apply {
+        border-radius: 0;
+        background-color: $d-bg-login-btn;
+        color: $text-w;
+        border: 1px solid $d-bg-login-btn;
+        text-transform: capitalize;
+        font-size: 12px;
+        height: 30px;
+        width: 70px;
+
         &:hover {
             font-weight: bold;
         }
@@ -37,7 +52,7 @@
     }
 }
 
-.popup__btn-group{
+.popup__btn-group {
     height: 40px;
 }
 .chart-edit-page {
@@ -72,11 +87,11 @@
                 background-color: theme-get('bg-color-button') !important;
                 border: 1px solid theme-get('border-chart') !important;
             }
-            div{
+            div {
                 margin-right: 15px;
                 cursor: pointer;
             }
-            
+
         }
 
         .inner-tab {
