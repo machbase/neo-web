@@ -55,7 +55,7 @@
                     :header="false"
                     height="calc(100% - 34px)"
                     :languages="sLang"
-                    line_nums
+                    :line_nums="false"
                     min_height="calc(100% - 34px)"
                     theme=""
                     width="100%"
@@ -169,6 +169,7 @@
                     :header="false"
                     height="calc(100% - 34px)"
                     :languages="sLang"
+                    :line_nums="false"
                     min_height="calc(100% - 34px)"
                     theme=""
                     width="100%"
@@ -206,10 +207,10 @@
                     <v-btn v-if="sTab === 'log'" @click="deleteLog()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon size="20px">mdi-delete-circle-outline</v-icon>
                     </v-btn>
-                    <v-btn @click="changeVerticalType(false)" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                    <v-btn @click="changeVerticalType(false)" class="log-delete-icon editor-option" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon size="20px">mdi-flip-horizontal</v-icon>
                     </v-btn>
-                    <v-btn @click="changeVerticalType(true)" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                    <v-btn @click="changeVerticalType(true)" class="log-delete-icon editor-option" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon size="20px">mdi-flip-vertical</v-icon>
                     </v-btn>
                 </v-sheet>
@@ -348,6 +349,7 @@ const gTableList = computed(() => store.state.gTableList);
 
 const changeVerticalType = (aItem: boolean) => {
     sVerticalType.value = aItem;
+    localStorage.setItem('vertical', String(aItem));
 };
 const changeTimeFormat = (aItem: string) => {
     sSelectedFormat.value = aItem;
@@ -551,6 +553,13 @@ const getSQLData = async () => {
 };
 
 onMounted(async () => {
+    if (localStorage.getItem('vertical')) {
+        if (localStorage.getItem('vertical') === 'true') {
+            sVerticalType.value = true;
+        } else {
+            sVerticalType.value = false;
+        }
+    }
     if (!gBoard.value.code) {
         if (gTableList.value[0]) {
             gBoard.value.code = `select * from ${gTableList.value[0]};`;
@@ -990,5 +999,8 @@ onMounted(async () => {
 }
 .code-area {
     border-radius: 0 !important;
+}
+.editor-option {
+    transform: rotate(180deg);
 }
 </style>

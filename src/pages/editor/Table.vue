@@ -108,6 +108,7 @@ const cTableFontSizeClassName = computed(() => {
         return 'table-font-size-medium';
     }
 });
+const yScroll = ref(0);
 const sData = ref('');
 
 const emits = defineEmits(['UpdateItems']);
@@ -145,9 +146,12 @@ const onClosePopup = () => {
 };
 const handleScroll = (e: any) => {
     const { scrollHeight, scrollTop, clientHeight } = e.target;
-    const isAtTheBottom = scrollTop + clientHeight - 5 < scrollHeight && scrollHeight < scrollTop + clientHeight + 5;
-    if (isAtTheBottom) {
-        emits('UpdateItems');
+    if (!(e.target.scrollTop === yScroll.value)) {
+        const isAtTheBottom = scrollTop + clientHeight - 5 < scrollHeight && scrollHeight < scrollTop + clientHeight + 5;
+        if (isAtTheBottom) {
+            emits('UpdateItems');
+        }
+        yScroll.value = e.target.scrollTop;
     }
 };
 const copyContent = () => {
