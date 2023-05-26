@@ -52,12 +52,14 @@
                     @keydown.enter.stop="setSQL($event)"
                     border_radius="0"
                     :class="cFontSizeClassName"
+                    :header="false"
                     height="calc(100% - 34px)"
-                    hide_header
                     :languages="sLang"
+                    line_nums
                     min_height="calc(100% - 34px)"
                     theme=""
                     width="100%"
+                    :wrap="false"
                 />
             </div>
         </template>
@@ -164,8 +166,8 @@
                     @keydown.enter.stop="setSQL($event)"
                     border_radius="0"
                     :class="cFontSizeClassName"
+                    :header="false"
                     height="calc(100% - 34px)"
-                    hide_header
                     :languages="sLang"
                     min_height="calc(100% - 34px)"
                     theme=""
@@ -727,17 +729,17 @@ onMounted(async () => {
     overflow-y: hidden;
 }
 
-.hide_header textarea::-webkit-scrollbar {
+.code-area textarea::-webkit-scrollbar {
     width: 5px;
     height: 5px;
 }
 
-.hide_header textarea::-webkit-scrollbar-track {
+.code-area textarea::-webkit-scrollbar-track {
     -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
     background: #141415;
 }
 
-.hide_header textarea::-webkit-scrollbar-thumb {
+.code-area textarea::-webkit-scrollbar-thumb {
     width: 5px;
     height: 5px;
     background-color: rgb(101, 111, 121);
@@ -986,9 +988,7 @@ onMounted(async () => {
         font-weight: 700;
     }
 }
-
-@font-face {
-    font-family: 'D2Coding';
-    src: url('@/assets/font/D2Coding-Ver1.3.2-20180524.woff') format(woff);
+.code-area {
+    border-radius: 0 !important;
 }
 </style>

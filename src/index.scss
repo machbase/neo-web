@@ -13,6 +13,10 @@
     }
     flex: 1;
 }
+@font-face {
+    font-family: 'D2Coding';
+    src: url('@/assets/font/D2Coding-Ver1.3.2-20180524.woff') format(woff);
+}
 body {
     overflow: overlay;
 }
