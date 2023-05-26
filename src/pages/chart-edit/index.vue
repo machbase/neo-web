@@ -8,11 +8,7 @@
                         {{ item }}
                     </li>
                 </ul>
-                <div>
-                    <v-icon @click="onSave" size="1px"> mdi-check </v-icon>
-                </div>
             </div>
-
             <div class="inner-tab">
                 <GeneralTab v-if="tabIndex === 0" @e-on-change="onChangeTabData" :p-chart-data="sDataChart[0]" />
                 <DataTab v-if="tabIndex === 1" @e-on-change="onChangeTabData" :p-chart-data="sDataChart[0]" />
@@ -23,7 +19,8 @@
         </div>
     </div>
     <div class="popup__btn-group">
-        <v-btn @click="onSaveEdit" class="button-effect-color" variant="outlined"> Ok </v-btn>
+        <v-btn @click="onSave" class="button-effect-color-apply" variant="outlined"> Apply </v-btn>
+        <v-btn @click="onSaveEdit" class="button-effect-color" :disabled="JSON.stringify(store.state.gBoardPanelEdit.item) === '{}'" variant="outlined"> Ok </v-btn>
         <v-btn @click="onClosePopup" class="button-effect" variant="outlined"> Cancel </v-btn>
     </div>
 </template>
