@@ -104,7 +104,11 @@ onMounted(async () => {
     });
     sTermId = makeTermId();
 
-    sWebSoc = new WebSocket(`ws://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}`);
+    if (window.location.protocol.indexOf('https') === -1) {
+        sWebSoc = new WebSocket(`ws://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}`);
+    } else {
+        sWebSoc = new WebSocket(`wss://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}`);
+    }
 
     sFitter = new FitAddon();
     sTerm.loadAddon(new WebLinksAddon());

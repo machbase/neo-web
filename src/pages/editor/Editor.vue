@@ -1,5 +1,5 @@
 <template>
-    <DragCol v-if="!sVerticalType" height="100%" slider-bg-color="#202020" width="100%">
+    <DragCol v-if="!sVerticalType" @isDragging="dragLine" height="100%" slider-bg-color="#202020" width="100%">
         <template #left>
             <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
                 <div class="editor-header">
@@ -80,6 +80,18 @@
                         </div>
                     </button>
                     <button
+                        @click="changeTab('chart')"
+                        class="delete-left-border"
+                        :style="
+                            sTab === 'chart' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }
+                        "
+                    >
+                        <div>
+                            <v-icon>mdi-chart-line</v-icon>
+                            Chart
+                        </div>
+                    </button>
+                    <button
                         @click="changeTab('log')"
                         :style="sTab === 'log' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
                     >
@@ -102,7 +114,8 @@
                     </v-btn>
                 </v-sheet>
             </v-sheet>
-            <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" :p-timezone="sPropsTypeOption" :p-type="sType" />
+            <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" @eShowChart="showChart" :headers="sHeader" :items="sData" :p-timezone="sPropsTypeOption" :p-type="sType" />
+            <ShowChart v-if="sTab === 'chart'" ref="rChartTab" :p-headers="sHeader" :p-sql="sSql" />
 
             <v-sheet v-if="sTab === 'log'" ref="rLog" class="log-form" :class="cLogFormFontSizeClassName" color="transparent" height="calc(100% - 40px)">
                 <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">
@@ -113,7 +126,7 @@
             </v-sheet>
         </template>
     </DragCol>
-    <DragRow v-if="sVerticalType" height="100%" slider-bg-color="#202020" width="100%">
+    <DragRow v-if="sVerticalType" @isDragging="dragLine" height="100%" slider-bg-color="#202020" width="100%">
         <template #top>
             <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
                 <div class="editor-header">
@@ -193,6 +206,18 @@
                         </div>
                     </button>
                     <button
+                        @click="changeTab('chart')"
+                        class="delete-left-border"
+                        :style="
+                            sTab === 'chart' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }
+                        "
+                    >
+                        <div>
+                            <v-icon>mdi-chart-line</v-icon>
+                            Chart
+                        </div>
+                    </button>
+                    <button
                         @click="changeTab('log')"
                         :style="sTab === 'log' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
                     >
@@ -217,6 +242,7 @@
             </v-sheet>
 
             <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" :p-timezone="sPropsTypeOption" :p-type="sType" />
+            <ShowChart v-if="sTab === 'chart'" ref="rChartTab" :p-headers="sHeader" :p-sql="sSql" />
 
             <v-sheet v-if="sTab === 'log'" ref="rLog" class="log-form" :class="cLogFormFontSizeClassName" color="transparent" height="calc(100% - 40px)">
                 <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">
@@ -232,6 +258,7 @@
 <script setup lang="ts" name="Editor">
 import CodeEditor from 'simple-code-editor';
 import Table from './Table.vue';
+import ShowChart from './showChart.vue';
 import { ref, watch, defineEmits, defineProps, computed, onMounted, nextTick } from 'vue';
 import { store } from '../../store';
 import { fetchData } from '../../api/repository/machiot';
@@ -257,6 +284,7 @@ const gBoard = computed(() => {
 
 let sPropsTypeOption = ref<string>('');
 let sText = ref<any>('');
+let sSelectTagName = ref<any>('');
 let rLog = ref<any>('');
 let sData = ref<any>([]);
 let sHeader = ref<any>([]);
@@ -271,6 +299,8 @@ const sList = computed(() =>
         return { id: aItem.name };
     })
 );
+
+const rChartTab = ref();
 
 const sTimeFormatList = ref<any>([
     { name: 'TIMESTAMP(ns)', id: 'ns' },
@@ -297,6 +327,11 @@ const sTimeFormatList = ref<any>([
 const sSelectedFormat = ref<any>('YYYY-MM-DD HH:MI:SS');
 const sSelectedTimezone = ref<any>('LOCAL');
 
+const dragLine = (aStatus: boolean) => {
+    if (sTab.value === 'chart' && aStatus === false) {
+        rChartTab.value.getChartEl();
+    }
+};
 const cFontSizeClassName = computed(() => {
     const sStorageData = localStorage.getItem('gPreference');
     if (sStorageData) {
@@ -366,6 +401,10 @@ const changeTimeFormat = (aItem: string) => {
 
 const changeTimezone = (aItem: string) => {
     sSelectedTimezone.value = aItem;
+};
+
+const showChart = (aTagName: string) => {
+    sSelectTagName.value = aTagName;
 };
 
 const changeTab = (aItem: string) => {
@@ -523,11 +562,9 @@ const getSQLData = async () => {
                     color: '#217DF8',
                     elapse: sResult.elapse + ' : ' + sResult.reason,
                 });
-
                 changeTab('log');
             } else {
                 sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase(), color: '', elapse: sResult.elapse + ' : ' + sResult.reason });
-
                 changeTab('table');
                 if (
                     sTimeFormatList.value[sFormat].id === 'ns' ||
@@ -563,7 +600,7 @@ onMounted(async () => {
     if (!gBoard.value.code) {
         if (gTableList.value[0]) {
             gBoard.value.code = `select * from ${gTableList.value[0]};`;
-            sSql.value = gBoard.value.code;
+            sSql.value = gBoard.value.code.replace(';', '');
             await getSQLData();
         }
     }
