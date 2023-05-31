@@ -6,6 +6,7 @@
                 <div class="context-option-form">
                     <button @click="onClickPopupItem('SHOW CONTENT')" class="show"><v-icon size="14px">mdi-monitor</v-icon> show full content</button>
                     <button @click="copyContent" class="copy"><v-icon size="14px">mdi-content-copy</v-icon> copy</button>
+                    <!-- <button @click="showChart" class="copy"><v-icon size="14px">mdi-chart-line</v-icon> show chart</button> -->
                 </div>
             </div>
         </Transition>
@@ -41,7 +42,7 @@
                     <td>
                         <span>{{ index + 1 }}</span>
                     </td>
-                    <td v-for="(value, aIdx) in content" :key="aIdx" @contextmenu.prevent @mousedown.right.stop="openContextMenu($event, value)">
+                    <td v-for="(value, aIdx) in content" :key="aIdx" @contextmenu.prevent @mousedown.right.stop="openContextMenu($event, value, content)">
                         <span> {{ pType[aIdx] === 'double' ? (String(value).indexOf('e') === -1 ? value : changeNumberType(value)) : value }}</span>
                     </td>
                 </tr>
@@ -62,6 +63,7 @@ import { changeNumberType } from '@/utils/utils';
 
 const onContext = ref(false);
 const contextMenu = ref();
+const sTagName = ref();
 
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const sPopupType = ref<PopupType>(PopupType.NEW_CHART);
@@ -111,7 +113,7 @@ const cTableFontSizeClassName = computed(() => {
 const yScroll = ref(0);
 const sData = ref('');
 
-const emits = defineEmits(['UpdateItems']);
+const emits = defineEmits(['UpdateItems', 'eShowChart']);
 const scrollRef = ref();
 const sDialog = ref<boolean>(false);
 
@@ -119,6 +121,10 @@ const onClickPopupItem = (aPopupName: PopupType) => {
     sPopupType.value = aPopupName;
     sDialog.value = true;
     onContext.value = false;
+};
+
+const showChart = () => {
+    emits('eShowChart', sTagName.value);
 };
 
 const cWidthPopup = computed((): string => {
@@ -161,13 +167,15 @@ const copyContent = () => {
             console.log(error);
         } else {
             // alert('Copied');
-            console.log(event);
             onContext.value = false;
         }
     });
 };
 
-const openContextMenu = (e: any, aValue: string) => {
+const openContextMenu = (e: any, aValue: string, aContents: any) => {
+    const sNameIdx = props.headers.findIndex((aItem: string) => aItem.toLowerCase() === 'name');
+
+    sTagName.value = aContents[sNameIdx];
     onContext.value = !onContext.value;
     contextMenu.value.style.top = e.y + 'px';
     contextMenu.value.style.left = e.x + 'px';

@@ -1,5 +1,12 @@
 import request from '@/api/core';
 
+const getChartElement = (aInput: string, aOutput: string, aWidth: number, aHeight: number) => {
+    return request({
+        method: 'GET',
+        url: `/api/tql?_tq=(${aInput})&_tq=(${aOutput})&width=${aWidth}px&height=${aHeight}px`,
+    });
+};
+
 const getChartMinMaxData = async (aTable: string, aTag: string) => {
     return await request({
         method: 'GET',
@@ -283,4 +290,5 @@ export {
     postTerminalSize,
     getChartData,
     getChartMinMaxData,
+    getChartElement,
 };
