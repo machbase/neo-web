@@ -6,6 +6,13 @@ const getChartElement = (aInput: string, aOutput: string, aWidth: number, aHeigh
         url: `/api/tql?_tq=(${aInput})&_tq=(${aOutput})&width=${aWidth}px&height=${aHeight}px`,
     });
 };
+const getTqlChart = (aData: string) => {
+    return request({
+        method: 'POST',
+        url: `/api/tql`,
+        data: aData,
+    });
+};
 
 const getChartMinMaxData = async (aTable: string, aTag: string) => {
     return await request({
@@ -291,4 +298,5 @@ export {
     getChartData,
     getChartMinMaxData,
     getChartElement,
+    getTqlChart,
 };

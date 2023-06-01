@@ -1,0 +1,831 @@
+<template>
+    <DragCol v-if="!sVerticalType" @isDragging="dragLine" height="100%" slider-bg-color="#202020" width="100%">
+        <template #left>
+            <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
+                <div class="editor-header">
+                    <div class="header-toggle">
+                        <!-- MACHBASE -->
+                        <v-btn @click="getButtonData" density="comfortable" icon="mdi-play" size="36px" variant="plain"></v-btn>
+                    </div>
+                </div>
+                <CodeEditor
+                    v-model="gBoard.code"
+                    ref="sText"
+                    @keydown.enter.stop="setSQL($event)"
+                    border_radius="0"
+                    :class="cFontSizeClassName"
+                    :header="false"
+                    height="calc(100% - 34px)"
+                    :languages="sLang"
+                    :line_nums="false"
+                    min_height="calc(100% - 34px)"
+                    theme=""
+                    width="100%"
+                    :wrap="false"
+                />
+            </div>
+        </template>
+
+        <template #right>
+            <v-sheet class="tab-list" color="#202020" fixed-tabs height="40px">
+                <v-sheet class="tab-form">
+                    <!-- <button
+                        @click="changeTab('table')"
+                        class="delete-left-border"
+                        :style="
+                            sTab === 'table' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }
+                        "
+                    >
+                        <div>
+                            <v-icon>mdi-table</v-icon>
+                            RESULT
+                        </div>
+                    </button> -->
+                    <button
+                        @click="changeTab('chart')"
+                        class="delete-left-border"
+                        :style="
+                            sTab === 'chart' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }
+                        "
+                    >
+                        <div>
+                            <v-icon>mdi-chart-line</v-icon>
+                            Result
+                        </div>
+                    </button>
+                    <!-- <button
+                        @click="changeTab('log')"
+                        :style="sTab === 'log' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
+                    >
+                        <div>
+                            <v-icon>mdi-information</v-icon>
+                            LOG
+                        </div>
+                    </button> -->
+                </v-sheet>
+
+                <v-sheet class="tool-bar" color="transparent">
+                    <v-btn @click="changeVerticalType(false)" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon size="20px">mdi-flip-horizontal</v-icon>
+                    </v-btn>
+                    <v-btn @click="changeVerticalType(true)" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon size="20px">mdi-flip-vertical</v-icon>
+                    </v-btn>
+                </v-sheet>
+            </v-sheet>
+            <ShowChart v-if="sTab === 'chart'" ref="rChartTab" :p-headers="sHeader" :p-html="sHtml" />
+        </template>
+    </DragCol>
+    <DragRow v-if="sVerticalType" @isDragging="dragLine" height="100%" slider-bg-color="#202020" width="100%">
+        <template #top>
+            <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
+                <div class="editor-header">
+                    <div class="header-toggle">
+                        <!-- MACHBASE -->
+                        <v-btn @click="getButtonData" density="comfortable" icon="mdi-play" size="36px" variant="plain"></v-btn>
+                    </div>
+                </div>
+                <CodeEditor
+                    v-model="gBoard.code"
+                    ref="sText"
+                    @keydown.enter.stop="setSQL($event)"
+                    border_radius="0"
+                    :class="cFontSizeClassName"
+                    :header="false"
+                    height="calc(100% - 34px)"
+                    :languages="sLang"
+                    :line_nums="false"
+                    min_height="calc(100% - 34px)"
+                    theme=""
+                    width="100%"
+                />
+            </div>
+        </template>
+
+        <template #bottom>
+            <v-sheet class="tab-list" color="#202020" fixed-tabs height="40px">
+                <v-sheet class="tab-form">
+                    <button
+                        @click="changeTab('chart')"
+                        class="delete-left-border"
+                        :style="
+                            sTab === 'chart' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }
+                        "
+                    >
+                        <div>
+                            <v-icon>mdi-chart-line</v-icon>
+                            Chart
+                        </div>
+                    </button>
+                </v-sheet>
+
+                <v-sheet class="tool-bar" color="transparent">
+                    <v-btn @click="changeVerticalType(false)" class="log-delete-icon editor-option" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon size="20px">mdi-flip-horizontal</v-icon>
+                    </v-btn>
+                    <v-btn @click="changeVerticalType(true)" class="log-delete-icon editor-option" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon size="20px">mdi-flip-vertical</v-icon>
+                    </v-btn>
+                </v-sheet>
+            </v-sheet>
+
+            <ShowChart v-if="sTab === 'chart'" ref="rChartTab" :p-headers="sHeader" :p-html="sHtml" />
+        </template>
+    </DragRow>
+</template>
+
+<script setup lang="ts" name="Editor">
+import CodeEditor from 'simple-code-editor';
+import Table from './Table.vue';
+import ShowChart from './showChart.vue';
+import { ref, watch, defineEmits, defineProps, computed, onMounted, nextTick } from 'vue';
+import { store } from '../../store';
+import { fetchData, getTqlChart } from '../../api/repository/machiot';
+import { copyText } from 'vue3-clipboard';
+import { DragCol, DragRow, ResizeCol, ResizeRow, Resize } from 'vue-resizer';
+import { MutationTypes } from '../../store/mutations';
+import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
+import ComboboxAuto from '@/components/common/combobox/combobox-auto/index.vue';
+import { IANA_TIMEZONES, IanaTimezone } from '@/assets/ts/timezones.ts';
+interface PropsNoteData {
+    pPanelData: boolean;
+}
+
+const props = defineProps<PropsNoteData>();
+const sLang = [['SQL', 'MACHBASE']];
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
+const gSelectedTab = computed(() => store.state.gSelectedTab);
+const gTabList = computed(() => store.state.gTabList);
+const gBoard = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    return gTabList.value[sIdx];
+});
+
+let sPropsTypeOption = ref<string>('');
+let sText = ref<any>('');
+let sSelectTagName = ref<any>('');
+let rLog = ref<any>('');
+let sData = ref<any>([]);
+let sHeader = ref<any>([]);
+let sType = ref<any>([]);
+let currentPage = ref<number>(1);
+let sSql = ref<string>('');
+let sTab = ref<string>('chart');
+let sVerticalType = ref<boolean>(false);
+
+let sHtml = ref<string>('');
+
+const sList = computed(() =>
+    sTimeFormatList.value.map((aItem) => {
+        return { id: aItem.name };
+    })
+);
+
+const rChartTab = ref();
+
+const sTimeFormatList = ref<any>([
+    { name: 'TIMESTAMP(ns)', id: 'ns' },
+    { name: 'TIMESTAMP(us)', id: 'us' },
+    { name: 'TIMESTAMP(ms)', id: 'ms' },
+    { name: 'TIMESTAMP(s)', id: 's' },
+    { name: 'YYYY-MM-DD', id: '2006-01-02' },
+    { name: 'YYYY-DD-MM', id: '2006-02-01' },
+    { name: 'DD-MM-YYYY', id: '02-01-2006' },
+    { name: 'MM-DD-YYYY', id: '01-02-2006' },
+    { name: 'YY-DD-MM', id: '06-02-01' },
+    { name: 'YY-MM-DD', id: '06-01-02' },
+    { name: 'MM-DD-YY', id: '01-02-06' },
+    { name: 'DD-MM-YY', id: '02-01-06' },
+    { name: 'YYYY-MM-DD HH:MI:SS', id: '2006-01-02 15:04:05' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSS', id: '2006-01-02 15:04:05.999' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSSSSS', id: '2006-01-02 15:04:05.999999' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSSSSSSSS', id: '2006-01-02 15:04:05.999999999' },
+    { name: 'YYYY-MM-DD HH', id: '2006-01-02 15' },
+    { name: 'YYYY-MM-DD HH:MI', id: '2006-01-02 15:04' },
+    { name: 'HH:MI:SS', id: '03:04:05' },
+]);
+
+const sSelectedFormat = ref<any>('YYYY-MM-DD HH:MI:SS');
+const sSelectedTimezone = ref<any>('LOCAL');
+
+const dragLine = (aStatus: boolean) => {
+    if (sTab.value === 'chart' && aStatus === false) {
+        rChartTab.value.getChartEl();
+    }
+};
+const cFontSizeClassName = computed(() => {
+    const sStorageData = localStorage.getItem('gPreference');
+    if (sStorageData) {
+        const sData = JSON.parse(sStorageData).font;
+        if (sData === '12') {
+            return 'editor-font-size-xx-small';
+        } else if (sData === '14') {
+            return 'editor-font-size-x-small';
+        } else if (sData === '16') {
+            return 'editor-font-size-small';
+        } else if (sData === '18') {
+            return 'editor-font-size-medium';
+        } else if (sData === '20') {
+            return 'editor-font-size-large';
+        } else if (sData === '22') {
+            return 'editor-font-size-x-large';
+        } else {
+            return 'editor-font-size-xx-large';
+        }
+    } else {
+        return 'editor-font-size-medium';
+    }
+});
+const cLogFormFontSizeClassName = computed(() => {
+    const sStorageData = localStorage.getItem('gPreference');
+    if (sStorageData) {
+        const sData = JSON.parse(sStorageData).font;
+        if (sData === '12') {
+            return 'log-size-xx-small';
+        } else if (sData === '14') {
+            return 'log-size-x-small';
+        } else if (sData === '16') {
+            return 'log-size-small';
+        } else if (sData === '18') {
+            return 'log-size-medium';
+        } else if (sData === '20') {
+            return 'log-size-large';
+        } else if (sData === '22') {
+            return 'log-size-x-large';
+        } else {
+            return 'log-size-xx-large';
+        }
+    } else {
+        return 'log-size-medium';
+    }
+});
+
+let sLogField = ref<{ query: string; color: string; elapse: string }[]>([]);
+const gTableList = computed(() => store.state.gTableList);
+
+const changeVerticalType = (aItem: boolean) => {
+    sVerticalType.value = aItem;
+    localStorage.setItem('vertical', String(aItem));
+};
+const changeTimeFormat = (aItem: string) => {
+    sSelectedFormat.value = aItem;
+    const sFormat = sTimeFormatList.value.findIndex((bItem) => bItem.name === aItem);
+
+    if (
+        sTimeFormatList.value[sFormat].id === 'ns' ||
+        sTimeFormatList.value[sFormat].id === 'us' ||
+        sTimeFormatList.value[sFormat].id === 'ms' ||
+        sTimeFormatList.value[sFormat].id === 's'
+    )
+        changeTimezone('UTC');
+};
+
+const changeTimezone = (aItem: string) => {
+    sSelectedTimezone.value = aItem;
+};
+
+const showChart = (aTagName: string) => {
+    sSelectTagName.value = aTagName;
+};
+
+const changeTab = (aItem: string) => {
+    sTab.value = aItem;
+    nextTick(() => {
+        if (sTab.value === 'log') rLog.value.$el.scrollTop = rLog.value.$el.scrollHeight + 200;
+    });
+};
+const showConfluence = () => {
+    window.open(`http://endoc.machbase.com`, '_blank');
+};
+
+const changeTabMode = (aItem: string) => {
+    sTab.value = aItem;
+    nextTick(() => {
+        if (sTab.value === 'log') rLog.value.$el.scrollTop = rLog.value.$el.scrollHeight + 200;
+    });
+};
+
+const upload = (aEvent: any) => {
+    const file = aEvent.target.files[0];
+    const reader = new FileReader();
+    reader.onload = async (event: any) => {
+        const fileContent: any = event.target.result;
+
+        gBoard.value.code = fileContent;
+    };
+    reader.readAsText(file);
+};
+
+const download = () => {
+    const sSqlCode = gBoard.value.code;
+    const blob = new Blob([sSqlCode], { type: 'plain/text' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${gBoard.value.board_name}.sql`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+const deleteLog = () => {
+    sLogField.value.splice(0);
+};
+
+const copyData = () => {
+    const selectText = window.getSelection()?.toString();
+    if (!selectText) {
+        alert('Please drag the query.');
+    } else {
+        copyText(selectText, undefined, (error: string, event: string) => {
+            if (error) {
+                alert('Can not copy');
+                console.log(error);
+            } else {
+                alert('Copied');
+                console.log(event);
+            }
+        });
+    }
+};
+
+watch(
+    () => gBoard.value.code,
+    () => {
+        store.commit(MutationTypes.updateCode, gBoard.value.code);
+    }
+);
+
+const setSQL = async (event: any, aType?: string) => {
+    if (!event.ctrlKey) return;
+
+    if (event.ctrlKey) {
+        getTqlData();
+    }
+};
+
+const getButtonData = () => {
+    getTqlData();
+};
+
+const getTqlData = async () => {
+    const sResult: any = await getTqlChart(gBoard.value.code);
+
+    if (typeof sResult === 'string') {
+        sHtml.value = sResult;
+    } else {
+        sHtml.value = 'fail';
+    }
+};
+
+onMounted(async () => {
+    if (localStorage.getItem('vertical')) {
+        if (localStorage.getItem('vertical') === 'true') {
+            sVerticalType.value = true;
+        } else {
+            sVerticalType.value = false;
+        }
+    }
+    // if (!gBoard.value.code) {
+    //     if (gTableList.value[0]) {
+    //         gBoard.value.code = `select * from ${gTableList.value[0]};`;
+    //         sSql.value = gBoard.value.code.replace(';', '');
+    //         await getTqlData();
+    //     }
+    // }
+});
+</script>
+
+<style scoped>
+.editor-header {
+    display: flex;
+    font-size: 12px;
+    position: relative;
+    z-index: 2;
+    height: 34px;
+    box-sizing: border-box;
+    padding: 0px 20px;
+    justify-content: space-between;
+    align-items: center;
+}
+</style>
+
+<style lang="scss">
+@import 'index.scss';
+
+.drager_col {
+    textarea,
+    table,
+    .log-form,
+    .language-SQL {
+        font-family: 'D2Coding' !important;
+    }
+}
+.drager_top,
+.drager_bottom {
+    textarea,
+    table,
+    .log-form,
+    .language-SQL {
+        font-family: 'D2Coding' !important;
+    }
+}
+
+.file-import {
+    display: none;
+}
+.select-width {
+    max-width: 200px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden !important;
+}
+.header-btn-list {
+    gap: 8px;
+    select {
+        background-color: #f6f7f8;
+        color: #202020;
+        border-color: #dbe2ea;
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+    display: flex;
+    align-items: center;
+}
+.header-toggle {
+    display: flex;
+    align-items: center;
+}
+.window {
+    height: calc(100% - 48px);
+}
+.window .v-window-item {
+    height: 100%;
+    padding: 0 5px;
+}
+.window .v-window__container {
+    height: 100%;
+}
+.tab-list {
+    display: flex;
+    height: 10%;
+    justify-content: space-between;
+}
+.tab-form {
+    display: flex;
+}
+.tool-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-right: 20px;
+    gap: 12px;
+    button {
+        color: white;
+    }
+}
+
+// .drager_top div {
+//     overflow: auto !important;
+// }
+
+.drager_top div::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.drager_top div::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.drager_top div::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
+}
+
+.drager_bottom div::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.log-form {
+    padding: 0 16px;
+    overflow: auto;
+    position: relative;
+    white-space: nowrap;
+    .log-delete-icon {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+}
+::v-deep .v-field__input input {
+    font-family: 'Open Sans', Helvetica, Arial, sans-serif !important;
+    @include theme() {
+        border: 1px solid theme-get('border-color-input') !important;
+        color: theme-get('text-color') !important;
+        background-color: theme-get('bg-color-input') !important;
+    }
+    color: $text-w !important;
+    outline: none !important;
+    padding: 0 $px-15 !important;
+    min-height: 24px !important;
+    font-size: $font-12 !important;
+    position: relative !important;
+    &:focus {
+        @include box-shadow;
+    }
+    &__item {
+        background-color: $d-background !important;
+        padding: 0 $px-15 !important;
+        @include font-12;
+        @include theme() {
+            background-color: theme-get('bg-color') !important;
+            color: theme-get('text-color') !important;
+        }
+    }
+    -webkit-appearance: auto !important;
+    appearance: auto !important;
+}
+.drager_bottom div::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.drager_bottom div::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
+}
+.drager_bottom div {
+    overflow-x: auto !important;
+    overflow-y: hidden;
+}
+
+.code-area textarea::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.code-area textarea::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.code-area textarea::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
+}
+.log-form::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.log-form::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.file-import-icon {
+    cursor: pointer;
+}
+.log-form::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
+}
+.hide_header .code_area {
+    height: 100% !important;
+}
+.log-query {
+    // overflow: hidden;
+}
+.log-status {
+    overflow: hidden;
+    font-style: italic;
+    line-height: 15px;
+}
+
+.log-padding {
+    height: 10px;
+}
+
+.delete-left-border {
+    border-left: none !important;
+}
+.dark-sql {
+    height: 100%;
+    /*!
+  Theme: Windows 95
+  Author: Fergus Collins (https://github.com/C-Fergus)
+  License: ~ MIT (or more permissive) [via base16-schemes-source]
+  Maintainer: @highlightjs/core-team
+  Version: 2021.09.0
+*/
+    pre code.hljs {
+        display: block;
+        overflow-x: auto;
+        padding: 1em;
+    }
+    code.hljs {
+        padding: 3px 5px;
+    }
+    .hljs {
+        color: #a8a8a8;
+    }
+    .hljs ::selection,
+    .hljs::selection {
+        background-color: rgba(56, 56, 56, 0.5);
+    }
+    .hljs-comment {
+        color: #545454;
+    }
+    .hljs-tag {
+        color: #7e7e7e;
+    }
+    .hljs-operator,
+    .hljs-punctuation,
+    .hljs-subst {
+        color: #a8a8a8;
+    }
+    .hljs-operator {
+        opacity: 0.7;
+    }
+    .hljs-bullet,
+    .hljs-deletion,
+    .hljs-name,
+    .hljs-selector-tag,
+    .hljs-template-variable,
+    .hljs-variable {
+        color: #fc5454;
+    }
+    .hljs-attr,
+    .hljs-link,
+    .hljs-literal,
+    .hljs-number,
+    .hljs-symbol,
+    .hljs-variable.constant_ {
+        color: #a85400;
+    }
+    .hljs-class .hljs-title,
+    .hljs-title,
+    .hljs-title.class_ {
+        color: #fcfc54;
+    }
+    .hljs-strong {
+        font-weight: 700;
+        color: #fcfc54;
+    }
+    .hljs-addition,
+    .hljs-code,
+    .hljs-string,
+    .hljs-title.class_.inherited__ {
+        color: #54fc54;
+    }
+    .hljs-built_in,
+    .hljs-doctag,
+    .hljs-keyword.hljs-atrule,
+    .hljs-quote,
+    .hljs-regexp {
+        color: #54fcfc;
+    }
+    .hljs-attribute,
+    .hljs-function .hljs-title,
+    .hljs-section,
+    .hljs-title.function_,
+    .ruby .hljs-property {
+        color: #5454fc;
+    }
+    .diff .hljs-meta,
+    .hljs-keyword,
+    .hljs-template-tag,
+    .hljs-type {
+        color: #fc54fc;
+    }
+    .hljs-emphasis {
+        color: #fc54fc;
+        font-style: italic;
+    }
+    .hljs-meta,
+    .hljs-meta .hljs-keyword,
+    .hljs-meta .hljs-string {
+        color: #00a800;
+    }
+    .hljs-meta .hljs-keyword,
+    .hljs-meta-keyword {
+        font-weight: 700;
+    }
+    height: 100%;
+}
+.white-sql {
+    height: 100%;
+    /*!
+  Theme: Windows 95 Light
+  Author: Fergus Collins (https://github.com/C-Fergus)
+  License: ~ MIT (or more permissive) [via base16-schemes-source]
+  Maintainer: @highlightjs/core-team
+  Version: 2021.09.0
+*/
+    pre code.hljs {
+        display: block;
+        overflow-x: auto;
+        padding: 1em;
+    }
+    code.hljs {
+        padding: 3px 5px;
+    }
+    .hljs {
+        color: #545454;
+    }
+    .hljs ::selection,
+    .hljs::selection {
+        background-color: rgba(56, 56, 56, 0.5);
+    }
+    .hljs-comment {
+        color: #a8a8a8;
+    }
+    .hljs-tag {
+        color: #7e7e7e;
+    }
+    .hljs-operator,
+    .hljs-punctuation,
+    .hljs-subst {
+        color: #545454;
+    }
+    .hljs-operator {
+        opacity: 0.7;
+    }
+    .hljs-bullet,
+    .hljs-deletion,
+    .hljs-name,
+    .hljs-selector-tag,
+    .hljs-template-variable,
+    .hljs-variable {
+        color: #a80000;
+    }
+    .hljs-attr,
+    .hljs-link,
+    .hljs-literal,
+    .hljs-number,
+    .hljs-symbol,
+    .hljs-variable.constant_ {
+        color: #3a65d0;
+    }
+    .hljs-class .hljs-title,
+    .hljs-title,
+    .hljs-title.class_ {
+        color: #a85400;
+    }
+    .hljs-strong {
+        font-weight: 700;
+        color: #a85400;
+    }
+    .hljs-addition,
+    .hljs-code,
+    .hljs-string,
+    .hljs-title.class_.inherited__ {
+        color: #00a800;
+    }
+    .hljs-built_in,
+    .hljs-doctag,
+    .hljs-keyword.hljs-atrule,
+    .hljs-quote,
+    .hljs-regexp {
+        color: #00a8a8;
+    }
+    .hljs-attribute,
+    .hljs-function .hljs-title,
+    .hljs-section,
+    .hljs-title.function_,
+    .ruby .hljs-property {
+        color: #0000a8;
+    }
+    .diff .hljs-meta,
+    .hljs-keyword,
+    .hljs-template-tag,
+    .hljs-type {
+        color: #a800a8;
+    }
+    .hljs-emphasis {
+        color: #a800a8;
+        font-style: italic;
+    }
+    .hljs-meta,
+    .hljs-meta .hljs-keyword,
+    .hljs-meta .hljs-string {
+        color: #54fc54;
+    }
+    .hljs-meta .hljs-keyword,
+    .hljs-meta-keyword {
+        font-weight: 700;
+    }
+}
+.code-area {
+    border-radius: 0 !important;
+}
+.editor-option {
+    transform: rotate(180deg);
+}
+</style>

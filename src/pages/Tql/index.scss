@@ -1,0 +1,130 @@
+@import '@/assets/scss/theme.scss';
+
+.tab-form {
+    button {
+        color: $text-w;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+        flex-direction: row;
+        width: 180px;
+        height: 100%;
+        border-top: 1px solid #121212;
+        border-left: 1px solid #121212;
+        border-right: 1px solid #121212;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: $font-12;
+        padding: 4px 8px;
+        div {
+            display: flex;
+            align-items: center;
+            i {
+                margin-right: 4px;
+            }
+        }
+    }
+
+}
+.editor-font-size-xx-small {
+    .language-SQL {
+        font-size: 11px !important;
+    }
+    textarea {
+        font-size: 11px !important;
+    }
+    .line-nums{
+        font-size: 11px !important;
+    }
+}
+.editor-font-size-x-small {
+    .language-SQL {
+        font-size: 13px !important;
+    }
+    textarea {
+        font-size: 13px !important;
+    }
+    .line-nums{
+        font-size: 13px !important;
+    }
+}
+.editor-font-size-small {
+    .language-SQL {
+        font-size: 15px !important;
+    }
+    textarea {
+        font-size: 15px !important;
+    }
+    .line-nums{
+        font-size: 15px !important;
+    }
+}
+.editor-font-size-medium {
+    .language-SQL {
+        font-size: 17px !important;
+    }
+    textarea {
+        font-size: 17px !important;
+    }
+    .line-nums{
+        font-size: 17px !important;
+    }
+}
+.editor-font-size-large {
+    .language-SQL {
+        font-size: 19px !important;
+    }
+    textarea {
+        font-size: 19px !important;
+    }
+    .line-nums{
+        font-size: 19px !important;
+    }
+}
+.editor-font-size-x-large {
+    .language-SQL {
+        font-size: 21px !important;
+    }
+    textarea {
+        font-size: 21px !important;
+    }
+    .line-nums{
+        font-size: 21px !important;
+    }
+}
+.editor-font-size-xx-large {
+    .language-SQL {
+        font-size: 23px !important;
+    }
+    textarea {
+        font-size: 23px !important;
+    }
+    .line-nums{
+        font-size: 23px !important;
+    }
+}
+
+// table
+
+.log-size-xx-small {
+    font-size: 11px !important;
+}
+.log-size-x-small {
+    font-size: 13px !important;
+}
+.log-size-small {
+    font-size: 15px !important;
+}
+.log-size-medium {
+    font-size: 17px !important;
+}
+.log-size-large {
+    font-size: 19px !important;
+}
+.log-size-x-large {
+    font-size: 21px !important;
+}
+.log-size-xx-large {
+    font-size: 23px !important;
+}
