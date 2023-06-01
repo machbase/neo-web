@@ -27,7 +27,7 @@
                         <v-icon v-if="aTab.type == 'new'" size="16px">mdi-note-outline</v-icon>
                         <v-icon v-if="aTab.type == 'SQL Editor'" size="16px">mdi-file-document-outline</v-icon>
                         <v-icon v-if="aTab.type == 'Terminal'" size="16px">mdi-console</v-icon>
-                        <v-icon v-if="aTab.type == 'chart'" size="16px">mdi-chart-scatter-plot</v-icon>
+                        <v-icon v-if="aTab.type == 'Tql'" size="16px">mdi-chart-scatter-plot</v-icon>
 
                         {{ aTab.board_name }}
                     </div>

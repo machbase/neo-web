@@ -5,6 +5,9 @@
                 <v-sheet v-if="aTab.type === 'SQL Editor'" color="transparent" height="100%" width="100%">
                     <Editor ref="sPanels" :p-panel-data="aTab" />
                 </v-sheet>
+                <v-sheet v-if="aTab.type === 'Tql'" color="transparent" height="100%" width="100%">
+                    <TQL ref="sPanels" :p-panel-data="aTab" />
+                </v-sheet>
 
                 <AddTab v-if="aTab.type === 'new'" ref="sPanels" />
 
@@ -30,10 +33,6 @@
                     <ChartDashboard ref="sPanels" :p-panel-info="aTab" :p-tab-idx="aIdx" />
                     <ButtonCreate @click="onClickPopupItem(PopupType.NEW_CHART)" :is-add-chart="true" />
                 </v-sheet>
-                <v-sheet v-if="aTab.type === 'chart'" class="detail-chart-form" color="transparent" height="100%" width="100%">
-                    <ChartDetailDashboard ref="sPanels" :p-panel-info="aTab" :p-tab-idx="aIdx" />
-                    <ButtonCreate @click="onClickPopupItem(PopupType.NEW_CHART)" :is-add-chart="true" />
-                </v-sheet>
             </v-sheet>
         </v-sheet>
         <PopupWrap @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="sPopupType" :width="cWidthPopup" />
@@ -41,6 +40,7 @@
 </template>
 <script setup lang="ts" name="TagView">
 import Editor from '@/pages/editor/Editor.vue';
+import TQL from '@/pages/Tql/Editor.vue';
 
 import ButtonCreate from '@/components/common/button-create/index.vue';
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';

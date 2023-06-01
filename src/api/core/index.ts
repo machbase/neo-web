@@ -25,6 +25,9 @@ request.interceptors.request.use(
         // do something before request is sent
         const sHeaders = config.headers;
 
+        if (config.url === '/api/tql') {
+            config.headers[`Content-Type`] = 'text/plain';
+        }
         if (sHeaders && config.url !== `${baseURL}/api/login` && config.url !== `${baseURL}/api/login`) {
             sHeaders.Authorization = `Bearer ${localStorage.getItem('accessToken')}`;
             return config;

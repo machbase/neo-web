@@ -87,7 +87,8 @@ const sExpOptions = [
     { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
     { name: 'SQL', type: 'SQL Editor', icon: 'mdi-file-document-outline' },
     { name: 'Shell', type: 'Terminal', icon: 'mdi-console' },
-    { name: 'Chart', type: 'chart', icon: 'mdi-chart-scatter-plot' },
+    // { name: 'Chart', type: 'chart', icon: 'mdi-chart-scatter-plot' },
+    { name: 'TQL', type: 'Tql', icon: 'mdi-chart-scatter-plot' },
 ];
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
