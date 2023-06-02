@@ -1,5 +1,5 @@
 <template>
-    <DragCol v-if="!sVerticalType" @isDragging="dragLine" height="100%" slider-bg-color="#202020" width="100%">
+    <DragCol v-if="!sVerticalType" height="100%" slider-bg-color="#202020" width="100%">
         <template #left>
             <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
                 <div class="editor-header">
@@ -10,7 +10,6 @@
                 </div>
                 <CodeEditor
                     v-model="gBoard.code"
-                    ref="sText"
                     @keydown.enter.stop="setSQL($event)"
                     border_radius="0"
                     :class="cFontSizeClassName"
@@ -29,42 +28,26 @@
         <template #right>
             <v-sheet class="tab-list" color="#202020" fixed-tabs height="40px">
                 <v-sheet class="tab-form">
-                    <!-- <button
-                        @click="changeTab('table')"
-                        class="delete-left-border"
-                        :style="
-                            sTab === 'table' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }
-                        "
-                    >
-                        <div>
-                            <v-icon>mdi-table</v-icon>
-                            RESULT
-                        </div>
-                    </button> -->
                     <button
-                        @click="changeTab('chart')"
                         class="delete-left-border"
                         :style="
                             sTab === 'chart' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }
                         "
                     >
                         <div>
-                            <v-icon>mdi-chart-line</v-icon>
+                            <v-icon v-if="sResultType === 'html'">mdi-chart-line</v-icon>
+                            <v-icon v-if="sResultType === 'csv'">file-delimited-outline</v-icon>
+                            <v-icon v-if="sResultType === 'text'">mdi-note-outline</v-icon>
                             Result
                         </div>
                     </button>
-                    <!-- <button
-                        @click="changeTab('log')"
-                        :style="sTab === 'log' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
-                    >
-                        <div>
-                            <v-icon>mdi-information</v-icon>
-                            LOG
-                        </div>
-                    </button> -->
                 </v-sheet>
 
                 <v-sheet class="tool-bar" color="transparent">
+                    <v-btn v-if="sJsonBtnOption" @click="setJsonFormat()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon v-if="!sJsonOption" size="20px">mdi-text</v-icon>
+                        <v-icon v-else size="20px">mdi-code-json</v-icon>
+                    </v-btn>
                     <v-btn @click="changeVerticalType(false)" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon size="20px">mdi-flip-horizontal</v-icon>
                     </v-btn>
@@ -73,10 +56,18 @@
                     </v-btn>
                 </v-sheet>
             </v-sheet>
-            <ShowChart v-if="sTab === 'chart'" ref="rChartTab" :p-headers="sHeader" :p-html="sHtml" />
+            <ShowChart v-if="sResultType === 'html'" ref="rChartTab" :p-headers="sHeader" :p-html="sHtml" />
+            <Table v-if="sResultType === 'csv'" :headers="['Content']" :items="sCSV" :p-timezone="''" :p-type="''" />
+
+            <v-sheet v-else class="sheet-text" color="transparent" height="100%" width="100%">
+                <div v-if="sJsonOption">{{ sTextField }}</div>
+                <pre v-else>{{ JSON.stringify(JSON.parse(sTextField), null, 4) }}</pre>
+            </v-sheet>
+
+            <v-sheet />
         </template>
     </DragCol>
-    <DragRow v-if="sVerticalType" @isDragging="dragLine" height="100%" slider-bg-color="#202020" width="100%">
+    <DragRow v-if="sVerticalType" height="100%" slider-bg-color="#202020" width="100%">
         <template #top>
             <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
                 <div class="editor-header">
@@ -87,7 +78,6 @@
                 </div>
                 <CodeEditor
                     v-model="gBoard.code"
-                    ref="sText"
                     @keydown.enter.stop="setSQL($event)"
                     border_radius="0"
                     :class="cFontSizeClassName"
@@ -106,30 +96,41 @@
             <v-sheet class="tab-list" color="#202020" fixed-tabs height="40px">
                 <v-sheet class="tab-form">
                     <button
-                        @click="changeTab('chart')"
                         class="delete-left-border"
                         :style="
                             sTab === 'chart' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }
                         "
                     >
                         <div>
-                            <v-icon>mdi-chart-line</v-icon>
-                            Chart
+                            <v-icon v-if="sResultType === 'html'">mdi-chart-line</v-icon>
+                            <v-icon v-if="sResultType === 'csv'">file-delimited-outline</v-icon>
+                            <v-icon v-if="sResultType === 'text'">mdi-note-outline</v-icon>
+                            Result
                         </div>
                     </button>
                 </v-sheet>
 
                 <v-sheet class="tool-bar" color="transparent">
-                    <v-btn @click="changeVerticalType(false)" class="log-delete-icon editor-option" density="comfortable" icon="" size="16px" variant="plain">
+                    <v-btn v-if="sJsonBtnOption" @click="setJsonFormat()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon v-if="!sJsonOption" size="20px">mdi-text</v-icon>
+                        <v-icon v-else size="20px">mdi-code-json</v-icon>
+                    </v-btn>
+                    <v-btn @click="changeVerticalType(false)" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon size="20px">mdi-flip-horizontal</v-icon>
                     </v-btn>
-                    <v-btn @click="changeVerticalType(true)" class="log-delete-icon editor-option" density="comfortable" icon="" size="16px" variant="plain">
+                    <v-btn @click="changeVerticalType(true)" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon size="20px">mdi-flip-vertical</v-icon>
                     </v-btn>
                 </v-sheet>
             </v-sheet>
 
-            <ShowChart v-if="sTab === 'chart'" ref="rChartTab" :p-headers="sHeader" :p-html="sHtml" />
+            <ShowChart v-if="sResultType === 'html'" ref="rChartTab" :p-headers="sHeader" :p-html="sHtml" />
+            <Table v-if="sResultType === 'csv'" :headers="['Content']" :items="sCSV" :p-timezone="''" :p-type="''" />
+
+            <v-sheet v-else class="sheet-text" color="transparent" height="100%" width="100%">
+                <div v-if="sJsonOption">{{ sTextField }}</div>
+                <pre v-else>{{ JSON.stringify(JSON.parse(sTextField), null, 4) }}</pre>
+            </v-sheet>
         </template>
     </DragRow>
 </template>
@@ -147,11 +148,7 @@ import { MutationTypes } from '../../store/mutations';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import ComboboxAuto from '@/components/common/combobox/combobox-auto/index.vue';
 import { IANA_TIMEZONES, IanaTimezone } from '@/assets/ts/timezones.ts';
-interface PropsNoteData {
-    pPanelData: boolean;
-}
 
-const props = defineProps<PropsNoteData>();
 const sLang = [['SQL', 'MACHBASE']];
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const gSelectedTab = computed(() => store.state.gSelectedTab);
@@ -161,25 +158,18 @@ const gBoard = computed(() => {
     return gTabList.value[sIdx];
 });
 
-let sPropsTypeOption = ref<string>('');
-let sText = ref<any>('');
-let sSelectTagName = ref<any>('');
-let rLog = ref<any>('');
 let sData = ref<any>([]);
 let sHeader = ref<any>([]);
-let sType = ref<any>([]);
-let currentPage = ref<number>(1);
-let sSql = ref<string>('');
 let sTab = ref<string>('chart');
+let sResultType = ref<string>('text');
 let sVerticalType = ref<boolean>(false);
 
 let sHtml = ref<string>('');
+let sCSV = ref<string[][]>([]);
+let sTextField = ref<string>('');
 
-const sList = computed(() =>
-    sTimeFormatList.value.map((aItem) => {
-        return { id: aItem.name };
-    })
-);
+let sJsonBtnOption = ref<boolean>(false);
+let sJsonOption = ref<boolean>(true);
 
 const rChartTab = ref();
 
@@ -197,9 +187,9 @@ const sTimeFormatList = ref<any>([
     { name: 'MM-DD-YY', id: '01-02-06' },
     { name: 'DD-MM-YY', id: '02-01-06' },
     { name: 'YYYY-MM-DD HH:MI:SS', id: '2006-01-02 15:04:05' },
-    { name: 'YYYY-MM-DD HH:MI:SS.SSS', id: '2006-01-02 15:04:05.999' },
-    { name: 'YYYY-MM-DD HH:MI:SS.SSSSSS', id: '2006-01-02 15:04:05.999999' },
-    { name: 'YYYY-MM-DD HH:MI:SS.SSSSSSSSS', id: '2006-01-02 15:04:05.999999999' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSS', id: '2006-01-02 15:04:05.000' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSSSSS', id: '2006-01-02 15:04:05.000000' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSSSSSSSS', id: '2006-01-02 15:04:05.000000000' },
     { name: 'YYYY-MM-DD HH', id: '2006-01-02 15' },
     { name: 'YYYY-MM-DD HH:MI', id: '2006-01-02 15:04' },
     { name: 'HH:MI:SS', id: '03:04:05' },
@@ -208,11 +198,6 @@ const sTimeFormatList = ref<any>([
 const sSelectedFormat = ref<any>('YYYY-MM-DD HH:MI:SS');
 const sSelectedTimezone = ref<any>('LOCAL');
 
-const dragLine = (aStatus: boolean) => {
-    if (sTab.value === 'chart' && aStatus === false) {
-        rChartTab.value.getChartEl();
-    }
-};
 const cFontSizeClassName = computed(() => {
     const sStorageData = localStorage.getItem('gPreference');
     if (sStorageData) {
@@ -267,69 +252,6 @@ const changeVerticalType = (aItem: boolean) => {
     sVerticalType.value = aItem;
     localStorage.setItem('vertical', String(aItem));
 };
-const changeTimeFormat = (aItem: string) => {
-    sSelectedFormat.value = aItem;
-    const sFormat = sTimeFormatList.value.findIndex((bItem) => bItem.name === aItem);
-
-    if (
-        sTimeFormatList.value[sFormat].id === 'ns' ||
-        sTimeFormatList.value[sFormat].id === 'us' ||
-        sTimeFormatList.value[sFormat].id === 'ms' ||
-        sTimeFormatList.value[sFormat].id === 's'
-    )
-        changeTimezone('UTC');
-};
-
-const changeTimezone = (aItem: string) => {
-    sSelectedTimezone.value = aItem;
-};
-
-const showChart = (aTagName: string) => {
-    sSelectTagName.value = aTagName;
-};
-
-const changeTab = (aItem: string) => {
-    sTab.value = aItem;
-    nextTick(() => {
-        if (sTab.value === 'log') rLog.value.$el.scrollTop = rLog.value.$el.scrollHeight + 200;
-    });
-};
-const showConfluence = () => {
-    window.open(`http://endoc.machbase.com`, '_blank');
-};
-
-const changeTabMode = (aItem: string) => {
-    sTab.value = aItem;
-    nextTick(() => {
-        if (sTab.value === 'log') rLog.value.$el.scrollTop = rLog.value.$el.scrollHeight + 200;
-    });
-};
-
-const upload = (aEvent: any) => {
-    const file = aEvent.target.files[0];
-    const reader = new FileReader();
-    reader.onload = async (event: any) => {
-        const fileContent: any = event.target.result;
-
-        gBoard.value.code = fileContent;
-    };
-    reader.readAsText(file);
-};
-
-const download = () => {
-    const sSqlCode = gBoard.value.code;
-    const blob = new Blob([sSqlCode], { type: 'plain/text' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${gBoard.value.board_name}.sql`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
-const deleteLog = () => {
-    sLogField.value.splice(0);
-};
 
 const copyData = () => {
     const selectText = window.getSelection()?.toString();
@@ -359,6 +281,7 @@ const setSQL = async (event: any, aType?: string) => {
     if (!event.ctrlKey) return;
 
     if (event.ctrlKey) {
+        event.preventDefault();
         getTqlData();
     }
 };
@@ -367,14 +290,35 @@ const getButtonData = () => {
     getTqlData();
 };
 
+const setJsonFormat = () => {
+    sJsonOption.value = !sJsonOption.value;
+};
+
 const getTqlData = async () => {
     const sResult: any = await getTqlChart(gBoard.value.code);
 
-    if (typeof sResult === 'string') {
-        sHtml.value = sResult;
+    if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/html') {
+        sResultType.value = 'html';
+        sHtml.value = sResult.data;
+    } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
+        sResultType.value = 'csv';
+
+        sCSV.value = [];
+        sResult.data.split('\n').map((aItem: string) => {
+            sCSV.value.push([aItem]);
+        });
+        sCSV.value.pop();
     } else {
-        sHtml.value = 'fail';
+        sResultType.value = 'text';
+        if (sResult.status === 200) {
+            sJsonBtnOption.value = true;
+            sTextField.value = JSON.stringify(sResult.data.data);
+            return;
+        } else {
+            sTextField.value = sResult.data.reason;
+        }
     }
+    sJsonBtnOption.value = false;
 };
 
 onMounted(async () => {
@@ -415,7 +359,6 @@ onMounted(async () => {
 .drager_col {
     textarea,
     table,
-    .log-form,
     .language-SQL {
         font-family: 'D2Coding' !important;
     }
@@ -424,7 +367,6 @@ onMounted(async () => {
 .drager_bottom {
     textarea,
     table,
-    .log-form,
     .language-SQL {
         font-family: 'D2Coding' !important;
     }
@@ -509,17 +451,6 @@ onMounted(async () => {
     height: 5px;
 }
 
-.log-form {
-    padding: 0 16px;
-    overflow: auto;
-    position: relative;
-    white-space: nowrap;
-    .log-delete-icon {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-    }
-}
 ::v-deep .v-field__input input {
     font-family: 'Open Sans', Helvetica, Arial, sans-serif !important;
     @include theme() {
@@ -578,30 +509,15 @@ onMounted(async () => {
     height: 5px;
     background-color: rgb(101, 111, 121);
 }
-.log-form::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-}
-
-.log-form::-webkit-scrollbar-track {
-    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
-    background: #141415;
-}
 
 .file-import-icon {
     cursor: pointer;
 }
-.log-form::-webkit-scrollbar-thumb {
-    width: 5px;
-    height: 5px;
-    background-color: rgb(101, 111, 121);
-}
+
 .hide_header .code_area {
     height: 100% !important;
 }
-.log-query {
-    // overflow: hidden;
-}
+
 .log-status {
     overflow: hidden;
     font-style: italic;
@@ -827,5 +743,26 @@ onMounted(async () => {
 }
 .editor-option {
     transform: rotate(180deg);
+}
+.text-wrap {
+    white-space: pre-wrap;
+}
+.sheet-text {
+    overflow: auto;
+}
+
+.sheet-text::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.sheet-text::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+.sheet-text::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
 }
 </style>

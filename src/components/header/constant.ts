@@ -8,7 +8,7 @@ const TIME_RANGE_NOT_SET = 'Time range not set';
 const WIDTH_DEFAULT = {
     PREFERENCES: '400px',
     DEFAULT: '400px',
-    TIME_RANGE: '800px',
+    TIME_RANGE: '600px',
     TIME_DURATION: '600px',
     MANAGE_DASHBOARD: '700px',
 };

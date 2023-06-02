@@ -49,7 +49,7 @@
                 <CodeEditor
                     v-model="gBoard.code"
                     ref="sText"
-                    @keydown.enter.stop="setSQL($event)"
+                    @keydown.enter.stop="setSQL"
                     border_radius="0"
                     :class="cFontSizeClassName"
                     :header="false"
@@ -114,7 +114,7 @@
                     </v-btn>
                 </v-sheet>
             </v-sheet>
-            <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" @eShowChart="showChart" :headers="sHeader" :items="sData" :p-timezone="sPropsTypeOption" :p-type="sType" />
+            <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" :p-timezone="sPropsTypeOption" :p-type="sType" />
             <ShowChart v-if="sTab === 'chart'" ref="rChartTab" :p-headers="sHeader" :p-sql="sSql" />
 
             <v-sheet v-if="sTab === 'log'" ref="rLog" class="log-form" :class="cLogFormFontSizeClassName" color="transparent" height="calc(100% - 40px)">
@@ -176,7 +176,7 @@
                 <CodeEditor
                     v-model="gBoard.code"
                     ref="sText"
-                    @keydown.enter.stop="setSQL($event)"
+                    @keydown.enter.stop="setSQL"
                     border_radius="0"
                     :class="cFontSizeClassName"
                     :header="false"
@@ -284,7 +284,6 @@ const gBoard = computed(() => {
 
 let sPropsTypeOption = ref<string>('');
 let sText = ref<any>('');
-let sSelectTagName = ref<any>('');
 let rLog = ref<any>('');
 let sData = ref<any>([]);
 let sHeader = ref<any>([]);
@@ -316,9 +315,9 @@ const sTimeFormatList = ref<any>([
     { name: 'MM-DD-YY', id: '01-02-06' },
     { name: 'DD-MM-YY', id: '02-01-06' },
     { name: 'YYYY-MM-DD HH:MI:SS', id: '2006-01-02 15:04:05' },
-    { name: 'YYYY-MM-DD HH:MI:SS.SSS', id: '2006-01-02 15:04:05.999' },
-    { name: 'YYYY-MM-DD HH:MI:SS.SSSSSS', id: '2006-01-02 15:04:05.999999' },
-    { name: 'YYYY-MM-DD HH:MI:SS.SSSSSSSSS', id: '2006-01-02 15:04:05.999999999' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSS', id: '2006-01-02 15:04:05.000' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSSSSS', id: '2006-01-02 15:04:05.000000' },
+    { name: 'YYYY-MM-DD HH:MI:SS.SSSSSSSSS', id: '2006-01-02 15:04:05.000000000' },
     { name: 'YYYY-MM-DD HH', id: '2006-01-02 15' },
     { name: 'YYYY-MM-DD HH:MI', id: '2006-01-02 15:04' },
     { name: 'HH:MI:SS', id: '03:04:05' },
@@ -403,10 +402,6 @@ const changeTimezone = (aItem: string) => {
     sSelectedTimezone.value = aItem;
 };
 
-const showChart = (aTagName: string) => {
-    sSelectTagName.value = aTagName;
-};
-
 const changeTab = (aItem: string) => {
     sTab.value = aItem;
     nextTick(() => {
@@ -420,13 +415,6 @@ const UpdateItems = () => {
 };
 const showConfluence = () => {
     window.open(`http://endoc.machbase.com`, '_blank');
-};
-
-const changeTabMode = (aItem: string) => {
-    sTab.value = aItem;
-    nextTick(() => {
-        if (sTab.value === 'log') rLog.value.$el.scrollTop = rLog.value.$el.scrollHeight + 200;
-    });
 };
 
 const upload = (aEvent: any) => {
@@ -455,23 +443,6 @@ const deleteLog = () => {
     sLogField.value.splice(0);
 };
 
-const copyData = () => {
-    const selectText = window.getSelection()?.toString();
-    if (!selectText) {
-        alert('Please drag the query.');
-    } else {
-        copyText(selectText, undefined, (error: string, event: string) => {
-            if (error) {
-                alert('Can not copy');
-                console.log(error);
-            } else {
-                alert('Copied');
-                console.log(event);
-            }
-        });
-    }
-};
-
 watch(
     () => gBoard.value.code,
     () => {
@@ -479,7 +450,7 @@ watch(
     }
 );
 
-const setSQL = async (event: any, aType?: string) => {
+const setSQL = async (event: any) => {
     if (!event.ctrlKey) return;
 
     const sPointer = event.target.selectionStart === 0 ? event.target.selectionStart : event.target.selectionStart - 1;
@@ -539,12 +510,13 @@ const getSQLData = async () => {
     if (sSql.value) {
         const sFormat = sTimeFormatList.value.findIndex((aItem) => aItem.name === sSelectedFormat.value);
 
-        const sLimit = sSql.value.toLowerCase().indexOf('limit'.toLowerCase());
+        // const sLimit = sSql.value.toLowerCase().indexOf('limit'.toLowerCase());
         const sResult: any = await fetchData(
             sSql.value.replaceAll(/\n/g, ' ').replace(';', ''),
             sTimeFormatList.value[sFormat].id,
             sSelectedTimezone.value,
-            sLimit === -1 ? currentPage.value : ''
+            currentPage.value
+            // sLimit === -1 ? currentPage.value : ''
         );
 
         if (sResult.status >= 400) {
@@ -555,16 +527,20 @@ const getSQLData = async () => {
                 elapse: sResult.data.elapse + ' : ' + sResult.data.reason,
             });
         }
-        if (sResult && sResult.success) {
-            if (!sResult.data) {
+        if (sResult.status <= 400 && sResult.data.success) {
+            if (!sResult.data.data) {
                 sLogField.value.push({
                     query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase(),
                     color: '#217DF8',
-                    elapse: sResult.elapse + ' : ' + sResult.reason,
+                    elapse: sResult.data.elapse + ' : ' + sResult.data.reason,
                 });
                 changeTab('log');
             } else {
-                sLogField.value.push({ query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase(), color: '', elapse: sResult.elapse + ' : ' + sResult.reason });
+                sLogField.value.push({
+                    query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase(),
+                    color: '',
+                    elapse: sResult.data.elapse + ' : ' + sResult.data.reason,
+                });
                 changeTab('table');
                 if (
                     sTimeFormatList.value[sFormat].id === 'ns' ||
@@ -576,9 +552,9 @@ const getSQLData = async () => {
                 } else {
                     sPropsTypeOption.value = sSelectedTimezone.value;
                 }
-                sType.value = sResult.data.types;
-                sHeader.value = sResult.data.columns;
-                sResult.data.rows.forEach((aItem: any) => {
+                sType.value = sResult.data.data.types;
+                sHeader.value = sResult.data.data.columns;
+                sResult.data.data.rows.forEach((aItem: any) => {
                     sData.value.push(aItem);
                 });
             }
@@ -799,14 +775,14 @@ onMounted(async () => {
     -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
     background: #141415;
 }
-
-.file-import-icon {
-    cursor: pointer;
-}
 .log-form::-webkit-scrollbar-thumb {
     width: 5px;
     height: 5px;
     background-color: rgb(101, 111, 121);
+}
+
+.file-import-icon {
+    cursor: pointer;
 }
 .hide_header .code_area {
     height: 100% !important;

@@ -9,7 +9,6 @@
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 
 import { defineProps, ref, defineEmits, computed, onMounted, defineExpose } from 'vue';
-import { getChartElement } from '../../api/repository/machiot';
 
 const props = defineProps({
     pHeaders: {
@@ -38,23 +37,6 @@ const handleXInfo = (aValue: string) => {
 const handleYInfo = (aValue: string) => {
     sYaxis.value = aValue;
 };
-
-const getChartEl = async () => {
-    sHtml.value = '';
-    const sVertical = localStorage.getItem('vertical');
-    const sInput = `INPUT( SQL('${props.pSql.replace(';', '')} limit 5000') )`;
-    const sOutput = `OUTPUT(CHART_LINE(xaxis(1, '${sXaxis.value}'), yaxis(2, '${sYaxis.value}'), dataZoom('slider', 40, 60), seriesLabels('${sXaxis.value}', '${sYaxis.value}'), size($width, $height)))`;
-    if (sVertical === 'true') {
-        sHtml.value = await getChartElement(sInput, sOutput, rBodyEl.value.$el.clientWidth, rBodyEl.value.$el.clientHeight * 0.7);
-    } else {
-        sHtml.value = await getChartElement(sInput, sOutput, rBodyEl.value.$el.clientWidth, rBodyEl.value.$el.clientHeight * 0.7);
-    }
-};
-onMounted(async () => {
-    // getChartEl();
-});
-
-defineExpose({ getChartEl });
 </script>
 <style lang="scss" scoped>
 .popup__input-content {
