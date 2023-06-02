@@ -59,7 +59,7 @@
             <ShowChart v-if="sResultType === 'html'" ref="rChartTab" :p-headers="sHeader" :p-html="sHtml" />
             <Table v-if="sResultType === 'csv'" :headers="['Content']" :items="sCSV" :p-timezone="''" :p-type="''" />
 
-            <v-sheet v-else class="sheet-text" color="transparent" height="100%" width="100%">
+            <v-sheet v-else class="sheet-text" color="transparent" height="calc(100% - 40px)" width="100%">
                 <div v-if="sJsonOption">{{ sTextField }}</div>
                 <pre v-else>{{ JSON.stringify(JSON.parse(sTextField), null, 4) }}</pre>
             </v-sheet>
@@ -316,6 +316,7 @@ const getTqlData = async () => {
             return;
         } else {
             sTextField.value = sResult.data.reason;
+            sJsonOption.value = true;
         }
     }
     sJsonBtnOption.value = false;
@@ -488,10 +489,6 @@ onMounted(async () => {
     width: 5px;
     height: 5px;
     background-color: rgb(101, 111, 121);
-}
-.drager_bottom div {
-    overflow-x: auto !important;
-    overflow-y: hidden;
 }
 
 .code-area textarea::-webkit-scrollbar {
@@ -748,7 +745,7 @@ onMounted(async () => {
     white-space: pre-wrap;
 }
 .sheet-text {
-    overflow: auto;
+    overflow: auto !important;
 }
 
 .sheet-text::-webkit-scrollbar {
