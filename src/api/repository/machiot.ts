@@ -1,11 +1,5 @@
 import request from '@/api/core';
 
-const getChartElement = (aInput: string, aOutput: string, aWidth: number, aHeight: number) => {
-    return request({
-        method: 'GET',
-        url: `/api/tql?_tq=(${aInput})&_tq=(${aOutput})&width=${aWidth}px&height=${aHeight}px`,
-    });
-};
 const getTqlChart = (aData: string) => {
     return request({
         method: 'POST',
@@ -35,20 +29,18 @@ const postTerminalSize = async (aTerminalId: number, aSize: any) => {
     });
 };
 const fetchData = async (aSql: string, aFormat: string, aTimezone: any, aLimit?: any) => {
-    let sSql;
-    if (aSql.toLowerCase().includes('select')) {
-        if (aLimit) {
-            sSql = aSql + ` LIMIT ${aLimit * 50 - 50},${50}`;
-        } else {
-            sSql = aSql;
-        }
-    } else {
-        sSql = aSql;
-    }
+    const sSQL = `INPUT(SQL('${aSql} limit 500'))
+    
+DROP(${aLimit * 50 - 50})
+TAKE(${50})
+
+OUTPUT(JSON(timeformat('${aFormat}'), tz('${aTimezone}')))
+    `;
 
     return await request({
-        method: 'GET',
-        url: `/machbase?q=${encodeURIComponent(sSql)}&timeformat=${aFormat}&tz=${aTimezone}`,
+        method: 'POST',
+        url: `/api/tql`,
+        data: sSQL,
     });
 };
 const fetchTableName = async (aTable: any) => {
@@ -297,6 +289,5 @@ export {
     postTerminalSize,
     getChartData,
     getChartMinMaxData,
-    getChartElement,
     getTqlChart,
 };

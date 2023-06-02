@@ -6,7 +6,6 @@
                 <div class="context-option-form">
                     <button @click="onClickPopupItem('SHOW CONTENT')" class="show"><v-icon size="14px">mdi-monitor</v-icon> show full content</button>
                     <button @click="copyContent" class="copy"><v-icon size="14px">mdi-content-copy</v-icon> copy</button>
-                    <!-- <button @click="showChart" class="copy"><v-icon size="14px">mdi-chart-line</v-icon> show chart</button> -->
                 </div>
             </div>
         </Transition>
@@ -113,7 +112,7 @@ const cTableFontSizeClassName = computed(() => {
 const yScroll = ref(0);
 const sData = ref('');
 
-const emits = defineEmits(['UpdateItems', 'eShowChart']);
+const emits = defineEmits(['UpdateItems']);
 const scrollRef = ref();
 const sDialog = ref<boolean>(false);
 
@@ -121,10 +120,6 @@ const onClickPopupItem = (aPopupName: PopupType) => {
     sPopupType.value = aPopupName;
     sDialog.value = true;
     onContext.value = false;
-};
-
-const showChart = () => {
-    emits('eShowChart', sTagName.value);
 };
 
 const cWidthPopup = computed((): string => {

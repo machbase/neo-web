@@ -44,6 +44,9 @@ request.interceptors.request.use(
 // response interceptor
 request.interceptors.response.use(
     (response: AxiosResponse) => {
+        if (response.config.url === '/api/tql') {
+            return response;
+        }
         const res = response.data;
         // do something with respones
         return res;

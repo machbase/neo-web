@@ -21,8 +21,8 @@
                               }`
                             : TIME_RANGE_NOT_SET
                     }}
-                    <img @click="onReload(aIdx)" class="" :src="i_b_refresh" />
-                    <img @click="onClickPopupItem(PopupType.TIME_RANGE)" class="" :src="i_b_timerange" />
+                    <v-icon @click="onReload(aIdx)" class="icon" icon="mdi-refresh" size="16px"></v-icon>
+                    <v-icon @click="onClickPopupItem(PopupType.TIME_RANGE)" class="icon" icon="mdi-clock-time-three-outline" size="16px"></v-icon>
                     <v-icon @click="download" class="icon" icon="mdi-content-save" size="16px"></v-icon>
                     <label class="item">
                         <v-icon class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>

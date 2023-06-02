@@ -13,7 +13,10 @@
         </v-sheet>
 
         <v-sheet ref="rBodyEl" color="transparent" height="calc(100% - 40px)">
-            <iframe v-if="sHtml" ref="iframeDom" id="iframeMapViewComponent" frameborder="0" height="100%" scrolling="no" :srcdoc="sHtml" width="100%"></iframe>
+            <iframe v-if="sType && sHtml" ref="iframeDom" id="iframeMapViewComponent" frameborder="0" height="100%" scrolling="no" :srcdoc="sHtml" width="100%"></iframe>
+            <v-sheet v-if="!sType" color="transparent">
+                {{ sHtml }}
+            </v-sheet>
         </v-sheet>
     </v-sheet>
 </template>
@@ -21,7 +24,7 @@
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 
 import { defineProps, ref, defineEmits, computed, onMounted, defineExpose } from 'vue';
-import { getChartElement } from '../../api/repository/machiot';
+import { getTqlChart } from '../../api/repository/machiot';
 
 const props = defineProps({
     pHeaders: {
@@ -35,6 +38,7 @@ const props = defineProps({
 
 const rBodyEl = ref();
 const sHtml = ref();
+const sType = ref();
 
 const sXaxis = ref<string>(props.pHeaders[1]);
 const sYaxis = ref<string>(props.pHeaders[2]);
@@ -53,13 +57,21 @@ const handleYInfo = (aValue: string) => {
 
 const getChartEl = async () => {
     sHtml.value = '';
-    const sVertical = localStorage.getItem('vertical');
-    const sInput = `INPUT( SQL('${props.pSql.replace(';', '')} limit 5000') )`;
-    const sOutput = `OUTPUT(CHART_LINE(xaxis(1, '${sXaxis.value}'), yaxis(2, '${sYaxis.value}'), dataZoom('slider', 40, 60), seriesLabels('${sXaxis.value}', '${sYaxis.value}'), size($width, $height)))`;
-    if (sVertical === 'true') {
-        sHtml.value = await getChartElement(sInput, sOutput, rBodyEl.value.$el.clientWidth, rBodyEl.value.$el.clientHeight * 0.7);
+    let sInput = `INPUT( SQL('${props.pSql.replace(';', '')}'))
+TAKE(5000)
+OUTPUT(CHART_LINE(xaxis(1, '${sXaxis.value}'), yaxis(2, '${sYaxis.value}'), dataZoom('slider', 35, 65), seriesLabels('${sXaxis.value}', '${sYaxis.value}'), size($w ?? '${
+        rBodyEl.value.$el.clientWidth
+    }px',$h ??'${rBodyEl.value.$el.clientHeight * 0.7}px')))
+    `;
+
+    const sResult = await getTqlChart(sInput);
+    if (sResult.status >= 400) {
+        sType.value = false;
+        sHtml.value = sResult.data.reason;
     } else {
-        sHtml.value = await getChartElement(sInput, sOutput, rBodyEl.value.$el.clientWidth, rBodyEl.value.$el.clientHeight * 0.7);
+        sType.value = true;
+
+        sHtml.value = sResult.data;
     }
 };
 onMounted(async () => {
