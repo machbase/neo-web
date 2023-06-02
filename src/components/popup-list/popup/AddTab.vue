@@ -82,6 +82,7 @@ const sOptions = [
     { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
     { name: 'SQL', type: 'SQL Editor', icon: 'mdi-file-document-outline' },
     { name: 'Shell', type: 'Terminal', icon: 'mdi-console' },
+    { name: 'TQL', type: 'Tql', icon: 'mdi-chart-scatter-plot' },
 ];
 const sExpOptions = [
     { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
