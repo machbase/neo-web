@@ -29,14 +29,7 @@ const postTerminalSize = async (aTerminalId: number, aSize: any) => {
     });
 };
 const fetchData = async (aSql: string, aFormat: string, aTimezone: any, aLimit?: any) => {
-    const sSQL = `INPUT(SQL('${aSql}'))
-    
-DROP(${aLimit * 50 - 50})
-TAKE(${50})
-
-OUTPUT(JSON(timeformat('${aFormat}'), tz('${aTimezone}')))
-    `;
-
+    const sSQL = 'INPUT(SQL(`' + aSql + '`))\n' + 'DROP(' + (aLimit * 50 - 50) + ')\n' + 'TAKE(50)\n' + "OUTPUT(JSON(timeformat('" + aFormat + "'), tz('" + aTimezone + "')))";
     return await request({
         method: 'POST',
         url: `/api/tql`,
