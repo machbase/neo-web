@@ -48,6 +48,10 @@
                         <v-icon v-if="!sJsonOption" size="20px">mdi-text</v-icon>
                         <v-icon v-else size="20px">mdi-code-json</v-icon>
                     </v-btn>
+                    <v-btn v-if="sCsvHeaderBtn" @click="setCsvHeaderOption()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon v-if="!sCsvHeaderOption" size="20px">mdi-table-headers-eye</v-icon>
+                        <v-icon v-else size="20px">mdi-table-headers-eye-off</v-icon>
+                    </v-btn>
                     <v-btn @click="changeVerticalType(false)" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon size="20px">mdi-flip-horizontal</v-icon>
                     </v-btn>
@@ -57,7 +61,19 @@
                 </v-sheet>
             </v-sheet>
             <ShowChart v-if="sResultType === 'html'" ref="rChartTab" :p-headers="sHeader" :p-html="sHtml" />
-            <Table v-if="sResultType === 'csv'" :headers="['Content']" :items="sCSV" :p-timezone="''" :p-type="''" />
+            <Table
+                v-if="sResultType === 'csv'"
+                :headers="
+                    sCsvHeaderOption
+                        ? sCsvHeader
+                        : sCsvHeader.map((aItem, aIdx) => {
+                              return 'column ' + aIdx;
+                          })
+                "
+                :items="sCSV"
+                :p-timezone="''"
+                :p-type="''"
+            />
 
             <v-sheet v-else class="sheet-text" color="transparent" height="calc(100% - 40px)" width="100%">
                 <div v-if="sJsonOption">{{ sTextField }}</div>
@@ -115,6 +131,10 @@
                         <v-icon v-if="!sJsonOption" size="20px">mdi-text</v-icon>
                         <v-icon v-else size="20px">mdi-code-json</v-icon>
                     </v-btn>
+                    <v-btn v-if="sCsvHeaderBtn" @click="setCsvHeaderOption()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon v-if="!sCsvHeaderOption" size="20px">mdi-table-headers-eye</v-icon>
+                        <v-icon v-else size="20px">mdi-table-headers-eye-off</v-icon>
+                    </v-btn>
                     <v-btn @click="changeVerticalType(false)" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon size="20px">mdi-flip-horizontal</v-icon>
                     </v-btn>
@@ -125,7 +145,19 @@
             </v-sheet>
 
             <ShowChart v-if="sResultType === 'html'" ref="rChartTab" :p-headers="sHeader" :p-html="sHtml" />
-            <Table v-if="sResultType === 'csv'" :headers="['Content']" :items="sCSV" :p-timezone="''" :p-type="''" />
+            <Table
+                v-if="sResultType === 'csv'"
+                :headers="
+                    sCsvHeaderOption
+                        ? sCsvHeader
+                        : sCsvHeader.map((aItem, aIdx) => {
+                              return 'column ' + aIdx;
+                          })
+                "
+                :items="sCSV"
+                :p-timezone="''"
+                :p-type="''"
+            />
 
             <v-sheet v-else class="sheet-text" color="transparent" height="100%" width="100%">
                 <div v-if="sJsonOption">{{ sTextField }}</div>
@@ -170,6 +202,10 @@ let sTextField = ref<string>('');
 
 let sJsonBtnOption = ref<boolean>(false);
 let sJsonOption = ref<boolean>(true);
+
+let sCsvHeaderBtn = ref<boolean>(false);
+let sCsvHeader = ref<any>([]);
+let sCsvHeaderOption = ref<boolean>(false);
 
 const rChartTab = ref();
 
@@ -221,6 +257,7 @@ const cFontSizeClassName = computed(() => {
         return 'editor-font-size-medium';
     }
 });
+
 const cLogFormFontSizeClassName = computed(() => {
     const sStorageData = localStorage.getItem('gPreference');
     if (sStorageData) {
@@ -293,6 +330,14 @@ const getButtonData = () => {
 const setJsonFormat = () => {
     sJsonOption.value = !sJsonOption.value;
 };
+const setCsvHeaderOption = () => {
+    sCsvHeaderOption.value = !sCsvHeaderOption.value;
+    if (sCsvHeaderOption.value) {
+        sCSV.value.shift();
+    } else {
+        sCSV.value.unshift(sCsvHeader.value);
+    }
+};
 
 const getTqlData = async () => {
     const sResult: any = await getTqlChart(gBoard.value.code);
@@ -303,11 +348,21 @@ const getTqlData = async () => {
     } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
         sResultType.value = 'csv';
 
+        sCsvHeaderOption.value = false;
+        sCsvHeaderBtn.value = true;
+
         sCSV.value = [];
+        sCsvHeader.value = [];
+
         sResult.data.split('\n').map((aItem: string) => {
-            sCSV.value.push([aItem]);
+            sCSV.value.push(aItem.split(','));
+        });
+
+        sCSV.value[0].map((aItem) => {
+            sCsvHeader.value.push(aItem);
         });
         sCSV.value.pop();
+        return;
     } else {
         sResultType.value = 'text';
         if (sResult.status === 200) {
@@ -319,6 +374,7 @@ const getTqlData = async () => {
             sJsonOption.value = true;
         }
     }
+    sCsvHeaderBtn.value = false;
     sJsonBtnOption.value = false;
 };
 
@@ -330,13 +386,6 @@ onMounted(async () => {
             sVerticalType.value = false;
         }
     }
-    // if (!gBoard.value.code) {
-    //     if (gTableList.value[0]) {
-    //         gBoard.value.code = `select * from ${gTableList.value[0]};`;
-    //         sSql.value = gBoard.value.code.replace(';', '');
-    //         await getTqlData();
-    //     }
-    // }
 });
 </script>
 
