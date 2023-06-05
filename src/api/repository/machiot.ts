@@ -29,7 +29,7 @@ const postTerminalSize = async (aTerminalId: number, aSize: any) => {
     });
 };
 const fetchData = async (aSql: string, aFormat: string, aTimezone: any, aLimit?: any) => {
-    const sSQL = `INPUT(SQL('${aSql} limit 500'))
+    const sSQL = `INPUT(SQL('${aSql}'))
     
 DROP(${aLimit * 50 - 50})
 TAKE(${50})
