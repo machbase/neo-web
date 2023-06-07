@@ -31,4 +31,5 @@ export enum PopupType {
     TIME_RANGE = 'Time range',
     TIME_DURATION = 'Time Duration',
     ADD_TAB = 'Add Tab',
+    FILE_BROWSER = 'File Browser',
 }

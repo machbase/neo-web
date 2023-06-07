@@ -1,5 +1,4 @@
 import { TempNewChartData } from './../interface/tagView';
-import { getBoard, getBoardList, getPreference, postSetting, getDataDefault, postNewBoard, putNewBoard } from '@/api/repository/api';
 import { ActionContext } from 'vuex';
 import { MutationTypes, Mutations } from './mutations';
 import { RootState } from './state';
@@ -33,18 +32,6 @@ enum ActionTypes {
 }
 
 const actions = {
-    async [ActionTypes.fetchBoardList](context: MyActionContext) {
-        const res = await getBoardList();
-        context.commit(MutationTypes.setBoardList, res);
-    },
-    async [ActionTypes.fetchBoard](context: MyActionContext, payload: string) {
-        const res = await getBoard(payload);
-        context.commit(MutationTypes.setBoard, res);
-    },
-    async [ActionTypes.fetchPreference](context: MyActionContext) {
-        const res = await getPreference();
-        context.commit(MutationTypes.setPreference, res);
-    },
     async [ActionTypes.postPreference](context: MyActionContext, payload: ResPreferences) {
         context.commit(MutationTypes.setPreference, payload);
     },
@@ -62,35 +49,6 @@ const actions = {
     async [ActionTypes.fetchNewChartBoard](context: MyActionContext, payload: TempNewChartData) {
         const chartFormat = await convertChartDefault(DEFAULT_CHART as PanelInfo, payload);
         context.commit(MutationTypes.setNewChartBoard, chartFormat);
-    },
-    async [ActionTypes.fetchNewDashboard](context: MyActionContext, payload: any) {
-        const res: any =
-            payload.old_id === ''
-                ? await postNewBoard({
-                      ...context.state.gBoard,
-                      board_id: payload.board_id,
-                      board_name: payload.board_name,
-                      old_id: payload.old_id,
-                  })
-                : await putNewBoard({
-                      ...context.state.gBoard,
-                      board_id: payload.board_id,
-                      board_name: payload.board_name,
-                      old_id: payload.old_id,
-                  });
-        if (res.success === true) {
-            if (payload.old_id === '') {
-                context.commit(MutationTypes.setBoardList, res.list);
-            } else {
-                const newListBoard = context.state.gBoardList;
-                newListBoard.splice(context.state.gBoardList.length - 1, 1, res.list[res.list.length - 1]);
-            }
-            context.commit(MutationTypes.setNewBoard, {
-                ...payload,
-                old_id: payload.board_id,
-            });
-        }
-        return res;
     },
 
     async [ActionTypes.fetchRangeData](context: MyActionContext, payload: { table: string; tagName: string }) {

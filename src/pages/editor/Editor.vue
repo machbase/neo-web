@@ -29,11 +29,9 @@
                             :p-show-default-option="false"
                             :p-value="sSelectedTimezone"
                         />
-                        <v-icon @click="download" class="icon" icon="mdi-content-save" size="16px"></v-icon>
-                        <label class="item">
-                            <v-icon class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
-                            <input @change="upload" accept=".sql" class="file-import" type="file" />
-                        </label>
+                        <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'save')" class="icon" icon="mdi-content-save" size="16px"></v-icon>
+                        <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'open')" class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
+
                         <v-icon @click="showConfluence">mdi-book-education</v-icon>
                         <v-tooltip location="bottom">
                             <template #activator="{ props }">
@@ -156,11 +154,8 @@
                             :p-show-default-option="false"
                             :p-value="sSelectedTimezone"
                         />
-                        <v-icon @click="download" class="icon" icon="mdi-content-save" size="16px"></v-icon>
-                        <label class="item">
-                            <v-icon class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
-                            <input @change="upload" accept=".sql" class="file-import" type="file" />
-                        </label>
+                        <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'save')" class="icon" icon="mdi-content-save" size="16px"></v-icon>
+                        <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'upload')" class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
                         <v-icon @click="showConfluence">mdi-book-education</v-icon>
                         <v-tooltip location="bottom">
                             <template #activator="{ props }">
@@ -253,10 +248,12 @@
             </v-sheet>
         </template>
     </DragRow>
+    <PopupWrap @eClosePopup="onClosePopup" :p-info="sFileOption" :p-show="sDialog" :p-sql="true" :p-type="sPopupType" :p-width="cWidthPopup" />
 </template>
 
 <script setup lang="ts" name="Editor">
 import CodeEditor from 'simple-code-editor';
+import PopupWrap from '@/components/popup-list/index.vue';
 import Table from './Table.vue';
 import ShowChart from './showChart.vue';
 import { ref, watch, defineEmits, defineProps, computed, onMounted, nextTick } from 'vue';
@@ -264,9 +261,11 @@ import { store } from '../../store';
 import { fetchData } from '../../api/repository/machiot';
 import { copyText } from 'vue3-clipboard';
 import { DragCol, DragRow, ResizeCol, ResizeRow, Resize } from 'vue-resizer';
+import { PopupType } from '@/enums/app';
 import { MutationTypes } from '../../store/mutations';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import ComboboxAuto from '@/components/common/combobox/combobox-auto/index.vue';
+import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from '@/components/header/constant';
 import { IANA_TIMEZONES, IanaTimezone } from '@/assets/ts/timezones.ts';
 interface PropsNoteData {
     pPanelData: boolean;
@@ -282,6 +281,7 @@ const gBoard = computed(() => {
     return gTabList.value[sIdx];
 });
 
+let sFileOption = ref<string>('');
 let sPropsTypeOption = ref<string>('');
 let sText = ref<any>('');
 let rLog = ref<any>('');
@@ -301,6 +301,28 @@ const sList = computed(() =>
 
 const rChartTab = ref();
 
+const cWidthPopup = computed((): string => {
+    switch (sPopupType.value) {
+        case PopupType.PREFERENCES:
+            return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.TIME_RANGE:
+            return WIDTH_DEFAULT.TIME_RANGE;
+        case PopupType.TIME_DURATION:
+            return WIDTH_DEFAULT.TIME_DURATION;
+        case PopupType.MANAGE_DASHBOARD:
+            return WIDTH_DEFAULT.MANAGE_DASHBOARD;
+        case PopupType.SAVE_DASHBOARD:
+            return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.ADD_TAB:
+            return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.NEW_TAGS:
+            return '667px';
+        case PopupType.FILE_BROWSER:
+            return '667px';
+        default:
+            return WIDTH_DEFAULT.DEFAULT;
+    }
+});
 const sTimeFormatList = ref<any>([
     { name: 'TIMESTAMP(ns)', id: 'ns' },
     { name: 'TIMESTAMP(us)', id: 'us' },
@@ -325,6 +347,22 @@ const sTimeFormatList = ref<any>([
 
 const sSelectedFormat = ref<any>('YYYY-MM-DD HH:MI:SS');
 const sSelectedTimezone = ref<any>('LOCAL');
+const sDialog = ref<boolean>(false);
+const sPopupType = ref<PopupType>(PopupType.FILE_BROWSER);
+
+const onClickPopupItem = (aPopupName: PopupType, aFileOption?: string) => {
+    if (aFileOption === 'save') {
+        sFileOption.value = 'save';
+    } else {
+        sFileOption.value = 'open';
+    }
+    sPopupType.value = aPopupName;
+    sDialog.value = true;
+};
+
+const onClosePopup = () => {
+    sDialog.value = false;
+};
 
 const dragLine = (aStatus: boolean) => {
     if (sTab.value === 'chart' && aStatus === false) {
