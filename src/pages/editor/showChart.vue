@@ -40,8 +40,8 @@ const rBodyEl = ref();
 const sHtml = ref();
 const sType = ref();
 
-const sXaxis = ref<string>(props.pHeaders[1]);
-const sYaxis = ref<string>(props.pHeaders[2]);
+const sXaxis = ref<string>(props.pHeaders[0]);
+const sYaxis = ref<string>(props.pHeaders[1] ? props.pHeaders[1] : props.pHeaders[0]);
 
 const cHeaderList = computed(() =>
     props.pHeaders.map((aItem: string) => {
@@ -59,12 +59,14 @@ const getChartEl = async () => {
     sHtml.value = '';
     const sInput =
         'INPUT(SQL(`' +
-        props.pSql.replace(';', '') +
+        props.pSql.replace(';', '').replaceAll('\n', ' ') +
         '`))\n' +
         'TAKE(5000)\n' +
-        `OUTPUT(CHART_LINE(xaxis(1, '${sXaxis.value}'), yaxis(2, '${sYaxis.value}'), dataZoom('slider', 35, 65), seriesLabels('${sXaxis.value}', '${sYaxis.value}'), size($w ?? '${
-            rBodyEl.value.$el.clientWidth
-        }px',$h ??'${rBodyEl.value.$el.clientHeight * 0.7}px')))`;
+        `OUTPUT(CHART_LINE(xAxis(${cHeaderList.value.findIndex((aItem: { id: string; name: string }) => aItem.id === sXaxis.value)}, '${
+            sXaxis.value
+        }'), yAxis(${cHeaderList.value.findIndex((aItem: { id: string; name: string }) => aItem.id === sYaxis.value)}, '${
+            sYaxis.value
+        }'), dataZoom('slider', 35, 65), size($w ?? '${rBodyEl.value.$el.clientWidth}px',$h ??'${rBodyEl.value.$el.clientHeight * 0.7}px')))`;
 
     const sResult = await getTqlChart(sInput);
     if (sResult.status >= 400) {
