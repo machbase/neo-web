@@ -57,12 +57,14 @@ const handleYInfo = (aValue: string) => {
 
 const getChartEl = async () => {
     sHtml.value = '';
-    let sInput = `INPUT( SQL('${props.pSql.replace(';', '')}'))
-TAKE(5000)
-OUTPUT(CHART_LINE(xaxis(1, '${sXaxis.value}'), yaxis(2, '${sYaxis.value}'), dataZoom('slider', 35, 65), seriesLabels('${sXaxis.value}', '${sYaxis.value}'), size($w ?? '${
-        rBodyEl.value.$el.clientWidth
-    }px',$h ??'${rBodyEl.value.$el.clientHeight * 0.7}px')))
-    `;
+    const sInput =
+        'INPUT(SQL(`' +
+        props.pSql.replace(';', '') +
+        '`))\n' +
+        'TAKE(5000)\n' +
+        `OUTPUT(CHART_LINE(xaxis(1, '${sXaxis.value}'), yaxis(2, '${sYaxis.value}'), dataZoom('slider', 35, 65), seriesLabels('${sXaxis.value}', '${sYaxis.value}'), size($w ?? '${
+            rBodyEl.value.$el.clientWidth
+        }px',$h ??'${rBodyEl.value.$el.clientHeight * 0.7}px')))`;
 
     const sResult = await getTqlChart(sInput);
     if (sResult.status >= 400) {
