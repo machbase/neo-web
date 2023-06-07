@@ -7,6 +7,10 @@
                         <!-- MACHBASE -->
                         <v-btn @click="getButtonData" density="comfortable" icon="mdi-play" size="36px" variant="plain"></v-btn>
                     </div>
+                    <div class="header-btn-list">
+                        <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'save')" class="icon" icon="mdi-content-save" size="16px"></v-icon>
+                        <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'open')" class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
+                    </div>
                 </div>
                 <CodeEditor
                     v-model="gBoard.code"
@@ -91,6 +95,10 @@
                         <!-- MACHBASE -->
                         <v-btn @click="getButtonData" density="comfortable" icon="mdi-play" size="36px" variant="plain"></v-btn>
                     </div>
+                    <div class="header-btn-list">
+                        <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'save')" class="icon" icon="mdi-content-save" size="16px"></v-icon>
+                        <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'open')" class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
+                    </div>
                 </div>
                 <CodeEditor
                     v-model="gBoard.code"
@@ -165,10 +173,12 @@
             </v-sheet>
         </template>
     </DragRow>
+    <PopupWrap @eClosePopup="onClosePopup" :p-info="sFileOption" :p-show="sDialog" :p-type="sPopupType" :p-width="cWidthPopup" />
 </template>
 
 <script setup lang="ts" name="Editor">
 import CodeEditor from 'simple-code-editor';
+import PopupWrap from '@/components/popup-list/index.vue';
 import Table from './Table.vue';
 import ShowChart from './showChart.vue';
 import { ref, watch, defineEmits, defineProps, computed, onMounted, nextTick } from 'vue';
@@ -180,6 +190,8 @@ import { MutationTypes } from '../../store/mutations';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import ComboboxAuto from '@/components/common/combobox/combobox-auto/index.vue';
 import { IANA_TIMEZONES, IanaTimezone } from '@/assets/ts/timezones.ts';
+import { PopupType } from '@/enums/app';
+import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from '@/components/header/constant';
 
 const sLang = [['SQL', 'MACHBASE']];
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
@@ -189,7 +201,9 @@ const gBoard = computed(() => {
     const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
     return gTabList.value[sIdx];
 });
+const sPopupType = ref<PopupType>(PopupType.FILE_BROWSER);
 
+let sFileOption = ref<string>('');
 let sData = ref<any>([]);
 let sHeader = ref<any>([]);
 let sTab = ref<string>('chart');
@@ -206,8 +220,32 @@ let sJsonOption = ref<boolean>(true);
 let sCsvHeaderBtn = ref<boolean>(false);
 let sCsvHeader = ref<any>([]);
 let sCsvHeaderOption = ref<boolean>(false);
+const sDialog = ref<boolean>(false);
 
 const rChartTab = ref();
+
+const cWidthPopup = computed((): string => {
+    switch (sPopupType.value) {
+        case PopupType.PREFERENCES:
+            return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.TIME_RANGE:
+            return WIDTH_DEFAULT.TIME_RANGE;
+        case PopupType.TIME_DURATION:
+            return WIDTH_DEFAULT.TIME_DURATION;
+        case PopupType.MANAGE_DASHBOARD:
+            return WIDTH_DEFAULT.MANAGE_DASHBOARD;
+        case PopupType.SAVE_DASHBOARD:
+            return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.ADD_TAB:
+            return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.NEW_TAGS:
+            return '667px';
+        case PopupType.FILE_BROWSER:
+            return '667px';
+        default:
+            return WIDTH_DEFAULT.DEFAULT;
+    }
+});
 
 const sTimeFormatList = ref<any>([
     { name: 'TIMESTAMP(ns)', id: 'ns' },
@@ -257,6 +295,19 @@ const cFontSizeClassName = computed(() => {
         return 'editor-font-size-medium';
     }
 });
+
+const onClosePopup = () => {
+    sDialog.value = false;
+};
+const onClickPopupItem = (aPopupName: PopupType, aFileOption?: string) => {
+    if (aFileOption === 'save') {
+        sFileOption.value = 'save';
+    } else {
+        sFileOption.value = 'open';
+    }
+    sPopupType.value = aPopupName;
+    sDialog.value = true;
+};
 
 const cLogFormFontSizeClassName = computed(() => {
     const sStorageData = localStorage.getItem('gPreference');

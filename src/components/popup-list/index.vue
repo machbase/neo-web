@@ -11,11 +11,10 @@
     >
         <div class="dialog-wrap__content" :style="pType === 'EDIT CHART' ? { height: '100%' } : {}">
             <div class="dialog-wrap__content--header">
-                <p>{{ pType === PopupType.TIME_DURATION ? PopupType.TIME_RANGE : pType }}</p>
+                <p>{{ pType === PopupType.TIME_DURATION ? PopupType.TIME_RANGE : pType === PopupType.FILE_BROWSER ? pInfo : pType }}</p>
                 <img @click="onClosePopup" :src="i_b_close" />
             </div>
             <div class="dialog-wrap__content--body" :style="pType === 'EDIT CHART' ? { height: 'calc(100% - 45px)' } : {}">
-                <ManageDashboard v-if="pType === PopupType.MANAGE_DASHBOARD" @eClosePopup="onClosePopup" />
                 <NewChart v-if="pType === PopupType.NEW_CHART" @eClosePopup="onClosePopup" />
                 <NewTags v-if="pType === PopupType.NEW_TAGS" @e-submit="onSubmitTag" @eClosePopup="onClosePopup" :no-of-select-tags="props.pNoOfSelectTags as number" />
                 <Preferences v-if="pType === PopupType.PREFERENCES" @eClosePopup="onClosePopup" />
@@ -38,6 +37,8 @@
                         </div>
                     </div>
                 </div>
+
+                <FileBrowser v-if="pType === PopupType.FILE_BROWSER" @eClosePopup="onClosePopup" :p-info="pInfo" :p-sql="pSql" />
             </div>
         </div>
     </v-dialog>
@@ -48,7 +49,7 @@ import i_b_close from '@/assets/image/i_b_close.png';
 import { PopupType } from '@/enums/app';
 import { useStore } from '@/store';
 import { computed, defineEmits, defineProps, ref, watch } from 'vue';
-import ManageDashboard from './popup/ManageDashboard.vue';
+import FileBrowser from './popup/FileBrowser.vue';
 import NewChart from './popup/NewChart.vue';
 import NewTags from './popup/NewTags.vue';
 import Preferences from './popup/Preferences.vue';
@@ -67,6 +68,7 @@ interface PopupWrapProps {
     pType: PopupType;
     pShow: boolean;
     pWidth?: string;
+    pSql?: boolean;
     pNoOfSelectTags?: number;
     pIsFromTime?: boolean;
     pTimeRange?: TimeLineType;
