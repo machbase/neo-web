@@ -835,6 +835,11 @@ onMounted(async () => {
         font-weight: 700;
     }
 }
+.code_editor {
+    .header {
+        display: none;
+    }
+}
 .code-area {
     border-radius: 0 !important;
 }

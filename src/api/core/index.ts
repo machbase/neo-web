@@ -25,8 +25,15 @@ request.interceptors.request.use(
         // do something before request is sent
         const sHeaders = config.headers;
 
-        const sFileOption = config.url?.indexOf('/api/files');
-        if (sFileOption !== -1 && config.method === 'post') {
+        const sFileOption = config.url?.split('?')[0].indexOf('/api/files');
+        const sFileSql = config.url?.split('?')[0].indexOf('.sql');
+        const sFileTql = config.url?.split('?')[0].indexOf('.tql');
+
+        if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1)) {
+            config.transformResponse = function (data) {
+                return data;
+            };
+
             config.headers[`Content-Type`] = 'text/plain';
         }
         if (config.url === '/api/tql') {

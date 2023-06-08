@@ -546,8 +546,19 @@ const handleChange = async (aKeyPress: boolean) => {
 
 const getSQLData = async () => {
     if (sSql.value) {
+        const sSplitData = sSql.value.split('\n');
+
+        const sTrimData = sSplitData.map((aItem) => {
+            if (aItem.trim().substring(0, 2) === '--') {
+                return '';
+            } else {
+                return aItem.trim();
+            }
+        });
+
         const sFormat = sTimeFormatList.value.findIndex((aItem) => aItem.name === sSelectedFormat.value);
 
+        sSql.value = sTrimData.join(' ');
         // const sLimit = sSql.value.toLowerCase().indexOf('limit'.toLowerCase());
         const sResult: any = await fetchData(
             sSql.value.replaceAll(/\n/g, ' ').replace(';', ''),
@@ -1046,6 +1057,11 @@ onMounted(async () => {
     .hljs-meta .hljs-keyword,
     .hljs-meta-keyword {
         font-weight: 700;
+    }
+}
+.code_editor {
+    .header {
+        display: none;
     }
 }
 .code-area {
