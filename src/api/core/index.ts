@@ -25,6 +25,10 @@ request.interceptors.request.use(
         // do something before request is sent
         const sHeaders = config.headers;
 
+        const sFileOption = config.url?.indexOf('/api/files');
+        if (sFileOption !== -1 && config.method === 'post') {
+            config.headers[`Content-Type`] = 'text/plain';
+        }
         if (config.url === '/api/tql') {
             config.headers[`Content-Type`] = 'text/plain';
         }
