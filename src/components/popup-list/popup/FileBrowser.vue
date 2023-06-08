@@ -1,12 +1,12 @@
 <template>
     <v-sheet color="transparent">
         <v-sheet class="file-name-form-header" color="transparent" height="24px" width="100%">
-            <v-sheet color="transparent" width="60%">name</v-sheet>
+            <v-sheet color="transparent" width="60%"> <span style="margin-left: 20px"> name </span> </v-sheet>
             <v-sheet color="transparent" width="20%">last modified</v-sheet>
             <v-sheet color="transparent" width="20%">size</v-sheet>
         </v-sheet>
         <v-divider></v-divider>
-        <v-sheet class="list-form" color="transparent" max-height="300px" width="100%">
+        <v-sheet class="list-form" color="transparent" max-height="250px" min-height="250px" width="100%">
             <v-sheet
                 v-for="(aChildren, aIdx) in sList"
                 :key="aIdx + aChildren.lastModifiedUnixMillis"
@@ -17,14 +17,14 @@
                 :style="
                     sClickFile && sClickFile.name + sClickFile.lastModifiedUnixMillis === aChildren.name + aChildren.lastModifiedUnixMillis
                         ? cIsDarkMode
-                            ? { backgroundColor: '#ffffff !important' }
-                            : { backgroundColor: '#121212 !important', color: '#f8f8f8 !important' }
+                            ? { backgroundColor: 'rgba(46, 192, 223, 0.2) !important', borderTop: '1px solid #2ec0df', borderBottom: '1px solid #2ec0df' }
+                            : { backgroundColor: 'rgba(46, 192, 223, 0.2) !important', borderTop: '1px solid #2ec0df', borderBottom: '1px solid #2ec0df' }
                         : {}
                 "
                 width="100%"
             >
                 <v-sheet class="file-name-form" color="transparent" width="60%">
-                    <v-icon size="16px"
+                    <v-icon :color="aChildren.type === 'dir' ? '#F5AA64' : cIsDarkMode ? '#adb3bc' : '#367FEB'" size="16px"
                         >{{
                             aChildren.type === 'dir'
                                 ? 'mdi-folder'
@@ -131,7 +131,7 @@ const clickOption = (aItem: any) => {
     } else {
         if (sClickFile.value === aItem) {
             clearTimeout(sTimeoutId);
-            if (props.pInfo === 'open' || sClickFile.value.type === 'dir') {
+            if (props.pInfo === 'open' || sClickFile.value.type === 'dir' || sClickFile.value.type === 'back') {
                 uploadFile();
             } else {
                 importFile();
@@ -242,12 +242,33 @@ onMounted(async () => {
 .list-form {
     overflow: auto;
 }
+.list-form::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.list-form::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.list-form::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
+}
 .search-wrapper {
     display: flex;
     align-items: center;
     margin-top: 8px;
     .file-name-header {
         margin-right: 4px;
+    }
+}
+.file-name-form-header {
+    div {
+        display: flex;
+        align-items: center;
     }
 }
 </style>
