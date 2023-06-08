@@ -6,7 +6,7 @@
             <v-sheet color="transparent" width="20%">size</v-sheet>
         </v-sheet>
         <v-divider></v-divider>
-        <v-sheet class="list-form" max-height="300px" width="100%">
+        <v-sheet class="list-form" color="transparent" max-height="300px" width="100%">
             <v-sheet
                 v-for="(aChildren, aIdx) in sList"
                 :key="aIdx + aChildren.lastModifiedUnixMillis"
