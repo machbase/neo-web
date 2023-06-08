@@ -47,7 +47,7 @@
 
         <v-sheet v-if="pInfo === 'save'" color="transparent" width="100%">
             <div class="search-wrapper">
-                <div class="file-name-header">File Name</div>
+                <div class="file-name-header">File Name:</div>
                 <input v-model="sFileName" @keydown.enter="onSearch" class="form-control taginput input" style="width: 80%" type="text" />
             </div>
         </v-sheet>
@@ -247,7 +247,7 @@ onMounted(async () => {
     align-items: center;
     margin-top: 8px;
     .file-name-header {
-        margin-left: 4px;
+        margin-right: 4px;
     }
 }
 </style>
