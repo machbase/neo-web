@@ -174,6 +174,8 @@ const importFile = async () => {
                 uploadFile();
                 onClosePopup();
                 return;
+            } else {
+                return;
             }
         }
     }
