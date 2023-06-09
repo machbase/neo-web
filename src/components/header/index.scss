@@ -50,6 +50,12 @@
             align-items: center;
             font-size: $font-12;
             padding: 4px 8px;
+        div{
+            width: 170px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+        }
         }
 
     }

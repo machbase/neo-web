@@ -8,6 +8,16 @@ import { YorN } from '@/interface/constants';
 import { string } from 'joi';
 
 const utils = {};
+
+const getWindowOs = () => {
+    if (navigator.platform.toUpperCase().indexOf('WIN') !== -1) {
+        return true;
+    } else if (navigator.platform.toUpperCase().indexOf('MAC') !== -1) {
+        return false;
+    }
+    return true;
+};
+
 const formatDate = (date: Date | string): string => {
     let dateStr;
     if (typeof date === 'string') dateStr = date;
@@ -213,4 +223,5 @@ export {
     rawtoTimeUtcChart,
     changeNumberType,
     changeNaNoToDate,
+    getWindowOs,
 };

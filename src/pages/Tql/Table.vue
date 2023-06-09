@@ -26,9 +26,6 @@
         >
             <thead class="header-fix" :style="cIsDarkMode ? { backgroundColor: 'black', color: 'white' } : { backgroundColor: 'rgb(245, 245, 245)', color: 'black' }">
                 <tr>
-                    <th>
-                        <span>ROWNUM</span>
-                    </th>
                     <th v-for="(item, aIdx) in headers" :key="aIdx">
                         <span
                             >{{ item }}
@@ -39,9 +36,6 @@
             </thead>
             <tbody>
                 <tr v-for="(content, index) in items" :key="index" :class="[cIsDarkMode ? (Number(index) % 2 === 0 ? '' : 'dark-odd') : Number(index) % 2 === 0 ? '' : 'odd']">
-                    <td>
-                        <span>{{ index + 1 }}</span>
-                    </td>
                     <td v-for="(value, aIdx) in content" :key="aIdx" @contextmenu.prevent @mousedown.right.stop="openContextMenu($event, value, content)">
                         <span> {{ pType[aIdx] === 'double' ? (String(value).indexOf('e') === -1 ? value : changeNumberType(value)) : value }}</span>
                     </td>

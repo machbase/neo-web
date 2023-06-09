@@ -79,17 +79,16 @@ const sBoardName = ref<string>('Tag Analyzer');
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const sOptions = [
-    { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
     { name: 'SQL', type: 'SQL Editor', icon: 'mdi-file-document-outline' },
-    { name: 'Shell', type: 'Terminal', icon: 'mdi-console' },
     { name: 'TQL', type: 'Tql', icon: 'mdi-chart-scatter-plot' },
+    { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
+    { name: 'Shell', type: 'Terminal', icon: 'mdi-console' },
 ];
 const sExpOptions = [
-    { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
     { name: 'SQL', type: 'SQL Editor', icon: 'mdi-file-document-outline' },
-    { name: 'Shell', type: 'Terminal', icon: 'mdi-console' },
-    // { name: 'Chart', type: 'chart', icon: 'mdi-chart-scatter-plot' },
     { name: 'TQL', type: 'Tql', icon: 'mdi-chart-scatter-plot' },
+    { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
+    { name: 'Shell', type: 'Terminal', icon: 'mdi-console' },
 ];
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
@@ -145,6 +144,7 @@ const onSetting = () => {
         board_id: String(new Date().getTime()),
         type: sBoardType.value,
         board_name: sBoardName,
+        path: '',
         edit: false,
     };
 

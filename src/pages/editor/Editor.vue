@@ -47,6 +47,7 @@
                 <CodeEditor
                     v-model="gBoard.code"
                     ref="sText"
+                    @keydown="saveSQL"
                     @keydown.enter.stop="setSQL"
                     border_radius="0"
                     :class="cFontSizeClassName"
@@ -171,6 +172,7 @@
                 <CodeEditor
                     v-model="gBoard.code"
                     ref="sText"
+                    @keydown="saveSQL"
                     @keydown.enter.stop="setSQL"
                     border_radius="0"
                     :class="cFontSizeClassName"
@@ -267,6 +269,8 @@ import ComboboxSelect from '@/components/common/combobox/combobox-select/index.v
 import ComboboxAuto from '@/components/common/combobox/combobox-auto/index.vue';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from '@/components/header/constant';
 import { IANA_TIMEZONES, IanaTimezone } from '@/assets/ts/timezones.ts';
+import { postFileList } from '../../api/repository/api';
+import { getWindowOs } from '../../utils/utils';
 interface PropsNoteData {
     pPanelData: boolean;
 }
@@ -323,6 +327,7 @@ const cWidthPopup = computed((): string => {
             return WIDTH_DEFAULT.DEFAULT;
     }
 });
+
 const sTimeFormatList = ref<any>([
     { name: 'TIMESTAMP(ns)', id: 'ns' },
     { name: 'TIMESTAMP(us)', id: 'us' },
@@ -362,6 +367,26 @@ const onClickPopupItem = (aPopupName: PopupType, aFileOption?: string) => {
 
 const onClosePopup = () => {
     sDialog.value = false;
+};
+
+const saveSQL = (aEvent: any) => {
+    if (aEvent.code === 'KeyS') {
+        if (getWindowOs() && aEvent.ctrlKey) {
+            aEvent.preventDefault();
+            if (gBoard.value.path !== '') {
+                postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
+            } else {
+                onClickPopupItem(PopupType.FILE_BROWSER, 'save');
+            }
+        } else if (!getWindowOs() && aEvent.metaKey) {
+            aEvent.preventDefault();
+            if (gBoard.value.path !== '') {
+                postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
+            } else {
+                onClickPopupItem(PopupType.FILE_BROWSER, 'save');
+            }
+        }
+    }
 };
 
 const dragLine = (aStatus: boolean) => {
@@ -546,8 +571,19 @@ const handleChange = async (aKeyPress: boolean) => {
 
 const getSQLData = async () => {
     if (sSql.value) {
+        const sSplitData = sSql.value.split('\n');
+
+        const sTrimData = sSplitData.map((aItem) => {
+            if (aItem.trim().substring(0, 2) === '--') {
+                return '';
+            } else {
+                return aItem.trim();
+            }
+        });
+
         const sFormat = sTimeFormatList.value.findIndex((aItem) => aItem.name === sSelectedFormat.value);
 
+        sSql.value = sTrimData.join(' ');
         // const sLimit = sSql.value.toLowerCase().indexOf('limit'.toLowerCase());
         const sResult: any = await fetchData(
             sSql.value.replaceAll(/\n/g, ' ').replace(';', ''),
@@ -1046,6 +1082,11 @@ onMounted(async () => {
     .hljs-meta .hljs-keyword,
     .hljs-meta-keyword {
         font-weight: 700;
+    }
+}
+.code_editor {
+    .header {
+        display: none;
     }
 }
 .code-area {
