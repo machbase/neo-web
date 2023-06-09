@@ -162,6 +162,7 @@ export interface BoardInfo {
     range_bgn: string;
     panels: PanelInfo[][];
     type: string;
+    path: string;
     code: string;
     value?: any;
     old_id?: string;

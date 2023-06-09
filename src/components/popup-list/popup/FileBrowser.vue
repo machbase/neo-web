@@ -1,5 +1,26 @@
 <template>
     <v-sheet color="transparent">
+        <v-sheet class="toolbar" color="transparent">
+            <v-sheet class="back-btn-sheet" color="transparent">
+                <v-btn
+                    @click="backBtn({ isDir: false, lastModifiedUnixMillis: '', name: '..', size: '', type: 'back' })"
+                    density="comfortable"
+                    :disabled="sSelectedClickDir.length === 0"
+                    icon="mdi-arrow-left"
+                    size="16px"
+                    variant="plain"
+                ></v-btn>
+                <v-btn @click="forwardBtn" density="comfortable" :disabled="sDeleteDir.length === 0" icon="mdi-arrow-right" size="16px" variant="plain"></v-btn>
+            </v-sheet>
+            <div ref="rPathField" class="path-form">
+                {{ 'machbase' + cJoinPath }}
+            </div>
+            <v-sheet color="transparent">
+                <v-btn @click="makeFolder" density="comfortable" size="16px" variant="plain">
+                    <v-icon color="#F5AA64"> mdi-folder-plus </v-icon>
+                </v-btn>
+            </v-sheet>
+        </v-sheet>
         <v-sheet class="file-name-form-header" color="transparent" height="24px" width="100%">
             <v-sheet color="transparent" width="60%"> <span style="margin-left: 20px"> name </span> </v-sheet>
             <v-sheet color="transparent" width="20%">last modified</v-sheet>
@@ -48,9 +69,10 @@
         <v-sheet v-if="pInfo === 'save'" color="transparent" width="100%">
             <div class="search-wrapper">
                 <div class="file-name-header">File Name:</div>
-                <input v-model="sFileName" @keydown.enter="onSearch" class="form-control taginput input" style="width: 80%" type="text" />
+                <input v-model="sFileName" @keydown.enter="importFile" class="form-control taginput input" style="width: 80%" type="text" />
             </div>
         </v-sheet>
+
         <div class="popup__btn-group">
             <v-btn v-if="pInfo === 'save'" @click="importFile" class="button-effect-color" :disabled="cFileNameStat" variant="outlined"> OK </v-btn>
             <v-btn v-else @click="uploadFile" class="button-effect-color" :disabled="!sClickFile" variant="outlined"> Open </v-btn>
@@ -82,12 +104,16 @@ const gSelectedTab = computed(() => store.state.gSelectedTab);
 
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
+const cJoinPath = computed(() => '/' + sSelectedClickDir.value.join('/'));
+
 let sTimeoutId: any = null;
 
+const rPathField = ref<any>();
 const sFileName = ref<any>('');
 const sSelectedClickData = ref<any>();
 const sClickFile = ref<any>();
 const sSelectedClickDir = ref<any>([]);
+const sDeleteDir = ref<any>([]);
 
 const cFileNameStat = computed(() => {
     const extension = sFileName.value.slice(-4);
@@ -116,6 +142,19 @@ const elapsedTime = (date: number): string => {
 
     const months = days / 30;
     return `${Math.floor(months)}month ago`;
+};
+
+const backBtn = (aItem: any) => {
+    sClickFile.value = aItem;
+    if (props.pSql ? sClickFile.value.type === '.sql' : sClickFile.value.type === '.tql') {
+        sFileName.value = sClickFile.value.name;
+    }
+    uploadFile();
+};
+const forwardBtn = () => {
+    sSelectedClickDir.value.push(sDeleteDir.value[sDeleteDir.value.length - 1]);
+    sDeleteDir.value.pop();
+    uploadFile();
 };
 
 const clickOption = (aItem: any) => {
@@ -154,14 +193,51 @@ const getFile = async () => {
     if (sData && sData.reason) {
         sList.value = [];
         if (sSelectedClickDir.value.length !== 0) sList.value.push({ isDir: false, lastModifiedUnixMillis: '', name: '..', size: '', type: 'back' });
-        sData.data.children.map((aItem: any) => {
-            sList.value.push(aItem);
-        });
+        sData.data.children &&
+            sData.data.children.length > 0 &&
+            sData.data.children.map((aItem: any) => {
+                sList.value.push(aItem);
+            });
+        sClickFile.value = '';
     } else {
         gBoard.value.code = sData;
+        gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
         gBoard.value.board_name = sSelectedClickData.value;
         onClosePopup();
     }
+};
+
+const makeFolder = () => {
+    const sFilterList = sList.value.filter((aItem) => aItem.isDir);
+
+    if (sFilterList.length === 0) postFileList('', sSelectedClickDir.value.join('/'), `new`);
+    else {
+        const sSortData = sFilterList
+            .map((aItem) => {
+                return aItem.name;
+            })
+            .sort();
+
+        const sData = sSortData.map((aItem, aIdx) => {
+            if (aIdx !== 0) {
+                if (aItem.split('-')[1] === String(aIdx)) {
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                return true;
+            }
+        });
+
+        const sIdx = sData.findIndex((aItem) => !aItem);
+        if (sIdx !== -1) {
+            postFileList('', sSelectedClickDir.value.join('/'), `new-${sIdx}`);
+        } else {
+            postFileList('', sSelectedClickDir.value.join('/'), `new-${sSortData.length}`);
+        }
+    }
+    getFile();
 };
 
 const importFile = async () => {
@@ -172,6 +248,8 @@ const importFile = async () => {
             if (sConfirm) {
                 postFileList(gBoard.value.code, sSelectedClickDir.value.join('/'), sFileName.value);
                 uploadFile();
+                gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
+                gBoard.value.board_name = sFileName.value;
                 onClosePopup();
                 return;
             } else {
@@ -180,6 +258,8 @@ const importFile = async () => {
         }
     }
     postFileList(gBoard.value.code, sSelectedClickDir.value.join('/'), sFileName.value);
+    gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
+    gBoard.value.board_name = sFileName.value;
     getFile();
     onClosePopup();
 };
@@ -187,9 +267,12 @@ const importFile = async () => {
 const uploadFile = async () => {
     sSelectedClickData.value = '';
     if (sClickFile.value.type === 'dir') {
+        rPathField.value.scrollLeft = rPathField.value.scrollWidth;
         sSelectedClickDir.value.push(sClickFile.value.name);
+        sDeleteDir.value = [];
     }
     if (sClickFile.value.type === 'back') {
+        sDeleteDir.value.push(sSelectedClickDir.value[sSelectedClickDir.value.length - 1]);
         sSelectedClickDir.value.pop();
         sClickFile.value = '';
     }
@@ -200,7 +283,17 @@ const uploadFile = async () => {
 };
 
 onMounted(async () => {
+    if (gBoard.value.path) {
+        const sData = gBoard.value.path.split('/');
+        sData.shift();
+        if (sData[0]) {
+            sData.map((aItem: string) => {
+                sSelectedClickDir.value.push(aItem);
+            });
+        }
+    }
     getFile();
+
     sFileName.value = gBoard.value.board_name;
 });
 </script>
@@ -270,5 +363,43 @@ onMounted(async () => {
         display: flex;
         align-items: center;
     }
+}
+.toolbar {
+    height: 27px;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 16px 0 0;
+}
+.back-btn-sheet {
+    button {
+        margin-right: 12px;
+    }
+}
+.path-form {
+    background: #dfe3e4;
+    border-radius: 8px;
+    min-width: 50%;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    overflow: auto;
+    height: 90%;
+    width: 50%;
+}
+
+.path-form::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+}
+
+.path-form::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.path-form::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
 }
 </style>

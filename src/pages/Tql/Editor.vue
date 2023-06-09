@@ -14,6 +14,7 @@
                 </div>
                 <CodeEditor
                     v-model="gBoard.code"
+                    @keydown="saveSQL"
                     @keydown.enter.stop="setSQL($event)"
                     border_radius="0"
                     :class="cFontSizeClassName"
@@ -102,6 +103,7 @@
                 </div>
                 <CodeEditor
                     v-model="gBoard.code"
+                    @keydown="saveSQL"
                     @keydown.enter.stop="setSQL($event)"
                     border_radius="0"
                     :class="cFontSizeClassName"
@@ -192,6 +194,8 @@ import ComboboxAuto from '@/components/common/combobox/combobox-auto/index.vue';
 import { IANA_TIMEZONES, IanaTimezone } from '@/assets/ts/timezones.ts';
 import { PopupType } from '@/enums/app';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from '@/components/header/constant';
+import { postFileList } from '../../api/repository/api';
+import { getWindowOs } from '../../utils/utils';
 
 const sLang = [['SQL', 'MACHBASE']];
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
@@ -308,7 +312,25 @@ const onClickPopupItem = (aPopupName: PopupType, aFileOption?: string) => {
     sPopupType.value = aPopupName;
     sDialog.value = true;
 };
-
+const saveSQL = (aEvent: any) => {
+    if (aEvent.code === 'KeyS') {
+        if (getWindowOs() && aEvent.ctrlKey) {
+            aEvent.preventDefault();
+            if (gBoard.value.path !== '') {
+                postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
+            } else {
+                onClickPopupItem(PopupType.FILE_BROWSER, 'save');
+            }
+        } else if (!getWindowOs() && aEvent.metaKey) {
+            aEvent.preventDefault();
+            if (gBoard.value.path !== '') {
+                postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
+            } else {
+                onClickPopupItem(PopupType.FILE_BROWSER, 'save');
+            }
+        }
+    }
+};
 const cLogFormFontSizeClassName = computed(() => {
     const sStorageData = localStorage.getItem('gPreference');
     if (sStorageData) {
