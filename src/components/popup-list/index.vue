@@ -38,7 +38,7 @@
                     </div>
                 </div>
 
-                <FileBrowser v-if="pType === PopupType.FILE_BROWSER" @eClosePopup="onClosePopup" :p-info="pInfo" :p-sql="pSql" />
+                <FileBrowser v-if="pType === PopupType.FILE_BROWSER" @eClosePopup="onClosePopup" :p-info="pInfo" :p-new-open="pNewOpen" :p-sql="pSql" />
             </div>
         </div>
     </v-dialog>
@@ -70,6 +70,7 @@ interface PopupWrapProps {
     pWidth?: string;
     pSql?: boolean;
     pNoOfSelectTags?: number;
+    pNewOpen?: string;
     pIsFromTime?: boolean;
     pTimeRange?: TimeLineType;
     id?: number;

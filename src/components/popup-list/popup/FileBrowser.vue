@@ -89,6 +89,7 @@ import { MutationTypes } from '../../../store/mutations';
 import { cloneDeep } from 'lodash';
 interface propsOption {
     pInfo: string;
+    pNewOpen: string;
     pSql: boolean;
 }
 const props = defineProps<propsOption>();
@@ -189,7 +190,11 @@ const onClosePopup = () => {
 };
 
 const getFile = async () => {
-    const sData: any = await getFileList(props.pSql ? '?filter=*.sql' : '?filter=*.tql', sSelectedClickDir.value.join('/'), sSelectedClickData.value);
+    const sData: any = await getFileList(props.pSql ? '?filter=*.sql' : props.pNewOpen ? '' : '?filter=*.tql', sSelectedClickDir.value.join('/'), sSelectedClickData.value);
+    if (sData.response && sData.response.status === 401) {
+        onClosePopup();
+        return;
+    }
     if (sData && sData.reason) {
         sList.value = [];
         if (sSelectedClickDir.value.length !== 0) sList.value.push({ isDir: false, lastModifiedUnixMillis: '', name: '..', size: '', type: 'back' });
@@ -200,9 +205,36 @@ const getFile = async () => {
             });
         sClickFile.value = '';
     } else {
-        gBoard.value.code = sData;
-        gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
-        gBoard.value.board_name = sSelectedClickData.value;
+        if (props.pNewOpen) {
+            const sIdx = gTabList.value.findIndex((aItem) => aItem.board_id === gSelectedTab.value);
+
+            const sTypeOption = sSelectedClickData.value.split('.')[1];
+            let sType;
+            if (sTypeOption === 'sql') sType = 'SQL Editor';
+            else if (sTypeOption === 'tql') sType = 'Tql';
+            else if (sTypeOption === 'taz') sType = 'dashboard';
+            else sType = 'Terminal';
+
+            const sNode = {
+                ...gTabList.value[sIdx],
+                board_id: String(new Date().getTime()),
+                type: sType,
+                board_name: sSelectedClickData.value,
+                path: '',
+                edit: false,
+            };
+
+            store.commit(MutationTypes.changeTab, sNode);
+            store.commit(MutationTypes.setSelectedTab, sNode.board_id);
+
+            gBoard.value.code = sData;
+            gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
+            gBoard.value.board_name = sSelectedClickData.value;
+        } else {
+            gBoard.value.code = sData;
+            gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
+            gBoard.value.board_name = sSelectedClickData.value;
+        }
         onClosePopup();
     }
 };

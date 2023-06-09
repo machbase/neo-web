@@ -2,7 +2,7 @@
     <v-sheet class="add-tab" color="transparent">
         <v-sheet class="add-tab-form" color="transparent">
             <v-sheet class="header" color="transparent">
-                <div>New Tab...</div>
+                <div>New...</div>
             </v-sheet>
 
             <v-sheet v-if="cLocalStorageOption" class="card-form" color="transparent">
@@ -51,33 +51,72 @@
                     </div>
                 </v-btn>
             </v-sheet>
-            <v-sheet class="board-name-sheet" color="transparent">
-                <div class="set-board-name">
-                    <!-- @TODO -->
-                    <!-- <input v-model="sBoardName" class="form-control taginput input" placeholder="Please fill out the Tab name." type="text" />
-                    <v-btn @click="onSetting" class="button-effect-color" variant="outlined"> OK </v-btn> -->
-                </div>
-                <!-- <div class="btn-form"></div> -->
-            </v-sheet>
+
             <div class="popup__btn-group next-btn">
                 <v-divider color="info" :thickness="2"></v-divider>
-                <div class="btn-form"></div>
+            </div>
+            <div class="link-list">
+                <div>
+                    <button @click="onClickPopupItem(PopupType.FILE_BROWSER)">
+                        <v-icon>mdi-folder-open</v-icon>
+                        Open...
+                    </button>
+                </div>
+                <div>
+                    <button @click="showNeoDoc">
+                        <v-icon>mdi-link-box-variant</v-icon>
+                        machbase-neo documentation
+                    </button>
+                </div>
+                <div>
+                    <button @click="showConfluence">
+                        <v-icon>mdi-link-box-variant</v-icon>
+                        machbase sql reference
+                    </button>
+                </div>
             </div>
         </v-sheet>
     </v-sheet>
+    <PopupWrap @eClosePopup="onClosePopup" :p-info="'open'" :p-new-open="'NewOpen'" :p-show="sDialog" :p-type="sPopupType" :p-width="cWidthPopup" />
 </template>
 <script setup lang="ts">
 import Vue, { ref, computed, defineEmits } from 'vue';
 import { MutationTypes } from '../../../store/mutations';
+import PopupWrap from '@/components/popup-list/index.vue';
 import { store } from '../../../store';
 import { TabList } from '../../../interface/tagView';
+import { PopupType } from '@/enums/app';
+
+import { WIDTH_DEFAULT } from '../../header/constant';
 
 const emit = defineEmits(['eClosePopup']);
 
 const sBoardType = ref<string>();
 const sBoardName = ref<string>('Tag Analyzer');
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
-
+const sPopupType = ref<PopupType>(PopupType.FILE_BROWSER);
+const cWidthPopup = computed((): string => {
+    switch (sPopupType.value) {
+        case PopupType.PREFERENCES:
+            return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.TIME_RANGE:
+            return WIDTH_DEFAULT.TIME_RANGE;
+        case PopupType.TIME_DURATION:
+            return WIDTH_DEFAULT.TIME_DURATION;
+        case PopupType.MANAGE_DASHBOARD:
+            return WIDTH_DEFAULT.MANAGE_DASHBOARD;
+        case PopupType.SAVE_DASHBOARD:
+            return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.ADD_TAB:
+            return WIDTH_DEFAULT.PREFERENCES;
+        case PopupType.NEW_TAGS:
+            return '667px';
+        case PopupType.FILE_BROWSER:
+            return '667px';
+        default:
+            return WIDTH_DEFAULT.DEFAULT;
+    }
+});
 const sOptions = [
     { name: 'SQL', type: 'SQL Editor', icon: 'mdi-file-document-outline' },
     { name: 'TQL', type: 'Tql', icon: 'mdi-chart-scatter-plot' },
@@ -93,6 +132,12 @@ const sExpOptions = [
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
 const cLocalStorageOption = computed(() => !!localStorage.getItem('experimentMode'));
+const sDialog = ref<boolean>(false);
+
+const onClickPopupItem = (aPopupName: PopupType) => {
+    sPopupType.value = aPopupName;
+    sDialog.value = true;
+};
 
 const changeName = (aType: any, aName: string) => {
     const sFilterList = gTabList.value.filter((bItem) => bItem.type === aType);
@@ -129,9 +174,14 @@ const changeType = (aItem: any, aName: string) => {
     onSetting();
 };
 const onClosePopup = () => {
-    emit('eClosePopup');
+    sDialog.value = false;
 };
-
+const showConfluence = () => {
+    window.open(`http://endoc.machbase.com`, '_blank');
+};
+const showNeoDoc = () => {
+    window.open(`http://neo.machbase.com`, '_blank');
+};
 const onSetting = () => {
     if (!sBoardName.value) {
         alert('please enter Name');
@@ -170,6 +220,8 @@ const onSetting = () => {
 .popup__btn-group {
     display: flex;
     justify-content: end;
+    margin: 0;
+    padding: 5% 0;
 }
 .popup {
     font-size: 12px;
@@ -209,15 +261,40 @@ const onSetting = () => {
     flex-direction: column;
     justify-content: center;
 }
+
 .add-tab {
-    display: flex;
+    overflow: auto;
+    flex-direction: column;
     justify-content: center;
+    display: flex;
     align-items: center;
     width: 100%;
     height: 100%;
 }
+.add-tab::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.add-tab::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.add-tab::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
+}
+.bottom-form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 8%;
+}
 .header {
     flex-direction: column;
+    height: 16%;
     align-items: center;
     justify-content: center;
     display: flex;
@@ -231,20 +308,16 @@ const onSetting = () => {
         letter-spacing: 0px;
     }
 }
-.form-control {
-}
+
 .add-tab-form {
-    width: 80%;
-    height: 60%;
+    width: 70%;
+    height: 100%;
     display: flex;
-    justify-content: space-between;
+    align-items: flex-start;
     flex-direction: column;
-    padding: 8px;
 }
 .card-form {
     display: flex;
-    padding: 5px;
-    justify-content: center;
     flex-wrap: wrap;
     gap: 28px;
 }
@@ -284,11 +357,25 @@ const onSetting = () => {
         }
     }
 }
+.link-list {
+    button {
+        display: flex;
+        align-items: center;
+        i {
+            margin-right: 4px;
+        }
+    }
+    gap: 8px;
+    display: flex;
+    flex-direction: column;
+}
 .board-name-sheet {
     display: flex;
     justify-content: center;
 }
 .next-btn {
-    flex-direction: column;
+    width: 100%;
+    // margin: 0 !important;
+    // flex-direction: column;
 }
 </style>

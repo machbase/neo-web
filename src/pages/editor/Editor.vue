@@ -33,15 +33,6 @@
                         <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'open')" class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
 
                         <v-icon @click="showConfluence">mdi-book-education</v-icon>
-                        <v-tooltip location="bottom">
-                            <template #activator="{ props }">
-                                <v-icon v-bind="props"> mdi-help-circle-outline </v-icon>
-                            </template>
-                            <span>
-                                The semicolon is a statement terminator.<br />
-                                Ctrl+Enter executes the statement where the cursor places.<br />
-                            </span>
-                        </v-tooltip>
                     </div>
                 </div>
                 <CodeEditor
@@ -95,7 +86,7 @@
                         :style="sTab === 'log' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
                     >
                         <div>
-                            <v-icon>mdi-information</v-icon>
+                            <v-icon>mdi-information-outline</v-icon>
                             LOG
                         </div>
                     </button>
@@ -158,15 +149,6 @@
                         <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'save')" class="icon" icon="mdi-content-save" size="16px"></v-icon>
                         <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'upload')" class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
                         <v-icon @click="showConfluence">mdi-book-education</v-icon>
-                        <v-tooltip location="bottom">
-                            <template #activator="{ props }">
-                                <v-icon v-bind="props"> mdi-help-circle-outline </v-icon>
-                            </template>
-                            <span>
-                                The semicolon is a statement terminator.<br />
-                                Ctrl+Enter executes the statement where the cursor places.<br />
-                            </span>
-                        </v-tooltip>
                     </div>
                 </div>
                 <CodeEditor
@@ -219,7 +201,7 @@
                         :style="sTab === 'log' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }"
                     >
                         <div>
-                            <v-icon>mdi-information</v-icon>
+                            <v-icon>mdi-information-outline</v-icon>
                             LOG
                         </div>
                     </button>
@@ -647,13 +629,6 @@ onMounted(async () => {
             sVerticalType.value = false;
         }
     }
-    if (!gBoard.value.code) {
-        if (gTableList.value[0]) {
-            gBoard.value.code = `select * from ${gTableList.value[0]};`;
-            sSql.value = gBoard.value.code.replace(';', '');
-            await getSQLData();
-        }
-    }
 });
 </script>
 
@@ -731,6 +706,7 @@ onMounted(async () => {
     display: flex;
     height: 10%;
     justify-content: space-between;
+    overflow: auto;
 }
 .tab-form {
     display: flex;
