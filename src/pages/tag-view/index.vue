@@ -163,6 +163,8 @@ const cWidthPopup = computed((): string => {
             return '667px';
         case PopupType.NEW_CHART:
             return '667px';
+        case PopupType.FILE_BROWSER:
+            return '667px';
         default:
             return WIDTH_DEFAULT.DEFAULT;
     }

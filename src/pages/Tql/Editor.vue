@@ -80,7 +80,7 @@
                 :p-type="''"
             />
 
-            <v-sheet v-else class="sheet-text" color="transparent" height="calc(100% - 40px)" width="100%">
+            <v-sheet v-else class="sheet-text" :class="cLogFormFontSizeClassName" color="transparent" height="calc(100% - 40px)" width="100%">
                 <div v-if="sJsonOption">{{ sTextField }}</div>
                 <pre v-else>{{ JSON.stringify(JSON.parse(sTextField), null, 4) }}</pre>
             </v-sheet>
@@ -169,7 +169,7 @@
                 :p-type="''"
             />
 
-            <v-sheet v-else class="sheet-text" color="transparent" height="100%" width="100%">
+            <v-sheet v-else class="sheet-text" :class="cLogFormFontSizeClassName" color="transparent" height="100%" width="100%">
                 <div v-if="sJsonOption">{{ sTextField }}</div>
                 <pre v-else>{{ JSON.stringify(JSON.parse(sTextField), null, 4) }}</pre>
             </v-sheet>
@@ -534,6 +534,8 @@ onMounted(async () => {
     display: flex;
     height: 10%;
     justify-content: space-between;
+
+    overflow: auto;
 }
 .tab-form {
     display: flex;
