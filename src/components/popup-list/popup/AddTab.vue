@@ -195,6 +195,7 @@ const onSetting = () => {
         type: sBoardType.value,
         board_name: sBoardName,
         path: '',
+        savedCode: '',
         edit: false,
     };
 

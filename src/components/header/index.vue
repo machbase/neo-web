@@ -31,7 +31,18 @@
 
                         {{ aTab.board_name }}
                     </div>
-                    <v-icon v-if="gTabList.length !== 1 && (gSelectedTab === aTab.id || aTab.hover === true)" @click.stop="deleteTab(aTab.board_id)" size="16px">
+                    <v-icon
+                        v-if="aTab.type !== 'new'"
+                        @click.stop="gTabList.length !== 1 && (gSelectedTab === aTab.id || aTab.hover === true) && deleteTab(aTab.board_id)"
+                        size="16px"
+                    >
+                        {{ gTabList.length !== 1 && (gSelectedTab === aTab.id || aTab.hover === true) ? 'mdi-close' : aTab.savedCode !== aTab.code ? 'mdi-circle' : '' }}
+                    </v-icon>
+                    <v-icon
+                        v-if="aTab.type === 'new' && gTabList.length !== 1 && (gSelectedTab === aTab.id || aTab.hover === true)"
+                        @click.stop="deleteTab(aTab.board_id)"
+                        size="16px"
+                    >
                         mdi-close
                     </v-icon>
                 </button>
@@ -63,7 +74,7 @@
             </div>
         </v-sheet>
     </div>
-    <PopupWrap @eClosePopup="onClosePopup" :p-show="sDialog" :p-type="sPopupType" :p-width="cWidthPopup" />
+    <PopupWrap @eClosePopup="onClosePopup" :p-info="sFileOption" :p-show="sDialog" :p-type="sPopupType" :p-width="cWidthPopup" />
 </template>
 
 <script setup lang="ts" name="Header">
@@ -93,6 +104,7 @@ import { BarPanel, BoardInfo, startTimeToendTimeType } from '@/interface/chart';
 import { fetchRollUp } from '@/api/repository/machiot';
 import Joi from 'joi';
 import { logOut } from '../../api/repository/login';
+import { postFileList } from '../../api/repository/api';
 
 const emit = defineEmits(['download']);
 
@@ -117,6 +129,7 @@ const gBoard = computed(() => store.state.gBoard);
 const gTabList = computed(() => store.state.gTabList);
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const sLoading = ref<boolean>(false);
+let sFileOption = ref<string>('');
 
 const cBoardListSelect = computed(() =>
     cBoardList.value.map((aItem) => {
@@ -357,6 +370,8 @@ const cWidthPopup = computed((): string => {
             return WIDTH_DEFAULT.PREFERENCES;
         case PopupType.NEW_TAGS:
             return '667px';
+        case PopupType.FILE_BROWSER:
+            return '667px';
         default:
             return WIDTH_DEFAULT.DEFAULT;
     }
@@ -372,7 +387,12 @@ const onChangeRoute = (aValue: string) => {
     if (route.name === RouteNames.VIEW) router.replace({ query: {} });
     if (route.name === RouteNames.NEW) router.replace({ name: RouteNames.TAG_VIEW, query: { id: aValue } });
 };
-const onClickPopupItem = (aPopupName: PopupType) => {
+const onClickPopupItem = (aPopupName: PopupType, aFileOption?: string) => {
+    if (aFileOption === 'save') {
+        sFileOption.value = 'save';
+    } else {
+        sFileOption.value = 'open';
+    }
     sPopupType.value = aPopupName;
     sDialog.value = true;
 };

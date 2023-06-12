@@ -40,6 +40,7 @@
                     ref="sText"
                     @keydown="saveSQL"
                     @keydown.enter.stop="setSQL"
+                    :autofocus="true"
                     border_radius="0"
                     :class="cFontSizeClassName"
                     :header="false"
@@ -105,7 +106,7 @@
                 </v-sheet>
             </v-sheet>
             <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" :p-timezone="sPropsTypeOption" :p-type="sType" />
-            <ShowChart v-if="sTab === 'chart'" ref="rChartTab" :p-headers="sHeader" :p-sql="sSql" />
+            <ShowChart v-if="sTab === 'chart'" ref="rChartTab" :p-headers="sHeader" :p-sql="sSql" :p-type="sType" />
 
             <v-sheet v-if="sTab === 'log'" ref="rLog" class="log-form" :class="cLogFormFontSizeClassName" color="transparent" height="calc(100% - 40px)">
                 <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">
@@ -156,6 +157,7 @@
                     ref="sText"
                     @keydown="saveSQL"
                     @keydown.enter.stop="setSQL"
+                    :autofocus="true"
                     border_radius="0"
                     :class="cFontSizeClassName"
                     :header="false"
@@ -221,7 +223,7 @@
             </v-sheet>
 
             <Table v-if="sTab === 'table'" @UpdateItems="UpdateItems" :headers="sHeader" :items="sData" :p-timezone="sPropsTypeOption" :p-type="sType" />
-            <ShowChart v-if="sTab === 'chart'" ref="rChartTab" :p-headers="sHeader" :p-sql="sSql" />
+            <ShowChart v-if="sTab === 'chart'" ref="rChartTab" :p-headers="sHeader" :p-sql="sSql" :p-type="sType" />
 
             <v-sheet v-if="sTab === 'log'" ref="rLog" class="log-form" :class="cLogFormFontSizeClassName" color="transparent" height="calc(100% - 40px)">
                 <div v-for="(aLog, aIdx) in sLogField" :key="aIdx" :style="{ color: aLog.color }">
@@ -232,7 +234,7 @@
             </v-sheet>
         </template>
     </DragRow>
-    <PopupWrap @eClosePopup="onClosePopup" :p-info="sFileOption" :p-show="sDialog" :p-sql="true" :p-type="sPopupType" :p-width="cWidthPopup" />
+    <PopupWrap @eClosePopup="onClosePopup" :p-info="sFileOption" :p-show="sDialog" :p-type="sPopupType" :p-upload-type="'sql'" :p-width="cWidthPopup" />
 </template>
 
 <script setup lang="ts" name="Editor">
@@ -280,7 +282,7 @@ let sTab = ref<string>('table');
 let sVerticalType = ref<boolean>(false);
 
 const sList = computed(() =>
-    sTimeFormatList.value.map((aItem) => {
+    sTimeFormatList.value.map((aItem: any) => {
         return { id: aItem.name };
     })
 );
@@ -351,12 +353,120 @@ const onClosePopup = () => {
     sDialog.value = false;
 };
 
+function getLineIndex(position: number) {
+    let textUntilPosition = gBoard.value.code.substr(0, position);
+    let lines = textUntilPosition.split('\n');
+    return lines.length - 1;
+}
+
 const saveSQL = (aEvent: any) => {
+    if (aEvent.code === 'Slash') {
+        if (getWindowOs() && aEvent.ctrlKey) {
+            const textarea = sText.value.$el.children[0].children[0].children[0];
+
+            aEvent.preventDefault();
+
+            let selectionStart = aEvent.target.selectionStart;
+            let selectionEnd = aEvent.target.selectionEnd;
+
+            let lines = gBoard.value.code.split('\n');
+
+            let isAllPrefixed = true;
+
+            let sCount = 0;
+            for (let i = 0; i < lines.length; i++) {
+                if (i >= getLineIndex(selectionStart) && i <= getLineIndex(selectionEnd)) {
+                    if (!lines[i].startsWith('--')) {
+                        isAllPrefixed = false;
+                        break;
+                    }
+                }
+            }
+            for (let i = 0; i < lines.length; i++) {
+                if (i >= getLineIndex(selectionStart) && i <= getLineIndex(selectionEnd)) {
+                    if (isAllPrefixed) {
+                        sCount++;
+                        lines[i] = lines[i].substring(2);
+                    } else {
+                        lines[i] = '--' + lines[i];
+                        sCount++;
+                    }
+                }
+            }
+
+            let updatedText = lines.join('\n');
+            gBoard.value.code = updatedText;
+
+            if (sCount === 1) {
+                nextTick(() => {
+                    textarea.focus();
+                    textarea.selectionStart = selectionStart + (isAllPrefixed === true ? -2 : 2);
+                    textarea.selectionEnd = selectionEnd + (isAllPrefixed === true ? -2 : 2);
+                });
+            } else {
+                nextTick(() => {
+                    textarea.focus();
+                    textarea.selectionStart = selectionStart;
+                    textarea.selectionEnd = selectionEnd + sCount * (isAllPrefixed === true ? -2 : 2);
+                });
+            }
+        } else if (!getWindowOs() && aEvent.metaKey) {
+            const textarea = sText.value.$el.children[0].children[0].children[0];
+            aEvent.preventDefault();
+
+            let selectionStart = aEvent.target.selectionStart;
+            let selectionEnd = aEvent.target.selectionEnd;
+
+            let lines = gBoard.value.code.split('\n');
+
+            let isAllPrefixed = true;
+
+            let sCount = 0;
+            for (let i = 0; i < lines.length; i++) {
+                if (i >= getLineIndex(selectionStart) && i <= getLineIndex(selectionEnd)) {
+                    if (!lines[i].startsWith('--')) {
+                        isAllPrefixed = false;
+                        break;
+                    }
+                }
+            }
+            for (let i = 0; i < lines.length; i++) {
+                if (i >= getLineIndex(selectionStart) && i <= getLineIndex(selectionEnd)) {
+                    if (isAllPrefixed) {
+                        sCount++;
+                        lines[i] = lines[i].substring(2);
+                    } else {
+                        lines[i] = '--' + lines[i];
+                        sCount++;
+                    }
+                }
+            }
+
+            let updatedText = lines.join('\n');
+            gBoard.value.code = updatedText;
+
+            if (selectionStart === selectionEnd) {
+                nextTick(() => {
+                    textarea.focus();
+                    textarea.selectionStart = selectionStart + (isAllPrefixed === true ? -2 : 2);
+                    textarea.selectionEnd = selectionStart + (isAllPrefixed === true ? -2 : 2);
+                });
+            } else {
+                nextTick(() => {
+                    textarea.focus();
+                    textarea.selectionStart = selectionStart;
+                    textarea.selectionEnd = selectionEnd + sCount * (isAllPrefixed === true ? -2 : 2);
+                });
+            }
+        }
+    }
+
     if (aEvent.code === 'KeyS') {
         if (getWindowOs() && aEvent.ctrlKey) {
             aEvent.preventDefault();
             if (gBoard.value.path !== '') {
                 postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
+                gBoard.value.savedCode = gBoard.value.code;
             } else {
                 onClickPopupItem(PopupType.FILE_BROWSER, 'save');
             }
@@ -364,6 +474,7 @@ const saveSQL = (aEvent: any) => {
             aEvent.preventDefault();
             if (gBoard.value.path !== '') {
                 postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
+                gBoard.value.savedCode = gBoard.value.code;
             } else {
                 onClickPopupItem(PopupType.FILE_BROWSER, 'save');
             }
@@ -432,7 +543,7 @@ const changeVerticalType = (aItem: boolean) => {
 };
 const changeTimeFormat = (aItem: string) => {
     sSelectedFormat.value = aItem;
-    const sFormat = sTimeFormatList.value.findIndex((bItem) => bItem.name === aItem);
+    const sFormat = sTimeFormatList.value.findIndex((bItem: any) => bItem.name === aItem);
 
     if (
         sTimeFormatList.value[sFormat].id === 'ns' ||
@@ -563,7 +674,7 @@ const getSQLData = async () => {
             }
         });
 
-        const sFormat = sTimeFormatList.value.findIndex((aItem) => aItem.name === sSelectedFormat.value);
+        const sFormat = sTimeFormatList.value.findIndex((aItem: any) => aItem.name === sSelectedFormat.value);
 
         sSql.value = sTrimData.join(' ');
         // const sLimit = sSql.value.toLowerCase().indexOf('limit'.toLowerCase());

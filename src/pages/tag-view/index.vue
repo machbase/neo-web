@@ -23,11 +23,12 @@
                     }}
                     <v-icon @click="onReload(aIdx)" class="icon" icon="mdi-refresh" size="16px"></v-icon>
                     <v-icon @click="onClickPopupItem(PopupType.TIME_RANGE)" class="icon" icon="mdi-clock-time-three-outline" size="16px"></v-icon>
-                    <v-icon @click="download" class="icon" icon="mdi-content-save" size="16px"></v-icon>
-                    <label class="item">
+                    <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'save')" class="icon" icon="mdi-content-save" size="16px"></v-icon>
+                    <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'open')" class="icon" icon="mdi-folder-open" size="16px"></v-icon>
+                    <!-- <label class="item">
                         <v-icon class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
                         <input @change="onUploadChart" accept="application/JSON" class="file-import" type="file" />
-                    </label>
+                    </label> -->
                 </v-sheet>
                 <v-sheet v-if="aTab.type === 'dashboard'" class="chart-form" color="transparent" height="96%" width="100%">
                     <ChartDashboard ref="sPanels" :p-panel-info="aTab" :p-tab-idx="aIdx" />
@@ -35,7 +36,7 @@
                 </v-sheet>
             </v-sheet>
         </v-sheet>
-        <PopupWrap @e-close-popup="onClosePopup" :p-show="sDialog" :p-type="sPopupType" :width="cWidthPopup" />
+        <PopupWrap @e-close-popup="onClosePopup" :p-info="sFileOption" :p-show="sDialog" :p-type="sPopupType" :p-upload-type="'taz'" :width="cWidthPopup" />
     </v-sheet>
 </template>
 <script setup lang="ts" name="TagView">
@@ -72,6 +73,7 @@ const cTimeRange = computed(() => {
 });
 
 const terminalStatus = ref(true);
+let sFileOption = ref<string>('');
 
 const sLoading = ref(true);
 
@@ -117,7 +119,12 @@ const onDownload = () => {
     });
 };
 
-const onClickPopupItem = (aPopupName: PopupType) => {
+const onClickPopupItem = (aPopupName: PopupType, aFileOption?: string) => {
+    if (aFileOption === 'save') {
+        sFileOption.value = 'save';
+    } else {
+        sFileOption.value = 'open';
+    }
     sPopupType.value = aPopupName;
     sDialog.value = true;
 };
