@@ -13,12 +13,12 @@
                 <v-btn @click="forwardBtn" density="comfortable" :disabled="sDeleteDir.length === 0" icon="mdi-arrow-right" size="16px" variant="plain"></v-btn>
             </v-sheet>
             <div ref="rPathField" class="path-form">
-                {{ 'machbase' + cJoinPath }}
+                {{ cJoinPath }}
             </div>
             <v-sheet color="transparent">
-                <v-btn @click="makeFolder" density="comfortable" size="16px" variant="plain">
+                <!-- <v-btn @click="makeFolder" density="comfortable" size="16px" variant="plain">
                     <v-icon color="#F5AA64"> mdi-folder-plus </v-icon>
-                </v-btn>
+                </v-btn> -->
             </v-sheet>
         </v-sheet>
         <v-sheet class="file-name-form-header" color="transparent" height="24px" width="100%">
@@ -49,9 +49,11 @@
                         >{{
                             aChildren.type === 'dir'
                                 ? 'mdi-folder'
-                                : aChildren.type === '.tql' || aChildren.type === '.sql'
+                                : aChildren.type === '.sql'
                                 ? 'mdi-file-document-outline'
-                                : 'mdi-folder-arrow-up-outline'
+                                : aChildren.type === '.tql'
+                                ? 'mdi-chart-scatter-plot'
+                                : 'mdi-chart-line'
                         }}
                     </v-icon>
                     <div>{{ aChildren.name }}</div>
@@ -60,7 +62,7 @@
                     <div>{{ elapsedTime(aChildren.lastModifiedUnixMillis) }}</div>
                 </v-sheet>
                 <v-sheet class="file-modified-form" color="transparent" width="20%">
-                    <div>{{ aChildren.size && aChildren.size + ' byte' }}</div>
+                    <div>{{ aChildren.size && elapsedSize(aChildren.size) }}</div>
                 </v-sheet>
             </v-sheet>
         </v-sheet>
@@ -87,10 +89,11 @@ import { getFileList, postFileList } from '../../../api/repository/api';
 import { store } from '../../../store';
 import { MutationTypes } from '../../../store/mutations';
 import { cloneDeep } from 'lodash';
+import { BoardInfo } from '../../../interface/chart';
 interface propsOption {
     pInfo: string;
     pNewOpen: string;
-    pSql: boolean;
+    pUploadType: string;
 }
 const props = defineProps<propsOption>();
 
@@ -118,12 +121,19 @@ const sDeleteDir = ref<any>([]);
 
 const cFileNameStat = computed(() => {
     const extension = sFileName.value.slice(-4);
-    if (extension === '.sql' || extension === '.tql') {
+    if (extension === '.sql' || extension === '.tql' || extension === '.taz') {
         return false;
     } else {
         return true;
     }
 });
+
+const elapsedSize = (aSize: number): string => {
+    if (typeof aSize === 'string') return '';
+    if (aSize < 1000) return aSize + ' Byte';
+    return Math.floor(aSize / 1000) + ' KB';
+};
+
 const elapsedTime = (date: number): string => {
     if (typeof date === 'string') return '';
     const start = date;
@@ -147,7 +157,7 @@ const elapsedTime = (date: number): string => {
 
 const backBtn = (aItem: any) => {
     sClickFile.value = aItem;
-    if (props.pSql ? sClickFile.value.type === '.sql' : sClickFile.value.type === '.tql') {
+    if (props.pUploadType === 'sql' ? sClickFile.value.type === '.sql' : props.pUploadType === 'tql' ? sClickFile.value.type === '.tql' : sClickFile.value.type === '.taz') {
         sFileName.value = sClickFile.value.name;
     }
     uploadFile();
@@ -155,13 +165,13 @@ const backBtn = (aItem: any) => {
 const forwardBtn = () => {
     sSelectedClickDir.value.push(sDeleteDir.value[sDeleteDir.value.length - 1]);
     sDeleteDir.value.pop();
-    uploadFile();
+    getFile();
 };
 
 const clickOption = (aItem: any) => {
     if (!sTimeoutId) {
         sClickFile.value = aItem;
-        if (props.pSql ? sClickFile.value.type === '.sql' : sClickFile.value.type === '.tql') {
+        if (props.pUploadType === 'sql' ? sClickFile.value.type === '.sql' : props.pUploadType === 'tql' ? sClickFile.value.type === '.tql' : sClickFile.value.type === '.taz') {
             sFileName.value = sClickFile.value.name;
         }
         sTimeoutId = setTimeout(() => {
@@ -190,7 +200,11 @@ const onClosePopup = () => {
 };
 
 const getFile = async () => {
-    const sData: any = await getFileList(props.pSql ? '?filter=*.sql' : props.pNewOpen ? '' : '?filter=*.tql', sSelectedClickDir.value.join('/'), sSelectedClickData.value);
+    const sData: any = await getFileList(
+        props.pNewOpen ? '' : props.pUploadType === 'sql' ? '?filter=*.sql' : props.pUploadType === 'tql' ? '?filter=*.tql' : '?filter=*.taz',
+        sSelectedClickDir.value.join('/'),
+        sSelectedClickData.value
+    );
     if (sData.response && sData.response.status === 401) {
         onClosePopup();
         return;
@@ -215,25 +229,49 @@ const getFile = async () => {
             else if (sTypeOption === 'taz') sType = 'dashboard';
             else sType = 'Terminal';
 
-            const sNode = {
-                ...gTabList.value[sIdx],
-                board_id: String(new Date().getTime()),
-                type: sType,
-                board_name: sSelectedClickData.value,
-                path: '',
-                edit: false,
-            };
+            if (sType === 'dashboard') {
+                const sDashboard = JSON.parse(sData);
+                sDashboard.board_id = new Date().getTime();
+                store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
+                store.commit(MutationTypes.setSelectedTab, sDashboard.board_id);
+            } else {
+                const sNode = {
+                    ...gTabList.value[sIdx],
+                    board_id: String(new Date().getTime()),
+                    type: sType,
+                    board_name: sSelectedClickData.value,
+                    savedCode: '',
+                    path: '',
+                    edit: false,
+                };
 
-            store.commit(MutationTypes.changeTab, sNode);
-            store.commit(MutationTypes.setSelectedTab, sNode.board_id);
+                store.commit(MutationTypes.changeTab, sNode);
+                store.commit(MutationTypes.setSelectedTab, sNode.board_id);
 
-            gBoard.value.code = sData;
-            gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
-            gBoard.value.board_name = sSelectedClickData.value;
+                gBoard.value.code = sData;
+                gBoard.value.savedCode = sData;
+                gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
+                gBoard.value.board_name = sSelectedClickData.value;
+            }
         } else {
-            gBoard.value.code = sData;
-            gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
-            gBoard.value.board_name = sSelectedClickData.value;
+            const sTypeOption = sSelectedClickData.value.split('.')[1];
+            let sType;
+            if (sTypeOption === 'sql') sType = 'SQL Editor';
+            else if (sTypeOption === 'tql') sType = 'Tql';
+            else if (sTypeOption === 'taz') sType = 'dashboard';
+            else sType = 'Terminal';
+
+            if (sType === 'dashboard') {
+                const sDashboard = JSON.parse(sData);
+                sDashboard.board_id = new Date().getTime();
+                store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
+                store.commit(MutationTypes.setSelectedTab, sDashboard.board_id);
+            } else {
+                gBoard.value.code = sData;
+                gBoard.value.savedCode = sData;
+                gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
+                gBoard.value.board_name = sSelectedClickData.value;
+            }
         }
         onClosePopup();
     }
@@ -278,10 +316,12 @@ const importFile = async () => {
         if (sFileName.value !== gBoard.value.board_name) {
             const sConfirm = confirm('Do you want to overwrite it?');
             if (sConfirm) {
-                postFileList(gBoard.value.code, sSelectedClickDir.value.join('/'), sFileName.value);
+                postFileList(props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code, sSelectedClickDir.value.join('/'), sFileName.value);
                 uploadFile();
                 gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
                 gBoard.value.board_name = sFileName.value;
+                gBoard.value.savedCode = gBoard.value.code;
+
                 onClosePopup();
                 return;
             } else {
@@ -289,9 +329,11 @@ const importFile = async () => {
             }
         }
     }
-    postFileList(gBoard.value.code, sSelectedClickDir.value.join('/'), sFileName.value);
+    postFileList(props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code, sSelectedClickDir.value.join('/'), sFileName.value);
     gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
     gBoard.value.board_name = sFileName.value;
+    gBoard.value.savedCode = gBoard.value.code;
+
     getFile();
     onClosePopup();
 };
@@ -308,7 +350,7 @@ const uploadFile = async () => {
         sSelectedClickDir.value.pop();
         sClickFile.value = '';
     }
-    if (sClickFile.value.type === '.sql' || sClickFile.value.type === '.tql') {
+    if (sClickFile.value.type === '.sql' || sClickFile.value.type === '.tql' || sClickFile.value.type === '.taz') {
         sSelectedClickData.value = sClickFile.value.name;
     }
     getFile();

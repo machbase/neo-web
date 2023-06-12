@@ -34,6 +34,9 @@ const props = defineProps({
     pSql: {
         type: String,
     },
+    pType: {
+        type: [],
+    },
 });
 
 const rBodyEl = ref();
@@ -79,8 +82,9 @@ const getChartEl = async () => {
     }
 };
 onMounted(async () => {
-    window.addEventListener('resize', getChartEl);
-    getChartEl();
+    if (props.pType && props.pType.length <= 1 && props.pType[0] === 'string') {
+        //
+    } else getChartEl();
 });
 
 defineExpose({ getChartEl });

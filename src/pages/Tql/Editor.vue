@@ -175,7 +175,7 @@
             </v-sheet>
         </template>
     </DragRow>
-    <PopupWrap @eClosePopup="onClosePopup" :p-info="sFileOption" :p-show="sDialog" :p-type="sPopupType" :p-width="cWidthPopup" />
+    <PopupWrap @eClosePopup="onClosePopup" :p-info="sFileOption" :p-show="sDialog" :p-type="sPopupType" :p-upload-type="'tql'" :p-width="cWidthPopup" />
 </template>
 
 <script setup lang="ts" name="Editor">
@@ -318,6 +318,7 @@ const saveSQL = (aEvent: any) => {
             aEvent.preventDefault();
             if (gBoard.value.path !== '') {
                 postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
+                gBoard.value.savedCode = gBoard.value.code;
             } else {
                 onClickPopupItem(PopupType.FILE_BROWSER, 'save');
             }
@@ -325,6 +326,7 @@ const saveSQL = (aEvent: any) => {
             aEvent.preventDefault();
             if (gBoard.value.path !== '') {
                 postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
+                gBoard.value.savedCode = gBoard.value.code;
             } else {
                 onClickPopupItem(PopupType.FILE_BROWSER, 'save');
             }

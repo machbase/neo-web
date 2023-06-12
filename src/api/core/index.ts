@@ -28,8 +28,9 @@ request.interceptors.request.use(
         const sFileOption = config.url?.split('?')[0].indexOf('/api/files');
         const sFileSql = config.url?.split('?')[0].indexOf('.sql');
         const sFileTql = config.url?.split('?')[0].indexOf('.tql');
+        const sFileTaz = config.url?.split('?')[0].indexOf('.taz');
 
-        if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1)) {
+        if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1)) {
             config.transformResponse = function (data) {
                 return data;
             };
