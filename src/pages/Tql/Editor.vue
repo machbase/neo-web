@@ -101,7 +101,16 @@
             <v-sheet />
         </template>
     </DragCol>
-    <DragRow v-if="sVerticalType" height="100%" slider-bg-color="#202020" width="100%">
+    <DragRow
+        v-if="sVerticalType"
+        height="100%"
+        :slider-bg-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
+        :slider-bg-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
+        :slider-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
+        :slider-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
+        slider-width="4"
+        width="100%"
+    >
         <template #top>
             <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
                 <div class="editor-header">

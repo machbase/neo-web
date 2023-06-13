@@ -129,7 +129,17 @@
             </v-sheet>
         </template>
     </DragCol>
-    <DragRow v-if="sVerticalType" @isDragging="dragLine" height="100%" slider-bg-color="#202020" width="100%">
+    <DragRow
+        v-if="sVerticalType"
+        @isDragging="dragLine"
+        height="100%"
+        :slider-bg-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
+        :slider-bg-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
+        :slider-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
+        :slider-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
+        slider-width="4"
+        width="100%"
+    >
         <template #top>
             <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
                 <div class="editor-header">
@@ -655,7 +665,6 @@ const setSQL = async (event: any) => {
     })[0];
 
     sSql.value = sSql.value && sSql.value.replace(sPointerString, '');
-
     if (event.ctrlKey) {
         event.preventDefault();
         handleChange(event.ctrlKey);
@@ -900,6 +909,12 @@ onMounted(async () => {
         top: 10px;
         right: 10px;
     }
+}
+.drager_bottom {
+    padding-top: 0 !important;
+}
+.drager_top {
+    padding-bottom: 0 !important;
 }
 ::v-deep .v-field__input input {
     font-family: 'Open Sans', Helvetica, Arial, sans-serif !important;
