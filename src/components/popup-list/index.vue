@@ -16,6 +16,7 @@
             </div>
             <div class="dialog-wrap__content--body" :style="pType === 'EDIT CHART' ? { height: 'calc(100% - 45px)' } : {}">
                 <NewChart v-if="pType === PopupType.NEW_CHART" @eClosePopup="onClosePopup" />
+                <License v-if="pType === PopupType.LICENSE" @eClosePopup="onClosePopup" />
                 <NewTags v-if="pType === PopupType.NEW_TAGS" @e-submit="onSubmitTag" @eClosePopup="onClosePopup" :no-of-select-tags="props.pNoOfSelectTags as number" />
                 <Preferences v-if="pType === PopupType.PREFERENCES" @eClosePopup="onClosePopup" />
                 <SaveDashboard v-if="pType === PopupType.SAVE_DASHBOARD" @eClosePopup="onClosePopup" />
@@ -52,6 +53,7 @@ import { computed, defineEmits, defineProps, ref, watch } from 'vue';
 import FileBrowser from './popup/FileBrowser.vue';
 import NewChart from './popup/NewChart.vue';
 import NewTags from './popup/NewTags.vue';
+import License from './popup/License.vue';
 import Preferences from './popup/Preferences.vue';
 import SaveDashboard from './popup/SaveDashboard.vue';
 import AddTab from '@/components/popup-list/popup/AddTab.vue';

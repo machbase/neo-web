@@ -45,15 +45,17 @@
                 width="100%"
             >
                 <v-sheet class="file-name-form" color="transparent" width="60%">
-                    <v-icon :color="aChildren.type === 'dir' ? '#F5AA64' : cIsDarkMode ? '#adb3bc' : '#367FEB'" size="16px"
-                        >{{
+                    <v-icon :color="aChildren.type === 'dir' ? '#F5AA64' : cIsDarkMode ? '#adb3bc' : '#367FEB'" size="16px">
+                        {{
                             aChildren.type === 'dir'
                                 ? 'mdi-folder'
                                 : aChildren.type === '.sql'
                                 ? 'mdi-file-document-outline'
                                 : aChildren.type === '.tql'
                                 ? 'mdi-chart-scatter-plot'
-                                : 'mdi-chart-line'
+                                : aChildren.type === '.taz'
+                                ? 'mdi-chart-line'
+                                : ''
                         }}
                     </v-icon>
                     <div>{{ aChildren.name }}</div>

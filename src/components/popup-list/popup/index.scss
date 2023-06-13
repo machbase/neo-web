@@ -225,6 +225,19 @@ $height: 30px;
     }
 }
 
+.license-form{
+    .row {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    hr{
+        margin-bottom: 8px;
+        margin-top: 2px;
+    }
+}
+
 .newchartdiv {
     padding: 20px 40px;
     .row {

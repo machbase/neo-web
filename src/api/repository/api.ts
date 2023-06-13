@@ -20,4 +20,19 @@ const postFileList = (aContents: string, aDir: string, aFileName: string) => {
     });
 };
 
-export { getFileList, postFileList };
+const getLicense = () => {
+    return request({
+        method: 'GET',
+        url: `/api/license`,
+    });
+};
+
+const postLicense = (aItem: any) => {
+    return request({
+        method: 'post',
+        url: `/api/license`,
+        data: aItem,
+    });
+};
+
+export { getFileList, postFileList, getLicense, postLicense };
