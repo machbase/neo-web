@@ -1,5 +1,15 @@
 <template>
-    <DragCol v-if="!sVerticalType" @isDragging="dragLine" height="100%" slider-bg-color="#202020" width="100%">
+    <DragCol
+        v-if="!sVerticalType"
+        @isDragging="dragLine"
+        height="100%"
+        :slider-bg-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
+        :slider-bg-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
+        :slider-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
+        :slider-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
+        slider-width="4"
+        width="100%"
+    >
         <template #left>
             <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
                 <div class="editor-header">
@@ -31,8 +41,6 @@
                         />
                         <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'save')" class="icon" icon="mdi-content-save" size="16px"></v-icon>
                         <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'open')" class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
-
-                        <v-icon @click="showConfluence">mdi-book-education</v-icon>
                     </div>
                 </div>
                 <CodeEditor
@@ -62,7 +70,11 @@
                         @click="changeTab('table')"
                         class="delete-left-border"
                         :style="
-                            sTab === 'table' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }
+                            sTab === 'table'
+                                ? cIsDarkMode
+                                    ? { backgroundColor: '#121212' }
+                                    : { backgroundColor: '#ffffff', color: '#121212', border: '1px solid #ffffff !important' }
+                                : { backgroundColor: '#202020' }
                         "
                     >
                         <div>
@@ -95,7 +107,7 @@
 
                 <v-sheet class="tool-bar" color="transparent">
                     <v-btn v-if="sTab === 'log'" @click="deleteLog()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
-                        <v-icon size="20px">mdi-delete-circle-outline</v-icon>
+                        <v-icon size="20px">mdi-delete-outline</v-icon>
                     </v-btn>
                     <v-btn @click="changeVerticalType(false)" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon size="20px">mdi-flip-horizontal</v-icon>
@@ -149,7 +161,6 @@
                         />
                         <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'save')" class="icon" icon="mdi-content-save" size="16px"></v-icon>
                         <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'upload')" class="file-import-icon" icon="mdi-folder-open" size="16px"></v-icon>
-                        <v-icon @click="showConfluence">mdi-book-education</v-icon>
                     </div>
                 </div>
                 <CodeEditor
@@ -211,7 +222,7 @@
 
                 <v-sheet class="tool-bar" color="transparent">
                     <v-btn v-if="sTab === 'log'" @click="deleteLog()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
-                        <v-icon size="20px">mdi-delete-circle-outline</v-icon>
+                        <v-icon size="20px">mdi-delete-outline</v-icon>
                     </v-btn>
                     <v-btn @click="changeVerticalType(false)" class="log-delete-icon editor-option" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon size="20px">mdi-flip-horizontal</v-icon>
@@ -356,6 +367,7 @@ const onClosePopup = () => {
 function getLineIndex(position: number) {
     let textUntilPosition = gBoard.value.code.substr(0, position);
     let lines = textUntilPosition.split('\n');
+
     return lines.length - 1;
 }
 
@@ -368,6 +380,12 @@ const saveSQL = (aEvent: any) => {
 
             let selectionStart = aEvent.target.selectionStart;
             let selectionEnd = aEvent.target.selectionEnd;
+
+            let textUntilPosition = gBoard.value.code.substr(0, aEvent.target.selectionEnd);
+            let sDragLines = textUntilPosition.split('\n');
+            if (sDragLines[sDragLines.length - 1] === '' && selectionStart !== selectionEnd) {
+                selectionEnd = selectionEnd - 1;
+            }
 
             let lines = gBoard.value.code.split('\n');
 
@@ -417,6 +435,12 @@ const saveSQL = (aEvent: any) => {
             let selectionStart = aEvent.target.selectionStart;
             let selectionEnd = aEvent.target.selectionEnd;
 
+            let textUntilPosition = gBoard.value.code.substr(0, aEvent.target.selectionEnd);
+            let sDragLines = textUntilPosition.split('\n');
+            if (sDragLines[sDragLines.length - 1] === '' && selectionStart !== selectionEnd) {
+                selectionEnd = selectionEnd - 1;
+            }
+
             let lines = gBoard.value.code.split('\n');
 
             let isAllPrefixed = true;
@@ -447,15 +471,19 @@ const saveSQL = (aEvent: any) => {
 
             if (selectionStart === selectionEnd) {
                 nextTick(() => {
-                    textarea.focus();
-                    textarea.selectionStart = selectionStart + (isAllPrefixed === true ? -2 : 2);
-                    textarea.selectionEnd = selectionStart + (isAllPrefixed === true ? -2 : 2);
+                    setTimeout(() => {
+                        textarea.focus();
+                        textarea.selectionStart = selectionStart + (isAllPrefixed === true ? -2 : 2);
+                        textarea.selectionEnd = selectionStart + (isAllPrefixed === true ? -2 : 2);
+                    });
                 });
             } else {
                 nextTick(() => {
-                    textarea.focus();
-                    textarea.selectionStart = selectionStart;
-                    textarea.selectionEnd = selectionEnd + sCount * (isAllPrefixed === true ? -2 : 2);
+                    setTimeout(() => {
+                        textarea.focus();
+                        textarea.selectionStart = selectionStart;
+                        textarea.selectionEnd = selectionEnd + sCount * (isAllPrefixed === true ? -2 : 2);
+                    });
                 });
             }
         }
@@ -565,9 +593,8 @@ const changeTab = (aItem: string) => {
     });
 };
 const UpdateItems = () => {
-    const sLimit = sSql.value.toLowerCase().indexOf('limit'.toLowerCase());
     currentPage.value++;
-    if (sLimit === -1) getSQLData();
+    getSQLData();
 };
 const showConfluence = () => {
     window.open(`http://endoc.machbase.com`, '_blank');
@@ -689,7 +716,7 @@ const getSQLData = async () => {
         if (sResult.status >= 400) {
             changeTab('log');
             sLogField.value.push({
-                query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase(),
+                query: sSql.value.replaceAll(/\n/g, ' ').replace(';', ''),
                 color: '#a85400',
                 elapse: sResult.data.elapse + ' : ' + sResult.data.reason,
             });
@@ -697,14 +724,14 @@ const getSQLData = async () => {
         if (sResult.status <= 400 && sResult.data.success) {
             if (!sResult.data.data) {
                 sLogField.value.push({
-                    query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase(),
+                    query: sSql.value.replaceAll(/\n/g, ' ').replace(';', ''),
                     color: '#217DF8',
                     elapse: sResult.data.elapse + ' : ' + sResult.data.reason,
                 });
                 changeTab('log');
             } else {
                 sLogField.value.push({
-                    query: sSql.value.replaceAll(/\n/g, ' ').replace(';', '').toUpperCase(),
+                    query: sSql.value.replaceAll(/\n/g, ' ').replace(';', ''),
                     color: '',
                     elapse: sResult.data.elapse + ' : ' + sResult.data.reason,
                 });
@@ -759,7 +786,6 @@ onMounted(async () => {
 
 <style lang="scss">
 @import 'index.scss';
-
 .drager_col {
     textarea,
     table,
@@ -767,6 +793,12 @@ onMounted(async () => {
     .language-SQL {
         font-family: 'D2Coding' !important;
     }
+}
+.drager_right {
+    padding-left: 2px !important;
+}
+.drager_left {
+    padding-right: 2px !important;
 }
 .drager_top,
 .drager_bottom {
