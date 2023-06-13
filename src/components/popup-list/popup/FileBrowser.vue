@@ -12,7 +12,7 @@
                 ></v-btn>
                 <v-btn @click="forwardBtn" density="comfortable" :disabled="sDeleteDir.length === 0" icon="mdi-arrow-right" size="16px" variant="plain"></v-btn>
             </v-sheet>
-            <div ref="rPathField" class="path-form">
+            <div ref="rPathField" class="path-form" :style="cIsDarkMode ? { background: '#565656' } : { background: '#dfe3e4' }">
                 {{ cJoinPath }}
             </div>
             <v-sheet color="transparent">

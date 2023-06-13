@@ -34,7 +34,7 @@
                     <v-icon
                         v-if="aTab.type !== 'new'"
                         @click.stop="gTabList.length !== 1 && (gSelectedTab === aTab.id || aTab.hover === true) && deleteTab(aTab.board_id)"
-                        size="16px"
+                        :size="gTabList.length !== 1 && (gSelectedTab === aTab.id || aTab.hover === true) ? '16px' : aTab.savedCode !== aTab.code ? '12px' : '16px'"
                     >
                         {{ gTabList.length !== 1 && (gSelectedTab === aTab.id || aTab.hover === true) ? 'mdi-close' : aTab.savedCode !== aTab.code ? 'mdi-circle' : '' }}
                     </v-icon>

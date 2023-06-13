@@ -1,5 +1,14 @@
 <template>
-    <DragCol v-if="!sVerticalType" height="100%" slider-bg-color="#202020" width="100%">
+    <DragCol
+        v-if="!sVerticalType"
+        height="100%"
+        :slider-bg-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
+        :slider-bg-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
+        :slider-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
+        :slider-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
+        slider-width="4"
+        width="100%"
+    >
         <template #left>
             <div :class="cIsDarkMode ? 'dark-sql' : 'white-sql'">
                 <div class="editor-header">
@@ -36,12 +45,16 @@
                     <button
                         class="delete-left-border"
                         :style="
-                            sTab === 'chart' ? (cIsDarkMode ? { backgroundColor: '#121212' } : { backgroundColor: '#ffffff', color: '#121212' }) : { backgroundColor: '#202020' }
+                            sTab === 'chart'
+                                ? cIsDarkMode
+                                    ? { backgroundColor: '#121212' }
+                                    : { backgroundColor: '#ffffff', color: '#121212', border: '1px solid #ffffff !important' }
+                                : { backgroundColor: '#202020' }
                         "
                     >
                         <div>
                             <v-icon v-if="sResultType === 'html'">mdi-chart-line</v-icon>
-                            <v-icon v-if="sResultType === 'csv'">file-delimited-outline</v-icon>
+                            <v-icon v-if="sResultType === 'csv'">mdi-file-delimited-outline</v-icon>
                             <v-icon v-if="sResultType === 'text'">mdi-note-outline</v-icon>
                             Result
                         </div>
@@ -49,11 +62,11 @@
                 </v-sheet>
 
                 <v-sheet class="tool-bar" color="transparent">
-                    <v-btn v-if="sJsonBtnOption" @click="setJsonFormat()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                    <v-btn v-if="sResultType === 'text'" @click="setJsonFormat()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon v-if="!sJsonOption" size="20px">mdi-text</v-icon>
                         <v-icon v-else size="20px">mdi-code-json</v-icon>
                     </v-btn>
-                    <v-btn v-if="sCsvHeaderBtn" @click="setCsvHeaderOption()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                    <v-btn v-if="sResultType === 'csv'" @click="setCsvHeaderOption()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon v-if="!sCsvHeaderOption" size="20px">mdi-table-headers-eye</v-icon>
                         <v-icon v-else size="20px">mdi-table-headers-eye-off</v-icon>
                     </v-btn>
@@ -442,7 +455,7 @@ const getTqlData = async () => {
         sResultType.value = 'text';
         if (sResult.status === 200) {
             sJsonBtnOption.value = true;
-            sTextField.value = JSON.stringify(sResult.data.data);
+            sTextField.value = JSON.stringify(sResult.data);
             return;
         } else {
             sTextField.value = sResult.data.reason;
