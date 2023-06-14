@@ -132,7 +132,7 @@ const cFileNameStat = computed(() => {
 
 const elapsedSize = (aSize: number): string => {
     if (typeof aSize === 'string') return '';
-    if (aSize < 1000) return aSize + ' Byte';
+    if (aSize < 1000) return aSize + ' B';
     return Math.floor(aSize / 1000) + ' KB';
 };
 
