@@ -246,7 +246,7 @@ export const FONT_SIZE = [
         id: '16',
     },
     {
-        name: 'medium',
+        name: 'normal',
         id: '18',
     },
     {

@@ -91,7 +91,7 @@
                     >
                         <div>
                             <v-icon>mdi-chart-line</v-icon>
-                            Chart
+                            CHART
                         </div>
                     </button>
                     <button

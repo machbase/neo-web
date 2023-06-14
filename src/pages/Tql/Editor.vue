@@ -23,8 +23,10 @@
                 </div>
                 <CodeEditor
                     v-model="gBoard.code"
+                    ref="sText"
                     @keydown="saveSQL"
                     @keydown.enter.stop="setSQL($event)"
+                    :autofocus="true"
                     border_radius="0"
                     :class="cFontSizeClassName"
                     :header="false"
@@ -125,6 +127,7 @@
                 </div>
                 <CodeEditor
                     v-model="gBoard.code"
+                    ref="sText"
                     @keydown="saveSQL"
                     @keydown.enter.stop="setSQL($event)"
                     border_radius="0"
@@ -219,7 +222,7 @@ import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SE
 import { postFileList } from '../../api/repository/api';
 import { getWindowOs } from '../../utils/utils';
 
-const sLang = [['SQL', 'MACHBASE']];
+const sLang = [['javascript', 'machbase']];
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
@@ -239,6 +242,7 @@ let sVerticalType = ref<boolean>(false);
 let sHtml = ref<string>('');
 let sCSV = ref<string[][]>([]);
 let sTextField = ref<string>('');
+let sText = ref<any>('');
 
 let sJsonBtnOption = ref<boolean>(false);
 let sJsonOption = ref<boolean>(true);
@@ -334,7 +338,131 @@ const onClickPopupItem = (aPopupName: PopupType, aFileOption?: string) => {
     sPopupType.value = aPopupName;
     sDialog.value = true;
 };
+
+function getLineIndex(position: number) {
+    let textUntilPosition = gBoard.value.code.substr(0, position);
+    let lines = textUntilPosition.split('\n');
+
+    return lines.length - 1;
+}
+
 const saveSQL = (aEvent: any) => {
+    if (aEvent.code === 'Slash') {
+        if (getWindowOs() && aEvent.ctrlKey) {
+            const textarea = sText.value.$el.children[0].children[0].children[0];
+
+            aEvent.preventDefault();
+
+            let selectionStart = aEvent.target.selectionStart;
+            let selectionEnd = aEvent.target.selectionEnd;
+
+            let textUntilPosition = gBoard.value.code.substr(0, aEvent.target.selectionEnd);
+            let sDragLines = textUntilPosition.split('\n');
+            if (sDragLines[sDragLines.length - 1] === '' && selectionStart !== selectionEnd) {
+                selectionEnd = selectionEnd - 1;
+            }
+
+            let lines = gBoard.value.code.split('\n');
+
+            let isAllPrefixed = true;
+
+            let sCount = 0;
+            for (let i = 0; i < lines.length; i++) {
+                if (i >= getLineIndex(selectionStart) && i <= getLineIndex(selectionEnd)) {
+                    if (!lines[i].startsWith('//')) {
+                        isAllPrefixed = false;
+                        break;
+                    }
+                }
+            }
+            for (let i = 0; i < lines.length; i++) {
+                if (i >= getLineIndex(selectionStart) && i <= getLineIndex(selectionEnd)) {
+                    if (isAllPrefixed) {
+                        sCount++;
+                        lines[i] = lines[i].substring(2);
+                    } else {
+                        lines[i] = '//' + lines[i];
+                        sCount++;
+                    }
+                }
+            }
+
+            let updatedText = lines.join('\n');
+            gBoard.value.code = updatedText;
+
+            if (sCount === 1) {
+                nextTick(() => {
+                    textarea.focus();
+                    textarea.selectionStart = selectionStart + (isAllPrefixed === true ? -2 : 2);
+                    textarea.selectionEnd = selectionEnd + (isAllPrefixed === true ? -2 : 2);
+                });
+            } else {
+                nextTick(() => {
+                    textarea.focus();
+                    textarea.selectionStart = selectionStart;
+                    textarea.selectionEnd = selectionEnd + sCount * (isAllPrefixed === true ? -2 : 2);
+                });
+            }
+        } else if (!getWindowOs() && aEvent.metaKey) {
+            const textarea = sText.value.$el.children[0].children[0].children[0];
+            aEvent.preventDefault();
+
+            let selectionStart = aEvent.target.selectionStart;
+            let selectionEnd = aEvent.target.selectionEnd;
+
+            let textUntilPosition = gBoard.value.code.substr(0, aEvent.target.selectionEnd);
+            let sDragLines = textUntilPosition.split('\n');
+            if (sDragLines[sDragLines.length - 1] === '' && selectionStart !== selectionEnd) {
+                selectionEnd = selectionEnd - 1;
+            }
+
+            let lines = gBoard.value.code.split('\n');
+
+            let isAllPrefixed = true;
+
+            let sCount = 0;
+            for (let i = 0; i < lines.length; i++) {
+                if (i >= getLineIndex(selectionStart) && i <= getLineIndex(selectionEnd)) {
+                    if (!lines[i].startsWith('//')) {
+                        isAllPrefixed = false;
+                        break;
+                    }
+                }
+            }
+            for (let i = 0; i < lines.length; i++) {
+                if (i >= getLineIndex(selectionStart) && i <= getLineIndex(selectionEnd)) {
+                    if (isAllPrefixed) {
+                        sCount++;
+                        lines[i] = lines[i].substring(2);
+                    } else {
+                        lines[i] = '//' + lines[i];
+                        sCount++;
+                    }
+                }
+            }
+
+            let updatedText = lines.join('\n');
+            gBoard.value.code = updatedText;
+
+            if (selectionStart === selectionEnd) {
+                nextTick(() => {
+                    setTimeout(() => {
+                        textarea.focus();
+                        textarea.selectionStart = selectionStart + (isAllPrefixed === true ? -2 : 2);
+                        textarea.selectionEnd = selectionStart + (isAllPrefixed === true ? -2 : 2);
+                    });
+                });
+            } else {
+                nextTick(() => {
+                    setTimeout(() => {
+                        textarea.focus();
+                        textarea.selectionStart = selectionStart;
+                        textarea.selectionEnd = selectionEnd + sCount * (isAllPrefixed === true ? -2 : 2);
+                    });
+                });
+            }
+        }
+    }
     if (aEvent.code === 'KeyS') {
         if (getWindowOs() && aEvent.ctrlKey) {
             aEvent.preventDefault();
@@ -506,7 +634,7 @@ onMounted(async () => {
 .drager_col {
     textarea,
     table,
-    .language-SQL {
+    .language-javascript {
         font-family: 'D2Coding' !important;
     }
 }
@@ -514,7 +642,7 @@ onMounted(async () => {
 .drager_bottom {
     textarea,
     table,
-    .language-SQL {
+    .language-javascript {
         font-family: 'D2Coding' !important;
     }
 }

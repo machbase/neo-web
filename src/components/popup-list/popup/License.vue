@@ -35,13 +35,9 @@
             </div>
         </div>
         <v-divider></v-divider>
-        <div class="row">
-            <div>Issue Date</div>
-            <div>
-                {{ Number(sLicenseData.issueDate) > 20990000 ? '' : Number(sLicenseData.issueDate) }}
-            </div>
+        <div class="row status-row">
+            <div :style="sStatus === 'Success' ? { color: '#2BC46C' } : { color: '#F5264E' }">{{ sStatus }}</div>
         </div>
-        <v-divider></v-divider>
         <div class="row">
             <div>
                 <label class="item">
@@ -53,7 +49,7 @@
                 </label>
             </div>
             <div class="popup__btn-group">
-                <v-btn @click="onClosePopup" class="button-effect" variant="outlined"> Cancel </v-btn>
+                <v-btn @click="onClosePopup" class="button-effect" variant="outlined"> Close </v-btn>
             </div>
         </div>
     </div>
@@ -69,6 +65,8 @@ interface NewTagProps {
 const sLicenseData = ref();
 const props = defineProps<NewTagProps>();
 
+const sStatus = ref(' ');
+
 const emit = defineEmits(['eClosePopup', 'eSubmit']);
 
 const onUploadChart = async (aEvent: any) => {
@@ -80,9 +78,13 @@ const onUploadChart = async (aEvent: any) => {
     const sResult: any = await postLicense(sFormData);
 
     if (sResult.success) {
-        alert('success');
+        sStatus.value = 'Success';
+        sLicenseData.value = sResult.data;
     } else {
-        alert('fail');
+        console.log(sResult);
+        if (sResult.data.reason.indexOf('token') !== -1) onClosePopup();
+
+        sStatus.value = sResult.data.reason;
     }
 };
 
@@ -103,5 +105,9 @@ onMounted(() => {
 @import 'index.scss';
 .popup__btn-group {
     margin: 0 !important;
+}
+.status-row {
+    min-height: 30px;
+    justify-content: center !important;
 }
 </style>
