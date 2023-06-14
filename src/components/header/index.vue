@@ -61,14 +61,14 @@
                             icon="mdi-cog-transfer-outline"
                             size="small"
                         ></v-icon>
-                        {{ PREFERENCE }}
+                        Preferences...
                     </div>
                     <div>
                         <img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="onSaveEdit" class="icon" :src="i_b_save_2" />
                     </div>
                     <div @click="onClickPopupItem(PopupType.LICENSE)" class="item">
                         <v-icon class="icon" icon="mdi-license" size="small"></v-icon>
-                        license
+                        License
                     </div>
                     <div @click="logout" class="item">
                         <v-icon class="icon" icon="mdi-logout" size="small"></v-icon>
