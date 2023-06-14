@@ -81,7 +81,6 @@ const onUploadChart = async (aEvent: any) => {
         sStatus.value = 'Success';
         sLicenseData.value = sResult.data;
     } else {
-        console.log(sResult);
         if (sResult.data.reason.indexOf('token') !== -1) onClosePopup();
 
         sStatus.value = sResult.data.reason;

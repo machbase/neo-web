@@ -60,6 +60,7 @@ const handleYInfo = (aValue: string) => {
 
 const getChartEl = async () => {
     sHtml.value = '';
+
     const sInput =
         'INPUT(SQL(`' +
         props.pSql.replace(';', '').replaceAll('\n', ' ') +
@@ -84,7 +85,7 @@ const getChartEl = async () => {
 onMounted(async () => {
     if (props.pType && props.pType.length <= 1 && props.pType[0] === 'string') {
         //
-    } else getChartEl();
+    } else if (props.pType.length > 0) getChartEl();
 });
 
 defineExpose({ getChartEl });

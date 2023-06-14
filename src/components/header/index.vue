@@ -68,7 +68,7 @@
                     </div>
                     <div @click="onClickPopupItem(PopupType.LICENSE)" class="item">
                         <v-icon class="icon" icon="mdi-license" size="small"></v-icon>
-                        License
+                        License...
                     </div>
                     <div @click="logout" class="item">
                         <v-icon class="icon" icon="mdi-logout" size="small"></v-icon>
