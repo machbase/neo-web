@@ -2,6 +2,10 @@
     <v-sheet color="transparent" height="100%">
         <v-sheet class="popup__input-content" color="transparent" height="40px">
             <div>
+                Slider
+                <ComboboxSelect @e-on-change="(aValue) => handleSlider(aValue, true)" :p-data="sSliderList" :p-show-default-option="false" :p-value="sSlider" />
+            </div>
+            <div>
                 X axis
                 <ComboboxSelect @e-on-change="(aValue) => handleXInfo(aValue, true)" :p-data="cHeaderList" :p-show-default-option="false" :p-value="sXaxis" />
             </div>
@@ -46,11 +50,24 @@ const sType = ref();
 const sXaxis = ref<string>(props.pHeaders[0]);
 const sYaxis = ref<string>(props.pHeaders[1] ? props.pHeaders[1] : props.pHeaders[0]);
 
+const sSlider = ref<string>('40, 60');
+const sSliderList = ref([
+    { id: 'none', name: 'none' },
+    { id: '0, 100', name: '100%' },
+    { id: '25, 75', name: '50%' },
+    { id: '40, 60', name: '20%' },
+    { id: '47.5, 52.5', name: '5%' },
+]);
+
 const cHeaderList = computed(() =>
     props.pHeaders.map((aItem: string) => {
         return { id: aItem, name: aItem };
     })
 );
+
+const handleSlider = (aValue: string) => {
+    sSlider.value = aValue;
+};
 const handleXInfo = (aValue: string) => {
     sXaxis.value = aValue;
 };
@@ -68,9 +85,9 @@ const getChartEl = async () => {
         'TAKE(5000)\n' +
         `OUTPUT(CHART_LINE(xAxis(${cHeaderList.value.findIndex((aItem: { id: string; name: string }) => aItem.id === sXaxis.value)}, '${
             sXaxis.value
-        }'), yAxis(${cHeaderList.value.findIndex((aItem: { id: string; name: string }) => aItem.id === sYaxis.value)}, '${
-            sYaxis.value
-        }'), dataZoom('slider', 35, 65), size($w ?? '${rBodyEl.value.$el.clientWidth}px',$h ??'${rBodyEl.value.$el.clientHeight * 0.7}px')))`;
+        }'), yAxis(${cHeaderList.value.findIndex((aItem: { id: string; name: string }) => aItem.id === sYaxis.value)}, '${sYaxis.value}'), ${
+            sSlider.value === 'none' ? '' : `dataZoom('slider', ${sSlider.value}),`
+        } size($w ?? '${rBodyEl.value.$el.clientWidth}px',$h ??'${rBodyEl.value.$el.clientHeight * 0.7}px')))`;
 
     const sResult = await getTqlChart(sInput);
     if (sResult.status >= 400) {

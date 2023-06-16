@@ -48,7 +48,13 @@
                 <div class="selectedlistdiv taglistscroll">
                     <div v-for="(aTime, aIndex) in sSelectedTags" :key="aIndex" class="wrapperTagSelect" style="margin-bottom: 5px">
                         <span @click="onRemoveTag(aIndex)"> {{ aTime.tag_names }}</span>
-                        <ComboboxSelect v-if="gBoard.type !== 'chart'" @e-on-change="(item) => onChangeCalcMode(item, aIndex)" :p-data="CALC_MODE" :p-show-default-option="false" :p-value="'avg'" />
+                        <ComboboxSelect
+                            v-if="gBoard.type !== 'chart'"
+                            @e-on-change="(item) => onChangeCalcMode(item, aIndex)"
+                            :p-data="CALC_MODE"
+                            :p-show-default-option="false"
+                            :p-value="'avg'"
+                        />
                     </div>
                 </div>
                 <div class="popup__btn-group">
@@ -81,6 +87,7 @@ import { ActionTypes } from '@/store/actions';
 import { TagSet } from '@/interface/chart';
 import { CalculationMode } from '@/interface/constants';
 import { getPaginationPages, toTimeUtcChart } from '@/utils/utils';
+import { toast, ToastOptions } from 'vue3-toastify';
 const emit = defineEmits(['eClosePopup']);
 const searchText = ref<string>('');
 const isSearchClick = ref<boolean>(false);
@@ -101,6 +108,8 @@ const cTableListSelect = computed(() =>
         };
     })
 );
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
+
 const pageIndex = ref<number>(0);
 const tagsPaged = computed(() => getPaginationPages(cTagsSearch.value, MAX_TAG_COUNT));
 const onChangeTable = (aValue: string) => {
@@ -182,11 +191,21 @@ const onPaging = (index: number) => {
 };
 const onSetting = async () => {
     if (sSelectedTags.length <= 0) {
-        alert('Select tags for the chart.');
+        toast('Select tags for the chart.', {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
         return;
     }
     if (sSelectedTags.length > MAX_TAG_COUNT) {
-        alert('The maximum number of tags in a chart is ' + MAX_TAG_COUNT.toString() + '.');
+        toast('The maximum number of tags in a chart is ' + MAX_TAG_COUNT.toString() + '.', {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
         return;
     }
 

@@ -28,6 +28,7 @@ import { THEME_MODE, FONT_SIZE } from '@/utils/constants';
 import { computed, reactive, defineEmits } from 'vue';
 import { DEFAULT_PREFERENCE, NOT_YET, SELECT_THEME } from './constant';
 import { isEqual } from 'lodash';
+import { MutationTypes } from '../../../store/mutations';
 
 const cPreferences = computed(() => store.state.gPreference);
 const emit = defineEmits(['eClosePopup']);
@@ -71,6 +72,8 @@ const onSetting = () => {
     const sConfirm = confirm('It will be reflected after reload. Do you want to reload right away?');
     if (sConfirm) {
         onClosePopup();
+        sessionStorage.setItem('board', JSON.stringify(store.state.gTabList));
+        sessionStorage.setItem('selectedTab', store.state.gSelectedTab);
         location.reload();
     } else {
         onClosePopup();

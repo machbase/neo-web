@@ -16,12 +16,15 @@
 </template>
 
 <script setup="setup" lang="ts" name="Login">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { postLogin } from '@/api/repository/login';
 import router from '../../routes';
 import { RouteNames } from '../../enums/routes';
+import { toast, ToastOptions } from 'vue3-toastify';
+import { store } from '../../store';
 const sLoginName = ref<string>('');
 const sPassword = ref<string>('');
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const login = async (e) => {
     e.preventDefault();
@@ -30,7 +33,12 @@ const login = async (e) => {
         Password: sPassword.value,
     };
     if (sParams.LoginName === '' || sParams.Password === '') {
-        alert('typed ID or Password');
+        toast('typed ID or Password', {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
         return;
     }
     const sReturn: any = await postLogin(sParams);
@@ -40,7 +48,12 @@ const login = async (e) => {
         sReturn.option && sReturn.option.experimentMode ? localStorage.setItem('experimentMode', sReturn.option.experimentMode) : localStorage.removeItem('experimentMode');
         router.push({ name: RouteNames.TAG_VIEW });
     } else {
-        alert(sReturn.data.reason);
+        toast(sReturn.data.reason, {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
         sPassword.value = '';
     }
 };

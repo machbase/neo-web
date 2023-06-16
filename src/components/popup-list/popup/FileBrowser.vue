@@ -123,7 +123,15 @@ const sDeleteDir = ref<any>([]);
 
 const cFileNameStat = computed(() => {
     const extension = sFileName.value.slice(-4);
-    if (extension === '.sql' || extension === '.tql' || extension === '.taz') {
+    let sTypeOption = gBoard.value.type;
+    let sType;
+
+    if (sTypeOption === 'SQL Editor') sType = '.sql';
+    else if (sTypeOption === 'Tql') sType = '.tql';
+    else if (sTypeOption === 'dashboard') sType = '.taz';
+    else sTypeOption === 'Terminal';
+
+    if (sType === extension) {
         return false;
     } else {
         return true;
@@ -369,8 +377,14 @@ onMounted(async () => {
         }
     }
     getFile();
+    let sTypeOption = gBoard.value.type;
+    let sType;
+    if (sTypeOption === 'SQL Editor') sType = '.sql';
+    else if (sTypeOption === 'Tql') sType = '.tql';
+    else if (sTypeOption === 'dashboard') sType = '.taz';
+    else sTypeOption === 'Terminal';
 
-    sFileName.value = gBoard.value.board_name;
+    sFileName.value = gBoard.value.board_name + sType;
 });
 </script>
 

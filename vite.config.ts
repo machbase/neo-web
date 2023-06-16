@@ -8,7 +8,7 @@ import vueSetupExtend from 'vite-plugin-vue-setup-extend';
 export default defineConfig(() => {
     return {
         configureWebpack: {
-            devtool: 'source-map'
+            devtool: 'source-map',
         },
         mode: 'development',
         resolve: {
@@ -18,6 +18,12 @@ export default defineConfig(() => {
         },
         server: {
             proxy: {
+                '/echarts': {
+                    target: `http://127.0.0.1:5654`,
+                    changeOrigin: true,
+                    secure: false,
+                    ws: false,
+                },
                 '/web/api': {
                     target: `http://127.0.0.1:5654`,
                     changeOrigin: true,
