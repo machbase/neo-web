@@ -21,6 +21,7 @@ import { ActionTypes } from '@/store/actions';
 import { MutationTypes } from '@/store/mutations';
 import { computed, defineEmits, reactive, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { toast, ToastOptions } from 'vue3-toastify';
 
 const emit = defineEmits(['eClosePopup']);
 const route = useRoute();
@@ -45,6 +46,7 @@ const onChangeTitle = (aEvent: Event) => {
     sData.boardTitle = (aEvent.target as HTMLInputElement).value;
 };
 const gSelectedTab = computed(() => store.state.gSelectedTab);
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const gBoard = computed(() => {
     const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
@@ -52,7 +54,12 @@ const gBoard = computed(() => {
 });
 const onSetting = () => {
     if (sData.boardTitle.trim().length <= 0) {
-        alert('Input Dashboard Title.');
+        toast('Input Dashboard Title.', {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
         return;
     }
 

@@ -20,6 +20,7 @@ import { useStore } from '@/store';
 import { COMBO_BOX_TIME } from '@/utils/constants';
 import { computed, defineEmits, reactive, ref } from 'vue';
 import { splitTimeDuration } from '@/utils/utils';
+import { toast, ToastOptions } from 'vue3-toastify';
 
 type DataTime = {
     name: string;
@@ -50,7 +51,12 @@ const onChange = (aValue: DataTime) => {
 const onChangeInput = (aEvent: Event) => {
     const sTemp = splitTimeDuration((aEvent.target as HTMLInputElement).value);
     if (sTemp.error != '') {
-        alert('Invalid input.');
+        toast('Invalid input.', {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
         sData.input = sOldInput.value;
         return;
     } else {

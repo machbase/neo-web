@@ -58,6 +58,7 @@ import { ActionTypes } from '@/store/actions';
 import { TagSet } from '@/interface/chart';
 import { CalculationMode } from '@/interface/constants';
 import { getPaginationPages } from '@/utils/utils';
+import { toast, ToastOptions } from 'vue3-toastify';
 
 interface NewTagProps {
     noOfSelectTags: number;
@@ -83,6 +84,7 @@ const cTableListSelect = computed(() =>
         };
     })
 );
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const pageIndex = ref<number>(0);
 const tagsPaged = computed(() => getPaginationPages(cTagsSearch.value, MAX_TAG_COUNT));
 
@@ -146,11 +148,21 @@ const onPaging = (index: number) => {
 };
 const onSetting = () => {
     if (sSelectedTags.length <= 0) {
-        alert('Select tags for the chart.');
+        toast('Select tags for the chart.', {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
         return;
     }
     if (sSelectedTags.length + noOfSelectTags.value > MAX_TAG_COUNT) {
-        alert('The maximum number of tags in a chart is ' + MAX_TAG_COUNT.toString() + '.');
+        toast('The maximum number of tags in a chart is ' + MAX_TAG_COUNT.toString() + '.', {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
         return;
     }
     emit('eSubmit', sSelectedTags);

@@ -221,6 +221,7 @@ import { PopupType } from '@/enums/app';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from '@/components/header/constant';
 import { postFileList } from '../../api/repository/api';
 import { getWindowOs } from '../../utils/utils';
+import { toast, ToastOptions } from 'vue3-toastify';
 
 const sLang = [['javascript', 'machbase']];
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
@@ -518,14 +519,29 @@ const changeVerticalType = (aItem: boolean) => {
 const copyData = () => {
     const selectText = window.getSelection()?.toString();
     if (!selectText) {
-        alert('Please drag the query.');
+        toast('Please drag the query.', {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
     } else {
         copyText(selectText, undefined, (error: string, event: string) => {
             if (error) {
-                alert('Can not copy');
+                toast('Can not copy', {
+                    autoClose: 1000,
+                    theme: cIsDarkMode.value ? 'dark' : 'light',
+                    position: toast.POSITION.TOP_RIGHT,
+                    type: 'error',
+                } as ToastOptions);
                 console.log(error);
             } else {
-                alert('Copied');
+                toast('Copied', {
+                    autoClose: 1000,
+                    theme: cIsDarkMode.value ? 'dark' : 'light',
+                    position: toast.POSITION.TOP_RIGHT,
+                    type: 'error',
+                } as ToastOptions);
                 console.log(event);
             }
         });

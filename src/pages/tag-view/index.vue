@@ -205,8 +205,6 @@ const validateTest = async (joiSchema: any, testObject: any) => {
 };
 
 onMounted(async () => {
-    window.addEventListener('message', receiveMessage);
-
     nextTick(() => {
         if (route.params.id) {
             gBoard.value.type = route.params.type;
@@ -218,6 +216,23 @@ onMounted(async () => {
         await store.dispatch(ActionTypes.fetchTagList, store.state.gTableList[0]);
         await store.dispatch(ActionTypes.fetchRangeData, { table: store.state.gTableList[0], tagName: store.state.gTagList[0] });
     }
+    setTimeout(() => {
+        const sSavedData = sessionStorage.getItem('board');
+        const sSavedSelectedTab = sessionStorage.getItem('selectedTab');
+
+        if (sSavedData && sSavedData.length !== 0) {
+            JSON.parse(sSavedData).map((aItem: any) => {
+                store.commit(MutationTypes.pushTab, aItem);
+            });
+
+            nextTick(() => {
+                store.commit(MutationTypes.setSelectedTab, sSavedSelectedTab);
+                gTabList.value.shift();
+            });
+            sessionStorage.removeItem('board');
+            sessionStorage.removeItem('selectedTab');
+        }
+    });
 });
 </script>
 

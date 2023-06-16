@@ -88,6 +88,7 @@ import { TabList } from '../../../interface/tagView';
 import { PopupType } from '@/enums/app';
 
 import { WIDTH_DEFAULT } from '../../header/constant';
+import { toast, ToastOptions } from 'vue3-toastify';
 
 const emit = defineEmits(['eClosePopup']);
 
@@ -184,7 +185,12 @@ const showNeoDoc = () => {
 };
 const onSetting = () => {
     if (!sBoardName.value) {
-        alert('please enter Name');
+        toast('please enter Name', {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
         return;
     }
     const sIdx = gTabList.value.findIndex((aItem) => aItem.board_id === gSelectedTab.value);

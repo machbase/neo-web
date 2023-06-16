@@ -1,5 +1,5 @@
 <template>
-    <v-sheet class="add-tab" color="transparent">
+    <v-sheet v-if="!sLoading" class="add-tab" color="transparent">
         <v-sheet class="add-tab-form" color="transparent">
             <div ref="term_view" id="term_view"></div>
         </v-sheet>
@@ -45,6 +45,8 @@ const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gLastSelectedTab = computed(() => store.state.gLastSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
 
+const sBoardId = ref();
+const sLoading = ref(true);
 // 1 ~ 1000 random
 const makeTermId = () => {
     return new Date().getTime();
@@ -67,7 +69,13 @@ const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
     await postTerminalSize(sTermId, aSize);
 };
 
-onMounted(async () => {
+const init = async () => {
+    sBoardId.value = props.pId;
+    if (gSelectedTab.value !== props.pId) return;
+
+    if (!sLoading.value) return;
+
+    sLoading.value = false;
     await getLogin();
 
     selectedTab = gSelectedTab.value;
@@ -138,6 +146,16 @@ onMounted(async () => {
         }
     }, 400);
     sResizeObserver.observe(term_view.value);
+};
+
+watch(
+    () => gSelectedTab.value,
+    () => {
+        if (gSelectedTab.value === sBoardId.value) init();
+    }
+);
+onMounted(async () => {
+    init();
 });
 
 onUnmounted(() => {

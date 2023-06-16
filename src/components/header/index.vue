@@ -3,10 +3,10 @@
         <div v-if="sLoading" class="loading-rollUp">
             <img class="icon" :src="cIsDarkMode ? loader_b : loader_w" />
         </div>
-        <v-sheet color="transparent" width="4%">
+        <v-sheet color="transparent" width="68px">
             <img class="icon" :src="logo" />
         </v-sheet>
-        <v-sheet class="header__link" color="transparent" width="81%">
+        <v-sheet class="header__link" color="transparent" width="calc(90% - 68px)">
             <div class="tab-form">
                 <button
                     v-for="(aTab, aIdx) in gTabList"
@@ -49,7 +49,7 @@
             </div>
             <v-btn @click="addTab" density="comfortable" icon="mdi-plus" size="36px" variant="plain"> </v-btn>
         </v-sheet>
-        <v-sheet class="header__tool" color="transparent" width="15%">
+        <v-sheet class="header__tool" color="transparent" width="calc(10%)">
             <div @click="onChildGroup" class="header__link--group-item drop">
                 <v-icon>mdi-cog</v-icon>
                 <div ref="childGroup" class="child-group">
@@ -109,6 +109,7 @@ import { fetchRollUp } from '@/api/repository/machiot';
 import Joi from 'joi';
 import { logOut } from '../../api/repository/login';
 import { postFileList } from '../../api/repository/api';
+import { toast, ToastOptions } from 'vue3-toastify';
 
 const emit = defineEmits(['download']);
 
@@ -412,15 +413,35 @@ const onRollUp = async () => {
             .then((res: any) => {
                 var sRes = res.Data;
                 if (sRes.length > 0 && sRes[0][0].hasOwnProperty('EXECUTE RESULT')) {
-                    alert(aTable + ' : ' + sRes[0][0]['EXECUTE RESULT']);
+                    toast(aTable + ' : ' + sRes[0][0]['EXECUTE RESULT'], {
+                        autoClose: 1000,
+                        theme: cIsDarkMode.value ? 'dark' : 'light',
+                        position: toast.POSITION.TOP_RIGHT,
+                        type: 'error',
+                    } as ToastOptions);
                 } else if (res.ErrorMessage != '') {
-                    alert(res.ErrorMessage);
+                    toast(res.ErrorMessage, {
+                        autoClose: 1000,
+                        theme: cIsDarkMode.value ? 'dark' : 'light',
+                        position: toast.POSITION.TOP_RIGHT,
+                        type: 'error',
+                    } as ToastOptions);
                 } else {
-                    alert("'EXEC ROLLUP_FORCE(" + aTable + ")' does not respond.");
+                    toast("'EXEC ROLLUP_FORCE(" + aTable + ")' does not respond.", {
+                        autoClose: 1000,
+                        theme: cIsDarkMode.value ? 'dark' : 'light',
+                        position: toast.POSITION.TOP_RIGHT,
+                        type: 'error',
+                    } as ToastOptions);
                 }
             })
             .catch((err) => {
-                alert('code:' + err.status + '\n' + 'message:' + err.responseText + '\n' + 'error:' + err);
+                toast('code:' + err.status + '\n' + 'message:' + err.responseText + '\n' + 'error:' + err, {
+                    autoClose: 1000,
+                    theme: cIsDarkMode.value ? 'dark' : 'light',
+                    position: toast.POSITION.TOP_RIGHT,
+                    type: 'error',
+                } as ToastOptions);
             });
     }
     sLoading.value = false;

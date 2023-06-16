@@ -1,4 +1,14 @@
 import request from '@/api/core';
+import { toast, ToastOptions } from 'vue3-toastify';
+
+const isDarkMode = () => {
+    const sData: any = localStorage.getItem('gPreference');
+    if (sData) {
+        return sData.theme === 'machIoTchartBlack' ? true : false;
+    } else {
+        return false;
+    }
+};
 
 const getTqlChart = (aData: string) => {
     return request({
@@ -49,7 +59,12 @@ const fetchTableName = async (aTable: any) => {
         url: encodeURI(queryString),
     });
     if (sData.status >= 400) {
-        alert(sData.data.reason);
+        toast(sData.data.reason, {
+            autoClose: 1000,
+            theme: isDarkMode() ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
     }
 
     return sData;
@@ -122,7 +137,12 @@ const fetchCalculationData = async (params: any) => {
         url: encodeURI(queryString),
     });
     if (sData.status >= 400) {
-        alert(sData.data.reason);
+        toast(sData.data.reason, {
+            autoClose: 1000,
+            theme: isDarkMode() ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
     }
 
     return sData;
@@ -180,7 +200,12 @@ const fetchRawData = async (params: any) => {
         url: queryString,
     });
     if (sData.status >= 400) {
-        alert(sData.data.reason);
+        toast(sData.data.reason, {
+            autoClose: 1000,
+            theme: isDarkMode() ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
     }
 
     return sData;
@@ -192,7 +217,12 @@ const fetchRangeData = async (Table: string, TagNames: string) => {
         url: `/machbase?q=SELECT TO_CHAR(min(time)) as MIN, TO_CHAR(max(time)) as MAX FROM ${Table} WHERE name = '${TagNames}'`,
     });
     if (sData.status >= 400) {
-        alert(sData.data.reason);
+        toast(sData.data.reason, {
+            autoClose: 1000,
+            theme: isDarkMode() ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
     }
     return sData;
 };
@@ -208,7 +238,12 @@ const fetchRollupData = async (params: any) => {
         },
     });
     if (sData.status >= 400) {
-        alert(sData.data.reason);
+        toast(sData.data.reason, {
+            autoClose: 1000,
+            theme: isDarkMode() ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
     }
     return sData;
 };
@@ -219,7 +254,12 @@ const fetchTablesData = async () => {
         url: `/api/tables`,
     });
     if (sData.status >= 400) {
-        alert(sData.data.reason);
+        toast(sData.data.reason, {
+            autoClose: 1000,
+            theme: isDarkMode() ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
     }
 
     return sData;
@@ -231,7 +271,12 @@ const fetchTags = async (table: string) => {
         url: `/api/tables/${table}/tags`,
     });
     if (sData.status >= 400) {
-        alert(sData.data.reason);
+        toast(sData.data.reason, {
+            autoClose: 1000,
+            theme: isDarkMode() ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
     }
     return sData;
 };
@@ -241,7 +286,12 @@ const fetchRollUp = async (table: string) => {
         url: `/machiot/rollup/${table}`,
     });
     if (sData.status >= 400) {
-        alert(sData.data.reason);
+        toast(sData.data.reason, {
+            autoClose: 1000,
+            theme: isDarkMode() ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
     }
     return sData;
 };
@@ -252,7 +302,12 @@ const fetchOnMinMaxTable = async (table: string, tagName: string) => {
         url: `/machbase?q=select to_char(min(min_time)),to_char(max(max_time)) from v$${table}_stat where name = '${tagName}'`,
     });
     if (sData.status >= 400) {
-        alert(sData.data.reason);
+        toast(sData.data.reason, {
+            autoClose: 1000,
+            theme: isDarkMode() ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
     }
     return sData;
 };
@@ -262,7 +317,12 @@ const fetchOnRollupTable = async (table: string) => {
         url: `/machbase?q=select * from v$rollup where root_table = '${table}' and ENABLED = 1 `,
     });
     if (sData.status >= 400) {
-        alert(sData.data.reason);
+        toast(sData.data.reason, {
+            autoClose: 1000,
+            theme: isDarkMode() ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
     }
     return sData;
 };
