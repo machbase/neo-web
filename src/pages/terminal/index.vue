@@ -140,11 +140,11 @@ const init = async () => {
     setTimeout(() => {
         try {
             sFitter && sFitter.fit();
+            sResizeObserver.observe(term_view.value);
         } catch (err) {
             console.log(err);
         }
     }, 400);
-    sResizeObserver.observe(term_view.value);
 };
 
 watch(
