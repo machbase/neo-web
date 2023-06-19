@@ -108,7 +108,6 @@ const init = async () => {
         fontFamily: '"D2Coding", "Monaco", "Lucida Console", "Courier New","D2Coding", sans-serif, monospace',
         allowProposedApi: true,
         fontSize: sStorageData && JSON.parse(sStorageData).font ? Number(JSON.parse(sStorageData).font) : 18,
-        windowsMode: true,
     });
     sTermId = makeTermId();
 
