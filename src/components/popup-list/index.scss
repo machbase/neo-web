@@ -10,6 +10,7 @@
         background-color: theme-get('bg-color');
         color: theme-get('text-color');
     }
+    contain: unset;
 }
 .dialog-wrap {
     

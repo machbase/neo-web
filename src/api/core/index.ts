@@ -30,7 +30,7 @@ request.interceptors.request.use(
         const sFileTql = config.url?.split('?')[0].indexOf('.tql');
         const sFileTaz = config.url?.split('?')[0].indexOf('.taz');
 
-        if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1)) {
+        if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1) && config.method === 'get') {
             config.transformResponse = function (data) {
                 return data;
             };

@@ -19,6 +19,12 @@ const postFileList = (aContents: string, aDir: string, aFileName: string) => {
         data: aContents,
     });
 };
+const deleteFileList = (aDir: string, aFileName: string) => {
+    return request({
+        method: 'DELETE',
+        url: normalizePath(`/api/files/${aDir}/${aFileName}`),
+    });
+};
 
 const getLicense = () => {
     return request({
@@ -35,4 +41,4 @@ const postLicense = (aItem: any) => {
     });
 };
 
-export { getFileList, postFileList, getLicense, postLicense };
+export { getFileList, postFileList, getLicense, postLicense, deleteFileList };
