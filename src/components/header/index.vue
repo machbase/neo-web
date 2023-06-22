@@ -32,18 +32,10 @@
                         {{ aTab.board_name }}
                     </div>
                     <v-icon
-                        v-if="aTab.type !== 'new'"
-                        @click.stop="gTabList.length !== 1 && (gSelectedTab === aTab.id || aTab.hover === true) && deleteTab(aTab.board_id)"
-                        :size="gTabList.length !== 1 && (gSelectedTab === aTab.id || aTab.hover === true) ? '16px' : aTab.savedCode !== aTab.code ? '12px' : '16px'"
+                        @click.stop="(gSelectedTab === aTab.id || aTab.hover === true) && deleteTab(aTab.board_id)"
+                        :size="gSelectedTab === aTab.id || aTab.hover === true ? '16px' : aTab.savedCode !== aTab.code ? '12px' : '16px'"
                     >
-                        {{ gTabList.length !== 1 && (gSelectedTab === aTab.id || aTab.hover === true) ? 'mdi-close' : aTab.savedCode !== aTab.code ? 'mdi-circle' : '' }}
-                    </v-icon>
-                    <v-icon
-                        v-if="aTab.type === 'new' && gTabList.length !== 1 && (gSelectedTab === aTab.id || aTab.hover === true)"
-                        @click.stop="deleteTab(aTab.board_id)"
-                        size="16px"
-                    >
-                        mdi-close
+                        {{ gSelectedTab === aTab.id || aTab.hover === true ? 'mdi-close' : aTab.savedCode !== aTab.code && aTab.type !== 'new' ? 'mdi-circle' : '' }}
                     </v-icon>
                 </button>
             </div>
@@ -323,6 +315,9 @@ const setSelectedTab = (aItem: string) => {
 };
 
 const deleteTab = (aId: string) => {
+    if (gTabList.value.length === 1) {
+        addTab();
+    }
     const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === aId);
 
     const sCopyTabList = JSON.parse(JSON.stringify(gTabList.value));

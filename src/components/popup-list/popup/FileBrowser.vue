@@ -1,4 +1,12 @@
 <template>
+    <div v-if="onContext" @contextmenu.prevent @mousedown="closeContextMenu" class="cover"></div>
+    <Transition>
+        <div v-show="onContext" ref="contextMenu" @contextmenu.prevent class="contextOption">
+            <div class="context-option-form">
+                <button @click="deleteFile" class="show"><v-icon size="14px">mdi-delete</v-icon> Delete</button>
+            </div>
+        </div>
+    </Transition>
     <v-sheet color="transparent">
         <v-sheet class="toolbar" color="transparent">
             <v-sheet class="back-btn-sheet" color="transparent">
@@ -16,9 +24,9 @@
                 {{ cJoinPath }}
             </div>
             <v-sheet color="transparent">
-                <!-- <v-btn @click="makeFolder" density="comfortable" size="16px" variant="plain">
+                <v-btn @click="makeFolder" density="comfortable" size="16px" variant="plain">
                     <v-icon color="#F5AA64"> mdi-folder-plus </v-icon>
-                </v-btn> -->
+                </v-btn>
             </v-sheet>
         </v-sheet>
         <v-sheet class="file-name-form-header" color="transparent" height="24px" width="100%">
@@ -32,18 +40,21 @@
                 v-for="(aChildren, aIdx) in sList"
                 :key="aIdx + aChildren.lastModifiedUnixMillis"
                 @click="clickOption(aChildren)"
+                @contextmenu.prevent
+                @mousedown.right.stop="openContextMenu($event, aChildren)"
                 class="file-list"
                 color="transparent"
                 height="24px"
-                :style="
+                :style="[
                     sClickFile && sClickFile.name + sClickFile.lastModifiedUnixMillis === aChildren.name + aChildren.lastModifiedUnixMillis
                         ? cIsDarkMode
                             ? { backgroundColor: 'rgba(46, 192, 223, 0.2) !important', borderTop: '1px solid #2ec0df', borderBottom: '1px solid #2ec0df' }
                             : { backgroundColor: 'rgba(46, 192, 223, 0.2) !important', borderTop: '1px solid #2ec0df', borderBottom: '1px solid #2ec0df' }
-                        : {}
-                "
+                        : {},
+                ]"
                 width="100%"
             >
+                <!-- aChildren.name === sRightSelected ? { borderTop: '1px solid #2ec0df !important', borderBottom: '1px solid #2ec0df !important' } : {}, -->
                 <v-sheet class="file-name-form" color="transparent" width="60%">
                     <v-icon :color="aChildren.type === 'dir' ? '#F5AA64' : cIsDarkMode ? '#adb3bc' : '#367FEB'" size="16px">
                         {{
@@ -87,8 +98,9 @@
 
 <script setup lang="ts" name="SaveDashboard">
 import { computed, onMounted, defineEmits, defineExpose, defineProps, reactive, ref, watch, withDefaults } from 'vue';
-import { getFileList, postFileList } from '../../../api/repository/api';
+import { getFileList, postFileList, deleteFileList } from '../../../api/repository/api';
 import { store } from '../../../store';
+import { toast, ToastOptions } from 'vue3-toastify';
 import { MutationTypes } from '../../../store/mutations';
 import { cloneDeep } from 'lodash';
 import { BoardInfo } from '../../../interface/chart';
@@ -98,6 +110,10 @@ interface propsOption {
     pUploadType: string;
 }
 const props = defineProps<propsOption>();
+
+const contextMenu = ref();
+const onContext = ref(false);
+const sRightSelected = ref();
 
 const emit = defineEmits(['eClosePopup']);
 const gTabList = computed(() => store.state.gTabList);
@@ -138,6 +154,33 @@ const cFileNameStat = computed(() => {
     }
 });
 
+const deleteFile = async () => {
+    const sConfirm = confirm(`Do you want to delete this file (${sClickFile.value.name})?`);
+    if (sConfirm) {
+        const sResult = await deleteFileList(sSelectedClickDir.value.join('/'), sClickFile.value.name);
+        if (sResult.reason === 'success') {
+            getFile();
+        } else {
+            toast(sResult.data.reason, {
+                autoClose: 1000,
+                theme: cIsDarkMode.value ? 'dark' : 'light',
+                position: toast.POSITION.TOP_RIGHT,
+                type: 'error',
+            } as ToastOptions);
+        }
+    }
+    closeContextMenu();
+};
+
+const closeContextMenu = () => {
+    onContext.value = false;
+};
+const openContextMenu = (e: any, aChildren: any) => {
+    sClickFile.value = aChildren;
+    onContext.value = !onContext.value;
+    contextMenu.value.style.top = e.y + 'px';
+    contextMenu.value.style.left = e.x + 'px';
+};
 const elapsedSize = (aSize: number): string => {
     if (typeof aSize === 'string') return '';
     if (aSize < 1000) return aSize + ' B';
@@ -387,7 +430,16 @@ onMounted(async () => {
     sFileName.value = gBoard.value.board_name + sType;
 });
 </script>
-
+<style>
+.v-enter-active,
+.v-leave-active {
+    transition: opacity 0.2s ease;
+}
+.v-enter-from,
+.v-leave-to {
+    opacity: 0;
+}
+</style>
 <style lang="scss" scoped>
 @import 'index.scss';
 
@@ -407,6 +459,53 @@ onMounted(async () => {
 }
 .file-name-form-header {
     display: flex;
+}
+.cover {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1000;
+}
+
+.contextOption {
+    position: fixed;
+    z-index: 1001;
+    background: white;
+    border-radius: 8px;
+    padding: 5px 0;
+    width: 220px;
+    -webkit-box-shadow: 0px 5px 10px 1px rgba(0, 0, 0, 0.3);
+    font-size: 14px;
+    .show {
+        i {
+            margin-right: 4px;
+        }
+        width: 100%;
+        padding: 0 8px;
+        display: flex;
+        align-items: center;
+        justify-content: start;
+        height: 25px;
+    }
+    .show:hover {
+        background: #eeeeee;
+    }
+    .copy:hover {
+        background: #eeeeee;
+    }
+    .copy {
+        i {
+            margin-right: 4px;
+        }
+        height: 25px;
+        width: 100%;
+        padding: 0 15px;
+        display: flex;
+        align-items: center;
+        justify-content: start;
+    }
 }
 .file-name-form {
     display: flex;

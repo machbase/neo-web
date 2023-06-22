@@ -4,8 +4,8 @@
         <Transition>
             <div v-show="onContext" ref="contextMenu" @contextmenu.prevent class="contextOption">
                 <div class="context-option-form">
-                    <button @click="onClickPopupItem('SHOW CONTENT')" class="show"><v-icon size="14px">mdi-monitor</v-icon> show full content</button>
-                    <button @click="copyContent" class="copy"><v-icon size="14px">mdi-content-copy</v-icon> copy</button>
+                    <button @click="onClickPopupItem('SHOW CONTENT')" class="show"><v-icon size="14px">mdi-monitor</v-icon> Show full content</button>
+                    <button @click="copyContent" class="copy"><v-icon size="14px">mdi-content-copy</v-icon> Copy</button>
                 </div>
             </div>
         </Transition>
