@@ -69,15 +69,10 @@ const onSetting = () => {
         }
     }
     localStorage.setItem('gPreference', JSON.stringify(sData));
-    const sConfirm = confirm('It will be reflected after reload. Do you want to reload right away?');
-    if (sConfirm) {
-        onClosePopup();
-        sessionStorage.setItem('board', JSON.stringify(store.state.gTabList));
-        sessionStorage.setItem('selectedTab', store.state.gSelectedTab);
-        location.reload();
-    } else {
-        onClosePopup();
-    }
+    onClosePopup();
+    sessionStorage.setItem('board', JSON.stringify(store.state.gTabList));
+    sessionStorage.setItem('selectedTab', store.state.gSelectedTab);
+    location.reload();
 };
 const onClosePopup = () => {
     emit('eClosePopup');

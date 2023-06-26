@@ -1014,6 +1014,9 @@ onMounted(async () => {
     border-left: none !important;
 }
 .dark-sql {
+    textarea {
+        pointer-events: bounding-box;
+    }
     height: 100%;
     /*!
   Theme: Windows 95
@@ -1118,6 +1121,9 @@ onMounted(async () => {
     height: 100%;
 }
 .white-sql {
+    textarea {
+        pointer-events: bounding-box;
+    }
     height: 100%;
     /*!
   Theme: Windows 95 Light

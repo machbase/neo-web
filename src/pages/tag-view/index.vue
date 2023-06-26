@@ -1,12 +1,23 @@
 <template>
     <v-sheet class="tag-view" height="100%">
         <v-sheet id="tagView" class="tag-view-form" color="transparent" height="100%" width="100%">
-            <v-sheet v-for="(aTab, aIdx) in gTabList" v-show="aTab.board_id === gSelectedTab" :key="aTab.board_id" class="sheet" color="transparent" height="100%" width="100%">
+            <v-sheet
+                v-for="(aTab, aIdx) in gTabList"
+                v-show="aTab.board_id === gSelectedTab"
+                :key="aTab.board_id - 10"
+                class="sheet"
+                color="transparent"
+                height="100%"
+                width="100%"
+            >
                 <v-sheet v-if="aTab.type === 'SQL Editor'" color="transparent" height="100%" width="100%">
                     <Editor ref="sPanels" :p-panel-data="aTab" />
                 </v-sheet>
                 <v-sheet v-if="aTab.type === 'Tql'" color="transparent" height="100%" width="100%">
                     <TQL ref="sPanels" :p-panel-data="aTab" />
+                </v-sheet>
+                <v-sheet v-if="aTab.type === 'wrk'" color="transparent" height="100%" width="100%">
+                    <WorkSheet ref="sPanels" :p-panel-data="aTab" />
                 </v-sheet>
 
                 <AddTab v-if="aTab.type === 'new'" ref="sPanels" />
@@ -42,6 +53,7 @@
 <script setup lang="ts" name="TagView">
 import Editor from '@/pages/editor/Editor.vue';
 import TQL from '@/pages/Tql/Editor.vue';
+import WorkSheet from '@/pages/workSheet/WorkSheet.vue';
 
 import ButtonCreate from '@/components/common/button-create/index.vue';
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
@@ -211,11 +223,7 @@ onMounted(async () => {
             store.commit(MutationTypes.setBoard, gBoard);
         }
     });
-    await store.dispatch(ActionTypes.fetchTableList);
-    if (store.state.gTableList[0]) {
-        await store.dispatch(ActionTypes.fetchTagList, store.state.gTableList[0]);
-        await store.dispatch(ActionTypes.fetchRangeData, { table: store.state.gTableList[0], tagName: store.state.gTagList[0] });
-    }
+
     setTimeout(() => {
         const sSavedData = sessionStorage.getItem('board');
         const sSavedSelectedTab = sessionStorage.getItem('selectedTab');

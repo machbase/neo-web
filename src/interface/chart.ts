@@ -165,6 +165,7 @@ export interface BoardInfo {
     savedCode: string;
     path: string;
     code: string;
+    sheet: any;
     value?: any;
     old_id?: string;
 }

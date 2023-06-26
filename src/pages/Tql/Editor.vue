@@ -162,11 +162,11 @@
                 </v-sheet>
 
                 <v-sheet class="tool-bar" color="transparent">
-                    <v-btn v-if="sJsonBtnOption" @click="setJsonFormat()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                    <v-btn v-if="sResultType === 'text'" @click="setJsonFormat()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon v-if="!sJsonOption" size="20px">mdi-text</v-icon>
                         <v-icon v-else size="20px">mdi-code-json</v-icon>
                     </v-btn>
-                    <v-btn v-if="sCsvHeaderBtn" @click="setCsvHeaderOption()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                    <v-btn v-if="sResultType === 'csv'" @click="setCsvHeaderOption()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon v-if="!sCsvHeaderOption" size="20px">mdi-table-headers-eye</v-icon>
                         <v-icon v-else size="20px">mdi-table-headers-eye-off</v-icon>
                     </v-btn>
@@ -823,6 +823,9 @@ onMounted(async () => {
     border-left: none !important;
 }
 .dark-sql {
+    textarea {
+        pointer-events: bounding-box;
+    }
     height: 100%;
     /*!
   Theme: Windows 95
@@ -927,6 +930,9 @@ onMounted(async () => {
     height: 100%;
 }
 .white-sql {
+    textarea {
+        pointer-events: bounding-box;
+    }
     height: 100%;
     /*!
   Theme: Windows 95 Light

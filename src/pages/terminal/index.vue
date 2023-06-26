@@ -47,7 +47,7 @@ const gTabList = computed(() => store.state.gTabList);
 
 const sBoardId = ref();
 const sLoading = ref(true);
-// 1 ~ 1000 random
+
 const makeTermId = () => {
     return new Date().getTime();
 };

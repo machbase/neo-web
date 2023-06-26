@@ -129,6 +129,7 @@ const sExpOptions = [
     { name: 'TQL', type: 'Tql', icon: 'mdi-chart-scatter-plot' },
     { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
     { name: 'Shell', type: 'Terminal', icon: 'mdi-console' },
+    { name: 'Work Sheet', type: 'wrk', icon: 'mdi-google-spreadsheet' },
 ];
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
@@ -201,7 +202,22 @@ const onSetting = () => {
         type: sBoardType.value,
         board_name: sBoardName,
         path: '',
-        savedCode: '',
+        sheet: [
+            {
+                id: String(new Date().getTime()) + (Math.random() * 1000).toFixed(),
+                type: 'mrk',
+                contents: '',
+                result: '' as any,
+                status: false,
+                lang: [
+                    ['markdown', 'Markdown'],
+                    ['SQL', 'SQL'],
+                    ['javascript', 'TQL'],
+                ],
+                minimal: false,
+            },
+        ],
+        savedCode: false,
         edit: false,
     };
 

@@ -28,6 +28,7 @@
                         <v-icon v-if="aTab.type == 'SQL Editor'" size="16px">mdi-file-document-outline</v-icon>
                         <v-icon v-if="aTab.type == 'Terminal'" size="16px">mdi-console</v-icon>
                         <v-icon v-if="aTab.type == 'Tql'" size="16px">mdi-chart-scatter-plot</v-icon>
+                        <v-icon v-if="aTab.type == 'wrk'" size="16px">mdi-google-spreadsheet</v-icon>
 
                         {{ aTab.board_name }}
                     </div>
