@@ -18,7 +18,7 @@ export default defineConfig(() => {
         },
         server: {
             proxy: {
-                '/echarts': {
+                '/web/echarts': {
                     target: `http://127.0.0.1:5654`,
                     changeOrigin: true,
                     secure: false,

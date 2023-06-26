@@ -627,6 +627,8 @@ onMounted(async () => {
             sVerticalType.value = false;
         }
     }
+    const textarea = sText.value.$el.children[0].children[0].children[0];
+    textarea.title = '';
 });
 </script>
 
