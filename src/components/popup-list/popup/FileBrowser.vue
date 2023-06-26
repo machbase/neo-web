@@ -369,12 +369,17 @@ const importFile = async () => {
         if (sFileName.value !== gBoard.value.board_name) {
             const sConfirm = confirm('Do you want to overwrite it?');
             if (sConfirm) {
-                postFileList(props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code, sSelectedClickDir.value.join('/'), sFileName.value);
-                uploadFile();
-                gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
-                gBoard.value.board_name = sFileName.value;
-                gBoard.value.savedCode = gBoard.value.code;
-
+                const sResult = await postFileList(
+                    props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code,
+                    sSelectedClickDir.value.join('/'),
+                    sFileName.value
+                );
+                if (typeof sResult === 'string' && JSON.parse(sResult).success === true) {
+                    uploadFile();
+                    gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
+                    gBoard.value.board_name = sFileName.value;
+                    gBoard.value.savedCode = gBoard.value.code;
+                }
                 onClosePopup();
                 return;
             } else {
@@ -382,12 +387,15 @@ const importFile = async () => {
             }
         }
     }
-    postFileList(props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code, sSelectedClickDir.value.join('/'), sFileName.value);
-    gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
-    gBoard.value.board_name = sFileName.value;
-    gBoard.value.savedCode = gBoard.value.code;
 
-    getFile();
+    const sResult = postFileList(props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code, sSelectedClickDir.value.join('/'), sFileName.value);
+    if (typeof sResult === 'string' && JSON.parse(sResult).success === true) {
+        gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
+        gBoard.value.board_name = sFileName.value;
+        gBoard.value.savedCode = gBoard.value.code;
+
+        getFile();
+    }
     onClosePopup();
 };
 
@@ -427,7 +435,12 @@ onMounted(async () => {
     else if (sTypeOption === 'dashboard') sType = '.taz';
     else sTypeOption === 'Terminal';
 
-    sFileName.value = gBoard.value.board_name + sType;
+    const extension = gBoard.value.board_name.slice(-4);
+    if (extension === '.sql' || extension === '.tql' || extension === '.taz') {
+        sFileName.value = gBoard.value.board_name;
+    } else {
+        sFileName.value = gBoard.value.board_name + sType;
+    }
 });
 </script>
 <style>
