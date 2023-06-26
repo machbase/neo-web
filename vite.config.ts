@@ -19,13 +19,13 @@ export default defineConfig(() => {
         server: {
             proxy: {
                 '/web/echarts': {
-                    target: `http://127.0.0.1:5654`,
+                    target: `http://127.0.0.1:5654/`,
                     changeOrigin: true,
                     secure: false,
                     ws: false,
                 },
                 '/web/api': {
-                    target: `http://127.0.0.1:5654`,
+                    target: `http://127.0.0.1:5654/`,
                     changeOrigin: true,
                     secure: false,
                     ws: false,

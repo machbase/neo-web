@@ -310,7 +310,7 @@ const getFile = async () => {
             else if (sTypeOption === 'wrk') sType = 'wrk';
             else sType = 'Terminal';
 
-            if (sType === 'dashboard') {
+            if (sType === 'dashboard' || sTypeOption === 'wrk') {
                 const sDashboard = JSON.parse(sData);
                 sDashboard.board_id = new Date().getTime();
                 store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
@@ -343,8 +343,7 @@ const getFile = async () => {
             else if (sTypeOption === 'wrk') sType = 'wrk';
             else sType = 'Terminal';
 
-            if (sType === 'dashboard') {
-                const sDashboard = JSON.parse(sData);
+            if (sType === 'dashboard' || sType === 'wrk') {
                 sDashboard.board_id = new Date().getTime();
                 store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
                 store.commit(MutationTypes.setSelectedTab, sDashboard.board_id);
@@ -362,8 +361,9 @@ const getFile = async () => {
 const makeFolder = () => {
     const sFilterList = sList.value.filter((aItem) => aItem.isDir);
 
-    if (sFilterList.length === 0) postFileList('', sSelectedClickDir.value.join('/'), `new`);
-    else {
+    if (sFilterList.length === 0) {
+        postFileList('', sSelectedClickDir.value.join('/'), `new`);
+    } else {
         const sSortData = sFilterList
             .map((aItem) => {
                 return aItem.name;
@@ -399,7 +399,7 @@ const importFile = async () => {
             const sConfirm = confirm('Do you want to overwrite it?');
             if (sConfirm) {
                 const sResult = await postFileList(
-                    props.pUploadType === 'wrk' ? JSON.stringify(gBoard.value.sheet) : props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code,
+                    props.pUploadType === 'wrk' || props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code,
                     sSelectedClickDir.value.join('/'),
                     sFileName.value
                 );
@@ -423,7 +423,11 @@ const importFile = async () => {
         }
     }
 
-    const sResult = postFileList(props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code, sSelectedClickDir.value.join('/'), sFileName.value);
+    const sResult = await postFileList(
+        props.pUploadType === 'wrk' || props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code,
+        sSelectedClickDir.value.join('/'),
+        sFileName.value
+    );
     if (typeof sResult === 'string' && JSON.parse(sResult).success === true) {
         gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
         gBoard.value.board_name = sFileName.value;
@@ -472,7 +476,7 @@ onMounted(async () => {
     else sTypeOption === 'Terminal';
 
     const extension = gBoard.value.board_name.slice(-4);
-    if (extension === '.sql' || extension === '.tql' || extension === '.taz') {
+    if (extension === '.sql' || extension === '.tql' || extension === '.taz' || extension === '.wrk') {
         sFileName.value = gBoard.value.board_name;
     } else {
         sFileName.value = gBoard.value.board_name + sType;

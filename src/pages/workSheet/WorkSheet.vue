@@ -14,6 +14,16 @@
             width="80%"
         >
             <div v-if="!aSheet.minimal" class="create-sheet">
+                <v-btn
+                    @click="checkCtrl({ ctrlKey: true }, aIdx)"
+                    class="create-sheet-top-btn"
+                    density="comfortable"
+                    :disabled="aSheet.type === 'mrk' && aSheet.status"
+                    size="20px"
+                    variant="plain"
+                >
+                    <v-icon size="20px"> mdi-play </v-icon>
+                </v-btn>
                 <v-btn @click="sortSheet(aIdx, 'top')" class="create-sheet-top-btn" density="comfortable" :disabled="aIdx === 0" size="20px" variant="plain">
                     <v-icon size="20px"> mdi-arrow-up </v-icon>
                 </v-btn>
@@ -108,6 +118,8 @@ import { fetchData, getTqlChart } from '@/api/repository/machiot';
 import { BoardInfo } from '../../interface/chart';
 import { PopupType } from '../../enums/app';
 import { WIDTH_DEFAULT } from '../../components/header/constant';
+import { getWindowOs } from '../../utils/utils';
+import { postFileList } from '../../api/repository/api';
 const sPopupType = ref<PopupType>(PopupType.FILE_BROWSER);
 
 interface PropsNoteData {
@@ -166,6 +178,7 @@ const cWidthPopup = computed((): string => {
             return WIDTH_DEFAULT.DEFAULT;
     }
 });
+
 const onClickPopupItem = (aPopupName: PopupType, aFileOption?: string) => {
     if (aFileOption === 'save') {
         sFileOption.value = 'save';
@@ -271,7 +284,6 @@ const checkCtrl = async (event: any, aIdx: number) => {
         const sResult: any = await getTqlChart(gBoard.value.sheet[aIdx].contents);
         if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/html') {
             gBoard.value.sheet[aIdx].tqlType = 'html';
-            console.log(sResult.data);
             gBoard.value.sheet[aIdx].result = sResult.data;
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
             gBoard.value.sheet[aIdx].tqlType = 'csv';
@@ -309,11 +321,11 @@ const setSize = () => {
     flex-direction: column;
     align-items: center;
     overflow: auto;
-    padding: 20px 0;
+    padding: 0 0 20px 0;
 }
 .save-sheet {
     display: flex;
-    padding: 0 16px;
+    padding: 8px 16px;
     justify-content: end;
 
     .icon {

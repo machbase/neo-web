@@ -217,7 +217,7 @@ const onSetting = () => {
                 minimal: false,
             },
         ],
-        savedCode: false,
+        savedCode: '',
         edit: false,
     };
 

@@ -29,8 +29,12 @@ request.interceptors.request.use(
         const sFileSql = config.url?.split('?')[0].indexOf('.sql');
         const sFileTql = config.url?.split('?')[0].indexOf('.tql');
         const sFileTaz = config.url?.split('?')[0].indexOf('.taz');
+        const sFileWrk = config.url?.split('?')[0].indexOf('.wrk');
+        if ((sFileTaz !== -1 || sFileWrk !== -1) && config.method === 'post') {
+            config.headers[`Content-Type`] = 'text/plain';
+        }
 
-        if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1) && config.method === 'get') {
+        if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1 || sFileWrk !== -1) && config.method === 'get') {
             config.transformResponse = function (data) {
                 return data;
             };
