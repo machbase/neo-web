@@ -27,13 +27,6 @@ function onOpenPopup() {
 const onClosePopup = () => {
     sDialog.value = false;
 };
-onMounted(async () => {
-    await store.dispatch(ActionTypes.fetchTableList);
-    if (store.state.gTableList[0]) {
-        await store.dispatch(ActionTypes.fetchTagList, store.state.gTableList[0]);
-        await store.dispatch(ActionTypes.fetchRangeData, { table: store.state.gTableList[0], tagName: store.state.gTagList[0] });
-    }
-});
 </script>
 
 <style lang="scss" scoped>

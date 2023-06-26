@@ -31,6 +31,7 @@ import { useStore } from '@/store';
 import { computed, onMounted, defineExpose, defineProps, reactive, ref, watch, withDefaults } from 'vue';
 import { watchEffect } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { ActionTypes } from '../../../store/actions';
 
 interface DashboardPanelsProps {
     pIsViewMode?: boolean;
@@ -119,7 +120,13 @@ watch(
     { immediate: true, deep: true }
 );
 
-onMounted(async () => {});
+onMounted(async () => {
+    await store.dispatch(ActionTypes.fetchTableList);
+    if (store.state.gTableList[0]) {
+        await store.dispatch(ActionTypes.fetchTagList, store.state.gTableList[0]);
+        await store.dispatch(ActionTypes.fetchRangeData, { table: store.state.gTableList[0], tagName: store.state.gTagList[0] });
+    }
+});
 
 defineExpose({ onReload });
 </script>

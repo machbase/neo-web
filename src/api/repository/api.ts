@@ -12,7 +12,7 @@ const getFileList = (aFilter: string, aDir: string, aName: string) => {
     });
 };
 
-const postFileList = (aContents: string, aDir: string, aFileName: string) => {
+const postFileList = (aContents: any, aDir: string, aFileName: string) => {
     return request({
         method: 'POST',
         url: normalizePath(`/api/files/${aDir}/${aFileName}`),

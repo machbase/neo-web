@@ -121,8 +121,6 @@ watch(
     { immediate: true, deep: true }
 );
 
-onMounted(async () => {});
-
 defineExpose({ onReload });
 </script>
 <style lang="scss" scoped>

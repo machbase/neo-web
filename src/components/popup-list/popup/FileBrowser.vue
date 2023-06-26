@@ -66,6 +66,8 @@
                                 ? 'mdi-chart-scatter-plot'
                                 : aChildren.type === '.taz'
                                 ? 'mdi-chart-line'
+                                : aChildren.type === '.wrk'
+                                ? 'mdi-google-spreadsheet'
                                 : ''
                         }}
                     </v-icon>
@@ -145,6 +147,7 @@ const cFileNameStat = computed(() => {
     if (sTypeOption === 'SQL Editor') sType = '.sql';
     else if (sTypeOption === 'Tql') sType = '.tql';
     else if (sTypeOption === 'dashboard') sType = '.taz';
+    else if (sTypeOption === 'wrk') sType = '.wrk';
     else sTypeOption === 'Terminal';
 
     if (sType === extension) {
@@ -210,7 +213,15 @@ const elapsedTime = (date: number): string => {
 
 const backBtn = (aItem: any) => {
     sClickFile.value = aItem;
-    if (props.pUploadType === 'sql' ? sClickFile.value.type === '.sql' : props.pUploadType === 'tql' ? sClickFile.value.type === '.tql' : sClickFile.value.type === '.taz') {
+    if (
+        props.pUploadType === 'sql'
+            ? sClickFile.value.type === '.sql'
+            : props.pUploadType === 'tql'
+            ? sClickFile.value.type === '.tql'
+            : props.pUploadType === 'taz'
+            ? sClickFile.value.type === '.taz'
+            : sClickFile.value.type === '.wrk'
+    ) {
         sFileName.value = sClickFile.value.name;
     }
     uploadFile();
@@ -224,7 +235,15 @@ const forwardBtn = () => {
 const clickOption = (aItem: any) => {
     if (!sTimeoutId) {
         sClickFile.value = aItem;
-        if (props.pUploadType === 'sql' ? sClickFile.value.type === '.sql' : props.pUploadType === 'tql' ? sClickFile.value.type === '.tql' : sClickFile.value.type === '.taz') {
+        if (
+            props.pUploadType === 'sql'
+                ? sClickFile.value.type === '.sql'
+                : props.pUploadType === 'tql'
+                ? sClickFile.value.type === '.tql'
+                : props.pUploadType === 'taz'
+                ? sClickFile.value.type === '.taz'
+                : sClickFile.value.type === '.wrk'
+        ) {
             sFileName.value = sClickFile.value.name;
         }
         sTimeoutId = setTimeout(() => {
@@ -254,7 +273,15 @@ const onClosePopup = () => {
 
 const getFile = async () => {
     const sData: any = await getFileList(
-        props.pNewOpen ? '' : props.pUploadType === 'sql' ? '?filter=*.sql' : props.pUploadType === 'tql' ? '?filter=*.tql' : '?filter=*.taz',
+        props.pNewOpen
+            ? ''
+            : props.pUploadType === 'sql'
+            ? '?filter=*.sql'
+            : props.pUploadType === 'tql'
+            ? '?filter=*.tql'
+            : props.pUploadType === 'taz'
+            ? '?filter=*.taz'
+            : '?filter=*.wrk',
         sSelectedClickDir.value.join('/'),
         sSelectedClickData.value
     );
@@ -280,9 +307,10 @@ const getFile = async () => {
             if (sTypeOption === 'sql') sType = 'SQL Editor';
             else if (sTypeOption === 'tql') sType = 'Tql';
             else if (sTypeOption === 'taz') sType = 'dashboard';
+            else if (sTypeOption === 'wrk') sType = 'wrk';
             else sType = 'Terminal';
 
-            if (sType === 'dashboard') {
+            if (sType === 'dashboard' || sTypeOption === 'wrk') {
                 const sDashboard = JSON.parse(sData);
                 sDashboard.board_id = new Date().getTime();
                 store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
@@ -312,10 +340,10 @@ const getFile = async () => {
             if (sTypeOption === 'sql') sType = 'SQL Editor';
             else if (sTypeOption === 'tql') sType = 'Tql';
             else if (sTypeOption === 'taz') sType = 'dashboard';
+            else if (sTypeOption === 'wrk') sType = 'wrk';
             else sType = 'Terminal';
 
-            if (sType === 'dashboard') {
-                const sDashboard = JSON.parse(sData);
+            if (sType === 'dashboard' || sType === 'wrk') {
                 sDashboard.board_id = new Date().getTime();
                 store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
                 store.commit(MutationTypes.setSelectedTab, sDashboard.board_id);
@@ -333,8 +361,9 @@ const getFile = async () => {
 const makeFolder = () => {
     const sFilterList = sList.value.filter((aItem) => aItem.isDir);
 
-    if (sFilterList.length === 0) postFileList('', sSelectedClickDir.value.join('/'), `new`);
-    else {
+    if (sFilterList.length === 0) {
+        postFileList('', sSelectedClickDir.value.join('/'), `new`);
+    } else {
         const sSortData = sFilterList
             .map((aItem) => {
                 return aItem.name;
@@ -370,7 +399,7 @@ const importFile = async () => {
             const sConfirm = confirm('Do you want to overwrite it?');
             if (sConfirm) {
                 const sResult = await postFileList(
-                    props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code,
+                    props.pUploadType === 'wrk' || props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code,
                     sSelectedClickDir.value.join('/'),
                     sFileName.value
                 );
@@ -380,6 +409,12 @@ const importFile = async () => {
                     gBoard.value.board_name = sFileName.value;
                     gBoard.value.savedCode = gBoard.value.code;
                 }
+
+                uploadFile();
+                gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
+                gBoard.value.board_name = sFileName.value;
+                gBoard.value.savedCode = gBoard.value.code;
+
                 onClosePopup();
                 return;
             } else {
@@ -388,7 +423,11 @@ const importFile = async () => {
         }
     }
 
-    const sResult = postFileList(props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code, sSelectedClickDir.value.join('/'), sFileName.value);
+    const sResult = await postFileList(
+        props.pUploadType === 'wrk' || props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code,
+        sSelectedClickDir.value.join('/'),
+        sFileName.value
+    );
     if (typeof sResult === 'string' && JSON.parse(sResult).success === true) {
         gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
         gBoard.value.board_name = sFileName.value;
@@ -411,7 +450,7 @@ const uploadFile = async () => {
         sSelectedClickDir.value.pop();
         sClickFile.value = '';
     }
-    if (sClickFile.value.type === '.sql' || sClickFile.value.type === '.tql' || sClickFile.value.type === '.taz') {
+    if (sClickFile.value.type === '.sql' || sClickFile.value.type === '.tql' || sClickFile.value.type === '.taz' || sClickFile.value.type === '.wrk') {
         sSelectedClickData.value = sClickFile.value.name;
     }
     getFile();
@@ -433,10 +472,11 @@ onMounted(async () => {
     if (sTypeOption === 'SQL Editor') sType = '.sql';
     else if (sTypeOption === 'Tql') sType = '.tql';
     else if (sTypeOption === 'dashboard') sType = '.taz';
+    else if (sTypeOption === 'wrk') sType = '.wrk';
     else sTypeOption === 'Terminal';
 
     const extension = gBoard.value.board_name.slice(-4);
-    if (extension === '.sql' || extension === '.tql' || extension === '.taz') {
+    if (extension === '.sql' || extension === '.tql' || extension === '.taz' || extension === '.wrk') {
         sFileName.value = gBoard.value.board_name;
     } else {
         sFileName.value = gBoard.value.board_name + sType;
