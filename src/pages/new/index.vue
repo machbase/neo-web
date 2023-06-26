@@ -27,7 +27,6 @@ function onOpenPopup() {
 const onClosePopup = () => {
     sDialog.value = false;
 };
-onMounted(async () => {});
 </script>
 
 <style lang="scss" scoped>
