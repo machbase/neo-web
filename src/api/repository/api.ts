@@ -40,5 +40,11 @@ const postLicense = (aItem: any) => {
         data: aItem,
     });
 };
+const getTutorial = (aUrl: any) => {
+    return request({
+        method: 'get',
+        url: aUrl,
+    });
+};
 
-export { getFileList, postFileList, getLicense, postLicense, deleteFileList };
+export { getFileList, postFileList, getLicense, postLicense, deleteFileList, getTutorial };

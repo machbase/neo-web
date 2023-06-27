@@ -62,18 +62,25 @@
                         Open...
                     </button>
                 </div>
-                <div>
-                    <button @click="showNeoDoc">
-                        <v-icon>mdi-link-box-variant</v-icon>
-                        machbase-neo documentation
+                <div v-for="(aRefer, aIdx) in cReferences" :key="aIdx">
+                    <v-icon> mdi-folder</v-icon>
+                    {{ aRefer.label }}
+                    <button v-for="(aItem, bIdx) in aRefer.items" :key="bIdx" @click="showDoc(aItem)" :style="{ paddingLeft: '24px' }">
+                        <v-icon v-if="aItem.type === 'url'" size="16px"> mdi-link-box-variant</v-icon>
+                        <v-icon v-if="aItem.type === 'sql'" size="16px"> mdi-file-document-outline</v-icon>
+                        <v-icon v-if="aItem.type === 'tql'" size="16px"> mdi-chart-scatter-plot</v-icon>
+                        <v-icon v-if="aItem.type === 'wrk'" size="16px"> mdi-notebook-outline</v-icon>
+                        <v-icon v-if="aItem.type === 'taz'" size="16px"> mdi-chart-line</v-icon>
+                        {{ aItem.title }}
+                        <!-- machbase-neo documentation -->
                     </button>
                 </div>
-                <div>
+                <!-- <div>
                     <button @click="showConfluence">
                         <v-icon>mdi-link-box-variant</v-icon>
                         machbase sql reference
                     </button>
-                </div>
+                </div> -->
             </div>
         </v-sheet>
     </v-sheet>
@@ -89,11 +96,20 @@ import { PopupType } from '@/enums/app';
 
 import { WIDTH_DEFAULT } from '../../header/constant';
 import { toast, ToastOptions } from 'vue3-toastify';
+import { getTutorial } from '../../../api/repository/api';
 
 const emit = defineEmits(['eClosePopup']);
 
 const sBoardType = ref<string>();
 const sBoardName = ref<string>('Tag Analyzer');
+const cReferences = computed(() => {
+    const sReferences = localStorage.getItem('references');
+    if (sReferences) {
+        return JSON.parse(sReferences);
+    } else {
+        return '';
+    }
+});
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const sPopupType = ref<PopupType>(PopupType.FILE_BROWSER);
 const cWidthPopup = computed((): string => {
@@ -127,9 +143,9 @@ const sOptions = [
 const sExpOptions = [
     { name: 'SQL', type: 'SQL Editor', icon: 'mdi-file-document-outline' },
     { name: 'TQL', type: 'Tql', icon: 'mdi-chart-scatter-plot' },
+    { name: 'WorkSheet', type: 'wrk', icon: 'mdi-notebook-outline' },
     { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
     { name: 'Shell', type: 'Terminal', icon: 'mdi-console' },
-    { name: 'Work Sheet', type: 'wrk', icon: 'mdi-google-spreadsheet' },
 ];
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
@@ -181,8 +197,13 @@ const onClosePopup = () => {
 const showConfluence = () => {
     window.open(`http://endoc.machbase.com`, '_blank');
 };
-const showNeoDoc = () => {
-    window.open(`http://neo.machbase.com`, '_blank');
+const showDoc = async (aItem: any) => {
+    if (aItem.type === 'url') {
+        window.open(aItem.address, aItem.target);
+    } else {
+        const sData = await getTutorial(aItem.address);
+        console.log(sData);
+    }
 };
 const onSetting = () => {
     if (!sBoardName.value) {
@@ -209,6 +230,7 @@ const onSetting = () => {
                 contents: '',
                 result: '' as any,
                 status: false,
+                height: 200,
                 lang: [
                     ['markdown', 'Markdown'],
                     ['SQL', 'SQL'],

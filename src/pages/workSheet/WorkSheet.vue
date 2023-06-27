@@ -1,21 +1,13 @@
 <template>
     <v-sheet class="sheet-list" :class="cIsDarkMode ? 'is-dark' : 'is-white'" color="transparent" height="100%" width="100%">
-        <v-sheet class="save-sheet" color="transparent" width="100%">
+        <v-sheet class="save-sheet" color="transparent" width="80%">
             <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'save')" class="icon" icon="mdi-content-save" size="16px"></v-icon>
             <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'open')" class="icon" icon="mdi-folder-open" size="16px"></v-icon>
         </v-sheet>
-        <v-sheet
-            v-for="(aSheet, aIdx) in gBoard.sheet"
-            :key="aSheet.id"
-            :ref="(el) => (rSheet[aSheet.id] = el)"
-            class="sheet-form"
-            color="transparent"
-            :style="cIsDarkMode ? { boxShadow: '0 0 10px rgba(255, 255, 255, 0.3)' } : { boxShadow: '0 0 10px rgba(0, 0, 0, 0.3)' }"
-            width="80%"
-        >
+        <v-sheet v-for="(aSheet, aIdx) in gBoard.sheet" :key="aSheet.id" :ref="(el) => (rSheet[aSheet.id] = el)" class="sheet-form" color="transparent" width="80%">
             <div v-if="!aSheet.minimal" class="create-sheet">
                 <v-btn
-                    @click="checkCtrl({ ctrlKey: true }, aIdx)"
+                    @click="checkCtrl({ ctrlKey: true }, aIdx, 'mouse')"
                     class="create-sheet-top-btn"
                     density="comfortable"
                     :disabled="aSheet.type === 'mrk' && aSheet.status"
@@ -43,46 +35,47 @@
                 <v-btn @click="addSheet(aIdx, 'bottom')" class="create-sheet-bottom-btn" density="comfortable" size="20px" variant="plain">
                     <v-icon size="20px"> mdi-shape-rectangle-plus </v-icon>
                 </v-btn>
-            </div>
-            <v-sheet color="transparent">
-                <CodeEditor
-                    v-model="aSheet.contents"
-                    v-if="!(aSheet.status && aSheet.type === 'mrk') && !aSheet.minimal"
-                    @keydown.enter.stop="checkCtrl($event, aIdx)"
-                    @lang="(aLang) => getLanguage(aLang, aIdx)"
-                    :autofocus="true"
-                    border_radius="0"
-                    :copy-code="false"
-                    :font-size="cPrefrence + 'px'"
-                    :header="true"
-                    :languages="aSheet.lang"
-                    :line_nums="false"
-                    min-height="200px"
-                    theme=""
-                    width="100%"
-                />
-            </v-sheet>
-            <v-sheet
-                class="result-form"
-                color="transparent"
-                :style="
-                    !aSheet.status || aSheet.type === 'mrk'
-                        ? {}
-                        : aSheet.minimal
-                        ? {}
-                        : cIsDarkMode
-                        ? { borderTop: '5px solid rgb(50, 50, 50)' }
-                        : { borderTop: '5px solid rgb(220, 220, 220)' }
-                "
-            >
-                <v-btn v-if="aSheet.type !== 'mrk'" @click="setMinimal(aIdx)" class="minimal-sheet-btn" density="comfortable" size="20px" variant="plain">
-                    <v-icon size="20px"> mdi-resize </v-icon>
+                <v-btn @click="deleteSheet(aIdx)" class="create-sheet-top-btn" density="comfortable" :disabled="gBoard.sheet.length === 1" size="18px" variant="plain">
+                    <v-icon size="20px"> mdi-delete </v-icon>
                 </v-btn>
+            </div>
+            <ResizeRow
+                v-if="!(aSheet.status && aSheet.type === 'mrk') && !aSheet.minimal"
+                @isDragging="setHeight($event, aIdx)"
+                :height="aSheet.height"
+                :slider-width="5"
+                :style="cIsDarkMode ? { boxShadow: '0 0 10px rgba(255, 255, 255, 0.3)' } : { boxShadow: '0 0 10px rgba(0, 0, 0, 0.3)' }"
+                width="100%"
+            >
+                <v-sheet color="transparent" height="100%">
+                    <CodeEditor
+                        v-model="aSheet.contents"
+                        @keydown.enter.stop="checkCtrl($event, aIdx, 'key')"
+                        @lang="(aLang) => getLanguage(aLang, aIdx)"
+                        :autofocus="true"
+                        border_radius="0"
+                        :copy-code="false"
+                        :font-size="cPrefrence + 'px'"
+                        :header="true"
+                        height="100%"
+                        :languages="aSheet.lang"
+                        :line_nums="false"
+                        theme=""
+                        width="100%"
+                    />
+                </v-sheet>
+            </ResizeRow>
+            <v-sheet class="result-form" color="transparent">
+                <v-sheet class="result-tool-form" color="transparent">
+                    <v-btn v-if="aSheet.type !== 'mrk' && aSheet.status" @click="setMinimal(aIdx)" class="minimal-sheet-btn" density="comfortable" size="20px" variant="plain">
+                        <v-icon size="20px"> mdi-resize </v-icon>
+                    </v-btn>
+                </v-sheet>
                 <v-sheet v-if="aSheet.status && aSheet.type === 'mrk'" color="transparent">
                     <Markdown @dblclick="changeStatus(aIdx, 'click')" class="markdown-sheet" :source="aSheet.contents" />
                 </v-sheet>
                 <v-sheet v-else-if="aSheet.type === 'tql' && aSheet.tqlType === 'html'" color="transparent">
-                    <iframe ref="iframeDom" id="iframeMapViewComponent" @load="setSize" frameborder="0" :srcdoc="aSheet.result" width="100%"></iframe>
+                    <iframe ref="iframeDom" id="iframeMapViewComponent" @load="setSize(aIdx)" frameborder="0" :srcdoc="aSheet.result" width="100%"></iframe>
                 </v-sheet>
                 <v-sheet
                     v-else-if="(aSheet.type === 'tql' && aSheet.tqlType === 'csv') || (aSheet.type === 'sql' && aSheet.tqlType === 'csv')"
@@ -90,11 +83,12 @@
                     color="transparent"
                     max-height="500px"
                 >
-                    <Table :headers="aSheet.result.columns" :items="aSheet.result.rows" p-timezone="LOCAL" :p-type="aSheet.result.types" />
+                    <Table :headers="aSheet.result.columns" :items="aSheet.result.rows" :p-tab-option="'wrk'" p-timezone="LOCAL" :p-type="aSheet.result.types" />
+                    <div class="total-count-form">Total {{ sCsvDataLeng }}records</div>
                 </v-sheet>
 
                 <v-sheet v-else-if="aSheet.tqlType === 'text'" class="result-set-form" color="transparent">
-                    {{ aSheet.result }}
+                    <pre>{{ aSheet.result }}</pre>
                 </v-sheet>
             </v-sheet>
         </v-sheet>
@@ -107,7 +101,9 @@ import PopupWrap from '@/components/popup-list/index.vue';
 import CodeEditor from 'simple-code-editor';
 import Table from '../Tql/Table.vue';
 import Markdown from 'vue3-markdown-it';
-import { ref, computed, defineProps, reactive, nextTick } from 'vue';
+import { ResizeRow } from 'vue-resizer';
+
+import { ref, computed, defineProps, reactive, nextTick, onMounted } from 'vue';
 import { postLogin } from '@/api/repository/login';
 import router from '../../routes';
 import { RouteNames } from '../../enums/routes';
@@ -137,6 +133,7 @@ const sLang = [
 const rSheet = ref<any>([]);
 const iframeDom = ref<any>();
 
+const sCsvDataLeng = ref<any>();
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
 const gBoard = computed(() => {
@@ -201,6 +198,12 @@ const getLanguage = (aLang: string, aIdx: number) => {
     if (aLang === 'markdown') gBoard.value.sheet[aIdx].type = 'mrk';
 };
 
+const setHeight = (aEvent: any, aIdx: number) => {
+    if (!aEvent) {
+        gBoard.value.sheet[aIdx].height = rSheet.value[gBoard.value.sheet[aIdx].id].$el.clientHeight;
+    }
+};
+
 const sortSheet = (aIdx: number, aType: string) => {
     const sData = gBoard.value.sheet[aIdx];
     if (aType === 'top') {
@@ -212,7 +215,7 @@ const sortSheet = (aIdx: number, aType: string) => {
     }
     const sIdx = gBoard.value.sheet.findIndex((aItem: any) => aItem.status === false);
     if (sIdx !== -1) {
-        const sExistingEl = rSheet.value[gBoard.value.sheet[sIdx].id].$el.children[1].children[0].children[1].children[0];
+        const sExistingEl = rSheet.value[gBoard.value.sheet[aIdx].id].$el?.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
         if (sExistingEl) {
             sExistingEl.focus();
         }
@@ -224,12 +227,14 @@ const setMinimal = (aIdx: number) => {
 };
 
 const addSheet = (aIdx: number, aType: string) => {
-    const newSheet = {
-        id: String(new Date().getTime()) + (Math.random() * 1000).toFixed(),
+    const sNewId = String(new Date().getTime()) + (Math.random() * 1000).toFixed();
+    const sNewSheet = {
+        id: sNewId,
         type: 'mrk',
         contents: '',
         status: true,
         result: '' as any,
+        height: 200,
         lang: [
             ['markdown', 'Markdown'],
             ['SQL', 'SQL'],
@@ -239,19 +244,23 @@ const addSheet = (aIdx: number, aType: string) => {
     };
 
     if (aType === 'top') {
-        gBoard.value.sheet.splice(aIdx, 0, newSheet);
+        gBoard.value.sheet.splice(aIdx, 0, sNewSheet);
     }
     if (aType === 'bottom') {
-        gBoard.value.sheet.splice(aIdx + 1, 0, newSheet);
+        gBoard.value.sheet.splice(aIdx + 1, 0, sNewSheet);
     }
 
     const sIdx = gBoard.value.sheet.findIndex((aItem: any) => aItem.status === false);
     if (sIdx !== -1) {
-        const sExistingEl = rSheet.value[gBoard.value.sheet[sIdx].id].$el.children[1].children[0].children[1].children[0];
+        const sExistingEl = rSheet.value[gBoard.value.sheet[aIdx].id].$el?.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
         if (sExistingEl) {
             sExistingEl.focus();
         }
     }
+};
+
+const deleteSheet = (aIdx: number) => {
+    gBoard.value.sheet.splice(aIdx, 1);
 };
 
 const changeStatus = (aIdx: number) => {
@@ -261,20 +270,43 @@ const changeStatus = (aIdx: number) => {
     if (gBoard.value.sheet[aIdx].status) {
         gBoard.value.sheet[aIdx].status = !gBoard.value.sheet[aIdx].status;
         nextTick(() => {
-            const sNewExistEl = rSheet.value[gBoard.value.sheet[aIdx].id].$el.children[1].children[0].children[1].children[0];
-            sNewExistEl.focus();
+            const sNewExistEl = rSheet.value[gBoard.value.sheet[aIdx].id].$el?.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
+            if (sNewExistEl) {
+                sNewExistEl.focus();
+                sNewExistEl.title = '';
+            }
         });
     }
 };
 
-const checkCtrl = async (event: any, aIdx: number) => {
+const checkCtrl = async (event: any, aIdx: number, aType: string) => {
     if (!event.ctrlKey) return;
+    if (aType === 'key') event.preventDefault();
     if (gBoard.value.sheet[aIdx].type == 'sql') {
-        const sResult: any = await fetchData(gBoard.value.sheet[aIdx].contents, 'ns', 'LOCAL', 1);
+        const sResult: any = await getTqlChart('INPUT(SQL(`' + gBoard.value.sheet[aIdx].contents + '`))\n' + "OUTPUT(JSON(timeformat('ns'), tz('LOCAL')))");
         if (sResult.status !== 200) {
             gBoard.value.sheet[aIdx].tqlType = 'text';
             gBoard.value.sheet[aIdx].result = sResult.data.reason;
         } else {
+            sCsvDataLeng.value = sResult.data.data.rows.length;
+            if (sResult.data.data.rows.length > 10) {
+                const sData = [] as any;
+
+                for (let i = 0; i < 5; i++) {
+                    sData.push(sResult.data.data.rows[i]);
+                }
+                sData.push([]);
+                sResult.data.data.rows[0].forEach((aIdx: any) => {
+                    aIdx;
+                    sData[sData.length - 1].push('');
+                });
+                for (let i = 5; i >= 1; i--) {
+                    sData.push(sResult.data.data.rows[sResult.data.data.rows.length - i]);
+                }
+
+                sResult.data.data.rows = sData;
+            }
+
             gBoard.value.sheet[aIdx].tqlType = 'csv';
             gBoard.value.sheet[aIdx].result = sResult.data.data;
         }
@@ -295,10 +327,55 @@ const checkCtrl = async (event: any, aIdx: number) => {
             sResult.data.split('\n').map((aItem: string) => {
                 gBoard.value.sheet[aIdx].result.rows.push(aItem.split(','));
             });
+            gBoard.value.sheet[aIdx].result.rows.pop();
+
+            sCsvDataLeng.value = gBoard.value.sheet[aIdx].result.rows.length;
+            if (sCsvDataLeng.value > 10) {
+                const sData = [] as any;
+
+                for (let i = 0; i < 5; i++) {
+                    sData.push(gBoard.value.sheet[aIdx].result.rows[i]);
+                }
+                sData.push([]);
+                gBoard.value.sheet[aIdx].result.rows[0].forEach((aIdx: any) => {
+                    aIdx;
+                    sData[sData.length - 1].push('');
+                });
+                for (let i = 5; i >= 1; i--) {
+                    sData.push(gBoard.value.sheet[aIdx].result.rows[gBoard.value.sheet[aIdx].result.rows.length - i]);
+                }
+
+                gBoard.value.sheet[aIdx].result.rows = sData;
+            }
         } else {
             gBoard.value.sheet[aIdx].tqlType = 'text';
             if (sResult.status === 200) {
-                gBoard.value.sheet[aIdx].result = JSON.stringify(sResult.data);
+                sCsvDataLeng.value = sResult.data.data.rows.length;
+                if (sResult.data.data.rows.length > 10) {
+                    const sData = [] as any;
+
+                    for (let i = 0; i < 5; i++) {
+                        sData.push(sResult.data.data.rows[i]);
+                    }
+                    sData.push([]);
+                    sResult.data.data.rows[0].forEach((aIdx: any) => {
+                        aIdx;
+                        sData[sData.length - 1].push('');
+                    });
+                    for (let i = 5; i >= 1; i--) {
+                        sData.push(sResult.data.data.rows[sResult.data.data.rows.length - i]);
+                    }
+
+                    sResult.data.data.rows = sData;
+                }
+                gBoard.value.sheet[aIdx].result = JSON.stringify(sResult.data, null, 4).replace(
+                    `[
+                "",
+                "",
+                ""
+            ],`,
+                    '...'
+                );
             } else {
                 gBoard.value.sheet[aIdx].result = sResult.data.reason;
             }
@@ -310,9 +387,16 @@ const checkCtrl = async (event: any, aIdx: number) => {
         gBoard.value.sheet[aIdx].status = !gBoard.value.sheet[aIdx].status;
     }
 };
-const setSize = () => {
-    iframeDom.value[0].style.height = `${iframeDom.value[0].contentDocument.body.clientHeight + 100}px`;
+const setSize = (aIdx: number) => {
+    iframeDom.value[aIdx].style.height = `${iframeDom.value[aIdx].contentDocument.body.clientHeight + 100}px`;
 };
+
+onMounted(() => {
+    const sDefaultSheet = rSheet.value[gBoard.value.sheet[0].id].$el.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
+    if (sDefaultSheet) {
+        sDefaultSheet.title = '';
+    }
+});
 </script>
 
 <style lang="scss" scoped="scoped">
@@ -325,7 +409,7 @@ const setSize = () => {
 }
 .save-sheet {
     display: flex;
-    padding: 8px 16px;
+    padding: 8px 8px;
     justify-content: end;
 
     .icon {
@@ -354,7 +438,10 @@ const setSize = () => {
     }
 }
 .result-set-form {
-    overflow: auto;
+    .total-count-form {
+        display: flex;
+        justify-content: start;
+    }
 }
 
 .sheet-list::-webkit-scrollbar {
@@ -403,14 +490,17 @@ const setSize = () => {
     .markdown-sheet {
         background: transparent;
     }
-    .code-area {
-        min-height: 200px;
-    }
     .language-SQL,
     .language-javascript,
     .language-markdown,
     textarea {
         font-family: 'D2Coding' !important;
+    }
+    .markdown-sheet {
+        font-family: 'D2Coding' !important;
+        .hljs {
+            font-family: 'D2Coding' !important;
+        }
     }
 }
 
@@ -622,14 +712,15 @@ const setSize = () => {
     }
 }
 .result-form {
-    -webkit-box-shadow: 0 10px 5px rgba(0, 0, 0, 0.1);
+    .result-tool-form {
+        padding-top: 4px;
+        display: flex;
+        justify-content: end;
+    }
     position: relative;
     overflow: auto;
     .minimal-sheet-btn {
-        position: absolute;
         z-index: 15;
-        top: 4px;
-        right: 8px;
     }
 }
 </style>

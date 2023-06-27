@@ -46,6 +46,7 @@ const login = async (e) => {
         localStorage.setItem('accessToken', sReturn.accessToken);
         localStorage.setItem('refreshToken', sReturn.refreshToken);
         sReturn.option && sReturn.option.experimentMode ? localStorage.setItem('experimentMode', sReturn.option.experimentMode) : localStorage.removeItem('experimentMode');
+        sReturn.option && localStorage.setItem('references', JSON.stringify(sReturn.option.references));
         router.push({ name: RouteNames.TAG_VIEW });
     } else {
         toast(sReturn.data.reason, {

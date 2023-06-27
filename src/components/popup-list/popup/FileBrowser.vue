@@ -315,6 +315,7 @@ const getFile = async () => {
                 sDashboard.board_id = new Date().getTime();
                 store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
                 store.commit(MutationTypes.setSelectedTab, sDashboard.board_id);
+                gBoard.value.board_name = sSelectedClickData.value;
             } else {
                 const sNode = {
                     ...gTabList.value[sIdx],
@@ -344,9 +345,12 @@ const getFile = async () => {
             else sType = 'Terminal';
 
             if (sType === 'dashboard' || sType === 'wrk') {
+                const sDashboard = JSON.parse(sData);
+
                 sDashboard.board_id = new Date().getTime();
                 store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
                 store.commit(MutationTypes.setSelectedTab, sDashboard.board_id);
+                gBoard.value.board_name = sSelectedClickData.value;
             } else {
                 gBoard.value.code = sData;
                 gBoard.value.savedCode = sData;
@@ -398,12 +402,12 @@ const importFile = async () => {
         if (sFileName.value !== gBoard.value.board_name) {
             const sConfirm = confirm('Do you want to overwrite it?');
             if (sConfirm) {
-                const sResult = await postFileList(
+                const sResult: any = await postFileList(
                     props.pUploadType === 'wrk' || props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code,
                     sSelectedClickDir.value.join('/'),
                     sFileName.value
                 );
-                if (typeof sResult === 'string' && JSON.parse(sResult).success === true) {
+                if (sResult.success === true) {
                     uploadFile();
                     gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
                     gBoard.value.board_name = sFileName.value;
@@ -423,12 +427,12 @@ const importFile = async () => {
         }
     }
 
-    const sResult = await postFileList(
+    const sResult: any = await postFileList(
         props.pUploadType === 'wrk' || props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code,
         sSelectedClickDir.value.join('/'),
         sFileName.value
     );
-    if (typeof sResult === 'string' && JSON.parse(sResult).success === true) {
+    if (sResult.success === true) {
         gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
         gBoard.value.board_name = sFileName.value;
         gBoard.value.savedCode = gBoard.value.code;
