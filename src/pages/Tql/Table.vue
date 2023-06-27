@@ -35,8 +35,16 @@
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(content, index) in items" :key="index" :class="[cIsDarkMode ? (Number(index) % 2 === 0 ? '' : 'dark-odd') : Number(index) % 2 === 0 ? '' : 'odd']">
+                <tr
+                    v-for="(content, index) in items"
+                    :key="index"
+                    :class="[cIsDarkMode ? (Number(index) % 2 === 0 ? '' : 'dark-odd') : Number(index) % 2 === 0 ? '' : 'odd']"
+                    :style="index === 5 ? { position: 'relative' } : {}"
+                >
                     <td v-for="(value, aIdx) in content" :key="aIdx" @contextmenu.prevent @mousedown.right.stop="openContextMenu($event, value, content)">
+                        <v-icon v-if="index === 5 && aIdx === 0" :style="{ position: `absolute`, top: `50%`, left: `50%`, transform: `translate(-50%, -50%)` }">
+                            mdi-dots-vertical
+                        </v-icon>
                         <span> {{ pType[aIdx] === 'double' ? (String(value).indexOf('e') === -1 ? value : changeNumberType(value)) : value }}</span>
                     </td>
                 </tr>
@@ -75,6 +83,9 @@ const props = defineProps({
         type: Array,
     },
     pTimezone: {
+        type: String,
+    },
+    pTabOption: {
         type: String,
     },
 });
