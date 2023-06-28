@@ -87,7 +87,7 @@
                     color="transparent"
                     max-height="500px"
                 >
-                    <Table :headers="aSheet.result.columns" :items="aSheet.result.rows" :p-tab-option="'wrk'" p-timezone="LOCAL" :p-type="aSheet.result.types" />
+                    <Table :headers="aSheet.result.columns" :items="aSheet.result.rows" :p-tab-option="'wrk'" p-timezone="ns" :p-type="aSheet.result.types" />
                     <div class="total-count-form">Total {{ sCsvDataLeng.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') }} records</div>
                 </v-sheet>
 
