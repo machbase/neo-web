@@ -88,7 +88,7 @@
                     max-height="500px"
                 >
                     <Table :headers="aSheet.result.columns" :items="aSheet.result.rows" :p-tab-option="'wrk'" p-timezone="LOCAL" :p-type="aSheet.result.types" />
-                    <div class="total-count-form">Total {{ sCsvDataLeng }}records</div>
+                    <div class="total-count-form">Total {{ sCsvDataLeng }} records</div>
                 </v-sheet>
 
                 <v-sheet v-else-if="aSheet.tqlType === 'text'" class="result-set-form" color="transparent">
@@ -235,8 +235,7 @@ const addSheet = (aIdx: number, aType: string) => {
     const sNewSheet = {
         id: sNewId,
         type: 'mrk',
-        contents:
-            '# Title \n Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+        contents: '# Lorem ipsum \n Lorem ipsum dolor sit amet,\n consectetur adipiscing elit,\n sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         status: true,
         result: '' as any,
         height: 200,
