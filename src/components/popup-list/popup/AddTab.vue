@@ -63,24 +63,19 @@
                     </button>
                 </div>
                 <div v-for="(aRefer, aIdx) in cReferences" :key="aIdx">
-                    <v-icon> mdi-folder</v-icon>
-                    {{ aRefer.label }}
+                    <div class="referOption">
+                        <v-icon> mdi-folder</v-icon>
+                        {{ aRefer.label }}
+                    </div>
                     <button v-for="(aItem, bIdx) in aRefer.items" :key="bIdx" @click="showDoc(aItem)" :style="{ paddingLeft: '24px' }">
-                        <v-icon v-if="aItem.type === 'url'" size="16px"> mdi-link-box-variant</v-icon>
-                        <v-icon v-if="aItem.type === 'sql'" size="16px"> mdi-file-document-outline</v-icon>
-                        <v-icon v-if="aItem.type === 'tql'" size="16px"> mdi-chart-scatter-plot</v-icon>
-                        <v-icon v-if="aItem.type === 'wrk'" size="16px"> mdi-notebook-outline</v-icon>
-                        <v-icon v-if="aItem.type === 'taz'" size="16px"> mdi-chart-line</v-icon>
+                        <v-icon v-if="aItem.type === 'url'" size="16px"> {{ IconList.LINK }}</v-icon>
+                        <v-icon v-if="aItem.type === 'sql'" size="16px"> {{ IconList.SQL }}</v-icon>
+                        <v-icon v-if="aItem.type === 'tql'" size="16px"> {{ IconList.TQL }}</v-icon>
+                        <v-icon v-if="aItem.type === 'wrk'" size="16px"> {{ IconList.WRK }}</v-icon>
+                        <v-icon v-if="aItem.type === 'taz'" size="16px"> {{ IconList.TAZ }}</v-icon>
                         {{ aItem.title }}
-                        <!-- machbase-neo documentation -->
                     </button>
                 </div>
-                <!-- <div>
-                    <button @click="showConfluence">
-                        <v-icon>mdi-link-box-variant</v-icon>
-                        machbase sql reference
-                    </button>
-                </div> -->
             </div>
         </v-sheet>
     </v-sheet>
@@ -92,11 +87,12 @@ import { MutationTypes } from '../../../store/mutations';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { store } from '../../../store';
 import { TabList } from '../../../interface/tagView';
-import { PopupType } from '@/enums/app';
+import { PopupType, IconList } from '@/enums/app';
 
 import { WIDTH_DEFAULT } from '../../header/constant';
 import { toast, ToastOptions } from 'vue3-toastify';
 import { getTutorial } from '../../../api/repository/api';
+import { BoardInfo } from '../../../interface/chart';
 
 const emit = defineEmits(['eClosePopup']);
 
@@ -110,6 +106,7 @@ const cReferences = computed(() => {
         return '';
     }
 });
+
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const sPopupType = ref<PopupType>(PopupType.FILE_BROWSER);
 const cWidthPopup = computed((): string => {
@@ -135,17 +132,17 @@ const cWidthPopup = computed((): string => {
     }
 });
 const sOptions = [
-    { name: 'SQL', type: 'SQL Editor', icon: 'mdi-file-document-outline' },
-    { name: 'TQL', type: 'Tql', icon: 'mdi-chart-scatter-plot' },
-    { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
-    { name: 'Shell', type: 'Terminal', icon: 'mdi-console' },
+    { name: 'SQL', type: 'SQL Editor', icon: IconList.SQL },
+    { name: 'TQL', type: 'Tql', icon: IconList.TQL },
+    { name: 'Tag Analyzer', type: 'dashboard', icon: IconList.TAZ },
+    { name: 'Shell', type: 'Terminal', icon: IconList.SHELL },
 ];
 const sExpOptions = [
-    { name: 'SQL', type: 'SQL Editor', icon: 'mdi-file-document-outline' },
-    { name: 'TQL', type: 'Tql', icon: 'mdi-chart-scatter-plot' },
-    { name: 'WorkSheet', type: 'wrk', icon: 'mdi-notebook-outline' },
-    { name: 'Tag Analyzer', type: 'dashboard', icon: 'mdi-chart-line' },
-    { name: 'Shell', type: 'Terminal', icon: 'mdi-console' },
+    { name: 'SQL', type: 'SQL Editor', icon: IconList.SQL },
+    { name: 'TQL', type: 'Tql', icon: IconList.TQL },
+    { name: 'WorkSheet', type: 'wrk', icon: IconList.WRK },
+    { name: 'Tag Analyzer', type: 'dashboard', icon: IconList.TAZ },
+    { name: 'Shell', type: 'Terminal', icon: IconList.SHELL },
 ];
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
@@ -156,6 +153,11 @@ const onClickPopupItem = (aPopupName: PopupType) => {
     sPopupType.value = aPopupName;
     sDialog.value = true;
 };
+
+const gBoard = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    return gTabList.value[sIdx];
+});
 
 const changeName = (aType: any, aName: string) => {
     const sFilterList = gTabList.value.filter((bItem) => bItem.type === aType);
@@ -194,15 +196,46 @@ const changeType = (aItem: any, aName: string) => {
 const onClosePopup = () => {
     sDialog.value = false;
 };
-const showConfluence = () => {
-    window.open(`http://endoc.machbase.com`, '_blank');
-};
 const showDoc = async (aItem: any) => {
     if (aItem.type === 'url') {
         window.open(aItem.address, aItem.target);
     } else {
-        const sData = await getTutorial(aItem.address);
-        console.log(sData);
+        const sData: any = await getTutorial(aItem.address);
+        const sIdx = gTabList.value.findIndex((aItem) => aItem.board_id === gSelectedTab.value);
+
+        const sTypeOption = aItem.type;
+        let sType;
+        if (sTypeOption === 'sql') sType = 'SQL Editor';
+        else if (sTypeOption === 'tql') sType = 'Tql';
+        else if (sTypeOption === 'taz') sType = 'dashboard';
+        else if (sTypeOption === 'wrk') sType = 'wrk';
+        else sType = 'Terminal';
+
+        if (sType === 'dashboard' || sTypeOption === 'wrk') {
+            const sDashboard = sData;
+            sDashboard.board_id = new Date().getTime();
+            store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
+            store.commit(MutationTypes.setSelectedTab, sDashboard.board_id);
+            gBoard.value.board_name = aItem.title;
+        } else {
+            const sNode = {
+                ...gTabList.value[sIdx],
+                board_id: String(new Date().getTime()),
+                type: sType,
+                board_name: aItem.title,
+                savedCode: '',
+                path: '',
+                edit: false,
+            };
+
+            store.commit(MutationTypes.changeTab, sNode);
+            store.commit(MutationTypes.setSelectedTab, sNode.board_id);
+
+            gBoard.value.code = sData;
+            // gBoard.value.savedCode = sData;
+            // gBoard.value.path = '/' + aItem.title.value.join('/');
+            gBoard.value.board_name = aItem.title;
+        }
     }
 };
 const onSetting = () => {
@@ -227,7 +260,8 @@ const onSetting = () => {
             {
                 id: String(new Date().getTime()) + (Math.random() * 1000).toFixed(),
                 type: 'mrk',
-                contents: '',
+                contents:
+                    '# Title \n Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
                 result: '' as any,
                 status: false,
                 height: 200,
@@ -331,6 +365,13 @@ const onSetting = () => {
     height: 5px;
     background-color: rgb(101, 111, 121);
 }
+.referOption {
+    display: flex;
+    align-items: center;
+    i {
+        margin-right: 4px;
+    }
+}
 .bottom-form {
     display: flex;
     flex-direction: column;
@@ -403,6 +444,7 @@ const onSetting = () => {
     }
 }
 .link-list {
+    padding-bottom: 2.5%;
     button {
         display: flex;
         align-items: center;

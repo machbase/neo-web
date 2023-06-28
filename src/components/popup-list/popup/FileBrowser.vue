@@ -59,15 +59,15 @@
                     <v-icon :color="aChildren.type === 'dir' ? '#F5AA64' : cIsDarkMode ? '#adb3bc' : '#367FEB'" size="16px">
                         {{
                             aChildren.type === 'dir'
-                                ? 'mdi-folder'
+                                ? IconList.DIR
                                 : aChildren.type === '.sql'
-                                ? 'mdi-file-document-outline'
+                                ? IconList.SQL
                                 : aChildren.type === '.tql'
-                                ? 'mdi-chart-scatter-plot'
+                                ? IconList.TQL
                                 : aChildren.type === '.taz'
-                                ? 'mdi-chart-line'
+                                ? IconList.TAZ
                                 : aChildren.type === '.wrk'
-                                ? 'mdi-google-spreadsheet'
+                                ? IconList.WRK
                                 : ''
                         }}
                     </v-icon>
@@ -106,6 +106,7 @@ import { toast, ToastOptions } from 'vue3-toastify';
 import { MutationTypes } from '../../../store/mutations';
 import { cloneDeep } from 'lodash';
 import { BoardInfo } from '../../../interface/chart';
+import { IconList } from '../../../enums/app';
 interface propsOption {
     pInfo: string;
     pNewOpen: string;

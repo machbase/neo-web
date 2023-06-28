@@ -16,7 +16,9 @@ $themes: (
         'border-vport-chart': $d-bd-vport-chart,
         'text-title-tab': $d-text-tab-title,
         'login-btn': $d-bg-login-btn,
-        'bg-tab-content': $d-bg-tab-content ),
+        'bg-tab-content': $d-bg-tab-content,
+        'sheet-shadow': $d-worksheet-shadow 
+        ),
     light: ('text-color': $l-text,
         'text-color1': $l-text,
         'bg-color': $l-background,
@@ -34,7 +36,9 @@ $themes: (
         'border-vport-chart': $l-bd-vport-chart,
         'login-btn': $d-bg-login-btn,
         'text-title-tab': $l-text-tab-title,
-        'bg-tab-content': $l-bg-tab-content ),
+        'bg-tab-content': $l-bg-tab-content,
+        'sheet-shadow': $l-worksheet-shadow 
+        ),
 );
 
 @mixin theme() {
