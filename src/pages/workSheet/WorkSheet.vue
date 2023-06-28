@@ -43,10 +43,10 @@
                 v-if="!(aSheet.status && aSheet.type === 'mrk') && !aSheet.minimal"
                 @isDragging="setHeight($event, aIdx)"
                 :height="aSheet.height"
-                :slider-bg-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
-                :slider-bg-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
-                :slider-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
-                :slider-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
+                :slider-bg-color="'transparent'"
+                :slider-bg-hover-color="`transparent`"
+                :slider-color="'transparent'"
+                :slider-hover-color="`transparent`"
                 :slider-width="5"
                 :style="cIsDarkMode ? { boxShadow: '0 0 10px rgba(255, 255, 255, 0.3)' } : { boxShadow: '0 0 10px rgba(0, 0, 0, 0.3)' }"
                 width="100%"
@@ -76,7 +76,7 @@
                     </v-btn>
                 </v-sheet>
                 <v-sheet v-if="aSheet.status && aSheet.type === 'mrk'" color="transparent">
-                    <Markdown @dblclick="changeStatus(aIdx, 'click')" class="markdown-sheet" :source="aSheet.contents" />
+                    <Markdown @dblclick="changeStatus(aIdx, 'click')" :p-contents="aSheet.contents" />
                 </v-sheet>
                 <v-sheet v-else-if="aSheet.type === 'tql' && aSheet.tqlType === 'html'" color="transparent">
                     <iframe ref="iframeDom" id="iframeMapViewComponent" @load="setSize(aSheet.id)" frameborder="0" :srcdoc="aSheet.result" width="100%"></iframe>
@@ -88,11 +88,11 @@
                     max-height="500px"
                 >
                     <Table :headers="aSheet.result.columns" :items="aSheet.result.rows" :p-tab-option="'wrk'" p-timezone="ns" :p-type="aSheet.result.types" />
-                    <div class="total-count-form">Total {{ sCsvDataLeng.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') }} records</div>
+                    <div class="total-count-form">Total {{ sCsvDataLeng ? sCsvDataLeng.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '' }} records</div>
                 </v-sheet>
 
                 <v-sheet v-else-if="aSheet.tqlType === 'text'" class="result-set-form" color="transparent">
-                    <pre>{{ aSheet.result }}</pre>
+                    <pre>{{ changeJsonFormat(aSheet.result) }}</pre>
                 </v-sheet>
             </v-sheet>
         </v-sheet>
@@ -104,7 +104,7 @@
 import PopupWrap from '@/components/popup-list/index.vue';
 import CodeEditor from 'simple-code-editor';
 import Table from '../Tql/Table.vue';
-import Markdown from 'vue3-markdown-it';
+import Markdown from './Markdown.vue';
 import { ResizeRow } from 'vue-resizer';
 
 import { ref, computed, defineProps, reactive, nextTick, onMounted } from 'vue';
@@ -150,6 +150,28 @@ const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const sLanguage = ref<string>('markdown');
 const onClosePopup = () => {
     sDialog.value = false;
+};
+
+const changeJsonFormat = (aItem: any) => {
+    if (typeof aItem === 'string') {
+        return JSON.stringify(JSON.parse(aItem), null, 4).replace(
+            `[
+                    "",
+                    "",
+                    ""
+                ],`,
+            '...'
+        );
+    } else {
+        return JSON.stringify(aItem, null, 4).replace(
+            `[
+                    "",
+                    "",
+                    ""
+                ],`,
+            '...'
+        );
+    }
 };
 
 const cPrefrence = computed(() => {
@@ -204,7 +226,7 @@ const getLanguage = (aLang: string, aIdx: number) => {
 
 const setHeight = (aEvent: any, aIdx: number) => {
     if (!aEvent) {
-        gBoard.value.sheet[aIdx].height = rSheet.value[gBoard.value.sheet[aIdx].id].$el.clientHeight;
+        gBoard.value.sheet[aIdx].height = rSheet.value[gBoard.value.sheet[aIdx].id].$el.children[1].clientHeight;
     }
 };
 
@@ -372,14 +394,7 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
 
                     sResult.data.data.rows = sData;
                 }
-                gBoard.value.sheet[aIdx].result = JSON.stringify(sResult.data, null, 4).replace(
-                    `[
-                "",
-                "",
-                ""
-            ],`,
-                    '...'
-                );
+                gBoard.value.sheet[aIdx].result = sResult.data;
             } else {
                 gBoard.value.sheet[aIdx].result = sResult.data.reason;
             }
@@ -392,17 +407,29 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
     }
 };
 const setSize = (aId: number) => {
-    nextTick(() => {
-        rSheet.value[aId].$el.children[2].children[1].children[0].style.height = `${
-            rSheet.value[aId].$el.children[2].children[1].children[0].contentDocument.body.clientHeight + 100
-        }px`;
-    });
+    const sValue = gBoard.value.sheet.find((aItem: any) => aItem.id === aId);
+
+    if (sValue.minimal) {
+        nextTick(() => {
+            rSheet.value[aId].$el.children[0].children[1].children[0].style.height = `${
+                rSheet.value[aId].$el.children[0].children[1].children[0].contentDocument.body.clientHeight + 100
+            }px`;
+        });
+    } else {
+        nextTick(() => {
+            rSheet.value[aId].$el.children[2].children[1].children[0].style.height = `${
+                rSheet.value[aId].$el.children[2].children[1].children[0].contentDocument.body.clientHeight + 100
+            }px`;
+        });
+    }
 };
 
 onMounted(() => {
-    const sDefaultSheet = rSheet.value[gBoard.value.sheet[0].id].$el.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
-    if (sDefaultSheet) {
-        sDefaultSheet.title = '';
+    for (const aItem in rSheet.value) {
+        const sDefaultSheet = rSheet.value[aItem].$el.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
+        if (sDefaultSheet) {
+            sDefaultSheet.title = '';
+        }
     }
 });
 </script>
@@ -732,6 +759,14 @@ onMounted(() => {
     overflow: auto;
     .minimal-sheet-btn {
         z-index: 15;
+    }
+}
+.text-wrap {
+    white-space: pre-wrap;
+}
+.sheet-list {
+    table {
+        font-family: 'D2Coding' !important;
     }
 }
 </style>

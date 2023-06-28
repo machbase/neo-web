@@ -34,6 +34,10 @@ request.interceptors.request.use(
             config.headers[`Content-Type`] = 'text/plain';
         }
 
+        if (sHeaders && config.url === `/api/md`) {
+            config.headers[`Content-Type`] = 'text/plain';
+        }
+
         if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1 || sFileWrk !== -1) && config.method === 'get') {
             config.transformResponse = function (data) {
                 return data;
