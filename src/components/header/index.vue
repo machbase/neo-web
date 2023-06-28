@@ -23,12 +23,12 @@
                     "
                 >
                     <div>
-                        <v-icon v-if="aTab.type === 'dashboard'" size="16px">mdi-chart-line</v-icon>
-                        <v-icon v-if="aTab.type == 'new'" size="16px">mdi-note-outline</v-icon>
-                        <v-icon v-if="aTab.type == 'SQL Editor'" size="16px">mdi-file-document-outline</v-icon>
-                        <v-icon v-if="aTab.type == 'Terminal'" size="16px">mdi-console</v-icon>
-                        <v-icon v-if="aTab.type == 'Tql'" size="16px">mdi-chart-scatter-plot</v-icon>
-                        <v-icon v-if="aTab.type == 'wrk'" size="16px">mdi-google-spreadsheet</v-icon>
+                        <v-icon v-if="aTab.type === 'dashboard'" size="16px">{{ IconList.TAZ }}</v-icon>
+                        <v-icon v-if="aTab.type == 'new'" size="16px">{{ IconList.NEW }}</v-icon>
+                        <v-icon v-if="aTab.type == 'SQL Editor'" size="16px">{{ IconList.SQL }}</v-icon>
+                        <v-icon v-if="aTab.type == 'Terminal'" size="16px">{{ IconList.SHELL }}</v-icon>
+                        <v-icon v-if="aTab.type == 'Tql'" size="16px">{{ IconList.TQL }}</v-icon>
+                        <v-icon v-if="aTab.type == 'wrk'" size="16px">{{ IconList.WRK }}</v-icon>
 
                         {{ aTab.board_name }}
                     </div>
@@ -88,7 +88,7 @@ import loader_w from '@/assets/image/ajax-loader-w.gif';
 import logo from '@/assets/image/i_logo.png';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
-import { PopupType } from '@/enums/app';
+import { PopupType, IconList } from '@/enums/app';
 import { RouteNames } from '@/enums/routes';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
@@ -138,6 +138,7 @@ const cBoardListSelect = computed(() =>
         };
     })
 );
+
 const cLocation = computed(() => {
     return window.location.href.indexOf('web') === -1 ? false : true;
 });

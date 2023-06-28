@@ -43,6 +43,10 @@
                 v-if="!(aSheet.status && aSheet.type === 'mrk') && !aSheet.minimal"
                 @isDragging="setHeight($event, aIdx)"
                 :height="aSheet.height"
+                :slider-bg-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
+                :slider-bg-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
+                :slider-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
+                :slider-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
                 :slider-width="5"
                 :style="cIsDarkMode ? { boxShadow: '0 0 10px rgba(255, 255, 255, 0.3)' } : { boxShadow: '0 0 10px rgba(0, 0, 0, 0.3)' }"
                 width="100%"
@@ -65,7 +69,7 @@
                     />
                 </v-sheet>
             </ResizeRow>
-            <v-sheet class="result-form" color="transparent">
+            <v-sheet class="result-form" :class="aSheet.status && aSheet.type === 'mrk' ? 'mrk-hover' : ''" color="transparent">
                 <v-sheet class="result-tool-form" color="transparent">
                     <v-btn v-if="aSheet.type !== 'mrk' && aSheet.status" @click="setMinimal(aIdx)" class="minimal-sheet-btn" density="comfortable" size="20px" variant="plain">
                         <v-icon size="20px"> mdi-resize </v-icon>
@@ -75,7 +79,7 @@
                     <Markdown @dblclick="changeStatus(aIdx, 'click')" class="markdown-sheet" :source="aSheet.contents" />
                 </v-sheet>
                 <v-sheet v-else-if="aSheet.type === 'tql' && aSheet.tqlType === 'html'" color="transparent">
-                    <iframe ref="iframeDom" id="iframeMapViewComponent" @load="setSize(aIdx)" frameborder="0" :srcdoc="aSheet.result" width="100%"></iframe>
+                    <iframe ref="iframeDom" id="iframeMapViewComponent" @load="setSize(aSheet.id)" frameborder="0" :srcdoc="aSheet.result" width="100%"></iframe>
                 </v-sheet>
                 <v-sheet
                     v-else-if="(aSheet.type === 'tql' && aSheet.tqlType === 'csv') || (aSheet.type === 'sql' && aSheet.tqlType === 'csv')"
@@ -83,8 +87,8 @@
                     color="transparent"
                     max-height="500px"
                 >
-                    <Table :headers="aSheet.result.columns" :items="aSheet.result.rows" :p-tab-option="'wrk'" p-timezone="LOCAL" :p-type="aSheet.result.types" />
-                    <div class="total-count-form">Total {{ sCsvDataLeng }}records</div>
+                    <Table :headers="aSheet.result.columns" :items="aSheet.result.rows" :p-tab-option="'wrk'" p-timezone="ns" :p-type="aSheet.result.types" />
+                    <div class="total-count-form">Total {{ sCsvDataLeng.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') }} records</div>
                 </v-sheet>
 
                 <v-sheet v-else-if="aSheet.tqlType === 'text'" class="result-set-form" color="transparent">
@@ -231,7 +235,7 @@ const addSheet = (aIdx: number, aType: string) => {
     const sNewSheet = {
         id: sNewId,
         type: 'mrk',
-        contents: '',
+        contents: '# Lorem ipsum \n Lorem ipsum dolor sit amet,\n consectetur adipiscing elit,\n sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         status: true,
         result: '' as any,
         height: 200,
@@ -387,8 +391,12 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
         gBoard.value.sheet[aIdx].status = !gBoard.value.sheet[aIdx].status;
     }
 };
-const setSize = (aIdx: number) => {
-    iframeDom.value[aIdx].style.height = `${iframeDom.value[aIdx].contentDocument.body.clientHeight + 100}px`;
+const setSize = (aId: number) => {
+    nextTick(() => {
+        rSheet.value[aId].$el.children[2].children[1].children[0].style.height = `${
+            rSheet.value[aId].$el.children[2].children[1].children[0].contentDocument.body.clientHeight + 100
+        }px`;
+    });
 };
 
 onMounted(() => {
@@ -477,13 +485,15 @@ onMounted(() => {
 </style>
 
 <style lang="scss">
+@import '@/assets/scss/theme.scss';
+
 .sheet-list {
     .dropdown {
         .list:before {
-            // background: #404040 !important;
-            // background-color: #404040 !important;
-            // opacity: 1 !important;
-            opacity: 0.2;
+            opacity: 1;
+            @include theme() {
+                color: theme-get(bg-tab-content);
+            }
         }
     }
 
@@ -711,6 +721,7 @@ onMounted(() => {
         font-weight: 700;
     }
 }
+
 .result-form {
     .result-tool-form {
         padding-top: 4px;

@@ -34,3 +34,13 @@ export enum PopupType {
     LICENSE = 'License',
     FILE_BROWSER = 'File Browser',
 }
+export enum IconList {
+    LINK = 'mdi-link-box-variant',
+    SQL = 'mdi-file-document-outline',
+    TQL = 'mdi-chart-scatter-plot',
+    WRK = 'mdi-notebook-outline',
+    TAZ = 'mdi-chart-line',
+    SHELL = 'mdi-console',
+    NEW = 'mdi-note-outline',
+    DIR = 'mdi-folder',
+}
