@@ -12,6 +12,14 @@ const getFileList = (aFilter: string, aDir: string, aName: string) => {
     });
 };
 
+const postMd = (aData: string) => {
+    return request({
+        method: 'POST',
+        url: `/api/md`,
+        data: aData,
+    });
+};
+
 const postFileList = (aContents: any, aDir: string, aFileName: string) => {
     return request({
         method: 'POST',
@@ -47,4 +55,4 @@ const getTutorial = (aUrl: any) => {
     });
 };
 
-export { getFileList, postFileList, getLicense, postLicense, deleteFileList, getTutorial };
+export { getFileList, postFileList, getLicense, postLicense, deleteFileList, getTutorial, postMd };
