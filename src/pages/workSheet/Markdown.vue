@@ -1,5 +1,5 @@
 <template>
-    <v-sheet v-html="sText" color="transparent"></v-sheet>
+    <v-sheet v-html="sText" class="sheet-form" color="transparent"></v-sheet>
 </template>
 
 <script setup="setup" lang="ts" name="WorkSheet">
@@ -22,8 +22,8 @@ import setMermaid from '@/plugins/mermaid';
 const sPopupType = ref<PopupType>(PopupType.FILE_BROWSER);
 
 interface PropsNoteData {
-    pPanelData: BoardInfo;
     pContents: string;
+    pType: string;
 }
 const sText = ref<any>(null);
 
@@ -31,16 +31,33 @@ const props = defineProps<PropsNoteData>();
 
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
-onMounted(async () => {
-    const sData = await postMd(props.pContents);
-    sText.value = `<article class="${cIsDarkMode.value ? `markdown-body-dark` : `markdown-body-light`} markdown-body">${sData}</article>`;
+const init = async () => {
+    if (props.pContents) {
+        if (props.pType === 'mrk') {
+            const sData = await postMd(props.pContents);
+            sText.value = `<article class="${cIsDarkMode.value ? `markdown-body-dark` : `markdown-body-light`} markdown-body">${sData}</article>`;
+        } else {
+            sText.value = `<article class="${cIsDarkMode.value ? `markdown-body-dark` : `markdown-body-light`} markdown-body">${props.pContents}</article>`;
+        }
+    }
 
     nextTick(() => {
         setMermaid();
     });
+};
+
+onMounted(() => {
+    init();
 });
+defineExpose({ init });
 </script>
 
 <style lang="scss">
 @import '@/assets/md/md.css';
+.sheet-form {
+    ul,
+    ol {
+        list-style: revert;
+    }
+}
 </style>

@@ -407,7 +407,7 @@ const setIcon = (aItem: any) => {
     if (aItem.hover) {
         return 'mdi-close';
     } else {
-        if (aItem.type === 'sql' || aItem.type === 'tql') {
+        if (aItem.type === 'SQL Editor' || aItem.type === 'Tql') {
             if (aItem.savedCode !== aItem.code) {
                 return `mdi-circle`;
             }

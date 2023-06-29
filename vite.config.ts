@@ -36,7 +36,7 @@ export default defineConfig(() => {
                     secure: false,
                     ws: false,
                 },
-                '/web/tutorial': {
+                '/web/tutorials': {
                     target: `http://127.0.0.1:5654/`,
                     changeOrigin: true,
                     secure: false,
