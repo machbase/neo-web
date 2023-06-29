@@ -69,17 +69,37 @@
                     />
                 </v-sheet>
             </ResizeRow>
-            <v-sheet class="result-form" :class="aSheet.status && aSheet.type === 'mrk' ? 'mrk-hover' : ''" color="transparent">
+            <v-sheet v-if="aSheet.status" class="result-form" :class="aSheet.status && aSheet.type === 'mrk' ? 'mrk-hover' : ''" color="transparent">
                 <v-sheet class="result-tool-form" color="transparent">
-                    <v-btn v-if="aSheet.type !== 'mrk' && aSheet.status" @click="setMinimal(aIdx)" class="minimal-sheet-btn" density="comfortable" size="20px" variant="plain">
+                    <v-btn
+                        v-if="aSheet.type !== 'mrk' && checkMapResult(aSheet.id)"
+                        @click="setMinimal(aIdx)"
+                        class="minimal-sheet-btn"
+                        density="comfortable"
+                        size="20px"
+                        variant="plain"
+                    >
                         <v-icon size="20px"> mdi-resize </v-icon>
                     </v-btn>
                 </v-sheet>
-                <v-sheet v-if="aSheet.status && aSheet.type === 'mrk'" color="transparent">
-                    <Markdown @dblclick="changeStatus(aIdx, 'click')" :p-contents="aSheet.contents" />
+
+                <v-sheet v-if="aSheet.result === 'fail'" class="result-set-form" color="transparent">
+                    <div>{{ gBoard.result.get(aSheet.id) }}</div>
                 </v-sheet>
-                <v-sheet v-else-if="aSheet.type === 'tql' && aSheet.tqlType === 'html'" color="transparent">
+                <v-sheet v-else-if="aSheet.type === 'mrk' || aSheet.type === 'sql'" color="transparent">
+                    <Markdown
+                        :ref="(el) => (rResultForm[aSheet.id] = el)"
+                        @dblclick="changeStatus(aIdx, 'click')"
+                        :p-contents="aSheet.type === 'mrk' ? aSheet.contents : checkMapResult(aSheet.id) && gBoard.result.get(aSheet.id)"
+                        :p-type="aSheet.type"
+                    />
+                </v-sheet>
+                <v-sheet v-else-if="aSheet.type === 'json'" class="result-set-form" color="transparent">
+                    <pre>{{ changeJsonFormat(checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : '') }}</pre>
+                </v-sheet>
+                <v-sheet v-else-if="aSheet.type === 'tql'" color="transparent">
                     <iframe
+                        v-if="aSheet.tqlType === 'html'"
                         ref="iframeDom"
                         id="iframeMapViewComponent"
                         @load="setSize(aSheet.id)"
@@ -87,25 +107,17 @@
                         :srcdoc="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : ''"
                         width="100%"
                     ></iframe>
-                </v-sheet>
-                <v-sheet
-                    v-else-if="(aSheet.type === 'tql' && aSheet.tqlType === 'csv') || (aSheet.type === 'sql' && aSheet.tqlType === 'csv')"
-                    class="result-set-form"
-                    color="transparent"
-                    max-height="500px"
-                >
                     <Table
+                        v-if="aSheet.tqlType === 'csv'"
                         :headers="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id).columns : ''"
                         :items="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id).rows : ''"
                         :p-tab-option="'wrk'"
                         p-timezone="ns"
                         :p-type="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id).types : ''"
                     />
-                    <div class="total-count-form">{{ setTotalCount(sCsvDataLeng) }}</div>
-                </v-sheet>
-
-                <v-sheet v-else-if="aSheet.tqlType === 'text'" class="result-set-form" color="transparent">
-                    <pre>{{ changeJsonFormat(checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : '') }}</pre>
+                    <v-sheet v-if="aSheet.tqlType === 'csv'" class="result-set-form" color="transparent" max-height="500px">
+                        <div class="total-count-form">{{ setTotalCount(sCsvDataLeng) }}</div>
+                    </v-sheet>
                 </v-sheet>
             </v-sheet>
         </v-sheet>
@@ -148,6 +160,7 @@ const sLang = [
 ];
 
 const rSheet = ref<any>([]);
+const rResultForm = ref<any>([]);
 const iframeDom = ref<any>();
 
 const sCsvDataLeng = ref<any>();
@@ -246,6 +259,16 @@ const getLanguage = (aLang: string, aIdx: number) => {
     const sItem = gBoard.value.sheet[aIdx].lang.find((aItem: string[]) => aItem[0] === aLang);
     const sItemIdx = gBoard.value.sheet[aIdx].lang.findIndex((aItem: string[]) => aItem[0] === aLang);
 
+    if (gBoard.value.sheet[aIdx].type === 'mrk' && (aLang === `SQL` || aLang === 'javascript')) {
+        if (
+            gBoard.value.sheet[aIdx].contents ===
+            `# Lorem ipsum 
+ Lorem ipsum dolor sit amet,
+ consectetur adipiscing elit,
+ sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`
+        )
+            gBoard.value.sheet[aIdx].contents = '';
+    }
     gBoard.value.sheet[aIdx].lang.splice(sItemIdx, 1);
     gBoard.value.sheet[aIdx].lang.splice(0, 0, sItem);
 
@@ -338,41 +361,33 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
     if (!event.ctrlKey) return;
     if (aType === 'key') event.preventDefault();
     if (gBoard.value.sheet[aIdx].type == 'sql') {
-        const sResult: any = await getTqlChart('INPUT(SQL(`' + gBoard.value.sheet[aIdx].contents + '`))\n' + "OUTPUT(JSON(timeformat('ns'), tz('LOCAL')))");
+        const sResult: any = await getTqlChart(
+            'INPUT(SQL(`' + gBoard.value.sheet[aIdx].contents + '`))\n' + 'OUTPUT( MARKDOWN(html(true), rownum(true), heading(true), brief(true) ) )'
+        );
         if (sResult.status !== 200) {
-            gBoard.value.sheet[aIdx].tqlType = 'text';
+            gBoard.value.sheet[aIdx].result = 'fail';
             gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data.reason);
         } else {
-            sCsvDataLeng.value = sResult.data.data.rows.length;
-            if (sResult.data.data.rows.length > 10) {
-                const sData = [] as any;
-
-                for (let i = 0; i < 5; i++) {
-                    sData.push(sResult.data.data.rows[i]);
-                }
-                sData.push([]);
-                sResult.data.data.rows[0].forEach((aIdx: any) => {
-                    aIdx;
-                    sData[sData.length - 1].push('');
-                });
-                for (let i = 5; i >= 1; i--) {
-                    sData.push(sResult.data.data.rows[sResult.data.data.rows.length - i]);
-                }
-
-                sResult.data.data.rows = sData;
-            }
-
-            gBoard.value.sheet[aIdx].tqlType = 'csv';
-            gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data.data);
+            gBoard.value.sheet[aIdx].result = '';
+            gBoard.value.sheet[aIdx].type = 'sql';
+            gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
+            nextTick(() => {
+                rResultForm.value[gBoard.value.sheet[aIdx].id] && rResultForm.value[gBoard.value.sheet[aIdx].id].init();
+            });
         }
         gBoard.value.sheet[aIdx].status = true;
     }
     if (gBoard.value.sheet[aIdx].type == 'tql') {
         const sResult: any = await getTqlChart(gBoard.value.sheet[aIdx].contents);
-        if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/html') {
+        if (sResult.status !== 200) {
+            gBoard.value.sheet[aIdx].result = 'fail';
+            gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/html') {
+            gBoard.value.sheet[aIdx].result = '';
             gBoard.value.sheet[aIdx].tqlType = 'html';
             gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
+            gBoard.value.sheet[aIdx].result = '';
             gBoard.value.sheet[aIdx].tqlType = 'csv';
             const sDefaultForm: any = {
                 rows: [],
@@ -404,35 +419,35 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
                 gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sDefaultForm);
             }
         } else {
-            gBoard.value.sheet[aIdx].tqlType = 'text';
-            if (sResult.status === 200) {
-                sCsvDataLeng.value = sResult.data.data.rows.length;
-                if (sResult.data.data.rows.length > 10) {
-                    const sData = [] as any;
+            gBoard.value.sheet[aIdx].result = '';
+            gBoard.value.sheet[aIdx].tqlType = 'json';
 
-                    for (let i = 0; i < 5; i++) {
-                        sData.push(sResult.data.data.rows[i]);
-                    }
-                    sData.push([]);
-                    sResult.data.data.rows[0].forEach((aIdx: any) => {
-                        aIdx;
-                        sData[sData.length - 1].push('');
-                    });
-                    for (let i = 5; i >= 1; i--) {
-                        sData.push(sResult.data.data.rows[sResult.data.data.rows.length - i]);
-                    }
+            sCsvDataLeng.value = sResult.data.data.rows.length;
+            if (sResult.data.data.rows.length > 10) {
+                const sData = [] as any;
 
-                    sResult.data.data.rows = sData;
+                for (let i = 0; i < 5; i++) {
+                    sData.push(sResult.data.data.rows[i]);
                 }
-                gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
-            } else {
-                gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data.reason);
+                sData.push([]);
+                sResult.data.data.rows[0].forEach((aIdx: any) => {
+                    aIdx;
+                    sData[sData.length - 1].push('');
+                });
+                for (let i = 5; i >= 1; i--) {
+                    sData.push(sResult.data.data.rows[sResult.data.data.rows.length - i]);
+                }
+
+                sResult.data.data.rows = sData;
             }
+            gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
         }
         gBoard.value.sheet[aIdx].status = true;
     }
 
-    if (gBoard.value.sheet[aIdx].status === false && gBoard.value.sheet[aIdx].type === 'mrk') {
+    if (gBoard.value.sheet[aIdx].type === 'mrk' && !gBoard.value.sheet[aIdx].status) {
+        gBoard.value.sheet[aIdx].result = '';
+
         gBoard.value.sheet[aIdx].status = !gBoard.value.sheet[aIdx].status;
     }
 };
@@ -553,6 +568,9 @@ onMounted(() => {
             }
         }
     }
+    .resize_row {
+        padding-bottom: 0 !important;
+    }
 
     .markdown-sheet {
         background: transparent;
@@ -561,6 +579,7 @@ onMounted(() => {
     .language-javascript,
     .language-markdown,
     textarea {
+        padding-bottom: 0 !important;
         font-family: 'D2Coding' !important;
     }
     .markdown-sheet {

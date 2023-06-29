@@ -237,7 +237,9 @@ const showDoc = async (aItem: any) => {
             } else {
                 gBoard.value.code = sData;
             }
-            gBoard.value.board_name = aItem.title;
+
+            const sPath = aItem.address.split('/');
+            gBoard.value.board_name = sPath[sPath.length - 1];
         }
     }
 };
