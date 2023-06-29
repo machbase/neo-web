@@ -311,7 +311,7 @@ const getFile = async () => {
             else if (sTypeOption === 'wrk') sType = 'wrk';
             else sType = 'Terminal';
 
-            if (sType === 'dashboard' || sTypeOption === 'wrk') {
+            if (sType === 'dashboard') {
                 const sDashboard = JSON.parse(sData);
                 sDashboard.board_id = new Date().getTime();
                 store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
@@ -322,6 +322,7 @@ const getFile = async () => {
                     ...gTabList.value[sIdx],
                     board_id: String(new Date().getTime()),
                     type: sType,
+                    result: new Map(),
                     board_name: sSelectedClickData.value,
                     savedCode: '',
                     path: '',
@@ -331,7 +332,11 @@ const getFile = async () => {
                 store.commit(MutationTypes.changeTab, sNode);
                 store.commit(MutationTypes.setSelectedTab, sNode.board_id);
 
-                gBoard.value.code = sData;
+                if (sTypeOption === 'wrk') {
+                    gBoard.value.sheet = JSON.parse(sData);
+                } else {
+                    gBoard.value.code = sData;
+                }
                 gBoard.value.savedCode = sData;
                 gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
                 gBoard.value.board_name = sSelectedClickData.value;
@@ -345,7 +350,7 @@ const getFile = async () => {
             else if (sTypeOption === 'wrk') sType = 'wrk';
             else sType = 'Terminal';
 
-            if (sType === 'dashboard' || sType === 'wrk') {
+            if (sType === 'dashboard') {
                 const sDashboard = JSON.parse(sData);
 
                 sDashboard.board_id = new Date().getTime();
@@ -353,7 +358,11 @@ const getFile = async () => {
                 store.commit(MutationTypes.setSelectedTab, sDashboard.board_id);
                 gBoard.value.board_name = sSelectedClickData.value;
             } else {
-                gBoard.value.code = sData;
+                if (sType === 'wrk') {
+                    gBoard.value.sheet = JSON.parse(sData);
+                } else {
+                    gBoard.value.code = sData;
+                }
                 gBoard.value.savedCode = sData;
                 gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
                 gBoard.value.board_name = sSelectedClickData.value;
@@ -404,7 +413,7 @@ const importFile = async () => {
             const sConfirm = confirm('Do you want to overwrite it?');
             if (sConfirm) {
                 const sResult: any = await postFileList(
-                    props.pUploadType === 'wrk' || props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code,
+                    props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : props.pUploadType === 'wrk' ? gBoard.value.sheet : gBoard.value.code,
                     sSelectedClickDir.value.join('/'),
                     sFileName.value
                 );
@@ -412,13 +421,21 @@ const importFile = async () => {
                     uploadFile();
                     gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
                     gBoard.value.board_name = sFileName.value;
-                    gBoard.value.savedCode = gBoard.value.code;
+                    if (props.pUploadType === 'wrk') {
+                        gBoard.value.savedCode = JSON.stringify(gBoard.value.sheet);
+                    } else {
+                        gBoard.value.savedCode = gBoard.value.code;
+                    }
                 }
 
                 uploadFile();
                 gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
                 gBoard.value.board_name = sFileName.value;
-                gBoard.value.savedCode = gBoard.value.code;
+                if (props.pUploadType === 'wrk') {
+                    gBoard.value.savedCode = JSON.stringify(gBoard.value.sheet);
+                } else {
+                    gBoard.value.savedCode = gBoard.value.code;
+                }
 
                 onClosePopup();
                 return;
@@ -429,14 +446,18 @@ const importFile = async () => {
     }
 
     const sResult: any = await postFileList(
-        props.pUploadType === 'wrk' || props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : gBoard.value.code,
+        props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : props.pUploadType === 'wrk' ? gBoard.value.sheet : gBoard.value.code,
         sSelectedClickDir.value.join('/'),
         sFileName.value
     );
     if (sResult.success === true) {
         gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
         gBoard.value.board_name = sFileName.value;
-        gBoard.value.savedCode = gBoard.value.code;
+        if (props.pUploadType === 'wrk') {
+            gBoard.value.savedCode = JSON.stringify(gBoard.value.sheet);
+        } else {
+            gBoard.value.savedCode = gBoard.value.code;
+        }
 
         getFile();
     }

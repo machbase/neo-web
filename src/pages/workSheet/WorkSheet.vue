@@ -79,7 +79,14 @@
                     <Markdown @dblclick="changeStatus(aIdx, 'click')" :p-contents="aSheet.contents" />
                 </v-sheet>
                 <v-sheet v-else-if="aSheet.type === 'tql' && aSheet.tqlType === 'html'" color="transparent">
-                    <iframe ref="iframeDom" id="iframeMapViewComponent" @load="setSize(aSheet.id)" frameborder="0" :srcdoc="aSheet.result" width="100%"></iframe>
+                    <iframe
+                        ref="iframeDom"
+                        id="iframeMapViewComponent"
+                        @load="setSize(aSheet.id)"
+                        frameborder="0"
+                        :srcdoc="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : ''"
+                        width="100%"
+                    ></iframe>
                 </v-sheet>
                 <v-sheet
                     v-else-if="(aSheet.type === 'tql' && aSheet.tqlType === 'csv') || (aSheet.type === 'sql' && aSheet.tqlType === 'csv')"
@@ -87,12 +94,18 @@
                     color="transparent"
                     max-height="500px"
                 >
-                    <Table :headers="aSheet.result.columns" :items="aSheet.result.rows" :p-tab-option="'wrk'" p-timezone="ns" :p-type="aSheet.result.types" />
-                    <div class="total-count-form">Total {{ sCsvDataLeng ? sCsvDataLeng.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '' }} records</div>
+                    <Table
+                        :headers="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id).columns : ''"
+                        :items="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id).rows : ''"
+                        :p-tab-option="'wrk'"
+                        p-timezone="ns"
+                        :p-type="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id).types : ''"
+                    />
+                    <div class="total-count-form">{{ setTotalCount(sCsvDataLeng) }}</div>
                 </v-sheet>
 
                 <v-sheet v-else-if="aSheet.tqlType === 'text'" class="result-set-form" color="transparent">
-                    <pre>{{ changeJsonFormat(aSheet.result) }}</pre>
+                    <pre>{{ changeJsonFormat(checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : '') }}</pre>
                 </v-sheet>
             </v-sheet>
         </v-sheet>
@@ -152,7 +165,20 @@ const onClosePopup = () => {
     sDialog.value = false;
 };
 
+const setTotalCount = (aItem: number) => {
+    if (aItem === 0) {
+        return 'Total no record';
+    } else if (aItem === 1) {
+        return 'Total ' + aItem + ' record';
+    } else if (aItem) {
+        return 'Total ' + aItem.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' records';
+    } else {
+        return '';
+    }
+};
+
 const changeJsonFormat = (aItem: any) => {
+    if (!aItem) return '';
     if (typeof aItem === 'string') {
         return JSON.stringify(JSON.parse(aItem), null, 4).replace(
             `[
@@ -212,6 +238,10 @@ const onClickPopupItem = (aPopupName: PopupType, aFileOption?: string) => {
     sDialog.value = true;
 };
 
+const checkMapResult = (aItem: any) => {
+    return gBoard.value.result && gBoard.value.result.has(aItem);
+};
+
 const getLanguage = (aLang: string, aIdx: number) => {
     const sItem = gBoard.value.sheet[aIdx].lang.find((aItem: string[]) => aItem[0] === aLang);
     const sItemIdx = gBoard.value.sheet[aIdx].lang.findIndex((aItem: string[]) => aItem[0] === aLang);
@@ -259,7 +289,6 @@ const addSheet = (aIdx: number, aType: string) => {
         type: 'mrk',
         contents: '# Lorem ipsum \n Lorem ipsum dolor sit amet,\n consectetur adipiscing elit,\n sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         status: true,
-        result: '' as any,
         height: 200,
         lang: [
             ['markdown', 'Markdown'],
@@ -312,7 +341,7 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
         const sResult: any = await getTqlChart('INPUT(SQL(`' + gBoard.value.sheet[aIdx].contents + '`))\n' + "OUTPUT(JSON(timeformat('ns'), tz('LOCAL')))");
         if (sResult.status !== 200) {
             gBoard.value.sheet[aIdx].tqlType = 'text';
-            gBoard.value.sheet[aIdx].result = sResult.data.reason;
+            gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data.reason);
         } else {
             sCsvDataLeng.value = sResult.data.data.rows.length;
             if (sResult.data.data.rows.length > 10) {
@@ -334,7 +363,7 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
             }
 
             gBoard.value.sheet[aIdx].tqlType = 'csv';
-            gBoard.value.sheet[aIdx].result = sResult.data.data;
+            gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data.data);
         }
         gBoard.value.sheet[aIdx].status = true;
     }
@@ -342,36 +371,37 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
         const sResult: any = await getTqlChart(gBoard.value.sheet[aIdx].contents);
         if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/html') {
             gBoard.value.sheet[aIdx].tqlType = 'html';
-            gBoard.value.sheet[aIdx].result = sResult.data;
+            gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
             gBoard.value.sheet[aIdx].tqlType = 'csv';
-            gBoard.value.sheet[aIdx].result = {
+            const sDefaultForm: any = {
                 rows: [],
                 columns: [],
                 types: [],
             };
             sResult.data.split('\n').map((aItem: string) => {
-                gBoard.value.sheet[aIdx].result.rows.push(aItem.split(','));
+                sDefaultForm.rows.push(aItem.split(','));
             });
-            gBoard.value.sheet[aIdx].result.rows.pop();
+            sDefaultForm.rows.pop();
 
-            sCsvDataLeng.value = gBoard.value.sheet[aIdx].result.rows.length;
+            sCsvDataLeng.value = sDefaultForm.rows.length;
             if (sCsvDataLeng.value > 10) {
                 const sData = [] as any;
 
                 for (let i = 0; i < 5; i++) {
-                    sData.push(gBoard.value.sheet[aIdx].result.rows[i]);
+                    sData.push(sDefaultForm.rows[i]);
                 }
                 sData.push([]);
-                gBoard.value.sheet[aIdx].result.rows[0].forEach((aIdx: any) => {
+                sDefaultForm.rows[0].forEach((aIdx: any) => {
                     aIdx;
                     sData[sData.length - 1].push('');
                 });
                 for (let i = 5; i >= 1; i--) {
-                    sData.push(gBoard.value.sheet[aIdx].result.rows[gBoard.value.sheet[aIdx].result.rows.length - i]);
+                    sData.push(sDefaultForm.rows[sDefaultForm.rows.length - i]);
                 }
 
-                gBoard.value.sheet[aIdx].result.rows = sData;
+                sDefaultForm.rows = sData;
+                gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sDefaultForm);
             }
         } else {
             gBoard.value.sheet[aIdx].tqlType = 'text';
@@ -394,9 +424,9 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
 
                     sResult.data.data.rows = sData;
                 }
-                gBoard.value.sheet[aIdx].result = sResult.data;
+                gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
             } else {
-                gBoard.value.sheet[aIdx].result = sResult.data.reason;
+                gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data.reason);
             }
         }
         gBoard.value.sheet[aIdx].status = true;

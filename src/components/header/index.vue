@@ -33,10 +33,10 @@
                         {{ aTab.board_name }}
                     </div>
                     <v-icon
-                        @click.stop="(gSelectedTab === aTab.id || aTab.hover === true) && deleteTab(aTab.board_id)"
-                        :size="gSelectedTab === aTab.id || aTab.hover === true ? '16px' : aTab.savedCode !== aTab.code ? '12px' : '16px'"
+                        @click.stop="setIcon(aTab) === 'mdi-close' && deleteTab(aTab.board_id)"
+                        :size="setIcon(aTab) === 'mdi-close' ? '16px' : setIcon(aTab) === 'mdi-circle' ? '12px' : '16px'"
                     >
-                        {{ gSelectedTab === aTab.id || aTab.hover === true ? 'mdi-close' : aTab.savedCode !== aTab.code && aTab.type !== 'new' ? 'mdi-circle' : '' }}
+                        {{ setIcon(aTab) }}
                     </v-icon>
                 </button>
             </div>
@@ -401,6 +401,23 @@ const onClickPopupItem = (aPopupName: PopupType, aFileOption?: string) => {
 const onReload = () => {
     const newBord = cloneDeep(cBoardOld.value);
     store.commit(MutationTypes.setBoardByFileUpload, newBord);
+};
+
+const setIcon = (aItem: any) => {
+    if (aItem.hover) {
+        return 'mdi-close';
+    } else {
+        if (aItem.type === 'sql' || aItem.type === 'tql') {
+            if (aItem.savedCode !== aItem.code) {
+                return `mdi-circle`;
+            }
+        } else if (aItem.type === 'wrk') {
+            if (aItem.savedCode !== JSON.stringify(aItem.sheet)) {
+                return 'mdi-circle';
+            }
+        }
+    }
+    return '';
 };
 const onRollUp = async () => {
     sLoading.value = true;
