@@ -167,6 +167,7 @@ export interface BoardInfo {
     code: string;
     sheet: any;
     value?: any;
+    result?: any;
     old_id?: string;
 }
 export interface LineDataset {

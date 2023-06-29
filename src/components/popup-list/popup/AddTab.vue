@@ -211,7 +211,7 @@ const showDoc = async (aItem: any) => {
         else if (sTypeOption === 'wrk') sType = 'wrk';
         else sType = 'Terminal';
 
-        if (sType === 'dashboard' || sTypeOption === 'wrk') {
+        if (sType === 'dashboard') {
             const sDashboard = sData;
             sDashboard.board_id = new Date().getTime();
             store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
@@ -222,6 +222,7 @@ const showDoc = async (aItem: any) => {
                 ...gTabList.value[sIdx],
                 board_id: String(new Date().getTime()),
                 type: sType,
+                result: new Map(),
                 board_name: aItem.title,
                 savedCode: '',
                 path: '',
@@ -231,9 +232,11 @@ const showDoc = async (aItem: any) => {
             store.commit(MutationTypes.changeTab, sNode);
             store.commit(MutationTypes.setSelectedTab, sNode.board_id);
 
-            gBoard.value.code = sData;
-            // gBoard.value.savedCode = sData;
-            // gBoard.value.path = '/' + aItem.title.value.join('/');
+            if (sTypeOption === 'wrk') {
+                gBoard.value.sheet = sData;
+            } else {
+                gBoard.value.code = sData;
+            }
             gBoard.value.board_name = aItem.title;
         }
     }
@@ -255,6 +258,7 @@ const onSetting = () => {
         board_id: String(new Date().getTime()),
         type: sBoardType.value,
         board_name: sBoardName,
+        result: new Map(),
         path: '',
         sheet: [
             {
