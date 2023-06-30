@@ -5,7 +5,16 @@
             <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'save')" class="icon" icon="mdi-content-save" size="16px"></v-icon>
             <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'open')" class="icon" icon="mdi-folder-open" size="16px"></v-icon>
         </v-sheet>
-        <v-sheet v-for="(aSheet, aIdx) in gBoard.sheet" :key="aSheet.id" :ref="(el) => (rSheet[aSheet.id] = el)" class="sheet-form" color="transparent" width="80%">
+        <v-sheet
+            v-for="(aSheet, aIdx) in gBoard.sheet"
+            :key="aSheet.id"
+            :ref="(el) => (rSheet[aSheet.id] = el)"
+            @dblclick="changeStatus(aIdx, 'click')"
+            class="sheet-form"
+            color="transparent"
+            :style="aSheet.status && aSheet.type === 'mrk' && aSheet.contents === '' ? { minHeight: '30px' } : {}"
+            width="80%"
+        >
             <div v-if="!aSheet.minimal" class="create-sheet">
                 <v-btn
                     @click="checkCtrl({ ctrlKey: true }, aIdx, 'mouse')"
