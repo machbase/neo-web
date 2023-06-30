@@ -381,7 +381,7 @@ function getLineIndex(position: number) {
     return lines.length - 1;
 }
 
-const saveSQL = (aEvent: any) => {
+const saveSQL = async (aEvent: any) => {
     if (aEvent.code === 'Slash') {
         if (getWindowOs() && aEvent.ctrlKey) {
             const textarea = sText.value.$el.children[0].children[0].children[0];
@@ -503,8 +503,8 @@ const saveSQL = (aEvent: any) => {
         if (getWindowOs() && aEvent.ctrlKey) {
             aEvent.preventDefault();
             if (gBoard.value.path !== '') {
-                const sResult = postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
-                if (typeof sResult === 'string' && JSON.parse(sResult).success === true) {
+                const sResult: any = await postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
+                if (sResult.success) {
                     gBoard.value.savedCode = gBoard.value.code;
                 }
             } else {
@@ -513,8 +513,8 @@ const saveSQL = (aEvent: any) => {
         } else if (!getWindowOs() && aEvent.metaKey) {
             aEvent.preventDefault();
             if (gBoard.value.path !== '') {
-                const sResult = postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
-                if (typeof sResult === 'string' && JSON.parse(sResult).success === true) {
+                const sResult: any = await postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
+                if (sResult.success) {
                     gBoard.value.savedCode = gBoard.value.code;
                 }
             } else {

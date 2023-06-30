@@ -333,11 +333,12 @@ const getFile = async () => {
                 store.commit(MutationTypes.setSelectedTab, sNode.board_id);
 
                 if (sTypeOption === 'wrk') {
-                    gBoard.value.sheet = JSON.parse(sData);
+                    gBoard.value.sheet = JSON.parse(sData).data;
+                    gBoard.value.savedCode = JSON.parse(sData).data;
                 } else {
                     gBoard.value.code = sData;
+                    gBoard.value.savedCode = sData;
                 }
-                gBoard.value.savedCode = sData;
                 gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
                 gBoard.value.board_name = sSelectedClickData.value;
             }
@@ -359,11 +360,12 @@ const getFile = async () => {
                 gBoard.value.board_name = sSelectedClickData.value;
             } else {
                 if (sType === 'wrk') {
-                    gBoard.value.sheet = JSON.parse(sData);
+                    gBoard.value.sheet = JSON.parse(sData).data;
+                    gBoard.value.savedCode = JSON.parse(sData).data;
                 } else {
                     gBoard.value.code = sData;
+                    gBoard.value.savedCode = sData;
                 }
-                gBoard.value.savedCode = sData;
                 gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
                 gBoard.value.board_name = sSelectedClickData.value;
             }
@@ -413,7 +415,7 @@ const importFile = async () => {
             const sConfirm = confirm('Do you want to overwrite it?');
             if (sConfirm) {
                 const sResult: any = await postFileList(
-                    props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : props.pUploadType === 'wrk' ? gBoard.value.sheet : gBoard.value.code,
+                    props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : props.pUploadType === 'wrk' ? { data: gBoard.value.sheet } : gBoard.value.code,
                     sSelectedClickDir.value.join('/'),
                     sFileName.value
                 );
@@ -446,7 +448,7 @@ const importFile = async () => {
     }
 
     const sResult: any = await postFileList(
-        props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : props.pUploadType === 'wrk' ? gBoard.value.sheet : gBoard.value.code,
+        props.pUploadType === 'taz' ? JSON.stringify(gBoard.value) : props.pUploadType === 'wrk' ? { data: gBoard.value.sheet } : gBoard.value.code,
         sSelectedClickDir.value.join('/'),
         sFileName.value
     );

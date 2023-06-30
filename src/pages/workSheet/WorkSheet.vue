@@ -1,10 +1,20 @@
 <template>
     <v-sheet class="sheet-list" :class="cIsDarkMode ? 'is-dark' : 'is-white'" color="transparent" height="100%" width="100%">
         <v-sheet class="save-sheet" color="transparent" width="80%">
+            <v-icon @click="fullStart()" class="icon" icon="mdi-play" size="16px"></v-icon>
             <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'save')" class="icon" icon="mdi-content-save" size="16px"></v-icon>
             <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'open')" class="icon" icon="mdi-folder-open" size="16px"></v-icon>
         </v-sheet>
-        <v-sheet v-for="(aSheet, aIdx) in gBoard.sheet" :key="aSheet.id" :ref="(el) => (rSheet[aSheet.id] = el)" class="sheet-form" color="transparent" width="80%">
+        <v-sheet
+            v-for="(aSheet, aIdx) in gBoard.sheet"
+            :key="aSheet.id"
+            :ref="(el) => (rSheet[aSheet.id] = el)"
+            @dblclick="changeStatus(aIdx, 'click')"
+            class="sheet-form"
+            color="transparent"
+            :style="aSheet.status && aSheet.type === 'mrk' && aSheet.contents === '' ? { minHeight: '30px' } : {}"
+            width="80%"
+        >
             <div v-if="!aSheet.minimal" class="create-sheet">
                 <v-btn
                     @click="checkCtrl({ ctrlKey: true }, aIdx, 'mouse')"
@@ -48,7 +58,7 @@
                 :slider-color="'transparent'"
                 :slider-hover-color="`transparent`"
                 :slider-width="5"
-                :style="cIsDarkMode ? { boxShadow: '0 0 10px rgba(255, 255, 255, 0.3)' } : { boxShadow: '0 0 10px rgba(0, 0, 0, 0.3)' }"
+                :style="cIsDarkMode ? { background: '#24273a', borderRadius: '6px' } : { background: '#e7ecff', borderRadius: '6px' }"
                 width="100%"
             >
                 <v-sheet color="transparent" height="100%">
@@ -63,7 +73,7 @@
                         :header="true"
                         height="100%"
                         :languages="aSheet.lang"
-                        :line_nums="false"
+                        :line-nums="false"
                         theme=""
                         width="100%"
                     />
@@ -86,7 +96,7 @@
                 <v-sheet v-if="aSheet.result === 'fail'" class="result-set-form" color="transparent">
                     <div>{{ gBoard.result.get(aSheet.id) }}</div>
                 </v-sheet>
-                <v-sheet v-else-if="aSheet.type === 'mrk' || aSheet.type === 'sql'" color="transparent">
+                <v-sheet v-else-if="aSheet.type === 'mrk' || aSheet.type === 'sql'" color="transparent" :style="{ display: 'flex', width: '100%' }">
                     <Markdown
                         :ref="(el) => (rResultForm[aSheet.id] = el)"
                         @dblclick="changeStatus(aIdx, 'click')"
@@ -269,6 +279,9 @@ const getLanguage = (aLang: string, aIdx: number) => {
         )
             gBoard.value.sheet[aIdx].contents = '';
     }
+    if (gBoard.value.sheet[aIdx].type !== 'mrk') {
+        gBoard.value.sheet[aIdx].status = false;
+    }
     gBoard.value.sheet[aIdx].lang.splice(sItemIdx, 1);
     gBoard.value.sheet[aIdx].lang.splice(0, 0, sItem);
 
@@ -335,6 +348,12 @@ const addSheet = (aIdx: number, aType: string) => {
             sExistingEl.focus();
         }
     }
+};
+
+const fullStart = () => {
+    gBoard.value.sheet.forEach((aItem: any, aIdx: number) => {
+        checkCtrl({ ctrlKey: true }, aIdx, 'mouse');
+    });
 };
 
 const deleteSheet = (aIdx: number) => {
@@ -419,28 +438,32 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
                 gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sDefaultForm);
             }
         } else {
-            gBoard.value.sheet[aIdx].result = '';
-            gBoard.value.sheet[aIdx].tqlType = 'json';
+            if (sResult.headers['content-type'] === `application/octet-stream`) {
+                gBoard.value.sheet[aIdx].result = 'fail';
+                gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
+            } else {
+                gBoard.value.sheet[aIdx].result = '';
+                gBoard.value.sheet[aIdx].tqlType = 'json';
 
-            sCsvDataLeng.value = sResult.data.data.rows.length;
-            if (sResult.data.data.rows.length > 10) {
-                const sData = [] as any;
+                sCsvDataLeng.value = sResult.data.data.rows.length;
+                if (sResult.data.data.rows.length > 10) {
+                    const sData = [] as any;
 
-                for (let i = 0; i < 5; i++) {
-                    sData.push(sResult.data.data.rows[i]);
+                    for (let i = 0; i < 5; i++) {
+                        sData.push(sResult.data.data.rows[i]);
+                    }
+                    sData.push([]);
+                    sResult.data.data.rows[0].forEach(() => {
+                        sData[sData.length - 1].push('');
+                    });
+                    for (let i = 5; i >= 1; i--) {
+                        sData.push(sResult.data.data.rows[sResult.data.data.rows.length - i]);
+                    }
+
+                    sResult.data.data.rows = sData;
                 }
-                sData.push([]);
-                sResult.data.data.rows[0].forEach((aIdx: any) => {
-                    aIdx;
-                    sData[sData.length - 1].push('');
-                });
-                for (let i = 5; i >= 1; i--) {
-                    sData.push(sResult.data.data.rows[sResult.data.data.rows.length - i]);
-                }
-
-                sResult.data.data.rows = sData;
+                gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
             }
-            gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
         }
         gBoard.value.sheet[aIdx].status = true;
     }
@@ -457,13 +480,13 @@ const setSize = (aId: number) => {
     if (sValue.minimal) {
         nextTick(() => {
             rSheet.value[aId].$el.children[0].children[1].children[0].style.height = `${
-                rSheet.value[aId].$el.children[0].children[1].children[0].contentDocument.body.clientHeight + 100
+                rSheet.value[aId].$el.children[0].children[1].children[0].contentDocument.body.clientHeight + 40
             }px`;
         });
     } else {
         nextTick(() => {
             rSheet.value[aId].$el.children[2].children[1].children[0].style.height = `${
-                rSheet.value[aId].$el.children[2].children[1].children[0].contentDocument.body.clientHeight + 100
+                rSheet.value[aId].$el.children[2].children[1].children[0].contentDocument.body.clientHeight + 40
             }px`;
         });
     }
@@ -500,8 +523,9 @@ onMounted(() => {
     padding: 20px;
 }
 .sheet-form {
+    width: 100%;
     position: relative;
-    margin: 20px;
+    margin: 5px 0px;
 }
 
 .create-sheet {
@@ -568,6 +592,22 @@ onMounted(() => {
             }
         }
     }
+    .code-editor {
+        .code-area {
+            height: 100% !important;
+        }
+        .header {
+            position: absolute !important;
+            top: -4px !important;
+            width: 100px !important;
+            right: 175px !important;
+            display: flex;
+            justify-content: end;
+            .dropdown {
+                position: relative;
+            }
+        }
+    }
     .resize_row {
         padding-bottom: 0 !important;
     }
@@ -579,6 +619,7 @@ onMounted(() => {
     .language-javascript,
     .language-markdown,
     textarea {
+        padding-top: 10px !important;
         padding-bottom: 0 !important;
         font-family: 'D2Coding' !important;
     }
@@ -817,5 +858,8 @@ onMounted(() => {
     table {
         font-family: 'D2Coding' !important;
     }
+}
+.list {
+    position: absolute !important;
 }
 </style>
