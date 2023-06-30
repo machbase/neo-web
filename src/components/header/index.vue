@@ -412,7 +412,7 @@ const setIcon = (aItem: any) => {
                 return `mdi-circle`;
             }
         } else if (aItem.type === 'wrk') {
-            if (aItem.savedCode !== JSON.stringify(aItem.sheet)) {
+            if (JSON.stringify(aItem.savedCode) !== JSON.stringify(aItem.sheet)) {
                 return 'mdi-circle';
             }
         }

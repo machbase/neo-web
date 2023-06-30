@@ -1,6 +1,7 @@
 <template>
     <v-sheet class="sheet-list" :class="cIsDarkMode ? 'is-dark' : 'is-white'" color="transparent" height="100%" width="100%">
         <v-sheet class="save-sheet" color="transparent" width="80%">
+            <v-icon @click="fullStart()" class="icon" icon="mdi-play" size="16px"></v-icon>
             <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'save')" class="icon" icon="mdi-content-save" size="16px"></v-icon>
             <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'open')" class="icon" icon="mdi-folder-open" size="16px"></v-icon>
         </v-sheet>
@@ -337,6 +338,12 @@ const addSheet = (aIdx: number, aType: string) => {
     }
 };
 
+const fullStart = () => {
+    gBoard.value.sheet.forEach((aItem: any, aIdx: number) => {
+        checkCtrl({ ctrlKey: true }, aIdx, 'mouse');
+    });
+};
+
 const deleteSheet = (aIdx: number) => {
     gBoard.value.sheet.splice(aIdx, 1);
 };
@@ -419,28 +426,32 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
                 gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sDefaultForm);
             }
         } else {
-            gBoard.value.sheet[aIdx].result = '';
-            gBoard.value.sheet[aIdx].tqlType = 'json';
+            if (sResult.headers['content-type'] === `application/octet-stream`) {
+                gBoard.value.sheet[aIdx].result = 'fail';
+                gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
+            } else {
+                gBoard.value.sheet[aIdx].result = '';
+                gBoard.value.sheet[aIdx].tqlType = 'json';
 
-            sCsvDataLeng.value = sResult.data.data.rows.length;
-            if (sResult.data.data.rows.length > 10) {
-                const sData = [] as any;
+                sCsvDataLeng.value = sResult.data.data.rows.length;
+                if (sResult.data.data.rows.length > 10) {
+                    const sData = [] as any;
 
-                for (let i = 0; i < 5; i++) {
-                    sData.push(sResult.data.data.rows[i]);
+                    for (let i = 0; i < 5; i++) {
+                        sData.push(sResult.data.data.rows[i]);
+                    }
+                    sData.push([]);
+                    sResult.data.data.rows[0].forEach(() => {
+                        sData[sData.length - 1].push('');
+                    });
+                    for (let i = 5; i >= 1; i--) {
+                        sData.push(sResult.data.data.rows[sResult.data.data.rows.length - i]);
+                    }
+
+                    sResult.data.data.rows = sData;
                 }
-                sData.push([]);
-                sResult.data.data.rows[0].forEach((aIdx: any) => {
-                    aIdx;
-                    sData[sData.length - 1].push('');
-                });
-                for (let i = 5; i >= 1; i--) {
-                    sData.push(sResult.data.data.rows[sResult.data.data.rows.length - i]);
-                }
-
-                sResult.data.data.rows = sData;
+                gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
             }
-            gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
         }
         gBoard.value.sheet[aIdx].status = true;
     }
