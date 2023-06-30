@@ -49,7 +49,7 @@
                 :slider-color="'transparent'"
                 :slider-hover-color="`transparent`"
                 :slider-width="5"
-                :style="cIsDarkMode ? { boxShadow: '0 0 10px rgba(255, 255, 255, 0.3)' } : { boxShadow: '0 0 10px rgba(0, 0, 0, 0.3)' }"
+                :style="cIsDarkMode ? { background: '#24273a', borderRadius: '6px' } : { background: '#e7ecff', borderRadius: '6px' }"
                 width="100%"
             >
                 <v-sheet color="transparent" height="100%">
@@ -64,7 +64,7 @@
                         :header="true"
                         height="100%"
                         :languages="aSheet.lang"
-                        :line_nums="false"
+                        :line-nums="false"
                         theme=""
                         width="100%"
                     />
@@ -87,7 +87,7 @@
                 <v-sheet v-if="aSheet.result === 'fail'" class="result-set-form" color="transparent">
                     <div>{{ gBoard.result.get(aSheet.id) }}</div>
                 </v-sheet>
-                <v-sheet v-else-if="aSheet.type === 'mrk' || aSheet.type === 'sql'" color="transparent">
+                <v-sheet v-else-if="aSheet.type === 'mrk' || aSheet.type === 'sql'" color="transparent" :style="{ display: 'flex', width: '100%' }">
                     <Markdown
                         :ref="(el) => (rResultForm[aSheet.id] = el)"
                         @dblclick="changeStatus(aIdx, 'click')"
@@ -269,6 +269,9 @@ const getLanguage = (aLang: string, aIdx: number) => {
  sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`
         )
             gBoard.value.sheet[aIdx].contents = '';
+    }
+    if (gBoard.value.sheet[aIdx].type !== 'mrk') {
+        gBoard.value.sheet[aIdx].status = false;
     }
     gBoard.value.sheet[aIdx].lang.splice(sItemIdx, 1);
     gBoard.value.sheet[aIdx].lang.splice(0, 0, sItem);
@@ -468,13 +471,13 @@ const setSize = (aId: number) => {
     if (sValue.minimal) {
         nextTick(() => {
             rSheet.value[aId].$el.children[0].children[1].children[0].style.height = `${
-                rSheet.value[aId].$el.children[0].children[1].children[0].contentDocument.body.clientHeight + 100
+                rSheet.value[aId].$el.children[0].children[1].children[0].contentDocument.body.clientHeight + 40
             }px`;
         });
     } else {
         nextTick(() => {
             rSheet.value[aId].$el.children[2].children[1].children[0].style.height = `${
-                rSheet.value[aId].$el.children[2].children[1].children[0].contentDocument.body.clientHeight + 100
+                rSheet.value[aId].$el.children[2].children[1].children[0].contentDocument.body.clientHeight + 40
             }px`;
         });
     }
@@ -511,8 +514,9 @@ onMounted(() => {
     padding: 20px;
 }
 .sheet-form {
+    width: 100%;
     position: relative;
-    margin: 20px 0px;
+    margin: 5px 0px;
 }
 
 .create-sheet {
@@ -579,6 +583,22 @@ onMounted(() => {
             }
         }
     }
+    .code-editor {
+        .code-area {
+            height: 100% !important;
+        }
+        .header {
+            position: absolute !important;
+            top: -4px !important;
+            width: 100px !important;
+            right: 175px !important;
+            display: flex;
+            justify-content: end;
+            .dropdown {
+                position: relative;
+            }
+        }
+    }
     .resize_row {
         padding-bottom: 0 !important;
     }
@@ -590,6 +610,7 @@ onMounted(() => {
     .language-javascript,
     .language-markdown,
     textarea {
+        padding-top: 10px !important;
         padding-bottom: 0 !important;
         font-family: 'D2Coding' !important;
     }
@@ -828,5 +849,8 @@ onMounted(() => {
     table {
         font-family: 'D2Coding' !important;
     }
+}
+.list {
+    position: absolute !important;
 }
 </style>

@@ -22,8 +22,8 @@ import setMermaid from '@/plugins/mermaid';
 const sPopupType = ref<PopupType>(PopupType.FILE_BROWSER);
 
 interface PropsNoteData {
-    pContents: string;
-    pType: string;
+    pContents?: any;
+    pType?: string;
 }
 const sText = ref<any>(null);
 
