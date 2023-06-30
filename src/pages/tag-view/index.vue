@@ -230,6 +230,7 @@ onMounted(async () => {
 
         if (sSavedData && sSavedData.length !== 0) {
             JSON.parse(sSavedData).map((aItem: any) => {
+                aItem.result = new Map();
                 store.commit(MutationTypes.pushTab, aItem);
             });
 

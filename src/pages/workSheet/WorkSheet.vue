@@ -512,7 +512,7 @@ onMounted(() => {
 }
 .sheet-form {
     position: relative;
-    margin: 20px;
+    margin: 20px 0px;
 }
 
 .create-sheet {
