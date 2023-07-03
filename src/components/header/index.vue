@@ -304,6 +304,7 @@ const addTab = () => {
         range_bgn: '',
         panels: [],
         code: '',
+        result: new Map(),
         hover: false,
     });
     store.commit(MutationTypes.setLastSelectedTab, gSelectedTab.value);

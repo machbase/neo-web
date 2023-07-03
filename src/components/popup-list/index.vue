@@ -70,7 +70,7 @@ interface PopupWrapProps {
     pType: PopupType;
     pShow: boolean;
     pWidth?: string;
-    pUploadType?: string;
+    pUploadType?: any;
     pNoOfSelectTags?: number;
     pNewOpen?: string;
     pIsFromTime?: boolean;

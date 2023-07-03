@@ -1,30 +1,22 @@
 <template>
     <v-sheet class="sheet-list" :class="cIsDarkMode ? 'is-dark' : 'is-white'" color="transparent" height="100%" width="100%">
         <v-sheet class="save-sheet" color="transparent" width="80%">
-            <v-icon @click="fullStart()" class="icon" icon="mdi-play" size="16px"></v-icon>
-            <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'save')" class="icon" icon="mdi-content-save" size="16px"></v-icon>
-            <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'open')" class="icon" icon="mdi-folder-open" size="16px"></v-icon>
+            <v-icon @click="fullStart()" class="icon" icon="mdi-fast-forward" size="18px"></v-icon>
+            <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'save')" class="icon" icon="mdi-content-save" size="18px"></v-icon>
+            <v-icon @click="onClickPopupItem(PopupType.FILE_BROWSER, 'open')" class="icon" icon="mdi-folder-open" size="18px"></v-icon>
         </v-sheet>
         <v-sheet
             v-for="(aSheet, aIdx) in gBoard.sheet"
             :key="aSheet.id"
             :ref="(el) => (rSheet[aSheet.id] = el)"
-            @dblclick="changeStatus(aIdx, 'click')"
             class="sheet-form"
             color="transparent"
             :style="aSheet.status && aSheet.type === 'mrk' && aSheet.contents === '' ? { minHeight: '30px' } : {}"
             width="80%"
         >
             <div v-if="!aSheet.minimal" class="create-sheet">
-                <v-btn
-                    @click="checkCtrl({ ctrlKey: true }, aIdx, 'mouse')"
-                    class="create-sheet-top-btn"
-                    density="comfortable"
-                    :disabled="aSheet.type === 'mrk' && aSheet.status"
-                    size="20px"
-                    variant="plain"
-                >
-                    <v-icon size="20px"> mdi-play </v-icon>
+                <v-btn @click="checkCtrl({ ctrlKey: true }, aIdx, 'mouse')" class="create-sheet-top-btn" density="comfortable" size="20px" variant="plain">
+                    <v-icon size="20px"> mdi-play-outline </v-icon>
                 </v-btn>
                 <v-btn @click="sortSheet(aIdx, 'top')" class="create-sheet-top-btn" density="comfortable" :disabled="aIdx === 0" size="20px" variant="plain">
                     <v-icon size="20px"> mdi-arrow-up </v-icon>
@@ -46,11 +38,11 @@
                     <v-icon size="20px"> mdi-shape-rectangle-plus </v-icon>
                 </v-btn>
                 <v-btn @click="deleteSheet(aIdx)" class="create-sheet-top-btn" density="comfortable" :disabled="gBoard.sheet.length === 1" size="18px" variant="plain">
-                    <v-icon size="20px"> mdi-delete </v-icon>
+                    <v-icon size="20px"> mdi-delete-outline </v-icon>
                 </v-btn>
             </div>
             <ResizeRow
-                v-if="!(aSheet.status && aSheet.type === 'mrk') && !aSheet.minimal"
+                v-if="!aSheet.minimal"
                 @isDragging="setHeight($event, aIdx)"
                 :height="aSheet.height"
                 :slider-bg-color="'transparent'"
@@ -79,35 +71,17 @@
                     />
                 </v-sheet>
             </ResizeRow>
-            <v-sheet v-if="aSheet.status" class="result-form" :class="aSheet.status && aSheet.type === 'mrk' ? 'mrk-hover' : ''" color="transparent">
-                <v-sheet class="result-tool-form" color="transparent">
-                    <v-btn
-                        v-if="aSheet.type !== 'mrk' && checkMapResult(aSheet.id)"
-                        @click="setMinimal(aIdx)"
-                        class="minimal-sheet-btn"
-                        density="comfortable"
-                        size="20px"
-                        variant="plain"
-                    >
-                        <v-icon size="20px"> mdi-resize </v-icon>
-                    </v-btn>
-                </v-sheet>
-
+            <v-sheet v-if="aSheet.status" class="result-form" color="transparent">
                 <v-sheet v-if="aSheet.result === 'fail'" class="result-set-form" color="transparent">
                     <div>{{ gBoard.result.get(aSheet.id) }}</div>
                 </v-sheet>
                 <v-sheet v-else-if="aSheet.type === 'mrk' || aSheet.type === 'sql'" color="transparent" :style="{ display: 'flex', width: '100%' }">
-                    <Markdown
-                        :ref="(el) => (rResultForm[aSheet.id] = el)"
-                        @dblclick="changeStatus(aIdx, 'click')"
-                        :p-contents="aSheet.type === 'mrk' ? aSheet.contents : checkMapResult(aSheet.id) && gBoard.result.get(aSheet.id)"
-                        :p-type="aSheet.type"
-                    />
+                    <Markdown :ref="(el) => (rResultForm[aSheet.id] = el)" :p-contents="checkMapResult(aSheet.id) && gBoard.result.get(aSheet.id)" :p-type="aSheet.type" />
                 </v-sheet>
                 <v-sheet v-else-if="aSheet.type === 'json'" class="result-set-form" color="transparent">
                     <pre>{{ changeJsonFormat(checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : '') }}</pre>
                 </v-sheet>
-                <v-sheet v-else-if="aSheet.type === 'tql'" color="transparent">
+                <v-sheet v-else-if="aSheet.type === 'tql'" color="transparent" width="calc(100% - 20px)">
                     <iframe
                         v-if="aSheet.tqlType === 'html'"
                         ref="iframeDom"
@@ -128,6 +102,11 @@
                     <v-sheet v-if="aSheet.tqlType === 'csv'" class="result-set-form" color="transparent" max-height="500px">
                         <div class="total-count-form">{{ setTotalCount(sCsvDataLeng) }}</div>
                     </v-sheet>
+                </v-sheet>
+                <v-sheet class="result-tool-form" color="transparent" width="20px">
+                    <v-btn v-if="checkMapResult(aSheet.id)" @click="setMinimal(aIdx)" class="minimal-sheet-btn" density="comfortable" size="20px" variant="plain">
+                        <v-icon size="20px"> {{ aSheet.minimal ? 'mdi-arrow-expand-vertical' : 'mdi-arrow-collapse-vertical' }}</v-icon>
+                    </v-btn>
                 </v-sheet>
             </v-sheet>
         </v-sheet>
@@ -279,9 +258,6 @@ const getLanguage = (aLang: string, aIdx: number) => {
         )
             gBoard.value.sheet[aIdx].contents = '';
     }
-    if (gBoard.value.sheet[aIdx].type !== 'mrk') {
-        gBoard.value.sheet[aIdx].status = false;
-    }
     gBoard.value.sheet[aIdx].lang.splice(sItemIdx, 1);
     gBoard.value.sheet[aIdx].lang.splice(0, 0, sItem);
 
@@ -379,6 +355,12 @@ const changeStatus = (aIdx: number) => {
 const checkCtrl = async (event: any, aIdx: number, aType: string) => {
     if (!event.ctrlKey) return;
     if (aType === 'key') event.preventDefault();
+    if (gBoard.value.sheet[aIdx].type == 'mrk') {
+        gBoard.value.result.set(gBoard.value.sheet[aIdx].id, gBoard.value.sheet[aIdx].contents);
+        nextTick(() => {
+            rResultForm.value[gBoard.value.sheet[aIdx].id] && rResultForm.value[gBoard.value.sheet[aIdx].id].init();
+        });
+    }
     if (gBoard.value.sheet[aIdx].type == 'sql') {
         const sResult: any = await getTqlChart(
             'INPUT(SQL(`' + gBoard.value.sheet[aIdx].contents + '`))\n' + 'OUTPUT( MARKDOWN(html(true), rownum(true), heading(true), brief(true) ) )'
@@ -479,14 +461,14 @@ const setSize = (aId: number) => {
 
     if (sValue.minimal) {
         nextTick(() => {
-            rSheet.value[aId].$el.children[0].children[1].children[0].style.height = `${
-                rSheet.value[aId].$el.children[0].children[1].children[0].contentDocument.body.clientHeight + 40
+            rSheet.value[aId].$el.children[0].children[0].children[0].style.height = `${
+                rSheet.value[aId].$el.children[0].children[0].children[0].contentDocument.body.clientHeight + 60
             }px`;
         });
     } else {
         nextTick(() => {
-            rSheet.value[aId].$el.children[2].children[1].children[0].style.height = `${
-                rSheet.value[aId].$el.children[2].children[1].children[0].contentDocument.body.clientHeight + 40
+            rSheet.value[aId].$el.children[2].children[0].children[0].style.height = `${
+                rSheet.value[aId].$el.children[2].children[0].children[0].contentDocument.body.clientHeight + 60
             }px`;
         });
     }
@@ -512,11 +494,11 @@ onMounted(() => {
 }
 .save-sheet {
     display: flex;
-    padding: 8px 8px;
+    padding: 8px 4px;
     justify-content: end;
 
     .icon {
-        margin-right: 4px;
+        margin-right: 5px;
     }
 }
 .markdown-sheet {
@@ -840,6 +822,7 @@ onMounted(() => {
 }
 
 .result-form {
+    display: flex;
     .result-tool-form {
         padding-top: 4px;
         display: flex;

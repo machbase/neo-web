@@ -35,7 +35,7 @@ export enum PopupType {
     FILE_BROWSER = 'File Browser',
 }
 export enum IconList {
-    LINK = 'mdi-link-box-variant',
+    LINK = 'mdi-link-variant',
     SQL = 'mdi-file-document-outline',
     TQL = 'mdi-chart-scatter-plot',
     WRK = 'mdi-notebook-outline',
@@ -43,4 +43,5 @@ export enum IconList {
     SHELL = 'mdi-console',
     NEW = 'mdi-note-outline',
     DIR = 'mdi-folder',
+    UPL = 'mdi-tray-arrow-down',
 }

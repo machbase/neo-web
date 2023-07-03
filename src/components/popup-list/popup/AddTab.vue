@@ -27,6 +27,41 @@
                         </span>
                     </div>
                 </v-btn>
+                <v-sheet
+                    v-if="isDragged"
+                    @dragleave="onDragleave"
+                    @dragover="onDragover"
+                    @drop="onDrop"
+                    class="taginput input set-type import-size"
+                    color="#eeeeee"
+                    dragenter="onDragenter"
+                    height="200px"
+                    stacked
+                    width="200px"
+                >
+                    <div class="icon-header"></div>
+                    <div class="icon-body">
+                        <v-icon size="36px"> mdi-tray-arrow-down </v-icon>
+                        <span> IMPORT </span>
+                    </div>
+                </v-sheet>
+                <v-sheet
+                    v-else
+                    @dragenter="onDragenter"
+                    @dragover="onDragover"
+                    @drop="onDrop"
+                    class="taginput input set-type import-size"
+                    color="transparent"
+                    height="200px"
+                    stacked
+                    width="200px"
+                >
+                    <div class="icon-header"></div>
+                    <div class="icon-body">
+                        <v-icon size="36px"> mdi-tray-arrow-down </v-icon>
+                        <span> IMPORT </span>
+                    </div>
+                </v-sheet>
             </v-sheet>
             <v-sheet v-else class="card-form" color="transparent">
                 <v-btn
@@ -62,6 +97,15 @@
                         Open...
                     </button>
                 </div>
+                <div>
+                    <label class="item">
+                        <div :style="{ display: 'flex', alignItems: 'center', cursor: 'pointer' }">
+                            <v-icon>mdi-tray-arrow-down</v-icon>
+                            Import...
+                        </div>
+                        <input @change="onUpload" accept=".wrk, .sql, .tql, ,.taz" class="file-import" type="file" />
+                    </label>
+                </div>
                 <div v-for="(aRefer, aIdx) in cReferences" :key="aIdx">
                     <div class="referOption">
                         <v-icon> mdi-folder</v-icon>
@@ -79,14 +123,13 @@
             </div>
         </v-sheet>
     </v-sheet>
-    <PopupWrap @eClosePopup="onClosePopup" :p-info="'open'" :p-new-open="'NewOpen'" :p-show="sDialog" :p-type="sPopupType" :p-width="cWidthPopup" />
+    <PopupWrap @eClosePopup="onClosePopup" :p-info="'open'" :p-new-open="'NewOpen'" :p-show="sDialog" :p-type="sPopupType" p-upload-type="" :p-width="cWidthPopup" />
 </template>
 <script setup lang="ts">
 import Vue, { ref, computed, defineEmits } from 'vue';
 import { MutationTypes } from '../../../store/mutations';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { store } from '../../../store';
-import { TabList } from '../../../interface/tagView';
 import { PopupType, IconList } from '@/enums/app';
 
 import { WIDTH_DEFAULT } from '../../header/constant';
@@ -149,15 +192,118 @@ const gTabList = computed(() => store.state.gTabList);
 const cLocalStorageOption = computed(() => !!localStorage.getItem('experimentMode'));
 const sDialog = ref<boolean>(false);
 
-const onClickPopupItem = (aPopupName: PopupType) => {
-    sPopupType.value = aPopupName;
-    sDialog.value = true;
-};
+const isDragged = ref<boolean>(false);
 
 const gBoard = computed(() => {
     const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
     return gTabList.value[sIdx];
 });
+
+const onClickPopupItem = (aPopupName: PopupType) => {
+    sPopupType.value = aPopupName;
+    sDialog.value = true;
+};
+
+const onDragenter = () => {
+    isDragged.value = true;
+};
+const onDragleave = () => {
+    isDragged.value = false;
+};
+const onDragover = (event: any) => {
+    event.preventDefault();
+};
+
+const readFile = async (aItem: any) => {
+    return (await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = async (e: any) => {
+            resolve(e.target.result);
+        };
+        reader.readAsText(aItem);
+    })) as string;
+};
+
+const onUpload = async (aEvent: any) => {
+    const sFile = aEvent.target.files[0];
+    const extension = sFile.name.slice(-4);
+
+    if (extension === '.wrk' || extension === '.sql' || extension === '.tql' || extension === '.taz') {
+        const sResult: string = await readFile(aEvent.target.files[0]);
+
+        uploadFile(sFile, sResult);
+    } else {
+        toast('Please check the extension.', {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
+    }
+};
+
+const onDrop = async (aEvent: any) => {
+    isDragged.value = false;
+    const sFile = aEvent.dataTransfer.files[0];
+    aEvent.preventDefault();
+    const extension = sFile.name.slice(-4);
+    if (extension === '.wrk' || extension === '.sql' || extension === '.tql' || extension === '.taz') {
+        const sResult: string = await readFile(sFile);
+
+        uploadFile(sFile, sResult);
+    } else {
+        toast('Please check the extension.', {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
+    }
+};
+
+const uploadFile = (aItem: any, bItem: string) => {
+    const sIdx = gTabList.value.findIndex((aItem) => aItem.board_id === gSelectedTab.value);
+
+    const sTypeOption = aItem.name.split('.')[1];
+
+    let sType;
+    if (sTypeOption === 'sql') sType = 'SQL Editor';
+    else if (sTypeOption === 'tql') sType = 'Tql';
+    else if (sTypeOption === 'taz') sType = 'dashboard';
+    else if (sTypeOption === 'wrk') sType = 'wrk';
+    else sType = 'Terminal';
+
+    if (sType === 'dashboard') {
+        const sDashboard = JSON.parse(bItem);
+        sDashboard.board_id = new Date().getTime();
+        store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
+        store.commit(MutationTypes.setSelectedTab, sDashboard.board_id);
+        gBoard.value.board_name = aItem.name;
+    } else {
+        const sNode = {
+            ...gTabList.value[sIdx],
+            board_id: String(new Date().getTime()),
+            type: sType,
+            result: new Map(),
+            board_name: aItem.name,
+            savedCode: '',
+            path: '',
+            edit: false,
+        };
+
+        store.commit(MutationTypes.changeTab, sNode);
+        store.commit(MutationTypes.setSelectedTab, sNode.board_id);
+
+        if (sTypeOption === 'wrk') {
+            gBoard.value.sheet = JSON.parse(bItem).data;
+            gBoard.value.savedCode = JSON.parse(bItem).data;
+        } else {
+            gBoard.value.code = bItem;
+            gBoard.value.savedCode = bItem;
+        }
+        gBoard.value.board_name = aItem.name;
+    }
+};
 
 const changeName = (aType: any, aName: string) => {
     const sFilterList = gTabList.value.filter((bItem) => bItem.type === aType);
@@ -267,7 +413,7 @@ const onSetting = () => {
                 id: String(new Date().getTime()) + (Math.random() * 1000).toFixed(),
                 type: 'mrk',
                 contents: '# Lorem ipsum \n Lorem ipsum dolor sit amet,\n consectetur adipiscing elit,\n sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-                result: '' as any,
+                result: new Map() as any,
                 status: false,
                 height: 200,
                 lang: [
@@ -319,6 +465,28 @@ const onSetting = () => {
             @include button-effect-color;
         }
     }
+}
+.import-size {
+    box-shadow: none;
+    border: 1px dashed #dbe2ea;
+    justify-content: center;
+    align-items: center;
+    border-radius: 6px;
+    .icon-body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        i,
+        span {
+            opacity: 0.6;
+        }
+    }
+}
+.import-size-hover {
+    box-shadow: none;
+    border: 1px dashed #dbe2ea;
+    background: #eeeeee;
 }
 
 .taginput {
@@ -399,6 +567,17 @@ const onSetting = () => {
         letter-spacing: 0px;
     }
 }
+.upload-field {
+    z-index: 99999;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: black;
+    opacity: 0.5;
+}
 
 .add-tab-form {
     width: 70%;
@@ -453,9 +632,9 @@ const onSetting = () => {
     button {
         display: flex;
         align-items: center;
-        i {
-            margin-right: 4px;
-        }
+    }
+    i {
+        margin-right: 4px;
     }
     gap: 8px;
     display: flex;
