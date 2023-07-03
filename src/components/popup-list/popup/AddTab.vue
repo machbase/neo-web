@@ -88,7 +88,7 @@
             </v-sheet>
 
             <div class="popup__btn-group next-btn">
-                <v-divider color="info" :thickness="2"></v-divider>
+                <v-divider color="#a4a4a4" :thickness="2"></v-divider>
             </div>
             <div class="link-list">
                 <div>

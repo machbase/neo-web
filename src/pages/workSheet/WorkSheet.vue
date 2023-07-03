@@ -50,7 +50,11 @@
                 :slider-color="'transparent'"
                 :slider-hover-color="`transparent`"
                 :slider-width="5"
-                :style="cIsDarkMode ? { background: '#24273a', borderRadius: '6px' } : { background: '#e7ecff', borderRadius: '6px' }"
+                :style="
+                    cIsDarkMode
+                        ? { boxShadow: ' 0 1px 4px 0 rgba(0,0,0,.2) !important', borderRadius: '6px' }
+                        : { boxShadow: ' 0 1px 4px 0 rgba(0,0,0,.2) !important', borderRadius: '6px' }
+                "
                 width="100%"
             >
                 <v-sheet color="transparent" height="100%">
@@ -329,6 +333,11 @@ const addSheet = (aIdx: number, aType: string) => {
 const fullStart = () => {
     gBoard.value.sheet.forEach((aItem: any, aIdx: number) => {
         checkCtrl({ ctrlKey: true }, aIdx, 'mouse');
+    });
+};
+const allResize = (aType :boolean) => {
+    gBoard.value.sheet.forEach((aItem: any, aIdx: number) => {
+        aItem.minimal = aType
     });
 };
 
@@ -825,7 +834,7 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     .result-tool-form {
-        padding-top: 4px;
+        padding-top: 12px;
         display: flex;
         justify-content: end;
     }
