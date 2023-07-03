@@ -100,7 +100,7 @@
                 <div>
                     <label class="item">
                         <div :style="{ display: 'flex', alignItems: 'center', cursor: 'pointer' }">
-                            <v-icon>mdi-tray-arrow-down</v-icon>
+                            <v-icon>mdi-folder-upload</v-icon>
                             Import...
                         </div>
                         <input @change="onUpload" accept=".wrk, .sql, .tql, ,.taz" class="file-import" type="file" />
@@ -379,7 +379,7 @@ const showDoc = async (aItem: any) => {
             store.commit(MutationTypes.setSelectedTab, sNode.board_id);
 
             if (sTypeOption === 'wrk') {
-                gBoard.value.sheet = sData;
+                gBoard.value.sheet = sData.data;
             } else {
                 gBoard.value.code = sData;
             }

@@ -823,6 +823,7 @@ onMounted(() => {
 
 .result-form {
     display: flex;
+    justify-content: space-between;
     .result-tool-form {
         padding-top: 4px;
         display: flex;
