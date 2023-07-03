@@ -88,7 +88,7 @@
             </v-sheet>
 
             <div class="popup__btn-group next-btn">
-                <v-divider color="info" :thickness="2"></v-divider>
+                <v-divider color="#a4a4a4" :thickness="2"></v-divider>
             </div>
             <div class="link-list">
                 <div>
@@ -100,7 +100,7 @@
                 <div>
                     <label class="item">
                         <div :style="{ display: 'flex', alignItems: 'center', cursor: 'pointer' }">
-                            <v-icon>mdi-tray-arrow-down</v-icon>
+                            <v-icon>mdi-folder-upload</v-icon>
                             Import...
                         </div>
                         <input @change="onUpload" accept=".wrk, .sql, .tql, ,.taz" class="file-import" type="file" />
@@ -379,7 +379,7 @@ const showDoc = async (aItem: any) => {
             store.commit(MutationTypes.setSelectedTab, sNode.board_id);
 
             if (sTypeOption === 'wrk') {
-                gBoard.value.sheet = sData;
+                gBoard.value.sheet = sData.data;
             } else {
                 gBoard.value.code = sData;
             }
@@ -451,7 +451,7 @@ const onSetting = () => {
     display: flex;
     justify-content: end;
     margin: 0;
-    padding: 5% 0;
+    padding: 4% 0;
 }
 .popup {
     font-size: 12px;
@@ -553,11 +553,11 @@ const onSetting = () => {
 }
 .header {
     flex-direction: column;
-    height: 16%;
+    height: 13%;
     align-items: center;
     justify-content: center;
     display: flex;
-    font-size: 40px;
+    font-size: 32px;
     font-weight: 600;
     letter-spacing: 0px;
     .Information {
