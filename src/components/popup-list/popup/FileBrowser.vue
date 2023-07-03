@@ -109,7 +109,7 @@ import { BoardInfo } from '../../../interface/chart';
 import { IconList } from '../../../enums/app';
 interface propsOption {
     pInfo: string;
-    pNewOpen: string;
+    pNewOpen?: string;
     pUploadType: string;
 }
 const props = defineProps<propsOption>();

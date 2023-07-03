@@ -14,104 +14,117 @@
             :style="aSheet.status && aSheet.type === 'mrk' && aSheet.contents === '' ? { minHeight: '30px' } : {}"
             width="80%"
         >
-            <div v-if="!aSheet.minimal" class="create-sheet">
-                <v-btn @click="checkCtrl({ ctrlKey: true }, aIdx, 'mouse')" class="create-sheet-top-btn" density="comfortable" size="20px" variant="plain">
-                    <v-icon size="20px"> mdi-play-outline </v-icon>
-                </v-btn>
-                <v-btn @click="sortSheet(aIdx, 'top')" class="create-sheet-top-btn" density="comfortable" :disabled="aIdx === 0" size="20px" variant="plain">
-                    <v-icon size="20px"> mdi-arrow-up </v-icon>
-                </v-btn>
+            <v-sheet class="cell-form" color="transparent" width="calc(100% - 30px)">
+                <div v-if="!aSheet.minimal" class="create-sheet">
+                    <v-btn @click="checkCtrl({ ctrlKey: true }, aIdx, 'mouse')" class="create-sheet-top-btn" density="comfortable" size="20px" variant="plain">
+                        <v-icon size="20px"> mdi-play-outline </v-icon>
+                    </v-btn>
+                    <v-btn @click="sortSheet(aIdx, 'top')" class="create-sheet-top-btn" density="comfortable" :disabled="aIdx === 0" size="20px" variant="plain">
+                        <v-icon size="20px"> mdi-arrow-up </v-icon>
+                    </v-btn>
+                    <v-btn
+                        @click="sortSheet(aIdx, 'bottom')"
+                        class="create-sheet-top-btn"
+                        density="comfortable"
+                        :disabled="aIdx === gBoard.sheet.length - 1"
+                        size="20px"
+                        variant="plain"
+                    >
+                        <v-icon size="20px"> mdi-arrow-down </v-icon>
+                    </v-btn>
+                    <v-btn @click="addSheet(aIdx, 'top')" class="create-sheet-top-btn" density="comfortable" size="20px" variant="plain">
+                        <v-icon size="20px"> mdi-shape-rectangle-plus </v-icon>
+                    </v-btn>
+                    <v-btn @click="addSheet(aIdx, 'bottom')" class="create-sheet-bottom-btn" density="comfortable" size="20px" variant="plain">
+                        <v-icon size="20px"> mdi-shape-rectangle-plus </v-icon>
+                    </v-btn>
+                    <v-btn @click="deleteSheet(aIdx)" class="create-sheet-top-btn" density="comfortable" :disabled="gBoard.sheet.length === 1" size="18px" variant="plain">
+                        <v-icon size="20px"> mdi-delete-outline </v-icon>
+                    </v-btn>
+                </div>
+                <ResizeRow
+                    v-if="!aSheet.minimal"
+                    @isDragging="setHeight($event, aIdx)"
+                    :height="aSheet.height"
+                    :slider-bg-color="'transparent'"
+                    :slider-bg-hover-color="`transparent`"
+                    :slider-color="'transparent'"
+                    :slider-hover-color="`transparent`"
+                    :slider-width="5"
+                    :style="
+                        cIsDarkMode
+                            ? { boxShadow: ' 0 1px 4px 0 rgba(255,255,255,.2) !important', borderRadius: '6px' }
+                            : { boxShadow: ' 0 1px 4px 0 rgba(0,0,0,.2) !important', borderRadius: '6px' }
+                    "
+                    width="100%"
+                >
+                    <v-sheet color="transparent" height="100%">
+                        <CodeEditor
+                            v-model="aSheet.contents"
+                            @keydown.enter.stop="checkCtrl($event, aIdx, 'key')"
+                            @lang="(aLang) => getLanguage(aLang, aIdx)"
+                            :autofocus="true"
+                            border_radius="0"
+                            :copy-code="false"
+                            :font-size="cPrefrence + 'px'"
+                            :header="true"
+                            height="100%"
+                            :languages="aSheet.lang"
+                            :line-nums="false"
+                            theme=""
+                            width="100%"
+                        />
+                    </v-sheet>
+                </ResizeRow>
+                <v-sheet v-if="aSheet.status" class="result-form" color="transparent">
+                    <v-sheet v-if="aSheet.result === 'fail'" class="result-set-form" color="transparent">
+                        <div>{{ gBoard.result.get(aSheet.id) }}</div>
+                    </v-sheet>
+                    <v-sheet v-else-if="aSheet.type === 'mrk' || aSheet.type === 'sql'" color="transparent" :style="{ display: 'flex', width: '100%' }">
+                        <Markdown
+                            :ref="(el) => (rResultForm[aSheet.id] = el)"
+                            :p-contents="aSheet.type === 'mrk' ? aSheet.contents : checkMapResult(aSheet.id) && gBoard.result.get(aSheet.id)"
+                            :p-type="aSheet.type"
+                        />
+                    </v-sheet>
+                    <v-sheet v-else-if="aSheet.type === 'json'" class="result-set-form" color="transparent">
+                        <pre>{{ changeJsonFormat(checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : '') }}</pre>
+                    </v-sheet>
+                    <v-sheet v-else-if="aSheet.type === 'tql'" color="transparent" width="100%">
+                        <iframe
+                            v-if="aSheet.tqlType === 'html'"
+                            ref="iframeDom"
+                            id="iframeMapViewComponent"
+                            @load="setSize(aSheet.id)"
+                            frameborder="0"
+                            :srcdoc="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : ''"
+                            width="100%"
+                        ></iframe>
+                        <Table
+                            v-if="aSheet.tqlType === 'csv'"
+                            :headers="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id).columns : ''"
+                            :items="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id).rows : ''"
+                            :p-tab-option="'wrk'"
+                            p-timezone="ns"
+                            :p-type="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id).types : ''"
+                        />
+                        <v-sheet v-if="aSheet.tqlType === 'csv'" class="result-set-form" color="transparent" max-height="500px">
+                            <div class="total-count-form">{{ setTotalCount(sCsvDataLeng) }}</div>
+                        </v-sheet>
+                    </v-sheet>
+                </v-sheet>
+            </v-sheet>
+            <v-sheet class="result-tool-form" color="transparent" width="30px">
                 <v-btn
-                    @click="sortSheet(aIdx, 'bottom')"
-                    class="create-sheet-top-btn"
+                    v-if="aSheet.type === 'mrk' ? true : checkMapResult(aSheet.id)"
+                    @click="setMinimal(aIdx)"
+                    class="minimal-sheet-btn"
                     density="comfortable"
-                    :disabled="aIdx === gBoard.sheet.length - 1"
                     size="20px"
                     variant="plain"
                 >
-                    <v-icon size="20px"> mdi-arrow-down </v-icon>
+                    <v-icon size="20px"> {{ aSheet.minimal ? 'mdi-arrow-expand-vertical' : 'mdi-arrow-collapse-vertical' }}</v-icon>
                 </v-btn>
-                <v-btn @click="addSheet(aIdx, 'top')" class="create-sheet-top-btn" density="comfortable" size="20px" variant="plain">
-                    <v-icon size="20px"> mdi-shape-rectangle-plus </v-icon>
-                </v-btn>
-                <v-btn @click="addSheet(aIdx, 'bottom')" class="create-sheet-bottom-btn" density="comfortable" size="20px" variant="plain">
-                    <v-icon size="20px"> mdi-shape-rectangle-plus </v-icon>
-                </v-btn>
-                <v-btn @click="deleteSheet(aIdx)" class="create-sheet-top-btn" density="comfortable" :disabled="gBoard.sheet.length === 1" size="18px" variant="plain">
-                    <v-icon size="20px"> mdi-delete-outline </v-icon>
-                </v-btn>
-            </div>
-            <ResizeRow
-                v-if="!aSheet.minimal"
-                @isDragging="setHeight($event, aIdx)"
-                :height="aSheet.height"
-                :slider-bg-color="'transparent'"
-                :slider-bg-hover-color="`transparent`"
-                :slider-color="'transparent'"
-                :slider-hover-color="`transparent`"
-                :slider-width="5"
-                :style="
-                    cIsDarkMode
-                        ? { boxShadow: ' 0 1px 4px 0 rgba(0,0,0,.2) !important', borderRadius: '6px' }
-                        : { boxShadow: ' 0 1px 4px 0 rgba(0,0,0,.2) !important', borderRadius: '6px' }
-                "
-                width="100%"
-            >
-                <v-sheet color="transparent" height="100%">
-                    <CodeEditor
-                        v-model="aSheet.contents"
-                        @keydown.enter.stop="checkCtrl($event, aIdx, 'key')"
-                        @lang="(aLang) => getLanguage(aLang, aIdx)"
-                        :autofocus="true"
-                        border_radius="0"
-                        :copy-code="false"
-                        :font-size="cPrefrence + 'px'"
-                        :header="true"
-                        height="100%"
-                        :languages="aSheet.lang"
-                        :line-nums="false"
-                        theme=""
-                        width="100%"
-                    />
-                </v-sheet>
-            </ResizeRow>
-            <v-sheet v-if="aSheet.status" class="result-form" color="transparent">
-                <v-sheet v-if="aSheet.result === 'fail'" class="result-set-form" color="transparent">
-                    <div>{{ gBoard.result.get(aSheet.id) }}</div>
-                </v-sheet>
-                <v-sheet v-else-if="aSheet.type === 'mrk' || aSheet.type === 'sql'" color="transparent" :style="{ display: 'flex', width: '100%' }">
-                    <Markdown :ref="(el) => (rResultForm[aSheet.id] = el)" :p-contents="aSheet.type === 'mrk' ? aSheet.contents : checkMapResult(aSheet.id) && gBoard.result.get(aSheet.id)" :p-type="aSheet.type" />
-                </v-sheet>
-                <v-sheet v-else-if="aSheet.type === 'json'" class="result-set-form" color="transparent">
-                    <pre>{{ changeJsonFormat(checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : '') }}</pre>
-                </v-sheet>
-                <v-sheet v-else-if="aSheet.type === 'tql'" color="transparent" width="calc(100% - 20px)">
-                    <iframe
-                        v-if="aSheet.tqlType === 'html'"
-                        ref="iframeDom"
-                        id="iframeMapViewComponent"
-                        @load="setSize(aSheet.id)"
-                        frameborder="0"
-                        :srcdoc="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : ''"
-                        width="100%"
-                    ></iframe>
-                    <Table
-                        v-if="aSheet.tqlType === 'csv'"
-                        :headers="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id).columns : ''"
-                        :items="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id).rows : ''"
-                        :p-tab-option="'wrk'"
-                        p-timezone="ns"
-                        :p-type="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id).types : ''"
-                    />
-                    <v-sheet v-if="aSheet.tqlType === 'csv'" class="result-set-form" color="transparent" max-height="500px">
-                        <div class="total-count-form">{{ setTotalCount(sCsvDataLeng) }}</div>
-                    </v-sheet>
-                </v-sheet>
-                <v-sheet class="result-tool-form" color="transparent" width="20px">
-                    <v-btn v-if="aSheet.type === 'mrk' ? true : checkMapResult(aSheet.id)" @click="setMinimal(aIdx)" class="minimal-sheet-btn" density="comfortable" size="20px" variant="plain">
-                        <v-icon size="20px"> {{ aSheet.minimal ? 'mdi-arrow-expand-vertical' : 'mdi-arrow-collapse-vertical' }}</v-icon>
-                    </v-btn>
-                </v-sheet>
             </v-sheet>
         </v-sheet>
     </v-sheet>
@@ -272,7 +285,7 @@ const getLanguage = (aLang: string, aIdx: number) => {
 
 const setHeight = (aEvent: any, aIdx: number) => {
     if (!aEvent) {
-        gBoard.value.sheet[aIdx].height = rSheet.value[gBoard.value.sheet[aIdx].id].$el.children[1].clientHeight;
+        gBoard.value.sheet[aIdx].height = rSheet.value[gBoard.value.sheet[aIdx].id].$el.children[0]?.children[1].clientHeight;
     }
 };
 
@@ -287,7 +300,7 @@ const sortSheet = (aIdx: number, aType: string) => {
     }
     const sIdx = gBoard.value.sheet.findIndex((aItem: any) => aItem.status === false);
     if (sIdx !== -1) {
-        const sExistingEl = rSheet.value[gBoard.value.sheet[aIdx].id].$el?.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
+        const sExistingEl = rSheet.value[gBoard.value.sheet[aIdx].id].$el?.children[0]?.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
         if (sExistingEl) {
             sExistingEl.focus();
         }
@@ -323,7 +336,7 @@ const addSheet = (aIdx: number, aType: string) => {
 
     const sIdx = gBoard.value.sheet.findIndex((aItem: any) => aItem.status === false);
     if (sIdx !== -1) {
-        const sExistingEl = rSheet.value[gBoard.value.sheet[aIdx].id].$el?.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
+        const sExistingEl = rSheet.value[gBoard.value.sheet[aIdx].id].$el?.children[0]?.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
         if (sExistingEl) {
             sExistingEl.focus();
         }
@@ -335,9 +348,9 @@ const fullStart = () => {
         checkCtrl({ ctrlKey: true }, aIdx, 'mouse');
     });
 };
-const allResize = (aType :boolean) => {
+const allResize = (aType: boolean) => {
     gBoard.value.sheet.forEach((aItem: any, aIdx: number) => {
-        aItem.minimal = aType
+        aItem.minimal = aType;
     });
 };
 
@@ -352,7 +365,8 @@ const changeStatus = (aIdx: number) => {
     if (gBoard.value.sheet[aIdx].status) {
         gBoard.value.sheet[aIdx].status = !gBoard.value.sheet[aIdx].status;
         nextTick(() => {
-            const sNewExistEl = rSheet.value[gBoard.value.sheet[aIdx].id].$el?.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
+            const sNewExistEl =
+                rSheet.value[gBoard.value.sheet[aIdx].id].$el?.children[0]?.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
             if (sNewExistEl) {
                 sNewExistEl.focus();
                 sNewExistEl.title = '';
@@ -470,14 +484,14 @@ const setSize = (aId: number) => {
 
     if (sValue.minimal) {
         nextTick(() => {
-            rSheet.value[aId].$el.children[0].children[0].children[0].style.height = `${
-                rSheet.value[aId].$el.children[0].children[0].children[0].contentDocument.body.clientHeight + 60
+            rSheet.value[aId].$el.children[0].children[0].children[0].children[0].style.height = `${
+                rSheet.value[aId].$el.children[0].children[0].children[0].children[0].contentDocument.body.clientHeight + 60
             }px`;
         });
     } else {
         nextTick(() => {
-            rSheet.value[aId].$el.children[2].children[0].children[0].style.height = `${
-                rSheet.value[aId].$el.children[2].children[0].children[0].contentDocument.body.clientHeight + 60
+            rSheet.value[aId].$el.children[0].children[2].children[0].children[0].style.height = `${
+                rSheet.value[aId].$el.children[0].children[2].children[0].children[0].contentDocument.body.clientHeight + 60
             }px`;
         });
     }
@@ -485,7 +499,7 @@ const setSize = (aId: number) => {
 
 onMounted(() => {
     for (const aItem in rSheet.value) {
-        const sDefaultSheet = rSheet.value[aItem].$el.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
+        const sDefaultSheet = rSheet.value[aItem].$el.children[0]?.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
         if (sDefaultSheet) {
             sDefaultSheet.title = '';
         }
@@ -503,7 +517,7 @@ onMounted(() => {
 }
 .save-sheet {
     display: flex;
-    padding: 8px 4px;
+    padding: 8px 34px;
     justify-content: end;
 
     .icon {
@@ -514,6 +528,7 @@ onMounted(() => {
     padding: 20px;
 }
 .sheet-form {
+    display: flex;
     width: 100%;
     position: relative;
     margin: 5px 0px;
@@ -582,6 +597,9 @@ onMounted(() => {
                 color: theme-get(bg-tab-content);
             }
         }
+    }
+    .cell-form {
+        position: relative;
     }
     .code-editor {
         .code-area {
@@ -830,14 +848,15 @@ onMounted(() => {
     }
 }
 
+.result-tool-form {
+    display: flex;
+    justify-content: center;
+    padding-top: 8px;
+}
 .result-form {
     display: flex;
     justify-content: space-between;
-    .result-tool-form {
-        padding-top: 12px;
-        display: flex;
-        justify-content: end;
-    }
+
     position: relative;
     overflow: auto;
     .minimal-sheet-btn {

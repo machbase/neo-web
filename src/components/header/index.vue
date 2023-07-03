@@ -323,18 +323,16 @@ const deleteTab = (aId: string) => {
     }
     const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === aId);
 
-    const sCopyTabList = JSON.parse(JSON.stringify(gTabList.value));
-
     if (gSelectedTab.value === aId) {
-        if (sIdx === sCopyTabList.length - 1) {
-            store.commit(MutationTypes.setSelectedTab, sCopyTabList[sIdx - 1].board_id);
+        if (sIdx === gTabList.value.length - 1) {
+            store.commit(MutationTypes.setSelectedTab, gTabList.value[sIdx - 1].board_id);
         } else {
-            store.commit(MutationTypes.setSelectedTab, sCopyTabList[sIdx + 1].board_id);
+            store.commit(MutationTypes.setSelectedTab, gTabList.value[sIdx + 1].board_id);
         }
     }
 
-    sCopyTabList.splice(sIdx, 1);
-    store.commit(MutationTypes.changeTabList, sCopyTabList as BoardInfo);
+    gTabList.value.splice(sIdx, 1);
+    store.commit(MutationTypes.changeTabList, gTabList.value as BoardInfo);
 };
 
 const onUploadChart = (aEvent: any) => {

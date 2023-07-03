@@ -370,6 +370,7 @@ const showDoc = async (aItem: any) => {
                 type: sType,
                 result: new Map(),
                 board_name: aItem.title,
+                sheet: [],
                 savedCode: '',
                 path: '',
                 edit: false,
