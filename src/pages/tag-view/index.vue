@@ -75,6 +75,7 @@ import { useRoute } from 'vue-router';
 import i_b_close from '@/assets/image/i_b_close.png';
 import { MutationTypes } from '../../store/mutations';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from '@/components/header/constant';
+import { getLogin } from '../../api/repository/login';
 
 const route = useRoute();
 const store = useStore();
@@ -217,6 +218,7 @@ const validateTest = async (joiSchema: any, testObject: any) => {
 };
 
 onMounted(async () => {
+    getLogin();
     nextTick(() => {
         if (route.params.id) {
             gBoard.value.type = route.params.type;
