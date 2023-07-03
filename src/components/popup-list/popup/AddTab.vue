@@ -451,7 +451,7 @@ const onSetting = () => {
     display: flex;
     justify-content: end;
     margin: 0;
-    padding: 5% 0;
+    padding: 4% 0;
 }
 .popup {
     font-size: 12px;
@@ -553,11 +553,11 @@ const onSetting = () => {
 }
 .header {
     flex-direction: column;
-    height: 16%;
+    height: 13%;
     align-items: center;
     justify-content: center;
     display: flex;
-    font-size: 40px;
+    font-size: 32px;
     font-weight: 600;
     letter-spacing: 0px;
     .Information {

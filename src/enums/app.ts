@@ -38,7 +38,7 @@ export enum IconList {
     LINK = 'mdi-link-variant',
     SQL = 'mdi-file-document-outline',
     TQL = 'mdi-chart-scatter-plot',
-    WRK = 'mdi-notebook-outline',
+    WRK = 'mdi-clipboard-text-play-outline',
     TAZ = 'mdi-chart-line',
     SHELL = 'mdi-console',
     NEW = 'mdi-note-outline',
