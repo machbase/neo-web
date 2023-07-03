@@ -109,7 +109,7 @@ import { BoardInfo } from '../../../interface/chart';
 import { IconList } from '../../../enums/app';
 interface propsOption {
     pInfo: string;
-    pNewOpen: string;
+    pNewOpen?: string;
     pUploadType: string;
 }
 const props = defineProps<propsOption>();
@@ -334,7 +334,7 @@ const getFile = async () => {
 
                 if (sTypeOption === 'wrk') {
                     gBoard.value.sheet = JSON.parse(sData).data;
-                    gBoard.value.savedCode = JSON.parse(sData).data;
+                    gBoard.value.savedCode = JSON.stringify(JSON.parse(sData).data);
                 } else {
                     gBoard.value.code = sData;
                     gBoard.value.savedCode = sData;
@@ -361,7 +361,7 @@ const getFile = async () => {
             } else {
                 if (sType === 'wrk') {
                     gBoard.value.sheet = JSON.parse(sData).data;
-                    gBoard.value.savedCode = JSON.parse(sData).data;
+                    gBoard.value.savedCode = JSON.stringify(JSON.parse(sData).data);
                 } else {
                     gBoard.value.code = sData;
                     gBoard.value.savedCode = sData;

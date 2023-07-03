@@ -93,6 +93,7 @@
   }
   
   .markdown-body {
+    width: 100%;
     -ms-text-size-adjust: 100%;
     -webkit-text-size-adjust: 100%;
     margin: 0;
