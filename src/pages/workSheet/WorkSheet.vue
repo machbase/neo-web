@@ -92,7 +92,7 @@
                     </v-sheet>
                     <v-sheet v-else-if="aSheet.type === 'tql'" color="transparent" width="100%">
                         <iframe
-                            v-if="aSheet.tqlType === 'html'"
+                            v-if="checkMapResult(aSheet.id) && aSheet.tqlType === 'html'"
                             ref="iframeDom"
                             id="iframeMapViewComponent"
                             @load="setSize(aSheet.id)"
@@ -531,7 +531,7 @@ onMounted(() => {
     display: flex;
     width: 100%;
     position: relative;
-    margin: 5px 0px;
+    margin: 15px 0px;
 }
 
 .create-sheet {
