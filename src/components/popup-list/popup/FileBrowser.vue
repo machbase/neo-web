@@ -334,7 +334,7 @@ const getFile = async () => {
 
                 if (sTypeOption === 'wrk') {
                     gBoard.value.sheet = JSON.parse(sData).data;
-                    gBoard.value.savedCode = JSON.parse(sData).data;
+                    gBoard.value.savedCode = JSON.stringify(JSON.parse(sData).data);
                 } else {
                     gBoard.value.code = sData;
                     gBoard.value.savedCode = sData;
