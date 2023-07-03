@@ -80,7 +80,7 @@
                     <div>{{ gBoard.result.get(aSheet.id) }}</div>
                 </v-sheet>
                 <v-sheet v-else-if="aSheet.type === 'mrk' || aSheet.type === 'sql'" color="transparent" :style="{ display: 'flex', width: '100%' }">
-                    <Markdown :ref="(el) => (rResultForm[aSheet.id] = el)" :p-contents="checkMapResult(aSheet.id) && gBoard.result.get(aSheet.id)" :p-type="aSheet.type" />
+                    <Markdown :ref="(el) => (rResultForm[aSheet.id] = el)" :p-contents="aSheet.type === 'mrk' ? aSheet.contents : checkMapResult(aSheet.id) && gBoard.result.get(aSheet.id)" :p-type="aSheet.type" />
                 </v-sheet>
                 <v-sheet v-else-if="aSheet.type === 'json'" class="result-set-form" color="transparent">
                     <pre>{{ changeJsonFormat(checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : '') }}</pre>
@@ -108,7 +108,7 @@
                     </v-sheet>
                 </v-sheet>
                 <v-sheet class="result-tool-form" color="transparent" width="20px">
-                    <v-btn v-if="checkMapResult(aSheet.id)" @click="setMinimal(aIdx)" class="minimal-sheet-btn" density="comfortable" size="20px" variant="plain">
+                    <v-btn v-if="aSheet.type === 'mrk' ? true : checkMapResult(aSheet.id)" @click="setMinimal(aIdx)" class="minimal-sheet-btn" density="comfortable" size="20px" variant="plain">
                         <v-icon size="20px"> {{ aSheet.minimal ? 'mdi-arrow-expand-vertical' : 'mdi-arrow-collapse-vertical' }}</v-icon>
                     </v-btn>
                 </v-sheet>
