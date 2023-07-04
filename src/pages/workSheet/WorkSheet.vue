@@ -281,7 +281,10 @@ const getLanguage = (aLang: string, aIdx: number) => {
 
     if (aLang === 'SQL') gBoard.value.sheet[aIdx].type = 'sql';
     if (aLang === 'javascript') gBoard.value.sheet[aIdx].type = 'tql';
-    if (aLang === 'markdown') gBoard.value.sheet[aIdx].type = 'mrk';
+    if (aLang === 'markdown') {
+        gBoard.value.sheet[aIdx].type = 'mrk';
+        gBoard.value.sheet[aIdx].result = '';
+    }
 };
 
 const setHeight = (aEvent: any, aIdx: number) => {
