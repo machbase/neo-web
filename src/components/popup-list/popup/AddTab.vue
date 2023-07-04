@@ -41,8 +41,8 @@
                 >
                     <div class="icon-header"></div>
                     <div class="icon-body">
-                        <v-icon size="36px"> mdi-tray-arrow-down </v-icon>
-                        <span> IMPORT </span>
+                        <v-icon size="36px"> mdi-parachute </v-icon>
+                        <span> DROP HERE </span>
                     </div>
                 </v-sheet>
                 <v-sheet
@@ -58,8 +58,8 @@
                 >
                     <div class="icon-header"></div>
                     <div class="icon-body">
-                        <v-icon size="36px"> mdi-tray-arrow-down </v-icon>
-                        <span> IMPORT </span>
+                        <v-icon size="36px"> mdi-parachute </v-icon>
+                        <span> DROP HERE </span>
                     </div>
                 </v-sheet>
             </v-sheet>
@@ -94,14 +94,14 @@
                 <div>
                     <button @click="onClickPopupItem(PopupType.FILE_BROWSER)">
                         <v-icon>mdi-folder-open</v-icon>
-                        Open...
+                        Open a file from the server...
                     </button>
                 </div>
                 <div>
                     <label class="item">
                         <div :style="{ display: 'flex', alignItems: 'center', cursor: 'pointer' }">
                             <v-icon>mdi-folder-upload</v-icon>
-                            Import...
+                            Load a local disk file...
                         </div>
                         <input @change="onUpload" accept=".wrk, .sql, .tql, ,.taz" class="file-import" type="file" />
                     </label>
@@ -177,6 +177,7 @@ const cWidthPopup = computed((): string => {
 const sOptions = [
     { name: 'SQL', type: 'SQL Editor', icon: IconList.SQL },
     { name: 'TQL', type: 'Tql', icon: IconList.TQL },
+    { name: 'WorkSheet', type: 'wrk', icon: IconList.WRK },
     { name: 'Tag Analyzer', type: 'dashboard', icon: IconList.TAZ },
     { name: 'Shell', type: 'Terminal', icon: IconList.SHELL },
 ];
@@ -554,6 +555,7 @@ const onSetting = () => {
 }
 .header {
     flex-direction: column;
+    padding-top: 3%;
     height: 13%;
     align-items: center;
     justify-content: center;
