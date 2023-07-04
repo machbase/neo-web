@@ -45,6 +45,7 @@
                 <ResizeRow
                     v-if="!aSheet.minimal"
                     @isDragging="setHeight($event, aIdx)"
+                    class="resize-form"
                     :height="aSheet.height"
                     :slider-bg-color="'transparent'"
                     :slider-bg-hover-color="`transparent`"
@@ -309,6 +310,13 @@ const sortSheet = (aIdx: number, aType: string) => {
 
 const setMinimal = (aIdx: number) => {
     gBoard.value.sheet[aIdx].minimal = !gBoard.value.sheet[aIdx].minimal;
+
+    nextTick(() => {
+        const sTextarea = rSheet.value[gBoard.value.sheet[aIdx].id]?.$el?.children[0]?.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
+        if (sTextarea) {
+            sTextarea.title = '';
+        }
+    });
 };
 
 const addSheet = (aIdx: number, aType: string) => {
@@ -554,6 +562,9 @@ onMounted(() => {
     }
 }
 
+.resize-form {
+    margin-bottom: 15px;
+}
 .sheet-list::-webkit-scrollbar {
     width: 5px;
     height: 5px;

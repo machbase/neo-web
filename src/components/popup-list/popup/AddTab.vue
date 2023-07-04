@@ -15,9 +15,6 @@
                     stacked
                     :style="sBoardType === option.type ? { borderColor: '#46CA92 !important' } : {}"
                 >
-                    <div class="icon-header">
-                        <v-icon :color="sBoardType === option.type ? '#46CA92' : '#9CA2AB'"> mdi-check-circle-outline </v-icon>
-                    </div>
                     <div class="icon-body">
                         <v-icon :color="cIsDarkMode ? (sBoardType === option.type ? '#E4F2FD' : '') : sBoardType === option.type ? '' : '#212121'" size="36px">
                             {{ option.icon }}
@@ -41,8 +38,8 @@
                 >
                     <div class="icon-header"></div>
                     <div class="icon-body">
-                        <v-icon size="36px"> mdi-tray-arrow-down </v-icon>
-                        <span> IMPORT </span>
+                        <v-icon size="36px"> mdi-parachute </v-icon>
+                        <span> DROP HERE </span>
                     </div>
                 </v-sheet>
                 <v-sheet
@@ -58,8 +55,8 @@
                 >
                     <div class="icon-header"></div>
                     <div class="icon-body">
-                        <v-icon size="36px"> mdi-tray-arrow-down </v-icon>
-                        <span> IMPORT </span>
+                        <v-icon size="36px"> mdi-parachute </v-icon>
+                        <span> DROP & OPEN </span>
                     </div>
                 </v-sheet>
             </v-sheet>
@@ -73,9 +70,6 @@
                     stacked
                     :style="sBoardType === option.type ? { borderColor: '#46CA92 !important' } : {}"
                 >
-                    <div class="icon-header">
-                        <v-icon :color="sBoardType === option.type ? '#46CA92' : '#9CA2AB'"> mdi-check-circle-outline </v-icon>
-                    </div>
                     <div class="icon-body">
                         <v-icon :color="cIsDarkMode ? (sBoardType === option.type ? '#E4F2FD' : '') : sBoardType === option.type ? '' : '#212121'" size="36px">
                             {{ option.icon }}
@@ -85,6 +79,41 @@
                         </span>
                     </div>
                 </v-btn>
+                <v-sheet
+                    v-if="isDragged"
+                    @dragleave="onDragleave"
+                    @dragover="onDragover"
+                    @drop="onDrop"
+                    class="taginput input set-type import-size"
+                    color="#eeeeee"
+                    dragenter="onDragenter"
+                    height="200px"
+                    stacked
+                    width="200px"
+                >
+                    <div class="icon-header"></div>
+                    <div class="icon-body">
+                        <v-icon size="36px"> mdi-parachute </v-icon>
+                        <span> DROP HERE </span>
+                    </div>
+                </v-sheet>
+                <v-sheet
+                    v-else
+                    @dragenter="onDragenter"
+                    @dragover="onDragover"
+                    @drop="onDrop"
+                    class="taginput input set-type import-size"
+                    color="transparent"
+                    height="200px"
+                    stacked
+                    width="200px"
+                >
+                    <div class="icon-header"></div>
+                    <div class="icon-body">
+                        <v-icon size="36px"> mdi-parachute </v-icon>
+                        <span> DROP & OPEN </span>
+                    </div>
+                </v-sheet>
             </v-sheet>
 
             <div class="popup__btn-group next-btn">
@@ -94,14 +123,14 @@
                 <div>
                     <button @click="onClickPopupItem(PopupType.FILE_BROWSER)">
                         <v-icon>mdi-folder-open</v-icon>
-                        Open...
+                        Open a file from the server...
                     </button>
                 </div>
                 <div>
                     <label class="item">
                         <div :style="{ display: 'flex', alignItems: 'center', cursor: 'pointer' }">
                             <v-icon>mdi-folder-upload</v-icon>
-                            Import...
+                            Load a local disk file...
                         </div>
                         <input @change="onUpload" accept=".wrk, .sql, .tql, ,.taz" class="file-import" type="file" />
                     </label>
@@ -177,6 +206,7 @@ const cWidthPopup = computed((): string => {
 const sOptions = [
     { name: 'SQL', type: 'SQL Editor', icon: IconList.SQL },
     { name: 'TQL', type: 'Tql', icon: IconList.TQL },
+    { name: 'WorkSheet', type: 'wrk', icon: IconList.WRK },
     { name: 'Tag Analyzer', type: 'dashboard', icon: IconList.TAZ },
     { name: 'Shell', type: 'Terminal', icon: IconList.SHELL },
 ];
@@ -554,6 +584,7 @@ const onSetting = () => {
 }
 .header {
     flex-direction: column;
+    padding-top: 3%;
     height: 13%;
     align-items: center;
     justify-content: center;

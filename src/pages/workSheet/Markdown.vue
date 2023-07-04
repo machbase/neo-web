@@ -1,5 +1,5 @@
 <template>
-    <v-sheet v-html="sText" class="sheet-form" color="transparent"></v-sheet>
+    <v-sheet v-html="sText" class="mrk-form" color="transparent"></v-sheet>
 </template>
 
 <script setup="setup" lang="ts" name="WorkSheet">
@@ -54,7 +54,10 @@ defineExpose({ init });
 
 <style lang="scss">
 @import '@/assets/md/md.css';
-.sheet-form {
+.mrk-form {
+    display: flex;
+    width: 100%;
+    position: relative;
     ul,
     ol {
         list-style: revert;
