@@ -11,7 +11,7 @@
                 width="100%"
             >
                 <v-sheet v-if="aTab.type === 'SQL Editor'" color="transparent" height="100%" width="100%">
-                    <Editor ref="sPanels" :p-panel-data="aTab" />
+                    <Editor ref="sPanels" />
                 </v-sheet>
                 <v-sheet v-else-if="aTab.type === 'Tql'" color="transparent" height="100%" width="100%">
                     <TQL ref="sPanels" :p-panel-data="aTab" />

@@ -51,7 +51,7 @@
     <PopupWrap @eClosePopup="onClosePopup" :p-info="sData" :p-show="sDialog" :p-type="sPopupType" :p-width="cWidthPopup" />
 </template>
 
-<script setup lang="ts" name="table">
+<script setup lang="ts" name="Table">
 import { defineProps, ref, defineEmits, computed } from 'vue';
 import { store } from '../../store';
 import { copyText } from 'vue3-clipboard';
