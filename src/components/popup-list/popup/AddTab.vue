@@ -348,7 +348,7 @@ const uploadFile = (aItem: any, bItem: string) => {
             type: sType,
             result: new Map(),
             board_name: aItem.name,
-            savedCode: '',
+            savedCode: false,
             path: '',
             edit: false,
         };
@@ -358,10 +358,8 @@ const uploadFile = (aItem: any, bItem: string) => {
 
         if (sTypeOption === 'wrk') {
             gBoard.value.sheet = JSON.parse(bItem).data;
-            gBoard.value.savedCode = JSON.parse(bItem).data;
         } else {
             gBoard.value.code = bItem;
-            gBoard.value.savedCode = bItem;
         }
         gBoard.value.board_name = aItem.name;
     }

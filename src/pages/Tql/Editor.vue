@@ -6,7 +6,7 @@
         :slider-bg-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
         :slider-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
         :slider-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
-        slider-width="4"
+        :slider-width="4"
         width="100%"
     >
         <template #left>
@@ -80,7 +80,7 @@
                     </v-btn>
                 </v-sheet>
             </v-sheet>
-            <ShowChart v-if="sResultType === 'html'" ref="rChartTab" :p-headers="sHeader" :p-html="sHtml" />
+            <ShowChart v-if="sResultType === 'html'" ref="rChartTab" :p-data="sHtml" />
             <Table
                 v-if="sResultType === 'csv'"
                 :headers="
@@ -92,7 +92,7 @@
                 "
                 :items="sCSV"
                 :p-timezone="''"
-                :p-type="''"
+                :p-type="[]"
             />
 
             <v-sheet v-else class="sheet-text" :class="cLogFormFontSizeClassName" color="transparent" height="calc(100% - 40px)" width="100%">
@@ -110,7 +110,7 @@
         :slider-bg-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
         :slider-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
         :slider-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
-        slider-width="4"
+        :slider-width="4"
         width="100%"
     >
         <template #top>
@@ -179,7 +179,7 @@
                 </v-sheet>
             </v-sheet>
 
-            <ShowChart v-if="sResultType === 'html'" ref="rChartTab" :p-headers="sHeader" :p-html="sHtml" />
+            <ShowChart v-if="sResultType === 'html'" ref="rChartTab" :p-data="sHtml" />
             <Table
                 v-if="sResultType === 'csv'"
                 :headers="
@@ -464,30 +464,6 @@ const saveSQL = async (aEvent: any) => {
             }
         }
     }
-    if (aEvent.code === 'KeyS') {
-        if (getWindowOs() && aEvent.ctrlKey) {
-            aEvent.preventDefault();
-            if (gBoard.value.path !== '') {
-                const sResult: any = await postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
-
-                if (sResult.success) {
-                    gBoard.value.savedCode = gBoard.value.code;
-                }
-            } else {
-                onClickPopupItem(PopupType.FILE_BROWSER, 'save');
-            }
-        } else if (!getWindowOs() && aEvent.metaKey) {
-            aEvent.preventDefault();
-            if (gBoard.value.path !== '') {
-                const sResult: any = await postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
-                if (sResult.success) {
-                    gBoard.value.savedCode = gBoard.value.code;
-                }
-            } else {
-                onClickPopupItem(PopupType.FILE_BROWSER, 'save');
-            }
-        }
-    }
 };
 const cLogFormFontSizeClassName = computed(() => {
     const sStorageData = localStorage.getItem('gPreference');
@@ -588,9 +564,12 @@ const setCsvHeaderOption = () => {
 const getTqlData = async () => {
     const sResult: any = await getTqlChart(gBoard.value.code);
 
-    if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/html') {
+    if (sResult.status === 200 && sResult.headers && sResult.headers['x-chart-type'] === 'echarts') {
         sResultType.value = 'html';
         sHtml.value = sResult.data;
+        nextTick(() => {
+            rChartTab.value.init();
+        });
     } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
         sResultType.value = 'csv';
 
@@ -634,6 +613,7 @@ onMounted(async () => {
     }
     const textarea = sText.value.$el.children[0].children[0].children[0];
     textarea.title = '';
+    textarea.focus();
 });
 </script>
 
