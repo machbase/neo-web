@@ -17,7 +17,7 @@
         </v-sheet>
 
         <v-sheet ref="rBodyEl" color="transparent" height="calc(100% - 40px)">
-            <iframe v-if="sType && sHtml" ref="iframeDom" id="iframeMapViewComponent" frameborder="0" height="100%" scrolling="no" :srcdoc="sHtml" width="100%"></iframe>
+            <v-sheet v-html="sText" class="tql-chart-form" color="transparent"></v-sheet>
             <v-sheet v-if="!sType" color="transparent">
                 {{ sHtml }}
             </v-sheet>
@@ -29,23 +29,28 @@ import ComboboxSelect from '@/components/common/combobox/combobox-select/index.v
 
 import { defineProps, ref, defineEmits, computed, onMounted, defineExpose } from 'vue';
 import { getTqlChart } from '../../api/repository/machiot';
+import { store } from '../../store';
+import showChart from '../../plugins/eChart';
 
 const props = defineProps({
     pHeaders: {
-        type: [],
-        default: [] as any[],
+        type: Array,
+        default: [] as string[],
     },
     pSql: {
         type: String,
+        default: [] as string[],
     },
     pType: {
-        type: [],
+        type: Array,
+        default: [] as string[],
     },
 });
 
 const rBodyEl = ref();
 const sHtml = ref();
 const sType = ref();
+const sText = ref();
 
 const sXaxis = ref<string>(props.pHeaders[0]);
 const sYaxis = ref<string>(props.pHeaders[1] ? props.pHeaders[1] : props.pHeaders[0]);
@@ -64,6 +69,7 @@ const cHeaderList = computed(() =>
         return { id: aItem, name: aItem };
     })
 );
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const handleSlider = (aValue: string) => {
     sSlider.value = aValue;
@@ -97,6 +103,22 @@ const getChartEl = async () => {
         sType.value = true;
 
         sHtml.value = sResult.data;
+        let divScripts = document.getElementsByTagName('head')[0];
+
+        let newScript = document.createElement('script');
+        newScript.src = `/web/echarts/themes/${sHtml.value.theme === '-' ? (cIsDarkMode.value ? 'dark' : 'white') : sHtml.value.theme}.js`;
+
+        if (divScripts) {
+            divScripts.appendChild(newScript);
+        }
+
+        sText.value = ` <div class="chart_container">
+            <div class="chart_item" id="${sHtml.value.chartID}" style="width:${sHtml.value.style.width};height:${sHtml.value.style.height};"></div>
+        </div>`;
+
+        setTimeout(() => {
+            showChart(sHtml.value);
+        }, 100);
     }
 };
 onMounted(async () => {

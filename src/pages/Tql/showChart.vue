@@ -1,42 +1,46 @@
 <template>
     <v-sheet color="transparent" height="100%">
         <v-sheet ref="rBodyEl" color="transparent" height="100%">
-            <iframe v-if="pHtml" ref="iframeDom" id="iframeMapViewComponent" frameborder="0" height="100%" :srcdoc="pHtml" width="100%"></iframe>
+            <v-sheet v-html="sText" class="tql-chart-form" color="transparent"></v-sheet>
         </v-sheet>
     </v-sheet>
 </template>
 <script setup="setup" lang="ts" name="Login">
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
-
-import { defineProps, ref, defineEmits, computed, onMounted, defineExpose } from 'vue';
+import { defineProps, ref, defineEmits, computed, onMounted, defineExpose, nextTick } from 'vue';
+import showChart from '@/plugins/eChart.ts';
+import { store } from '../../store';
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const props = defineProps({
-    pHeaders: {
-        type: [],
-        default: [] as any[],
-    },
-    pHtml: {
-        type: String,
+    pData: {
+        type: Object,
+        default: Object,
     },
 });
 
-const rBodyEl = ref();
-const sHtml = ref();
+const sText = ref();
 
-const sXaxis = ref<string>(props.pHeaders[1]);
-const sYaxis = ref<string>(props.pHeaders[2]);
+const init = async () => {
+    let divScripts = document.getElementsByTagName('head')[0];
 
-const cHeaderList = computed(() =>
-    props.pHeaders.map((aItem: string) => {
-        return { id: aItem, name: aItem };
-    })
-);
-const handleXInfo = (aValue: string) => {
-    sXaxis.value = aValue;
+    let newScript = document.createElement('script');
+    newScript.src = `/web/echarts/themes/${props.pData.theme === '-' ? (cIsDarkMode.value ? 'dark' : 'white') : props.pData.theme}.js`;
+
+    if (divScripts) {
+        divScripts.appendChild(newScript);
+    }
+
+    sText.value = ` <div class="chart_container">
+            <div class="chart_item" id="${props.pData.chartID}" style="width:${props.pData.style.width};height:${props.pData.style.height};"></div>
+        </div>`;
+
+    setTimeout(() => {
+        showChart(props.pData);
+    }, 100);
 };
-const handleYInfo = (aValue: string) => {
-    sYaxis.value = aValue;
-};
+onMounted(() => {});
+defineExpose({ init });
 </script>
 <style lang="scss" scoped>
 .popup__input-content {
@@ -54,5 +58,20 @@ const handleYInfo = (aValue: string) => {
         align-items: center;
         margin-right: 8px;
     }
+}
+.tql-chart-form {
+    justify-content: center;
+    align-items: center;
+}
+</style>
+<style>
+.chart_container {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.chart_item {
+    margin: auto;
 }
 </style>
