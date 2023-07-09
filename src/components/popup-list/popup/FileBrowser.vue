@@ -4,6 +4,7 @@
         <div v-show="onContext" ref="contextMenu" @contextmenu.prevent class="contextOption">
             <div class="context-option-form">
                 <button @click="deleteFile" class="show"><v-icon size="14px">mdi-delete</v-icon> Delete</button>
+                <button @click="downloadFile" class="show"><v-icon size="14px">mdi-download</v-icon> Download</button>
             </div>
         </div>
     </Transition>
@@ -161,7 +162,7 @@ const cFileNameStat = computed(() => {
 const deleteFile = async () => {
     const sConfirm = confirm(`Do you want to delete this file (${sClickFile.value.name})?`);
     if (sConfirm) {
-        const sResult = await deleteFileList(sSelectedClickDir.value.join('/'), sClickFile.value.name);
+        const sResult: any = await deleteFileList(sSelectedClickDir.value.join('/'), sClickFile.value.name);
         if (sResult.reason === 'success') {
             getFile();
         } else {
@@ -272,6 +273,18 @@ const onClosePopup = () => {
     emit('eClosePopup');
 };
 
+const downloadFile = async () => {
+    const sData: any = await getFileList('', sSelectedClickDir.value.join('/'), sClickFile.value.name);
+
+    const sBlob = new Blob([sData], { type: `text/plain` });
+    const sLink = document.createElement('a');
+    sLink.href = URL.createObjectURL(sBlob);
+    sLink.setAttribute('download', sClickFile.value.name);
+    sLink.click();
+    URL.revokeObjectURL(sLink.href);
+    closeContextMenu();
+};
+
 const getFile = async () => {
     const sData: any = await getFileList(
         props.pNewOpen
@@ -300,6 +313,17 @@ const getFile = async () => {
             });
         sClickFile.value = '';
     } else {
+        const sPathIdx = gTabList.value.findIndex((aItem) => aItem.path === `/` + sSelectedClickDir.value.join('/') && aItem.board_name === sSelectedClickData.value);
+
+        if (sPathIdx !== -1) {
+            gTabList.value.splice(
+                gTabList.value.findIndex((aItem) => aItem.board_id === gSelectedTab.value),
+                1
+            );
+            store.commit(MutationTypes.setSelectedTab, gTabList.value[sPathIdx].board_id);
+            onClosePopup();
+            return;
+        }
         if (props.pNewOpen) {
             const sIdx = gTabList.value.findIndex((aItem) => aItem.board_id === gSelectedTab.value);
 
@@ -316,6 +340,9 @@ const getFile = async () => {
                 sDashboard.board_id = new Date().getTime();
                 store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
                 store.commit(MutationTypes.setSelectedTab, sDashboard.board_id);
+                sDashboard.board_id = new Date().getTime();
+
+                gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
                 gBoard.value.board_name = sSelectedClickData.value;
             } else {
                 const sNode = {
@@ -339,6 +366,7 @@ const getFile = async () => {
                     gBoard.value.code = sData;
                     gBoard.value.savedCode = sData;
                 }
+
                 gBoard.value.path = '/' + sSelectedClickDir.value.join('/');
                 gBoard.value.board_name = sSelectedClickData.value;
             }
@@ -359,6 +387,7 @@ const getFile = async () => {
                 store.commit(MutationTypes.setSelectedTab, sDashboard.board_id);
                 gBoard.value.board_name = sSelectedClickData.value;
             } else {
+                const sIdx = gTabList.value.findIndex((aItem) => aItem.path === `/` + sSelectedClickDir.value.join('/') && sSelectedClickData.value === gBoard.value.board_name);
                 if (sType === 'wrk') {
                     gBoard.value.sheet = JSON.parse(sData).data;
                     gBoard.value.savedCode = JSON.stringify(JSON.parse(sData).data);
