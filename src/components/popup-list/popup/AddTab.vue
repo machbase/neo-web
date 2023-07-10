@@ -664,7 +664,7 @@ onMounted(async () => {
     gap: 28px;
 }
 
-::v-deep .set-type {
+.card-form :deep(.set-type) {
     display: flex;
     flex: none;
     .v-btn__content {
