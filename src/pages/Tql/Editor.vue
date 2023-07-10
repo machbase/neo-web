@@ -58,12 +58,17 @@
                             <v-icon v-if="sResultType === 'html'">mdi-chart-line</v-icon>
                             <v-icon v-if="sResultType === 'csv'">mdi-file-delimited-outline</v-icon>
                             <v-icon v-if="sResultType === 'text'">mdi-note-outline</v-icon>
+                            <v-icon v-if="sResultType === 'mrk'" size="25">mdi-language-markdown-outline</v-icon>
                             Result
                         </div>
                     </button>
                 </v-sheet>
 
                 <v-sheet class="tool-bar" color="transparent">
+                    <v-btn v-if="sResultType === 'mrk'" @click="setMarkdownFormat()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon v-if="!sMarkdownOption" size="20px">mdi-text</v-icon>
+                        <v-icon v-else size="20px">mdi-format-header-pound</v-icon>
+                    </v-btn>
                     <v-btn v-if="sResultType === 'text'" @click="setJsonFormat()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon v-if="!sJsonOption" size="20px">mdi-text</v-icon>
                         <v-icon v-else size="20px">mdi-code-json</v-icon>
@@ -80,9 +85,13 @@
                     </v-btn>
                 </v-sheet>
             </v-sheet>
-            <ShowChart v-if="sResultType === 'html'" ref="rChartTab" :p-data="sHtml" />
+            <v-sheet v-if="sResultType === 'mrk'" class="sheet-text" color="transparent" height="calc(100% - 40px)" width="100%">
+                <Markdown v-if="sMarkdownOption" ref="rChartTab" :p-contents="sMarkdown" p-type="mrk" />
+                <div v-else>{{ sMarkdown }}</div>
+            </v-sheet>
+            <ShowChart v-else-if="sResultType === 'html'" ref="rChartTab" :p-data="sHtml" />
             <Table
-                v-if="sResultType === 'csv'"
+                v-else-if="sResultType === 'csv'"
                 :headers="
                     sCsvHeaderOption
                         ? sCsvHeader
@@ -156,12 +165,17 @@
                             <v-icon v-if="sResultType === 'html'">mdi-chart-line</v-icon>
                             <v-icon v-if="sResultType === 'csv'">file-delimited-outline</v-icon>
                             <v-icon v-if="sResultType === 'text'">mdi-note-outline</v-icon>
+                            <v-icon v-if="sResultType === 'mrk'" size="25">mdi-language-markdown-outline</v-icon>
                             Result
                         </div>
                     </button>
                 </v-sheet>
 
                 <v-sheet class="tool-bar" color="transparent">
+                    <v-btn v-if="sResultType === 'mrk'" @click="setMarkdownFormat()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
+                        <v-icon v-if="!sMarkdownOption" size="20px">mdi-text</v-icon>
+                        <v-icon v-else size="20px">mdi-format-header-pound</v-icon>
+                    </v-btn>
                     <v-btn v-if="sResultType === 'text'" @click="setJsonFormat()" class="log-delete-icon" density="comfortable" icon="" size="16px" variant="plain">
                         <v-icon v-if="!sJsonOption" size="20px">mdi-text</v-icon>
                         <v-icon v-else size="20px">mdi-code-json</v-icon>
@@ -178,10 +192,13 @@
                     </v-btn>
                 </v-sheet>
             </v-sheet>
-
-            <ShowChart v-if="sResultType === 'html'" ref="rChartTab" :p-data="sHtml" />
+            <v-sheet v-if="sResultType === 'mrk'" class="sheet-text" color="transparent" height="calc(100% - 40px)" width="100%">
+                <Markdown v-if="sMarkdownOption" ref="rChartTab" :p-contents="sMarkdown" p-type="mrk" />
+                <div v-else>{{ sMarkdown }}</div>
+            </v-sheet>
+            <ShowChart v-else-if="sResultType === 'html'" ref="rChartTab" :p-data="sHtml" />
             <Table
-                v-if="sResultType === 'csv'"
+                v-else-if="sResultType === 'csv'"
                 :headers="
                     sCsvHeaderOption
                         ? sCsvHeader
@@ -207,6 +224,7 @@
 import CodeEditor from 'simple-code-editor';
 import PopupWrap from '@/components/popup-list/index.vue';
 import Table from './Table.vue';
+import Markdown from '@/pages/workSheet/Markdown.vue';
 import ShowChart from './showChart.vue';
 import { ref, watch, defineEmits, defineProps, computed, onMounted, nextTick } from 'vue';
 import { store } from '../../store';
@@ -248,9 +266,13 @@ let sText = ref<any>('');
 let sJsonBtnOption = ref<boolean>(false);
 let sJsonOption = ref<boolean>(true);
 
+let sMarkdownOption = ref<boolean>(false);
+
 let sCsvHeaderBtn = ref<boolean>(false);
 let sCsvHeader = ref<any>([]);
 let sCsvHeaderOption = ref<boolean>(false);
+
+let sMarkdown = ref<any>('');
 const sDialog = ref<boolean>(false);
 
 const rChartTab = ref();
@@ -552,6 +574,9 @@ const getButtonData = () => {
 const setJsonFormat = () => {
     sJsonOption.value = !sJsonOption.value;
 };
+const setMarkdownFormat = () => {
+    sMarkdownOption.value = !sMarkdownOption.value;
+};
 const setCsvHeaderOption = () => {
     sCsvHeaderOption.value = !sCsvHeaderOption.value;
     if (sCsvHeaderOption.value) {
@@ -570,6 +595,9 @@ const getTqlData = async () => {
         nextTick(() => {
             rChartTab.value.init();
         });
+    } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/markdown') {
+        sResultType.value = 'mrk';
+        sMarkdown.value = sResult.data;
     } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
         sResultType.value = 'csv';
 

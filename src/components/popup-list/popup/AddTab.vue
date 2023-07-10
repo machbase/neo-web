@@ -431,7 +431,7 @@ const showDoc = async (aItem: any) => {
                 result: new Map(),
                 board_name: aItem.title,
                 sheet: [],
-                savedCode: '',
+                savedCode: false,
                 path: '',
                 edit: false,
             };
@@ -486,7 +486,7 @@ const onSetting = (aId?: string) => {
                 minimal: false,
             },
         ],
-        savedCode: '',
+        savedCode: false,
         edit: false,
     };
     if (aId) {

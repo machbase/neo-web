@@ -1,5 +1,5 @@
 <template>
-    <v-sheet color="transparent" height="100%">
+    <v-sheet color="transparent" height="100%" class="tql-form">
         <v-sheet ref="rBodyEl" color="transparent" height="100%">
             <v-sheet v-html="sText" class="tql-chart-form" color="transparent"></v-sheet>
         </v-sheet>
@@ -25,7 +25,7 @@ const init = async () => {
     let divScripts = document.getElementsByTagName('head')[0];
 
     let newScript = document.createElement('script');
-    newScript.src = `/web/echarts/themes/${props.pData.theme === '-' ? (cIsDarkMode.value ? 'dark' : 'white') : props.pData.theme}.js`;
+    newScript.src = `/web/echarts/themes/${props.pData.theme === '-' ? `westeros` : props.pData.theme}.js`;
 
     if (divScripts) {
         divScripts.appendChild(newScript);
@@ -64,14 +64,14 @@ defineExpose({ init });
     align-items: center;
 }
 </style>
-<style>
-.chart_container {
+<style lang="scss">
+.tql-form .chart_container {
     margin-top: 30px;
     display: flex;
-    justify-content: center;
     align-items: center;
+.chart_item{
+margin: unset
 }
-.chart_item {
-    margin: auto;
 }
+
 </style>

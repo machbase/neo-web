@@ -106,7 +106,7 @@ const getChartEl = async () => {
         let divScripts = document.getElementsByTagName('head')[0];
 
         let newScript = document.createElement('script');
-        newScript.src = `/web/echarts/themes/${sHtml.value.theme === '-' ? (cIsDarkMode.value ? 'dark' : 'white') : sHtml.value.theme}.js`;
+        newScript.src = `/web/echarts/themes/${sHtml.value.theme === '-' ? `westeros` : sHtml.value.theme}.js`;
 
         if (divScripts) {
             divScripts.appendChild(newScript);
