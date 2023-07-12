@@ -24,6 +24,24 @@
                         </span>
                     </div>
                 </v-btn>
+
+                <v-btn
+                    v-for="(option, aIdx) in sShellList"
+                    :key="aIdx"
+                    @click="changeType('Terminal', option.label, option.id)"
+                    class="taginput input set-type"
+                    size="200px"
+                    stacked
+                >
+                    <div class="icon-body">
+                        <v-icon size="36px">
+                            {{ 'mdi-' + option.icon }}
+                        </v-icon>
+                        <span>
+                            {{ option.label }}
+                        </span>
+                    </div>
+                </v-btn>
                 <v-sheet
                     v-if="isDragged"
                     @dragleave="onDragleave"
@@ -76,6 +94,24 @@
                         </v-icon>
                         <span :style="cIsDarkMode ? (sBoardType === option.type ? { color: '#E4F2FD' } : {}) : sBoardType === option.type ? {} : { color: '#212121' }">
                             {{ option.name }}
+                        </span>
+                    </div>
+                </v-btn>
+
+                <v-btn
+                    v-for="(option, aIdx) in sShellList"
+                    :key="aIdx"
+                    @click="changeType('Terminal', option.label, option.id)"
+                    class="taginput input set-type"
+                    size="200px"
+                    stacked
+                >
+                    <div class="icon-body">
+                        <v-icon size="36px">
+                            {{ 'mdi-' + option.icon }}
+                        </v-icon>
+                        <span>
+                            {{ option.label }}
                         </span>
                     </div>
                 </v-btn>
@@ -135,7 +171,7 @@
                         <input @change="onUpload" accept=".wrk, .sql, .tql, ,.taz" class="file-import" type="file" />
                     </label>
                 </div>
-                <div v-for="(aRefer, aIdx) in cReferences" :key="aIdx">
+                <div v-for="(aRefer, aIdx) in sReferences" :key="aIdx">
                     <div class="referOption">
                         <v-icon> mdi-folder</v-icon>
                         {{ aRefer.label }}
@@ -155,7 +191,7 @@
     <PopupWrap @eClosePopup="onClosePopup" :p-info="'open'" :p-new-open="'NewOpen'" :p-show="sDialog" :p-type="sPopupType" p-upload-type="" :p-width="cWidthPopup" />
 </template>
 <script setup lang="ts">
-import Vue, { ref, computed, defineEmits } from 'vue';
+import Vue, { ref, computed, defineEmits, onMounted } from 'vue';
 import { MutationTypes } from '../../../store/mutations';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { store } from '../../../store';
@@ -165,19 +201,15 @@ import { WIDTH_DEFAULT } from '../../header/constant';
 import { toast, ToastOptions } from 'vue3-toastify';
 import { getTutorial } from '../../../api/repository/api';
 import { BoardInfo } from '../../../interface/chart';
+import { getLogin } from '../../../api/repository/login';
 
 const emit = defineEmits(['eClosePopup']);
 
 const sBoardType = ref<string>();
 const sBoardName = ref<string>('Tag Analyzer');
-const cReferences = computed(() => {
-    const sReferences = localStorage.getItem('references');
-    if (sReferences) {
-        return JSON.parse(sReferences);
-    } else {
-        return '';
-    }
-});
+
+const sReferences = ref([]);
+const sShellList = ref([]);
 
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const sPopupType = ref<PopupType>(PopupType.FILE_BROWSER);
@@ -364,10 +396,10 @@ const changeName = (aType: any, aName: string) => {
     }
 };
 
-const changeType = (aItem: any, aName: string) => {
+const changeType = (aItem: any, aName: string, aId?: string) => {
     sBoardType.value = aItem;
     changeName(sBoardType.value, aName);
-    onSetting();
+    onSetting(aId);
 };
 const onClosePopup = () => {
     sDialog.value = false;
@@ -420,7 +452,7 @@ const showDoc = async (aItem: any) => {
         }
     }
 };
-const onSetting = () => {
+const onSetting = (aId?: string) => {
     if (!sBoardName.value) {
         toast('please enter Name', {
             autoClose: 1000,
@@ -434,6 +466,7 @@ const onSetting = () => {
 
     const sNode = {
         ...gTabList.value[sIdx],
+
         board_id: String(new Date().getTime()),
         type: sBoardType.value,
         board_name: sBoardName,
@@ -458,11 +491,20 @@ const onSetting = () => {
         savedCode: '',
         edit: false,
     };
+    if (aId) {
+        sNode.terminalId = aId;
+    }
 
     store.commit(MutationTypes.changeTab, sNode);
     store.commit(MutationTypes.setSelectedTab, sNode.board_id);
     onClosePopup();
 };
+
+onMounted(async () => {
+    const sData: any = await getLogin();
+    sReferences.value = sData.references;
+    sShellList.value = sData.shells;
+});
 </script>
 <style lang="scss" scoped>
 @import 'index.scss';

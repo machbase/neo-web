@@ -4,7 +4,7 @@
             <v-sheet
                 v-for="(aTab, aIdx) in gTabList"
                 v-show="aTab.board_id === gSelectedTab"
-                :key="aTab.board_id - 10"
+                :key="aTab.board_id + '10'"
                 class="sheet"
                 color="transparent"
                 height="100%"
@@ -13,16 +13,16 @@
                 <v-sheet v-if="aTab.type === 'SQL Editor'" color="transparent" height="100%" width="100%">
                     <Editor ref="sPanels" :p-panel-data="aTab" />
                 </v-sheet>
-                <v-sheet v-if="aTab.type === 'Tql'" color="transparent" height="100%" width="100%">
+                <v-sheet v-else-if="aTab.type === 'Tql'" color="transparent" height="100%" width="100%">
                     <TQL ref="sPanels" :p-panel-data="aTab" />
                 </v-sheet>
-                <v-sheet v-if="aTab.type === 'wrk'" color="transparent" height="100%" width="100%">
+                <v-sheet v-else-if="aTab.type === 'wrk'" color="transparent" height="100%" width="100%">
                     <WorkSheet ref="sPanels" :p-panel-data="aTab" />
                 </v-sheet>
 
-                <AddTab v-if="aTab.type === 'new'" ref="sPanels" />
+                <AddTab v-else-if="aTab.type === 'new'" ref="sPanels" />
 
-                <Terminal v-if="terminalStatus && aTab.type === 'Terminal'" ref="sPanels" @eChangeStatus="changeTerminalStatus" :p-id="aTab.board_id" />
+                <Terminal v-else-if="terminalStatus && aTab.type === 'Terminal'" ref="sPanels" @eChangeStatus="changeTerminalStatus" :p-id="aTab.board_id" />
 
                 <v-sheet v-if="aTab.type === 'dashboard'" class="time-range icon" color="transparent" height="4%">
                     {{
@@ -75,7 +75,6 @@ import { useRoute } from 'vue-router';
 import i_b_close from '@/assets/image/i_b_close.png';
 import { MutationTypes } from '../../store/mutations';
 import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from '@/components/header/constant';
-import { getLogin } from '../../api/repository/login';
 
 const route = useRoute();
 const store = useStore();
@@ -218,7 +217,6 @@ const validateTest = async (joiSchema: any, testObject: any) => {
 };
 
 onMounted(async () => {
-    getLogin();
     nextTick(() => {
         if (route.params.id) {
             gBoard.value.type = route.params.type;
