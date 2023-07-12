@@ -133,7 +133,7 @@
 import PopupWrap from '@/components/popup-list/index.vue';
 import CodeEditor from 'simple-code-editor';
 import Table from '../Tql/Table.vue';
-import ShowChart from '../Tql/ShowChart.vue';
+import ShowChart from '../Tql/showChart.vue';
 import Markdown from './Markdown.vue';
 import { ResizeRow } from 'vue-resizer';
 

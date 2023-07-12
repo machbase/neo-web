@@ -57,8 +57,9 @@ export default defineConfig(() => {
                 target: 'es2020',
             },
         },
-        base: '/web/ui',
+        base: '/web/ui/',
         build: {
+            chunkSizeWarningLimit: 10000,
             target: 'es2020',
         },
     };
