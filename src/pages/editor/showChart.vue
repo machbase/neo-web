@@ -1,10 +1,10 @@
 <template>
     <v-sheet color="transparent" height="100%">
         <v-sheet class="popup__input-content" color="transparent" height="40px">
-            <div>
+            <!-- <div>
                 Slider
                 <ComboboxSelect @e-on-change="(aValue) => handleSlider(aValue, true)" :p-data="sSliderList" :p-show-default-option="false" :p-value="sSlider" />
-            </div>
+            </div> -->
             <div>
                 X axis
                 <ComboboxSelect @e-on-change="(aValue) => handleXInfo(aValue, true)" :p-data="cHeaderList" :p-show-default-option="false" :p-value="sXaxis" />
@@ -92,7 +92,7 @@ const getChartEl = async () => {
         `OUTPUT(CHART_LINE(xAxis(${cHeaderList.value.findIndex((aItem: { id: string; name: string }) => aItem.id === sXaxis.value)}, '${
             sXaxis.value
         }'), yAxis(${cHeaderList.value.findIndex((aItem: { id: string; name: string }) => aItem.id === sYaxis.value)}, '${sYaxis.value}'), ${
-            sSlider.value === 'none' ? '' : `dataZoom('slider', ${sSlider.value}),`
+            sSlider.value === 'none' ? '' : `dataZoom('slider', 0, 100),`
         } size($w ?? '${rBodyEl.value.$el.clientWidth}px',$h ??'${rBodyEl.value.$el.clientHeight * 0.7}px')))`;
 
     const sResult = await getTqlChart(sInput);
@@ -117,6 +117,13 @@ const getChartEl = async () => {
         </div>`;
 
         setTimeout(() => {
+            if (sHtml.value.chartOption && sHtml.value.chartOption.series[1]) {
+                const sClientWidth = rBodyEl.value.$el.clientWidth;
+                const sDataLength = sHtml.value.chartOption.series[1].data.length;
+                sHtml.value.chartOption.dataZoom[0].start = 100 - (5 * sClientWidth) / sDataLength;
+                sHtml.value.chartOption.dataZoom[0].end = 100;
+            }
+
             showChart(sHtml.value);
         }, 100);
     }

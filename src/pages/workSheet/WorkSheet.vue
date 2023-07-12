@@ -89,7 +89,7 @@
                             :p-type="aSheet.type"
                         />
                     </v-sheet>
-                    <v-sheet v-else-if="aSheet.type === 'json'" class="result-set-form" color="transparent">
+                    <v-sheet v-else-if="aSheet.tqlType === 'json'" class="result-set-form" color="transparent">
                         <pre>{{ changeJsonFormat(checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : '') }}</pre>
                     </v-sheet>
                     <v-sheet v-else-if="aSheet.type === 'tql'" color="transparent" height="100%" width="100%">
@@ -202,19 +202,17 @@ const changeJsonFormat = (aItem: any) => {
     if (typeof aItem === 'string') {
         return JSON.stringify(JSON.parse(aItem), null, 4).replace(
             `[
-                    "",
-                    "",
-                    ""
-                ],`,
+                "",
+                ""
+            ],`,
             '...'
         );
     } else {
         return JSON.stringify(aItem, null, 4).replace(
             `[
-                    "",
-                    "",
-                    ""
-                ],`,
+                "",
+                ""
+            ],`,
             '...'
         );
     }
