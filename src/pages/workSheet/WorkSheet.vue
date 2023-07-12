@@ -62,6 +62,7 @@
                     <v-sheet color="transparent" height="100%">
                         <CodeEditor
                             v-model="aSheet.contents"
+                            :ref="(el) => (rCodeEditorForm[aSheet.id] = el)"
                             @keydown.enter.stop="checkCtrl($event, aIdx, 'key')"
                             @lang="(aLang) => getLanguage(aLang, aIdx)"
                             :autofocus="true"
@@ -88,19 +89,15 @@
                             :p-type="aSheet.type"
                         />
                     </v-sheet>
-                    <v-sheet v-else-if="aSheet.type === 'json'" class="result-set-form" color="transparent">
+                    <v-sheet v-else-if="aSheet.tqlType === 'json'" class="result-set-form" color="transparent">
                         <pre>{{ changeJsonFormat(checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : '') }}</pre>
                     </v-sheet>
-                    <v-sheet v-else-if="aSheet.type === 'tql'" color="transparent" width="100%">
-                        <iframe
-                            v-if="checkMapResult(aSheet.id) && aSheet.tqlType === 'html'"
-                            ref="iframeDom"
-                            id="iframeMapViewComponent"
-                            @load="setSize(aSheet.id)"
-                            frameborder="0"
-                            :srcdoc="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : ''"
-                            width="100%"
-                        ></iframe>
+                    <v-sheet v-else-if="aSheet.type === 'tql'" color="transparent" height="100%" width="100%">
+                        <ShowChart
+                            v-if="aSheet.tqlType === 'html'"
+                            :ref="(el) => (rShowChartForm[aSheet.id] = el)"
+                            :p-data="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id) : {}"
+                        />
                         <Table
                             v-if="aSheet.tqlType === 'csv'"
                             :headers="checkMapResult(aSheet.id) ? gBoard.result.get(aSheet.id).columns : ''"
@@ -136,6 +133,7 @@
 import PopupWrap from '@/components/popup-list/index.vue';
 import CodeEditor from 'simple-code-editor';
 import Table from '../Tql/Table.vue';
+import ShowChart from '../Tql/showChart.vue';
 import Markdown from './Markdown.vue';
 import { ResizeRow } from 'vue-resizer';
 
@@ -168,6 +166,8 @@ const sLang = [
 
 const rSheet = ref<any>([]);
 const rResultForm = ref<any>([]);
+const rShowChartForm = ref<any>([]);
+const rCodeEditorForm = ref<any>([]);
 const iframeDom = ref<any>();
 
 const sCsvDataLeng = ref<any>();
@@ -202,19 +202,17 @@ const changeJsonFormat = (aItem: any) => {
     if (typeof aItem === 'string') {
         return JSON.stringify(JSON.parse(aItem), null, 4).replace(
             `[
-                    "",
-                    "",
-                    ""
-                ],`,
+                "",
+                ""
+            ],`,
             '...'
         );
     } else {
         return JSON.stringify(aItem, null, 4).replace(
             `[
-                    "",
-                    "",
-                    ""
-                ],`,
+                "",
+                ""
+            ],`,
             '...'
         );
     }
@@ -417,10 +415,14 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
         if (sResult.status !== 200) {
             gBoard.value.sheet[aIdx].result = 'fail';
             gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/html') {
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['x-chart-type'] === 'echarts') {
             gBoard.value.sheet[aIdx].result = '';
             gBoard.value.sheet[aIdx].tqlType = 'html';
+
             gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
+            nextTick(() => {
+                rShowChartForm.value[gBoard.value.sheet[aIdx].id].init();
+            });
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
             gBoard.value.sheet[aIdx].result = '';
             gBoard.value.sheet[aIdx].tqlType = 'csv';
@@ -513,6 +515,7 @@ onMounted(() => {
         const sDefaultSheet = rSheet.value[aItem].$el.children[0]?.children[1]?.children[0]?.children[0]?.children[0]?.children[0]?.children[1]?.children[0];
         if (sDefaultSheet) {
             sDefaultSheet.title = '';
+            sDefaultSheet.focus();
         }
     }
 });

@@ -348,7 +348,7 @@ const uploadFile = (aItem: any, bItem: string) => {
             type: sType,
             result: new Map(),
             board_name: aItem.name,
-            savedCode: '',
+            savedCode: false,
             path: '',
             edit: false,
         };
@@ -358,10 +358,8 @@ const uploadFile = (aItem: any, bItem: string) => {
 
         if (sTypeOption === 'wrk') {
             gBoard.value.sheet = JSON.parse(bItem).data;
-            gBoard.value.savedCode = JSON.parse(bItem).data;
         } else {
             gBoard.value.code = bItem;
-            gBoard.value.savedCode = bItem;
         }
         gBoard.value.board_name = aItem.name;
     }
@@ -433,7 +431,7 @@ const showDoc = async (aItem: any) => {
                 result: new Map(),
                 board_name: aItem.title,
                 sheet: [],
-                savedCode: '',
+                savedCode: false,
                 path: '',
                 edit: false,
             };
@@ -488,7 +486,7 @@ const onSetting = (aId?: string) => {
                 minimal: false,
             },
         ],
-        savedCode: '',
+        savedCode: false,
         edit: false,
     };
     if (aId) {
@@ -666,7 +664,7 @@ onMounted(async () => {
     gap: 28px;
 }
 
-::v-deep .set-type {
+.card-form :deep(.set-type) {
     display: flex;
     flex: none;
     .v-btn__content {

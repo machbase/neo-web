@@ -1,10 +1,10 @@
 <template>
     <v-sheet color="transparent" height="100%">
         <v-sheet class="popup__input-content" color="transparent" height="40px">
-            <div>
+            <!-- <div>
                 Slider
                 <ComboboxSelect @e-on-change="(aValue) => handleSlider(aValue, true)" :p-data="sSliderList" :p-show-default-option="false" :p-value="sSlider" />
-            </div>
+            </div> -->
             <div>
                 X axis
                 <ComboboxSelect @e-on-change="(aValue) => handleXInfo(aValue, true)" :p-data="cHeaderList" :p-show-default-option="false" :p-value="sXaxis" />
@@ -17,7 +17,7 @@
         </v-sheet>
 
         <v-sheet ref="rBodyEl" color="transparent" height="calc(100% - 40px)">
-            <iframe v-if="sType && sHtml" ref="iframeDom" id="iframeMapViewComponent" frameborder="0" height="100%" scrolling="no" :srcdoc="sHtml" width="100%"></iframe>
+            <v-sheet v-html="sText" class="tql-chart-form" color="transparent"></v-sheet>
             <v-sheet v-if="!sType" color="transparent">
                 {{ sHtml }}
             </v-sheet>
@@ -29,23 +29,28 @@ import ComboboxSelect from '@/components/common/combobox/combobox-select/index.v
 
 import { defineProps, ref, defineEmits, computed, onMounted, defineExpose } from 'vue';
 import { getTqlChart } from '../../api/repository/machiot';
+import { store } from '../../store';
+import showChart from '../../plugins/eChart';
 
 const props = defineProps({
     pHeaders: {
-        type: [],
-        default: [] as any[],
+        type: Array,
+        default: [] as string[],
     },
     pSql: {
         type: String,
+        default: [] as string[],
     },
     pType: {
-        type: [],
+        type: Array,
+        default: [] as string[],
     },
 });
 
 const rBodyEl = ref();
 const sHtml = ref();
 const sType = ref();
+const sText = ref();
 
 const sXaxis = ref<string>(props.pHeaders[0]);
 const sYaxis = ref<string>(props.pHeaders[1] ? props.pHeaders[1] : props.pHeaders[0]);
@@ -64,6 +69,7 @@ const cHeaderList = computed(() =>
         return { id: aItem, name: aItem };
     })
 );
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const handleSlider = (aValue: string) => {
     sSlider.value = aValue;
@@ -86,7 +92,7 @@ const getChartEl = async () => {
         `OUTPUT(CHART_LINE(xAxis(${cHeaderList.value.findIndex((aItem: { id: string; name: string }) => aItem.id === sXaxis.value)}, '${
             sXaxis.value
         }'), yAxis(${cHeaderList.value.findIndex((aItem: { id: string; name: string }) => aItem.id === sYaxis.value)}, '${sYaxis.value}'), ${
-            sSlider.value === 'none' ? '' : `dataZoom('slider', ${sSlider.value}),`
+            sSlider.value === 'none' ? '' : `dataZoom('slider', 0, 100),`
         } size($w ?? '${rBodyEl.value.$el.clientWidth}px',$h ??'${rBodyEl.value.$el.clientHeight * 0.7}px')))`;
 
     const sResult = await getTqlChart(sInput);
@@ -97,6 +103,29 @@ const getChartEl = async () => {
         sType.value = true;
 
         sHtml.value = sResult.data;
+        let divScripts = document.getElementsByTagName('head')[0];
+
+        let newScript = document.createElement('script');
+        newScript.src = `/web/echarts/themes/${sHtml.value.theme === '-' ? `westeros` : sHtml.value.theme}.js`;
+
+        if (divScripts) {
+            divScripts.appendChild(newScript);
+        }
+
+        sText.value = ` <div class="chart_container">
+            <div class="chart_item" id="${sHtml.value.chartID}" style="width:${sHtml.value.style.width};height:${sHtml.value.style.height};"></div>
+        </div>`;
+
+        setTimeout(() => {
+            if (sHtml.value.chartOption && sHtml.value.chartOption.series[1]) {
+                const sClientWidth = rBodyEl.value.$el.clientWidth;
+                const sDataLength = sHtml.value.chartOption.series[1].data.length;
+                sHtml.value.chartOption.dataZoom[0].start = 100 - (5 * sClientWidth) / sDataLength;
+                sHtml.value.chartOption.dataZoom[0].end = 100;
+            }
+
+            showChart(sHtml.value);
+        }, 100);
     }
 };
 onMounted(async () => {

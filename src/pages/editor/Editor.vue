@@ -7,7 +7,7 @@
         :slider-bg-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
         :slider-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
         :slider-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
-        slider-width="4"
+        :slider-width="4"
         width="100%"
     >
         <template #left>
@@ -137,7 +137,7 @@
         :slider-bg-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
         :slider-color="cIsDarkMode ? 'rgb(50, 50, 50)' : 'rgb(220, 220, 220)'"
         :slider-hover-color="cIsDarkMode ? 'rgb(70, 70, 70)' : 'rgb(150, 150, 150)'"
-        slider-width="4"
+        :slider-width="4"
         width="100%"
     >
         <template #top>
@@ -276,11 +276,7 @@ import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SE
 import { IANA_TIMEZONES, IanaTimezone } from '@/assets/ts/timezones.ts';
 import { postFileList } from '../../api/repository/api';
 import { getWindowOs } from '../../utils/utils';
-interface PropsNoteData {
-    pPanelData: boolean;
-}
 
-const props = defineProps<PropsNoteData>();
 const sLang = [['SQL', 'MACHBASE']];
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const gSelectedTab = computed(() => store.state.gSelectedTab);
@@ -495,30 +491,6 @@ const saveSQL = async (aEvent: any) => {
                         textarea.selectionEnd = selectionEnd + sCount * (isAllPrefixed === true ? -2 : 2);
                     });
                 });
-            }
-        }
-    }
-
-    if (aEvent.code === 'KeyS') {
-        if (getWindowOs() && aEvent.ctrlKey) {
-            aEvent.preventDefault();
-            if (gBoard.value.path !== '') {
-                const sResult: any = await postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
-                if (sResult.success) {
-                    gBoard.value.savedCode = gBoard.value.code;
-                }
-            } else {
-                onClickPopupItem(PopupType.FILE_BROWSER, 'save');
-            }
-        } else if (!getWindowOs() && aEvent.metaKey) {
-            aEvent.preventDefault();
-            if (gBoard.value.path !== '') {
-                const sResult: any = await postFileList(gBoard.value.code, gBoard.value.path, gBoard.value.board_name);
-                if (sResult.success) {
-                    gBoard.value.savedCode = gBoard.value.code;
-                }
-            } else {
-                onClickPopupItem(PopupType.FILE_BROWSER, 'save');
             }
         }
     }
@@ -782,6 +754,7 @@ onMounted(async () => {
     }
     const textarea = sText.value.$el.children[0].children[0].children[0];
     textarea.title = '';
+    textarea.focus();
 });
 </script>
 

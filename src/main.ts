@@ -28,3 +28,15 @@ createApp(App)
     .use(HighchartsVue as any)
     .mount('#app');
 More(HighCharts);
+
+const sScriptFileUrl = [`/web/echarts/echarts.min.js`, `/web/echarts/echarts-gl.min.js`, `/web/echarts/echarts-liquidfill.min.js`, `/web/echarts/echarts-wordcloud.min.js`];
+
+const divScripts = document.getElementsByTagName('head')[0];
+
+sScriptFileUrl.forEach((aItem) => {
+    const sScript = document.createElement('script');
+    sScript.src = aItem;
+    setTimeout(() => {
+        divScripts.appendChild(sScript);
+    }, 100);
+});
