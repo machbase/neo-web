@@ -166,6 +166,7 @@ export interface BoardInfo {
     path: string;
     code: string;
     sheet: any;
+    terminalId?: any;
     value?: any;
     result?: any;
     old_id?: string;

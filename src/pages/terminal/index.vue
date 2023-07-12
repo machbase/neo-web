@@ -51,7 +51,10 @@ const sLoading = ref(true);
 const makeTermId = () => {
     return new Date().getTime();
 };
-
+const gBoard = computed(() => {
+    const sIdx = gTabList.value.findIndex((aItem: any) => aItem.board_id === gSelectedTab.value);
+    return gTabList.value[sIdx];
+});
 // resize observer
 const sResizeObserver = new ResizeObserver(() => {
     if (selectedTab === gSelectedTab.value) {
@@ -112,9 +115,17 @@ const init = async () => {
     sTermId = makeTermId();
 
     if (window.location.protocol.indexOf('https') === -1) {
-        sWebSoc = new WebSocket(`ws://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}`);
+        sWebSoc = new WebSocket(
+            `ws://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${
+                gBoard.value.terminalId ? '&shell=' + gBoard.value.terminalId : ''
+            }`
+        );
     } else {
-        sWebSoc = new WebSocket(`wss://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}`);
+        sWebSoc = new WebSocket(
+            `wss://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${
+                gBoard.value.terminalId ? '&shell=' + gBoard.value.terminalId : ''
+            }`
+        );
     }
 
     sFitter = new FitAddon();
