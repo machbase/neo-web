@@ -16,7 +16,7 @@ import { store } from '../../store';
 import { MutationTypes } from '../../store/mutations';
 import { BoardInfo } from '../../interface/chart';
 import { getLogin } from '../../api/repository/login';
-
+import { WebglAddon } from 'xterm-addon-webgl';
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 interface ChartSelectProps {
@@ -101,6 +101,7 @@ const init = async () => {
                   brightYellow: '#d06b00',
                   blue: '#0000cc',
                   brightBlue: '#0000cc',
+                  selectionBackground: '#888888',
                   magenta: '#cc00cc',
                   brightMagenta: '#cc00cc',
                   cyan: '#0087cc',
@@ -129,6 +130,7 @@ const init = async () => {
     }
 
     sFitter = new FitAddon();
+    sTerm.loadAddon(new WebglAddon());
     sTerm.loadAddon(new WebLinksAddon());
     sTerm.loadAddon(new AttachAddon(sWebSoc, { bidirectional: true }));
     sTerm.loadAddon(sFitter);
@@ -268,9 +270,9 @@ onUnmounted(() => {
     top: 0;
     bottom: 0;
 }
-.xterm::selection {
+/* .xterm::selection {
     background: #000 !important;
-}
+} */
 .xterm .xterm-viewport::-webkit-scrollbar {
     width: 10px;
     height: 5px;
@@ -349,7 +351,7 @@ onUnmounted(() => {
 }
 
 .xterm-dim {
-    opacity: 0.5;
+    /* opacity: 0.5; */
 }
 
 .xterm-underline {
