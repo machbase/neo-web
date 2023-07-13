@@ -85,8 +85,8 @@
                     </v-btn>
                 </v-sheet>
             </v-sheet>
-            <v-sheet v-if="sResultType === 'mrk'" class="sheet-text" color="transparent" height="calc(100% - 40px)" width="100%">
-                <Markdown v-if="sMarkdownOption" ref="rChartTab" :p-contents="sMarkdown" p-type="mrk" />
+            <v-sheet v-if="sResultType === 'mrk'" class="sheet-text markdown-field" color="transparent" height="calc(100% - 40px)" width="100%">
+                <Markdown v-if="!sMarkdownOption" ref="rChartTab" :p-contents="sMarkdown" p-type="mrk" />
                 <div v-else>{{ sMarkdown }}</div>
             </v-sheet>
             <ShowChart v-else-if="sResultType === 'html'" ref="rChartTab" :p-data="sHtml" />
@@ -1064,6 +1064,9 @@ onMounted(async () => {
 }
 .sheet-text {
     overflow: auto !important;
+}
+.markdown-field {
+    padding: 4px 0 0 4px;
 }
 
 .sheet-text::-webkit-scrollbar {
