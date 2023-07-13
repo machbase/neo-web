@@ -156,13 +156,11 @@
                 <v-divider color="#a4a4a4" :thickness="2"></v-divider>
             </div>
             <div class="link-list">
-                <div>
+                <div class="file-list">
                     <button @click="onClickPopupItem(PopupType.FILE_BROWSER)">
                         <v-icon>mdi-folder-open</v-icon>
                         Open a file from the server...
                     </button>
-                </div>
-                <div>
                     <label class="item">
                         <div :style="{ display: 'flex', alignItems: 'center', cursor: 'pointer' }">
                             <v-icon>mdi-folder-upload</v-icon>
@@ -171,12 +169,14 @@
                         <input @change="onUpload" accept=".wrk, .sql, .tql, ,.taz" class="file-import" type="file" />
                     </label>
                 </div>
+            </div>
+            <div class="link-list back-contents">
                 <div v-for="(aRefer, aIdx) in sReferences" :key="aIdx">
                     <div class="referOption">
                         <v-icon> mdi-folder</v-icon>
                         {{ aRefer.label }}
                     </div>
-                    <button v-for="(aItem, bIdx) in aRefer.items" :key="bIdx" @click="showDoc(aItem)" :style="{ paddingLeft: '24px' }">
+                    <button v-for="(aItem, bIdx) in aRefer.items" :key="bIdx" @click="showDoc(aItem)" :style="{ paddingLeft: '8px' }">
                         <v-icon v-if="aItem.type === 'url'" size="16px"> {{ IconList.LINK }}</v-icon>
                         <v-icon v-if="aItem.type === 'sql'" size="16px"> {{ IconList.SQL }}</v-icon>
                         <v-icon v-if="aItem.type === 'tql'" size="16px"> {{ IconList.TQL }}</v-icon>
@@ -308,6 +308,7 @@ const onDrop = async (aEvent: any) => {
     isDragged.value = false;
     const sFile = aEvent.dataTransfer.files[0];
     aEvent.preventDefault();
+
     const extension = sFile.name.slice(-4);
     if (extension === '.wrk' || extension === '.sql' || extension === '.tql' || extension === '.taz') {
         const sResult: string = await readFile(sFile);
@@ -326,7 +327,7 @@ const onDrop = async (aEvent: any) => {
 const uploadFile = (aItem: any, bItem: string) => {
     const sIdx = gTabList.value.findIndex((aItem) => aItem.board_id === gSelectedTab.value);
 
-    const sTypeOption = aItem.name.split('.')[1];
+    const sTypeOption = aItem.name.slice(-3);
 
     let sType;
     if (sTypeOption === 'sql') sType = 'SQL Editor';
@@ -699,8 +700,22 @@ onMounted(async () => {
         }
     }
 }
-.link-list {
+.back-contents {
+    width: 100%;
     padding-bottom: 2.5%;
+
+    div {
+        width: 400px;
+    }
+}
+.link-list {
+    .file-list {
+        padding-bottom: 5%;
+
+        button {
+            padding-bottom: 2.5%;
+        }
+    }
     button {
         display: flex;
         align-items: center;
@@ -708,9 +723,9 @@ onMounted(async () => {
     i {
         margin-right: 4px;
     }
-    gap: 8px;
+    gap: 30px;
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
 }
 .board-name-sheet {
     display: flex;

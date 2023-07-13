@@ -1,5 +1,5 @@
 <template>
-    <v-sheet color="transparent" height="100%" class="tql-form">
+    <v-sheet class="tql-form" color="transparent" height="100%">
         <v-sheet ref="rBodyEl" color="transparent" height="100%">
             <v-sheet v-html="sText" class="tql-chart-form" color="transparent"></v-sheet>
         </v-sheet>
@@ -22,6 +22,7 @@ const props = defineProps({
 const sText = ref();
 
 const init = async () => {
+    const sTheme = props.pData.theme === '-' ? `westeros` : props.pData.theme;
     let divScripts = document.getElementsByTagName('head')[0];
 
     let newScript = document.createElement('script');
@@ -36,7 +37,7 @@ const init = async () => {
         </div>`;
 
     setTimeout(() => {
-        showChart(props.pData);
+        showChart(props.pData, sTheme);
     }, 100);
 };
 onMounted(() => {});
@@ -69,9 +70,8 @@ defineExpose({ init });
     margin-top: 30px;
     display: flex;
     align-items: center;
-.chart_item{
-margin: unset
+    .chart_item {
+        margin: unset;
+    }
 }
-}
-
 </style>
