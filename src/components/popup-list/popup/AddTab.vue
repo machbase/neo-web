@@ -83,11 +83,15 @@
                                 @click="setTerminal(Object.keys(aItem)[0].toUpperCase(), option)"
                                 :key="bIdx"
                                 :disabled="Object.keys(aItem)[0] === true"
+                                :style="bIdx === 2 ? { flexDirection: 'column', padding: 0 } : bIdx === 1 ? { marginBottom: '4px' } : {}"
                             >
-                                <v-icon v-if="Object.keys(aItem)[0] === 'cloneable'" size="12" class="copy-icon"> mdi-content-copy </v-icon>
-                                <v-icon v-else-if="Object.keys(aItem)[0] === 'removable'" size="14" class="delete-icon"> mdi-delete-outline </v-icon>
-                                <v-icon v-else size="13" class="edit-icon"> mdi-note-edit-outline </v-icon>
-                                {{ Object.keys(aItem)[0] === 'cloneable' ? 'Copy' : Object.keys(aItem)[0] === 'removable' ? 'Remove' : 'Edit...' }}
+                                <v-divider v-if="bIdx === 2" width="100%"> </v-divider>
+                                <div :style="bIdx === 2 ? { flexDirection: 'column', padding: '2px 8px' } : {}">
+                                    <v-icon v-if="Object.keys(aItem)[0] === 'cloneable'" size="12" class="copy-icon"> mdi-content-copy </v-icon>
+                                    <v-icon v-else-if="Object.keys(aItem)[0] === 'removable'" size="14" class="delete-icon"> mdi-delete-outline </v-icon>
+                                    <v-icon v-else size="13" class="edit-icon"> mdi-note-edit-outline </v-icon>
+                                    {{ Object.keys(aItem)[0] === 'cloneable' ? 'Make a copy' : Object.keys(aItem)[0] === 'removable' ? 'Remove' : 'Edit...' }}
+                                </div>
                             </button>
                         </v-list>
                     </v-menu>
@@ -269,10 +273,7 @@ const setTerminal = async (aType: string, aInfo: any) => {
         if (aType === 'CLONEABLE') {
             const sData: any = await copyShell(aInfo.id);
             if (!sData.response) {
-                const sData: any = await getLogin();
-
-                sReferences.value = sData.references;
-                sOptions.value = sData.shells;
+                onSettingPopup();
             } else {
                 toast('failed', {
                     autoClose: 1000,
@@ -284,10 +285,7 @@ const setTerminal = async (aType: string, aInfo: any) => {
         } else if (aType === 'REMOVABLE') {
             const sResult: any = await removeShell(aInfo.id);
             if (!sResult.response) {
-                const sData: any = await getLogin();
-
-                sReferences.value = sData.references;
-                sOptions.value = sData.shells;
+                onSettingPopup();
             } else {
                 toast('failed', {
                     autoClose: 1000,
@@ -549,6 +547,7 @@ const onSettingPopup = async () => {
     const sData: any = await getLogin();
 
     sReferences.value = sData.references;
+
     sOptions.value = sData.shells;
 };
 

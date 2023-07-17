@@ -40,10 +40,12 @@ const save = async () => {
     const sData = {
         ...JSON.parse(props.pInfo),
         label: sLabel.value,
-        content: sContent.value,
+        rawCommand: sContent.value,
     };
+
+    delete sData.args;
     const sResult: any = await postShell(sData);
-    if (sResult.success) {
+    if (sResult.reason) {
         toast('Success', {
             autoClose: 1000,
             theme: cIsDarkMode.value ? 'dark' : 'light',
@@ -62,7 +64,7 @@ const save = async () => {
 };
 
 onMounted(() => {
-    sContent.value = JSON.parse(props.pInfo).content;
+    sContent.value = JSON.parse(props.pInfo).args.join(' ');
     sLabel.value = JSON.parse(props.pInfo).label;
 });
 </script>
