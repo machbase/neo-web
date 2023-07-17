@@ -33,6 +33,9 @@ export enum PopupType {
     ADD_TAB = 'Add Tab',
     LICENSE = 'License',
     FILE_BROWSER = 'File Browser',
+    CLONEABLE = 'cloneable',
+    REMOVABLE = 'removable',
+    EDITABLE = 'editable',
 }
 export enum IconList {
     LINK = 'mdi-link-variant',

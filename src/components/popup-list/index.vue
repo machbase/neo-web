@@ -40,6 +40,7 @@
                 </div>
 
                 <FileBrowser v-if="pType === PopupType.FILE_BROWSER" @eClosePopup="onClosePopup" :p-info="pInfo" :p-new-open="pNewOpen" :p-upload-type="pUploadType" />
+                <EditShell v-if="pType === PopupType.EDITABLE" @eSettingPopup="onSettingPopup" @eClosePopup="onClosePopup" :p-info="pInfo" />
             </div>
         </div>
     </v-dialog>
@@ -53,6 +54,7 @@ import { computed, defineEmits, defineProps, ref, watch } from 'vue';
 import FileBrowser from './popup/FileBrowser.vue';
 import NewChart from './popup/NewChart.vue';
 import NewTags from './popup/NewTags.vue';
+import EditShell from './popup/EditShell.vue';
 import License from './popup/License.vue';
 import Preferences from './popup/Preferences.vue';
 import SaveDashboard from './popup/SaveDashboard.vue';

@@ -1,8 +1,8 @@
 <template>
     <div @keydown="setOption">
-        <div v-if="sIsOpenOption" @click="openList(false)" class="cover"></div>
-        <div ref="inputForm" @click="!pDisabled && openList(true)" class="combobox-select">
-            <input v-model="sSelect" ref="sInput" @input="handleSearch" :disabled="pDisabled" type="text" />
+        <div v-if="sIsOpenOption" class="cover"></div>
+        <div ref="inputForm" class="combobox-select">
+            <input v-model="sSelect" ref="sInput" @blur="openList(false)" @focus="!pDisabled && openList(true)" @input="handleSearch" :disabled="pDisabled" type="text" />
             <img
                 class="icon"
                 :src="ic_arrow_s_down"

@@ -9,7 +9,7 @@
                 <v-btn
                     v-for="(option, aIdx) in sExpOptions"
                     :key="aIdx"
-                    @click="changeType(option.type, option.name)"
+                    @click="changeType(option.type, option.label)"
                     class="taginput input set-type"
                     size="200px"
                     stacked
@@ -17,31 +17,14 @@
                 >
                     <div class="icon-body">
                         <v-icon :color="cIsDarkMode ? (sBoardType === option.type ? '#E4F2FD' : '') : sBoardType === option.type ? '' : '#212121'" size="36px">
-                            {{ option.icon }}
-                        </v-icon>
-                        <span :style="cIsDarkMode ? (sBoardType === option.type ? { color: '#E4F2FD' } : {}) : sBoardType === option.type ? {} : { color: '#212121' }">
-                            {{ option.name }}
-                        </span>
-                    </div>
-                </v-btn>
-
-                <v-btn
-                    v-for="(option, aIdx) in sShellList"
-                    :key="aIdx"
-                    @click="changeType('Terminal', option.label, option.id)"
-                    class="taginput input set-type"
-                    size="200px"
-                    stacked
-                >
-                    <div class="icon-body">
-                        <v-icon size="36px">
                             {{ 'mdi-' + option.icon }}
                         </v-icon>
-                        <span>
+                        <span :style="cIsDarkMode ? (sBoardType === option.type ? { color: '#E4F2FD' } : {}) : sBoardType === option.type ? {} : { color: '#212121' }">
                             {{ option.label }}
                         </span>
                     </div>
                 </v-btn>
+
                 <v-sheet
                     v-if="isDragged"
                     @dragleave="onDragleave"
@@ -82,39 +65,43 @@
                 <v-btn
                     v-for="(option, aIdx) in sOptions"
                     :key="aIdx"
-                    @click="changeType(option.type, option.name)"
+                    @click="changeType(option.type, option.label)"
                     class="taginput input set-type"
                     size="200px"
                     stacked
                     :style="sBoardType === option.type ? { borderColor: '#46CA92 !important' } : {}"
                 >
+                    <v-menu v-if="checkMenuStatus(option.attributes)" transition="slide-y-transition">
+                        <template #activator="{ props }">
+                            <v-btn v-bind="props" class="icon-header" density="comfortable" icon="mdi-plus" variant="plain">
+                                <v-icon> mdi-menu-down</v-icon>
+                            </v-btn>
+                        </template>
+                        <v-list class="list-option">
+                            <button
+                                v-for="(aItem, bIdx) in option.attributes"
+                                @click="setTerminal(Object.keys(aItem)[0].toUpperCase(), option)"
+                                :key="bIdx"
+                                :disabled="Object.keys(aItem)[0] === true"
+                            >
+                                <v-icon v-if="Object.keys(aItem)[0] === 'cloneable'" size="12" class="copy-icon"> mdi-content-copy </v-icon>
+                                <v-icon v-else-if="Object.keys(aItem)[0] === 'removable'" size="14" class="delete-icon"> mdi-delete-outline </v-icon>
+                                <v-icon v-else size="13" class="edit-icon"> mdi-note-edit-outline </v-icon>
+                                {{ Object.keys(aItem)[0] === 'cloneable' ? 'Copy' : Object.keys(aItem)[0] === 'removable' ? 'Remove' : 'Edit...' }}
+                            </button>
+                        </v-list>
+                    </v-menu>
+
                     <div class="icon-body">
                         <v-icon :color="cIsDarkMode ? (sBoardType === option.type ? '#E4F2FD' : '') : sBoardType === option.type ? '' : '#212121'" size="36px">
-                            {{ option.icon }}
-                        </v-icon>
-                        <span :style="cIsDarkMode ? (sBoardType === option.type ? { color: '#E4F2FD' } : {}) : sBoardType === option.type ? {} : { color: '#212121' }">
-                            {{ option.name }}
-                        </span>
-                    </div>
-                </v-btn>
-
-                <v-btn
-                    v-for="(option, aIdx) in sShellList"
-                    :key="aIdx"
-                    @click="changeType('Terminal', option.label, option.id)"
-                    class="taginput input set-type"
-                    size="200px"
-                    stacked
-                >
-                    <div class="icon-body">
-                        <v-icon size="36px">
                             {{ 'mdi-' + option.icon }}
                         </v-icon>
-                        <span>
+                        <span :style="cIsDarkMode ? (sBoardType === option.type ? { color: '#E4F2FD' } : {}) : sBoardType === option.type ? {} : { color: '#212121' }">
                             {{ option.label }}
                         </span>
                     </div>
                 </v-btn>
+
                 <v-sheet
                     v-if="isDragged"
                     @dragleave="onDragleave"
@@ -188,7 +175,16 @@
             </div>
         </v-sheet>
     </v-sheet>
-    <PopupWrap @eClosePopup="onClosePopup" :p-info="'open'" :p-new-open="'NewOpen'" :p-show="sDialog" :p-type="sPopupType" p-upload-type="" :p-width="cWidthPopup" />
+    <PopupWrap
+        @eClosePopup="onClosePopup"
+        @eSettingPopup="onSettingPopup"
+        :p-info="sInfo"
+        :p-new-open="'NewOpen'"
+        :p-show="sDialog"
+        :p-type="sPopupType"
+        p-upload-type=""
+        :p-width="cWidthPopup"
+    />
 </template>
 <script setup lang="ts">
 import Vue, { ref, computed, defineEmits, onMounted } from 'vue';
@@ -199,7 +195,7 @@ import { PopupType, IconList } from '@/enums/app';
 
 import { WIDTH_DEFAULT } from '../../header/constant';
 import { toast, ToastOptions } from 'vue3-toastify';
-import { getTutorial } from '../../../api/repository/api';
+import { getTutorial, copyShell, removeShell } from '../../../api/repository/api';
 import { BoardInfo } from '../../../interface/chart';
 import { getLogin } from '../../../api/repository/login';
 
@@ -209,7 +205,12 @@ const sBoardType = ref<string>();
 const sBoardName = ref<string>('Tag Analyzer');
 
 const sReferences = ref([]);
-const sShellList = ref([]);
+
+const checkMenuStatus = (aItem: boolean[]) => {
+    return aItem && aItem.some((bItem: boolean) => Object.keys(bItem)[0]);
+};
+
+const sInfo = ref<string>();
 
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const sPopupType = ref<PopupType>(PopupType.FILE_BROWSER);
@@ -235,19 +236,19 @@ const cWidthPopup = computed((): string => {
             return WIDTH_DEFAULT.DEFAULT;
     }
 });
-const sOptions = [
-    { name: 'SQL', type: 'SQL Editor', icon: IconList.SQL },
-    { name: 'TQL', type: 'Tql', icon: IconList.TQL },
+const sOptions = ref([
+    { name: 'SQL', type: 'sql', icon: IconList.SQL },
+    { name: 'TQL', type: 'tql', icon: IconList.TQL },
     { name: 'WorkSheet', type: 'wrk', icon: IconList.WRK },
-    { name: 'Tag Analyzer', type: 'dashboard', icon: IconList.TAZ },
-    { name: 'Shell', type: 'Terminal', icon: IconList.SHELL },
-];
+    { name: 'Tag Analyzer', type: 'taz', icon: IconList.TAZ },
+    { name: 'Shell', type: 'term', icon: IconList.SHELL },
+]);
 const sExpOptions = [
-    { name: 'SQL', type: 'SQL Editor', icon: IconList.SQL },
-    { name: 'TQL', type: 'Tql', icon: IconList.TQL },
+    { name: 'SQL', type: 'sql', icon: IconList.SQL },
+    { name: 'TQL', type: 'tql', icon: IconList.TQL },
     { name: 'WorkSheet', type: 'wrk', icon: IconList.WRK },
-    { name: 'Tag Analyzer', type: 'dashboard', icon: IconList.TAZ },
-    { name: 'Shell', type: 'Terminal', icon: IconList.SHELL },
+    { name: 'Tag Analyzer', type: 'taz', icon: IconList.TAZ },
+    { name: 'Shell', type: 'term', icon: IconList.SHELL },
 ];
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
@@ -261,8 +262,52 @@ const gBoard = computed(() => {
     return gTabList.value[sIdx];
 });
 
-const onClickPopupItem = (aPopupName: PopupType) => {
+const setTerminal = async (aType: string, aInfo: any) => {
+    if (aType === 'EDITABLE') {
+        onClickPopupItem(PopupType.EDITABLE, aInfo);
+    } else {
+        if (aType === 'CLONEABLE') {
+            const sData: any = await copyShell(aInfo.id);
+            if (!sData.response) {
+                const sData: any = await getLogin();
+
+                sReferences.value = sData.references;
+                sOptions.value = sData.shells;
+            } else {
+                toast('failed', {
+                    autoClose: 1000,
+                    theme: cIsDarkMode.value ? 'dark' : 'light',
+                    position: toast.POSITION.TOP_RIGHT,
+                    type: 'error',
+                } as ToastOptions);
+            }
+        } else if (aType === 'REMOVABLE') {
+            const sResult: any = await removeShell(aInfo.id);
+            if (!sResult.response) {
+                const sData: any = await getLogin();
+
+                sReferences.value = sData.references;
+                sOptions.value = sData.shells;
+            } else {
+                toast('failed', {
+                    autoClose: 1000,
+                    theme: cIsDarkMode.value ? 'dark' : 'light',
+                    position: toast.POSITION.TOP_RIGHT,
+                    type: 'error',
+                } as ToastOptions);
+            }
+        }
+        //
+    }
+};
+
+const onClickPopupItem = (aPopupName: PopupType, aInfo?: any) => {
     sPopupType.value = aPopupName;
+    if (aPopupName === PopupType.EDITABLE) {
+        sInfo.value = JSON.stringify(aInfo);
+    } else {
+        sInfo.value = 'open';
+    }
     sDialog.value = true;
 };
 
@@ -330,13 +375,13 @@ const uploadFile = (aItem: any, bItem: string) => {
     const sTypeOption = aItem.name.slice(-3);
 
     let sType;
-    if (sTypeOption === 'sql') sType = 'SQL Editor';
-    else if (sTypeOption === 'tql') sType = 'Tql';
-    else if (sTypeOption === 'taz') sType = 'dashboard';
+    if (sTypeOption === 'sql') sType = 'sql';
+    else if (sTypeOption === 'tql') sType = 'tql';
+    else if (sTypeOption === 'taz') sType = 'taz';
     else if (sTypeOption === 'wrk') sType = 'wrk';
-    else sType = 'Terminal';
+    else sType = 'term';
 
-    if (sType === 'dashboard') {
+    if (sType === 'taz') {
         const sDashboard = JSON.parse(bItem);
         sDashboard.board_id = new Date().getTime();
         store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
@@ -412,13 +457,13 @@ const showDoc = async (aItem: any) => {
 
         const sTypeOption = aItem.type;
         let sType;
-        if (sTypeOption === 'sql') sType = 'SQL Editor';
-        else if (sTypeOption === 'tql') sType = 'Tql';
-        else if (sTypeOption === 'taz') sType = 'dashboard';
+        if (sTypeOption === 'sql') sType = 'sql';
+        else if (sTypeOption === 'tql') sType = 'tql';
+        else if (sTypeOption === 'taz') sType = 'taz';
         else if (sTypeOption === 'wrk') sType = 'wrk';
-        else sType = 'Terminal';
+        else sType = 'term';
 
-        if (sType === 'dashboard') {
+        if (sType === 'taz') {
             const sDashboard = sData;
             sDashboard.board_id = new Date().getTime();
             store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
@@ -499,10 +544,17 @@ const onSetting = (aId?: string) => {
     onClosePopup();
 };
 
-onMounted(async () => {
+const onSettingPopup = async () => {
+    sDialog.value = false;
+
     const sData: any = await getLogin();
+
     sReferences.value = sData.references;
-    sShellList.value = sData.shells;
+    sOptions.value = sData.shells;
+};
+
+onMounted(() => {
+    onSettingPopup();
 });
 </script>
 <style lang="scss" scoped>
@@ -668,6 +720,7 @@ onMounted(async () => {
 .card-form :deep(.set-type) {
     display: flex;
     flex: none;
+    padding: 0 !important;
     .v-btn__content {
         justify-content: space-between;
         width: 100%;
@@ -679,7 +732,6 @@ onMounted(async () => {
             right: 0;
             display: flex;
             padding-top: 5px;
-            width: 100%;
             justify-content: end;
             align-items: center;
         }
@@ -735,5 +787,38 @@ onMounted(async () => {
     width: 100%;
     // margin: 0 !important;
     // flex-direction: column;
+}
+.list-option {
+    background-color: $d-background-opa !important;
+    padding: $px-5 0 !important;
+    font-size: $font-12 !important;
+    border-radius: 0 !important;
+    width: 120px;
+    border: 1px solid $bd-black !important;
+    color: $text-w !important;
+    button {
+        display: flex;
+        align-items: baseline;
+        padding: 2px 8px;
+        width: 100%;
+        .copy-icon {
+            margin-right: 6px;
+        }
+        .delete-icon {
+            margin-right: 4px;
+        }
+        .edit-icon {
+            margin-right: 5px;
+        }
+    }
+    button:hover {
+        background: $bd-black !important;
+    }
+
+    padding: 4px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: baseline;
 }
 </style>

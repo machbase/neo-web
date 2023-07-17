@@ -55,4 +55,24 @@ const getTutorial = (aUrl: any) => {
     });
 };
 
-export { getFileList, postFileList, getLicense, postLicense, deleteFileList, getTutorial, postMd };
+const copyShell = (aId: string) => {
+    return request({
+        method: 'get',
+        url: `/api/shell/${aId}/copy`,
+    });
+};
+const removeShell = (aId: string) => {
+    return request({
+        method: 'delete',
+        url: `/api/shell/${aId}`,
+    });
+};
+const postShell = (aInfo: any) => {
+    return request({
+        method: 'post',
+        url: `/api/shell/${aInfo.id}`,
+        data: aInfo,
+    });
+};
+
+export { getFileList, postFileList, getLicense, postLicense, deleteFileList, getTutorial, postMd, copyShell, removeShell, postShell };
