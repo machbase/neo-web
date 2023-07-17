@@ -437,7 +437,108 @@ const makeFolder = () => {
     getFile();
 };
 
+function containsInvalidCharsOrKeywords(input: string) {
+    const invalidChars = /[\\\/:*?"<>|]/;
+    const keywords = [
+        'ASSOC',
+        'AT',
+        'ATTRIB',
+        'BREAK',
+        'CACLS',
+        'CALL',
+        'CD',
+        'CHCP',
+        'CHDIR',
+        'CHKDSK',
+        'CHKNTFS',
+        'CLS',
+        'CMD',
+        'COLOR',
+        'COMP',
+        'COMPACT',
+        'CONVERT',
+        'COPY',
+        'DATE',
+        'DEL',
+        'DIR',
+        'DISKCOMP',
+        'DISKCOPY',
+        'DOSKEY',
+        'ECHO',
+        'ENDLOCAL',
+        'ERASE',
+        'EXIT',
+        'FC',
+        'FIND',
+        'FINDSTR',
+        'FOR',
+        'FORMAT',
+        'FTYPE',
+        'GOTO',
+        'GRAFTABL',
+        'HELP',
+        'IF',
+        'LABEL',
+        'MD',
+        'MKDIR',
+        'MODE',
+        'MORE',
+        'MOVE',
+        'PATH',
+        'PAUSE',
+        'POPD',
+        'PRINT',
+        'PROMPT',
+        'PUSHD',
+        'RD',
+        'RECOVER',
+        'REM',
+        'REN',
+        'RENAME',
+        'REPLACE',
+        'RMDIR',
+        'SET',
+        'SETLOCAL',
+        'SHIFT',
+        'SORT',
+        'START',
+        'SUBST',
+        'TIME',
+        'TITLE',
+        'TREE',
+        'TYPE',
+        'VER',
+        'VERIFY',
+        'VOL',
+        'XCOPY',
+    ];
+
+    if (invalidChars.test(input)) {
+        return false;
+    }
+
+    const sInput = input.substring(0, input.length - 4);
+
+    for (const keyword of keywords) {
+        if (sInput === keyword) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 const importFile = async () => {
+    if (!containsInvalidCharsOrKeywords(sFileName.value)) {
+        toast(`The file name is not available.`, {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
+        return;
+    }
+
     const sDupName = sList.value.find((aItem) => aItem.name === sFileName.value);
     if (sDupName) {
         if (sFileName.value !== gBoard.value.board_name) {
