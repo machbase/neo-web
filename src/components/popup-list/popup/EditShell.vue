@@ -5,7 +5,7 @@
             <div ref="inputForm" class="combobox-select"><input v-model="sLabel" ref="sInput" type="text" /></div>
         </v-sheet>
         <v-sheet color="transparent" class="field-sheet">
-            <span> Contents </span>
+            <span> Command </span>
             <div ref="inputForm" class="combobox-select"><input v-model="sContent" ref="sInput" type="text" /></div>
         </v-sheet>
         <v-sheet color="transparent">
@@ -43,7 +43,7 @@ const save = async () => {
         content: sContent.value,
     };
     const sResult: any = await postShell(sData);
-    if (!sResult.response) {
+    if (sResult.success) {
         toast('Success', {
             autoClose: 1000,
             theme: cIsDarkMode.value ? 'dark' : 'light',

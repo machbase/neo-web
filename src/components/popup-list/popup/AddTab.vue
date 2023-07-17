@@ -65,7 +65,7 @@
                 <v-btn
                     v-for="(option, aIdx) in sOptions"
                     :key="aIdx"
-                    @click="changeType(option.type, option.label)"
+                    @click="changeType(option.type, option.label, option.type === 'term' ? option.id : '')"
                     class="taginput input set-type"
                     size="200px"
                     stacked
@@ -510,7 +510,6 @@ const onSetting = (aId?: string) => {
 
     const sNode = {
         ...gTabList.value[sIdx],
-
         board_id: String(new Date().getTime()),
         type: sBoardType.value,
         board_name: sBoardName,
