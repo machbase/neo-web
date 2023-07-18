@@ -43,7 +43,7 @@
             <v-btn @click="addTab" density="comfortable" icon="mdi-plus" size="36px" variant="plain"> </v-btn>
         </v-sheet>
         <v-sheet class="header__tool" color="transparent" width="calc(10%)">
-            <button @blur="onChildGroup" @focus="onChildGroup" class="header__link--group-item drop">
+            <button  @click="onChildGroup" class="header__link--group-item drop">
                 <v-icon>mdi-cog</v-icon>
                 <div ref="childGroup" class="child-group">
                     <div @click="onClickPopupItem(PopupType.PREFERENCES)" class="item">

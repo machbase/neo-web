@@ -1,7 +1,7 @@
 <template>
     <div @keydown="setOption">
         <div v-if="sIsOpenOption" @click="openList(false)" class="cover"></div>
-        <div ref="inputForm" class="combobox-select">
+        <div ref="inputForm" class="combobox-select" :style="sIsOpenOption ? { zIndex: '1001' } : {}">
             <v-icon v-if="props.pIcon" :style="{ marginLeft: '8px' }" :color="!cIsDarkMode ? '#212121' : '#a4a4a4'"> mdi-{{ sSelect }}</v-icon>
             <button
                 v-if="pTextInput"
@@ -12,21 +12,11 @@
                         ? { padding: '0 0', display: 'flex', height: '24px', alignItems: 'center' }
                         : { padding: '0 8px', display: 'flex', height: '24px', alignItems: 'center' }
                 "
-                @focus="!pDisabled && openList(true)"
-                @blur="!pDisabled && openList(false)"
+                @click="!pDisabled && openList(true)"
             >
                 {{ sSelect }}
             </button>
-            <input
-                v-else
-                v-model="sSelect"
-                ref="sInput"
-                @input="handleSearch"
-                :disabled="pDisabled"
-                type="text"
-                @focus="!pDisabled && openList(true)"
-                @blur="!pDisabled && openList(false)"
-            />
+            <input v-else v-model="sSelect" ref="sInput" @input="handleSearch" :disabled="pDisabled" type="text" @click="!pDisabled && openList(true)" />
             <img
                 class="icon"
                 :src="ic_arrow_s_down"
@@ -41,7 +31,7 @@
                 "
             />
         </div>
-        <div v-if="sIsOpenOption" ref="optionList" class="option-list">
+        <div v-if="sIsOpenOption" ref="optionList" class="option-list" :style="sIsOpenOption ? { zIndex: '1001' } : {}">
             <button v-if="props.pShowDefaultOption" @click="selected(aItem.id)" class="combobox-select__item" value="">{{ pStringDefault }}</button>
             <button
                 v-for="(aItem, aIdx) in sFitterData"

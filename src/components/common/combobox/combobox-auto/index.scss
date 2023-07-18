@@ -25,7 +25,6 @@
     white-space: nowrap;
     overflow: hidden;
     position: absolute;
-    z-index: 1001;
     overflow: auto;
     @include theme() {
         border: 1px solid theme-get('border-color-input');
@@ -40,7 +39,6 @@
 }
 
 .combobox-select {
-    z-index: 1001;
     cursor: text;
     display: flex;
     align-items: center;
