@@ -548,6 +548,17 @@ const onSettingPopup = async () => {
 
     sReferences.value = sData.references;
 
+    const sortAttributes = (aItem: string, bItem: string) => {
+        const sOrder = ['editable', 'cloneable', 'removable'];
+        return sOrder.indexOf(aItem) - sOrder.indexOf(bItem);
+    };
+
+    sData.shells.forEach((aItem: any) => {
+        if (aItem.attributes && Array.isArray(aItem.attributes)) {
+            aItem.attributes.sort((aItem: string, bItem: string) => sortAttributes(Object.keys(aItem)[0], Object.keys(bItem)[0]));
+        }
+    });
+
     sOptions.value = sData.shells;
 };
 
