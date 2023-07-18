@@ -146,11 +146,11 @@ const cFileNameStat = computed(() => {
     let sTypeOption = gBoard.value.type;
     let sType;
 
-    if (sTypeOption === 'SQL Editor') sType = '.sql';
-    else if (sTypeOption === 'Tql') sType = '.tql';
-    else if (sTypeOption === 'dashboard') sType = '.taz';
+    if (sTypeOption === 'sql') sType = '.sql';
+    else if (sTypeOption === 'tql') sType = '.tql';
+    else if (sTypeOption === 'taz') sType = '.taz';
     else if (sTypeOption === 'wrk') sType = '.wrk';
-    else sTypeOption === 'Terminal';
+    else sTypeOption === 'term';
 
     if (sType === extension) {
         return false;
@@ -329,13 +329,13 @@ const getFile = async () => {
 
             const sTypeOption = sSelectedClickData.value.split('.')[1];
             let sType;
-            if (sTypeOption === 'sql') sType = 'SQL Editor';
-            else if (sTypeOption === 'tql') sType = 'Tql';
-            else if (sTypeOption === 'taz') sType = 'dashboard';
+            if (sTypeOption === 'sql') sType = 'sql';
+            else if (sTypeOption === 'tql') sType = 'tql';
+            else if (sTypeOption === 'taz') sType = 'taz';
             else if (sTypeOption === 'wrk') sType = 'wrk';
-            else sType = 'Terminal';
+            else sType = 'term';
 
-            if (sType === 'dashboard') {
+            if (sType === 'taz') {
                 const sDashboard = JSON.parse(sData);
                 sDashboard.board_id = new Date().getTime();
                 store.commit(MutationTypes.changeTab, sDashboard as BoardInfo);
@@ -373,13 +373,13 @@ const getFile = async () => {
         } else {
             const sTypeOption = sSelectedClickData.value.split('.')[1];
             let sType;
-            if (sTypeOption === 'sql') sType = 'SQL Editor';
-            else if (sTypeOption === 'tql') sType = 'Tql';
-            else if (sTypeOption === 'taz') sType = 'dashboard';
+            if (sTypeOption === 'sql') sType = 'sql';
+            else if (sTypeOption === 'tql') sType = 'tql';
+            else if (sTypeOption === 'taz') sType = 'taz';
             else if (sTypeOption === 'wrk') sType = 'wrk';
-            else sType = 'Terminal';
+            else sType = 'term';
 
-            if (sType === 'dashboard') {
+            if (sType === 'taz') {
                 const sDashboard = JSON.parse(sData);
 
                 sDashboard.board_id = new Date().getTime();
@@ -437,7 +437,108 @@ const makeFolder = () => {
     getFile();
 };
 
+function containsInvalidCharsOrKeywords(input: string) {
+    const invalidChars = /[\\\/:*?"<>|]/;
+    const keywords = [
+        'ASSOC',
+        'AT',
+        'ATTRIB',
+        'BREAK',
+        'CACLS',
+        'CALL',
+        'CD',
+        'CHCP',
+        'CHDIR',
+        'CHKDSK',
+        'CHKNTFS',
+        'CLS',
+        'CMD',
+        'COLOR',
+        'COMP',
+        'COMPACT',
+        'CONVERT',
+        'COPY',
+        'DATE',
+        'DEL',
+        'DIR',
+        'DISKCOMP',
+        'DISKCOPY',
+        'DOSKEY',
+        'ECHO',
+        'ENDLOCAL',
+        'ERASE',
+        'EXIT',
+        'FC',
+        'FIND',
+        'FINDSTR',
+        'FOR',
+        'FORMAT',
+        'FTYPE',
+        'GOTO',
+        'GRAFTABL',
+        'HELP',
+        'IF',
+        'LABEL',
+        'MD',
+        'MKDIR',
+        'MODE',
+        'MORE',
+        'MOVE',
+        'PATH',
+        'PAUSE',
+        'POPD',
+        'PRINT',
+        'PROMPT',
+        'PUSHD',
+        'RD',
+        'RECOVER',
+        'REM',
+        'REN',
+        'RENAME',
+        'REPLACE',
+        'RMDIR',
+        'SET',
+        'SETLOCAL',
+        'SHIFT',
+        'SORT',
+        'START',
+        'SUBST',
+        'TIME',
+        'TITLE',
+        'TREE',
+        'TYPE',
+        'VER',
+        'VERIFY',
+        'VOL',
+        'XCOPY',
+    ];
+
+    if (invalidChars.test(input)) {
+        return false;
+    }
+
+    const sInput = input.substring(0, input.length - 4);
+
+    for (const keyword of keywords) {
+        if (sInput === keyword) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 const importFile = async () => {
+    if (!containsInvalidCharsOrKeywords(sFileName.value)) {
+        toast(`The file name is not available.`, {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
+        return;
+    }
+
     const sDupName = sList.value.find((aItem) => aItem.name === sFileName.value);
     if (sDupName) {
         if (sFileName.value !== gBoard.value.board_name) {
@@ -526,11 +627,11 @@ onMounted(async () => {
     getFile();
     let sTypeOption = gBoard.value.type;
     let sType;
-    if (sTypeOption === 'SQL Editor') sType = '.sql';
-    else if (sTypeOption === 'Tql') sType = '.tql';
-    else if (sTypeOption === 'dashboard') sType = '.taz';
+    if (sTypeOption === 'sql') sType = '.sql';
+    else if (sTypeOption === 'tql') sType = '.tql';
+    else if (sTypeOption === 'taz') sType = '.taz';
     else if (sTypeOption === 'wrk') sType = '.wrk';
-    else sTypeOption === 'Terminal';
+    else sTypeOption === 'term';
 
     const extension = gBoard.value.board_name.slice(-4);
     if (extension === '.sql' || extension === '.tql' || extension === '.taz' || extension === '.wrk') {

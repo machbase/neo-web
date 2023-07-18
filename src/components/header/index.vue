@@ -23,11 +23,11 @@
                     "
                 >
                     <div>
-                        <v-icon v-if="aTab.type === 'dashboard'" size="16px">{{ IconList.TAZ }}</v-icon>
+                        <v-icon v-if="aTab.type === 'taz'" size="16px">{{ IconList.TAZ }}</v-icon>
                         <v-icon v-if="aTab.type == 'new'" size="16px">{{ IconList.NEW }}</v-icon>
-                        <v-icon v-if="aTab.type == 'SQL Editor'" size="16px">{{ IconList.SQL }}</v-icon>
-                        <v-icon v-if="aTab.type == 'Terminal'" size="16px">{{ IconList.SHELL }}</v-icon>
-                        <v-icon v-if="aTab.type == 'Tql'" size="16px">{{ IconList.TQL }}</v-icon>
+                        <v-icon v-if="aTab.type == 'sql'" size="16px">{{ IconList.SQL }}</v-icon>
+                        <v-icon v-if="aTab.type == 'term'" size="16px">{{ aTab.terminalIcon ? `mdi-` + aTab.terminalIcon : IconList.SHELL }}</v-icon>
+                        <v-icon v-if="aTab.type == 'tql'" size="16px">{{ IconList.TQL }}</v-icon>
                         <v-icon v-if="aTab.type == 'wrk'" size="16px">{{ IconList.WRK }}</v-icon>
 
                         {{ aTab.board_name }}
@@ -43,7 +43,7 @@
             <v-btn @click="addTab" density="comfortable" icon="mdi-plus" size="36px" variant="plain"> </v-btn>
         </v-sheet>
         <v-sheet class="header__tool" color="transparent" width="calc(10%)">
-            <div @click="onChildGroup" class="header__link--group-item drop">
+            <button @blur="onChildGroup" @focus="onChildGroup" class="header__link--group-item drop">
                 <v-icon>mdi-cog</v-icon>
                 <div ref="childGroup" class="child-group">
                     <div @click="onClickPopupItem(PopupType.PREFERENCES)" class="item">
@@ -68,7 +68,7 @@
                         Logout
                     </div>
                 </div>
-            </div>
+            </button>
         </v-sheet>
     </div>
     <PopupWrap @eClosePopup="onClosePopup" :p-info="sFileOption" :p-show="sDialog" :p-type="sPopupType" :p-width="cWidthPopup" />
@@ -406,7 +406,7 @@ const setIcon = (aItem: any) => {
     if (aItem.hover) {
         return 'mdi-close';
     } else {
-        if (aItem.type === 'SQL Editor' || aItem.type === 'Tql') {
+        if (aItem.type === 'sql' || aItem.type === 'tql') {
             if (aItem.savedCode !== aItem.code) {
                 return `mdi-circle`;
             }

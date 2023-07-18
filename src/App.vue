@@ -43,13 +43,13 @@ const gBoard = computed(() => {
 });
 const cBoardType = computed(() => {
     switch (gBoard.value && gBoard.value.type) {
-        case 'Tql':
+        case 'tql':
             return 'tql';
-        case 'SQL Editor':
+        case 'sql':
             return 'sql';
         case 'wrk':
             return 'wrk';
-        case 'dashboard':
+        case 'taz':
             return 'taz';
     }
     return 'new';

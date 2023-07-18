@@ -10,10 +10,10 @@
                 height="100%"
                 width="100%"
             >
-                <v-sheet v-if="aTab.type === 'SQL Editor'" color="transparent" height="100%" width="100%">
+                <v-sheet v-if="aTab.type === 'sql'" color="transparent" height="100%" width="100%">
                     <Editor ref="sPanels" />
                 </v-sheet>
-                <v-sheet v-else-if="aTab.type === 'Tql'" color="transparent" height="100%" width="100%">
+                <v-sheet v-else-if="aTab.type === 'tql'" color="transparent" height="100%" width="100%">
                     <TQL ref="sPanels" :p-panel-data="aTab" />
                 </v-sheet>
                 <v-sheet v-else-if="aTab.type === 'wrk'" color="transparent" height="100%" width="100%">
@@ -22,9 +22,9 @@
 
                 <AddTab v-else-if="aTab.type === 'new'" ref="sPanels" />
 
-                <Terminal v-else-if="terminalStatus && aTab.type === 'Terminal'" ref="sPanels" @eChangeStatus="changeTerminalStatus" :p-id="aTab.board_id" />
+                <Terminal v-else-if="terminalStatus && aTab.type === 'term'" ref="sPanels" @eChangeStatus="changeTerminalStatus" :p-id="aTab.board_id" />
 
-                <v-sheet v-if="aTab.type === 'dashboard'" class="time-range icon" color="transparent" height="4%">
+                <v-sheet v-if="aTab.type === 'taz'" class="time-range icon" color="transparent" height="4%">
                     {{
                         !isEmpty(cTimeRange.start || cTimeRange.end)
                             ? `${cTimeRange.start ? cTimeRange.start : ''} ~ ${cTimeRange.end ? cTimeRange.end : ''} ${
@@ -41,7 +41,7 @@
                         <input @change="onUploadChart" accept="application/JSON" class="file-import" type="file" />
                     </label> -->
                 </v-sheet>
-                <v-sheet v-if="aTab.type === 'dashboard'" class="chart-form" color="transparent" height="96%" width="100%">
+                <v-sheet v-if="aTab.type === 'taz'" class="chart-form" color="transparent" height="96%" width="100%">
                     <ChartDashboard ref="sPanels" :p-panel-info="aTab" :p-tab-idx="aIdx" />
                     <ButtonCreate @click="onClickPopupItem(PopupType.NEW_CHART)" :is-add-chart="true" />
                 </v-sheet>

@@ -11,10 +11,10 @@
     background-color: $d-background-opa;
     color: $text-w;
 
-    .tab-form:hover{
+    .tab-form:hover {
         overflow: auto;
     }
-   
+
     .tab-form::-webkit-scrollbar {
         height: 4px;
         background: #121212;
@@ -34,7 +34,7 @@
         overflow: hidden;
         border-left: 1px solid #121212;
         border-right: 1px solid #121212;
-       
+
         button {
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -50,24 +50,23 @@
             align-items: center;
             font-size: $font-12;
             padding: 4px 8px;
-        div{
-            width: 170px;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            overflow: hidden;
+            div {
+                width: 170px;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: hidden;
+            }
         }
-        }
-
     }
     &__name {
         @include font-12;
     }
     &__link {
-        button{
+        button {
             height: 100%;
             display: flex;
             align-items: center;
-            padding: 0 8px; 
+            padding: 0 8px;
         }
         display: flex;
         align-items: center;
@@ -100,6 +99,11 @@
                     border: 1px solid $bd-black;
                     .item {
                         padding: 3px $px-20;
+                        display: flex;
+                        align-items: center;
+                        i {
+                            margin-right: 4px;
+                        }
                     }
                 }
                 .child-group.active {
@@ -133,7 +137,6 @@
             cursor: pointer;
             font-size: inherit;
             vertical-align: middle;
-
         }
     }
     .share-header {
