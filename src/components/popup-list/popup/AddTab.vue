@@ -295,7 +295,6 @@ const setTerminal = async (aType: string, aInfo: any) => {
                 } as ToastOptions);
             }
         }
-        //
     }
 };
 
@@ -794,8 +793,6 @@ onMounted(() => {
 }
 .next-btn {
     width: 100%;
-    // margin: 0 !important;
-    // flex-direction: column;
 }
 .list-option {
     background-color: $d-background-opa !important;
