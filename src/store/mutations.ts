@@ -82,10 +82,11 @@ const mutations = {
     },
     [MutationTypes.setTableList](state: RootState, aTableList: { columns: string[]; rows: string[]; types: string[] }) {
         const sIdx = aTableList.columns.findIndex((aItem) => aItem === 'NAME');
-        const newTable = aTableList.rows.map((aTable) => {
-            return aTable[sIdx];
-        });
-        state.gTableList = newTable;
+
+        const newTable = aTableList.rows.filter((aItem) => aItem[4] === 'Tag Table');
+
+        const tagTableList = newTable.map((aItem) => aItem[sIdx]);
+        state.gTableList = tagTableList;
     },
     [MutationTypes.setTagList](state: RootState, aTagList: any) {
         state.gTagList = aTagList.rows.map((aItem: string[]) => {
