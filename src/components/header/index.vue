@@ -26,7 +26,7 @@
                         <v-icon v-if="aTab.type === 'taz'" size="16px">{{ IconList.TAZ }}</v-icon>
                         <v-icon v-if="aTab.type == 'new'" size="16px">{{ IconList.NEW }}</v-icon>
                         <v-icon v-if="aTab.type == 'sql'" size="16px">{{ IconList.SQL }}</v-icon>
-                        <v-icon v-if="aTab.type == 'term'" size="16px">{{ aTab.terminalIcon ? `mdi-` + aTab.terminalIcon : IconList.SHELL }}</v-icon>
+                        <v-icon v-if="aTab.type == 'term'" size="16px">{{ aTab.terminal.icon ? `mdi-` + aTab.terminal.icon : IconList.SHELL }}</v-icon>
                         <v-icon v-if="aTab.type == 'tql'" size="16px">{{ IconList.TQL }}</v-icon>
                         <v-icon v-if="aTab.type == 'wrk'" size="16px">{{ IconList.WRK }}</v-icon>
 

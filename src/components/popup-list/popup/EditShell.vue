@@ -8,6 +8,35 @@
             <span> Command </span>
             <div ref="inputForm" class="combobox-select"><input v-model="sCommand" ref="sInput" type="text" /></div>
         </v-sheet>
+        <v-sheet color="transparent" class="field-sheet">
+            <span> Theme </span>
+            <ComboboxAuto
+                @e-on-change="(aValue) => changeTheme(aValue)"
+                class="select-width"
+                :p-data="sThemeList"
+                :p-show-default-option="false"
+                :p-text-input="true"
+                p-use-name
+                :p-icon="false"
+                :p-value="sTheme"
+                :pShowDefaultOption="false"
+            />
+        </v-sheet>
+
+        <v-sheet color="transparent" class="field-sheet">
+            <span> Icon </span>
+            <ComboboxAuto
+                @e-on-change="(aValue) => changeIcon(aValue)"
+                class="select-width"
+                :p-data="sList"
+                :p-show-default-option="false"
+                :p-text-input="true"
+                p-use-name
+                :p-icon="true"
+                :p-value="sIcon"
+                :pShowDefaultOption="false"
+            />
+        </v-sheet>
         <v-sheet color="transparent">
             <div class="popup__btn-group">
                 <v-btn @click="save" class="button-effect-color" variant="outlined"> Save </v-btn>
@@ -17,6 +46,8 @@
     </div>
 </template>
 <script setup lang="ts">
+import ComboboxAuto from '@/components/common/combobox/combobox-auto/index.vue';
+
 import Vue, { onMounted, ref, computed } from 'vue';
 import { postShell } from '../../../api/repository/api';
 import { toast, ToastOptions } from 'vue3-toastify';
@@ -30,7 +61,27 @@ const emit = defineEmits(['eClosePopup', 'eSettingPopup']);
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const sLabel = ref();
+const sTheme = ref();
+const sIcon = ref();
 const sCommand = ref();
+
+const sList = computed(() =>
+    ['powershell', `console-network-outline`, 'console'].map((aItem: any) => {
+        return { id: aItem };
+    })
+);
+const sThemeList = computed(() =>
+    ['default', 'gray', 'ollie', 'warmNeon', 'galaxy', 'dark', 'white'].map((aItem: any) => {
+        return { id: aItem };
+    })
+);
+
+const changeIcon = (aItem: string) => {
+    sIcon.value = aItem;
+};
+const changeTheme = (aItem: string) => {
+    sTheme.value = aItem;
+};
 
 const onClosePopup = () => {
     emit('eClosePopup');
@@ -41,6 +92,8 @@ const save = async () => {
         ...JSON.parse(props.pInfo),
         label: sLabel.value,
         command: sCommand.value,
+        icon: sIcon.value,
+        theme: sTheme.value,
     };
 
     const sResult: any = await postShell(sData);
@@ -65,6 +118,8 @@ const save = async () => {
 onMounted(() => {
     sCommand.value = JSON.parse(props.pInfo).command;
     sLabel.value = JSON.parse(props.pInfo).label;
+    sTheme.value = JSON.parse(props.pInfo).theme ? JSON.parse(props.pInfo).theme : 'default';
+    sIcon.value = JSON.parse(props.pInfo).icon;
 });
 </script>
 <style lang="scss" scoped>
@@ -89,5 +144,11 @@ onMounted(() => {
     display: flex;
     align-items: center;
     margin-bottom: 8px;
+}
+.combobox-select {
+    color: #202020 !important;
+    .combobox-select__item {
+        color: #202020 !important;
+    }
 }
 </style>
