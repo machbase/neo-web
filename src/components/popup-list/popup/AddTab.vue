@@ -65,7 +65,7 @@
                 <v-btn
                     v-for="(option, aIdx) in sOptions"
                     :key="aIdx"
-                    @click="changeType(option.type, option.label, option.type === 'term' ? option.id : '')"
+                    @click="changeType(option.type, option.label, option.type === 'term' ? { id: option.id, icon: option.icon } : '')"
                     class="taginput input set-type"
                     size="200px"
                     stacked
@@ -437,10 +437,10 @@ const changeName = (aType: any, aName: string) => {
     }
 };
 
-const changeType = (aItem: any, aName: string, aId?: string) => {
+const changeType = (aItem: any, aName: string, aTabStyle?: string) => {
     sBoardType.value = aItem;
     changeName(sBoardType.value, aName);
-    onSetting(aId);
+    onSetting(aTabStyle);
 };
 const onClosePopup = () => {
     sDialog.value = false;
@@ -493,7 +493,7 @@ const showDoc = async (aItem: any) => {
         }
     }
 };
-const onSetting = (aId?: string) => {
+const onSetting = (aTabStyle?: any) => {
     if (!sBoardName.value) {
         toast('please enter Name', {
             autoClose: 1000,
@@ -531,8 +531,9 @@ const onSetting = (aId?: string) => {
         savedCode: false,
         edit: false,
     };
-    if (aId) {
-        sNode.terminalId = aId;
+    if (aTabStyle) {
+        sNode.terminalId = aTabStyle.id;
+        sNode.terminalIcon = aTabStyle.icon;
     }
 
     store.commit(MutationTypes.changeTab, sNode);
@@ -559,6 +560,7 @@ const onSettingPopup = async () => {
     });
 
     sOptions.value = sData.shells;
+
 };
 
 onMounted(() => {
