@@ -6,7 +6,7 @@
         </v-sheet>
         <v-sheet color="transparent" class="field-sheet">
             <span> Command </span>
-            <div ref="inputForm" class="combobox-select"><input v-model="sContent" ref="sInput" type="text" /></div>
+            <div ref="inputForm" class="combobox-select"><input v-model="sCommand" ref="sInput" type="text" /></div>
         </v-sheet>
         <v-sheet color="transparent">
             <div class="popup__btn-group">
@@ -30,7 +30,7 @@ const emit = defineEmits(['eClosePopup', 'eSettingPopup']);
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const sLabel = ref();
-const sContent = ref();
+const sCommand = ref();
 
 const onClosePopup = () => {
     emit('eClosePopup');
@@ -40,10 +40,9 @@ const save = async () => {
     const sData = {
         ...JSON.parse(props.pInfo),
         label: sLabel.value,
-        rawCommand: sContent.value,
+        command: sCommand.value,
     };
 
-    delete sData.args;
     const sResult: any = await postShell(sData);
     if (sResult.reason) {
         toast('Success', {
@@ -64,7 +63,7 @@ const save = async () => {
 };
 
 onMounted(() => {
-    sContent.value = JSON.parse(props.pInfo).args.join(' ');
+    sCommand.value = JSON.parse(props.pInfo).command;
     sLabel.value = JSON.parse(props.pInfo).label;
 });
 </script>
