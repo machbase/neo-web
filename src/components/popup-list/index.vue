@@ -11,7 +11,17 @@
     >
         <div class="dialog-wrap__content" :style="pType === 'EDIT CHART' ? { height: '100%' } : {}">
             <div class="dialog-wrap__content--header">
-                <p>{{ pType === PopupType.TIME_DURATION ? PopupType.TIME_RANGE : pType === PopupType.FILE_BROWSER ? pInfo : pType }}</p>
+                <p>
+                    {{
+                        pType === PopupType.TIME_DURATION
+                            ? PopupType.TIME_RANGE
+                            : pType === PopupType.FILE_BROWSER
+                            ? pInfo
+                            : pType === 'editable'
+                            ? `Edit ${JSON.parse(props.pInfo).label}`
+                            : pType
+                    }}
+                </p>
                 <img @click="onClosePopup" :src="i_b_close" />
             </div>
             <div class="dialog-wrap__content--body" :style="pType === 'EDIT CHART' ? { height: 'calc(100% - 45px)' } : {}">
