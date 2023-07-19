@@ -34,7 +34,7 @@ request.interceptors.request.use(
             config.headers[`Content-Type`] = 'text/plain';
         }
 
-        if (sHeaders && config.url === `/api/md`) {
+        if (sHeaders && (config.url === '/api/md?darkMode=false' || config.url === '/api/md?darkMode=true')) {
             config.headers[`Content-Type`] = 'text/plain';
         }
 
