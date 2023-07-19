@@ -31,7 +31,12 @@
                 "
             />
         </div>
-        <div v-if="sIsOpenOption" ref="optionList" class="option-list" :style="sIsOpenOption ? { zIndex: '1001' } : {}">
+        <div
+            v-if="sIsOpenOption"
+            ref="optionList"
+            class="option-list"
+            :style="[sIsOpenOption ? { zIndex: '1001' } : {}, pOptionWidth ? { width: pOptionWidth, maxWidth: pOptionWidth } : {}]"
+        >
             <button v-if="props.pShowDefaultOption" @click="selected(aItem.id)" class="combobox-select__item" value="">{{ pStringDefault }}</button>
             <button
                 v-for="(aItem, aIdx) in sFitterData"
@@ -62,6 +67,7 @@ interface ComboboxData {
 interface ComboboxSelectProps {
     pData: ComboboxData[];
     pValue?: any;
+    pOptionWidth?: any;
     pStringDefault?: string;
     pShowDefaultOption?: boolean;
     pDisabled?: boolean;

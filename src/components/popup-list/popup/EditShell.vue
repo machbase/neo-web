@@ -16,6 +16,7 @@
                 :p-data="sThemeList"
                 :p-show-default-option="false"
                 :p-text-input="true"
+                :p-option-width="'300px'"
                 p-use-name
                 :p-icon="false"
                 :p-value="sTheme"
@@ -31,6 +32,7 @@
                 :p-data="sList"
                 :p-show-default-option="false"
                 :p-text-input="true"
+                :p-option-width="'300px'"
                 p-use-name
                 :p-icon="true"
                 :p-value="sIcon"
@@ -66,7 +68,20 @@ const sIcon = ref();
 const sCommand = ref();
 
 const sList = computed(() =>
-    ['powershell', `console-network-outline`, 'console'].map((aItem: any) => {
+    [
+        `console-network-outline`,
+        `console-network`,
+        `database-outline`,
+        `database`,
+        `console-line`,
+        `powershell`,
+        `monitor`,
+        `monitor-small`,
+        `monitor-star`,
+        `monitor-shimmer`,
+        `laptop`,
+        `server-network`,
+    ].map((aItem: any) => {
         return { id: aItem };
     })
 );
@@ -126,12 +141,16 @@ onMounted(() => {
 @import '@/components/common/combobox/combobox-auto/index.scss';
 @import '@/components/popup-list/popup/index.scss';
 :deep(.combobox-select) {
-    width: 200px;
+    width: 300px;
     color: $text-w !important;
     input {
         padding: 0 8px !important;
         width: 100%;
     }
+}
+.select-width {
+    max-width: 300px !important;
+    width: 300px !important;
 }
 :deep(.combobox-select .combobox-select__item) {
     color: $text-w !important;

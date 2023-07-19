@@ -236,6 +236,8 @@ const cWidthPopup = computed((): string => {
             return '667px';
         case PopupType.FILE_BROWSER:
             return '667px';
+        case PopupType.EDITABLE:
+            return '567px';
         default:
             return WIDTH_DEFAULT.DEFAULT;
     }
