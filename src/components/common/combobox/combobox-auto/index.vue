@@ -2,7 +2,7 @@
     <div @keydown="setOption">
         <div v-if="sIsOpenOption" @click="openList(false)" class="cover"></div>
         <div ref="inputForm" class="combobox-select" :style="sIsOpenOption ? { zIndex: '1001' } : {}">
-            <v-icon v-if="props.pIcon" :style="{ marginLeft: '8px' }" :color="!cIsDarkMode ? '#212121' : '#a4a4a4'"> mdi-{{ sSelect }}</v-icon>
+            <v-icon v-if="props.pIcon" :style="{ marginLeft: '8px', marginRight: '4px' }" :color="!cIsDarkMode ? '#212121' : '#a4a4a4'"> mdi-{{ sSelect }}</v-icon>
             <button
                 v-if="pTextInput"
                 ref="refInput"
@@ -47,7 +47,7 @@
                 class="combobox-select__item"
                 :style="[aIdx === sVirtualSelect ? { backgroundColor: '#2094fc !important', color: 'white' } : {}, props.pIcon ? { paddingLeft: 0 } : {}]"
             >
-                <v-icon :style="{ marginLeft: '8px' }" v-if="props.pIcon"> mdi-{{ aItem.id }}</v-icon>
+                <v-icon :style="{ marginLeft: '8px', marginRight: '4px' }" v-if="props.pIcon"> mdi-{{ aItem.id }}</v-icon>
                 {{ aItem.id }}
             </button>
         </div>
