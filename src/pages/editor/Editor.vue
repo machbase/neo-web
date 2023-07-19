@@ -857,6 +857,21 @@ onMounted(async () => {
 //     overflow: auto !important;
 // }
 
+.tab-list::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.tab-list::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.tab-list::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
+}
 .drager_top div::-webkit-scrollbar {
     width: 5px;
     height: 5px;

@@ -74,6 +74,7 @@
                             :languages="aSheet.lang"
                             :line-nums="false"
                             theme=""
+                            :style="cIsDarkMode ? { background: `#161B22` } : {}"
                             width="100%"
                         />
                     </v-sheet>

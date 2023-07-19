@@ -24,6 +24,7 @@ import { postFileList } from './api/repository/api';
 import { PopupType, IconList } from './enums/app';
 import { WIDTH_DEFAULT } from './components/header/constant';
 import { ToastOptions, toast } from 'vue3-toastify';
+import mermaid from 'mermaid';
 
 let sFileOption = ref<string>('');
 
@@ -97,6 +98,8 @@ const onClickPopupItem = (aPopupName: PopupType, aFileOption?: string) => {
 };
 
 onMounted(() => {
+    mermaid.initialize({ startOnLoad: false, theme: cIsDarkMode.value ? 'dark' : 'default' });
+
     nextTick(() => {
         let divScripts = document.getElementById('app');
         let newScriptEchart = document.createElement('script');
