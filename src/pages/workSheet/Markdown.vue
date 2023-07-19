@@ -34,7 +34,7 @@ const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const init = async () => {
     if (props.pContents) {
         if (props.pType === 'mrk') {
-            const sData = await postMd(props.pContents);
+            const sData = await postMd(props.pContents, cIsDarkMode.value);
             sText.value = `<article class="${cIsDarkMode.value ? `markdown-body-dark` : `markdown-body-light`} markdown-body">${sData}</article>`;
         } else {
             sText.value = `<article class="${cIsDarkMode.value ? `markdown-body-dark` : `markdown-body-light`} markdown-body">${props.pContents}</article>`;

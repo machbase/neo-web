@@ -12,10 +12,10 @@ const getFileList = (aFilter: string, aDir: string, aName: string) => {
     });
 };
 
-const postMd = (aData: string) => {
+const postMd = (aData: string, aIsDark: boolean) => {
     return request({
         method: 'POST',
-        url: `/api/md`,
+        url: `/api/md?darkMode=${aIsDark}`,
         data: aData,
     });
 };
