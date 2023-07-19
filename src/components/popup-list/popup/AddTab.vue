@@ -65,7 +65,7 @@
                 <v-btn
                     v-for="(option, aIdx) in sOptions"
                     :key="aIdx"
-                    @click="changeType(option.type, option.label, option.type === 'term' ? { id: option.id, icon: option.icon } : '')"
+                    @click="changeType(option.type, option.label, option.type === 'term' ? { id: option.id, icon: option.icon, theme: option.theme } : '')"
                     class="taginput input set-type"
                     size="200px"
                     stacked
@@ -236,6 +236,8 @@ const cWidthPopup = computed((): string => {
             return '667px';
         case PopupType.FILE_BROWSER:
             return '667px';
+        case PopupType.EDITABLE:
+            return '567px';
         default:
             return WIDTH_DEFAULT.DEFAULT;
     }
@@ -511,6 +513,7 @@ const onSetting = (aTabStyle?: any) => {
         type: sBoardType.value,
         board_name: sBoardName,
         result: new Map(),
+        terminal: {} as any,
         path: '',
         sheet: [
             {
@@ -532,8 +535,9 @@ const onSetting = (aTabStyle?: any) => {
         edit: false,
     };
     if (aTabStyle) {
-        sNode.terminalId = aTabStyle.id;
-        sNode.terminalIcon = aTabStyle.icon;
+        sNode.terminal.id = aTabStyle.id;
+        sNode.terminal.icon = aTabStyle.icon;
+        sNode.terminal.theme = aTabStyle.theme;
     }
 
     store.commit(MutationTypes.changeTab, sNode);
@@ -560,7 +564,6 @@ const onSettingPopup = async () => {
     });
 
     sOptions.value = sData.shells;
-
 };
 
 onMounted(() => {

@@ -17,6 +17,8 @@ import { MutationTypes } from '../../store/mutations';
 import { BoardInfo } from '../../interface/chart';
 import { getLogin } from '../../api/repository/login';
 import { WebglAddon } from 'xterm-addon-webgl';
+import Theme from '@/assets/ts/xtermTheme';
+
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 interface ChartSelectProps {
@@ -84,31 +86,14 @@ const init = async () => {
     selectedTab = gSelectedTab.value;
     const sStorageData = localStorage.getItem('gPreference');
 
+    let sTheme: any = !cIsDarkMode.value ? Theme['white'] : Theme['dark'];
+    if (gBoard.value.terminal.theme && gBoard.value.terminal.theme !== 'default') {
+        const sData: 'gray' | 'ollie' | 'warmNeon' | 'galaxy' | 'white' | 'dark' = gBoard.value.terminal.theme;
+        sTheme = Theme[sData];
+    }
+
     sTerm = new Terminal({
-        theme: cIsDarkMode.value
-            ? {}
-            : {
-                  foreground: '#3b2322',
-                  background: '#efefef',
-                  cursor: '#73635a',
-                  black: '#000000',
-                  brightBlack: '#808080',
-                  red: '#cc0000',
-                  brightRed: '#cc0000',
-                  green: '#009600',
-                  brightGreen: '#009600',
-                  yellow: '#d06b00',
-                  brightYellow: '#d06b00',
-                  blue: '#0000cc',
-                  brightBlue: '#0000cc',
-                  selectionBackground: '#888888',
-                  magenta: '#cc00cc',
-                  brightMagenta: '#cc00cc',
-                  cyan: '#0087cc',
-                  brightCyan: '#0087cc',
-                  white: '#cccccc',
-                  brightWhite: '#ffffff',
-              },
+        theme: sTheme,
         fontFamily: '"D2Coding", "Monaco", "Lucida Console", "Courier New","D2Coding", sans-serif, monospace',
         allowProposedApi: true,
         fontSize: sStorageData && JSON.parse(sStorageData).font ? Number(JSON.parse(sStorageData).font) : 18,
@@ -118,13 +103,13 @@ const init = async () => {
     if (window.location.protocol.indexOf('https') === -1) {
         sWebSoc = new WebSocket(
             `ws://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${
-                gBoard.value.terminalId ? '&shell=' + gBoard.value.terminalId : ''
+                gBoard.value.terminal.id ? '&shell=' + gBoard.value.terminal.id : ''
             }`
         );
     } else {
         sWebSoc = new WebSocket(
             `wss://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${
-                gBoard.value.terminalId ? '&shell=' + gBoard.value.terminalId : ''
+                gBoard.value.terminal.id ? '&shell=' + gBoard.value.terminal.id : ''
             }`
         );
     }

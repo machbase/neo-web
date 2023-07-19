@@ -26,7 +26,7 @@
                         <v-icon v-if="aTab.type === 'taz'" size="16px">{{ IconList.TAZ }}</v-icon>
                         <v-icon v-if="aTab.type == 'new'" size="16px">{{ IconList.NEW }}</v-icon>
                         <v-icon v-if="aTab.type == 'sql'" size="16px">{{ IconList.SQL }}</v-icon>
-                        <v-icon v-if="aTab.type == 'term'" size="16px">{{ aTab.terminalIcon ? `mdi-` + aTab.terminalIcon : IconList.SHELL }}</v-icon>
+                        <v-icon v-if="aTab.type == 'term'" size="16px">{{ aTab.terminal.icon ? `mdi-` + aTab.terminal.icon : IconList.SHELL }}</v-icon>
                         <v-icon v-if="aTab.type == 'tql'" size="16px">{{ IconList.TQL }}</v-icon>
                         <v-icon v-if="aTab.type == 'wrk'" size="16px">{{ IconList.WRK }}</v-icon>
 
@@ -43,7 +43,7 @@
             <v-btn @click="addTab" density="comfortable" icon="mdi-plus" size="36px" variant="plain"> </v-btn>
         </v-sheet>
         <v-sheet class="header__tool" color="transparent" width="calc(10%)">
-            <button @blur="onChildGroup" @focus="onChildGroup" class="header__link--group-item drop">
+            <button  @click="onChildGroup" class="header__link--group-item drop">
                 <v-icon>mdi-cog</v-icon>
                 <div ref="childGroup" class="child-group">
                     <div @click="onClickPopupItem(PopupType.PREFERENCES)" class="item">

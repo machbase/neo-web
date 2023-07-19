@@ -25,7 +25,6 @@
     white-space: nowrap;
     overflow: hidden;
     position: absolute;
-    z-index: 1001;
     overflow: auto;
     @include theme() {
         border: 1px solid theme-get('border-color-input');
@@ -40,7 +39,6 @@
 }
 
 .combobox-select {
-    z-index: 1001;
     cursor: text;
     display: flex;
     align-items: center;
@@ -50,7 +48,7 @@
         margin-right: 2px;
     }
 
-    font-family: 'Open Sans',Helvetica,Arial,sans-serif;
+    font-family: 'Open Sans', Helvetica, Arial, sans-serif;
     @include theme() {
         border: 1px solid theme-get('border-color-input');
         color: theme-get('text-color');
@@ -64,7 +62,8 @@
     &:focus {
         @include box-shadow;
     }
-    input {
+    input,
+    .input-field {
         width: calc(100% - 16.5px);
         padding: 0 $px-15;
         @include theme() {

@@ -1,8 +1,22 @@
 <template>
     <div @keydown="setOption">
-        <div v-if="sIsOpenOption" class="cover"></div>
-        <div ref="inputForm" class="combobox-select">
-            <input v-model="sSelect" ref="sInput" @blur="openList(false)" @focus="!pDisabled && openList(true)" @input="handleSearch" :disabled="pDisabled" type="text" />
+        <div v-if="sIsOpenOption" @click="openList(false)" class="cover"></div>
+        <div ref="inputForm" class="combobox-select" :style="sIsOpenOption ? { zIndex: '1001' } : {}">
+            <v-icon v-if="props.pIcon" :style="{ marginLeft: '8px', marginRight: '4px' }" :color="!cIsDarkMode ? '#212121' : '#a4a4a4'"> mdi-{{ sSelect }}</v-icon>
+            <button
+                v-if="pTextInput"
+                ref="refInput"
+                class="input-field"
+                :style="
+                    props.pIcon
+                        ? { padding: '0 0', display: 'flex', height: '24px', alignItems: 'center' }
+                        : { padding: '0 8px', display: 'flex', height: '24px', alignItems: 'center' }
+                "
+                @click="!pDisabled && openList(true)"
+            >
+                {{ sSelect }}
+            </button>
+            <input v-else v-model="sSelect" ref="sInput" @input="handleSearch" :disabled="pDisabled" type="text" @click="!pDisabled && openList(true)" />
             <img
                 class="icon"
                 :src="ic_arrow_s_down"
@@ -17,17 +31,23 @@
                 "
             />
         </div>
-        <div v-if="sIsOpenOption" ref="optionList" class="option-list">
+        <div
+            v-if="sIsOpenOption"
+            ref="optionList"
+            class="option-list"
+            :style="[sIsOpenOption ? { zIndex: '1001' } : {}, pOptionWidth ? { width: pOptionWidth, maxWidth: pOptionWidth } : {}]"
+        >
             <button v-if="props.pShowDefaultOption" @click="selected(aItem.id)" class="combobox-select__item" value="">{{ pStringDefault }}</button>
             <button
                 v-for="(aItem, aIdx) in sFitterData"
                 :key="aIdx"
                 ref="buttonList"
-                @click="selected(aItem.id)"
+                @mousedown="selected(aItem.id)"
                 @mouseover="sVirtualSelect = aIdx"
                 class="combobox-select__item"
-                :style="aIdx === sVirtualSelect ? { backgroundColor: '#2094fc !important', color: 'white' } : {}"
+                :style="[aIdx === sVirtualSelect ? { backgroundColor: '#2094fc !important', color: 'white' } : {}, props.pIcon ? { paddingLeft: 0 } : {}]"
             >
+                <v-icon :style="{ marginLeft: '8px', marginRight: '4px' }" v-if="props.pIcon"> mdi-{{ aItem.id }}</v-icon>
                 {{ aItem.id }}
             </button>
         </div>
@@ -47,9 +67,12 @@ interface ComboboxData {
 interface ComboboxSelectProps {
     pData: ComboboxData[];
     pValue?: any;
+    pOptionWidth?: any;
     pStringDefault?: string;
     pShowDefaultOption?: boolean;
     pDisabled?: boolean;
+    pIcon?: boolean;
+    pTextInput?: boolean;
 }
 
 const props = withDefaults(defineProps<ComboboxSelectProps>(), {
@@ -72,14 +95,14 @@ const sSelect = ref<any>('');
 const setOption = (aEvent: any) => {
     if (aEvent.keyCode === 40) {
         sVirtualSelect.value++;
-        if (optionList.value.scrollTop < buttonList.value[sVirtualSelect.value].offsetTop - 280) {
+        if (buttonList.value[sVirtualSelect.value] && optionList.value.scrollTop < buttonList.value[sVirtualSelect.value].offsetTop - 280) {
             optionList.value.scrollTop = buttonList.value[sVirtualSelect.value].offsetTop - 280;
         }
     } else if (aEvent.keyCode === 38) {
         if (sVirtualSelect.value > 0) {
             sVirtualSelect.value--;
         }
-        if (optionList.value.scrollTop > buttonList.value[sVirtualSelect.value].offsetTop) {
+        if (buttonList.value[sVirtualSelect.value] && optionList.value.scrollTop > buttonList.value[sVirtualSelect.value].offsetTop) {
             optionList.value.scrollTop = buttonList.value[sVirtualSelect.value].offsetTop;
         }
     } else if (aEvent.keyCode === 13) {
@@ -94,13 +117,13 @@ const openList = (aItem: boolean) => {
         sDefaultData.value = props.pValue;
         sFitterData.value = props.pData;
         sVirtualSelect.value = props.pData.findIndex((aItem) => aItem.id.toLowerCase() === sSelect.value.toLowerCase());
-        sInput.value.focus();
+        sInput.value && sInput.value.focus();
         setTimeout(() => {
-            optionList.value.scrollTop = buttonList.value[sVirtualSelect.value].offsetTop - 140;
+            optionList.value.scrollTop = buttonList.value[sVirtualSelect.value] && buttonList.value[sVirtualSelect.value].offsetTop - 140;
         }, 50);
     } else {
         if (-1 === props.pData.findIndex((aItem) => aItem.id.toLowerCase() === sSelect.value.toLowerCase())) sSelect.value = sDefaultData.value;
-        sInput.value.blur();
+        sInput.value && sInput.value.blur();
     }
 };
 
@@ -124,7 +147,7 @@ const selected = (aItem: any) => {
 watch(
     () => sSelect.value,
     () => {
-        emit('eOnChange', sSelect.value);
+        if (props.pData.filter((aItem) => sSelect.value === aItem.id).length !== 0) emit('eOnChange', sSelect.value);
     }
 );
 
@@ -137,4 +160,7 @@ watchEffect(() => {
 
 <style lang="scss" scoped="scoped">
 @import 'index.scss';
+.option-list {
+    z-index: 9999999;
+}
 </style>
