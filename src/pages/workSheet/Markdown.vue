@@ -40,10 +40,6 @@ const init = async () => {
             sText.value = `<article class="${cIsDarkMode.value ? `markdown-body-dark` : `markdown-body-light`} markdown-body">${props.pContents}</article>`;
         }
     }
-
-    nextTick(() => {
-        setMermaid();
-    });
 };
 
 onMounted(() => {

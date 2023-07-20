@@ -151,6 +151,7 @@ import { PopupType } from '../../enums/app';
 import { WIDTH_DEFAULT } from '../../components/header/constant';
 import { getWindowOs } from '../../utils/utils';
 import { postFileList } from '../../api/repository/api';
+import setMermaid from '../../plugins/mermaid';
 const sPopupType = ref<PopupType>(PopupType.FILE_BROWSER);
 
 interface PropsNoteData {
@@ -392,6 +393,9 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
         gBoard.value.result.set(gBoard.value.sheet[aIdx].id, gBoard.value.sheet[aIdx].contents);
         nextTick(() => {
             rResultForm.value[gBoard.value.sheet[aIdx].id] && rResultForm.value[gBoard.value.sheet[aIdx].id].init();
+            setTimeout(() => {
+                setMermaid();
+            }, 10);
         });
     }
     if (gBoard.value.sheet[aIdx].type == 'sql') {
@@ -519,6 +523,9 @@ onMounted(() => {
             sDefaultSheet.focus();
         }
     }
+    setTimeout(() => {
+        setMermaid();
+    }, gBoard.value.sheet.length * 20);
 });
 </script>
 

@@ -106,7 +106,7 @@ onMounted(() => {
         if (divScripts) {
             divScripts.appendChild(newScriptEchart);
         }
-        mermaid.mermaidAPI.initialize({ startOnLoad: true, theme: cIsDarkMode.value ? 'dark' : 'default' });
+        mermaid.initialize({ deterministicIds: true, startOnLoad: true, theme: cIsDarkMode.value ? 'dark' : 'default' });
     });
 
     history.pushState(null, '', location.href);
