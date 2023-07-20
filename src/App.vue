@@ -98,8 +98,6 @@ const onClickPopupItem = (aPopupName: PopupType, aFileOption?: string) => {
 };
 
 onMounted(() => {
-    mermaid.initialize({ startOnLoad: false, theme: cIsDarkMode.value ? 'dark' : 'default' });
-
     nextTick(() => {
         let divScripts = document.getElementById('app');
         let newScriptEchart = document.createElement('script');
@@ -108,6 +106,7 @@ onMounted(() => {
         if (divScripts) {
             divScripts.appendChild(newScriptEchart);
         }
+        mermaid.mermaidAPI.initialize({ startOnLoad: true, theme: cIsDarkMode.value ? 'dark' : 'default' });
     });
 
     history.pushState(null, '', location.href);

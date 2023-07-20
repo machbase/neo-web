@@ -86,7 +86,7 @@ const sList = computed(() =>
     })
 );
 const sThemeList = computed(() =>
-    ['default', 'gray', 'ollie', 'warmNeon', 'galaxy', 'dark', 'white'].map((aItem: any) => {
+    ['default', 'white', 'dark', 'gray', 'galaxy'].map((aItem: any) => {
         return { id: aItem };
     })
 );
