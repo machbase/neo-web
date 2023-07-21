@@ -16,14 +16,11 @@ import { useStore } from '@/store';
 import Header from '@/components/header/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { computed, onMounted, nextTick, ref } from 'vue';
-import { ActionTypes } from './store/actions';
 import { useRoute } from 'vue-router';
-import { MutationTypes } from './store/mutations';
 import { getWindowOs } from './utils/utils';
 import { postFileList } from './api/repository/api';
-import { PopupType, IconList } from './enums/app';
+import { PopupType } from './enums/app';
 import { WIDTH_DEFAULT } from './components/header/constant';
-import { ToastOptions, toast } from 'vue3-toastify';
 import mermaid from 'mermaid';
 
 let sFileOption = ref<string>('');

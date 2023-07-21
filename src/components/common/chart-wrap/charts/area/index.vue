@@ -79,7 +79,6 @@ import { ActionTypes } from '@/store/actions';
 import { toDateUtcChart, toTimeUtcChart, rawtoTimeUtcChart } from '@/utils/utils';
 import { computed, defineProps, onMounted, reactive, ref, watch, withDefaults, defineExpose, nextTick } from 'vue';
 import AreaChart from './container/index.vue';
-import { fetchRawData } from '../../../../../api/repository/machiot';
 
 interface AreaChartProps {
     panelInfo: LinePanel;

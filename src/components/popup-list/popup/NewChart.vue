@@ -35,7 +35,6 @@
                     <div>Select : {{ selectCount }}</div>
                 </div>
                 <div class="taglistdiv taglistscroll">
-                    <!-- v-if="" -->
                     <div v-if="tagsPaged[pageIndex] && tagsPaged[pageIndex][0] && tagsPaged[pageIndex].length === 0">NO TAG</div>
                     <div v-for="(aTag, aIndex) in tagsPaged[pageIndex]" :key="aIndex" @click="onSelectTag(aTag)" class="text" style="margin-bottom: 5px">{{ aTag }}</div>
                 </div>
@@ -69,24 +68,19 @@
 <script setup lang="ts" name="NewChart">
 import i_b_close from '@/assets/image/i_b_close.png';
 import Pagination from '@/components/common/pagination/index.vue';
-import TimeRange from '@/components/common/date-list/date-time-range.vue';
-import TimeDuration from '@/components/common/date-list/date-time-duration.vue';
-import CustomScale, { CustomScaleInput } from '@/components/common/custom-scale/index.vue';
-import ButtonCreate from '@/components/common/button-create/index.vue';
 import ChartSelect from '@/components/common/chart-select/index.vue';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
-import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
 import _ from 'lodash';
 
 import { useStore } from '@/store';
 import { computed, defineEmits, reactive, ref, watch } from 'vue';
 import { ChartType } from '@/enums/app';
 import { CALC_MODE, MAX_TAG_COUNT } from './constant';
-import { fetchTablesData, fetchOnRollupTable, fetchRangeData, fetchOnMinMaxTable } from '@/api/repository/machiot';
+import { fetchOnRollupTable, fetchRangeData } from '@/api/repository/machiot';
 import { ActionTypes } from '@/store/actions';
 import { TagSet } from '@/interface/chart';
 import { CalculationMode } from '@/interface/constants';
-import { getPaginationPages, toTimeUtcChart } from '@/utils/utils';
+import { getPaginationPages } from '@/utils/utils';
 import { toast, ToastOptions } from 'vue3-toastify';
 const emit = defineEmits(['eClosePopup']);
 const searchText = ref<string>('');

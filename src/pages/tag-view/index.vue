@@ -57,24 +57,18 @@ import WorkSheet from '@/pages/workSheet/WorkSheet.vue';
 
 import ButtonCreate from '@/components/common/button-create/index.vue';
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
-import ChartDetailDashboard from '@/components/common/chart-detail-dashboard/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { PopupType } from '@/enums/app';
-import i_b_timerange from '@/assets/image/i_b_timerange.png';
 import { BoardInfo, PanelInfo } from '@/interface/chart';
-import { ResBoardList } from '@/interface/tagView';
 import AddTab from '@/components/popup-list/popup/AddTab.vue';
 import Terminal from '@/pages/terminal/index.vue';
-import i_b_refresh from '@/assets/image/i_b_refresh.png';
 import { useStore } from '@/store';
-import { ActionTypes } from '@/store/actions';
-import { cloneDeep, isEmpty } from 'lodash';
-import { onMounted, nextTick, inject } from 'vue';
+import { isEmpty } from 'lodash';
+import { onMounted, nextTick } from 'vue';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import i_b_close from '@/assets/image/i_b_close.png';
 import { MutationTypes } from '../../store/mutations';
-import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from '@/components/header/constant';
+import { MANAGE_DASHBOARD, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from '@/components/header/constant';
 
 const route = useRoute();
 const store = useStore();
@@ -90,7 +84,6 @@ let sFileOption = ref<string>('');
 const sLoading = ref(true);
 
 const sDialog = ref<boolean>(false);
-const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
 const cDashBoard = computed((): BoardInfo => store.state.gBoard);
 const sPanels = ref(null);
 const CPanels = computed((): PanelInfo[][] => store.state.gBoard.panels);

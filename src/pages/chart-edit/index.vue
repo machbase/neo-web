@@ -25,15 +25,13 @@
     </div>
 </template>
 <script setup lang="ts" name="ChartEdit">
-import i_b_close from '@/assets/image/i_b_close.png';
-import i_b_save_2 from '@/assets/image/i_b_save_2.png';
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
-import { BoardInfo, PanelInfo } from '@/interface/chart';
+import { PanelInfo } from '@/interface/chart';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { MutationTypes } from '@/store/mutations';
-import { computed, ref, watch, reactive, watchEffect, onMounted, defineProps, defineEmits } from 'vue';
+import { computed, ref, watch, onMounted, defineProps, defineEmits } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AxesTab from '../chart-edit/components/axes/index.vue';
 import DataTab from '../chart-edit/components/data/index.vue';

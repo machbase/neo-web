@@ -14,22 +14,13 @@
 </template>
 
 <script setup lang="ts" name="ChartHeader">
-import i_b_del from '@/assets/image/i_b_del.png';
 import PopupWrap from '@/components/popup-list/index.vue';
-import i_b_edit from '@/assets/image/i_b_edit.png';
-import i_b_newwin from '@/assets/image/i_b_newwin.png';
-import i_b_refresh from '@/assets/image/i_b_refresh.png';
-import i_b_save_2 from '@/assets/image/i_b_save_2.png';
-import i_w_del from '@/assets/image/i_w_del.png';
-import i_b_close from '@/assets/image/i_b_close.png';
-import i_w_edit from '@/assets/image/i_w_edit.png';
-import i_w_newwin from '@/assets/image/i_w_newwin.png';
 import { RouteNames } from '@/enums/routes';
 import { BoardInfo, LinePanel } from '@/interface/chart';
 import router from '@/routes';
 import { useStore } from '@/store';
 import { MutationTypes } from '@/store/mutations';
-import { toDateUtcChart, toTimeUtcChart, changeNaNoToDate } from '@/utils/utils';
+import { changeNaNoToDate } from '@/utils/utils';
 import { ref, computed, defineEmits, defineProps, withDefaults } from 'vue';
 import { useRoute } from 'vue-router';
 export type headerType = RouteNames.TAG_VIEW | RouteNames.VIEW | RouteNames.CHART_VIEW | RouteNames.CHART_EDIT | RouteNames.NEW;

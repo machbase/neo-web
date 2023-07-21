@@ -24,7 +24,7 @@
 import DatePicker from '@/components/common/date-picker/index.vue';
 import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
 import TimeRange, { TimeRangeInput } from '@/components/common/date-list/date-time-range.vue';
-import { computed, defineEmits, reactive, ref, watch, watchEffect, defineProps } from 'vue';
+import { defineEmits, ref, watchEffect, defineProps } from 'vue';
 import { formatDate } from '@/utils/utils';
 import { PanelInfo } from '@/interface/chart';
 

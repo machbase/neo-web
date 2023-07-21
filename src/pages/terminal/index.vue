@@ -6,15 +6,13 @@
     </v-sheet>
 </template>
 <script setup lang="ts">
-import Vue, { withDefaults, ref, computed, defineEmits, defineProps, onMounted, nextTick, onUnmounted, onUpdated, watch } from 'vue';
+import Vue, { withDefaults, ref, computed, defineProps, onMounted, onUnmounted, watch } from 'vue';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import { AttachAddon } from 'xterm-addon-attach';
 import { postTerminalSize } from '../../api/repository/machiot';
 import { store } from '../../store';
-import { MutationTypes } from '../../store/mutations';
-import { BoardInfo } from '../../interface/chart';
 import { getLogin } from '../../api/repository/login';
 import { WebglAddon } from 'xterm-addon-webgl';
 import Theme from '@/assets/ts/xtermTheme';

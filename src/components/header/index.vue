@@ -43,7 +43,7 @@
             <v-btn @click="addTab" density="comfortable" icon="mdi-plus" size="36px" variant="plain"> </v-btn>
         </v-sheet>
         <v-sheet class="header__tool" color="transparent" width="calc(10%)">
-            <button  @click="onChildGroup" class="header__link--group-item drop">
+            <button @click="onChildGroup" class="header__link--group-item drop">
                 <v-icon>mdi-cog</v-icon>
                 <div ref="childGroup" class="child-group">
                     <div @click="onClickPopupItem(PopupType.PREFERENCES)" class="item">
@@ -76,32 +76,23 @@
 
 <script setup lang="ts" name="Header">
 import { clone, cloneDeep, isEmpty } from 'lodash';
-import i_b_close from '@/assets/image/i_b_close.png';
-import i_b_menu_1 from '@/assets/image/i_b_menu_1.png';
-import i_b_refresh from '@/assets/image/i_b_refresh.png';
 import i_b_save_2 from '@/assets/image/i_b_save_2.png';
-import i_b_logout from '@/assets/image/i_b_logout.png';
-import i_b_share from '@/assets/image/i_b_share.png';
-import i_b_timerange from '@/assets/image/i_b_timerange.png';
 import loader_b from '@/assets/image/ajax-loader-b.gif';
 import loader_w from '@/assets/image/ajax-loader-w.gif';
 import logo from '@/assets/image/i_logo.png';
-import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { PopupType, IconList } from '@/enums/app';
 import { RouteNames } from '@/enums/routes';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
-import { ActionTypes } from '@/store/actions';
 import { MutationTypes } from '@/store/mutations';
 import { computed, ref, watch, provide, defineEmits, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from './constant';
-import { BarPanel, BoardInfo, startTimeToendTimeType } from '@/interface/chart';
+import { LOGOUT, MANAGE_DASHBOARD, PREFERENCE, SET, WIDTH_DEFAULT } from './constant';
+import { BoardInfo } from '@/interface/chart';
 import { fetchRollUp } from '@/api/repository/machiot';
 import Joi from 'joi';
 import { logOut } from '../../api/repository/login';
-import { postFileList } from '../../api/repository/api';
 import { toast, ToastOptions } from 'vue3-toastify';
 
 const emit = defineEmits(['download']);

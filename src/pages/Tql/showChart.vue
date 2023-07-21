@@ -6,11 +6,8 @@
     </v-sheet>
 </template>
 <script setup="setup" lang="ts" name="Login">
-import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
-import { defineProps, ref, defineEmits, computed, onMounted, defineExpose, nextTick } from 'vue';
+import { defineProps, ref, onMounted, defineExpose } from 'vue';
 import showChart from '@/plugins/eChart.ts';
-import { store } from '../../store';
-const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const props = defineProps({
     pData: {

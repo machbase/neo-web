@@ -57,7 +57,7 @@ import { defineProps, ref, defineEmits, computed } from 'vue';
 import { store } from '../../store';
 import { copyText } from 'vue3-clipboard';
 import { PopupType } from '../../enums/app';
-import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from '@/components/header/constant';
+import { MANAGE_DASHBOARD, WIDTH_DEFAULT } from '@/components/header/constant';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { changeNumberType } from '@/utils/utils';
 

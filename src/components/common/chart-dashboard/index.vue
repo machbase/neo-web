@@ -25,7 +25,6 @@
 
 <script lang="ts" setup name="ChartDashboard">
 import AreaChart from '@/components/common/chart-wrap/charts/area/index.vue';
-import { isChartType } from '@/helpers/chart';
 import { PanelInfo, BoardInfo } from '@/interface/chart';
 import { useStore } from '@/store';
 import { computed, onMounted, defineExpose, defineProps, reactive, ref, watch, withDefaults } from 'vue';

@@ -196,7 +196,6 @@ import { MutationTypes } from '../../../store/mutations';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { store } from '../../../store';
 import { PopupType, IconList } from '@/enums/app';
-
 import { WIDTH_DEFAULT } from '../../header/constant';
 import { toast, ToastOptions } from 'vue3-toastify';
 import { getTutorial, copyShell, removeShell } from '../../../api/repository/api';

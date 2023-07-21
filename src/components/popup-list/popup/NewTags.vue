@@ -51,7 +51,7 @@ import i_b_close from '@/assets/image/i_b_close.png';
 import Pagination from '@/components/common/pagination/index.vue';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import { useStore } from '@/store';
-import { computed, defineEmits, reactive, ref, watch, defineProps, withDefaults, toRefs } from 'vue';
+import { computed, defineEmits, reactive, ref, watch, defineProps, toRefs } from 'vue';
 import { ChartType } from '@/enums/app';
 import { CALC_MODE, MAX_TAG_COUNT } from './constant';
 import { ActionTypes } from '@/store/actions';
