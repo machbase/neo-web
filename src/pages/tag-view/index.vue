@@ -14,7 +14,7 @@
                     <Editor ref="sPanels" />
                 </v-sheet>
                 <v-sheet v-else-if="aTab.type === 'tql'" color="transparent" height="100%" width="100%">
-                    <TQL ref="sPanels" :p-panel-data="aTab" />
+                    <TQL ref="sPanels" />
                 </v-sheet>
                 <v-sheet v-else-if="aTab.type === 'wrk'" color="transparent" height="100%" width="100%">
                     <WorkSheet ref="sPanels" :p-panel-data="aTab" />

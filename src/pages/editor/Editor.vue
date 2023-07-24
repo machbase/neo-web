@@ -48,7 +48,6 @@
                     ref="sText"
                     @keydown="saveSQL"
                     @keydown.enter.stop="setSQL"
-                    :autofocus="true"
                     border_radius="0"
                     :class="cFontSizeClassName"
                     :header="false"
@@ -178,7 +177,6 @@
                     ref="sText"
                     @keydown="saveSQL"
                     @keydown.enter.stop="setSQL"
-                    :autofocus="true"
                     border_radius="0"
                     :class="cFontSizeClassName"
                     :header="false"
@@ -270,8 +268,8 @@ import { DragCol, DragRow } from 'vue-resizer';
 import { PopupType } from '@/enums/app';
 import { MutationTypes } from '../../store/mutations';
 import ComboboxAuto from '@/components/common/combobox/combobox-auto/index.vue';
-import {  MANAGE_DASHBOARD,  PREFERENCE,    WIDTH_DEFAULT } from '@/components/header/constant';
-import { IANA_TIMEZONES  } from '@/assets/ts/timezones.ts';
+import { MANAGE_DASHBOARD, PREFERENCE, WIDTH_DEFAULT } from '@/components/header/constant';
+import { IANA_TIMEZONES } from '@/assets/ts/timezones.ts';
 import { getWindowOs } from '../../utils/utils';
 
 const sLang = [['SQL', 'MACHBASE']];

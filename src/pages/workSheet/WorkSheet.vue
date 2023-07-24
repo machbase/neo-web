@@ -65,7 +65,6 @@
                             :ref="(el) => (rCodeEditorForm[aSheet.id] = el)"
                             @keydown.enter.stop="checkCtrl($event, aIdx, 'key')"
                             @lang="(aLang) => getLanguage(aLang, aIdx)"
-                            :autofocus="true"
                             border_radius="0"
                             :copy-code="false"
                             :font-size="cPrefrence + 'px'"

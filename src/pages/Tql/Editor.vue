@@ -26,7 +26,6 @@
                     ref="sText"
                     @keydown="saveSQL"
                     @keydown.enter.stop="setSQL($event)"
-                    :autofocus="true"
                     border_radius="0"
                     :class="cFontSizeClassName"
                     :header="false"

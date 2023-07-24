@@ -257,13 +257,7 @@ const cWidthPopup = computed((): string => {
             return WIDTH_DEFAULT.DEFAULT;
     }
 });
-const sOptions = ref([
-    { name: 'SQL', type: 'sql', icon: IconList.SQL },
-    { name: 'TQL', type: 'tql', icon: IconList.TQL },
-    { name: 'WorkSheet', type: 'wrk', icon: IconList.WRK },
-    { name: 'Tag Analyzer', type: 'taz', icon: IconList.TAZ },
-    { name: 'Shell', type: 'term', icon: IconList.SHELL },
-]);
+const sOptions = ref([]);
 const sExpOptions = [
     { name: 'SQL', type: 'sql', icon: IconList.SQL },
     { name: 'TQL', type: 'tql', icon: IconList.TQL },
@@ -510,7 +504,20 @@ const showDoc = async (aItem: any, aType?: string) => {
             store.commit(MutationTypes.changeTab, sNode);
             store.commit(MutationTypes.setSelectedTab, sNode.board_id);
 
+            const sPath = aItem.address.split('/');
             if (aType) {
+                const sPathIdx = gTabList.value.findIndex((bItem) => bItem.path === aItem.address.replace(aItem.title, '') && bItem.board_name === sPath[sPath.length - 1]);
+
+                if (sPathIdx !== -1) {
+                    gTabList.value.splice(
+                        gTabList.value.findIndex((aItem) => aItem.board_id === gSelectedTab.value),
+                        1
+                    );
+                    store.commit(MutationTypes.setSelectedTab, gTabList.value[sPathIdx].board_id);
+                    onClosePopup();
+                    return;
+                }
+
                 gBoard.value.path = aItem.address.replace(aItem.title, '');
                 if (sTypeOption === 'sql' || sTypeOption === 'tql') {
                     gBoard.value.savedCode = sData;
@@ -524,7 +531,6 @@ const showDoc = async (aItem: any, aType?: string) => {
                 gBoard.value.code = sData;
             }
 
-            const sPath = aItem.address.split('/');
             gBoard.value.board_name = sPath[sPath.length - 1];
         }
     }
