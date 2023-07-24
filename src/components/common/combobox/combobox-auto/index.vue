@@ -14,7 +14,9 @@
                 "
                 @click="!pDisabled && openList(true)"
             >
-                {{ sSelect }}
+                <span v-if="!pDisableIconName">
+                    {{ sSelect }}
+                </span>
             </button>
             <input v-else v-model="sSelect" ref="sInput" @input="handleSearch" :disabled="pDisabled" type="text" @click="!pDisabled && openList(true)" />
             <img
@@ -48,7 +50,9 @@
                 :style="[aIdx === sVirtualSelect ? { backgroundColor: '#2094fc !important', color: 'white' } : {}, props.pIcon ? { paddingLeft: 0 } : {}]"
             >
                 <v-icon :style="{ marginLeft: '8px', marginRight: '4px' }" v-if="props.pIcon"> mdi-{{ aItem.id }}</v-icon>
-                {{ aItem.id }}
+                <span v-if="!pDisableIconName">
+                    {{ aItem.id }}
+                </span>
             </button>
         </div>
     </div>
@@ -72,6 +76,7 @@ interface ComboboxSelectProps {
     pShowDefaultOption?: boolean;
     pDisabled?: boolean;
     pIcon?: boolean;
+    pDisableIconName: boolean;
     pTextInput?: boolean;
 }
 

@@ -30,6 +30,7 @@
                 @e-on-change="(aValue) => changeIcon(aValue)"
                 class="select-width"
                 :p-data="sList"
+                :pDisableIconName="true"
                 :p-show-default-option="false"
                 :p-text-input="true"
                 :p-option-width="'300px'"
