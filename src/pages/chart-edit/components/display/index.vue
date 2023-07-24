@@ -37,8 +37,8 @@
 <script setup lang="ts" name="DisplayTab">
 import ChartSelect from '@/components/common/chart-select/index.vue';
 import { ChartType } from '@/enums/app';
-import { computed, defineEmits, reactive, ref, watch, watchEffect, defineProps } from 'vue';
-import { PanelInfo, TagSet } from '@/interface/chart';
+import { defineEmits, ref, watchEffect, defineProps } from 'vue';
+import { PanelInfo } from '@/interface/chart';
 
 interface PropsTab {
     pChartData: PanelInfo;

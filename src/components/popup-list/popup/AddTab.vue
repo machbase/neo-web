@@ -146,7 +146,7 @@
             <div class="popup__btn-group next-btn">
                 <v-divider color="#a4a4a4" :thickness="2"></v-divider>
             </div>
-            <div class="link-list">
+            <div class="link-list top-form">
                 <div class="file-list">
                     <button @click="onClickPopupItem(PopupType.FILE_BROWSER)">
                         <v-icon>mdi-folder-open</v-icon>
@@ -159,6 +159,20 @@
                         </div>
                         <input @change="onUpload" accept=".wrk, .sql, .tql, ,.taz" class="file-import" type="file" />
                     </label>
+                </div>
+                <div v-for="(aRecent, aIdx) in sRecents" :key="aIdx">
+                    <div class="referOption">
+                        <v-icon> mdi-folder</v-icon>
+                        {{ aRecent.label }}
+                    </div>
+                    <button v-for="(aItem, bIdx) in aRecent.items" :key="bIdx" @click="showDoc(aItem, 'recents')" :style="{ paddingLeft: '8px' }">
+                        <v-icon v-if="aItem.type === 'url'" size="16px"> {{ IconList.LINK }}</v-icon>
+                        <v-icon v-if="aItem.type === 'sql'" size="16px"> {{ IconList.SQL }}</v-icon>
+                        <v-icon v-if="aItem.type === 'tql'" size="16px"> {{ IconList.TQL }}</v-icon>
+                        <v-icon v-if="aItem.type === 'wrk'" size="16px"> {{ IconList.WRK }}</v-icon>
+                        <v-icon v-if="aItem.type === 'taz'" size="16px"> {{ IconList.TAZ }}</v-icon>
+                        {{ aItem.title }}
+                    </button>
                 </div>
             </div>
             <div class="link-list back-contents">
@@ -196,12 +210,12 @@ import { MutationTypes } from '../../../store/mutations';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { store } from '../../../store';
 import { PopupType, IconList } from '@/enums/app';
-
 import { WIDTH_DEFAULT } from '../../header/constant';
 import { toast, ToastOptions } from 'vue3-toastify';
-import { getTutorial, copyShell, removeShell } from '../../../api/repository/api';
+import { getTutorial, copyShell, removeShell, getFileList } from '../../../api/repository/api';
 import { BoardInfo } from '../../../interface/chart';
 import { getLogin } from '../../../api/repository/login';
+import { replace } from 'lodash';
 
 const emit = defineEmits(['eClosePopup']);
 
@@ -209,6 +223,7 @@ const sBoardType = ref<string>();
 const sBoardName = ref<string>('Tag Analyzer');
 
 const sReferences = ref([]);
+const sRecents = ref([]);
 
 const checkMenuStatus = (aItem: boolean[]) => {
     return aItem && aItem.some((bItem: boolean) => Object.keys(bItem)[0]);
@@ -447,14 +462,25 @@ const changeType = (aItem: any, aName: string, aTabStyle?: string) => {
 const onClosePopup = () => {
     sDialog.value = false;
 };
-const showDoc = async (aItem: any) => {
+const showDoc = async (aItem: any, aType?: string) => {
     if (aItem.type === 'url') {
         window.open(aItem.address, aItem.target);
     } else {
-        const sData: any = await getTutorial(aItem.address);
+        let sData;
+        const sTypeOption = aItem.type;
+        if (aType) {
+            aItem.address = aItem.address.replace('serverfile://', '');
+            const sResult: any = await getFileList(aItem.address, '', '');
+            if (sTypeOption === 'sql' || sTypeOption === 'tql') {
+                sData = sResult;
+            } else {
+                sData = JSON.parse(sResult);
+            }
+        } else {
+            sData = await getTutorial(aItem.address);
+        }
         const sIdx = gTabList.value.findIndex((aItem) => aItem.board_id === gSelectedTab.value);
 
-        const sTypeOption = aItem.type;
         let sType;
         if (sTypeOption === 'sql') sType = 'sql';
         else if (sTypeOption === 'tql') sType = 'tql';
@@ -484,6 +510,14 @@ const showDoc = async (aItem: any) => {
             store.commit(MutationTypes.changeTab, sNode);
             store.commit(MutationTypes.setSelectedTab, sNode.board_id);
 
+            if (aType) {
+                gBoard.value.path = aItem.address.replace(aItem.title, '');
+                if (sTypeOption === 'sql' || sTypeOption === 'tql') {
+                    gBoard.value.savedCode = sData;
+                } else if (sTypeOption === 'wrk') {
+                    gBoard.value.savedCode = JSON.stringify(sData.data);
+                }
+            }
             if (sTypeOption === 'wrk') {
                 gBoard.value.sheet = sData.data;
             } else {
@@ -564,6 +598,7 @@ const onSettingPopup = async () => {
     });
 
     sOptions.value = sData.shells;
+    sRecents.value = sData.recents ? sData.recents : [];
 };
 
 onMounted(() => {
@@ -773,9 +808,12 @@ onMounted(() => {
         width: 400px;
     }
 }
+.top-form {
+    padding-bottom: 16px;
+}
 .link-list {
     .file-list {
-        padding-bottom: 5%;
+        width: 400px;
 
         button {
             padding-bottom: 2.5%;

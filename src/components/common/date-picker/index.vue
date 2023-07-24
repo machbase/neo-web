@@ -19,11 +19,9 @@
 <script setup lang="ts" name="DatePicker">
 import icon from '@/assets/image/ic_calendar.png';
 import { useStore } from '@/store';
-import { FORMAT_FULL_DATE } from '@/utils/constants';
 import Datepicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-import moment from 'moment';
-import { defineEmits, withDefaults, defineProps, ref, watch, computed, onMounted } from 'vue';
+import { defineEmits, withDefaults, defineProps, ref, watch, computed } from 'vue';
 export interface DatePickerProps {
     pDisabled?: boolean;
     pInit?: string;

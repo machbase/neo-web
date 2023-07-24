@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts" name="NewTags">
-import { computed, defineEmits, onMounted, reactive, ref, watch, defineProps, withDefaults, toRefs } from 'vue';
+import { defineEmits, onMounted, ref, defineProps } from 'vue';
 import { getLicense, postLicense } from '../../../api/repository/api';
 
 interface NewTagProps {

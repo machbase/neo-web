@@ -30,6 +30,7 @@
                 @e-on-change="(aValue) => changeIcon(aValue)"
                 class="select-width"
                 :p-data="sList"
+                :pDisableIconName="true"
                 :p-show-default-option="false"
                 :p-text-input="true"
                 :p-option-width="'300px'"
@@ -86,7 +87,7 @@ const sList = computed(() =>
     })
 );
 const sThemeList = computed(() =>
-    ['default', 'gray', 'ollie', 'warmNeon', 'galaxy', 'dark', 'white'].map((aItem: any) => {
+    ['default', 'white', 'dark', 'gray', 'galaxy'].map((aItem: any) => {
         return { id: aItem };
     })
 );

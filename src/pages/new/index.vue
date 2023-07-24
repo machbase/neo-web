@@ -10,16 +10,9 @@ import ButtonCreate from '@/components/common/button-create/index.vue';
 import ChartDashboard from '@/components/common/chart-dashboard/index.vue';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { PopupType } from '@/enums/app';
-import { ResBoardList } from '@/interface/tagView';
-import { useStore } from '@/store';
-import { ActionTypes } from '@/store/actions';
-import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref } from 'vue';
 
-const route = useRoute();
-const store = useStore();
 const sDialog = ref<boolean>(false);
-const cBoardList = computed((): ResBoardList[] => store.state.gBoardList);
 
 function onOpenPopup() {
     sDialog.value = true;

@@ -42,7 +42,7 @@ import { RouteNames } from '@/enums/routes';
 import { ResBoardList } from '@/interface/tagView';
 import { useStore } from '@/store';
 import { MutationTypes } from '@/store/mutations';
-import { computed, defineEmits, ref, watch } from 'vue';
+import { computed, defineEmits, ref } from 'vue';
 import { DATA_TITLE } from './constant';
 import { LENGTH_LIST } from '@/utils/constants';
 export interface BoardInfo {

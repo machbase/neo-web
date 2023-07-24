@@ -15,7 +15,6 @@
 
 <script setup lang="ts" name="SaveDashboard">
 import { useStore } from '@/store';
-import { ActionTypes } from '@/store/actions';
 import { computed, defineEmits, reactive } from 'vue';
 
 const emit = defineEmits(['eClosePopup']);

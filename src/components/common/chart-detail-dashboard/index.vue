@@ -26,13 +26,11 @@
 <script lang="ts" setup name="ChartDashboard">
 import AreaChart from '@/components/common/chart-wrap/charts/area/index.vue';
 import DetailedChart from '@/components/common/detailed-chart/index.vue';
-import { isChartType } from '@/helpers/chart';
 import { PanelInfo, BoardInfo } from '@/interface/chart';
 import { useStore } from '@/store';
-import { computed, onMounted, defineExpose, defineProps, reactive, ref, watch, withDefaults } from 'vue';
+import { computed, defineExpose, defineProps, reactive, ref, watch, withDefaults } from 'vue';
 import { watchEffect } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-// import testChart from '@/components/common/detailed-chart/container/index.vue';
 
 interface DashboardPanelsProps {
     pIsViewMode?: boolean;

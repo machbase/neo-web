@@ -5,7 +5,7 @@
 <script lang="ts" setup="setup" name="AreaChart">
 import { HighchartsDataset, LineDataset, LinePanel } from '@/interface/chart';
 import { useStore } from '@/store';
-import { formatColors, toTimeUtcChart, rawtoTimeUtcChart } from '@/utils/utils';
+import { formatColors, toTimeUtcChart } from '@/utils/utils';
 import { cloneDeep } from 'lodash';
 import { computed, defineEmits, defineExpose, defineProps, onMounted, reactive, ref, withDefaults, nextTick } from 'vue';
 interface BarChartContainerProps {

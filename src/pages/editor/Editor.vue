@@ -263,18 +263,15 @@ import CodeEditor from 'simple-code-editor';
 import PopupWrap from '@/components/popup-list/index.vue';
 import Table from './Table.vue';
 import ShowChart from './showChart.vue';
-import { ref, watch, defineEmits, defineProps, computed, onMounted, nextTick } from 'vue';
+import { ref, watch, computed, onMounted, nextTick } from 'vue';
 import { store } from '../../store';
 import { fetchData } from '../../api/repository/machiot';
-import { copyText } from 'vue3-clipboard';
-import { DragCol, DragRow, ResizeCol, ResizeRow, Resize } from 'vue-resizer';
+import { DragCol, DragRow } from 'vue-resizer';
 import { PopupType } from '@/enums/app';
 import { MutationTypes } from '../../store/mutations';
-import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import ComboboxAuto from '@/components/common/combobox/combobox-auto/index.vue';
-import { LOGOUT, MANAGE_DASHBOARD, NEW_DASHBOARD, PREFERENCE, REQUEST_ROLLUP, SET, TIME_RANGE_NOT_SET, WIDTH_DEFAULT } from '@/components/header/constant';
-import { IANA_TIMEZONES, IanaTimezone } from '@/assets/ts/timezones.ts';
-import { postFileList } from '../../api/repository/api';
+import {  MANAGE_DASHBOARD,  PREFERENCE,    WIDTH_DEFAULT } from '@/components/header/constant';
+import { IANA_TIMEZONES  } from '@/assets/ts/timezones.ts';
 import { getWindowOs } from '../../utils/utils';
 
 const sLang = [['SQL', 'MACHBASE']];
@@ -857,6 +854,21 @@ onMounted(async () => {
 //     overflow: auto !important;
 // }
 
+.tab-list::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.tab-list::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.tab-list::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
+}
 .drager_top div::-webkit-scrollbar {
     width: 5px;
     height: 5px;

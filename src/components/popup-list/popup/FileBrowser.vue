@@ -55,7 +55,6 @@
                 ]"
                 width="100%"
             >
-                <!-- aChildren.name === sRightSelected ? { borderTop: '1px solid #2ec0df !important', borderBottom: '1px solid #2ec0df !important' } : {}, -->
                 <v-sheet class="file-name-form" color="transparent" width="60%">
                     <v-icon :color="aChildren.type === 'dir' ? '#F5AA64' : cIsDarkMode ? '#adb3bc' : '#367FEB'" size="16px">
                         {{
@@ -100,7 +99,7 @@
 </template>
 
 <script setup lang="ts" name="SaveDashboard">
-import { computed, onMounted, defineEmits, defineExpose, defineProps, reactive, ref, watch, withDefaults } from 'vue';
+import { computed, onMounted, defineEmits, defineProps, ref } from 'vue';
 import { getFileList, postFileList, deleteFileList } from '../../../api/repository/api';
 import { store } from '../../../store';
 import { toast, ToastOptions } from 'vue3-toastify';

@@ -27,7 +27,7 @@
 <script setup="setup" lang="ts" name="Login">
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 
-import { defineProps, ref, defineEmits, computed, onMounted, defineExpose } from 'vue';
+import { defineProps, ref, computed, onMounted, defineExpose } from 'vue';
 import { getTqlChart } from '../../api/repository/machiot';
 import { store } from '../../store';
 import showChart from '../../plugins/eChart';

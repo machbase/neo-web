@@ -14,10 +14,7 @@
 </template>
 
 <script setup lang="ts" name="SaveDashboard">
-import { PopupType } from '@/enums/app';
-import { RouteNames } from '@/enums/routes';
 import { useStore } from '@/store';
-import { ActionTypes } from '@/store/actions';
 import { MutationTypes } from '@/store/mutations';
 import { computed, defineEmits, reactive, onMounted } from 'vue';
 import { useRoute } from 'vue-router';

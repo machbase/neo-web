@@ -27,7 +27,6 @@
         "highcharts-vue": "^1.4.0",
         "joi": "^17.8.3",
         "lodash": "^4.17.21",
-        "markdown-it": "^13.0.1",
         "mermaid": "^10.2.3",
         "moment": "^2.29.4",
         "simple-code-editor": "^2.0.8",

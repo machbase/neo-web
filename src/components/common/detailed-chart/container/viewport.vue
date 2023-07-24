@@ -12,10 +12,6 @@
         </div>
         <div></div>
         <div class="view-port__header">
-            <!-- <div class="view-port__header--events">
-                <div @click="onOpenPopup(false)" class="date-picker button">{{ toDateUtcChart(sDateLeft) }}</div>
-                <div @click="onUndoTime()" class="button blue">Undo</div>
-            </div> -->
             <div class="view-port__header--events icon">
                 <div>
                     <v-icon @click="adjustViewportRange({ type: 'I', zoom: 0.4 })" color="#0fc9f0" icon="mdi-magnify-minus-outline" size="24px"></v-icon>
@@ -38,25 +34,8 @@
                     <v-tooltip activator="parent" location="bottom">Zoom in x4</v-tooltip>
                 </div>
             </div>
-            <div class="view-port__header--events">
-                <!-- <div>
-                    <div class="cover-parent">
-                        <button @click="onChangeEmit(0)" class="button" :class="props.pIsRaw ? 'not-select-font-color' : 'font-color'">STAT</button>
-                    </div>
-                    <v-tooltip
-                        v-if="props.pIsRaw && props.pTimeRange.startTime - props.pTimeRange.endTime > props.panelInfo.raw_chart_threshold"
-                        activator="parent"
-                        location="bottom"
-                        >The stat must be greater than <br />
-                        the raw data time range (millisecond) value.</v-tooltip
-                    >
-                </div>
-
-                <button @click="onChangeEmit(1)" class="button" :class="props.pIsRaw ? 'font-color' : 'not-select-font-color'">RAW</button>
-                <div @click="onOpenPopup(true)" class="date-picker button">{{ toDateUtcChart(sDateRight) }}</div> -->
-            </div>
+            <div class="view-port__header--events"></div>
         </div>
-        <!-- <v-icon @click="emit('eonCloseNavigator')" class="icon-close" icon="mdi-close-thick"></v-icon> -->
         <PopupWrap
             @e-close-popup="onClosePopup"
             @eSettingPopup="onSettingPopup"
@@ -76,7 +55,6 @@ import { LinePanel } from '@/interface/chart';
 import { TimeLineType } from '@/interface/date';
 import { useStore } from '@/store';
 import { computed, defineEmits, defineProps, ref, watch, withDefaults } from 'vue';
-import { toDateUtcChart, toTimeUtcChart } from '@/utils/utils';
 import { MutationTypes } from '../../../../store/mutations';
 
 interface ViewPortProps {

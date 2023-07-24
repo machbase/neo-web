@@ -23,12 +23,10 @@
 <script setup lang="ts" name="Preferences">
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import { useStore } from '@/store';
-import { ActionTypes } from '@/store/actions';
 import { THEME_MODE, FONT_SIZE } from '@/utils/constants';
 import { computed, reactive, defineEmits } from 'vue';
-import { DEFAULT_PREFERENCE, NOT_YET, SELECT_THEME } from './constant';
+import { DEFAULT_PREFERENCE, SELECT_THEME } from './constant';
 import { isEqual } from 'lodash';
-import { MutationTypes } from '../../../store/mutations';
 
 const cPreferences = computed(() => store.state.gPreference);
 const emit = defineEmits(['eClosePopup']);
