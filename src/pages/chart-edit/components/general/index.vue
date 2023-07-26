@@ -27,10 +27,10 @@
             </div>
         </div>
         <div class="col3">
-            <label for="_cfg_raw_time_range">raw data time range (millisecond)</label>
+            <!-- <label for="_cfg_raw_time_range">raw data time range (millisecond)</label>
             <div class="cfg-input">
                 <input v-model="rawChart" id="_cfg_raw_time_range" class="input" style="width: 270px" type="text" />
-            </div>
+            </div> -->
         </div>
     </div>
 </template>

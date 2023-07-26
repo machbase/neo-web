@@ -14,9 +14,12 @@
                     :p-show-default-option="false"
                     :p-value="aItem.calculation_mode"
             /></span>
-            <span
+            <span class="tag-name-form"
                 ><span>Tag Names </span>
-                <input @change="(event) => onChangeTagName(event, aIndex)" class="taginput input" type="text" :value="aItem.tag_names" />
+                <span class="taginput input tag-name-input">
+                    <input @change="(event) => onChangeTagName(event, aIndex)" type="text" :value="aItem.tag_names" />
+                    <span>( {{ aItem.table }} )</span>
+                </span>
             </span>
             <span
                 ><span>Alias </span>
@@ -108,4 +111,16 @@ watch(
 
 <style lang="scss" scoped>
 @import 'index.scss';
+.tag-name-form {
+    display: flex;
+    align-items: center;
+    .tag-name-input {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        span {
+            font-size: 10px;
+        }
+    }
+}
 </style>

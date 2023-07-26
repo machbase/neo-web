@@ -76,7 +76,7 @@ interface ComboboxSelectProps {
     pShowDefaultOption?: boolean;
     pDisabled?: boolean;
     pIcon?: boolean;
-    pDisableIconName: boolean;
+    pDisableIconName?: boolean;
     pTextInput?: boolean;
 }
 

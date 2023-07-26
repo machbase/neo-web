@@ -183,27 +183,27 @@ const cChartOptions = computed(() => {
                 tickAmount: updateYaxis().left[0] === updateYaxis().left[1] && 1,
                 tickPositions: updateYaxis().left[0] === updateYaxis().left[1] && [updateYaxis().left[0]],
                 min: !props.pIsRaw
-                    ? props.panelInfo.custom_min === 0
+                    ? props.panelInfo.custom_min === 0 && props.panelInfo.custom_max === 0
                         ? props.panelInfo.use_normalize === 'Y'
                             ? 0
                             : updateYaxis().left[0]
                         : props.panelInfo.custom_min
-                    : props.panelInfo.custom_drilldown_min === 0
+                    : props.panelInfo.custom_drilldown_min === 0 && props.panelInfo.custom_drilldown_max === 0
                     ? props.panelInfo.use_normalize === 'Y'
                         ? 0
                         : updateYaxis().left[0]
                     : props.panelInfo.custom_drilldown_min,
                 max: !props.pIsRaw
-                    ? props.panelInfo.custom_max === 0
+                    ? props.panelInfo.custom_min === 0 && props.panelInfo.custom_max === 0
                         ? props.panelInfo.use_normalize === 'Y'
                             ? 100
                             : updateYaxis().left[1]
                         : props.panelInfo.custom_max
-                    : props.panelInfo.custom_drilldown_max2 === 0
+                    : props.panelInfo.custom_drilldown_min === 0 && props.panelInfo.custom_drilldown_max === 0
                     ? props.panelInfo.use_normalize === 'Y'
                         ? 100
                         : updateYaxis().left[1]
-                    : props.panelInfo.custom_drilldown_max2,
+                    : props.panelInfo.custom_drilldown_max,
                 showLastLabel: props.panelInfo.use_normalize === 'N',
                 minTickInterval: 1,
                 gridLineWidth: props.panelInfo.show_y_tickline === 'Y' ? 1 : 0,
@@ -225,8 +225,28 @@ const cChartOptions = computed(() => {
             {
                 tickAmount: updateYaxis().right[0] === updateYaxis().right[1] && 1,
                 tickPositions: updateYaxis().right[0] === updateYaxis().right[1] && [updateYaxis().right[0]],
-                min: props.panelInfo.custom_min2 === 0 ? (props.panelInfo.use_normalize === 'Y' ? 0 : updateYaxis().right[0]) : props.panelInfo.custom_min2,
-                max: props.panelInfo.custom_max2 === 0 ? (props.panelInfo.use_normalize === 'Y' ? 100 : updateYaxis().right[1]) : props.panelInfo.custom_max2,
+                min: !props.pIsRaw
+                    ? props.panelInfo.custom_min2 === 0 && props.panelInfo.custom_max2 === 0
+                        ? props.panelInfo.use_normalize === 'Y'
+                            ? 0
+                            : updateYaxis().left[0]
+                        : props.panelInfo.custom_min2
+                    : props.panelInfo.custom_drilldown_min2 === 0 && props.panelInfo.custom_drilldown_max2 === 0
+                    ? props.panelInfo.use_normalize === 'Y'
+                        ? 0
+                        : updateYaxis().left[0]
+                    : props.panelInfo.custom_drilldown_min2,
+                max: !props.pIsRaw
+                    ? props.panelInfo.custom_min2 === 0 && props.panelInfo.custom_max2 === 0
+                        ? props.panelInfo.use_normalize === 'Y'
+                            ? 100
+                            : updateYaxis().left[1]
+                        : props.panelInfo.custom_max2
+                    : props.panelInfo.custom_drilldown_min2 === 0 && props.panelInfo.custom_drilldown_max2 === 0
+                    ? props.panelInfo.use_normalize === 'Y'
+                        ? 100
+                        : updateYaxis().left[1]
+                    : props.panelInfo.custom_drilldown_max2,
                 minTickInterval: 1,
                 showLastLabel: props.panelInfo.use_normalize === 'N',
                 gridLineWidth: 1,
