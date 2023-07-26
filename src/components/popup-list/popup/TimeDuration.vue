@@ -11,10 +11,10 @@
                 <DatePicker @e-change-time="changeTimeEnd" :p-disabled="!pIsFromTime" :p-init="dateEnd" />
                 <input class="input disable-icon" :disabled="!pIsFromTime" type="text" :value="dateEnd" />
             </div>
-            <div>
+            <!-- <div>
                 <p class="title">Duration</p>
                 <div class="row"><input v-model="duration" class="input" type="text" /></div>
-            </div>
+            </div> -->
         </div>
         <div class="col-right">
             <TimeDuration @eOnTimeDuration="OnTimeRange" />

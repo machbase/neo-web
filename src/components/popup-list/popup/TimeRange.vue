@@ -12,8 +12,11 @@
                 <input v-model="dateEnd" class="input" type="text" />
             </div>
             <div>
-                <p class="title">Refreshing every</p>
-                <div class="row"><ComboboxTime @e-on-change="changeRefresh" /><v-btn @click="onSetting" class="button-apply" variant="outlined"> Apply </v-btn></div>
+                <!-- <p class="title">Refreshing every</p> -->
+                <div class="row row-form">
+                    <!-- <ComboboxTime @e-on-change="changeRefresh" /> -->
+                    <v-btn @click="onSetting" class="button-apply" variant="outlined"> Apply </v-btn>
+                </div>
             </div>
         </div>
         <TimeRange @eOnTimeRange="OnTimeRange" class="col-right" />
@@ -24,7 +27,7 @@
 import DatePicker from '@/components/common/date-picker/index.vue';
 import ComboboxTime from '@/components/common/combobox/combobox-time/index.vue';
 import TimeRange, { TimeRangeInput } from '@/components/common/date-list/date-time-range.vue';
-import { computed, defineEmits, ref, defineProps } from 'vue';
+import { computed, defineEmits, ref, defineProps, onMounted } from 'vue';
 import { formatDate } from '@/utils/utils';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
@@ -64,9 +67,22 @@ const onSetting = () => {
 const onClosePopup = () => {
     emit('eClosePopup');
 };
+onMounted(() => {
+    dateStart.value = cTimeRange.value.start;
+    dateEnd.value = cTimeRange.value.end;
+    refresh.value = cTimeRange.value.refresh;
+});
 const emit = defineEmits(['eClosePopup']);
 </script>
 
 <style lang="scss" scoped>
 @import 'index.scss';
+.row-form {
+    padding-top: 30px;
+    display: flex;
+    justify-content: end;
+    button {
+        margin: 0 !important;
+    }
+}
 </style>

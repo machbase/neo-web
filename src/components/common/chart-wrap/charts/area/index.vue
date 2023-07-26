@@ -494,10 +494,14 @@ const onChangeSRF = async (eValue: any) => {
                 endTime: data.sTimeLine.endTime,
             });
 
-            await areaChart.value.chart.chart.xAxis[0].setExtremes(
-                data.sDisplayData.datasets[0].data[0][0],
-                data.sDisplayData.datasets[0].data[data.sDisplayData.datasets[0].data.length - 1][0]
-            );
+            const sLength = data.sDisplayData.datasets.findIndex((aItem) => aItem.data.length > 0);
+
+            if (sLength !== -1) {
+                await areaChart.value.chart.chart.xAxis[0].setExtremes(
+                    data.sDisplayData?.datasets[sLength]?.data[0][0],
+                    data.sDisplayData?.datasets[sLength]?.data[data.sDisplayData.datasets[sLength].data.length - 1][0]
+                );
+            }
             break;
         default:
             break;

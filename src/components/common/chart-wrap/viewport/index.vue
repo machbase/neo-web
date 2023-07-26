@@ -14,7 +14,7 @@
         <div class="view-port__header">
             <div class="view-port__header--events">
                 <div @click="onOpenPopup(false)" class="date-picker button">{{ toDateUtcChart(sDateLeft) }}</div>
-                <div @click="onUndoTime()" class="button blue">Undo</div>
+                <div @click="onUndoTime()" class="button blue undo-btn"></div>
             </div>
             <div class="view-port__header--events icon">
                 <div>
@@ -154,5 +154,8 @@ watch(
 }
 .not-select-font-color {
     border: 1px solid #383838;
+}
+.undo-btn {
+    padding: 0 12px;
 }
 </style>

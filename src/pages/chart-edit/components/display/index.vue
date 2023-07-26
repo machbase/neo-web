@@ -26,10 +26,10 @@
             <div class="cfg-input">
                 <input v-model="lineThick" id="_cfg_stroke" class="input point_radius_input" type="text" />
             </div>
-            <label for="_cfg_border_color">Border color</label>
+            <!-- <label for="_cfg_border_color">Border color</label>
             <div class="cfg-input">
                 <input v-model="colorBorder" id="_cfg_border_color" class="input point_radius_input" type="text" />
-            </div>
+            </div> -->
         </div>
     </div>
 </template>

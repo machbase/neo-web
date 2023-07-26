@@ -12,8 +12,8 @@
                 <input v-model="dateEnd" class="input" type="text" />
             </div>
             <div>
-                <p>Refreshing every</p>
-                <ComboboxTime @e-on-change="changeRefresh" />
+                <!-- <p>Refreshing every</p>
+                <ComboboxTime @e-on-change="changeRefresh" /> -->
             </div>
         </div>
         <TimeRange @eOnTimeRange="OnTimeRange" />
