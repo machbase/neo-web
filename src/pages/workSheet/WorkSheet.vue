@@ -72,8 +72,8 @@
                             height="100%"
                             :languages="aSheet.lang"
                             :line-nums="false"
-                            theme=""
                             :style="cIsDarkMode ? { background: `#161B22` } : {}"
+                            theme=""
                             width="100%"
                         />
                     </v-sheet>
@@ -450,6 +450,8 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
                 }
 
                 sDefaultForm.rows = sData;
+                gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sDefaultForm);
+            } else {
                 gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sDefaultForm);
             }
         } else {
