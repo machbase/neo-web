@@ -20,11 +20,11 @@
                     <input class="input" data-for="_cfg_drill" readonly type="text" value="Use drill down when zooming" />
                 </div>
             </div>
-            <label for="_cfg_start">Start with Zoom</label>
+            <!-- <label for="_cfg_start">Start with Zoom</label>
             <div class="cfg-input input-wrapper">
                 <div class="checkbox-wrapper"><input v-model="zoomStart" id="_cfg_start" type="checkbox" /></div>
                 <input class="input" data-for="_cfg_start" readonly type="text" value="Start with Zoom." />
-            </div>
+            </div> -->
         </div>
         <div class="col3">
             <!-- <label for="_cfg_raw_time_range">raw data time range (millisecond)</label>
