@@ -2,10 +2,10 @@
     <div class="axe-tab">
         <div class="col1">
             <div class="title">X-axis</div>
-            <label for="_cfg_interval">Interval</label>
+            <!-- <label for="_cfg_interval">Interval</label>
             <div class="cfg-input">
                 <input v-model="interval" id="_cfg_interval" @change="onChangeInput" class="input" style="width: 240px" type="text" />
-            </div>
+            </div> -->
             <label for="_cfg_line_x">Show tick line</label>
             <div class="cfg-input input-wrapper">
                 <div class="checkbox-wrapper"><input v-model="isShowTickLineX" id="_cfg_line_x" type="checkbox" /></div>
@@ -25,7 +25,7 @@
             </div>
             <label for="_cfg_line_y">Show tick line</label>
             <div class="cfg-input input-wrapper">
-                <div class="checkbox-wrapper"><input v-model="isShowTickLineY" id="_cfg_line_y" type="checkbox" /></div>
+                <div class="checkbox-wrapper"><input v-model="isShowTickLineY" id="_cfg_line_y" :disabled="isAdditionalYAxis" type="checkbox" /></div>
                 <input class="input" data-for="_cfg_line_y" readonly type="text" value="Displays the Y-axis tick line." />
             </div>
             <div class="cfg-input">
@@ -50,7 +50,7 @@
                 </div>
                 <label for="_cfg_line_y2">Show tick line</label>
                 <div class="cfg-input input-wrapper">
-                    <div class="checkbox-wrapper"><input v-model="isShowTickLineY2" id="_cfg_line_y2" type="checkbox" /></div>
+                    <div class="checkbox-wrapper"><input v-model="isShowTickLineY2" id="_cfg_line_y2" :disabled="isAdditionalYAxis" type="checkbox" /></div>
                     <input class="input" data-for="_cfg_line_y2" readonly type="text" value="Displays the Y-axis tick line." />
                 </div>
                 <div class="cfg-input">
@@ -236,6 +236,15 @@ watchEffect(() => {
     };
     emit('eOnChange', data);
 });
+
+watch(
+    () => isAdditionalYAxis.value,
+    () => {
+        isShowTickLineY.value = true;
+        isShowTickLineY2.value = true;
+    }
+);
+
 watch(
     () => props.pChartData,
     () => {
