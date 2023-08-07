@@ -84,8 +84,8 @@
                     </v-btn>
                 </v-sheet>
             </v-sheet>
-            <v-sheet v-if="sResultType === 'mrk'" class="sheet-text markdown-field" color="transparent" height="calc(100% - 40px)" width="100%">
-                <Markdown v-if="!sMarkdownOption" ref="rChartTab" :p-contents="sMarkdown" p-type="mrk" />
+            <v-sheet v-if="sResultType === 'mrk' || sResultType === 'xml'" class="sheet-text markdown-field" color="transparent" height="calc(100% - 40px)" width="100%">
+                <Markdown v-if="!sMarkdownOption" ref="rChartTab" :p-contents="sMarkdown" :p-type="sResultType" />
                 <div v-else>{{ sMarkdown }}</div>
             </v-sheet>
             <ShowChart v-else-if="sResultType === 'html'" ref="rChartTab" :p-data="sHtml" />
@@ -584,12 +584,16 @@ const setCsvHeaderOption = () => {
 const getTqlData = async () => {
     const sResult: any = await getTqlChart(gBoard.value.code);
 
-    if (sResult.status === 200 && sResult.headers && sResult.headers['x-chart-type'] === 'echarts') {
+    if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/json' && sResult.headers['x-chart-type'] === 'echarts') {
         sResultType.value = 'html';
         sHtml.value = sResult.data;
         nextTick(() => {
             rChartTab.value.init();
         });
+    } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/xhtml+xml') {
+        sResultType.value = 'xml';
+        console.log(sResultType);
+        sMarkdown.value = sResult.data;
     } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/markdown') {
         sResultType.value = 'mrk';
         sMarkdown.value = sResult.data;

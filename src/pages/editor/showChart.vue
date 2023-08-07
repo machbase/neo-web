@@ -85,15 +85,15 @@ const getChartEl = async () => {
     sHtml.value = '';
 
     const sInput =
-        'INPUT(SQL(`' +
+        'SQL(`' +
         props.pSql.replace(';', '').replaceAll('\n', ' ') +
-        '`))\n' +
+        '`)\n' +
         'TAKE(5000)\n' +
-        `OUTPUT(CHART_LINE(xAxis(${cHeaderList.value.findIndex((aItem: { id: string; name: string }) => aItem.id === sXaxis.value)}, '${
+        `CHART_LINE(xAxis(${cHeaderList.value.findIndex((aItem: { id: string; name: string }) => aItem.id === sXaxis.value)}, '${
             sXaxis.value
         }'), yAxis(${cHeaderList.value.findIndex((aItem: { id: string; name: string }) => aItem.id === sYaxis.value)}, '${sYaxis.value}'), ${
             sSlider.value === 'none' ? '' : `dataZoom('slider', 0, 100),`
-        } size($w ?? '${rBodyEl.value.$el.clientWidth}px',$h ??'${rBodyEl.value.$el.clientHeight * 0.7}px')))`;
+        } size($w ?? '${rBodyEl.value.$el.clientWidth}px',$h ??'${rBodyEl.value.$el.clientHeight * 0.7}px'))`;
 
     const sResult = await getTqlChart(sInput);
     if (sResult.status >= 400) {
