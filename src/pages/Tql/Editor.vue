@@ -590,6 +590,9 @@ const getTqlData = async () => {
         nextTick(() => {
             rChartTab.value.init();
         });
+    } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/xhtml+xml') {
+        sResultType.value = 'xml';
+        sMarkdown.value = sResult.data;
     } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/markdown') {
         sResultType.value = 'mrk';
         sMarkdown.value = sResult.data;
