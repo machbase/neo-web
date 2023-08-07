@@ -19,31 +19,31 @@ export default defineConfig(() => {
         server: {
             proxy: {
                 '/web/echarts': {
-                    target: `http://192.168.0.34:5654/`,
+                    target: `http://127.0.0.1:5654/`,
                     changeOrigin: true,
                     secure: false,
                     ws: false,
                 },
                 '/web/api': {
-                    target: `http://192.168.0.34:5654/`,
+                    target: `http://127.0.0.1:5654/`,
                     changeOrigin: true,
                     secure: false,
                     ws: false,
                 },
                 '/web/machbase': {
-                    target: `http://192.168.0.34:5654/`,
+                    target: `http://127.0.0.1:5654/`,
                     changeOrigin: true,
                     secure: false,
                     ws: false,
                 },
                 '/web/tutorials': {
-                    target: `http://192.168.0.34:5654/`,
+                    target: `http://127.0.0.1:5654/`,
                     changeOrigin: true,
                     secure: false,
                     ws: false,
                 },
                 '/web/api/term': {
-                    target: `ws://192.168.0.34:5654/`,
+                    target: `ws://127.0.0.1:5654/`,
                     changeOrigin: true,
                     secure: false,
                     ws: true,
