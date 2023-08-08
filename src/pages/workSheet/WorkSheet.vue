@@ -82,7 +82,11 @@
                     <v-sheet v-if="aSheet.result === 'fail'" class="result-set-form" color="transparent">
                         <div>{{ gBoard.result.get(aSheet.id) }}</div>
                     </v-sheet>
-                    <v-sheet v-else-if="aSheet.type === 'mrk' || aSheet.type === 'sql'" color="transparent" :style="{ display: 'flex', width: '100%' }">
+                    <v-sheet
+                        v-else-if="aSheet.type === 'mrk' || aSheet.type === 'sql' || (aSheet.type === 'tql' && aSheet.tqlType === 'xml')"
+                        color="transparent"
+                        :style="{ display: 'flex', width: '100%' }"
+                    >
                         <Markdown
                             :ref="(el) => (rResultForm[aSheet.id] = el)"
                             :p-contents="aSheet.type === 'mrk' ? aSheet.contents : checkMapResult(aSheet.id) && gBoard.result.get(aSheet.id)"
@@ -391,9 +395,7 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
         });
     }
     if (gBoard.value.sheet[aIdx].type == 'sql') {
-        const sResult: any = await getTqlChart(
-            'INPUT(SQL(`' + gBoard.value.sheet[aIdx].contents + '`))\n' + 'OUTPUT( MARKDOWN(html(true), rownum(true), heading(true), brief(true) ) )'
-        );
+        const sResult: any = await getTqlChart('SQL(`' + gBoard.value.sheet[aIdx].contents + '`)\n' + 'MARKDOWN(html(true), rownum(true), heading(true), brief(true))');
         if (sResult.status !== 200) {
             gBoard.value.sheet[aIdx].result = 'fail';
             gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data.reason);
@@ -412,7 +414,7 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
         if (sResult.status !== 200) {
             gBoard.value.sheet[aIdx].result = 'fail';
             gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['x-chart-type'] === 'echarts') {
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/json' && sResult.headers['x-chart-type'] === 'echarts') {
             gBoard.value.sheet[aIdx].result = '';
             gBoard.value.sheet[aIdx].tqlType = 'html';
 
@@ -420,6 +422,15 @@ const checkCtrl = async (event: any, aIdx: number, aType: string) => {
             nextTick(() => {
                 rShowChartForm.value[gBoard.value.sheet[aIdx].id].init();
             });
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/xhtml+xml') {
+            gBoard.value.sheet[aIdx].result = '';
+            gBoard.value.sheet[aIdx].tqlType = 'xml';
+
+            gBoard.value.result.set(gBoard.value.sheet[aIdx].id, sResult.data);
+            nextTick(() => {
+                rResultForm.value[gBoard.value.sheet[aIdx].id] && rResultForm.value[gBoard.value.sheet[aIdx].id].init();
+            });
+            gBoard.value.sheet[aIdx].status = true;
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
             gBoard.value.sheet[aIdx].result = '';
             gBoard.value.sheet[aIdx].tqlType = 'csv';
