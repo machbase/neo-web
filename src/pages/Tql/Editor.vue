@@ -599,6 +599,9 @@ const getTqlData = async () => {
     } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/markdown') {
         sResultType.value = 'mrk';
         sMarkdown.value = sResult.data;
+        nextTick(() => {
+            rChartTab.value.init();
+        });
     } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
         sResultType.value = 'csv';
 
