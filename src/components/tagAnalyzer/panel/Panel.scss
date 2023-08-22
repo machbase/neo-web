@@ -1,0 +1,45 @@
+.panel-form {
+    background-color: #262831;
+    width: 100%;
+    min-height: 300px;
+    border-radius: 8px;
+    margin-top: 24px;
+    padding: 20px 20px 0 20px;
+    position: relative;
+    rect {
+        cursor: default;
+    }
+    .chart {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+        align-items: center;
+        .chart-body {
+            width: calc(100% - 70px);
+        }
+        .left,
+        .right {
+            cursor: pointer;
+            margin-bottom: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 4px;
+            width: 35px;
+            height: 35px;
+            border: 1px solid #505259;
+        }
+        .left {
+            margin-right: 8px;
+            svg {
+                margin-right: 2px;
+            }
+        }
+        .right {
+            margin-left: 8px;
+            svg {
+                margin-left: 2px;
+            }
+        }
+    }
+}

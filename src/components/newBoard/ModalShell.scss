@@ -1,0 +1,128 @@
+.edit-shell-modal-cover {
+    width: 100vw;
+    height: 100vh;
+    background-color: #121212;
+    opacity: 0.4;
+    top: 0;
+    left: 0;
+    position: fixed;
+    z-index: 999;
+}
+.edit-shell-modal {
+    width: 400px;
+    height: 300px;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #404457;
+    z-index: 999;
+    border-radius: 8px;
+    border: solid 0.5px rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    cursor: default;
+    .edit-shell-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        svg {
+            cursor: pointer;
+        }
+        height: 10%;
+    }
+    .edit-shell-info {
+        height: 80%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        .edit-shell-name,
+        .edit-shell-command,
+        .edit-shell-theme,
+        .edit-shell-icon {
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            span {
+                display: block;
+                width: 100px;
+            }
+            input {
+                margin-right: 8px;
+                border-radius: 6px;
+                width: 200px;
+                padding: 0 4px !important;
+                background-color: rgba(38, 40, 49, 0.5);
+                border: solid 0.5px rgba(255, 255, 255, 0.5);
+                color: #ffffff;
+                height: 26px;
+                display: flex;
+                align-items: center;
+            }
+            select {
+                margin-right: 10px;
+                border-radius: 6px;
+                width: 210px;
+                padding: 0 4px !important;
+                background-color: rgba(38, 40, 49, 0.5);
+                border: solid 0.5px rgba(255, 255, 255, 0.5);
+                color: #ffffff;
+                height: 28px;
+                display: flex;
+                align-items: center;
+            }
+            .icon-list {
+                width: 210px;
+                display: flex;
+                flex-wrap: wrap;
+                .selected-icons {
+                    svg {
+                        color: #4199ff !important;
+                    }
+                }
+                .icon {
+                    width: 24px;
+                    margin: 0 4px 0 0;
+                    cursor: pointer;
+                    svg {
+                        font-size: 20px;
+                    }
+                }
+            }
+        }
+    }
+    .edit-shell-footer {
+        height: 10%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        .ok-btn {
+            height: 30px;
+            border-radius: 6px;
+            width: 100px;
+            margin-right: 8px;
+            background-color: #4199ff;
+            border: 0.5px solid #d9d9d9;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cancel-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100px;
+            border-radius: 6px;
+            color: white;
+            height: 28px;
+            border: 0.5px solid #d9d9d9;
+        }
+    }
+}

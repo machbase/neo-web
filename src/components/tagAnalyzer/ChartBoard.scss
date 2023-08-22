@@ -1,0 +1,60 @@
+.board-list {
+    width: 100%;
+    height: 100%;
+    background-color: #1b1c21;
+    .set-global-option {
+        position: relative;
+        height: 40px;
+        background-color: #262831;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        svg {
+            border-radius: 5px;
+            font-size: 18px;
+            color: #939498;
+            cursor: pointer;
+            &:hover {
+                color: #f8f8f8;
+            }
+        }
+        .btn-cover {
+            width: 30px;
+            height: 30px;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-left: 4px;
+        }
+        .border {
+            border-left: 1px solid #939498a3;
+            height: 50%;
+            margin: 0 6px;
+        }
+        .set-global-option-btn {
+            &:hover {
+                color: #f8f8f8;
+            }
+            color: #939498;
+            display: flex;
+            align-items: center;
+            background-color: transparent;
+            border: 0.5px solid rgba(255, 255, 255, 0.5);
+            height: 26px;
+            font-size: 13px;
+            border-radius: 6px;
+            padding: 0 8px;
+
+            svg {
+                margin-right: 4px;
+                height: 16px;
+            }
+        }
+    }
+    .panel-list {
+        overflow: auto;
+        height: calc(100% - 40px);
+        padding: 0 24px;
+    }
+}

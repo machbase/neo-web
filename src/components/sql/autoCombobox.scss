@@ -1,0 +1,52 @@
+.auto-combo-box-wraper {
+    margin-right: 4px;
+    width: 220px;
+    font-size: 12px;
+
+    .combo-box-header {
+        width: 100%;
+        background-color: #262831;
+        color: rgba(255, 255, 255, 0.8);
+        background-color: #333644;
+        cursor: text;
+        height: 22px;
+        border-radius: 4px;
+        font-size: 12px;
+        border: solid 1px rgba(255, 255, 255, 0.5);
+    }
+
+    .combo-box-list {
+        position: absolute;
+        z-index: 1;
+        background-color: #404457;
+        min-width: 228px;
+        padding: 2px;
+        max-height: 300px;
+        overflow: hidden;
+        overflow-y: scroll !important;
+        display: flex;
+        padding: 0px;
+        flex-direction: column;
+        margin: 0px;
+        align-items: self-start;
+
+        .combo-item {
+            width: 100%;
+            background-color: #404457;
+            color: rgba(255, 255, 255, 0.5);
+            margin: 0;
+            padding: 0;
+            border-radius: 0;
+            display: flex;
+
+            &:hover {
+                background-color: #262831;
+                color: #fff;
+            }
+        }
+        .selected-combo-item {
+            background-color: #262831;
+            color: #fff;
+        }
+    }
+}

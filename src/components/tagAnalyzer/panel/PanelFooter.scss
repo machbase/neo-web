@@ -1,0 +1,31 @@
+.footer-form {
+    .toolbar {
+        position: absolute;
+        left: 50%;
+        transform: translate(-50%, 0%);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 8px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 4px;
+        gap: 16px;
+        button {
+            background: transparent;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            img {
+                width: 20px;
+                height: 20px;
+            }
+            svg {
+                color: #939498;
+                width: 20px;
+                height: 20px;
+            }
+        }
+    }
+}

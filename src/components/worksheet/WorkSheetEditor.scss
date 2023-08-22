@@ -1,0 +1,185 @@
+.worksheet-editor-wrapper {
+    display: flex;
+
+    .worksheet-editor {
+        width: 100%;
+
+        .worksheet-content {
+            border: solid 1px #393b41;
+            border-radius: 10px;
+
+            .worksheet-ctr {
+                display: flex;
+                height: 40px;
+                justify-content: end;
+                align-items: center;
+
+                .worksheet-ctr-verti-divi {
+                    width: 1px;
+                    height: 24px;
+                    margin: 2px;
+                    background-color: rgba(255, 255, 255, 0.2);
+                }
+
+                .worksheet-ctr-lang {
+                    display: flex;
+                    justify-content: end;
+                    align-items: center;
+                    color: rgba(255, 255, 255, 0.5);
+                    position: relative;
+                    cursor: pointer;
+
+                    :hover {
+                        color: #f8f8f8;
+                        background-color: #1f2127;
+                    }
+
+                    .dropdown {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+
+                        .worksheet-ctr-lang-content-list {
+                            z-index: 1 !important;
+                            fill: #f8f8f8;
+                            position: absolute;
+                            background-color: #393b41;
+                            border-radius: 10px;
+                            top: 20px;
+                            left: 0;
+                            color: rgba(255, 255, 255, 0.5);
+
+                            .worksheet-ctr-lang-content {
+                                padding: 6px;
+                                font-size: 12px;
+                            }
+                        }
+
+                        .worksheet-ctr-lang-selected {
+                            font-size: 12px;
+                        }
+                    }
+                }
+
+                .worksheet-ctr-icon-wrap {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    width: 30px;
+                    height: 30px;
+                    color: rgba(255, 255, 255, 0.5);
+
+                    :hover {
+                        color: #f8f8f8;
+                        border-radius: 10px;
+                        background-color: #393b41;
+                    }
+
+                    .worksheet-ctr-icon {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        width: 30px;
+                        height: 30px;
+                        cursor: pointer;
+
+                        svg {
+                            width: 18px;
+                            height: 18px;
+                        }
+                    }
+                }
+                .worksheet-ctr-icon-disable {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    width: 30px;
+                    height: 30px;
+                    color: rgba(255, 255, 255, 0.205);
+
+                    .worksheet-ctr-icon {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        width: 30px;
+                        height: 30px;
+
+                        svg {
+                            width: 18px;
+                            height: 18px;
+                        }
+                    }
+                }
+            }
+
+            .editor {
+                width: 100%;
+                height: 100%;
+                border: 0.5px solid #393b41;
+
+                .drag-stick {
+                    width: 100%;
+                    height: 10px;
+                    cursor: row-resize;
+                    background-color: transparent;
+                    transition: all 0.5s;
+                }
+            }
+        }
+
+        .result {
+            width: 100%;
+            height: auto;
+            margin: 1rem 0;
+
+            .result-worksheet-sql {
+                border: solid 1px #393b41;
+                border-radius: 10px;
+                overflow: hidden;
+
+                .sql-result-wrapper {
+                    border-radius: 10px !important;
+                }
+            }
+
+            .result-worksheet-sql-total {
+                border-left: solid 4px #393b41;
+                margin: 4px;
+
+                span {
+                    margin-left: 8px;
+                }
+            }
+        }
+    }
+
+    .worksheet-collapse-ctr {
+        margin-left: 5px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 40px;
+        height: 40px;
+        color: rgba(255, 255, 255, 0.5);
+
+        :hover {
+            color: #f8f8f8;
+            border-radius: 10px;
+            background-color: #393b41;
+        }
+
+        .worksheet-collapse-ctr-icon {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+
+            svg {
+                width: 18px;
+                height: 18px;
+            }
+        }
+    }
+}

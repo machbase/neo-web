@@ -1,0 +1,16 @@
+.sql-result-wrapper {
+    width: calc(100%);
+    .scroll-wrapper {
+        position: relative;
+        overflow: auto;
+        height: 100%;
+        background-color: white;
+    }
+    .scroll-wrapper::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+    .scroll-wrapper::-webkit-scrollbar-thumb {
+        background-color: rgb(101, 111, 121);
+    }
+}

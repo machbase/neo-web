@@ -1,0 +1,81 @@
+.edit-modal {
+    display: flex;
+    position: fixed;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    background-color: #404457;
+    z-index: 999;
+    .modal-header {
+        padding: 26px 26px 0 26px;
+        align-items: center;
+        height: 30px;
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+        .modal-title {
+            display: flex;
+            align-items: center;
+            svg {
+                margin-right: 4px;
+            }
+        }
+        svg {
+            cursor: pointer;
+        }
+    }
+    .modal-body {
+        .chart {
+            height: 60%;
+        }
+        padding: 0 26px;
+        height: calc(100% - 10vh - 30px);
+        .edit-form {
+            height: 40%;
+            display: flex;
+            flex-direction: column;
+            .edit-form-tabs {
+                height: 60px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+                display: flex;
+                button {
+                    background-color: transparent;
+                    color: #f8f8f8;
+                    width: 120px;
+                    display: flex;
+                    align-items: center;
+                    margin: 16px 0;
+                    padding: 6px 10px;
+                }
+            }
+        }
+    }
+    .modal-footer {
+        border-top: 1px solid rgba(255, 255, 255, 0.5);
+        height: 10vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        button {
+            height: 30px;
+            width: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 10px;
+            color: white;
+            border: 1px solid #d9d9d9;
+        }
+        .apply {
+            background-color: #fdb532;
+        }
+        .ok {
+            background-color: #4199ff;
+        }
+        .cancel {
+            background-color: #656877;
+        }
+    }
+}

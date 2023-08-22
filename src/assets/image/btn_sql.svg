@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="123.429" height="120" viewBox="0 0 123.429 120">
+    <defs>
+        <linearGradient id="h7083wko5a" y1=".5" x2="1" y2=".5" gradientUnits="objectBoundingBox">
+            <stop offset="0" stop-color="#3e6ef8"/>
+            <stop offset=".87" stop-color="#8cdafb"/>
+        </linearGradient>
+        <linearGradient id="oftkpch1od" x1="1" y1=".5" x2="0" y2=".5" xlink:href="#h7083wko5a"/>
+        <linearGradient id="lz9gaq4l7b" x1="1" y1=".5" x2="0" y2=".5" gradientUnits="objectBoundingBox">
+            <stop offset=".58" stop-color="#3e6ef8"/>
+            <stop offset="1" stop-color="#8cb3fb"/>
+        </linearGradient>
+        <linearGradient id="t485hynlbf" x1="1" y1=".5" x2="0" y2=".5" xlink:href="#h7083wko5a"/>
+        <linearGradient id="oleswmya7g" x1="1" y1=".5" x2="0" y2=".5" xlink:href="#h7083wko5a"/>
+        <linearGradient id="taxrdd3nuh" y1=".5" y2=".5" xlink:href="#lz9gaq4l7b"/>
+        <linearGradient id="p3a6ppwt6i" x1=".5" y1="1" x2=".5" gradientUnits="objectBoundingBox">
+            <stop offset="0" stop-color="#3e6ef8"/>
+            <stop offset="1" stop-color="#0010cc" stop-opacity=".161"/>
+        </linearGradient>
+        <linearGradient id="ylxhgxw7kk" x1=".5" y1="1.481" x2=".5" y2="-.047" gradientUnits="objectBoundingBox">
+            <stop offset="0" stop-color="#3e6ef8"/>
+            <stop offset="1" stop-color="#8cdafb"/>
+        </linearGradient>
+        <filter id="1dgxhzbgec" x="13.714" y="6.286" width="85.013" height="108.166" filterUnits="userSpaceOnUse">
+            <feOffset dy="2"/>
+            <feGaussianBlur stdDeviation="4" result="blur"/>
+            <feFlood flood-opacity=".161"/>
+            <feComposite operator="in" in2="blur"/>
+            <feComposite in="SourceGraphic"/>
+        </filter>
+        <filter id="03yai85mxe" x="16.714" y="44.982" width="79.013" height="46.545" filterUnits="userSpaceOnUse">
+            <feOffset dy="3"/>
+            <feGaussianBlur stdDeviation="3" result="blur-2"/>
+            <feFlood flood-opacity=".082"/>
+            <feComposite operator="in" in2="blur-2"/>
+            <feComposite in="SourceGraphic"/>
+        </filter>
+        <filter id="28axgubtzj" x="54.924" y="41.667" width="68.505" height="61.923" filterUnits="userSpaceOnUse">
+            <feOffset dy="2"/>
+            <feGaussianBlur stdDeviation="4" result="blur-3"/>
+            <feFlood flood-opacity=".161"/>
+            <feComposite operator="in" in2="blur-3"/>
+            <feComposite in="SourceGraphic"/>
+        </filter>
+    </defs>
+    <path data-name="사각형 981" style="fill:none" d="M0 0h120v120H0z"/>
+    <g style="filter:url(#1dgxhzbgec)">
+        <path data-name="합치기 7" d="M0 70.792V56.473h.132A6.029 6.029 0 0 1 0 55.22a5.8 5.8 0 0 1 .63-2.631A6.333 6.333 0 0 1 0 49.872V35.553h.133A6.035 6.035 0 0 1 0 34.295a5.8 5.8 0 0 1 .63-2.63A6.34 6.34 0 0 1 0 28.947V14.628h.133A6.043 6.043 0 0 1 0 13.369C0 5.979 13.658 0 30.5 0s30.513 5.984 30.513 13.369a6.029 6.029 0 0 1-.133 1.259h.133v14.319a6.339 6.339 0 0 1-.63 2.717 5.8 5.8 0 0 1 .63 2.63 6.033 6.033 0 0 1-.133 1.258h.133v14.32a6.331 6.331 0 0 1-.63 2.717 5.8 5.8 0 0 1 .63 2.631 6.027 6.027 0 0 1-.132 1.254h.132v14.318c0 7.385-13.663 13.374-30.509 13.374S0 78.177 0 70.792z" transform="translate(25.71 16.288)" style="fill:url(#h7083wko5a)"/>
+    </g>
+    <g data-name="그룹 354">
+        <g data-name="그룹 357">
+            <path data-name="패스 4081" d="M0 114.32h61.013v15.18c0 7.385-13.658 13.374-30.5 13.374S0 136.881 0 129.5z" transform="translate(25.714 -42.418)" style="fill:url(#oftkpch1od)"/>
+            <path data-name="패스 4082" d="M0 100.87c0 7.385 13.658 13.374 30.509 13.374s30.5-5.989 30.5-13.374-13.658-11.41-30.5-11.41S0 93.485 0 100.87z" transform="translate(25.714 -29.364)" style="fill:url(#lz9gaq4l7b)"/>
+            <path data-name="패스 4083" d="M32.78 114.336c16.694 0 28.325-5.9 28.325-11.19S49.474 93.91 32.78 93.91s-28.33 3.942-28.33 9.236 11.636 11.19 28.33 11.19z" transform="translate(23.443 -31.635)" style="fill:url(#lz9gaq4l7b)"/>
+            <g style="filter:url(#03yai85mxe)">
+                <path data-name="패스 4084" d="M0 71.6h61.013v15.176c0 7.385-13.658 13.369-30.5 13.369S0 94.161 0 86.776z" transform="translate(25.714 -20.624)" style="fill:url(#t485hynlbf)"/>
+            </g>
+            <path data-name="패스 4085" d="M0 58.14c0 7.385 13.658 13.374 30.509 13.374s30.5-5.989 30.5-13.374-13.658-11.41-30.5-11.41S0 50.755 0 58.14z" transform="translate(25.714 -7.56)" style="fill:url(#lz9gaq4l7b)"/>
+            <path data-name="패스 4086" d="M0 28.87h61.013v15.176c0 7.39-13.658 13.374-30.5 13.374S0 51.436 0 44.046z" transform="translate(25.714 1.187)" style="fill:url(#oleswmya7g)"/>
+            <path data-name="패스 4087" d="M0 13.369c0 7.385 13.658 13.374 30.509 13.374s30.5-5.984 30.5-13.374S47.355 0 30.509 0 0 5.984 0 13.369z" style="fill:url(#taxrdd3nuh)" transform="translate(25.714 16.286)"/>
+            <path data-name="패스 4088" d="M32.78 26.835c16.694 0 28.325-5.9 28.325-11.19S49.474 4.45 32.78 4.45 4.45 10.351 4.45 15.645s11.636 11.19 28.33 11.19z" transform="translate(23.443 14.015)" style="fill:url(#lz9gaq4l7b)"/>
+            <path data-name="패스 4089" d="M33.84 16.411c0 3.918 6.239 7.091 13.937 7.091s13.937-3.178 13.937-7.091S55.475 9.32 47.777 9.32 33.84 12.5 33.84 16.411z" transform="translate(8.441 11.53)" style="opacity:.5;fill:url(#p3a6ppwt6i)"/>
+        </g>
+        <g style="filter:url(#28axgubtzj)">
+            <path data-name="패스 4090" d="M122.96 72.25H89.845a5.7 5.7 0 0 0-5.7 5.7v26.528a5.7 5.7 0 0 0 5.7 5.7h33.115a5.7 5.7 0 0 0 5.7-5.7V77.945a5.694 5.694 0 0 0-5.7-5.7z" transform="translate(-17.226 -20.584)" style="fill:#ece9fa"/>
+        </g>
+        <path data-name="패스 4091" d="M128.655 77.945a5.694 5.694 0 0 0-5.7-5.7h-33.11a5.7 5.7 0 0 0-5.7 5.7v2.674h44.5z" transform="translate(-17.227 -20.582)" style="fill:url(#ylxhgxw7kk)"/>
+        <path data-name="패스 4092" d="M164.125 79.807a1.317 1.317 0 1 1-1.317-1.317 1.318 1.318 0 0 1 1.317 1.317z" transform="translate(-56.693 -23.767)" style="fill:#fff"/>
+        <path data-name="패스 4093" d="M152.455 79.807a1.317 1.317 0 1 1-1.317-1.317 1.315 1.315 0 0 1 1.317 1.317z" transform="translate(-50.737 -23.767)" style="fill:#fff"/>
+    </g>
+    <text transform="translate(89.143 80.001)" style="fill:#656980;font-size:16px;font-family:D2CodingBold,D2Coding;letter-spacing:.02em"><tspan x="-12.32" y="0">SQL</tspan></text>
+</svg>

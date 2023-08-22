@@ -1,0 +1,13 @@
+@import '@/assets/scss/theme.scss';
+
+.log-control-header {
+    border-bottom: solid 1px #fdb532;
+    svg {
+        fill: rgba(255, 255, 255, 0.5);
+        stroke: rgba(255, 255, 255, 0.5);
+        &:hover {
+            fill: #fdb532;
+            stroke: #fdb532;
+        }
+    }
+}

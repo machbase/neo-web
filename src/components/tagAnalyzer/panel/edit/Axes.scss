@@ -1,0 +1,167 @@
+.axes-form {
+    display: flex;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 4px 4px;
+    overflow: auto;
+    height: 100%;
+    max-height: 100%;
+    flex-wrap: wrap;
+    input {
+        padding: 0 4px;
+        height: 24px;
+        background-color: #2a2d37;
+        border: 0.5px solid rgba(255, 255, 255, 0.5);
+        color: #f8f8f8;
+        border-radius: 4px;
+    }
+    span {
+        display: flex;
+        align-items: center;
+    }
+    .x-axis,
+    .y-axis {
+        padding: 0 8px;
+        width: 400px;
+        border-right: 0.5px solid rgba(255, 255, 255, 0.5);
+    }
+    .x-axis {
+        display: flex;
+        flex-direction: column;
+        div {
+            padding-top: 12px !important;
+        }
+        .x-axis-title {
+            padding: 16px 0;
+            color: #f8f8f8;
+            font-weight: 600;
+        }
+        .x-axis-interval {
+            input {
+                width: 150px;
+            }
+            padding: 0 24px 0 8px;
+            justify-content: space-between;
+            display: flex;
+            align-items: center;
+        }
+        .x-axis-tick-line {
+            padding: 0 0 0 4px;
+            display: flex;
+            align-items: center;
+        }
+        .x-axis-pixels {
+            input {
+                width: 150px;
+            }
+            padding: 0 24px 0 8px;
+            justify-content: space-between;
+            display: flex;
+            align-items: center;
+        }
+    }
+    .y-axis {
+        .y-axis-title {
+            padding: 16px 0;
+            color: #f8f8f8;
+            font-weight: 600;
+        }
+        display: flex;
+        flex-direction: column;
+        div {
+            padding-top: 12px !important;
+        }
+        .y-axis-scale-zero {
+            padding: 0 0 0 4px;
+            display: flex;
+            align-items: center;
+        }
+        .y-axis-tick-line {
+            padding: 0 0 0 4px;
+            display: flex;
+            align-items: center;
+        }
+        .y-axis-custom-scale,
+        .y-axis-raw-custom-scale {
+            padding: 0 24px 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            input {
+                margin: 0 6px;
+                width: 40px;
+                height: 24px;
+            }
+        }
+    }
+    .additional-y-axis {
+        padding: 0 8px;
+        div {
+            padding-top: 12px !important;
+        }
+        display: flex;
+        .additional-y-axis-form {
+            padding: 16px 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .aditional-box-form,
+        .scale-box-form,
+        .scale-tick-line-form {
+            padding: 0 0 0 4px;
+            display: flex;
+            align-items: center;
+        }
+        .aditional-custom {
+            padding: 0 24px 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            input {
+                margin: 0 6px;
+                width: 40px;
+                height: 24px;
+            }
+        }
+        .addition-input-form {
+            display: flex;
+            flex-direction: column;
+            .addition-select-box {
+                padding: 0 !important;
+                display: flex;
+                align-items: center;
+                height: 28px;
+                background-color: #2a2d37;
+                border: 0.5px solid rgba(255, 255, 255, 0.5);
+                color: #f8f8f8;
+                select {
+                    height: 100%;
+                    width: 280px;
+                    background-color: transparent;
+                    border: none;
+                    color: #f8f8f8;
+                    padding: 0 4px;
+                    option {
+                        background-color: #2a2d37;
+                    }
+                }
+                border-radius: 4px;
+                width: 300px;
+            }
+            .selected-tag-list {
+                div {
+                    margin: 0 0 4px 4px !important;
+                    padding: 0px !important;
+                    cursor: pointer;
+                }
+                border-radius: 4px;
+                display: flex;
+                flex-direction: column;
+                margin-top: 10px;
+                padding: 4px !important;
+                height: calc(100% - 40px);
+                background-color: #2a2d37;
+                border: 0.5px solid rgba(255, 255, 255, 0.5);
+            }
+        }
+    }
+}

@@ -1,0 +1,12 @@
+.mrk-form {
+    display: flex;
+    width: 100%;
+    position: relative;
+    ul,
+    ol {
+        list-style: revert;
+    }
+    article {
+        width: 100%;
+    }
+}

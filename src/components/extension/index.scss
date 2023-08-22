@@ -1,0 +1,13 @@
+.extension-form {
+    width: 48px;
+    background: #242424;
+    height: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: column;
+    svg {
+        cursor: pointer;
+    }
+    z-index: 999;
+}

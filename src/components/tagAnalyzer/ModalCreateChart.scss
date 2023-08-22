@@ -1,0 +1,282 @@
+.modal-form {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #404457;
+    width: 600px;
+    height: 650px;
+    z-index: 999;
+    border-radius: 8px;
+    border: solid 0.5px rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    p {
+        color: #fdb532;
+        font-size: 12px;
+        padding: 0 0 0 23%;
+        height: 5%;
+    }
+
+    .inner-form {
+        button {
+            border: solid 0.5px #ffffff;
+            background-color: transparent;
+            padding: 0;
+        }
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        justify-content: space-between;
+
+        .header {
+            height: 10%;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            .header-title {
+                display: flex;
+                align-items: center;
+                svg {
+                    margin-right: 4px;
+                    font-size: 16px;
+                }
+            }
+            .header-close {
+                cursor: pointer;
+            }
+        }
+    }
+    .body {
+        height: 80%;
+    }
+    .table-select {
+        height: 10%;
+        padding: 0 16% 0 8%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        .title {
+            width: 20%;
+            opacity: 0.5;
+        }
+        .combobox-select {
+            border-radius: 8px;
+            width: 80%;
+            background-color: rgba(38, 40, 49, 0.5);
+            border: solid 0.5px rgba(255, 255, 255, 0.5);
+            color: #ffffff;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            padding: 0 !important;
+            .input {
+                padding: 0 8px;
+                background-color: transparent;
+                border: none;
+                width: calc(100% - 16px);
+                height: 100%;
+                color: white;
+                option {
+                    background: #333644 !important;
+                    border-radius: 0;
+                }
+            }
+            svg {
+                font-size: 16px;
+            }
+        }
+    }
+    .tag-select {
+        height: 70%;
+        padding: 0 16% 0 8%;
+        display: flex;
+        justify-content: space-between;
+        .tag-form {
+            width: 80%;
+            height: 100%;
+        }
+        .filter-form-tag {
+            width: 100%;
+            display: flex;
+        }
+        .title {
+            width: 20%;
+            opacity: 0.5;
+        }
+        .tag-input-form {
+            background-color: transparent;
+            width: 100%;
+            display: flex;
+
+            .combobox-select {
+                margin-right: 8px;
+                border-radius: 8px;
+                width: 90%;
+                padding: 0 4px !important;
+                background-color: rgba(38, 40, 49, 0.5);
+                border: solid 0.5px rgba(255, 255, 255, 0.5);
+                color: #ffffff;
+                height: 34px;
+                display: flex;
+                align-items: center;
+            }
+            .search {
+                width: 34px;
+                justify-content: center;
+                display: flex;
+                align-items: center;
+                border-radius: 8px;
+                background-color: rgba(38, 40, 49, 0.5);
+                border: solid 0.5px #4199ff;
+                color: #4199ff;
+                height: 34px;
+                font-size: 14px;
+            }
+        }
+        .select-tag-form {
+            width: 100%;
+            height: 80%;
+            display: flex;
+            justify-content: space-between;
+            .select-tag-wrap {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                width: 49%;
+                .select-tab {
+                    overflow: auto;
+                    display: flex;
+                    flex-direction: column;
+                    background-color: rgba(38, 40, 49, 0.5);
+                    border: solid 0.5px rgba(255, 255, 255, 0.5);
+                    min-height: 30px;
+                    height: 80%;
+                    border-radius: 8px;
+                    padding: 8px 0;
+                    button {
+                        border: none;
+                        display: flex;
+                        justify-content: space-between;
+                        color: white;
+                        padding: 0 8px;
+                        padding-bottom: 4px;
+                    }
+                    .inner-select {
+                        background-color: #404457;
+                        border-radius: 4px;
+                        border: solid 0.5px rgba(255, 255, 255, 0.5);
+                        display: flex;
+                        align-items: center;
+                        select {
+                            font-size: 12px;
+                            padding: 4px;
+                            justify-content: space-between;
+                            border: none;
+                            background-color: transparent;
+                            color: white;
+                            font-weight: 400;
+                            width: calc(100% - 16px);
+                            option {
+                                background: #333644 !important;
+                                border-radius: 0;
+                            }
+                        }
+                        svg {
+                            font-weight: 16px;
+                        }
+                    }
+                }
+                .bottom-page {
+                    padding-top: 8px;
+                    button {
+                        margin: 0 4px;
+                        width: 20px;
+                        height: 20px;
+                        color: white;
+                        justify-content: center;
+                        align-items: center;
+                        display: flex;
+                        border-radius: 6px;
+                    }
+                    justify-content: space-between;
+                    display: flex;
+                    align-items: center;
+                    .pagination {
+                        display: flex;
+                        align-items: center;
+                    }
+                }
+            }
+        }
+    }
+    .chart-select {
+        height: 15%;
+
+        padding: 0 16% 0 8%;
+        display: flex;
+        justify-content: space-between;
+        .title {
+            width: 20%;
+            opacity: 0.5;
+        }
+        .selected-chart {
+            height: 23%;
+        }
+        .select-chart-form {
+            width: 80%;
+            .tag_modal_chart_wrap {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+
+                .tag_modal_chart_btn {
+                    cursor: pointer;
+                    margin-right: 9px;
+                    border-radius: 8px;
+
+                    border: solid 0.5px transparent;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    &:hover {
+                        box-shadow: inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5);
+                        border: solid 0.5px #4199ff;
+                    }
+                    img {
+                        z-index: -1;
+                        width: 100%;
+                        height: 100%;
+                    }
+                }
+                .last {
+                    margin-right: 0;
+                }
+            }
+        }
+    }
+    .footer {
+        height: 10%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        .ok-button {
+            height: 34px;
+            border-radius: 8px;
+            width: 100px;
+            margin-right: 8px;
+            background-color: #4199ff;
+            border: 0.5px solid #d9d9d9;
+            color: white;
+        }
+        .cancel-button {
+            width: 100px;
+            border-radius: 8px;
+            color: white;
+            height: 34px;
+            border: 0.5px solid #d9d9d9;
+        }
+    }
+}

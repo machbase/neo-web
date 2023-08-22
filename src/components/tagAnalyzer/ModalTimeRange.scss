@@ -1,0 +1,157 @@
+.modal-time-range {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #404457;
+    width: 500px;
+    height: 650px;
+    z-index: 999;
+    border-radius: 8px;
+    border: solid 0.5px rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+    padding: 20px 4px 0 4px;
+    display: flex;
+    flex-direction: column;
+    .time-range-header {
+        height: 5%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+        .time-range-title {
+            display: flex;
+            align-items: center;
+            svg {
+                margin-right: 4px;
+            }
+        }
+        .time-range-close {
+            svg {
+                cursor: pointer;
+            }
+        }
+    }
+    .time-range-body {
+        height: 75%;
+        display: flex;
+
+        color: rgba(255, 255, 255, 0.5);
+        flex-direction: column;
+        .top {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+
+            height: 40%;
+
+            width: 100%;
+            .to,
+            .from {
+                position: relative;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin-bottom: 8px;
+                .span-from,
+                .span-to {
+                    width: 100px;
+                }
+                display: flex;
+                .modal-date-picker {
+                    z-index: 8;
+                    position: absolute;
+                    top: 30px;
+                    right: 60px;
+                }
+                .date-picker {
+                    width: 200px;
+                    padding: 0 4px;
+                    height: 28px;
+                    background-color: #2a2d37;
+                    border: 0.5px solid rgba(255, 255, 255, 0.5);
+                    color: rgba(255, 255, 255, 0.5) !important;
+                    border-radius: 4px;
+
+                    .react-datepicker {
+                        background-color: #2a2d37 !important;
+                        td,
+                        th {
+                            padding: 0 !important;
+                            width: unset;
+                            min-width: unset;
+                        }
+                        .rdtPrev:hover,
+                        .rdtNext:hover,
+                        .rdtTimeToggle:hover,
+                        .rdtBtn:hover,
+                        .rdtSwitch:hover,
+                        .rdtDay:hover {
+                            opacity: 0.5 !important;
+                            background: #464b5c !important;
+                        }
+                    }
+                }
+            }
+        }
+        .bottom {
+            padding: 50px;
+            height: 60%;
+            border-top: 0.5px solid rgba(255, 255, 255, 0.5);
+
+            display: flex;
+            justify-content: center;
+            .quick-range {
+                width: 100px;
+            }
+            .list {
+                div {
+                    margin-left: 4px;
+                    span {
+                        cursor: pointer;
+                    }
+                    span:hover {
+                        opacity: 0.5;
+                    }
+                }
+                display: flex;
+                color: #4199ff;
+                width: 210px;
+            }
+        }
+    }
+    .time-range-footer {
+        height: 20%;
+        border-top: 0.5px solid rgba(255, 255, 255, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        button {
+            border: 0.5px solid rgba(255, 255, 255, 0.5);
+            width: 100px;
+            margin: 0 8px;
+            color: white;
+            height: 34px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .apply {
+            background-color: #4199ff;
+        }
+        .cancel {
+            background-color: #656877;
+        }
+    }
+}
+
+.time-range-cover {
+    width: 100vw;
+    height: 100vh;
+    z-index: 998;
+    background-color: rgba(38, 40, 49, 0.5);
+    position: fixed;
+    top: 0;
+    left: 0;
+}

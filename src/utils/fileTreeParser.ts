@@ -1,0 +1,85 @@
+export interface FileTreeType {
+    depth: number;
+    dirs: FileTreeType[] | [];
+    files: FileType[] | [];
+    id: string;
+    name: string;
+    parentId: string | undefined;
+    type: Type;
+    path: string | 'ROOT';
+}
+export interface FileType {
+    content: string;
+    depth: number;
+    id: string;
+    name: string;
+    parentId: string;
+    type: Type;
+    path: string;
+}
+
+export enum Type {
+    FILE,
+    DIRECTORY,
+    DUMMY,
+}
+
+interface ResFileType {
+    isDir: boolean;
+    lastModifiedUnixMillis: bigint;
+    name: string;
+    type: string;
+}
+export interface ResFileListType {
+    children: ResFileType[];
+    name: string;
+    isDir: boolean;
+}
+export const fileTreeParser = (aResFileList: ResFileListType, aPath: string, aDepth: number, aParentId: string) => {
+    const sParedData: FileTreeType = {
+        depth: aDepth,
+        dirs: aResFileList.children
+            ? aResFileList.children.filter((aFile: ResFileType) => aFile.isDir).map((aTargetDir: ResFileType) => dirFormatter(aTargetDir, aPath, aDepth, aParentId))
+            : [],
+        files: aResFileList.children
+            ? aResFileList.children.filter((bFile: ResFileType) => !bFile.isDir).map((bTargetFile: ResFileType) => fileFormatter(bTargetFile, aPath, aDepth, aParentId))
+            : [],
+        id: aParentId,
+        name: aResFileList.name,
+        parentId: undefined,
+        type: aResFileList.isDir ? 1 : 0,
+        path: aPath,
+    };
+    return sParedData;
+};
+const dirFormatter = (aTarget: ResFileType, aPath: string, aDepth: number, aParentId: string) => {
+    return {
+        depth: aDepth + 1,
+        dirs: [],
+        files: [],
+        id: aTarget.name,
+        name: aTarget.name,
+        parentId: aParentId,
+        type: 1,
+        path: aPath,
+    };
+};
+const fileFormatter = (aTarget: ResFileType, aPath: string, aDepth: number, aParentId: string) => {
+    return {
+        content: aTarget.lastModifiedUnixMillis.toString(),
+        depth: aDepth + 1,
+        id: aTarget.name,
+        name: aTarget.name,
+        parentId: aParentId,
+        type: 0,
+        path: aPath,
+    };
+};
+
+export function sortDir(l: FileTreeType, r: FileTreeType) {
+    return l.name.localeCompare(r.name);
+}
+
+export function sortFile(l: FileType, r: FileType) {
+    return l.name.localeCompare(r.name);
+}

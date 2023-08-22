@@ -1,0 +1,223 @@
+@import '@/assets/scss/theme.scss';
+
+.sql-header {
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    padding: 0 1rem;
+    background-color: #1c1c21;
+    svg {
+        border-radius: 5px;
+        font-size: 18px;
+        color: #939498;
+        cursor: pointer;
+        &:hover {
+            color: #f8f8f8;
+        }
+    }
+    .sql-option-ctr {
+        .btn-cover {
+            width: 30px;
+            height: 30px;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .header-icon {
+            color: rgba(255, 255, 255, 0.5);
+            :hover {
+                color: #f8f8f8;
+            }
+        }
+    }
+}
+
+.sql-body {
+    background-color: #1c1c21;
+
+    .sql_tab {
+        background-color: #1c1c21;
+        height: 40px;
+        display: flex;
+        padding-right: 16px;
+
+        .sub-tab-header-icon-ctr {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 18px;
+
+            .sub-tab-header-active-icon {
+                color: rgba(255, 255, 255, 0.5);
+                width: 30px;
+                height: 30px;
+                background-color: rgba(255, 255, 255, 0.2);
+                border-radius: 8px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                cursor: pointer;
+                :hover {
+                    color: #f8f8f8;
+                }
+            }
+            .sub-tab-header-icon {
+                color: rgba(255, 255, 255, 0.5);
+                width: 30px;
+                height: 30px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                cursor: pointer;
+                :hover {
+                    color: #f8f8f8;
+                }
+            }
+        }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 5px;
+            background-clip: padding-box;
+            border: 2px solid transparent;
+        }
+        ::-webkit-scrollbar-track {
+            background-color: transparent;
+            border-radius: 5px;
+        }
+        .sql-tab-round-wrapper {
+            display: flex;
+            flex-direction: row;
+            width: calc(80% + 100px);
+            max-width: 600px;
+            padding: 0 15px;
+            overflow-y: auto;
+
+            .sql-tab-round {
+                display: flex;
+                align-items: end;
+                position: relative;
+                flex-basis: auto;
+                // flex: 1 0 20%;
+                width: 10rem;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+
+                .round_right_wrap {
+                    width: 15px;
+                    height: 15px;
+                    background-color: #1c1c21;
+                    transform: scaleX(-1), scaleY(-1);
+                    z-index: 21;
+                    position: absolute;
+                    bottom: 0px;
+                    left: -15px;
+
+                    .round_right {
+                        width: 15px;
+                        height: 15px;
+                        border-radius: 0 0 80% 0;
+                        background-color: #272831;
+                    }
+                }
+
+                .round_left_wrap {
+                    width: 15px;
+                    height: 15px;
+                    background-color: #1b1c21;
+                    transform: scaleX(-1), scaleY(-1);
+                    z-index: 21;
+                    position: absolute;
+                    bottom: 0px;
+                    right: -15px;
+
+                    .round_left {
+                        width: 15px;
+                        height: 15px;
+                        border-radius: 0 0 0 80%;
+                        background-color: #272831;
+                    }
+                }
+            }
+            .sql_tab_button {
+                margin-top: 4px;
+                width: 100%;
+                height: 36px;
+                font-size: 13px;
+                display: flex;
+                align-items: center;
+                position: relative;
+                background-color: #262831;
+                cursor: pointer;
+
+                span {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                .tab-inner {
+                    width: 100%;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    .tab-name {
+                        display: flex;
+                        align-items: center;
+                        padding: 0px !important;
+
+                        svg {
+                            font-size: 15px;
+                            padding: 0 !important;
+                        }
+                    }
+                }
+                span {
+                    padding-left: 8px;
+                    color: rgba(255, 255, 255, 0.5);
+                }
+            }
+
+            .sql_tab_select {
+                color: #fdb532;
+                background-color: #1c1c21;
+                border-top-left-radius: 10px;
+                border-top-right-radius: 10px;
+                border-bottom-right-radius: 0px;
+                border-bottom-left-radius: 0px;
+                position: relative;
+                z-index: 21;
+
+                img {
+                    svg {
+                        fill: #fdb532;
+                        stroke: #fdb532;
+                    }
+                }
+                span {
+                    color: #fdb532;
+                }
+            }
+
+            .sql_tab_none_select {
+                svg {
+                    fill: rgba(255, 255, 255, 0.5);
+                    stroke: rgba(255, 255, 255, 0.5);
+                }
+                &:hover {
+                    svg {
+                        fill: #fdb532;
+                        stroke: #fdb532;
+                    }
+                    span {
+                        color: #fdb532;
+                    }
+                }
+            }
+        }
+    }
+}

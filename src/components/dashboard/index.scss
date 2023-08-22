@@ -1,0 +1,9 @@
+.react-resizable-handle::after {
+    border-right: 2px solid rgba(255, 255, 255, 0.4) !important;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.4) !important;
+}
+.dashboard-form {
+    width: 100%;
+    overflow: auto;
+    height: 100%;
+}

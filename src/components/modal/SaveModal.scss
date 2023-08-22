@@ -1,0 +1,281 @@
+.tql {
+    svg {
+        cursor: pointer;
+    }
+
+    .title {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        padding: 1.75rem 1.75rem 1rem 1.75rem;
+
+        &-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+        }
+    }
+
+    .tool-bar {
+        display: flex;
+        align-items: center;
+
+        padding: 0 1.75rem 0.75rem 1.75rem;
+
+        svg {
+            color: rgba(38, 40, 49, 0.5);
+        }
+
+        .dark {
+            &-border {
+                border: 1px solid rgba(255, 255, 255, 0.5);
+            }
+            svg {
+                color: rgba(255, 255, 255, 0.5);
+            }
+        }
+
+        .active {
+            background-color: rgba(255, 255, 255, 0.1);
+            svg {
+                color: white;
+            }
+        }
+
+        &-content {
+            width: 24px;
+            height: 24px;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            border-radius: 5px;
+            border: 1px solid rgba(38, 40, 49, 0.5);
+
+            svg {
+                font-size: 20px;
+            }
+        }
+
+        .file-button {
+            width: 40px;
+            height: 40px;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    }
+
+    .search-bar {
+        padding: 0 1.75rem 0.75rem 1.75rem;
+    }
+
+    .file-broswer {
+        border-top: 0.5px solid #8d8e92;
+        border-bottom: 0.5px solid #8d8e92;
+        background-color: rgba(255, 255, 255, 0.5);
+        min-height: 300px;
+
+        &-header {
+            display: flex;
+
+            border-bottom: 0.5px solid rgba(38, 40, 49, 0.5);
+            color: rgba(38, 40, 49, 0.5);
+
+            font-size: 12px;
+            height: 26px;
+
+            span {
+                display: flex;
+                align-items: center;
+            }
+        }
+
+        &-content {
+            color: #262831;
+            max-height: 300px;
+
+            overflow-y: auto;
+
+            .row {
+                cursor: pointer;
+
+                height: 26px;
+                display: flex;
+                border-radius: 10px;
+                margin: 0.1rem 0.5rem;
+                &:hover {
+                    background-color: #419aff24;
+                }
+
+                .pl {
+                    padding-left: 1rem;
+                }
+
+                span {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+            }
+
+            .selected {
+                background-color: #419aff24;
+            }
+        }
+    }
+
+    .file-broswer-dark {
+        border-top: 0.5px solid #9c9da6;
+        border-bottom: 0.5px solid #9c9da6;
+        background-color: rgba(38, 40, 49, 0.5);
+        min-height: 300px;
+
+        &-header {
+            display: flex;
+
+            border-bottom: 0.5px solid rgba(255, 255, 255, 0.5);
+            color: rgba(255, 255, 255, 0.5);
+
+            font-size: 12px;
+            height: 26px;
+
+            span {
+                display: flex;
+                align-items: center;
+            }
+        }
+
+        &-content {
+            color: #fff;
+            max-height: 300px;
+
+            overflow-y: auto;
+
+            .row {
+                cursor: pointer;
+
+                height: 26px;
+                display: flex;
+                border-radius: 10px;
+                margin: 0.1rem 0.5rem;
+                &:hover {
+                    background-color: #4199ff;
+                }
+
+                .pl {
+                    padding-left: 1rem;
+                }
+
+                span {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+            }
+
+            .selected {
+                background-color: #419aff;
+            }
+        }
+    }
+
+    .file-name {
+        width: 100%;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        gap: 10px;
+
+        padding: 0.5rem 1.75rem 0 1.75rem;
+    }
+
+    .button-group {
+        width: 100%;
+
+        padding: 1.75rem 1.75rem 2.5rem 1.75rem;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        .button {
+            width: 120px;
+            height: 40px;
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .theme-white {
+            border: 0.5px solid rgba(38, 40, 49, 0.5);
+            box-shadow: 0 3px 6px 0 rgba(0, 0, 0, 0.16);
+        }
+
+        .theme-dark {
+            border: solid 0.5px #d9d9d9;
+            box-shadow: 0 3px 6px 0 rgba(0, 0, 0, 0.16);
+        }
+
+        .ok {
+            background-color: #4199ff;
+            color: white;
+        }
+
+        .cancel {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .disabled {
+            cursor: initial;
+            background-color: #2965aa64;
+        }
+    }
+
+    .input-wrapper {
+        height: 34px;
+
+        flex-grow: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        border-radius: 8px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16);
+        border: solid 0.5px rgba(38, 40, 49, 0.5);
+        background-color: #fcfcfc;
+
+        padding: 0.5rem;
+
+        &-dark {
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16);
+            border: solid 0.5px rgba(255, 255, 255, 0.5);
+            background-color: rgba(38, 40, 49, 0.5);
+
+            input {
+                color: rgba(255, 255, 255, 0.5) !important;
+            }
+        }
+
+        input {
+            width: 100%;
+            height: 100%;
+
+            outline: none;
+            color: rgba(38, 40, 49, 0.5);
+            background-color: transparent;
+            border: none;
+        }
+    }
+}

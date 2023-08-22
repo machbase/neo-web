@@ -1,0 +1,152 @@
+@import '../../assets/scss/theme.scss';
+
+.login-form {
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-image: url(../../assets/image/img_login_bg.png);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% auto;
+    background-color: #1b1c21;
+}
+.input-form {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    margin: 0 auto;
+    width: 80%;
+    background-color: #fff;
+
+    input {
+        padding-left: 60px;
+        width: 266px !important;
+        height: 30px;
+        margin-bottom: 12px;
+        text-indent: 32px;
+        background-color: #fcfcfc;
+        border: solid 0.5px rgba(0, 0, 0, 0.2) !important;
+        border-radius: 8px;
+    }
+    input::placeholder {
+        color: rgba(0, 0, 0, 0.2);
+        font-family: Pretendard;
+        font-size: 14px;
+    }
+    .input-id {
+        background-image: url(../../assets/image/login_id.png);
+        background-repeat: no-repeat;
+        background-position: 8px 6px;
+    }
+    .input-password {
+        background-image: url(../../assets/image/login_password.png);
+        background-repeat: no-repeat;
+        background-position: 8px 6px;
+    }
+    margin-bottom: -10%;
+}
+.login-card {
+    height: 380px;
+    width: 420px;
+    background-color: #fff;
+    flex-direction: column;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 8px;
+    font-family: 'Open Sans', Helvetica, Arial, sans-serif;
+    @include theme() {
+        background-color: theme-get('bg-color-button') !important;
+        border-color: theme-get('border-color') !important;
+    }
+    img {
+        margin: 0 auto;
+        margin-top: 60px;
+    }
+    .input-checkboxwrap {
+        margin-top: 12px;
+        margin-left: 70px;
+        display: flex;
+        .checkbox {
+            margin-right: 4px;
+            width: 16px;
+            height: 16px;
+            border: 0;
+            box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.18);
+        }
+        .input-checkbox-p {
+            margin-top: 4px;
+            margin-left: 2px;
+            font-family: Pretendard;
+            font-size: 12px;
+            color: #a7a7a7;
+        }
+    }
+    .button-form {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 52px;
+        .login-button {
+            @include theme() {
+                border: 1px solid theme-get('border-color-input') !important;
+                color: theme-get('border-color-input') !important;
+            }
+            border-radius: 8px;
+            width: 280px;
+            height: 40px;
+            padding: 4px 6px;
+            border: 0;
+            color: #fff;
+            box-shadow: 0 3px 6px 0 rgba(0, 0, 0, 0.16);
+            background-image: linear-gradient(97deg, #3da8d9 0%, #1a3ee2 52%, #3da8d9 101%);
+        }
+        .login-button:hover {
+            @include theme() {
+                background-color: theme-get('border-color') !important;
+                border-color: theme-get('login-btn') !important;
+            }
+        }
+        .no-input {
+            @include theme() {
+                border: 1px solid theme-get('border-color-input') !important;
+                background-color: theme-get('border-color') !important;
+                color: theme-get('login-btn') !important;
+                border-color: theme-get('login-btn') !important;
+            }
+            border-radius: 4px;
+            width: 80%;
+            padding: 4px 6px;
+        }
+    }
+
+    .input {
+        border-radius: 4px;
+        padding: 4px 6px;
+        width: 100%;
+    }
+    .normal-text {
+        @include theme() {
+            color: theme-get('text-color') !important;
+        }
+    }
+}
+.sns {
+    padding: 32px 24px 0 24px;
+    width: 420px;
+    display: flex;
+    justify-content: space-between;
+    svg {
+        fill: rgba(255, 255, 255, 0.5);
+        &:hover {
+            fill: rgba(255, 255, 255, 1);
+        }
+    }
+}
