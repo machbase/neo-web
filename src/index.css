@@ -19,8 +19,8 @@
     outline: 0;
 }
 .monaco-mouse-cursor-text {
-    font-family: 'D2Coding';
-    letter-spacing: 0.7px;
+    font-family: 'D2Coding' !important;
+    letter-spacing: 0.7px !important;
 }
 @font-face {
     font-family: 'D2Coding';
