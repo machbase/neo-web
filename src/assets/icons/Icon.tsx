@@ -43,7 +43,6 @@ export {
 
 export {
     RiArrowUpDoubleFill as ArrowUpDouble,
-    RiInsertRowTop as InsertRowTop,
     RiMergeCellsVertical as HideOn,
     RiSplitCellsHorizontal as HideOff,
     RiSmartphoneLine as Phone,
@@ -73,7 +72,10 @@ export {
 
 export { FiSearch as Search, FiMonitor as Monitor } from 'react-icons/fi';
 
-export { TbParachute } from 'react-icons/tb';
+export {
+    TbParachute,
+    TbRowInsertTop as InsertRowTop,
+} from 'react-icons/tb';
 
 export { IoIosCopy as Copy } from 'react-icons/io';
 
