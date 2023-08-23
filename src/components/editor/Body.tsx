@@ -109,7 +109,7 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pRecentFiles, 
                                     pGetInfo={pGetInfo}
                                     setIsOpenModal={setIsOpenModal}
                                     pReferences={pReferences}
-                                ></NewBoard>
+                                />
                             )}
                             {aItem.type === 'sql' && (
                                 <Sql pHandleSaveModalOpen={handleSaveModalOpen} pInfo={aItem} setIsOpenModal={setIsOpenModal} setIsSaveModal={setIsSaveModal}></Sql>
