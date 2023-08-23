@@ -74,23 +74,24 @@ const Home = () => {
                     <Pane minSize={0} maxSize="50%">
                         {sIsSidebar && <Side pRecentFiles={sRecentFiles} pGetInfo={getInfo} pSavedPath={sSavedPath}></Side>}
                     </Pane>
-                    <div
-                        style={{
-                            ...layoutCSS,
-                            borderLeft: '1px solid #333333',
-                            background: '#ffffff',
-                        }}
-                    >
-                        <Body
-                            pExtentionList={sExtentionList}
-                            pTerminalSizes={sTerminalSizes}
-                            pSideSizes={sSideSizes}
-                            pDraged={sDraged}
-                            pGetInfo={getInfo}
-                            pReferences={sReferences}
-                            pGetPath={getPath}
-                            pRecentFiles={sRecentFiles}
-                        ></Body>
+                    <Pane>
+                        <div
+                            style={{
+                                ...layoutCSS,
+                                borderLeft: '1px solid #333333',
+                                background: '#ffffff',
+                            }}
+                        >
+                            <Body
+                                pExtentionList={sExtentionList}
+                                pTerminalSizes={sTerminalSizes}
+                                pSideSizes={sSideSizes}
+                                pDraged={sDraged}
+                                pGetInfo={getInfo}
+                                pReferences={sReferences}
+                                pGetPath={getPath}
+                                pRecentFiles={sRecentFiles}
+                            ></Body>
                         {/* <SplitPane sashRender={() => <></>} split="horizontal" sizes={sTerminalSizes} onChange={setTerminalSizes}> */}
                         {/* <Pane minSize={50}> */}
                         {/* </Pane> */}
@@ -104,7 +105,8 @@ const Home = () => {
                                 <Log></Log>
                             </div> */}
                         {/* </SplitPane> */}
-                    </div>
+                        </div>
+                    </Pane>
                 </SplitPane>
             </div>
         </div>
