@@ -2,7 +2,7 @@ import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gFileTree } from '@/recoil/fileTree';
 import { getId } from '@/utils';
 import { useState, useRef } from 'react';
-import { Delete, Download, VscChevronRight, VscChevronUp } from '@/assets/icons/Icon';
+import { Delete, Download, VscChevronRight, VscChevronDown } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { FileTree } from '../fileTree/file-tree';
 import Sidebar from '../fileTree/sidebar';
@@ -212,7 +212,7 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
             <div className="side-title">machbase-neo {pServer && pServer.version}</div>
             <div>
                 <div onClick={() => setCollapseRecent(!sCollapseRecent)} className="side-sub-title recent-title">
-                    <div className="collapse-icon">{sCollapseRecent ? <VscChevronUp></VscChevronUp> : <VscChevronRight></VscChevronRight>}</div>
+                    <div className="collapse-icon">{sCollapseRecent ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
                     Open recent
                 </div>
                 <div className="recent-form">
