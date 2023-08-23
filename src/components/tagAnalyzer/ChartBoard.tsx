@@ -4,9 +4,9 @@ import './ChartBoard.scss';
 import { useState } from 'react';
 import ModalTimeRange from './ModalTimeRange';
 import moment from 'moment';
-import { FolderOpen, Calendar, Save, Refresh, SaveAs } from '@/assets/icons/Icon';
+import { Calendar, Save, Refresh, SaveAs } from '@/assets/icons/Icon';
 
-const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen, pHandleOpenModalOpen }: any) => {
+const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
 
     return (
@@ -33,9 +33,6 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen, pHan
                 </div>
                 <div className="btn-cover">
                     <SaveAs onClick={pHandleSaveModalOpen} />
-                </div>
-                <div className="btn-cover">
-                    <FolderOpen onClick={pHandleOpenModalOpen} />
                 </div>
             </div>
             <div className="panel-list">

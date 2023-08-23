@@ -9,19 +9,7 @@ import { ShowChart } from './ShowChart';
 import { Markdown } from '../worksheet/Markdown';
 import { isValidJSON } from '@/utils';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
-import { 
-    AiOutlineFileDone,
-    AiOutlineFileMarkdown,
-    BarChart,
-    Save,
-    VscJson,
-    PiFileCsvThin,
-    BiTable,
-    LuFlipVertical,
-    Play,
-    FolderOpen,
-    SaveAs,
-} from '@/assets/icons/Icon';
+import { AiOutlineFileDone, AiOutlineFileMarkdown, BarChart, Save, VscJson, PiFileCsvThin, BiTable, LuFlipVertical, Play, SaveAs } from '@/assets/icons/Icon';
 
 interface TqlProps {
     setIsSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
@@ -30,7 +18,7 @@ interface TqlProps {
 }
 
 const Tql = (props: TqlProps) => {
-    const { setIsSaveModal, setIsOpenModal, pHandleSaveModalOpen } = props;
+    const { setIsSaveModal, pHandleSaveModalOpen } = props;
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
@@ -123,9 +111,6 @@ const Tql = (props: TqlProps) => {
     const handleSaveModalOpen = () => {
         setIsSaveModal(true);
     };
-    const handleOpenModalOpen = () => {
-        setIsOpenModal(true);
-    };
 
     const Resizer = () => {
         return <SashContent className={`${isVertical ? 'sash-style-vertical' : 'sash-style-horizontal'}`} />;
@@ -145,9 +130,6 @@ const Tql = (props: TqlProps) => {
                             </div>
                             <div className="btn-cover">
                                 <SaveAs onClick={handleSaveModalOpen} />
-                            </div>
-                            <div className="btn-cover">
-                                <FolderOpen onClick={handleOpenModalOpen} />
                             </div>
                         </div>
                     </div>
