@@ -52,7 +52,7 @@ const Login = () => {
             sReturn.option && sReturn.option.experimentMode ? localStorage.setItem('experimentMode', sReturn.option.experimentMode) : localStorage.removeItem('experimentMode');
             sNavigate('/');
         } else {
-            Error('fail');
+            Error('Login fail');
         }
     };
 
