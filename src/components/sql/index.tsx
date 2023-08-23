@@ -11,7 +11,6 @@ import { getTqlChart } from '@/api/repository/machiot';
 import { sqlBasicFormatter } from '@/utils/sqlFormatter';
 import { IANA_TIMEZONES } from '@/assets/ts/timezones';
 import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
-import { isJsonString } from '@/utils/utils';
 import './index.scss';
 import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, FolderOpen, SaveAs } from '@/assets/icons/Icon';
 import { isJsonString } from '@/utils/utils';
