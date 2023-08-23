@@ -1,4 +1,4 @@
-import { GBoardListType, gBoardList, gSelectedExtension, gSelectedTab } from '@/recoil/recoil';
+import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gFileTree } from '@/recoil/fileTree';
 import { getId } from '@/utils';
 import { useState, useRef } from 'react';
@@ -30,7 +30,6 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath }: any) => {
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
     const MenuRef = useRef<HTMLDivElement>(null);
     const setSelectedTab = useSetRecoilState<string>(gSelectedTab);
-    const [sSelectedExtension] = useRecoilState<string>(gSelectedExtension);
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sFileTree, setFileTree] = useRecoilState(gFileTree);
     const [rootDir, setRootDir] = useState<FileTreeType>(sParedData);
@@ -209,11 +208,9 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath }: any) => {
 
     return (
         <div className="side-form">
-            <div className="side-title">
-                <div>{sSelectedExtension}</div>
-            </div>
+            <div className="side-title">machbase-neo</div>
             <div>
-                <div className="side-sub-title">recent</div>
+                <div className="side-sub-title">Open recent</div>
                 <div className="recent-form">
                     {pRecentFiles &&
                         pRecentFiles.map((aRecent: any, aIdx: any) => (
@@ -224,7 +221,7 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath }: any) => {
                         ))}
                 </div>
             </div>
-            <div className="side-sub-title">neo</div>
+            <div className="side-sub-title">Files</div>
             {sLoadFileTree ? (
                 // 🚧TODO
                 <>...</>

@@ -11,7 +11,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx }: any) => {
 
     useEffect(() => {
         compareValue(pBoard);
-    }, [pBoard])
+    }, [pBoard]);
 
     const addFile = () => {
         const sNewTab = { id: getId(), type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false };
@@ -96,11 +96,11 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx }: any) => {
                         {icons('close')}
                     </span>
                 ) : sIsSaved ? (
-                    ''
+                    <span className="default-form"></span>
                 ) : (
-                    <div className="off-saved" style={{ padding: '0 !important' }}>
+                    <span className="off-saved" style={{ padding: '0 !important' }}>
                         <SaveCricle />
-                    </div>
+                    </span>
                 )}
             </div>
 

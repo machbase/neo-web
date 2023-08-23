@@ -12,16 +12,7 @@ import { sqlBasicFormatter } from '@/utils/sqlFormatter';
 import { IANA_TIMEZONES } from '@/assets/ts/timezones';
 import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 import './index.scss';
-import { 
-    BarChart,
-    AiOutlineFileDone,
-    AiOutlineSnippets,
-    Save,
-    LuFlipVertical,
-    Play,
-    FolderOpen,
-    SaveAs,
-} from '@/assets/icons/Icon';
+import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, FolderOpen, SaveAs } from '@/assets/icons/Icon';
 import { isJsonString } from '@/utils/utils';
 
 const Sql = ({
@@ -180,7 +171,12 @@ const Sql = ({
         monaco.editor.defineTheme('my-theme', {
             base: 'vs-dark',
             inherit: true,
-            rules: [],
+            rules: [
+                {
+                    token: '',
+                    fontStyle: 'D2Coding',
+                },
+            ],
             colors: {
                 'editor.background': '#262831',
             },

@@ -31,7 +31,7 @@ export const gSelectedTab = atom<string>({
 
 export const gSelectedExtension = atom<string>({
     key: 'gSelectedExtension',
-    default: 'EXPLORER',
+    default: 'machbase-neo',
 });
 
 export const gTables = atom<any>({

@@ -1,6 +1,7 @@
 .table {
     width: calc(100%);
     table-layout: auto;
+    font-family: 'D2Coding';
 
     .header-fix {
         background-color: #1c1c21;
@@ -9,7 +10,7 @@
         left: 0;
         right: 0;
         z-index: 10;
-        font-size: 10px;
+        font-size: 14px;
     }
 
     .table-header {
@@ -36,6 +37,7 @@
             td {
                 overflow: hidden;
                 text-overflow: ellipsis;
+                font-size: 14px;
                 white-space: nowrap;
                 max-width: 20vw;
                 font-weight: 300;

@@ -146,8 +146,7 @@ const NewBoard = (props: NewBoardProps) => {
     return (
         <div className="inner">
             <div className="title">
-                <p className="main_title">Welcome</p>
-                <p className="main_text">Please select a project type.</p>
+                <p className="main_title">New...</p>
             </div>
             <div className="btn_wrap">
                 {pExtentionList.map((aItem: any, aIdx: number) => {

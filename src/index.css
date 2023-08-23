@@ -12,9 +12,15 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-text-size-adjust: 100%;
+    font-family: Pretendard;
 }
+
 *:focus {
     outline: 0;
+}
+.monaco-mouse-cursor-text {
+    font-family: 'D2Coding';
+    letter-spacing: 0.7px;
 }
 @font-face {
     font-family: 'D2Coding';
