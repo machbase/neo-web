@@ -12,7 +12,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-text-size-adjust: 100%;
-    font-family: Pretendard;
+    font-family: 'Pretendard';
 }
 
 *:focus {
@@ -26,6 +26,12 @@
     font-family: 'D2Coding';
     src: url('@/assets/font/D2Coding-Ver1.3.2-20180524.woff') format(woff);
 }
+@font-face {
+    font-family: 'Pretendard';
+    src: url('@/assets/font/Pretendard-Regular.woff') format(woff), ('@/assets/font/Pretendard-Medium.woff') format(woff), ('@/assets/font/Pretendard-Bold.woff') format(woff),
+        ('@/assets/font/Pretendard-SemiBold.woff') format(woff), ('@/assets/font/Pretendard-Bold.woff') format(woff);
+}
+
 a {
     font-weight: 500;
     color: #646cff;
