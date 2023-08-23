@@ -17,7 +17,7 @@ const Home = () => {
     const [sReferences, setReferences] = useState<any>([]);
     const [sDraged, setDraged] = useState<any>(false);
     const [sSavedPath, setSavedPath] = useState();
-
+    const [sServer, setServer] = useState();
     const [sIsSidebar, setIsSidebar] = useState<boolean>(true);
 
     const layoutCSS = {
@@ -36,7 +36,7 @@ const Home = () => {
         const sResult: any = await api(getLogin());
 
         setReferences(sResult.references);
-
+        setServer(sResult.server);
         const sortAttributes = (aItem: string, bItem: string) => {
             const sOrder = ['editable', 'cloneable', 'removable'];
             return sOrder.indexOf(aItem) - sOrder.indexOf(bItem);
@@ -72,7 +72,7 @@ const Home = () => {
             <div className="body-form">
                 <SplitPane sashRender={() => <></>} split="vertical" sizes={sSideSizes} onChange={setSideSizes} onDragEnd={changeDraged} onDragStart={setStatus}>
                     <Pane minSize={0} maxSize="50%">
-                        {sIsSidebar && <Side pRecentFiles={sRecentFiles} pGetInfo={getInfo} pSavedPath={sSavedPath}></Side>}
+                        {sIsSidebar && <Side pServer={sServer} pRecentFiles={sRecentFiles} pGetInfo={getInfo} pSavedPath={sSavedPath}></Side>}
                     </Pane>
                     <Pane>
                         <div

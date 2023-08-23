@@ -9,6 +9,7 @@ export {
 } from 'react-icons/ai';
 
 export {
+    VscChevronRight,
     VscTerminalCmd as Cmd,
     VscSymbolFile,
     VscThreeBars,
@@ -22,6 +23,8 @@ export {
     VscFile,
     VscGraphScatter,
     VscVm,
+    VscChevronDown,
+    VscChevronUp,
     VscTerminalCmd,
     VscTerminalPowershell as Powershell,
 } from 'react-icons/vsc';
