@@ -2,7 +2,7 @@ import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gFileTree } from '@/recoil/fileTree';
 import { getId } from '@/utils';
 import { useState, useRef } from 'react';
-import { Delete, Download } from '@/assets/icons/Icon';
+import { Delete, Download, VscChevronRight, VscChevronDown } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { FileTree } from '../fileTree/file-tree';
 import Sidebar from '../fileTree/sidebar';
@@ -14,7 +14,7 @@ import Menu from '../contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import icons from '@/utils/icons';
 
-const Side = ({ pRecentFiles, pGetInfo, pSavedPath }: any) => {
+const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
     const sParedData: FileTreeType = {
         depth: 0,
         dirs: [],
@@ -36,6 +36,7 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath }: any) => {
     const [selectedFile, setSelectedFile] = useState<FileType | undefined>(undefined);
     const [selectedContextFile, setSelectedContextFile] = useState<FileType | FileTreeType | undefined>(undefined);
     const [sLoadFileTree, setLoadFileTree] = useState<boolean>(false);
+    const [sCollapseRecent, setCollapseRecent] = useState(true);
     // const sFileTreeRoot = useRecoilValue(gFileTreeRoot);
 
     useEffect(() => {
@@ -208,11 +209,15 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath }: any) => {
 
     return (
         <div className="side-form">
-            <div className="side-title">machbase-neo</div>
+            <div className="side-title">machbase-neo {pServer && pServer.version}</div>
             <div>
-                <div className="side-sub-title">Open recent</div>
+                <div onClick={() => setCollapseRecent(!sCollapseRecent)} className="side-sub-title recent-title">
+                    <div className="collapse-icon">{sCollapseRecent ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
+                    Open recent
+                </div>
                 <div className="recent-form">
-                    {pRecentFiles &&
+                    {sCollapseRecent &&
+                        pRecentFiles &&
                         pRecentFiles.map((aRecent: any, aIdx: any) => (
                             <span key={aIdx} className="recent-list" onClick={() => openRecentFile(aRecent)}>
                                 <div className="recent-icon">{icons(aRecent.title.slice(-3))}</div>

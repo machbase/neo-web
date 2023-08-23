@@ -1,38 +1,39 @@
 import {
-    DotChart,
-    Worksheet,
-    Document,
-    LineChart,
+    VscGraphScatter,
+    VscGraphLine,
+    VscFile,
     BiLink,
-    Cmd,
     Powershell,
     Close,
     DocumentOutline,
     TreeFolder,
     TreeFolderOpen,
     FaDatabase,
-    Monitor,
-    LuMonitorSpeaker,
-    MdMonitorHeart,
-    Phone,
+    VscNotebook,
+    GoTerminal,
+    GoCommandPalette,
+    GoDatabase,
+    VscVm,
+    VscTerminalCmd,
 } from '@/assets/icons/Icon';
+import { FaDesktop, FaLaptop } from 'react-icons/fa6';
 
 const icons = (aType: string) => {
     switch (aType) {
         case 'url':
             return <BiLink></BiLink>;
         case 'sql':
-            return <Document></Document>;
+            return <VscFile></VscFile>;
         case 'new':
             return <DocumentOutline></DocumentOutline>;
         case 'tql':
-            return <DotChart></DotChart>;
+            return <VscGraphScatter></VscGraphScatter>;
         case 'taz':
-            return <LineChart></LineChart>;
+            return <VscGraphLine></VscGraphLine>;
         case 'wrk':
-            return <Worksheet></Worksheet>;
+            return <VscNotebook></VscNotebook>;
         case 'term':
-            return <Cmd></Cmd>;
+            return <GoTerminal></GoTerminal>;
         case 'close':
             return <Close></Close>;
         case 'closedDirectory':
@@ -40,22 +41,26 @@ const icons = (aType: string) => {
         case 'openDirectory':
             return <TreeFolderOpen />;
         case 'console-network-outline':
-            return <FaDatabase></FaDatabase>;
+            return <GoCommandPalette></GoCommandPalette>;
         case 'console-network':
-            return <Powershell></Powershell>;
-        case 'database-outline':
-            return <Monitor></Monitor>;
-        case 'database':
-            return <LuMonitorSpeaker></LuMonitorSpeaker>;
+            return <VscVm></VscVm>;
+        case 'monitor-small':
+            return <VscTerminalCmd></VscTerminalCmd>;
         case 'console-line':
-            return <MdMonitorHeart></MdMonitorHeart>;
+            return <Powershell></Powershell>;
         case 'powershell':
-            return <Phone></Phone>;
+            return <FaLaptop></FaLaptop>;
+        case 'laptop':
+            return <FaDesktop></FaDesktop>;
+        case 'database-outline':
+            return <FaDatabase></FaDatabase>;
+        case 'database':
+            return <GoDatabase></GoDatabase>;
         case 'monitor':
-            return <Cmd></Cmd>;
+            return <GoTerminal></GoTerminal>;
 
         default:
-            return <Cmd></Cmd>;
+            return <GoTerminal></GoTerminal>;
     }
 
     return;

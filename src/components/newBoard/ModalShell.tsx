@@ -11,7 +11,7 @@ const ModalShell = ({ pGetInfo, pSetIsModal, pInfo }: any) => {
     const [sTheme, setTheme] = useState('');
     const [sIcon, setIcon] = useState('');
 
-    const sIconList = ['console-network-outline', 'console-network', 'database-outline', 'database', 'console-line', 'powershell', 'monitor'];
+    const sIconList = ['console-network-outline', 'monitor-small', 'console-line', 'powershell', 'laptop', 'database', 'database-outline'];
 
     const sThemeList = ['default', 'white', 'dark', 'gray', 'galaxy'];
 
