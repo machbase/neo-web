@@ -231,7 +231,16 @@ const Sql = ({
                         </div>
                     </div>
                     <div ref={sEditorRef} onKeyDownCapture={handleDownKey} style={{ height: '100%', width: '100%' }}>
-                        <Editor height="100%" width="100%" defaultLanguage="sql" defaultValue={pInfo.code} theme="my-theme" onChange={handleChangeText} onMount={handleMount} />
+                        <Editor
+                            height="100%"
+                            width="100%"
+                            defaultLanguage="sql"
+                            defaultValue={pInfo.code}
+                            theme="my-theme"
+                            onChange={handleChangeText}
+                            onMount={handleMount}
+                            options={monacoOptions}
+                        />
                     </div>
                 </Pane>
                 <Pane style={{ overflow: 'initial' }}>
