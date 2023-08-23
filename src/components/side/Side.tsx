@@ -13,6 +13,7 @@ import { FileTreeType, FileType, fileTreeParser } from '@/utils/fileTreeParser';
 import Menu from '../contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import icons from '@/utils/icons';
+import { Error } from '@/components/toast/Toast';
 
 const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
     const sParedData: FileTreeType = {
@@ -161,7 +162,7 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
             if (sResult.reason === 'success') {
                 getFileTree();
             } else {
-                alert('Failed');
+                Error('Failed');
             }
         }
         closeContextMenu();

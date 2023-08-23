@@ -1,4 +1,5 @@
 import request from '@/api/core';
+import { Error } from '@/components/toast/Toast';
 // import { getTimeZoneValue } from '@/utils/utils';
 
 const getTqlChart = (aData: string) => {
@@ -127,6 +128,7 @@ const fetchCalculationData = async (params: any) => {
         url: encodeURI(queryString),
     });
     if (sData.status >= 400) {
+        Error(sData.data);
     }
 
     return sData;
@@ -182,6 +184,7 @@ const fetchRawData = async (params: any) => {
         url: queryString,
     });
     if (sData.status >= 400) {
+        Error(sData.data);
     }
 
     return sData;
@@ -193,6 +196,7 @@ const fetchRangeData = async (Table: string, TagNames: string) => {
         url: `/machbase?q=SELECT (min(time)) as MIN, (max(time)) as MAX FROM ${Table} WHERE name = '${TagNames}'`,
     });
     if (sData.status >= 400) {
+        Error(sData.data);
     }
     return sData;
 };
@@ -208,6 +212,7 @@ const fetchRollupData = async (params: any) => {
         },
     });
     if (sData.status >= 400) {
+        Error(sData.data);
     }
     return sData;
 };
@@ -218,6 +223,7 @@ const fetchTablesData = async () => {
         url: `/api/tables`,
     });
     if (sData.status >= 400) {
+        Error(sData.data);
     }
 
     return sData;
@@ -229,6 +235,7 @@ const fetchTags = async (table: string) => {
         url: `/api/tables/${table}/tags`,
     });
     if (sData.status >= 400) {
+        Error(sData.data);
     }
     return sData;
 };
@@ -238,6 +245,7 @@ const fetchRollUp = async (table: string) => {
         url: `/machiot/rollup/${table}`,
     });
     if (sData.status >= 400) {
+        Error(sData.data);
     }
     return sData;
 };
@@ -248,6 +256,7 @@ const fetchOnMinMaxTable = async (table: string, tagName: string) => {
         url: `/machbase?q=select (min(min_time)),(max(max_time)) from v$${table}_stat where name = '${tagName}'`,
     });
     if (sData.status >= 400) {
+        Error(sData.data);
     }
     return sData;
 };
@@ -257,6 +266,7 @@ const fetchOnRollupTable = async (table: string) => {
         url: `/machbase?q=select * from v$rollup where root_table = '${table}' and ENABLED = 1 `,
     });
     if (sData.status >= 400) {
+        Error(sData.data);
     }
     return sData;
 };

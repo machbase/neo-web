@@ -16,6 +16,7 @@ import { getId } from '@/utils';
 import { postFileList } from '@/api/repository/api';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { PlusCircle } from '@/assets/icons/Icon';
+import { Error } from '@/components/toast/Toast';
 
 const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pRecentFiles, pGetInfo, pGetPath }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -51,7 +52,7 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pRecentFiles, 
                         setBoardList(sTempBoardList);
                     }
                 } catch (aError) {
-                    alert('save file fail retry please');
+                    Error('save file fail retry please');
                 }
             } else {
                 setIsSaveModal(true);

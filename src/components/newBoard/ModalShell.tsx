@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import './ModalShell.scss';
 import icons from '@/utils/icons';
 import { Close } from '@/assets/icons/Icon';
+import { Success, Error } from '@/components/toast/Toast';
 
 const ModalShell = ({ pGetInfo, pSetIsModal, pInfo }: any) => {
     const [sName, setName] = useState('');
@@ -46,11 +47,11 @@ const ModalShell = ({ pGetInfo, pSetIsModal, pInfo }: any) => {
         };
         const sResult: any = await postShell(sData);
         if (sResult.reason) {
-            alert('Success');
+            Success('Success');
             pGetInfo();
             pSetIsModal(false);
         } else {
-            alert('Failed');
+            Error('Failed');
         }
     };
 
