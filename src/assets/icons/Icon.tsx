@@ -12,11 +12,17 @@ export {
     VscTerminalCmd as Cmd,
     VscSymbolFile,
     VscThreeBars,
+    VscTerminal,
     VscNote,
     VscGraphLine,
     VscGear as Gear,
     VscFiles,
+    VscNotebook,
     VscJson,
+    VscFile,
+    VscGraphScatter,
+    VscVm,
+    VscTerminalCmd,
     VscTerminalPowershell as Powershell,
 } from 'react-icons/vsc';
 
@@ -36,66 +42,28 @@ export {
     MdRawOn,
 } from 'react-icons/md';
 
-export {
-    HiOutlineClipboardDocumentList as Worksheet,
-    HiOutlineDocumentText as Document
-} from 'react-icons/hi2';
+export { HiOutlineClipboardDocumentList as Worksheet, HiOutlineDocumentText as Document } from 'react-icons/hi2';
 
-export {
-    RiArrowUpDoubleFill as ArrowUpDouble,
-    RiMergeCellsVertical as HideOn,
-    RiSplitCellsHorizontal as HideOff,
-    RiSmartphoneLine as Phone,
-} from 'react-icons/ri';
+export { RiArrowUpDoubleFill as ArrowUpDouble, RiMergeCellsVertical as HideOn, RiSplitCellsHorizontal as HideOff, RiSmartphoneLine as Phone } from 'react-icons/ri';
 
-export {
-    FcFolder as TreeFolder,
-    FcOpenedFolder as TreeFolderOpen,
-} from 'react-icons/fc';
+export { FcFolder as TreeFolder, FcOpenedFolder as TreeFolderOpen } from 'react-icons/fc';
 
-export {
-    IoLogOutOutline as Logout,
-    IoPlayForwardSharp,
-    IoDocumentOutline as DocumentOutline
-} from 'react-icons/io5';
+export { IoLogOutOutline as Logout, IoPlayForwardSharp, IoDocumentOutline as DocumentOutline } from 'react-icons/io5';
 
 export { PiFileCsvThin } from 'react-icons/pi';
 
-export {
-    BiLineChart as LineChart,
-    BiLink,
-    BiPlay as Play,
-    BiSolidDownArrow,
-    BiSolidChart,
-    BiTable,
-} from 'react-icons/bi';
+export { BiLineChart as LineChart, BiLink, BiPlay as Play, BiSolidDownArrow, BiSolidChart, BiTable } from 'react-icons/bi';
 
 export { FiSearch as Search, FiMonitor as Monitor } from 'react-icons/fi';
 
-export {
-    TbParachute,
-    TbRowInsertTop as InsertRowTop,
-} from 'react-icons/tb';
+export { TbParachute, TbRowInsertTop as InsertRowTop } from 'react-icons/tb';
 
 export { IoIosCopy as Copy } from 'react-icons/io';
 
-export { GoPencil } from 'react-icons/go';
+export { GoPencil, GoTerminal, GoCommandPalette, GoDatabase } from 'react-icons/go';
 
 export { LuFlipVertical, LuMonitorSpeaker } from 'react-icons/lu';
 
-export {
-    FaCircle as SaveCricle,
-    FaRegCalendarAlt as Calendar,
-} from 'react-icons/fa'
+export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calendar } from 'react-icons/fa';
 
-export {
-    FaFolderOpen as FolderOpen,
-    FaFolder as Folder,
-    FaArrowRotateRight as Refresh,
-    FaGear as GearFill,
-    FaDatabase,
-} from 'react-icons/fa6';
-
-
-
-
+export { FaFolderOpen as FolderOpen, FaFolder as Folder, FaArrowRotateRight as Refresh, FaGear as GearFill, FaDatabase } from 'react-icons/fa6';
