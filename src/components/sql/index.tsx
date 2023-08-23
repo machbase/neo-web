@@ -22,6 +22,7 @@ import {
     FolderOpen,
     SaveAs,
 } from '@/assets/icons/Icon';
+import { isJsonString } from '@/utils/utils';
 
 const Sql = ({
     pInfo,
@@ -157,7 +158,7 @@ const Sql = ({
     const fetchMoreResult = async () => {
         const paredQuery = getTargetQuery();
         const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery, sResultLimit, sTimeRange, sTimeZone));
-        const sParsedSqlResult = await JSON.parse(sSqlResult.request.response);
+        const sParsedSqlResult = await JSON.parse(isJsonString(sSqlResult.request.response) ? sSqlResult.request.response : '{}');
 
         if (sSqlResult.data.data && sParsedSqlResult) {
             setResultLimit(sResultLimit + 1);
