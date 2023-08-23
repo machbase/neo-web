@@ -44,6 +44,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sMarkdown, setMarkdown] = useState<string>('');
     const [sSql, setSql] = useState<any>(null);
     const [sCollapse, setCollapse] = useState<boolean>(pData.minimal ?? false);
+    const [sSqlLineNumber, setSqlLineNumber] = useState<number>(1);
     const dropDownRef = useRef(null);
 
     useEffect(() => {
@@ -126,7 +127,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const handleRunCode = (aText: string, aLineNum?: number) => {
         if (sSelectedLang === 'TQL') getTqlData(aText);
         if (sSelectedLang === 'Markdown') setMarkdown(aText);
-        if (sSelectedLang === 'SQL') getSqlData(aText, aLineNum ?? 1);
+        if (sSelectedLang === 'SQL') getSqlData(aText, aLineNum);
     };
 
     const changeLanguage = (aLang: ServerLang) => {
@@ -146,19 +147,26 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         if (!aText) return '';
         const tmpquerylist = JSON.parse(JSON.stringify(aText)).split('\n');
         let TargetQuery = '';
+        let preTargetQuery = '';
 
         tmpquerylist.map((aRow: string, aIdx: number) => {
             TargetQuery = `${TargetQuery} ${aRow}`;
             if (aRow.includes(';') && aIdx + 1 < aLineNum) {
+                preTargetQuery = TargetQuery;
                 TargetQuery = '';
             }
         });
-        return TargetQuery.split(';')[0].trim();
+        return TargetQuery.split(';')[0].trim() ? TargetQuery.split(';')[0].trim() : preTargetQuery.split(';')[0].trim();
     };
 
-    const getSqlData = (aText: string, aLineNum: number) => {
-        const parsedQuery = getTargetQuery(aText, aLineNum);
+    const getSqlData = (aText: string, aLineNum?: number) => {
+        let sTmpLineNum = 1;
+        if (aLineNum) {
+            sTmpLineNum = aLineNum;
+            setSqlLineNumber(aLineNum);
+        } else sTmpLineNum = sSqlLineNumber;
 
+        const parsedQuery = getTargetQuery(aText, sTmpLineNum);
         (async () => {
             const sSqlResult = await getTqlChart(sqlBasicFormatter(parsedQuery, 1, '2006-01-02 15:04:05', 'UTC'));
             switch (sSqlResult.status) {
@@ -364,7 +372,13 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         {ControlIcon('Delete', pWorkSheets.length > 1)}
                     </div>
                     <div ref={resizeRef} className="editor">
-                        <MonacoEditor pText={sText} pLang={sMonacoLanguage} onChange={handleText} onRunCode={handleRunCode} />
+                        <MonacoEditor
+                            pText={sText}
+                            pLang={sMonacoLanguage}
+                            onChange={handleText}
+                            onRunCode={handleRunCode}
+                            onSelectLine={sMonacoLanguage === 'sql' ? setSqlLineNumber : () => {}}
+                        />
                         <div className="drag-stick" draggable onDragStart={initValue} onDrag={resize} onDragEnd={setHeight}></div>
                     </div>
                 </div>

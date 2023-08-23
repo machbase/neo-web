@@ -9,10 +9,11 @@ export interface MonacoEditorProps {
     pLang: string;
     onChange: OnChange;
     onRunCode: (aText: string, aLineNum?: number) => void;
+    onSelectLine: (aLineNum: number) => void;
 }
 
 export const MonacoEditor = (props: MonacoEditorProps) => {
-    const { pText, pLang, onChange, onRunCode } = props;
+    const { pText, pLang, onChange, onRunCode, onSelectLine } = props;
     const monaco = useMonaco();
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const sBoardList = useRecoilValue(gBoardList);
@@ -24,7 +25,7 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
             enabled: false,
         },
         scrollBeyondLastLine: false,
-    }
+    };
 
     useEffect(() => {
         setCurrentTab(sBoardList[sBoardList.length - 1]);
@@ -72,18 +73,14 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
         monaco.editor.addEditorAction(runCode);
     };
 
+    const selectionLine = () => {
+        if (!monaco) return;
+        onSelectLine(sEditor.getSelection().startLineNumber);
+    };
+
     return (
-        <div style={{ width: '100%', height: '100%' }} onFocus={() => applyRunCode(pText)}>
-            <Editor
-                height="100%"
-                width="100%"
-                language={pLang}
-                value={pText}
-                theme="my-theme"
-                onChange={onChange}
-                onMount={handleMount}
-                options={monacoOptions}
-            />
+        <div style={{ width: '100%', height: '100%' }} onFocus={() => applyRunCode(pText)} onClick={selectionLine}>
+            <Editor height="100%" width="100%" language={pLang} value={pText} theme="my-theme" onChange={onChange} onMount={handleMount} options={monacoOptions} />
         </div>
     );
 };
