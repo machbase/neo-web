@@ -37,7 +37,6 @@ const Sql = ({
     const [sSqlQueryTxt, setSqlQueryTxt] = useState<string>(pInfo.code);
     const [sSqlResponseData, setSqlResponseData] = useState<any>();
     const [sResultLimit, setResultLimit] = useState<number>(1);
-    const [sIsDownControlKey, setIsDownControlKey] = useState(false);
     const sEditorRef = useRef(null);
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
     const [sEditor, setEditor] = useState<any>(null);
@@ -108,17 +107,8 @@ const Sql = ({
         })();
     };
 
-    const handleUpKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === 'Control' && sIsDownControlKey) {
-            setIsDownControlKey(false);
-        }
-    };
-
     const handleDownKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === 'Control' && !sIsDownControlKey) {
-            setIsDownControlKey(true);
-        }
-        if (sIsDownControlKey && e.key === 'Enter') {
+        if ((e.ctrlKey && e.key === 'Enter') || (e.metaKey && e.key === 'Enter')) {
             e.stopPropagation();
             sqlMultiLineParser();
         }
@@ -228,7 +218,7 @@ const Sql = ({
                             </div>
                         </div>
                     </div>
-                    <div ref={sEditorRef} onKeyUpCapture={handleUpKey} onKeyDownCapture={handleDownKey} style={{ height: '100%', width: '100%' }}>
+                    <div ref={sEditorRef} onKeyDownCapture={handleDownKey} style={{ height: '100%', width: '100%' }}>
                         <Editor height="100%" width="100%" defaultLanguage="sql" defaultValue={pInfo.code} theme="my-theme" onChange={handleChangeText} onMount={handleMount} />
                     </div>
                 </Pane>
