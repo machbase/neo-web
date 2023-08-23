@@ -4,6 +4,7 @@ import LoginLogo from '../../assets/image/logo_machbaseNeo_general_a.png';
 import './Login.scss';
 import { postLogin } from '../../api/repository/login';
 import { useNavigate } from 'react-router-dom';
+import { Error } from '@/components/toast/Toast';
 
 const Login = () => {
     const sNavigate = useNavigate();
@@ -51,7 +52,7 @@ const Login = () => {
             sReturn.option && sReturn.option.experimentMode ? localStorage.setItem('experimentMode', sReturn.option.experimentMode) : localStorage.removeItem('experimentMode');
             sNavigate('/');
         } else {
-            alert('fail');
+            Error('Login fail');
         }
     };
 

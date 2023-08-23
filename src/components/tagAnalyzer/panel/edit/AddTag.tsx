@@ -5,14 +5,8 @@ import { gTables } from '@/recoil/recoil';
 import { fetchOnRollupTable, fetchTableName, fetchTags } from '@/api/repository/machiot';
 import { convertTagChartType } from '@/utils/utils';
 import { getId } from '@/utils';
-import {
-    BiSolidChart,
-    Close,
-    ArrowDown,
-    ArrowLeft,
-    ArrowRight,
-    Search
-} from '@/assets/icons/Icon';
+import { BiSolidChart, Close, ArrowDown, ArrowLeft, ArrowRight, Search } from '@/assets/icons/Icon';
+import { Error } from '@/components/toast/Toast';
 
 const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
     const [sTables] = useRecoilState(gTables);
@@ -87,11 +81,11 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
 
     const setPanels = async () => {
         if (sSelectedTag.length === 0) {
-            alert('please select tag.');
+            Error('please select tag.');
             return;
         }
         if (sSelectedTag.length > 12) {
-            alert('The maximum number of tags in a chart is 12.');
+            Error('The maximum number of tags in a chart is 12.');
             return;
         }
 

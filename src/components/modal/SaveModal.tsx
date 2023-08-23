@@ -11,21 +11,8 @@ import { getFiles as getFilesTree, deleteFile as deleteContextFile } from '@/api
 import { Menu } from '@/components/contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
-import {
-    DotChart,
-    Home,
-    TreeFolder,
-    Delete,
-    Download,
-    Play,
-    Search,
-    Save,
-    Close,
-    ArrowLeft,
-    ArrowRight,
-    NewFolder,
-    FolderOpen,
-} from '@/assets/icons/Icon';
+import { Error } from '@/components/toast/Toast';
+import { DotChart, Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLeft, ArrowRight, NewFolder, FolderOpen } from '@/assets/icons/Icon';
 
 export interface SaveModalProps {
     setIsOpen: any;
@@ -251,7 +238,7 @@ export const SaveModal = (props: SaveModalProps) => {
 
     const openFile = async (file: any) => {
         if (!file) {
-            alert('please select file');
+            Error('please select file');
             return;
         }
         const sTmpId = getId();
