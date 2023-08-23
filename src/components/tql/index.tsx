@@ -151,7 +151,7 @@ const Tql = (props: TqlProps) => {
                             </div>
                         </div>
                     </div>
-                    {<MonacoEditor pText={sText} pLang="go" onChange={handleChangeText} onRunCode={getTqlData} />}
+                    {<MonacoEditor pText={sText} pLang="go" onSelectLine={() => {}} onChange={handleChangeText} onRunCode={getTqlData} />}
                 </Pane>
                 <Pane style={{ overflow: 'initial' }}>
                     <div className="tql-result-wrapper" style={{ marginTop: isVertical ? '' : '10px' }}>
