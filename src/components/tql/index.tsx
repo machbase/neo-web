@@ -18,7 +18,7 @@ interface TqlProps {
 }
 
 const Tql = (props: TqlProps) => {
-    const { setIsSaveModal, setIsOpenModal, pHandleSaveModalOpen } = props;
+    const { setIsSaveModal, pHandleSaveModalOpen } = props;
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
@@ -110,9 +110,6 @@ const Tql = (props: TqlProps) => {
     };
     const handleSaveModalOpen = () => {
         setIsSaveModal(true);
-    };
-    const handleOpenModalOpen = () => {
-        setIsOpenModal(true);
     };
 
     const Resizer = () => {

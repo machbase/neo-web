@@ -16,7 +16,7 @@ interface NewBoardProps {
 }
 
 const NewBoard = (props: NewBoardProps) => {
-    const { pExtentionList, setIsOpenModal, pGetInfo, pReferences } = props;
+    const { pExtentionList,  pGetInfo, pReferences } = props;
     const fileTypes = ['wrk', 'sql', 'tql', 'taz'];
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sSelectedTab] = useRecoilState<any>(gSelectedTab);

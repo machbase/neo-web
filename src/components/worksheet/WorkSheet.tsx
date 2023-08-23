@@ -15,7 +15,7 @@ interface WorkSheetProps {
 }
 
 export const WorkSheet = (props: WorkSheetProps) => {
-    const { setIsOpenModal, pHandleSaveModalOpen, setIsSaveModal } = props;
+    const { pHandleSaveModalOpen, setIsSaveModal } = props;
     const setSaveWorkSheet = useSetRecoilState(gSaveWorkSheets);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sWorkSheets, setWorkSheets] = useState<any>([]);

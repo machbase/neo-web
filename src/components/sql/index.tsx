@@ -19,7 +19,6 @@ const Sql = ({
     pInfo,
     pHandleSaveModalOpen,
     setIsSaveModal,
-    setIsOpenModal,
 }: {
     pInfo: any;
     pHandleSaveModalOpen: any;
@@ -136,9 +135,6 @@ const Sql = ({
 
     const handleSaveModalOpen = () => {
         setIsSaveModal(true);
-    };
-    const handleOpenModalOpen = () => {
-        setIsOpenModal(true);
     };
 
     const fetchMoreResult = async () => {

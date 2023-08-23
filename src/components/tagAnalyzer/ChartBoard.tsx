@@ -6,7 +6,7 @@ import ModalTimeRange from './ModalTimeRange';
 import moment from 'moment';
 import { Calendar, Save, Refresh, SaveAs } from '@/assets/icons/Icon';
 
-const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen, pHandleOpenModalOpen }: any) => {
+const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
 
     return (
