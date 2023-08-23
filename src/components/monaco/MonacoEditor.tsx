@@ -19,6 +19,13 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
     const [sCurrnetTab, setCurrentTab] = useState<any>();
     const [sEditor, setEditor] = useState<any>(null);
 
+    const monacoOptions = {
+        minimap: {
+            enabled: false,
+        },
+        scrollBeyondLastLine: false,
+    }
+
     useEffect(() => {
         setCurrentTab(sBoardList[sBoardList.length - 1]);
     }, []);
@@ -67,7 +74,16 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
 
     return (
         <div style={{ width: '100%', height: '100%' }} onFocus={() => applyRunCode(pText)}>
-            <Editor height="100%" width="100%" language={pLang} value={pText} theme="my-theme" onChange={onChange} onMount={handleMount} />
+            <Editor
+                height="100%"
+                width="100%"
+                language={pLang}
+                value={pText}
+                theme="my-theme"
+                onChange={onChange}
+                onMount={handleMount}
+                options={monacoOptions}
+            />
         </div>
     );
 };
