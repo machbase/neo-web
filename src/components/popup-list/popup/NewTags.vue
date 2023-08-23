@@ -51,7 +51,7 @@ import i_b_close from '@/assets/image/i_b_close.png';
 import Pagination from '@/components/common/pagination/index.vue';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import { useStore } from '@/store';
-import { computed, defineEmits, reactive, ref, watch, defineProps, toRefs } from 'vue';
+import { computed, defineEmits, reactive, ref, watch, defineProps, toRefs, onMounted } from 'vue';
 import { ChartType } from '@/enums/app';
 import { CALC_MODE, MAX_TAG_COUNT } from './constant';
 import { ActionTypes } from '@/store/actions';
@@ -59,14 +59,19 @@ import { TagSet } from '@/interface/chart';
 import { CalculationMode } from '@/interface/constants';
 import { getPaginationPages } from '@/utils/utils';
 import { toast, ToastOptions } from 'vue3-toastify';
+import { fetchOnRollupTable } from '../../../api/repository/machiot';
 
 interface NewTagProps {
     noOfSelectTags: number;
 }
+const gTabList = computed(() => store.state.gTabList);
+
 const props = defineProps<NewTagProps>();
 const { noOfSelectTags } = toRefs(props);
 const emit = defineEmits(['eClosePopup', 'eSubmit']);
 const searchText = ref<string>('');
+const sSelectTableOnRollup = ref<boolean>(false);
+
 const isSearchClick = ref<boolean>(false);
 const tableSelected = ref<string>('');
 const chartType = ref<ChartType>(ChartType.Zone);
@@ -108,7 +113,16 @@ watch(
 );
 watch(
     () => tableSelected.value,
-    () => {
+    async () => {
+        if (cTableListSelect.value[0]) {
+            const sRes = await fetchOnRollupTable(tableSelected.value);
+            if (sRes.data.rows.length === 0) {
+                sSelectTableOnRollup.value = false;
+            } else {
+                sSelectTableOnRollup.value = true;
+            }
+            store.dispatch(ActionTypes.fetchTagList, tableSelected.value);
+        }
         if (cTableListSelect.value[0]) {
             store.dispatch(ActionTypes.fetchTagList, tableSelected.value);
         }
@@ -132,9 +146,11 @@ const onSearch = () => {
 const onReset = () => {
     if (searchText.value != '') searchText.value = '';
 };
-const onSelectTag = (data: { name: string }) => {
+const onSelectTag = async (data: { name: string }) => {
     selectCount.value++;
-    sSelectedTags.push({ tag_names: data, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0, use_y2: 'N', max: 0, min: 0 });
+    const sData: any = await store.dispatch(ActionTypes.fetchTableNameValue, tableSelected.value as string);
+    const sValueForm = { name: sData.rows[0][0], time: sData.rows[1][0], value: sData.rows[2][0] };
+    sSelectedTags.push({ tag_names: data, colName: sValueForm, table: tableSelected.value, calculation_mode: 'avg', alias: '', weight: 1.0, use_y2: 'N', max: 0, min: 0 });
 };
 const onRemoveTag = (index: number) => {
     selectCount.value--;
@@ -172,6 +188,7 @@ const onSetting = () => {
 const onClosePopup = () => {
     emit('eClosePopup');
 };
+
 store.dispatch(ActionTypes.fetchTableList);
 </script>
 
