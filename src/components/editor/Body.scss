@@ -10,10 +10,10 @@
     overflow-y: hidden;
 
     .plus-icon {
-        color: #f8f8f8;
+        color: #c4c4c4;
     }
     .plus-icon:hover {
-        color: #318bf2;
+        color: #f8f8f8;
     }
     .tab_button {
         margin-top: 4px;
@@ -30,6 +30,21 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            .off-saved {
+                width: 15px;
+                height: 15px;
+                font-size: 10px;
+                padding-left: 4px !important;
+                svg {
+                    padding-left: 0 !important;
+                }
+            }
+            .default-form {
+                padding-left: 4px !important;
+                width: 15px;
+                height: 15px;
+                // padding: 0 !important;
+            }
             .tab-name {
                 white-space: nowrap;
                 text-overflow: ellipsis;
@@ -46,11 +61,7 @@
                     text-overflow: ellipsis;
                     overflow: hidden;
                 }
-                .off-saved {
-                    svg {
-                        padding-left: 0 !important;
-                    }
-                }
+
                 svg {
                     font-size: 15px;
                     margin-right: 4px;
@@ -66,6 +77,10 @@
             color: #7c7c7c;
         }
         .tab_close {
+            padding-left: 4px !important;
+
+            width: 15px;
+            height: 15px;
             right: 16px;
             padding: 0;
             font-size: 16px;

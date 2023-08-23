@@ -12,7 +12,7 @@ const CHART = ({ pIsVertical, pDisplay, pSqlQueryTxt, pSizes }: { pIsVertical: b
 
     const getChartData = async (aSize: any) => {
         const sTmpResult: any = await getTqlChart(sqlBasicChartFormatter(pSqlQueryTxt, aSize.width, aSize.height));
-        const sTheme = sTmpResult.data.theme === '-' ? 'dark' : sTmpResult.data.theme;
+        const sTheme = sTmpResult.data.theme === '-' ? 'vintage' : sTmpResult.data.theme;
 
         setResult(sTmpResult.data);
 

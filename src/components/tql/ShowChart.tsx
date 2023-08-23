@@ -9,22 +9,13 @@ interface ShowChartProps {
 export const ShowChart = (props: ShowChartProps) => {
     const { pData, pIsCenter } = props;
     const [sText, setText] = useState<string>('');
-    const sTheme = pData.theme === '-' ? 'dark' : pData.theme;
+    const sTheme = pData.theme === '-' ? 'vintage' : pData.theme;
 
     useEffect(() => {
         init();
     }, [pData]);
 
     const init = async () => {
-        const divScripts = document.getElementsByTagName('head')[0];
-        const newScript = document.createElement('script');
-
-        newScript.src = `/web/echarts/themes/${sTheme}.js`;
-
-        if (divScripts && !divScripts.hasChildNodes()) {
-            divScripts.appendChild(newScript);
-        }
-
         const sValue = ` <div className="chart_container">
                 <div className="chart_item" id="${pData.chartID}" style="width:${pData.style.width};height:${pData.style.height};margin:${pIsCenter ? 'auto' : 'initial'}"></div>
             </div>`;

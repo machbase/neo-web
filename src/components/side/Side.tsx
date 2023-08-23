@@ -209,11 +209,9 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath }: any) => {
 
     return (
         <div className="side-form">
-            <div className="side-title">
-                <div>{sSelectedExtension}</div>
-            </div>
+            <div className="side-title">machbase-neo</div>
             <div>
-                <div className="side-sub-title">recent</div>
+                <div className="side-sub-title">Open recent</div>
                 <div className="recent-form">
                     {pRecentFiles &&
                         pRecentFiles.map((aRecent: any, aIdx: any) => (
@@ -224,7 +222,7 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath }: any) => {
                         ))}
                 </div>
             </div>
-            <div className="side-sub-title">neo</div>
+            <div className="side-sub-title">Files</div>
             {sLoadFileTree ? (
                 // 🚧TODO
                 <>...</>

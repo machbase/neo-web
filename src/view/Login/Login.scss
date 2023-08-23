@@ -33,9 +33,10 @@
         border-radius: 8px;
     }
     input::placeholder {
-        color: rgba(0, 0, 0, 0.2);
+        color: #999999;
         font-family: Pretendard;
         font-size: 14px;
+        font-weight: 400;
     }
     .input-id {
         background-image: url(../../assets/image/login_id.png);
