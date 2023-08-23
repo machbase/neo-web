@@ -78,16 +78,17 @@ const Sql = ({
         if (!sSqlQueryTxt) return '';
         const tmpquerylist = JSON.parse(JSON.stringify(sSqlQueryTxt)).split('\n');
         let TargetQuery = '';
+        let preTargetQuery = '';
 
         if (!sEditor) return '';
-
         tmpquerylist.map((aRow: string, aIdx: number) => {
             TargetQuery = `${TargetQuery} ${aRow}`;
             if (aRow.includes(';') && aIdx + 1 < sEditor.getPosition().lineNumber) {
+                preTargetQuery = TargetQuery;
                 TargetQuery = '';
             }
         });
-        return TargetQuery.split(';')[0].trim();
+        return TargetQuery.split(';')[0].trim() ? TargetQuery.split(';')[0].trim() : preTargetQuery.split(';')[0].trim();
     };
 
     const sqlMultiLineParser = () => {
