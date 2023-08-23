@@ -208,6 +208,14 @@ const getPaginationPages = (items: any, pageSize: number): any => {
     }
     return paginationItems;
 };
+const isJsonString = (aString: string) => {
+    try {
+        const json = JSON.parse(aString);
+        return (typeof json === 'object');
+    } catch {
+        return false;
+    }
+}
 export {
     utils,
     splitTimeDuration,
@@ -226,4 +234,5 @@ export {
     changeNaNoToDate,
     getWindowOs,
     getTimeZoneValue,
+    isJsonString,
 };
