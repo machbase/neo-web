@@ -19,6 +19,18 @@
         align-items: center;
         font-size: 13px;
         background-color: #242424;
+        .files-open-option {
+            width: calc(100% - 20px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            svg {
+                color: #c4c4c4;
+            }
+            svg:hover {
+                color: #f8f8f8;
+            }
+        }
     }
     .recent-title {
         padding: 0 11px 0 0;

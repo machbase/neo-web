@@ -12,7 +12,7 @@ import { sqlBasicFormatter } from '@/utils/sqlFormatter';
 import { IANA_TIMEZONES } from '@/assets/ts/timezones';
 import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 import './index.scss';
-import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, FolderOpen, SaveAs } from '@/assets/icons/Icon';
+import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, SaveAs } from '@/assets/icons/Icon';
 import { isJsonString } from '@/utils/utils';
 
 const Sql = ({
@@ -224,9 +224,6 @@ const Sql = ({
                             </div>
                             <div className="btn-cover">
                                 <SaveAs className="header-icon" onClick={handleSaveModalOpen} />
-                            </div>
-                            <div className="btn-cover">
-                                <FolderOpen className="header-icon" style={{ cursor: 'pointer' }} onClick={handleOpenModalOpen} />
                             </div>
                         </div>
                     </div>

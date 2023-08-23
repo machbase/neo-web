@@ -5,7 +5,7 @@ import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList, gSelectedBoard } from '@/recoil/recoil';
 import { getId } from '@/utils';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
-import { Save, SaveAs, FolderOpen, IoPlayForwardSharp } from '@/assets/icons/Icon';
+import { Save, SaveAs, IoPlayForwardSharp } from '@/assets/icons/Icon';
 
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 interface WorkSheetProps {
@@ -101,9 +101,6 @@ export const WorkSheet = (props: WorkSheetProps) => {
                 </div>
                 <div className="btn-cover" onClick={() => setIsSaveModal(true)}>
                     <SaveAs />
-                </div>
-                <div className="btn-cover" onClick={() => setIsOpenModal(true)}>
-                    <FolderOpen />
                 </div>
             </div>
             <div className="worksheet-body">

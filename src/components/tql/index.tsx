@@ -9,19 +9,7 @@ import { ShowChart } from './ShowChart';
 import { Markdown } from '../worksheet/Markdown';
 import { isValidJSON } from '@/utils';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
-import { 
-    AiOutlineFileDone,
-    AiOutlineFileMarkdown,
-    BarChart,
-    Save,
-    VscJson,
-    PiFileCsvThin,
-    BiTable,
-    LuFlipVertical,
-    Play,
-    FolderOpen,
-    SaveAs,
-} from '@/assets/icons/Icon';
+import { AiOutlineFileDone, AiOutlineFileMarkdown, BarChart, Save, VscJson, PiFileCsvThin, BiTable, LuFlipVertical, Play, SaveAs } from '@/assets/icons/Icon';
 
 interface TqlProps {
     setIsSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
@@ -145,9 +133,6 @@ const Tql = (props: TqlProps) => {
                             </div>
                             <div className="btn-cover">
                                 <SaveAs onClick={handleSaveModalOpen} />
-                            </div>
-                            <div className="btn-cover">
-                                <FolderOpen onClick={handleOpenModalOpen} />
                             </div>
                         </div>
                     </div>

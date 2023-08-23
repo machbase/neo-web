@@ -2,7 +2,7 @@ import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gFileTree } from '@/recoil/fileTree';
 import { getId } from '@/utils';
 import { useState, useRef } from 'react';
-import { Delete, Download, VscChevronRight, VscChevronDown } from '@/assets/icons/Icon';
+import { Delete, Download, VscChevronRight, VscChevronDown, FolderOpen } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { FileTree } from '../fileTree/file-tree';
 import Sidebar from '../fileTree/sidebar';
@@ -14,6 +14,7 @@ import Menu from '../contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import icons from '@/utils/icons';
 import { Error } from '@/components/toast/Toast';
+import { SaveModal } from '../modal/SaveModal';
 
 const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
     const sParedData: FileTreeType = {
@@ -38,6 +39,8 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
     const [selectedContextFile, setSelectedContextFile] = useState<FileType | FileTreeType | undefined>(undefined);
     const [sLoadFileTree, setLoadFileTree] = useState<boolean>(false);
     const [sCollapseRecent, setCollapseRecent] = useState(true);
+    const [sCollapseTree, setCollapseTree] = useState(true);
+    const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
     // const sFileTreeRoot = useRecoilValue(gFileTreeRoot);
 
     useEffect(() => {
@@ -60,6 +63,15 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
             type: 1,
         });
     }, [pSavedPath]);
+
+    const handleIsOpenModal = (aBool: boolean, aEvent?: any) => {
+        if (aEvent) {
+            aEvent.stopPropagation();
+        }
+
+        setIsOpenModal(aBool);
+        pGetInfo();
+    };
 
     useEffect(() => {
         if (sFileTree.name && sFileTree.id) {
@@ -227,29 +239,37 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
                         ))}
                 </div>
             </div>
-            <div className="side-sub-title">Files</div>
-            {sLoadFileTree ? (
-                // 🚧TODO
-                <>...</>
-            ) : (
-                <>
-                    <Sidebar pRecentFileLength={pRecentFiles.length}>
-                        <FileTree rootDir={rootDir} selectedFile={selectedFile} onSelect={onSelect} onFetchDir={onFetchDir} onContextMenu={onContextMenu} />
-                    </Sidebar>
-                    <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
-                        <Menu isOpen={sIsContextMenu}>
-                            <Menu.Item onClick={deleteFile}>
-                                <Delete />
-                                <span>delete</span>
-                            </Menu.Item>
-                            <Menu.Item onClick={downloadFile}>
-                                <Download />
-                                <span>download</span>
-                            </Menu.Item>
-                        </Menu>
-                    </div>
-                </>
-            )}
+            <div className="side-sub-title recent-title" onClick={() => setCollapseTree(!sCollapseTree)}>
+                <div className="collapse-icon">{sCollapseTree ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
+
+                <div className="files-open-option">
+                    <div>Files</div> <FolderOpen onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
+                </div>
+            </div>
+            {sCollapseTree &&
+                (sLoadFileTree ? (
+                    // 🚧TODO
+                    <>...</>
+                ) : (
+                    <>
+                        <Sidebar pRecentFileLength={pRecentFiles.length}>
+                            <FileTree rootDir={rootDir} selectedFile={selectedFile} onSelect={onSelect} onFetchDir={onFetchDir} onContextMenu={onContextMenu} />
+                        </Sidebar>
+                        <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
+                            <Menu isOpen={sIsContextMenu}>
+                                <Menu.Item onClick={deleteFile}>
+                                    <Delete />
+                                    <span>delete</span>
+                                </Menu.Item>
+                                <Menu.Item onClick={downloadFile}>
+                                    <Download />
+                                    <span>download</span>
+                                </Menu.Item>
+                            </Menu>
+                        </div>
+                    </>
+                ))}
+            {sIsOpenModal ? <SaveModal pIsDarkMode pIsSave={false} setIsOpen={handleIsOpenModal} /> : null}
         </div>
     );
 };

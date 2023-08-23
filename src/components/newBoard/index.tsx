@@ -5,7 +5,7 @@ import icons from '@/utils/icons';
 import { FileUploader } from 'react-drag-drop-files';
 import { getTutorial } from '@/api/repository/api';
 import ShellMenu from './ShellMenu';
-import { TbParachute, Folder, FolderOpen } from '@/assets/icons/Icon';
+import { TbParachute, Folder } from '@/assets/icons/Icon';
 
 interface NewBoardProps {
     pExtentionList: any;
@@ -168,16 +168,6 @@ const NewBoard = (props: NewBoardProps) => {
                 />
             </div>
             <div className="divider"></div>
-            <div className="file_tree_section">
-                <div className="side">
-                    <div className="file_btn_wrapper">
-                        <div className="file_btn" onClick={() => setIsOpenModal(true)}>
-                            <FolderOpen />
-                            <span>Open...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <div className="refrence-list">
                 {pReferences &&
