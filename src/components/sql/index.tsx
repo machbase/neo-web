@@ -37,7 +37,6 @@ const Sql = ({
     const [sSqlQueryTxt, setSqlQueryTxt] = useState<string>(pInfo.code);
     const [sSqlResponseData, setSqlResponseData] = useState<any>();
     const [sResultLimit, setResultLimit] = useState<number>(1);
-    const [sIsDownControlKey, setIsDownControlKey] = useState(false);
     const sEditorRef = useRef(null);
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
     const [sEditor, setEditor] = useState<any>(null);
@@ -78,16 +77,17 @@ const Sql = ({
         if (!sSqlQueryTxt) return '';
         const tmpquerylist = JSON.parse(JSON.stringify(sSqlQueryTxt)).split('\n');
         let TargetQuery = '';
+        let preTargetQuery = '';
 
         if (!sEditor) return '';
-
         tmpquerylist.map((aRow: string, aIdx: number) => {
             TargetQuery = `${TargetQuery} ${aRow}`;
             if (aRow.includes(';') && aIdx + 1 < sEditor.getPosition().lineNumber) {
+                preTargetQuery = TargetQuery;
                 TargetQuery = '';
             }
         });
-        return TargetQuery.split(';')[0].trim();
+        return TargetQuery.split(';')[0].trim() ? TargetQuery.split(';')[0].trim() : preTargetQuery.split(';')[0].trim();
     };
 
     const sqlMultiLineParser = () => {
@@ -108,17 +108,12 @@ const Sql = ({
         })();
     };
 
-    const handleUpKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === 'Control' && sIsDownControlKey) {
-            setIsDownControlKey(false);
-        }
-    };
-
     const handleDownKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === 'Control' && !sIsDownControlKey) {
-            setIsDownControlKey(true);
+        if (window.navigator.platform.includes('Win') && e.ctrlKey && e.key === 'Enter') {
+            e.stopPropagation();
+            sqlMultiLineParser();
         }
-        if (sIsDownControlKey && e.key === 'Enter') {
+        if (!window.navigator.platform.includes('Win') && e.metaKey && e.key === 'Enter') {
             e.stopPropagation();
             sqlMultiLineParser();
         }
@@ -228,7 +223,7 @@ const Sql = ({
                             </div>
                         </div>
                     </div>
-                    <div ref={sEditorRef} onKeyUpCapture={handleUpKey} onKeyDownCapture={handleDownKey} style={{ height: '100%', width: '100%' }}>
+                    <div ref={sEditorRef} onKeyDownCapture={handleDownKey} style={{ height: '100%', width: '100%' }}>
                         <Editor height="100%" width="100%" defaultLanguage="sql" defaultValue={pInfo.code} theme="my-theme" onChange={handleChangeText} onMount={handleMount} />
                     </div>
                 </Pane>
