@@ -185,6 +185,13 @@ const Sql = ({
         setEditor(editor);
     };
 
+    const monacoOptions = {
+        minimap: {
+            enabled: false,
+        },
+        scrollBeyondLastLine: false,
+    };
+
     useEffect(() => {
         if (sMoreResult) {
             fetchMoreResult();
