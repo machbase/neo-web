@@ -8,16 +8,7 @@ import useOutsideClick from '@/hooks/useOutsideClick';
 import { sqlBasicFormatter } from '@/utils/sqlFormatter';
 import TABLE from '@/components/table';
 import './WorkSheetEditor.scss';
-import {
-    Delete,
-    Play,
-    ArrowUpDouble,
-    ArrowDown,
-    InsertRowTop,
-    HideOn,
-    HideOff
-} from '@/assets/icons/Icon';
-
+import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown';
 type MonacoLang = 'sql' | 'markdown' | 'go';
@@ -135,7 +126,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const handleRunCode = (aText: string, aLineNum?: number) => {
         if (sSelectedLang === 'TQL') getTqlData(aText);
         if (sSelectedLang === 'Markdown') setMarkdown(aText);
-        if (sSelectedLang === 'SQL' && aLineNum) getSqlData(aText, aLineNum);
+        if (sSelectedLang === 'SQL') getSqlData(aText, aLineNum ?? 1);
     };
 
     const changeLanguage = (aLang: ServerLang) => {
@@ -338,7 +329,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 return (
                     <div className="worksheet-ctr-icon-wrap">
                         <div className="worksheet-ctr-icon" onClick={() => pCallback({ id: pData.id, event: 'AddBottom' })}>
-                            <InsertRowTop style={{ transform: 'rotate(180deg)'}} />
+                            <InsertRowTop style={{ transform: 'rotate(180deg)' }} />
                         </div>
                     </div>
                 );

@@ -108,7 +108,11 @@ const Sql = ({
     };
 
     const handleDownKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if ((e.ctrlKey && e.key === 'Enter') || (e.metaKey && e.key === 'Enter')) {
+        if (window.navigator.platform.includes('Win') && e.ctrlKey && e.key === 'Enter') {
+            e.stopPropagation();
+            sqlMultiLineParser();
+        }
+        if (!window.navigator.platform.includes('Win') && e.metaKey && e.key === 'Enter') {
             e.stopPropagation();
             sqlMultiLineParser();
         }
