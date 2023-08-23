@@ -41,13 +41,14 @@ export const fileTreeParser = (aResFileList: ResFileListType, aPath: string, aDe
         dirs: aResFileList.children
             ? aResFileList.children.filter((aFile: ResFileType) => aFile.isDir).map((aTargetDir: ResFileType) => dirFormatter(aTargetDir, aPath, aDepth, aParentId))
             : [],
-        files: aResFileList.children
-            ? aResFileList.children.filter((bFile: ResFileType) => !bFile.isDir).map((bTargetFile: ResFileType) => fileFormatter(bTargetFile, aPath, aDepth, aParentId))
-            : [],
+        files:
+            aResFileList && aResFileList.children
+                ? aResFileList.children.filter((bFile: ResFileType) => !bFile.isDir).map((bTargetFile: ResFileType) => fileFormatter(bTargetFile, aPath, aDepth, aParentId))
+                : [],
         id: aParentId,
-        name: aResFileList.name,
+        name: aResFileList && aResFileList.name,
         parentId: undefined,
-        type: aResFileList.isDir ? 1 : 0,
+        type: aResFileList && aResFileList.isDir ? 1 : 0,
         path: aPath,
     };
     return sParedData;
