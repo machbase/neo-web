@@ -23,7 +23,7 @@ const TABLE = ({ pTableData, pMaxShowLen, clickEvent }: { pTableData: any; pMaxS
     };
     return (
         <table className="table">
-            <thead className="table-header header-fix" style={{ height: '41px' }}>
+            <thead className="table-header header-fix" style={{ height: '40px' }}>
                 {pTableData && pTableData.columns ? (
                     <tr>
                         <th>
@@ -48,6 +48,7 @@ const TABLE = ({ pTableData, pMaxShowLen, clickEvent }: { pTableData: any; pMaxS
                             return MaxLenDiv();
                         }
                         if (pMaxShowLen && aIdx + 1 > 6) return <></>;
+                        if (aRowList.length === 1 && aRowList[0] === '') return;
                         return (
                             <tr key={'tbody-row' + aIdx} className={Number(aIdx) % 2 === 0 ? 'result-body-tr' : 'result-body-tr dark-odd'}>
                                 <td>
