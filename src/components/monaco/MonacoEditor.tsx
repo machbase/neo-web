@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import type { OnChange } from '@monaco-editor/react';
 import { useRecoilValue } from 'recoil';
-import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { gSelectedTab } from '@/recoil/recoil';
 
 export interface MonacoEditorProps {
     pText: string;
@@ -16,7 +16,6 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
     const { pText, pLang, onChange, onRunCode, onSelectLine } = props;
     const monaco = useMonaco();
     const sSelectedTab = useRecoilValue(gSelectedTab);
-    const sBoardList = useRecoilValue(gBoardList);
     const [sCurrnetTab, setCurrentTab] = useState<any>();
     const [sEditor, setEditor] = useState<any>(null);
 
@@ -28,7 +27,7 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
     };
 
     useEffect(() => {
-        setCurrentTab(sBoardList[sBoardList.length - 1]);
+        setCurrentTab(sSelectedTab);
     }, []);
 
     useEffect(() => {
@@ -50,8 +49,8 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
 
     useEffect(() => {
         if (!monaco) return;
-
-        if (sCurrnetTab && sCurrnetTab.id === sSelectedTab) {
+        const sId = sCurrnetTab === undefined ? sSelectedTab : sCurrnetTab;
+        if (sId === sSelectedTab) {
             applyRunCode(pText);
         }
     }, [monaco, pText, sSelectedTab]);
