@@ -45,7 +45,12 @@ export {
     MdRawOn,
 } from 'react-icons/md';
 
-export { HiOutlineClipboardDocumentList as Worksheet, HiOutlineDocumentText as Document } from 'react-icons/hi2';
+export {
+    HiTableCells as TableHeader,
+    HiOutlineTableCells as TableNotHeader,
+    HiOutlineClipboardDocumentList as Worksheet,
+    HiOutlineDocumentText as Document,
+} from 'react-icons/hi2';
 
 export { RiArrowUpDoubleFill as ArrowUpDouble, RiMergeCellsVertical as HideOn, RiSplitCellsHorizontal as HideOff, RiSmartphoneLine as Phone } from 'react-icons/ri';
 
@@ -55,7 +60,7 @@ export { IoLogOutOutline as Logout, IoPlayForwardSharp, IoDocumentOutline as Doc
 
 export { PiFileCsvThin } from 'react-icons/pi';
 
-export { BiLineChart as LineChart, BiLink, BiPlay as Play, BiSolidDownArrow, BiSolidChart, BiTable } from 'react-icons/bi';
+export { BiLineChart as LineChart, BiLink, BiPlay as Play, BiSolidDownArrow, BiSolidChart } from 'react-icons/bi';
 
 export { FiSearch as Search, FiMonitor as Monitor } from 'react-icons/fi';
 

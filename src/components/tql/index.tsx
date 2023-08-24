@@ -9,7 +9,7 @@ import { ShowChart } from './ShowChart';
 import { Markdown } from '../worksheet/Markdown';
 import { isValidJSON } from '@/utils';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
-import { AiOutlineFileDone, AiOutlineFileMarkdown, BarChart, Save, VscJson, PiFileCsvThin, BiTable, LuFlipVertical, Play, SaveAs } from '@/assets/icons/Icon';
+import { AiOutlineFileDone, AiOutlineFileMarkdown, BarChart, Save, VscJson, PiFileCsvThin, TableHeader, TableNotHeader, LuFlipVertical, Play, SaveAs } from '@/assets/icons/Icon';
 
 interface TqlProps {
     setIsSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
@@ -154,7 +154,13 @@ const Tql = (props: TqlProps) => {
                             <div className="tql-result-btn-group">
                                 <div className={`btn-cover ${sResultType === 'text' && sIsPrettier ? 'active' : ''} ${sResultType === 'csv' && sIsHeader ? 'active' : ''}`}>
                                     {sResultType === 'text' && sTextField !== '' ? <VscJson onClick={() => setIsPrettier(!sIsPrettier)} /> : null}
-                                    {sResultType === 'csv' ? <BiTable onClick={() => handleChangeHeader(sCsv)} /> : null}
+                                    {sResultType === 'csv' ? (
+                                        sIsHeader ? (
+                                            <TableHeader size={20} onClick={() => handleChangeHeader(sCsv)} />
+                                        ) : (
+                                            <TableNotHeader size={20} onClick={() => handleChangeHeader(sCsv)} />
+                                        )
+                                    ) : null}
                                 </div>
                                 <div className="divider" style={{ margin: '12px 3px' }}></div>
                                 <div className={`btn-cover ${isVertical ? 'active' : ''}`}>
