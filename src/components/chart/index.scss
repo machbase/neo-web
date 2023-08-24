@@ -24,13 +24,18 @@
                 display: flex;
                 background-color: #404457;
                 border: solid 1px rgba(255, 255, 255, 0.5);
+                height: 22px;
                 border-radius: 4px;
-                min-width: 50px;
+                min-width: 86px;
+                overflow: hidden;
 
                 select {
+                    padding: 0 2px;
                     background-color: #404457;
                     color: rgba(255, 255, 255, 0.8);
                     border: none;
+                    min-width: 86px;
+                    font-size: 12px;
                 }
             }
         }
