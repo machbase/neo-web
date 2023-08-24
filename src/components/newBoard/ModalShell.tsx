@@ -60,7 +60,7 @@ const ModalShell = ({ pGetInfo, pSetIsModal, pInfo }: any) => {
             <div onClick={() => pSetIsModal(false)} className="edit-shell-modal-cover"></div>
             <div className="edit-shell-modal">
                 <div className="edit-shell-header">
-                    <div>Edit {pInfo.label}</div>
+                    <div>{pInfo.label}</div>
                     <div>
                         <Close onClick={() => pSetIsModal(false)} color="#f8f8f8"></Close>
                     </div>

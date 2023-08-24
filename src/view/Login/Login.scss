@@ -39,11 +39,13 @@
         font-weight: 400;
     }
     .input-id {
+        color: #121212;
         background-image: url(../../assets/image/login_id.png);
         background-repeat: no-repeat;
         background-position: 8px 6px;
     }
     .input-password {
+        color: #121212;
         background-image: url(../../assets/image/login_password.png);
         background-repeat: no-repeat;
         background-position: 8px 6px;
@@ -71,6 +73,17 @@
         margin-top: 60px;
     }
     .input-checkboxwrap {
+        div {
+            margin: 3px 4px;
+            width: 16px;
+            height: 16px;
+            border: 0.5px solid #a7a7a7;
+            border-radius: 2px;
+            box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.18);
+        }
+        input {
+            accent-color: #286ade;
+        }
         margin-top: 12px;
         margin-left: 70px;
         display: flex;

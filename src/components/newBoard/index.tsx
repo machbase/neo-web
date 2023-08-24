@@ -108,7 +108,8 @@ const NewBoard = (props: NewBoardProps) => {
                     aType.icon === 'console-line' ||
                     aType.icon === 'powershell' ||
                     aType.icon === 'monitor' ||
-                    aType.icon === 'monitor-small'
+                    aType.icon === 'monitor-small' ||
+                    aType.icon === 'laptop'
                 ) {
                     return icons(aType.icon);
                 } else {
