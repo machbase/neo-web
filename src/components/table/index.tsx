@@ -11,9 +11,9 @@ const TABLE = ({ pTableData, pMaxShowLen, clickEvent }: { pTableData: any; pMaxS
                     <span style={{ marginLeft: '20px', cursor: 'default' }}>...</span>
                 </td>
 
-                {pTableData.columns.map(() => {
+                {pTableData.columns.map((aItem: any) => {
                     return (
-                        <td className="result-table-item">
+                        <td key={'columns' + aItem} className="result-table-item">
                             <span>...</span>
                         </td>
                     );
