@@ -67,15 +67,7 @@ const Login = () => {
             <div className="login-card">
                 <img alt="" src={LoginLogo} />
                 <div className="input-form">
-                    <input
-                        v-model="sLoginName"
-                        className="input-id input normal-text"
-                        placeholder="User ID"
-                        type="text"
-                        onKeyDown={keyDownLogin}
-                        value={sLoginId}
-                        onInput={handleLoginId}
-                    />
+                    <input className="input-id input normal-text" placeholder="User ID" type="text" onKeyDown={keyDownLogin} value={sLoginId} onInput={handleLoginId} />
                     <input
                         className="input-password input normal-text"
                         value={sPassword}
@@ -86,7 +78,12 @@ const Login = () => {
                     />
                 </div>
                 <div className="input-checkboxwrap">
-                    <input checked={sRememberId} onChange={handleRememberId} className="checkbox" type="checkbox" />
+                    {sRememberId ? (
+                        <input checked={sRememberId} onChange={handleRememberId} className="checkbox" type="checkbox" />
+                    ) : (
+                        <div onClick={() => setRememberId(true)}></div>
+                    )}
+
                     <p className="input-checkbox-p">Remember User ID</p>
                 </div>
                 <div className="button-form">
