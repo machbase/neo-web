@@ -75,23 +75,38 @@ const Sql = ({
 
     const getTargetQuery = (): string => {
         if (!sSqlQueryTxt) return '';
-        const tmpquerylist = JSON.parse(JSON.stringify(sSqlQueryTxt)).split('\n');
-        let TargetQuery = '';
-        let preTargetQuery = '';
-
         if (!sEditor) return '';
-        tmpquerylist.map((aRow: string, aIdx: number) => {
-            TargetQuery = `${TargetQuery} ${aRow}`;
-            if (aRow.includes(';') && aIdx + 1 < sEditor.getPosition().lineNumber) {
-                preTargetQuery = TargetQuery;
-                TargetQuery = '';
+        const testquerylist = JSON.parse(JSON.stringify(sSqlQueryTxt)).split('\r');
+        const sSemiList = JSON.parse(JSON.stringify(sSqlQueryTxt)).split(';');
+        const teststart = sEditor.getSelection();
+
+        let rTotalLen = 0;
+        let reallen = 0;
+
+        testquerylist.map((aRow: string, aIdx: number) => {
+            if (aIdx + 1 >= teststart.startLineNumber && aIdx + 1 <= teststart.endLineNumber) {
+                reallen = rTotalLen + teststart.endColumn - 1 + aIdx;
+                if (reallen === 0) reallen = 1;
             }
+            rTotalLen += aRow.length;
         });
-        return TargetQuery.split(';')[0].trim() ? TargetQuery.split(';')[0].trim() : preTargetQuery.split(';')[0].trim();
+
+        let semiTotalLen = 0;
+        let targetQuery = '';
+
+        sSemiList.map((aRow: string, aIdx: number) => {
+            if (semiTotalLen < reallen) {
+                targetQuery = sSemiList[aIdx];
+                if (sSemiList[aIdx].trim() === '') targetQuery = sSemiList[aIdx - 1];
+            }
+            semiTotalLen += aRow.length + 1;
+        });
+        return targetQuery;
     };
 
     const sqlMultiLineParser = () => {
         const paredQuery: any = getTargetQuery();
+        if (paredQuery.includes('--')) return;
         (async () => {
             const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery, 1, sTimeRange, sTimeZone));
             switch (sSqlResult.status) {
@@ -112,7 +127,8 @@ const Sql = ({
                 const sAddTimezoneTxt = sTimeZone.split('/')[0];
                 sSqlResult.data.data.columns[1] += ` (${sAddTimezoneTxt})`;
             }
-            setChartAxisList(sSqlResult.data.data.columns);
+
+            if (sSqlResult.data.data) setChartAxisList(sSqlResult.data.data.columns);
             setResultLimit(sResultLimit + 1);
             setSqlResponseData(sSqlResult.data.data);
             setLogList([...sLogList, `${paredQuery}\n${sSqlResult.data.reason} : ${sSqlResult.data.success}`]);
@@ -219,7 +235,9 @@ const Sql = ({
                             justifyContent: 'space-between',
                         }}
                     >
-                        <Play size="20px" color="#939498" onClick={checkCtrl} />
+                        <div className="sql-header-play-btn">
+                            <Play size="20px" color="#939498" onClick={checkCtrl} />
+                        </div>
                         <div className="sql-option-ctr" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                             <div style={{ marginRight: '8px' }}>
                                 <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
