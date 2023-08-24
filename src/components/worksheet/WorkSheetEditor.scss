@@ -142,17 +142,17 @@
             height: auto;
             margin: 1rem 0;
 
-            .result-worksheet-sql {
+            .result-worksheet {
                 border: solid 1px #393b41;
                 border-radius: 10px;
                 overflow: hidden;
 
-                .sql-result-wrapper {
+                .result-wrapper {
                     border-radius: 10px !important;
                 }
             }
 
-            .result-worksheet-sql-total {
+            .result-worksheet-total {
                 border-left: solid 4px #393b41;
                 margin: 4px;
 
