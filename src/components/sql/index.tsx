@@ -235,7 +235,9 @@ const Sql = ({
                             justifyContent: 'space-between',
                         }}
                     >
-                        <Play size="20px" color="#939498" onClick={checkCtrl} />
+                        <div className="sql-header-play-btn">
+                            <Play size="20px" color="#939498" onClick={checkCtrl} />
+                        </div>
                         <div className="sql-option-ctr" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                             <div style={{ marginRight: '8px' }}>
                                 <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
