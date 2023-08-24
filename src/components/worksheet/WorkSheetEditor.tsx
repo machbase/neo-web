@@ -193,8 +193,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
 
             const sTempCsv: string[][] = [];
 
-            sResult.data.split('\n').map((aItem: string) => {
-                sTempCsv.push(aItem.split(','));
+            sResult.data.split('\n').forEach((aItem: string) => {
+                if (aItem) sTempCsv.push(aItem.split(','));
             });
 
             const tempHeaders: string[] = [];
