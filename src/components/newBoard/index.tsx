@@ -150,8 +150,8 @@ const NewBoard = (props: NewBoardProps) => {
                 <p className="main_title">New...</p>
             </div>
             <div className="btn_wrap">
-                {pExtentionList.map((aItem: any, aIdx: number) => {
-                    return <ShellMenu key={aIdx} pInfo={aItem} pChangeTabOption={changeTabOption} pSetIcon={setIcon} pGetInfo={pGetInfo}></ShellMenu>;
+                {pExtentionList.map((aItem: any) => {
+                    return <ShellMenu key={aItem.id} pInfo={aItem} pChangeTabOption={changeTabOption} pSetIcon={setIcon} pGetInfo={pGetInfo}></ShellMenu>;
                 })}
                 <FileUploader
                     classes="drag-drop"
