@@ -34,7 +34,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [initialSize, setInitialSize] = useState<number>(pData.height ?? sInitHeight);
     const [sSelectedLang, setSelectedLang] = useState<Lang>('Markdown');
     const [sShowLang, setShowLang] = useState<boolean>(false);
-    const [sTqlResultType, setTqlResultType] = useState<'html' | 'csv' | 'mrk' | 'text'>(pData.tqlType ?? 'text');
+    const [sTqlResultType, setTqlResultType] = useState<'html' | 'csv' | 'mrk' | 'text' | 'xhtml'>(pData.tqlType ?? 'text');
     const [sTqlTextResult, setTqlTextResult] = useState<string>('');
     const [sTqlChartData, setTqlChartData] = useState<string>('');
     const [sTqlMarkdown, setTqlMarkdown] = useState<any>('');
@@ -196,6 +196,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setTqlResultType('mrk');
             setTqlMarkdown(sResult.data);
             return;
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/xhtml+xml') {
+            setTqlResultType('xhtml');
+            setTqlMarkdown(sResult.data);
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
             setTqlResultType('csv');
 
@@ -282,6 +285,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 ) : null}
                 {sTqlResultType === 'html' && sTqlChartData ? <ShowChart pData={sTqlChartData} pIsCenter /> : null}
                 {sTqlResultType === 'mrk' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} pType="mrk" /> : null}
+                {sTqlResultType === 'xhtml' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} /> : null}
                 {sTqlResultType === 'text' && sTqlTextResult ? (
                     isValidJSON(sTqlTextResult) ? (
                         <pre>{JSON.stringify(JSON.parse(sTqlTextResult), null, 4)}</pre>

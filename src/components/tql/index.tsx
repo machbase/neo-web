@@ -74,6 +74,9 @@ const Tql = (props: TqlProps) => {
 
             setCsv(sTempCsv);
             return;
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/xhtml+xml') {
+            setResultType('xhtml');
+            setMarkdown(sResult.data);
         } else {
             setResultType('text');
             if (sResult.status === 200) {
@@ -182,6 +185,7 @@ const Tql = (props: TqlProps) => {
                             ) : null}
                             {sResultType === 'html' ? <ShowChart pData={sChartData} /> : null}
                             {sResultType === 'mrk' ? <Markdown pIdx={1} pContents={sMarkdown} pType="mrk" /> : null}
+                            {sResultType === 'xhtml' ? <Markdown pIdx={1} pContents={sMarkdown} /> : null}
                         </div>
                     </div>
                 </Pane>
