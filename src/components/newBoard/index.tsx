@@ -16,7 +16,7 @@ interface NewBoardProps {
 }
 
 const NewBoard = (props: NewBoardProps) => {
-    const { pExtentionList,  pGetInfo, pReferences } = props;
+    const { pExtentionList, pGetInfo, pReferences } = props;
     const fileTypes = ['wrk', 'sql', 'tql', 'taz'];
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sSelectedTab] = useRecoilState<any>(gSelectedTab);
@@ -108,7 +108,7 @@ const NewBoard = (props: NewBoardProps) => {
                     aType.icon === 'console-line' ||
                     aType.icon === 'powershell' ||
                     aType.icon === 'monitor' ||
-                    aType.icon === '8'
+                    aType.icon === 'monitor-small'
                 ) {
                     return icons(aType.icon);
                 } else {
