@@ -101,6 +101,17 @@ const Sql = ({
                 default:
                     setSelectedSubTab('LOG');
             }
+            if (
+                !sTimeRange.includes('ns') &&
+                !sTimeRange.includes('us') &&
+                !sTimeRange.includes('ms') &&
+                !sTimeRange.includes('s') &&
+                !sTimeZone.includes('LOCAL') &&
+                !sTimeZone.includes('UTC')
+            ) {
+                const sAddTimezoneTxt = sTimeZone.split('/')[0];
+                sSqlResult.data.data.columns[1] += ` (${sAddTimezoneTxt})`;
+            }
             setChartAxisList(sSqlResult.data.data.columns);
             setResultLimit(sResultLimit + 1);
             setSqlResponseData(sSqlResult.data.data);
