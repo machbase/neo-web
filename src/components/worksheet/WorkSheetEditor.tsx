@@ -45,6 +45,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sSql, setSql] = useState<any>(null);
     const [sCollapse, setCollapse] = useState<boolean>(pData.minimal ?? false);
     const [sSqlLineNumber, setSqlLineNumber] = useState<number>(1);
+    const [sSqlReason, setSqlReason] = useState<string>('');
     const dropDownRef = useRef(null);
 
     useEffect(() => {
@@ -131,6 +132,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     };
 
     const changeLanguage = (aLang: ServerLang) => {
+        setSqlReason('');
+        setTqlTextResult('');
         if (aLang === 'SQL') {
             setSelectedLang('SQL');
             setMonacoLanguage('sql');
@@ -173,6 +176,11 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 case 200:
                     setSql(sSqlResult.data.data);
                     break;
+            }
+            if (sSqlResult.data.reason) {
+                setSqlReason(sSqlResult.data.reason);
+            } else {
+                setSqlReason('');
             }
         })();
     };
@@ -239,15 +247,17 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const SqlResult = () => {
         return sSql ? (
             <>
-                <div className="result-worksheet-sql">
+                <div className="result-worksheet">
                     <TABLE pTableData={sSql} pMaxShowLen={true} clickEvent={() => {}} />
                 </div>
-                <div className="result-worksheet-sql-total">
+                <div className="result-worksheet-total">
                     <span>{`Total ${sSql && sSql.rows.length} records`}</span>
                 </div>
             </>
         ) : (
-            <div className="result-worksheet-sql-total" />
+            <div className="result-worksheet-total">
+                <span>{sSqlReason}</span>
+            </div>
         );
     };
 
@@ -257,22 +267,30 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 {sTqlResultType === 'csv' ? (
                     sTqlCsv ? (
                         <>
-                            <div className="result-worksheet-sql">
+                            <div className="result-worksheet">
                                 <TABLE pTableData={{ columns: sTqlCsvHeader, rows: sTqlCsv, types: [] }} pMaxShowLen={true} clickEvent={() => {}} />
                             </div>
-                            <div className="result-worksheet-sql-total">
+                            <div className="result-worksheet-total">
                                 <span>{`Total ${sTqlCsv && sTqlCsv.length} records`}</span>
                             </div>
                         </>
                     ) : (
-                        <div className="result-worksheet-sql-total">
-                            <span>{'no result'}</span>
+                        <div className="result-worksheet-total">
+                            <span>{sTqlTextResult}</span>
                         </div>
                     )
                 ) : null}
                 {sTqlResultType === 'html' && sTqlChartData ? <ShowChart pData={sTqlChartData} pIsCenter /> : null}
                 {sTqlResultType === 'mrk' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} pType="mrk" /> : null}
-                {sTqlResultType === 'text' && sTqlTextResult && isValidJSON(sTqlTextResult) ? <pre>{JSON.stringify(JSON.parse(sTqlTextResult), null, 4)}</pre> : null}
+                {sTqlResultType === 'text' && sTqlTextResult ? (
+                    isValidJSON(sTqlTextResult) ? (
+                        <pre>{JSON.stringify(JSON.parse(sTqlTextResult), null, 4)}</pre>
+                    ) : (
+                        <div className="result-worksheet-total">
+                            <span>{sTqlTextResult}</span>
+                        </div>
+                    )
+                ) : null}
             </>
         );
     };
