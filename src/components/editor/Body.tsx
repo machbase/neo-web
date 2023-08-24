@@ -8,7 +8,7 @@ import './Body.scss';
 import NewBoard from '../newBoard';
 import Tab from './Tab';
 import TagAnalyzer from '../tagAnalyzer/TagAnalyzer';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { SaveModal } from '../modal/SaveModal';
 import useSaveCommand from '@/hooks/useSaveCommand';
 import { WorkSheet } from '@/components/worksheet/WorkSheet';
@@ -25,6 +25,15 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pRecentFiles, 
     const [sIsSaveModal, setIsSaveModal] = useState<boolean>(false);
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
     const sSaveWorkSheet = useRecoilValue(gSaveWorkSheets);
+    const sTabRef = useRef(null);
+
+    const handleMouseWheel = (e: any) => {
+        const scrollable: any = sTabRef.current;
+
+        if (scrollable) {
+            scrollable.scrollLeft += e.deltaY;
+        }
+    };
 
     const setSelectTab = (aBoardId: string) => {
         setSelectedTab(aBoardId);
@@ -91,10 +100,13 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pRecentFiles, 
     return (
         <div style={{ width: '100%', height: '100%', background: '#262831' }}>
             <div className="tab">
-                {sBoardList.length !== 0 &&
-                    sBoardList.map((aBoard: any, aIdx: number) => {
-                        return <Tab key={aBoard.id} pBoard={aBoard} pSelectedTab={sSelectedTab} pSetSelectedTab={setSelectTab} pIdx={aIdx}></Tab>;
-                    })}
+                <div className="tab-list" onWheel={handleMouseWheel} ref={sTabRef}>
+                    {sBoardList.length !== 0 &&
+                        sBoardList.map((aBoard: any, aIdx: number) => {
+                            return <Tab key={aBoard.id} pBoard={aBoard} pSelectedTab={sSelectedTab} pSetSelectedTab={setSelectTab} pIdx={aIdx}></Tab>;
+                        })}
+                </div>
+
                 <div style={{ margin: '4px 14px 0 14px', display: 'flex', alignItems: 'center' }}>
                     <PlusCircle className="plus-icon" size="20px" onClick={addFile} style={{ cursor: 'pointer' }}></PlusCircle>
                 </div>

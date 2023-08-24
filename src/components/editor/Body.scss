@@ -4,11 +4,18 @@
     background-color: #404557;
     height: 40px;
     display: flex;
-    padding: 0 10px;
     position: relative;
-    overflow-x: auto;
-    overflow-y: hidden;
 
+    width: 100%;
+
+    .tab-list {
+        padding: 0 15px;
+        max-width: calc(100% - 48px);
+        overflow-x: visible;
+        overflow-y: hidden;
+        display: flex;
+        position: relative;
+    }
     .plus-icon {
         color: #c4c4c4;
     }

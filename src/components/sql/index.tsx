@@ -41,7 +41,15 @@ const Sql = ({
     const [sEditor, setEditor] = useState<any>(null);
     const [sChartAxisList, setChartAxisList] = useState<string[]>([]);
     const sSaveCommand = useRef<any>(null);
+    const sNavi = useRef(null);
 
+    const handleMouseWheel = (e: any) => {
+        const scrollable: any = sNavi.current;
+
+        if (scrollable) {
+            scrollable.scrollLeft += e.deltaY;
+        }
+    };
     enum SqlTabType {
         RESULT = 'RESULT',
         CHART = 'CHART',
@@ -234,6 +242,8 @@ const Sql = ({
                             background: '#262831',
                             justifyContent: 'space-between',
                         }}
+                        ref={sNavi}
+                        onWheel={handleMouseWheel}
                     >
                         <div className="sql-header-play-btn">
                             <Play size="20px" color="#939498" onClick={checkCtrl} />
