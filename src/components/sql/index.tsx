@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import SplitPane, { Pane } from 'split-pane-react';
 import RESULT from './result';
-import CHART from './chart';
+import CHART from '@/components/chart';
 import { LOG } from './log';
 import AUTOCOMBOBOX from './autoCombobox';
 import { gBoardList } from '@/recoil/recoil';
@@ -39,6 +39,7 @@ const Sql = ({
     const sEditorRef = useRef(null);
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
     const [sEditor, setEditor] = useState<any>(null);
+    const [sChartAxisList, setChartAxisList] = useState<string[]>([]);
     const sSaveCommand = useRef<any>(null);
 
     enum SqlTabType {
@@ -100,7 +101,18 @@ const Sql = ({
                 default:
                     setSelectedSubTab('LOG');
             }
-
+            if (
+                !sTimeRange.includes('ns') &&
+                !sTimeRange.includes('us') &&
+                !sTimeRange.includes('ms') &&
+                !sTimeRange.includes('s') &&
+                !sTimeZone.includes('LOCAL') &&
+                !sTimeZone.includes('UTC')
+            ) {
+                const sAddTimezoneTxt = sTimeZone.split('/')[0];
+                sSqlResult.data.data.columns[1] += ` (${sAddTimezoneTxt})`;
+            }
+            setChartAxisList(sSqlResult.data.data.columns);
             setResultLimit(sResultLimit + 1);
             setSqlResponseData(sSqlResult.data.data);
             setLogList([...sLogList, `${paredQuery}\n${sSqlResult.data.reason} : ${sSqlResult.data.success}`]);
@@ -288,7 +300,13 @@ const Sql = ({
                         </div>
                         <RESULT pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'} pSqlResponseData={sSqlResponseData} onMoreResult={() => onMoreResult()} />
                         <LOG pDisplay={sSelectedSubTab === 'LOG' ? '' : 'none'} pLogList={sLogList} onClearLog={() => onClearLog()} />
-                        <CHART pDisplay={sSelectedSubTab === 'CHART' ? '' : 'none'} pIsVertical={isVertical} pSqlQueryTxt={getTargetQuery()} pSizes={sizes} />
+                        <CHART
+                            pDisplay={sSelectedSubTab === 'CHART' ? '' : 'none'}
+                            pChartAixsList={sChartAxisList}
+                            pIsVertical={isVertical}
+                            pSqlQueryTxt={getTargetQuery()}
+                            pSizes={sizes}
+                        />
                     </div>
                 </Pane>
             </SplitPane>
