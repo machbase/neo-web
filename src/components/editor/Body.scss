@@ -151,8 +151,8 @@
             height: 15px;
             background-color: #262831;
             position: absolute;
-            bottom: -1px;
-            left: -16px;
+            bottom: 0px;
+            left: -15px;
             transform: scaleX(-1), scaleY(-1);
 
             .round_right {
@@ -171,8 +171,8 @@
             height: 15px;
             background-color: #262831;
             position: absolute;
-            bottom: -1px;
-            right: -16px;
+            bottom: 0px;
+            right: -15px;
             transform: scaleX(-1), scaleY(-1);
             z-index: 1;
 
