@@ -67,7 +67,7 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
             id: 'run-code',
             label: 'Run Code',
             keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-            run: () => onRunCode(aText, sEditor.getPosition().lineNumber),
+            run: () => onRunCode(aText, sEditor ? sEditor.getPosition().lineNumber : 1),
         };
 
         monaco.editor.addEditorAction(runCode);
