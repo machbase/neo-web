@@ -284,7 +284,7 @@ const Sql = ({
                             </div>
                         </div>
                     </div>
-                    <div ref={sEditorRef} onKeyDownCapture={handleDownKey} style={{ height: '100%', width: '100%' }}>
+                    <div ref={sEditorRef} onKeyDownCapture={handleDownKey} style={{ height: 'calc(100% - 40px)', width: '100%' }}>
                         <Editor
                             height="100%"
                             width="100%"
