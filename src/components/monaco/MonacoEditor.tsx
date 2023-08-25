@@ -57,6 +57,7 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
 
     const handleMount = (editor: any) => {
         setEditor(editor);
+        editor.focus();
     };
 
     const applyRunCode = (aText: string) => {
