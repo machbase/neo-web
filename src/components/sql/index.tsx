@@ -110,7 +110,7 @@ const Sql = ({
         let reallen = 0;
         noAnnotationList.map((aRow: string, aIdx: number) => {
             if (sStartLineNumber <= aIdx && aIdx <= sEndLineNumber) {
-                reallen = rTotalLen + sEndLineNumber;
+                reallen = rTotalLen + sSelection.endColumn - 1 + aIdx;
                 if (reallen === 0) reallen = 1;
             }
             rTotalLen += aRow.length;
