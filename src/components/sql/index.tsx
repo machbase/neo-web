@@ -215,6 +215,7 @@ const Sql = ({
 
     const handleMount = (editor: any) => {
         setEditor(editor);
+        editor.focus();
     };
 
     const monacoOptions = {
