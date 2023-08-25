@@ -93,7 +93,7 @@ const fetchCalculationData = async (params: any) => {
         }
 
         sSubQuery = `select ${sCol} as mTime, ${CalculationMode}(${sValue}) as mValue from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
-        sMainQuery = `select to_timestamp(${sOnedayOversize}/1000000) as time, ${CalculationMode}(mvalue) as value from (${sSubQuery}) Group by ${sTime} order by ${sTime}  LIMIT ${
+        sMainQuery = `select to_timestamp(${sOnedayOversize}/1000000) as time, ${CalculationMode}(mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${
             Count * 1
         }`;
     }
@@ -103,7 +103,7 @@ const fetchCalculationData = async (params: any) => {
             sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
         }
         sSubQuery = `select ${sCol} as mtime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
-        sMainQuery = `SELECT to_timestamp(${sOnedayOversize})/1000000 AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by ${sTime} order by ${sTime} LIMIT ${
+        sMainQuery = `SELECT to_timestamp(${sOnedayOversize})/1000000 AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${
             Count * 1
         }`;
     }
@@ -115,7 +115,7 @@ const fetchCalculationData = async (params: any) => {
         }
 
         sSubQuery = `select ${sCol} as mtime, count(${sValue}) as mValue from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
-        sMainQuery = `SELECT to_timestamp(${sOnedayOversize}/1000000) AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by ${sTime} order by ${sTime} LIMIT ${Count * 1}`;
+        sMainQuery = `SELECT to_timestamp(${sOnedayOversize}/1000000) AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${Count * 1}`;
     }
 
     // UTC+${-1 * (getTimeZoneValue() / 60)}
