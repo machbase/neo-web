@@ -29,6 +29,10 @@ request.interceptors.request.use(
             sHeaders['Content-Type'] = 'text/plain';
         }
 
+        if (sFileOption !== -1 && sFileTql === -1 && sFileSql === -1 && sFileTaz === -1 && sFileWrk === -1 && config.method === 'post') {
+            sHeaders['Content-Type'] = 'text/plain';
+        }
+
         if (sHeaders && (config.url === '/api/md?darkMode=false' || config.url === '/api/md?darkMode=true')) {
             sHeaders['Content-Type'] = 'text/plain';
         }

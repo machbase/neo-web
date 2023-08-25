@@ -3,7 +3,7 @@ import { getFileList, postFileList } from '@/api/repository/api';
 import Modal from './Modal';
 import { gFileTree } from '@/recoil/fileTree';
 import './SaveModal.scss';
-import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { gBoardList, gSelectedBoard, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { getId } from '@/utils';
 import { FileType, FileTreeType, fileTreeParser } from '@/utils/fileTreeParser';
@@ -12,7 +12,8 @@ import { Menu } from '@/components/contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { Error } from '@/components/toast/Toast';
-import { DotChart, Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLeft, ArrowRight, NewFolder, FolderOpen } from '@/assets/icons/Icon';
+import { Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLeft, ArrowRight, NewFolder, FolderOpen } from '@/assets/icons/Icon';
+import icons from '@/utils/icons';
 
 export interface SaveModalProps {
     setIsOpen: any;
@@ -39,27 +40,22 @@ export const SaveModal = (props: SaveModalProps) => {
     const [sFileType, setFileType] = useState<string>('');
     const sSaveWorkSheet = useRecoilValue(gSaveWorkSheets);
     const [sFileTree, setFileTree] = useRecoilState(gFileTree);
-    let sCurrentTab;
+    const sSelectedBoard = useRecoilValue(gSelectedBoard);
 
     const sCheckType = (aValue: string) => aValue === '.sql' || aValue === '.tql' || aValue === '.taz' || aValue === '.wrk';
 
     useEffect(() => {
-        sCurrentTab = sBoardList.find((aItem) => aItem.id === sSelectedTab);
-        sCurrentTab && sCurrentTab.type ? setFileType(sCurrentTab.type) : setFileType('');
-
-        setSaveFileName(sCurrentTab ? (sCheckType(sCurrentTab.name.slice(-4)) ? sCurrentTab.name : sCurrentTab.name + `.${sCurrentTab.type}`) : `new.${sFileType}`);
+        sSelectedBoard && sSelectedBoard.type ? setFileType(sSelectedBoard.type) : setFileType('');
+        setSaveFileName(sSelectedBoard ? (sCheckType(sSelectedBoard.name.slice(-4)) ? sSelectedBoard.name : sSelectedBoard.name + `.${sSelectedBoard.type}`) : `new.${sFileType}`);
+        getFiles(sSelectedBoard.type ?? '');
     }, []);
-
-    useEffect(() => {
-        getFiles();
-    }, [sSelectedDir, sFileType]);
 
     const handleClose = () => {
         setIsOpen(false, sSelectedDir.join('/'));
     };
 
-    const getFiles = async () => {
-        const sData = await getFileList(`?filter=*.${sFileType}`, sSelectedDir.join('/'), '');
+    const getFiles = async (aType: string, aPathArr?: any) => {
+        const sData = await getFileList(pIsSave ? `?filter=*.${aType}` : '', aPathArr ? aPathArr.join('/') : sSelectedDir.join('/'), '');
         setFileList(sData.data.children);
         setFilterFileList(sData.data.children);
     };
@@ -104,6 +100,7 @@ export const SaveModal = (props: SaveModalProps) => {
             deletePath.push(currentPath.pop());
             setSelectedDir(currentPath);
             setDeletePath(deletePath);
+            getFiles(sFileType, currentPath);
         }
     };
 
@@ -123,9 +120,11 @@ export const SaveModal = (props: SaveModalProps) => {
             if (deletePath.length > 0) {
                 deletePath.pop();
                 setDeletePath(deletePath);
-                const sData = await getFileList(`?filter=*.${sFileType}`, currentPath.join('/'), '');
+                const sData = await getFileList(pIsSave ? `?filter=*.${sFileType}` : '', currentPath.join('/'), '');
                 setFileList(sData.data.children);
                 setFilterFileList(sData.data.children);
+            } else {
+                getFiles(sFileType, currentPath);
             }
         }
     };
@@ -338,7 +337,9 @@ export const SaveModal = (props: SaveModalProps) => {
                 postFileList('', sSelectedDir.join('/'), `new-${sSortData.length}`);
             }
         }
-        getFiles();
+        getFiles(sFileType);
+        const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
+        updateFileTree(sPath);
     };
 
     const onContextMenu = (e: React.MouseEvent, file: FileType | FileTreeType) => {
@@ -358,9 +359,11 @@ export const SaveModal = (props: SaveModalProps) => {
         if (sConfirm && sSelectedFile !== undefined) {
             const sResult: any = await deleteContextFile(sSelectedDir.join('/'), sSelectedFile.name);
             if (sResult.reason === 'success') {
-                getFiles();
+                getFiles(sFileType);
+                const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
+                updateFileTree(sPath);
             } else {
-                console.log('delete fail');
+                Error('delete fail');
             }
         }
         closeContextMenu();
@@ -465,7 +468,7 @@ export const SaveModal = (props: SaveModalProps) => {
                                         >
                                             <div className="pl" style={{ width: '48%', maxWidth: '48%', minWidth: '48%', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                 <div className="pl-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    {aItem.type === 'dir' ? <TreeFolder height={100} /> : <DotChart height={100} />}
+                                                    {aItem.type === 'dir' ? <TreeFolder height={100} /> : icons(aItem.type.replace('.', ''))}
                                                 </div>
                                                 <span>{aItem.name}</span>
                                             </div>
