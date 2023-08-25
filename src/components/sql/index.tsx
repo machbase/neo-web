@@ -81,19 +81,36 @@ const Sql = ({
         setLogList([]);
     };
 
+    // 빈 라인 실행 됨
+    // 주석 아랫 줄 실행 에러
+
     const getTargetQuery = (): string => {
         if (!sSqlQueryTxt) return '';
         if (!sEditor) return '';
-        const testquerylist = JSON.parse(JSON.stringify(sSqlQueryTxt)).split('\r');
-        const sSemiList = JSON.parse(JSON.stringify(sSqlQueryTxt)).split(';');
-        const teststart = sEditor.getSelection();
+        const sPosition = sEditor.getPosition().lineNumber - 1;
+        const sSelection = sEditor.getSelection();
+        const sSplitRQueryList = JSON.parse(JSON.stringify(sSqlQueryTxt)).split('\n');
+        const sIsAnnotation = sSplitRQueryList[sPosition].includes('--');
+        if (sIsAnnotation) return '';
+        const noAnnotationList = sSplitRQueryList.filter((aQuery: string) => !aQuery.includes('--'));
+
+        let sStartLineNumber: number = sSelection.startLineNumber - 1;
+        let sEndLineNumber: number = sSelection.endLineNumber - 1;
+
+        sSplitRQueryList.map((aQuery: string, aIdx: number) => {
+            if (aQuery.includes('--') && aIdx <= sStartLineNumber) {
+                sStartLineNumber -= 1;
+            }
+            if (aQuery.includes('--') && aIdx <= sEndLineNumber) {
+                sEndLineNumber -= 1;
+            }
+        });
 
         let rTotalLen = 0;
         let reallen = 0;
-
-        testquerylist.map((aRow: string, aIdx: number) => {
-            if (aIdx + 1 >= teststart.startLineNumber && aIdx + 1 <= teststart.endLineNumber) {
-                reallen = rTotalLen + teststart.endColumn - 1 + aIdx;
+        noAnnotationList.map((aRow: string, aIdx: number) => {
+            if (sStartLineNumber <= aIdx && aIdx <= sEndLineNumber) {
+                reallen = rTotalLen + sEndLineNumber;
                 if (reallen === 0) reallen = 1;
             }
             rTotalLen += aRow.length;
@@ -102,6 +119,8 @@ const Sql = ({
         let semiTotalLen = 0;
         let targetQuery = '';
 
+        const sSemiList = JSON.parse(JSON.stringify(noAnnotationList.join('\n'))).split(';');
+
         sSemiList.map((aRow: string, aIdx: number) => {
             if (semiTotalLen < reallen) {
                 targetQuery = sSemiList[aIdx];
@@ -109,14 +128,15 @@ const Sql = ({
             }
             semiTotalLen += aRow.length + 1;
         });
-        return targetQuery;
+
+        return targetQuery.split('\n').join(' ').trim();
     };
 
     const sqlMultiLineParser = () => {
         const paredQuery: any = getTargetQuery();
-        if (paredQuery.includes('--')) return;
+        if (!paredQuery) return;
         (async () => {
-            const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery, 1, sTimeRange, sTimeZone));
+            const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery.trim(), 1, sTimeRange, sTimeZone));
             switch (sSqlResult.status) {
                 case 200:
                     setSelectedSubTab('RESULT');
