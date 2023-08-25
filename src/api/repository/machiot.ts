@@ -109,7 +109,7 @@ const fetchCalculationData = async (params: any) => {
         }
 
         sSubQuery = `select ${sCol} as mTime, ${CalculationMode}(${sValue}) as mValue from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between to_date('${Start}') and to_date('${End}') group by mTime`;
-        sMainQuery = `select ${sOnedayOversize} as time, ${CalculationMode}(mvalue) as value from (${sSubQuery}) Group by ${sTime} order by ${sTime}  LIMIT ${Count * 1}`;
+        sMainQuery = `select ${sOnedayOversize} as time, ${CalculationMode}(mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${Count * 1}`;
     }
     if (CalculationMode === 'avg') {
         let sCol = `${sTime} rollup ${sTimeCalc}`;
@@ -117,7 +117,7 @@ const fetchCalculationData = async (params: any) => {
             sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
         }
         sSubQuery = `select ${sCol} as mtime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between to_date('${Start}') and to_date('${End}') group by mTime`;
-        sMainQuery = `SELECT ${sOnedayOversize} AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by ${sTime} order by ${sTime} LIMIT ${Count * 1}`;
+        sMainQuery = `SELECT ${sOnedayOversize} AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${Count * 1}`;
     }
 
     if (CalculationMode === 'cnt') {
@@ -127,7 +127,7 @@ const fetchCalculationData = async (params: any) => {
         }
 
         sSubQuery = `select ${sCol} as mtime, count(${sValue}) as mValue from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between to_date('${Start}') and to_date('${End}') group by mTime`;
-        sMainQuery = `SELECT ${sOnedayOversize} AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by ${sTime} order by ${sTime} LIMIT ${Count * 1}`;
+        sMainQuery = `SELECT ${sOnedayOversize} AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${Count * 1}`;
     }
 
     const queryString = `/machbase?q=${sMainQuery}`;
