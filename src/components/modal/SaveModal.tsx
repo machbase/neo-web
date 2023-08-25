@@ -12,7 +12,8 @@ import { Menu } from '@/components/contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { Error } from '@/components/toast/Toast';
-import { DotChart, Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLeft, ArrowRight, NewFolder, FolderOpen } from '@/assets/icons/Icon';
+import { Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLeft, ArrowRight, NewFolder, FolderOpen } from '@/assets/icons/Icon';
+import icons from '@/utils/icons';
 
 export interface SaveModalProps {
     setIsOpen: any;
@@ -467,7 +468,7 @@ export const SaveModal = (props: SaveModalProps) => {
                                         >
                                             <div className="pl" style={{ width: '48%', maxWidth: '48%', minWidth: '48%', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                 <div className="pl-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    {aItem.type === 'dir' ? <TreeFolder height={100} /> : <DotChart height={100} />}
+                                                    {aItem.type === 'dir' ? <TreeFolder height={100} /> : icons(aItem.type.replace('.', ''))}
                                                 </div>
                                                 <span>{aItem.name}</span>
                                             </div>
