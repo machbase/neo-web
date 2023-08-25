@@ -81,34 +81,41 @@ const Sql = ({
         setLogList([]);
     };
 
-    // 빈 라인 실행 됨
-    // 주석 아랫 줄 실행 에러
-
     const getTargetQuery = (): string => {
         if (!sSqlQueryTxt) return '';
         if (!sEditor) return '';
         const sPosition = sEditor.getPosition().lineNumber - 1;
         const sSelection = sEditor.getSelection();
         const sSplitRQueryList = JSON.parse(JSON.stringify(sSqlQueryTxt)).split('\n');
-        const sIsAnnotation = sSplitRQueryList[sPosition].includes('--');
+        const sIsAnnotation = sSplitRQueryList[sPosition].includes('--') && !sSplitRQueryList[sPosition].split('--')[0].trim();
         if (sIsAnnotation) return '';
-        const noAnnotationList = sSplitRQueryList.filter((aQuery: string) => !aQuery.includes('--'));
+        const newNoAnnotationList = sSplitRQueryList
+            .map((aQuery: string) => {
+                if (aQuery.includes('--') && !!aQuery.split('--')[0].trim()) {
+                    return aQuery.split('--')[0];
+                }
+
+                if (aQuery.includes('--')) return;
+                return aQuery;
+            })
+            .filter((aItem: any) => aItem);
 
         let sStartLineNumber: number = sSelection.startLineNumber - 1;
         let sEndLineNumber: number = sSelection.endLineNumber - 1;
 
         sSplitRQueryList.map((aQuery: string, aIdx: number) => {
             if (aQuery.includes('--') && aIdx <= sStartLineNumber) {
-                sStartLineNumber -= 1;
+                if (aQuery.split('--')[0].trim() === '') sStartLineNumber -= 1;
             }
             if (aQuery.includes('--') && aIdx <= sEndLineNumber) {
-                sEndLineNumber -= 1;
+                if (aQuery.split('--')[0].trim() === '') sEndLineNumber -= 1;
             }
         });
 
         let rTotalLen = 0;
         let reallen = 0;
-        noAnnotationList.map((aRow: string, aIdx: number) => {
+
+        newNoAnnotationList.map((aRow: string, aIdx: number) => {
             if (sStartLineNumber <= aIdx && aIdx <= sEndLineNumber) {
                 reallen = rTotalLen + sSelection.endColumn - 1 + aIdx;
                 if (reallen === 0) reallen = 1;
@@ -119,7 +126,7 @@ const Sql = ({
         let semiTotalLen = 0;
         let targetQuery = '';
 
-        const sSemiList = JSON.parse(JSON.stringify(noAnnotationList.join('\n'))).split(';');
+        const sSemiList = JSON.parse(JSON.stringify(newNoAnnotationList.join('\n'))).split(';');
 
         sSemiList.map((aRow: string, aIdx: number) => {
             if (semiTotalLen < reallen) {
