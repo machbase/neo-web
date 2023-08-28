@@ -106,12 +106,14 @@ const Sql = ({
         const sRegExp = new RegExp("([']*'[^']*')", 'igm');
         let sTmpQuery = JSON.parse(JSON.stringify(sNoAnnotationList.join('\n')));
         let sVariableList: { index: number | undefined; value: string; replaceValue: string }[] = [];
-        sVariableList = sTmpQuery.match(sRegExp).map((aString: string) => {
-            return { value: aString, index: (sRegExp.exec(sTmpQuery) as any).index, replaceValue: aString.replaceAll(';', 'M') };
-        });
-        sVariableList.map((aVariable) => {
-            sTmpQuery = sTmpQuery.replace(aVariable.value, aVariable.replaceValue);
-        });
+        if (sTmpQuery.match(sRegExp)) {
+            sVariableList = sTmpQuery.match(sRegExp).map((aString: string) => {
+                return { value: aString, index: (sRegExp.exec(sTmpQuery) as any).index, replaceValue: aString.replaceAll(';', 'M') };
+            });
+            sVariableList.map((aVariable) => {
+                sTmpQuery = sTmpQuery.replace(aVariable.value, aVariable.replaceValue);
+            });
+        }
         ///////////////////////////////////////////////////
         sSplitRQueryList.map((aQuery: string, aIdx: number) => {
             if (aQuery.includes('--') && aIdx <= sStartLineNumber) {
@@ -176,7 +178,7 @@ const Sql = ({
             }
 
             if (sSqlResult.data.data) setChartAxisList(sSqlResult.data.data.columns);
-            setResultLimit(sResultLimit + 1);
+            setResultLimit(2);
             setSqlResponseData(sSqlResult.data.data);
             setLogList([...sLogList, `${paredQuery}\n${sSqlResult.data.reason} : ${sSqlResult.data.success}`]);
         })();
