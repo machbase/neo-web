@@ -93,6 +93,7 @@ request.interceptors.response.use(
             } else {
                 localStorage.removeItem('accessToken');
                 localStorage.removeItem('refreshToken');
+                window.dispatchEvent(new Event('logoutEvent'));
                 return error;
             }
             if (sData) {

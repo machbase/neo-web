@@ -8,7 +8,7 @@ import './Body.scss';
 import NewBoard from '../newBoard';
 import Tab from './Tab';
 import TagAnalyzer from '../tagAnalyzer/TagAnalyzer';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { SaveModal } from '../modal/SaveModal';
 import useSaveCommand from '@/hooks/useSaveCommand';
 import { WorkSheet } from '@/components/worksheet/WorkSheet';
@@ -17,6 +17,7 @@ import { postFileList } from '@/api/repository/api';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { Error } from '@/components/toast/Toast';
+import { useNavigate } from 'react-router-dom';
 
 const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pRecentFiles, pGetInfo, pGetPath }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -26,6 +27,7 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pRecentFiles, 
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
     const sSaveWorkSheet = useRecoilValue(gSaveWorkSheets);
     const sTabRef = useRef(null);
+    const sNavigate = useNavigate();
 
     const handleMouseWheel = (e: any) => {
         const scrollable: any = sTabRef.current;
@@ -96,6 +98,14 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pRecentFiles, 
     };
 
     useSaveCommand(handleSaveModalOpen);
+
+    useEffect(() => {
+        const expiredRt = () => {
+            sNavigate('/login');
+        };
+        window.addEventListener('logoutEvent', expiredRt);
+        return () => window.removeEventListener('logoutEvent', expiredRt);
+    }, []);
 
     return (
         <div style={{ width: '100%', height: '100%', background: '#262831' }}>
