@@ -16,7 +16,7 @@ const CHART = ({
     pChartAixsList: string[];
     pIsVertical: boolean;
     pDisplay: string;
-    pSqlQueryTxt: string;
+    pSqlQueryTxt: () => string;
     pSizes: number[] | string[];
 }) => {
     const [sResult, setResult] = useState<any>();
@@ -32,8 +32,8 @@ const CHART = ({
         if (pChartAixsList.length === 0) return;
         let sTmpResult: any = '';
         if (sSelectedXAxis && sSelectedYAxis)
-            sTmpResult = await getTqlChart(sqlBasicChartFormatter(pSqlQueryTxt, aSize.width, aSize.height, { x: sSelectedXAxis, y: sSelectedYAxis }));
-        else sTmpResult = await getTqlChart(sqlBasicChartFormatter(pSqlQueryTxt, aSize.width, aSize.height));
+            sTmpResult = await getTqlChart(sqlBasicChartFormatter(pSqlQueryTxt(), aSize.width, aSize.height, { x: sSelectedXAxis, y: sSelectedYAxis }));
+        else sTmpResult = await getTqlChart(sqlBasicChartFormatter(pSqlQueryTxt(), aSize.width, aSize.height));
         const sTheme = sTmpResult.data.theme === '-' ? 'vintage' : sTmpResult.data.theme;
         const sDataLength = sTmpResult.data.chartOption.series[1].data.length;
         sTmpResult.data.chartOption.dataZoom[0].start = 100 - (5 * aSize.width) / sDataLength;
@@ -48,7 +48,7 @@ const CHART = ({
     };
 
     useEffect(() => {
-        if (chartRef && chartRef.current && !!pSqlQueryTxt) {
+        if (chartRef && chartRef.current && !!pSqlQueryTxt()) {
             getChartData({
                 width: chartRef.current.clientWidth,
                 height: chartRef.current.clientHeight - sControlPanelHeight,

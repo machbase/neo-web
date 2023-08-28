@@ -360,7 +360,7 @@ const Sql = ({
                             pDisplay={sSelectedSubTab === 'CHART' ? '' : 'none'}
                             pChartAixsList={sChartAxisList}
                             pIsVertical={isVertical}
-                            pSqlQueryTxt={getTargetQuery()}
+                            pSqlQueryTxt={getTargetQuery}
                             pSizes={sizes}
                         />
                     </div>
