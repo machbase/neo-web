@@ -1,7 +1,7 @@
 <template>
     <div class="chart-edit-page">
-        <ChartDashboard ref="sPanels" :chart-data-single="sDataChart" :p-panel-info="gBoard" :p-type="'edit'" :style="{ height: '53%' }" />
-        <div v-if="sShowTab" class="tabs" :style="{ height: '44%', overflow: 'auto' }">
+        <ChartDashboard ref="sPanels" :chart-data-single="sDataChart" :p-panel-info="gBoard" :p-type="'edit'" />
+        <div v-if="sShowTab" class="tabs" :style="{ overflow: 'auto' }">
             <div class="header">
                 <ul class="nav-pills">
                     <li v-for="(item, index) in tabs" :key="index" @click="onClickTab(index)" :style="{ color: tabIndex === index ? '#2ec0df !important' : undefined }">

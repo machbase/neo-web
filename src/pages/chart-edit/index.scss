@@ -55,7 +55,25 @@
 .popup__btn-group {
     height: 40px;
 }
+
+.chart-edit-page::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.chart-edit-page::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #141415;
+}
+
+.chart-edit-page::-webkit-scrollbar-thumb {
+    width: 5px;
+    height: 5px;
+    background-color: rgb(101, 111, 121);
+}
 .chart-edit-page {
+    overflow-x: hidden;
+    overflow-y: auto;
     margin-top: 20px;
     height: calc(100% - 45px);
     .tabs::-webkit-scrollbar {
@@ -91,7 +109,6 @@
                 margin-right: 15px;
                 cursor: pointer;
             }
-
         }
 
         .inner-tab {
@@ -102,7 +119,8 @@
         }
     }
 
-    .nav-pills {}
+    .nav-pills {
+    }
 
     .nav-pills li {
         @include font-12;
