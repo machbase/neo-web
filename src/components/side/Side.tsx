@@ -15,6 +15,7 @@ import useOutsideClick from '@/hooks/useOutsideClick';
 import icons from '@/utils/icons';
 import { Error } from '@/components/toast/Toast';
 import { SaveModal } from '../modal/SaveModal';
+import OpenFile from './OpenFile';
 
 const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
     const sParedData: FileTreeType = {
@@ -226,18 +227,16 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
             <div>
                 <div onClick={() => setCollapseRecent(!sCollapseRecent)} className="side-sub-title recent-title">
                     <div className="collapse-icon">{sCollapseRecent ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
-                    Open recent
+                    Open Tab
                 </div>
-                <div className="recent-form">
-                    {sCollapseRecent &&
-                        pRecentFiles &&
-                        pRecentFiles.map((aRecent: any, aIdx: any) => (
-                            <span key={aIdx} className="recent-list" onClick={() => openRecentFile(aRecent)}>
-                                <div className="recent-icon">{icons(aRecent.title.slice(-3))}</div>
-                                <span>{aRecent.title}</span>
-                            </span>
-                        ))}
-                </div>
+                {sCollapseRecent && (
+                    <div className="recent-form">
+                        {sBoardList.length !== 0 &&
+                            sBoardList.map((aBoard: any, aIdx: any) => {
+                                return <OpenFile pBoard={aBoard} pSetSelectedTab={setSelectedTab} pIdx={aIdx} key={aBoard.id}></OpenFile>;
+                            })}
+                    </div>
+                )}
             </div>
             <div className="side-sub-title recent-title" onClick={() => setCollapseTree(!sCollapseTree)}>
                 <div className="collapse-icon">{sCollapseTree ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>

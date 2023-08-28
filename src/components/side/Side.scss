@@ -42,17 +42,44 @@
         }
     }
     .recent-form {
+        margin: 2px 0;
         display: flex;
         flex-direction: column;
+        max-height: 110px;
+        overflow-y: auto;
         .recent-list {
+            padding-right: 8px;
             cursor: pointer;
             display: flex;
             padding-left: 16px;
             align-items: center;
             background-color: transparent;
-            margin-left: 1px;
             font-size: 13px;
+            justify-content: space-between;
+            .item-title {
+                display: flex;
+                align-items: center;
+            }
 
+            .tab_close {
+                font-size: 13px;
+                width: 15px;
+                height: 15px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .off-saved {
+                width: 15px;
+                height: 15px;
+                font-size: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                svg {
+                    padding-left: 0 !important;
+                }
+            }
             span {
                 display: block;
                 white-space: nowrap;
