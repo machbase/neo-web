@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import showChart from '@/plugin/eCharts';
+import { drawChart } from '@/plugin/eCharts';
 
 interface ShowChartProps {
     pData: any;
@@ -10,21 +10,45 @@ export const ShowChart = (props: ShowChartProps) => {
     const { pData, pIsCenter } = props;
     const [sText, setText] = useState<string>('');
     const sTheme = pData.theme === '-' ? 'vintage' : pData.theme;
+    const [sInstance, setInstance] = useState<any[]>([]);
 
     useEffect(() => {
+        const init = () => {
+            const sValue = ` <div className="chart_container">
+                    <div className="chart_item" id="${pData.chartID}" style="width:${pData.style.width};height:${pData.style.height};margin:${
+                pIsCenter ? 'auto' : 'initial'
+            }"></div>
+                </div>`;
+            setText(sValue);
+
+            setTimeout(() => {
+                setInstance([...sInstance, drawChart(pData, sTheme)]);
+            }, 100);
+        };
+
         init();
+
+        return () => {
+            const chartElement = document.getElementById(pData.chartID);
+            // @ts-ignore
+            if (chartElement && echarts.getInstanceByDom(chartElement)) {
+                // @ts-ignore
+                echarts.dispose(chartElement);
+            }
+        };
     }, [pData]);
 
-    const init = async () => {
-        const sValue = ` <div className="chart_container">
-                <div className="chart_item" id="${pData.chartID}" style="width:${pData.style.width};height:${pData.style.height};margin:${pIsCenter ? 'auto' : 'initial'}"></div>
-            </div>`;
-        setText(sValue);
-
-        setTimeout(() => {
-            showChart(pData, sTheme);
-        }, 100);
-    };
+    useEffect(() => {
+        return () => {
+            const chartElement = document.getElementById(pData.chartID);
+            if (!chartElement && sInstance) {
+                sInstance.forEach((aInstance) => {
+                    aInstance.dispose();
+                });
+                setInstance([]);
+            }
+        };
+    }, [pData, sInstance]);
 
     return (
         <div className="tql-form">
