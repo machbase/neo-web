@@ -14,6 +14,7 @@ import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 import './index.scss';
 import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, SaveAs } from '@/assets/icons/Icon';
 import { isJsonString } from '@/utils/utils';
+import { sqlQueryParser } from '@/utils/sqlQueryParser';
 
 const Sql = ({
     pInfo,
@@ -82,75 +83,8 @@ const Sql = ({
     };
 
     const getTargetQuery = (): string => {
-        if (!sSqlQueryTxt) return '';
         if (!sEditor) return '';
-        const sPosition = sEditor.getPosition().lineNumber - 1;
-        const sSelection = sEditor.getSelection();
-        const sSplitRQueryList = JSON.parse(JSON.stringify(sSqlQueryTxt)).split('\n');
-        const sIsAnnotation = sSplitRQueryList[sPosition].includes('--') && !sSplitRQueryList[sPosition].split('--')[0].trim();
-        if (sIsAnnotation) return '';
-        const sNoAnnotationList = sSplitRQueryList
-            .map((aQuery: string) => {
-                if (aQuery.includes('--') && !!aQuery.split('--')[0].trim()) {
-                    return aQuery.split('--')[0];
-                }
-
-                if (aQuery.includes('--')) return;
-                return aQuery;
-            })
-            .filter((aItem: any) => aItem);
-
-        let sStartLineNumber: number = sSelection.startLineNumber - 1;
-        let sEndLineNumber: number = sSelection.endLineNumber - 1;
-        ///////////////////////////////////////////////////
-        const sRegExp = new RegExp("([']*'[^']*')", 'igm');
-        let sTmpQuery = JSON.parse(JSON.stringify(sNoAnnotationList.join('\n')));
-        let sVariableList: { index: number | undefined; value: string; replaceValue: string }[] = [];
-        if (sTmpQuery.match(sRegExp)) {
-            sVariableList = sTmpQuery.match(sRegExp).map((aString: string) => {
-                return { value: aString, index: (sRegExp.exec(sTmpQuery) as any).index, replaceValue: aString.replaceAll(';', 'M') };
-            });
-            sVariableList.map((aVariable) => {
-                sTmpQuery = sTmpQuery.replace(aVariable.value, aVariable.replaceValue);
-            });
-        }
-        ///////////////////////////////////////////////////
-        sSplitRQueryList.map((aQuery: string, aIdx: number) => {
-            if (aQuery.includes('--') && aIdx <= sStartLineNumber) {
-                if (aQuery.split('--')[0].trim() === '') sStartLineNumber -= 1;
-            }
-            if (aQuery.includes('--') && aIdx <= sEndLineNumber) {
-                if (aQuery.split('--')[0].trim() === '') sEndLineNumber -= 1;
-            }
-        });
-
-        let rTotalLen = 0;
-        let sSelectionLoc = 0;
-        sNoAnnotationList.map((aRow: string, aIdx: number) => {
-            if (sStartLineNumber <= aIdx && aIdx <= sEndLineNumber) {
-                sSelectionLoc = rTotalLen + sSelection.endColumn - 1 + aIdx;
-                if (sSelectionLoc === 0) sSelectionLoc = 1;
-            }
-            rTotalLen += aRow.length;
-        });
-        let semiTotalLen = 0;
-        let targetQuery = '';
-        const sSemiList = sTmpQuery.split(';');
-        sSemiList.map((aRow: string, aIdx: number) => {
-            if (semiTotalLen < sSelectionLoc) {
-                targetQuery = sSemiList[aIdx];
-                if (sSemiList[aIdx].trim() === '') targetQuery = sSemiList[aIdx - 1];
-                if (targetQuery.includes("'")) {
-                    sVariableList.map((aVar, aIdx: number) => {
-                        if (targetQuery.includes(aVar.replaceValue)) {
-                            targetQuery = targetQuery.replace(sVariableList[aIdx].replaceValue, sVariableList[aIdx].value);
-                        }
-                    });
-                }
-            }
-            semiTotalLen += aRow.length + 1;
-        });
-        return targetQuery.split('\n').join(' ').trim();
+        return sqlQueryParser(sSqlQueryTxt, sEditor.getPosition(), sEditor.getSelection());
     };
 
     const sqlMultiLineParser = () => {
