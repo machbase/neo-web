@@ -135,7 +135,7 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGet
                             {aItem.type === 'sql' && (
                                 <Sql pHandleSaveModalOpen={handleSaveModalOpen} pInfo={aItem} setIsOpenModal={setIsOpenModal} setIsSaveModal={setIsSaveModal}></Sql>
                             )}
-                            {aItem.type === 'tql' && <Tql pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsOpenModal} setIsSaveModal={setIsSaveModal}></Tql>}
+                            {aItem.type === 'tql' && <Tql pHandleSaveModalOpen={handleSaveModalOpen} />}
                             {aItem.type === 'taz' && (
                                 <TagAnalyzer
                                     pHandleSaveModalOpen={handleSaveModalOpen}
