@@ -11,6 +11,7 @@ import TagAnalyzer from '../tagAnalyzer/TagAnalyzer';
 import { useState, useRef, useEffect } from 'react';
 import { SaveModal } from '../modal/SaveModal';
 import useSaveCommand from '@/hooks/useSaveCommand';
+import useMoveTab from '@/hooks/useMoveTab';
 import { WorkSheet } from '@/components/worksheet/WorkSheet';
 import { getId } from '@/utils';
 import { postFileList } from '@/api/repository/api';
@@ -97,7 +98,12 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGet
         setSelectedTab(sNewTab.id);
     };
 
+    const handleMoveTab = (aKeyNumber: number) => {
+        sBoardList[aKeyNumber - 1] && setSelectedTab(sBoardList[aKeyNumber - 1]?.id);
+    };
+
     useSaveCommand(handleSaveModalOpen);
+    useMoveTab(handleMoveTab);
 
     useEffect(() => {
         const expiredRt = () => {
