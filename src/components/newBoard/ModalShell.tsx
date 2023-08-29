@@ -5,6 +5,7 @@ import './ModalShell.scss';
 import icons from '@/utils/icons';
 import { Close } from '@/assets/icons/Icon';
 import { Success, Error } from '@/components/toast/Toast';
+import { TextButton } from '../buttons/TextButton';
 
 const ModalShell = ({ pGetInfo, pSetIsModal, pInfo }: any) => {
     const [sName, setName] = useState('');
@@ -102,12 +103,8 @@ const ModalShell = ({ pGetInfo, pSetIsModal, pInfo }: any) => {
                     </div>
                 </div>
                 <div className="edit-shell-footer">
-                    <button className="ok-btn" onClick={() => save()}>
-                        Save
-                    </button>
-                    <button className="cancel-btn" onClick={() => pSetIsModal(false)}>
-                        Cancel
-                    </button>
+                    <TextButton pWidth={100} pHeight={30} pText="Save" pBackgroundColor="#4199ff" onClick={save} />
+                    <TextButton pWidth={100} pHeight={30} pText="Cancel" pBackgroundColor="#666979" onClick={() => pSetIsModal(false)} />
                 </div>
             </div>
         </div>

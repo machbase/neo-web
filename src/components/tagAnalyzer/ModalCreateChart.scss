@@ -262,21 +262,6 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        .ok-button {
-            height: 34px;
-            border-radius: 8px;
-            width: 100px;
-            margin-right: 8px;
-            background-color: #4199ff;
-            border: 0.5px solid #d9d9d9;
-            color: white;
-        }
-        .cancel-button {
-            width: 100px;
-            border-radius: 8px;
-            color: white;
-            height: 34px;
-            border: 0.5px solid #d9d9d9;
-        }
+        gap: 8px;
     }
 }

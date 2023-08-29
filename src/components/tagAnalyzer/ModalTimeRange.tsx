@@ -8,6 +8,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import moment from 'moment';
 import OutsideClickHandler from 'react-outside-click-handler';
+import { TextButton } from '../buttons/TextButton';
 const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
     const sTimeRange: any = TIME_RANGE;
 
@@ -159,12 +160,8 @@ const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
                     </div>
                 </div>
                 <div className="time-range-footer">
-                    <button className="apply" onClick={() => setGlobalTime()}>
-                        Apply
-                    </button>
-                    <button className="cancel" onClick={() => pSetTimeRangeModal(false)}>
-                        Cancel
-                    </button>
+                    <TextButton pWidth={100} pHeight={34} pText="Apply" pBackgroundColor="#4199ff" onClick={setGlobalTime} />
+                    <TextButton pWidth={100} pHeight={34} pText="Cancel" pBackgroundColor="#666979" onClick={() => pSetTimeRangeModal(false)} />
                 </div>
             </div>
         </div>
