@@ -102,7 +102,7 @@ const Sql = ({
     };
 
     const sqlMultiLineParser = (
-        aText?: string,
+        _?: string,
         aLocation?: {
             position: PositionType;
             selection: SelectionType;

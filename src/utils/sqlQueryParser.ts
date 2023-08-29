@@ -36,13 +36,15 @@ const isBlankQuery = (aQuery: string): boolean => {
 };
 /** FIND VARIABLE & PARSING QUERY */
 const findVariableNParsedQuery = (aNoAnnotationList: string[]) => {
-    const sRegExp = new RegExp("([']*'[^']*')", 'igm');
+    const sRegExp: RegExp = new RegExp("([']*'[^']*')", 'igm');
     let sParsedQuery: string = aNoAnnotationList.join('\n');
-    let sVariableList: { index: number | undefined; value: string; replaceValue: string }[] = [];
+    let sVariableList: { value: string; replaceValue: string }[] | null = [];
 
     if (sParsedQuery.match(sRegExp)) {
-        sVariableList = sParsedQuery.match(sRegExp).map((aString: string) => {
-            return { value: aString, index: (sRegExp.exec(sParsedQuery) as any).index, replaceValue: aString.replaceAll(';', 'M') };
+        const sTmpMatchList = sParsedQuery.match(sRegExp);
+        if (!sTmpMatchList) return { sParsedQuery, sVariableList };
+        sVariableList = sTmpMatchList.map((aString: string) => {
+            return { value: aString, replaceValue: aString.replaceAll(';', 'M') };
         });
         sVariableList.map((aVariable) => {
             sParsedQuery = sParsedQuery.replace(aVariable.value, aVariable.replaceValue);
@@ -84,7 +86,6 @@ const findTargetQuery = (
     aParsedQuery: string,
     aSelectionLen: number,
     aVariableList: {
-        index: number | undefined;
         value: string;
         replaceValue: string;
     }[]
@@ -96,7 +97,7 @@ const findTargetQuery = (
         if (semiTotalLen < aSelectionLen) {
             targetQuery = sSemiList[aIdx];
             if (sSemiList[aIdx].trim() === '') targetQuery = sSemiList[aIdx - 1];
-            if (targetQuery && targetQuery.includes("'")) {
+            if (aVariableList.length > 0 && targetQuery && targetQuery.includes("'")) {
                 aVariableList.map((aVar, aIdx: number) => {
                     if (targetQuery.includes(aVar.replaceValue)) {
                         targetQuery = targetQuery.replace(aVariableList[aIdx].replaceValue, aVariableList[aIdx].value);
