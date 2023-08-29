@@ -1,10 +1,10 @@
 /** POSITION INTERFACE */
-interface PositionType {
+export interface PositionType {
     column: number;
     lineNumber: number;
 }
 /** SELECTION INTERFACE */
-interface SelectionType {
+export interface SelectionType {
     endColumn: number;
     endLineNumber: number;
     positionColumn: number;
