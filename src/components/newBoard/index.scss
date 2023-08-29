@@ -7,6 +7,8 @@
     .refrence-list {
         display: flex;
         padding: 0 8px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
 
         .folder-items {
             width: 350px;
