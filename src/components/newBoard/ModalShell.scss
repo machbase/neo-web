@@ -101,28 +101,6 @@
         display: flex;
         justify-content: center;
         align-items: center;
-
-        .ok-btn {
-            height: 30px;
-            border-radius: 6px;
-            width: 100px;
-            margin-right: 8px;
-            background-color: #4199ff;
-            border: 0.5px solid #d9d9d9;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .cancel-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100px;
-            border-radius: 6px;
-            color: white;
-            height: 28px;
-            border: 0.5px solid #d9d9d9;
-        }
+        gap: 10px;
     }
 }

@@ -3,6 +3,7 @@ import { Modal } from '@/components/modal/Modal';
 import './LicenseModal.scss';
 import { useEffect, useState } from 'react';
 import { Close, Key } from '@/assets/icons/Icon';
+import { TextButton } from '../buttons/TextButton';
 
 export interface LicenseModalProps {
     pIsDarkMode: boolean;
@@ -15,24 +16,24 @@ export const LicenseModal = (props: LicenseModalProps) => {
 
     useEffect(() => {
         getLicenseData();
-    }, [])
+    }, []);
 
     const getLicenseData = async () => {
         const sResult: any = await getLicense();
         if (sResult.success) {
-            setLicense(sResult.data)
+            setLicense(sResult.data);
         }
-    }
+    };
 
     const onUploadLicense = async (aEvent: React.ChangeEvent<HTMLInputElement>) => {
         let sFormData = new FormData();
         const sInputEl = aEvent.target as HTMLInputElement;
-        
+
         if (sInputEl.files !== null) {
             sFormData.append('license.dat', sInputEl.files[0]);
-        
+
             const sResult: any = await postLicense(sFormData);
-        
+
             if (sResult.success) {
                 setLicense(sResult.data);
             } else {
@@ -83,14 +84,12 @@ export const LicenseModal = (props: LicenseModalProps) => {
                     <div className="license-modal-footer">
                         <div className="register">
                             <label htmlFor="license-register">Register License...</label>
-                            <input id="license-register" type="file" onChange={onUploadLicense}/>
+                            <input id="license-register" type="file" onChange={onUploadLicense} />
                         </div>
-                        <div className="close-btn" onClick={() => setIsOpen(false)}>
-                            close
-                        </div>
+                        <TextButton pWidth={120} pHeight={40} pText="Close" pBackgroundColor="#666979" onClick={() => setIsOpen(false)} />
                     </div>
                 </Modal.Footer>
             </Modal>
         </div>
-    )
-}
+    );
+};

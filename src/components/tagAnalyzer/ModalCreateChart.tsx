@@ -11,6 +11,7 @@ import { convertChartDefault } from '@/utils/utils';
 import { getId } from '@/utils';
 import { BiSolidChart, Close, Search, ArrowDown, ArrowLeft, ArrowRight } from '@/assets/icons/Icon';
 import { Error } from '@/components/toast/Toast';
+import { TextButton } from '../buttons/TextButton';
 
 const ModalCreateChart = ({ pCloseModal }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
@@ -192,7 +193,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
             <div className="inner-form">
                 <div className="header">
                     <div className="header-title">
-                        <BiSolidChart></BiSolidChart>
+                        <BiSolidChart />
                         New Chart
                     </div>
                     <div className="header-close">
@@ -212,7 +213,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                                     );
                                 })}
                             </select>
-                            <ArrowDown></ArrowDown>
+                            <ArrowDown />
                         </div>
                     </div>
                     {!sRollupTable && <p>* The table is show because the roll-up table is not generated.</p>}
@@ -275,7 +276,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                                                 style={sTagPagination === 1 ? { opacity: 0.4, cursor: 'default' } : {}}
                                                 onClick={() => setpagination(false)}
                                             >
-                                                <ArrowLeft></ArrowLeft>
+                                                <ArrowLeft />
                                             </button>
                                             <div>{sTagPagination}</div>
                                             <button
@@ -283,7 +284,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                                                 style={sTagList.length <= sTagPagination * 10 ? { opacity: 0.4, cursor: 'default' } : {}}
                                                 onClick={() => setpagination(true)}
                                             >
-                                                <ArrowRight></ArrowRight>
+                                                <ArrowRight />
                                             </button>
                                         </div>
                                         <div>
@@ -321,7 +322,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                                                                 );
                                                             })}
                                                         </select>
-                                                        <ArrowDown></ArrowDown>
+                                                        <ArrowDown />
                                                     </div>
                                                 </button>
                                             );
@@ -337,12 +338,8 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                     </div>
                 </div>
                 <div className="footer">
-                    <button onClick={() => setPanels()} className="ok-button">
-                        OK
-                    </button>
-                    <button onClick={pCloseModal} className="cancel-button">
-                        Cancel
-                    </button>
+                    <TextButton pWidth={100} pHeight={34} pText="OK" pBackgroundColor="#4199ff" onClick={setPanels} />
+                    <TextButton pWidth={100} pHeight={34} pText="Cancel" pBackgroundColor="#666979" onClick={pCloseModal} />
                 </div>
             </div>
         </div>
