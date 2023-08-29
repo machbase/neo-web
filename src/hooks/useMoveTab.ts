@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 
 const sIsWin = window.navigator.platform.includes('Win');
 
-const useSaveCommand = (Callback: (aValue: number) => void) => {
+const useMoveTab = (Callback: (aValue: number) => void) => {
     const handleDownKeyWin = (e: KeyboardEvent): void => {
         if (e.altKey && 49 <= e.keyCode && e.keyCode <= 57) {
             e.preventDefault();
@@ -28,4 +28,4 @@ const useSaveCommand = (Callback: (aValue: number) => void) => {
     }, [Callback]);
 };
 
-export default useSaveCommand;
+export default useMoveTab;
