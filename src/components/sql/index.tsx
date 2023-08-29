@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from 'react';
-import Editor, { useMonaco } from '@monaco-editor/react';
 import SplitPane, { Pane } from 'split-pane-react';
 import RESULT from './result';
 import CHART from '@/components/chart';
@@ -14,7 +13,8 @@ import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 import './index.scss';
 import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, SaveAs } from '@/assets/icons/Icon';
 import { isJsonString } from '@/utils/utils';
-import { sqlQueryParser } from '@/utils/sqlQueryParser';
+import { PositionType, SelectionType, sqlQueryParser } from '@/utils/sqlQueryParser';
+import { MonacoEditor } from '../monaco/MonacoEditor';
 
 const Sql = ({
     pInfo,
@@ -26,7 +26,7 @@ const Sql = ({
     setIsSaveModal: (aValue: boolean) => void;
     setIsOpenModal: (aValue: boolean) => void;
 }) => {
-    const monaco = useMonaco();
+    // const monaco = useMonaco();
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
@@ -39,10 +39,25 @@ const Sql = ({
     const [sResultLimit, setResultLimit] = useState<number>(1);
     const sEditorRef = useRef(null);
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
-    const [sEditor, setEditor] = useState<any>(null);
     const [sChartAxisList, setChartAxisList] = useState<string[]>([]);
     const sSaveCommand = useRef<any>(null);
     const sNavi = useRef(null);
+    const [sSqlLocation, setSqlLocation] = useState<{
+        position: PositionType;
+        selection: SelectionType;
+    }>({
+        position: { column: 1, lineNumber: 1 },
+        selection: {
+            endColumn: 1,
+            endLineNumber: 1,
+            positionColumn: 1,
+            positionLineNumber: 1,
+            selectionStartColumn: 1,
+            selectionStartLineNumber: 1,
+            startColumn: 1,
+            startLineNumber: 1,
+        },
+    });
 
     const handleMouseWheel = (e: any) => {
         const scrollable: any = sNavi.current;
@@ -83,15 +98,25 @@ const Sql = ({
     };
 
     const getTargetQuery = (): string => {
-        if (!sEditor) return '';
-        return sqlQueryParser(sSqlQueryTxt, sEditor.getPosition(), sEditor.getSelection());
+        return sqlQueryParser(sSqlQueryTxt, sSqlLocation.position, sSqlLocation.selection);
     };
 
-    const sqlMultiLineParser = () => {
-        const paredQuery: any = getTargetQuery();
-        if (!paredQuery) return;
+    const sqlMultiLineParser = (
+        aText?: string,
+        aLocation?: {
+            position: PositionType;
+            selection: SelectionType;
+        }
+    ) => {
+        let parsedQuery = '';
+        if (!aLocation) parsedQuery = sqlQueryParser(sSqlQueryTxt, sSqlLocation.position, sSqlLocation.selection);
+        else {
+            parsedQuery = sqlQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection);
+            setSqlLocation(aLocation);
+        }
+        if (!parsedQuery) return;
         (async () => {
-            const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery.trim(), 1, sTimeRange, sTimeZone));
+            const sSqlResult = await getTqlChart(sqlBasicFormatter(parsedQuery.trim(), 1, sTimeRange, sTimeZone));
             switch (sSqlResult.status) {
                 case 200:
                     setSelectedSubTab('RESULT');
@@ -114,19 +139,8 @@ const Sql = ({
             if (sSqlResult.data.data) setChartAxisList(sSqlResult.data.data.columns);
             setResultLimit(2);
             setSqlResponseData(sSqlResult.data.data);
-            setLogList([...sLogList, `${paredQuery}\n${sSqlResult.data.reason} : ${sSqlResult.data.success}`]);
+            setLogList([...sLogList, `${parsedQuery}\n${sSqlResult.data.reason} : ${sSqlResult.data.success}`]);
         })();
-    };
-
-    const handleDownKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (window.navigator.platform.includes('Win') && e.ctrlKey && e.key === 'Enter') {
-            e.stopPropagation();
-            sqlMultiLineParser();
-        }
-        if (!window.navigator.platform.includes('Win') && e.metaKey && e.key === 'Enter') {
-            e.stopPropagation();
-            sqlMultiLineParser();
-        }
     };
 
     const getSubTabIcon = (aTarget: string) => {
@@ -169,38 +183,6 @@ const Sql = ({
     };
 
     useEffect(() => {
-        if (!monaco) return;
-        monaco.editor.defineTheme('my-theme', {
-            base: 'vs-dark',
-            inherit: true,
-            rules: [
-                {
-                    token: '',
-                    fontStyle: 'D2Coding',
-                },
-            ],
-            colors: {
-                'editor.background': '#262831',
-            },
-        });
-        monaco.editor.setTheme('my-theme');
-        new monaco.Position(0, 0);
-        new monaco.Selection(0, 0, 0, 0);
-    }, [monaco]);
-
-    const handleMount = (editor: any) => {
-        setEditor(editor);
-        editor.focus();
-    };
-
-    const monacoOptions = {
-        minimap: {
-            enabled: false,
-        },
-        scrollBeyondLastLine: false,
-    };
-
-    useEffect(() => {
         if (sMoreResult) {
             fetchMoreResult();
             setMoreResult(false);
@@ -239,17 +221,8 @@ const Sql = ({
                             </div>
                         </div>
                     </div>
-                    <div ref={sEditorRef} onKeyDownCapture={handleDownKey} style={{ height: 'calc(100% - 40px)', width: '100%' }}>
-                        <Editor
-                            height="100%"
-                            width="100%"
-                            defaultLanguage="sql"
-                            defaultValue={pInfo.code}
-                            theme="my-theme"
-                            onChange={handleChangeText}
-                            onMount={handleMount}
-                            options={monacoOptions}
-                        />
+                    <div ref={sEditorRef} style={{ height: 'calc(100% - 40px)', width: '100%' }}>
+                        <MonacoEditor pText={sSqlQueryTxt} pLang="sql" onChange={handleChangeText} onRunCode={sqlMultiLineParser} onSelectLine={setSqlLocation} />
                     </div>
                 </Pane>
                 <Pane style={{ overflow: 'initial' }}>
