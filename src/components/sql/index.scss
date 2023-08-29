@@ -27,21 +27,8 @@
     .sql-option-ctr {
         // max-width: 500px;
         // overflow-x: scroll;
-
-        .btn-cover {
-            width: 30px;
-            height: 30px;
-
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .header-icon {
-            color: rgba(255, 255, 255, 0.5);
-            :hover {
-                color: #f8f8f8;
-            }
-        }
+        display: flex;
+        align-items: center;
     }
 }
 
@@ -59,33 +46,6 @@
             align-items: center;
             gap: 3px;
             font-size: 18px;
-
-            .sub-tab-header-active-icon {
-                color: rgba(255, 255, 255, 0.5);
-                width: 30px;
-                height: 30px;
-                background-color: rgba(255, 255, 255, 0.2);
-                border-radius: 8px;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                cursor: pointer;
-                :hover {
-                    color: #f8f8f8;
-                }
-            }
-            .sub-tab-header-icon {
-                color: rgba(255, 255, 255, 0.5);
-                width: 30px;
-                height: 30px;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                cursor: pointer;
-                :hover {
-                    color: #f8f8f8;
-                }
-            }
         }
         ::-webkit-scrollbar {
             width: 5px;
