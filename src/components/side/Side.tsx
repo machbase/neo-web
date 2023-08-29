@@ -223,7 +223,7 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
                     <>...</>
                 ) : (
                     <>
-                        <Sidebar pRecentFileLength={pRecentFiles.length}>
+                        <Sidebar pBoardListLength={sBoardList.length}>
                             <FileTree rootDir={rootDir} selectedFile={selectedFile} onSelect={onSelect} onFetchDir={onFetchDir} onContextMenu={onContextMenu} />
                         </Sidebar>
                         <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
