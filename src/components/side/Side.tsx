@@ -16,7 +16,7 @@ import { Error } from '@/components/toast/Toast';
 import { SaveModal } from '../modal/SaveModal';
 import OpenFile from './OpenFile';
 
-const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
+const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
     const sParedData: FileTreeType = {
         depth: 0,
         dirs: [],
