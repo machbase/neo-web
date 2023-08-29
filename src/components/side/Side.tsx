@@ -12,9 +12,9 @@ import { getFiles, deleteFile as deleteContextFile } from '@/api/repository/file
 import { FileTreeType, FileType, fileTreeParser } from '@/utils/fileTreeParser';
 import Menu from '../contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
-import icons from '@/utils/icons';
 import { Error } from '@/components/toast/Toast';
 import { SaveModal } from '../modal/SaveModal';
+import OpenFile from './OpenFile';
 
 const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
     const sParedData: FileTreeType = {
@@ -130,9 +130,6 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
     const getExistBoard = (aTargetFile: FileType): GBoardListType => {
         return sBoardList.filter((aBoard: GBoardListType) => aBoard.name === aTargetFile.name && aBoard.path === aTargetFile.path)[0];
     };
-    const checkRecentExistBoard = (aName: string, aPath: string) => {
-        return sBoardList.filter((aBoard: any) => aBoard.name === aName && aBoard.path === aPath)[0];
-    };
 
     const onFetchDir = async (aSelectedDir: FileTreeType) => {
         const sReturn = await getFiles(`${aSelectedDir.path}${aSelectedDir.name}/`);
@@ -194,30 +191,6 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
         }
     };
 
-    const openRecentFile = async (file: any) => {
-        const sTmpId = getId();
-        const sAddress = file.address.replace('serverfile://', '');
-        const sNameSplit = file.title.split('/');
-        const sFileName = sNameSplit[sNameSplit.length - 1];
-        const sExistBoard = checkRecentExistBoard(sFileName, sAddress.substr(0, sAddress.length - sFileName.length));
-        if (sExistBoard) {
-            setSelectedTab(sExistBoard.id as string);
-        } else {
-            const sContentResult: any = await getFiles(sAddress);
-            let sTmpBoard: any = { id: sTmpId, name: sFileName, type: file.type, path: sAddress.substr(0, sAddress.length - sFileName.length), savedCode: sContentResult };
-            if (file.type === 'wrk') {
-                const sTmpData = JSON.parse(sContentResult);
-                if (sTmpData.data) sTmpBoard.sheet = sTmpData.data;
-                else if (sTmpData.sheet) sTmpBoard.sheet = sTmpData.sheet;
-                else sTmpBoard.sheet = sTmpData;
-            } else if (file.title.slice(-3) === 'taz') {
-                const sTmpData: any = JSON.parse(sContentResult);
-                sTmpBoard = { ...sTmpData, id: sTmpBoard.id, name: sTmpBoard.name, type: file.title.slice(-3), path: sTmpBoard.path };
-            } else sTmpBoard.code = sContentResult;
-            setBoardList([...sBoardList, sTmpBoard]);
-            setSelectedTab(sTmpId);
-        }
-    };
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
 
     return (
@@ -226,18 +199,16 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
             <div>
                 <div onClick={() => setCollapseRecent(!sCollapseRecent)} className="side-sub-title recent-title">
                     <div className="collapse-icon">{sCollapseRecent ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
-                    Open recent
+                    Open Tab
                 </div>
-                <div className="recent-form">
-                    {sCollapseRecent &&
-                        pRecentFiles &&
-                        pRecentFiles.map((aRecent: any, aIdx: any) => (
-                            <span key={aIdx} className="recent-list" onClick={() => openRecentFile(aRecent)}>
-                                <div className="recent-icon">{icons(aRecent.title.slice(-3))}</div>
-                                <span>{aRecent.title}</span>
-                            </span>
-                        ))}
-                </div>
+                {sCollapseRecent && (
+                    <div className="recent-form">
+                        {sBoardList.length !== 0 &&
+                            sBoardList.map((aBoard: any, aIdx: any) => {
+                                return <OpenFile pBoard={aBoard} pSetSelectedTab={setSelectedTab} pIdx={aIdx} key={aBoard.id}></OpenFile>;
+                            })}
+                    </div>
+                )}
             </div>
             <div className="side-sub-title recent-title" onClick={() => setCollapseTree(!sCollapseTree)}>
                 <div className="collapse-icon">{sCollapseTree ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
