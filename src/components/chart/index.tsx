@@ -7,12 +7,14 @@ import { Play } from '@/assets/icons/Icon';
 import './index.scss';
 
 const CHART = ({
+    pQueryList,
     pChartAixsList,
     pIsVertical,
     pDisplay,
     pSqlQueryTxt,
     pSizes,
 }: {
+    pQueryList: string[] | [];
     pChartAixsList: string[];
     pIsVertical: boolean;
     pDisplay: string;
@@ -48,7 +50,7 @@ const CHART = ({
     };
 
     useEffect(() => {
-        if (chartRef && chartRef.current && !!pSqlQueryTxt()) {
+        if (chartRef && chartRef.current && !!pSqlQueryTxt() && pQueryList.length > 0) {
             getChartData({
                 width: chartRef.current.clientWidth,
                 height: chartRef.current.clientHeight - sControlPanelHeight,
@@ -98,7 +100,7 @@ const CHART = ({
 
     return pDisplay === '' ? (
         <div ref={chartRef} className="chart-wrapper" style={{ height: 'calc(100% - 40px)' }}>
-            {pChartAixsList.length > 0 ? (
+            {pChartAixsList.length > 0 && pQueryList.length > 0 ? (
                 <>
                     <div className="chart-control" style={{ height: `${sControlPanelHeight}px` }}>
                         {sControlList.map((aControl: string) => {

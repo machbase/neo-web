@@ -40,6 +40,7 @@ const Sql = ({
     const sEditorRef = useRef(null);
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
     const [sChartAxisList, setChartAxisList] = useState<string[]>([]);
+    const [sChartQueryList, setChartQueryList] = useState<string[]>([]);
     const sSaveCommand = useRef<any>(null);
     const sNavi = useRef(null);
     const [sSqlLocation, setSqlLocation] = useState<{
@@ -136,6 +137,10 @@ const Sql = ({
                 sSqlResult.data.data.columns[1] += ` (${sAddTimezoneTxt})`;
             }
 
+            const sLowerQuery = parsedQuery.toLowerCase();
+            if (!sLowerQuery.includes('delete') && !sLowerQuery.includes('update') && !sLowerQuery.includes('insert')) {
+                setChartQueryList([parsedQuery]);
+            } else setChartQueryList([]);
             if (sSqlResult.data.data) setChartAxisList(sSqlResult.data.data.columns);
             setResultLimit(2);
             setSqlResponseData(sSqlResult.data.data);
@@ -278,6 +283,7 @@ const Sql = ({
                         <RESULT pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'} pSqlResponseData={sSqlResponseData} onMoreResult={() => onMoreResult()} />
                         <LOG pDisplay={sSelectedSubTab === 'LOG' ? '' : 'none'} pLogList={sLogList} onClearLog={() => onClearLog()} />
                         <CHART
+                            pQueryList={sChartQueryList}
                             pDisplay={sSelectedSubTab === 'CHART' ? '' : 'none'}
                             pChartAixsList={sChartAxisList}
                             pIsVertical={isVertical}
