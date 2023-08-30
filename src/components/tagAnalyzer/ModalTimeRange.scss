@@ -64,6 +64,9 @@
                     position: absolute;
                     top: 30px;
                     right: 60px;
+                    input {
+                        filter: invert(1);
+                    }
                 }
                 .date-picker {
                     width: 200px;

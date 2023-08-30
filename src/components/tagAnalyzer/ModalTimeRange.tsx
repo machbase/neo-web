@@ -9,6 +9,9 @@ import 'react-datepicker/dist/react-datepicker.css';
 import moment from 'moment';
 import OutsideClickHandler from 'react-outside-click-handler';
 import { TextButton } from '../buttons/TextButton';
+import { Input } from '@/components/inputs/Input';
+import { convertTimeToFullDate } from '@/utils/helpers/date';
+
 const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
     const sTimeRange: any = TIME_RANGE;
 
@@ -48,8 +51,8 @@ const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
     };
 
     const handleQuickTime = (aValue: any) => {
-        setStartTime(aValue.value[0]);
-        setEndTime(aValue.value[1]);
+        setStartTime(convertTimeToFullDate(aValue.value[0]));
+        setEndTime(convertTimeToFullDate(aValue.value[1]));
     };
 
     const setGlobalTime = () => {
@@ -94,19 +97,22 @@ const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
                         <div className="from">
                             <span className="span-from">From</span>
                             {sStartTime !== undefined && (
-                                <input
-                                    type="text"
-                                    onChange={(aEvent: any) => handleStartTime(aEvent.target.value)}
-                                    value={typeof sStartTime === 'string' ? sStartTime : moment(sStartTime).format('yyyy-MM-DD HH:mm:ss')}
-                                    className="date-picker"
-                                    onClick={() => setIsStart(true)}
-                                />
+                                <div onClick={() => setIsStart(true)}>
+                                    <Input
+                                        pWidth={210}
+                                        pHeight={30}
+                                        onChange={(aEvent: any) => handleStartTime(aEvent.target.value)}
+                                        pValue={typeof sStartTime === 'string' ? sStartTime : moment(sStartTime).format('yyyy-MM-DD HH:mm:ss')}
+                                        pSetValue={() => null}
+                                    />
+                                </div>
                             )}
                             {sIsStart && (
                                 <OutsideClickHandler onOutsideClick={() => setIsStart(false)}>
                                     <DatePicker
+                                        selected={typeof sStartTime === 'string' && sStartTime.includes('now') ? moment(sStartTime).format('yyyy-MM-DD HH:mm:ss') : sStartTime}
                                         calendarClassName="modal-date-picker"
-                                        timeInputLabel=""
+                                        timeInputLabel="Time: "
                                         onChange={(date: any) => handleStartTime(date)}
                                         dateFormat="yyyy-MM-dd HH:mm:ss"
                                         showTimeInput
@@ -118,19 +124,22 @@ const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
                         <div className="to">
                             <span className="span-to">To </span>
                             {sEndTime !== undefined && (
-                                <input
-                                    type="text"
-                                    onChange={(aEvent: any) => handleEndTime(aEvent.target.value)}
-                                    value={typeof sEndTime === 'string' ? sEndTime : moment(sEndTime).format('yyyy-MM-DD HH:mm:ss')}
-                                    onClick={() => setIsEnd(true)}
-                                    className="date-picker"
-                                />
+                                <div onClick={() => setIsEnd(true)}>
+                                    <Input
+                                        pWidth={210}
+                                        pHeight={30}
+                                        onChange={(aEvent: any) => handleStartTime(aEvent.target.value)}
+                                        pValue={typeof sEndTime === 'string' ? sEndTime : moment(sEndTime).format('yyyy-MM-DD HH:mm:ss')}
+                                        pSetValue={() => null}
+                                    />
+                                </div>
                             )}
                             {sIsEnd && (
                                 <OutsideClickHandler onOutsideClick={() => setIsEnd(false)}>
                                     <DatePicker
+                                        selected={typeof sEndTime === 'string' && sEndTime.includes('now') ? moment(sEndTime).format('yyyy-MM-DD HH:mm:ss') : sEndTime}
                                         calendarClassName="modal-date-picker"
-                                        timeInputLabel=""
+                                        timeInputLabel="Time: "
                                         onChange={(date: any) => handleEndTime(date)}
                                         dateFormat="yyyy-MM-dd HH:mm:ss"
                                         showTimeInput
