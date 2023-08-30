@@ -1,3 +1,4 @@
+import { Input } from '@/components/inputs/Input';
 import './General.scss';
 const General = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const getCheckboxValue = (aEvent: any, aType: string) => {
@@ -13,7 +14,13 @@ const General = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
             <div className="first-row">
                 <div className="chart-title">
                     <div className="title-text">Chart Title</div>
-                    <input defaultValue={pPanelInfo.chart_title} onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, chart_title: aEvent.target.value })} type="text" />
+                    <Input
+                        pWidth={180}
+                        pHeight={28}
+                        pValue={pPanelInfo.chart_title}
+                        pSetValue={() => null}
+                        onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, chart_title: aEvent.target.value })}
+                    />
                 </div>
             </div>
             <div className="second-row">

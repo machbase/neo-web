@@ -110,21 +110,10 @@
             background-color: transparent;
             width: 100%;
             display: flex;
+            gap: 10px;
 
-            .combobox-select {
-                margin-right: 8px;
-                border-radius: 8px;
-                width: 90%;
-                padding: 0 4px !important;
-                background-color: rgba(38, 40, 49, 0.5);
-                border: solid 0.5px rgba(255, 255, 255, 0.5);
-                color: #ffffff;
-                height: 34px;
-                display: flex;
-                align-items: center;
-            }
             .search {
-                width: 34px;
+                min-width: 34px;
                 justify-content: center;
                 display: flex;
                 align-items: center;

@@ -2,6 +2,8 @@ import './Display.scss';
 import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
+import { Input } from '@/components/inputs/Input';
+
 const Display = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const changeChartType = (aValue: string) => {
         if (aValue === 'Zone') {
@@ -56,15 +58,36 @@ const Display = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
             <div className="second-row">
                 <div>
                     <span>Point Radius</span>
-                    <input value={pPanelInfo.point_radius} onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, point_radius: aEvent.target.value })} type="number" />
+                    <Input
+                        pWidth={150}
+                        pHeight={28}
+                        pValue={pPanelInfo.point_radius}
+                        pSetValue={() => null}
+                        pType="number"
+                        onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, point_radius: aEvent.target.value })}
+                    />
                 </div>
                 <div>
                     <span>Opacity Of Fill Area</span>
-                    <input value={pPanelInfo.fill} onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, fill: aEvent.target.value })} type="number" />
+                    <Input
+                        pWidth={150}
+                        pHeight={28}
+                        pValue={pPanelInfo.fill}
+                        pSetValue={() => null}
+                        pType="number"
+                        onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, fill: aEvent.target.value })}
+                    />
                 </div>
                 <div>
                     <span>Line Thickness</span>
-                    <input value={pPanelInfo.stroke} onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, stroke: aEvent.target.value })} type="number" />
+                    <Input
+                        pWidth={150}
+                        pHeight={28}
+                        pValue={pPanelInfo.stroke}
+                        pSetValue={() => null}
+                        pType="number"
+                        onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, stroke: aEvent.target.value })}
+                    />
                 </div>
             </div>
         </div>
