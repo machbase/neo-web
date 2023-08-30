@@ -75,7 +75,6 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
     }, [monaco, pText, sSelectedTab]);
 
     const handleMount = (editor: any) => {
-        console.log('handleMount');
         setEditor(editor);
         editor.focus();
     };
