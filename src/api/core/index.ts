@@ -3,7 +3,7 @@ import { reLogin } from '@/api/repository/login';
 
 // Define custom type for headers
 interface CustomHeaders {
-    [key: string]: string;
+    [key: string]: any;
 }
 
 // Create an axios instance
@@ -45,6 +45,7 @@ request.interceptors.request.use(
             sHeaders['Content-Type'] = 'text/plain';
         }
         if (config.url === '/api/tql') {
+            sHeaders['X-Console-Id'] = localStorage.getItem('consoleId');
             sHeaders['Content-Type'] = 'text/plain';
         }
         if (sHeaders && config.url !== `${baseURL}/api/login` && config.url !== `${baseURL}/api/login`) {
@@ -53,6 +54,7 @@ request.interceptors.request.use(
                 sHeaders.Authorization = `Bearer ${accessToken}`;
             }
         }
+
         return config;
     },
     (error: AxiosError) => {

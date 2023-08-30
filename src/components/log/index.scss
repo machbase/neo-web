@@ -25,14 +25,4 @@
         overflow: auto;
         height: calc(100% - 36px);
     }
-    .log-body::-webkit-scrollbar {
-        width: 10px;
-        height: 5px;
-    }
-    .log-body::-webkit-scrollbar-track {
-        background: white;
-    }
-    .log-body::-webkit-scrollbar-thumb {
-        background: white;
-    }
 }

@@ -29,6 +29,11 @@ export const gSelectedTab = atom<string>({
     default: defaultId,
 });
 
+export const gConsoleList = atom<string>({
+    key: 'gConsoleList',
+    default: [] as any,
+});
+
 export const gSelectedExtension = atom<string>({
     key: 'gSelectedExtension',
     default: 'machbase-neo',

@@ -1,45 +1,17 @@
 import './index.scss';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRecoilState } from 'recoil';
+import { gConsoleList } from '@/recoil/recoil';
 
 const log = () => {
-    const sLogTab = ['Log', 'Terminal'];
-
+    const [sLogTab] = useState(['Log', 'Terminal']);
     const [selectedTab, setSelectedTab] = useState('Log');
+    const [sConsoleList] = useRecoilState<any>(gConsoleList);
+    const logRef = useRef<any>(null);
 
-    const sLog = [
-        '2023/07/31 13:49:17.242 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 13:49:46.034 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 13:49:55.445 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 13:50:01.420 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 13:50:12.620 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 13:50:25.856 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 13:50:40.470 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 13:52:51.766 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 13:56:32.551 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 13:56:32.552 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 14:03:13.990 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 14:03:30.674 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 14:04:15.349 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 14:06:26.601 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 14:11:35.550 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 14:16:35.783 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 14:17:41.068 WARN  sshd             session pull EOF',
-        '2023/07/31 14:17:41.068 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 14:18:25.555 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 14:18:32.882 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 14:18:41.802 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 15:21:10.191 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 15:22:52.045 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 15:23:08.569 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 15:23:16.138 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 15:33:17.245 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 15:44:06.539 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 15:44:43.843 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 15:45:32.494 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 15:50:26.356 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 15:50:43.664 WARN  sshd             session pull read |1: file already closed',
-        '2023/07/31 15:51:48.498 WARN  sshd             session pull read |1: file already closed',
-    ];
+    useEffect(() => {
+        if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight + logRef.current.clientHeight;
+    }, [sConsoleList]);
 
     const handleSelectedTab = (aValue: string) => {
         setSelectedTab(aValue);
@@ -55,14 +27,16 @@ const log = () => {
                     );
                 })}
             </div>
-            <div className="log-body">
-                {sLog.map((aItem, aIdx) => {
-                    return (
-                        <div style={{ fontSize: '14px', fontFamily: 'Consolas' }} key={aIdx}>
-                            {aItem}
-                        </div>
-                    );
-                })}
+            <div ref={logRef} className="log-body">
+                {sConsoleList.length > 0 &&
+                    sConsoleList.map((aItem: any, aIdx: number) => {
+                        return (
+                            <div style={{ fontSize: '14px', fontFamily: 'D2coding' }} key={aIdx}>
+                                <span style={aItem.level === 'ERROR' ? { color: 'rgb(228, 18, 18)' } : { color: '#20C997' }}>{aItem.level} </span>
+                                <span>{aItem.message}</span>
+                            </div>
+                        );
+                    })}
             </div>
         </div>
     );
