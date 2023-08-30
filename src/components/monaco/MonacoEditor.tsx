@@ -26,6 +26,18 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
     const [sCurrnetTab, setCurrentTab] = useState<any>();
     const [sEditor, setEditor] = useState<any>(null);
 
+    const sPositionDefaultValue = { column: 1, lineNumber: 1 };
+    const sSelectionDefaultValue = {
+        endColumn: 1,
+        endLineNumber: 1,
+        positionColumn: 1,
+        positionLineNumber: 1,
+        selectionStartColumn: 1,
+        selectionStartLineNumber: 1,
+        startColumn: 1,
+        startLineNumber: 1,
+    };
+
     const monacoOptions = {
         minimap: {
             enabled: false,
@@ -76,8 +88,8 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
             keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
             run: () =>
                 onRunCode(aText, {
-                    position: sEditor.getPosition(),
-                    selection: sEditor.getSelection(),
+                    position: sEditor ? sEditor.getPosition() : sPositionDefaultValue,
+                    selection: sEditor ? sEditor.getSelection() : sSelectionDefaultValue,
                 }),
         };
 
@@ -86,9 +98,10 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
 
     const selectionLine = () => {
         if (!monaco) return;
+
         onSelectLine({
-            position: sEditor.getPosition(),
-            selection: sEditor.getSelection(),
+            position: sEditor ? sEditor.getPosition() : sPositionDefaultValue,
+            selection: sEditor ? sEditor.getSelection() : sSelectionDefaultValue,
         });
     };
 
