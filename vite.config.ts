@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-const TestTarget = 'http://192.168.1.137:5654';
+const TestTarget = '192.168.1.137:5654';
 
 export default defineConfig({
     plugins: [react()],
@@ -16,37 +16,37 @@ export default defineConfig({
     server: {
         proxy: {
             '/web/echarts': {
-                target: `${TestTarget}`,
+                target: `http://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
                 ws: false,
             },
             '/web/api': {
-                target: `${TestTarget}`,
+                target: `http://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
                 ws: false,
             },
             '/web/machbase': {
-                target: `${TestTarget}`,
+                target: `http://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
                 ws: false,
             },
             '/web/tutorials': {
-                target: `${TestTarget}`,
+                target: `http://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
                 ws: false,
             },
             '/web/api/term': {
-                target: `ws://127.0.0.1:5654/`,
+                target: `ws://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
                 ws: true,
             },
             '/web/api/console': {
-                target: `ws://127.0.0.1:5654/`,
+                target: `ws://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
                 ws: true,

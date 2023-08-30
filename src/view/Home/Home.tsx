@@ -128,15 +128,17 @@ const Home = () => {
                                         pGetPath={getPath}
                                     ></Body>
                                 </Pane>
-                                <div
-                                    style={{
-                                        borderTop: '1px solid #3C4549',
-                                        width: '100%',
-                                        height: '100%',
-                                    }}
-                                >
-                                    <Log></Log>
-                                </div>
+                                <Pane minSize={40}>
+                                    <div
+                                        style={{
+                                            borderTop: '1px solid #3C4549',
+                                            width: '100%',
+                                            height: '100%',
+                                        }}
+                                    >
+                                        <Log pTerminalSizes={sTerminalSizes} pSetTerminalSizes={setTerminalSizes}></Log>
+                                    </div>
+                                </Pane>
                             </SplitPane>
                         </div>
                     </Pane>

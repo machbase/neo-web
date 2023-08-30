@@ -3,6 +3,21 @@
     height: 100%;
     background-color: #262831;
     padding: 2px 0 0 12px;
+    .log-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        .log-header-right {
+            padding-right: 12px;
+            svg {
+                color: #c4c4c4;
+                cursor: pointer;
+            }
+            svg:hover {
+                color: #f8f8f8;
+            }
+        }
+    }
     .log-form-tab {
         display: flex;
         height: 36px;
