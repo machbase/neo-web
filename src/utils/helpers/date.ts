@@ -9,7 +9,7 @@ const _convertTimeToObject = (aDuration: any) => {
     else if (Math.floor(tM) > 0) return { IntervalType: 'min', IntervalValue: Math.ceil(tM) };
     else return { IntervalType: 'sec', IntervalValue: aDuration || 1 };
 };
-const _convertTimeToFullDate = (aTime: string) => {
+const convertTimeToFullDate = (aTime: string) => {
     if (typeof aTime !== 'string') {
         return aTime;
     }
@@ -31,8 +31,8 @@ const setTimeRange = (aPanelInfo: any, aDashboard: any) => {
             endTime: aPanelInfo.default_range.max,
         };
     }
-    const startTime = _convertTimeToFullDate(aPanelInfo.range_bgn || aDashboard.range_bgn || timeRange.startTime);
-    const endTime = _convertTimeToFullDate(aPanelInfo.range_end || aDashboard.range_end || timeRange.endTime);
+    const startTime = convertTimeToFullDate(aPanelInfo.range_bgn || aDashboard.range_bgn || timeRange.startTime);
+    const endTime = convertTimeToFullDate(aPanelInfo.range_end || aDashboard.range_end || timeRange.endTime);
 
     return { startTime, endTime };
 };
@@ -212,4 +212,4 @@ const convertDurationToSecond = (aDuration: any) => {
     }
 };
 
-export { stringParseNewDate, changeUtcToText, setChangeUtcTime, setUtcTime, getIntervalTime, getDateRange, changeTextToUtc, convertDurationToSecond };
+export { stringParseNewDate, changeUtcToText, setChangeUtcTime, setUtcTime, getIntervalTime, getDateRange, changeTextToUtc, convertDurationToSecond, convertTimeToFullDate };

@@ -50,7 +50,6 @@
                 align-items: center;
                 margin-right: 40px;
                 display: flex;
-                input,
                 .select-option {
                     display: flex;
                     align-items: center;
@@ -60,11 +59,6 @@
                     color: #f8f8f8;
 
                     border-radius: 4px;
-                }
-
-                input {
-                    padding: 0 4px;
-                    height: 24px;
                 }
                 select {
                     option {

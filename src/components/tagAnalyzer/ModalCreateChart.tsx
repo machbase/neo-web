@@ -12,6 +12,7 @@ import { getId } from '@/utils';
 import { BiSolidChart, Close, Search, ArrowDown, ArrowLeft, ArrowRight } from '@/assets/icons/Icon';
 import { Error } from '@/components/toast/Toast';
 import { TextButton } from '../buttons/TextButton';
+import { Input } from '../inputs/Input';
 
 const ModalCreateChart = ({ pCloseModal }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
@@ -25,6 +26,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
     const [sSelectedTag, setSelectedTag] = useState<any[]>([]);
     const [sRollupTable, setRollupTable] = useState<boolean>(false);
     const [sSelectedChartType, setSelectedChartType] = useState<string>('Zone');
+    const [sTagInputValue, setTagInputValue] = useState<string>('');
 
     const avgMode = [
         { key: 'Min', value: 'min' },
@@ -252,7 +254,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                         <div className="tag-form">
                             <div className="filter-form-tag">
                                 <div className="tag-input-form">
-                                    <input onChange={filterTag} type="text" className="combobox-select" />
+                                    <Input pValue={sTagInputValue} pSetValue={setTagInputValue} pIsFullWidth pHeight={36} onChange={filterTag} />
                                     <button className="search">
                                         <Search size={18} />
                                     </button>

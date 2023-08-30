@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PlusCircle, Close, ArrowDown } from '@/assets/icons/Icon';
+import { Input } from '@/components/inputs/Input';
 import AddTag from './AddTag';
 import './Data.scss';
 const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
@@ -60,11 +61,23 @@ const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                                         Tag Names
                                         <span style={{ fontSize: '10px', marginLeft: '4px', marginBottom: '2px' }}>({aItem.table})</span>
                                     </span>
-                                    <input defaultValue={aItem.tagName} onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'tagName')} type="text" />
+                                    <Input
+                                        pWidth={120}
+                                        pHeight={24}
+                                        pValue={aItem.tagName}
+                                        pSetValue={() => null}
+                                        onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'tagName')}
+                                    />
                                 </div>
                                 <div className="alias">
                                     <span className="alias-title">Alias</span>
-                                    <input onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'alias')} defaultValue={aItem.alias} type="text" />
+                                    <Input
+                                        pWidth={120}
+                                        pHeight={24}
+                                        pValue={aItem.alias}
+                                        pSetValue={() => null}
+                                        onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'alias')}
+                                    />
                                 </div>
                             </div>
                             <div className="close">{pPanelInfo.tag_set.length !== 1 && <Close onClick={() => removeTag(aItem.key)} color="#f8f8f8"></Close>}</div>
