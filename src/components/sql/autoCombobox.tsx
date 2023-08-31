@@ -84,7 +84,7 @@ const AUTOCOMBOBOX = ({ pName, pList, pTarget, pCallback }: { pName: string; pLi
 
     return (
         <div className="auto-combo-box-wraper">
-            <div onClick={() => onOpenContent()} onKeyDown={handleKeyDown}>
+            <div className="combo-box-header-wrapper" onClick={() => onOpenContent()} onKeyDown={handleKeyDown}>
                 <input className={`combo-box-header-${pName} combo-box-header`} value={sFilterTxt} onChange={onTypingTxt} />
             </div>
             {!sIsShow || (

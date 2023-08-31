@@ -9,10 +9,11 @@ import { fetchOnMinMaxTable, fetchOnRollupTable, fetchRangeData, fetchTableName,
 import { DEFAULT_CHART } from '@/utils/constants';
 import { convertChartDefault } from '@/utils/utils';
 import { getId } from '@/utils';
-import { BiSolidChart, Close, Search, ArrowDown, ArrowLeft, ArrowRight } from '@/assets/icons/Icon';
+import { BiSolidChart, Close, Search, ArrowLeft, ArrowRight } from '@/assets/icons/Icon';
 import { Error } from '@/components/toast/Toast';
 import { TextButton } from '../buttons/TextButton';
-import { Input } from '../inputs/Input';
+import { Input } from '@/components/inputs/Input';
+import { Select } from '@/components/inputs/Select';
 
 const ModalCreateChart = ({ pCloseModal }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
@@ -191,7 +192,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
     };
 
     return (
-        <div className="modal-form">
+        <div className="modal-form-chart">
             <div className="inner-form">
                 <div className="header">
                     <div className="header-title">
@@ -206,16 +207,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                     <div className="table-select">
                         <div className="title">Table</div>
                         <div className="combobox-select">
-                            <select onChange={changedTable} className="input">
-                                {sTables.map((aItem: string, aIdx: number) => {
-                                    return (
-                                        <option value={aItem} key={aIdx} className="combobox-select__item">
-                                            {aItem}
-                                        </option>
-                                    );
-                                })}
-                            </select>
-                            <ArrowDown />
+                            <Select pIsFullWidth pInitValue={sTables[0]} pHeight={32} onChange={changedTable} pOptions={sTables} />
                         </div>
                     </div>
                     {!sRollupTable && <p>* The table is show because the roll-up table is not generated.</p>}
@@ -305,27 +297,13 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                                                     key={aItem.key}
                                                 >
                                                     <div>{aItem.tagName}</div>
-                                                    <div className="inner-select">
-                                                        <select
-                                                            onClick={(aEvent) => {
-                                                                aEvent.stopPropagation();
-                                                            }}
-                                                            onChange={(aEvent: any) => {
-                                                                setTagMode(aEvent, aItem);
-                                                            }}
-                                                            defaultValue={'avg'}
-                                                            className="input"
-                                                        >
-                                                            {avgMode.map((bItem: any) => {
-                                                                return (
-                                                                    <option key={bItem.value} value={bItem.value}>
-                                                                        {bItem.key}
-                                                                    </option>
-                                                                );
-                                                            })}
-                                                        </select>
-                                                        <ArrowDown />
-                                                    </div>
+                                                    <Select
+                                                        pWidth={70}
+                                                        pHeight={25}
+                                                        pInitValue="avg"
+                                                        onChange={(aEvent) => setTagMode(aEvent, aItem)}
+                                                        pOptions={avgMode.map((aItem) => aItem.value)}
+                                                    />
                                                 </button>
                                             );
                                         })}

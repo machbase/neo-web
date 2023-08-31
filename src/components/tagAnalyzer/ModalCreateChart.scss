@@ -1,4 +1,4 @@
-.modal-form {
+.modal-form-chart {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -63,30 +63,7 @@
             opacity: 0.5;
         }
         .combobox-select {
-            border-radius: 8px;
             width: 80%;
-            background-color: rgba(38, 40, 49, 0.5);
-            border: solid 0.5px rgba(255, 255, 255, 0.5);
-            color: #ffffff;
-            height: 34px;
-            display: flex;
-            align-items: center;
-            padding: 0 !important;
-            .input {
-                padding: 0 8px;
-                background-color: transparent;
-                border: none;
-                width: calc(100% - 16px);
-                height: 100%;
-                color: white;
-                option {
-                    background: #333644 !important;
-                    border-radius: 0;
-                }
-            }
-            svg {
-                font-size: 16px;
-            }
         }
     }
     .tag-select {
@@ -149,33 +126,10 @@
                         border: none;
                         display: flex;
                         justify-content: space-between;
+                        gap: 5px;
                         color: white;
                         padding: 0 8px;
                         padding-bottom: 4px;
-                    }
-                    .inner-select {
-                        background-color: #404457;
-                        border-radius: 4px;
-                        border: solid 0.5px rgba(255, 255, 255, 0.5);
-                        display: flex;
-                        align-items: center;
-                        select {
-                            font-size: 12px;
-                            padding: 4px;
-                            justify-content: space-between;
-                            border: none;
-                            background-color: transparent;
-                            color: white;
-                            font-weight: 400;
-                            width: calc(100% - 16px);
-                            option {
-                                background: #333644 !important;
-                                border-radius: 0;
-                            }
-                        }
-                        svg {
-                            font-weight: 16px;
-                        }
                     }
                 }
                 .bottom-page {

@@ -211,12 +211,8 @@ const Sql = ({
                     >
                         <IconButton pIcon={<Play />} onClick={checkCtrl} />
                         <div className="sql-option-ctr">
-                            <div style={{ marginRight: '8px' }}>
-                                <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
-                            </div>
-                            <div style={{ marginRight: '8px' }}>
-                                <AUTOCOMBOBOX pName="sTimeZone" pList={IANA_TIMEZONES} pTarget={sTimeZone} pCallback={setTimeZone} />
-                            </div>
+                            <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
+                            <AUTOCOMBOBOX pName="sTimeZone" pList={IANA_TIMEZONES} pTarget={sTimeZone} pCallback={setTimeZone} />
                             <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
                             <IconButton pIcon={<SaveAs />} onClick={pHandleSaveModalOpen} />
                         </div>

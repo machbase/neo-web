@@ -196,7 +196,7 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                                         );
                                     })}
                         </select>
-                        <ArrowDown></ArrowDown>
+                        <ArrowDown />
                     </div>
                     <div style={pPanelInfo.use_right_y2 !== 'Y' ? { opacity: '0.6' } : {}} className="selected-tag-list">
                         {pPanelInfo.tag_set.filter((aItem: any) => aItem.use_y2 === 'Y').length > 0 &&
