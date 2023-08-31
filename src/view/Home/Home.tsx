@@ -2,7 +2,7 @@ import Extension from '@/components/extension/index';
 import Side from '@/components/side/Side';
 import './Home.scss';
 import SplitPane, { Pane } from 'split-pane-react';
-import Log from '@/components/log/index';
+import Console from '@/components/console/index';
 import 'split-pane-react/esm/themes/default.css';
 import { useEffect, useState, useRef } from 'react';
 import { getLogin } from '@/api/repository/login';
@@ -136,7 +136,7 @@ const Home = () => {
                                             height: '100%',
                                         }}
                                     >
-                                        <Log pTerminalSizes={sTerminalSizes} pSetTerminalSizes={setTerminalSizes}></Log>
+                                        <Console pTerminalSizes={sTerminalSizes} pSetTerminalSizes={setTerminalSizes}></Console>
                                     </div>
                                 </Pane>
                             </SplitPane>

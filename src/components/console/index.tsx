@@ -4,24 +4,24 @@ import { useRecoilState } from 'recoil';
 import { gConsoleList } from '@/recoil/recoil';
 import { VscChevronDown, VscChevronRight, VscChevronUp } from '@/assets/icons/Icon';
 
-const log = ({ pSetTerminalSizes, pTerminalSizes }: any) => {
-    const [sLogTab] = useState(['Console']);
+const Console = ({ pSetTerminalSizes, pTerminalSizes }: any) => {
+    const [sConsoleTab] = useState(['Console']);
     const [selectedTab, setSelectedTab] = useState('Console');
     const [sConsoleList] = useRecoilState<any>(gConsoleList);
-    const logRef = useRef<any>(null);
+    const consoleRef = useRef<any>(null);
 
     useEffect(() => {
-        if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight + logRef.current.clientHeight;
+        if (consoleRef.current) consoleRef.current.scrollTop = consoleRef.current.scrollHeight + consoleRef.current.clientHeight;
     }, [sConsoleList]);
 
     const handleSelectedTab = (aValue: string) => {
         setSelectedTab(aValue);
     };
     return (
-        <div className="log-form">
-            <div className="log-header">
-                <div className="log-form-tab">
-                    {sLogTab.map((aItem: string, aIdx: number) => {
+        <div className="console-form">
+            <div className="console-header">
+                <div className="console-form-tab">
+                    {sConsoleTab.map((aItem: string, aIdx: number) => {
                         return (
                             <div key={aIdx} onClick={() => handleSelectedTab(aItem)}>
                                 <span style={selectedTab === aItem ? { borderBottom: '2px solid #005FB8' } : { opacity: 0.4 }}>{aItem}</span>
@@ -29,12 +29,12 @@ const log = ({ pSetTerminalSizes, pTerminalSizes }: any) => {
                         );
                     })}
                 </div>
-                <div className="log-header-right">
+                <div className="console-header-right">
                     {pTerminalSizes[1] === 40 && <VscChevronUp onClick={() => pSetTerminalSizes(['72%', '28%'])}></VscChevronUp>}
                     {pTerminalSizes[1] !== 40 && <VscChevronDown onClick={() => pSetTerminalSizes(['', 40])}></VscChevronDown>}
                 </div>
             </div>
-            <div ref={logRef} className="log-body">
+            <div ref={consoleRef} className="console-body">
                 {sConsoleList.length > 0 &&
                     sConsoleList.map((aItem: any, aIdx: number) => {
                         return (
@@ -52,4 +52,4 @@ const log = ({ pSetTerminalSizes, pTerminalSizes }: any) => {
     );
 };
 
-export default log;
+export default Console;
