@@ -17,16 +17,7 @@ import { PositionType, SelectionType, sqlQueryParser } from '@/utils/sqlQueryPar
 import { MonacoEditor } from '../monaco/MonacoEditor';
 import { IconButton } from '@/components/buttons/IconButton';
 
-const Sql = ({
-    pInfo,
-    pHandleSaveModalOpen,
-    setIsSaveModal,
-}: {
-    pInfo: any;
-    pHandleSaveModalOpen: any;
-    setIsSaveModal: (aValue: boolean) => void;
-    setIsOpenModal: (aValue: boolean) => void;
-}) => {
+const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHandleSaveModalOpen: any; setIsSaveModal: (aValue: boolean) => void }) => {
     // const monaco = useMonaco();
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
@@ -164,10 +155,6 @@ const Sql = ({
         setMoreResult(true);
     };
 
-    const handleSaveModalOpen = () => {
-        setIsSaveModal(true);
-    };
-
     const fetchMoreResult = async () => {
         const paredQuery = getTargetQuery();
         const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery, sResultLimit, sTimeRange, sTimeZone));
@@ -214,7 +201,7 @@ const Sql = ({
                             <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
                             <AUTOCOMBOBOX pName="sTimeZone" pList={IANA_TIMEZONES} pTarget={sTimeZone} pCallback={setTimeZone} />
                             <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
-                            <IconButton pIcon={<SaveAs />} onClick={pHandleSaveModalOpen} />
+                            <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
                         </div>
                     </div>
                     <div ref={sEditorRef} style={{ height: 'calc(100% - 40px)', width: '100%' }}>
