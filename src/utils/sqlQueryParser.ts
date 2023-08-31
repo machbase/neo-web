@@ -124,8 +124,6 @@ export const sqlQueryParser = (aQueryTxt: string, aPosition: PositionType, aSele
     if (isBlankQuery(aQueryTxt)) return '';
     if (!aPosition) return '';
     if (!aSelection) return '';
-    console.log(aPosition);
-    console.log(aSelection);
     const sSplitQueryList = JSON.parse(JSON.stringify(aQueryTxt)).split('\n');
     if (isSelectAnnotationLine(sSplitQueryList, aPosition)) return '';
     const sNoAnnotationList = removeAnnotation(sSplitQueryList);
