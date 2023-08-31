@@ -141,6 +141,66 @@ test.each([
         { endColumn: 66, endLineNumber: 1, positionColumn: 66, positionLineNumber: 1, selectionStartColumn: 66, selectionStartLineNumber: 1, startColumn: 66, startLineNumber: 1 },
         `select min(time), max(time) from example where name = 'wave.sin'`,
     ],
+    [
+        `주석이 여러개 있을 때 현재 커서가 포커싱 된 행이 정상적으로 실행 되는가 - https://github.com/machbase/neo/issues/399`,
+        `-- Create "example" table
+        CREATE TAG TABLE IF NOT EXISTS example (
+            name varchar(100) primary key,
+            time dateTime basetime,
+            value double
+        ); 
+        
+        -- Insert records
+        INSERT INTO example VALUES('my-car', now, 1.2345);
+        INSERT INTO example VALUES('my-car', now, 1.2345 * 1.1); 
+        INSERT INTO example VALUES('my-car', now, 1.2345 * 1.2);
+        INSERT INTO example VALUES('my-car', now, 1.2345 * 1.3);         
+        
+        -- Select records 1
+        SELECT time, value FROM example WHERE name = 'my-car';`,
+        { lineNumber: 15, column: 55 },
+        {
+            endColumn: 55,
+            endLineNumber: 15,
+            positionColumn: 55,
+            positionLineNumber: 15,
+            selectionStartColumn: 55,
+            selectionStartLineNumber: 15,
+            startColumn: 55,
+            startLineNumber: 15,
+        },
+        `SELECT time, value FROM example WHERE name = 'my-car'`,
+    ],
+    [
+        `; 이후 공백이 있는 쿼리에 대한 쿼리 실행이 정상적으로 수행되는가 - https://github.com/machbase/neo/issues/399`,
+        `-- Create "example" table
+        CREATE TAG TABLE IF NOT EXISTS example (
+            name varchar(100) primary key,
+            time dateTime basetime,
+            value double
+        ); 
+        
+        -- Insert records
+        INSERT INTO example VALUES('my-car', now, 1.2345);
+        INSERT INTO example VALUES('my-car', now, 1.2345 * 1.1); 
+        INSERT INTO example VALUES('my-car', now, 1.2345 * 1.2);
+        INSERT INTO example VALUES('my-car', now, 1.2345 * 1.3);         
+        
+        -- Select records 1
+        SELECT time, value FROM example WHERE name = 'my-car';`,
+        { lineNumber: 12, column: 66 },
+        {
+            endColumn: 66,
+            endLineNumber: 12,
+            positionColumn: 66,
+            positionLineNumber: 12,
+            selectionStartColumn: 66,
+            selectionStartLineNumber: 12,
+            startColumn: 66,
+            startLineNumber: 12,
+        },
+        `INSERT INTO example VALUES('my-car', now, 1.2345 * 1.3)`,
+    ],
 ])('SQL - %s', (_, aQueryText, aPosition, aSelection, expected) => {
     expect(sqlQueryParser(aQueryText, aPosition, aSelection)).toEqual(expected);
 });
