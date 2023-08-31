@@ -2,7 +2,7 @@ name: auto Build
 
 on:
     pull_request:
-        branches: [main, dev_*]
+        branches: [main, dev*]
 
 jobs:
     test:
