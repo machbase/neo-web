@@ -8,8 +8,7 @@ import { postTerminalSize } from '../../api/repository/machiot';
 import Theme from '@/assets/ts/xtermTheme';
 
 import './Shell.scss';
-import { useRecoilState } from 'recoil';
-import { gSelectedTab } from '@/recoil/recoil';
+import { getLogin } from '@/api/repository/login';
 
 interface ShellProps {
     pId: string;
@@ -57,56 +56,60 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
         }
     });
 
-    const init = () => {
-        const term = document.getElementById('term_view' + pId);
-        sTermId = new Date().getTime();
+    const init = async () => {
+        const sResult: any = await getLogin();
 
-        if (window.location.protocol.indexOf('https') === -1) {
-            sWebSoc = new WebSocket(`ws://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${'&shell=' + pInfo.shell.id}`);
-        } else {
-            sWebSoc = new WebSocket(`wss://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${'&shell=' + pInfo.shell.id}`);
-        }
+        if (sResult.reason === 'success') {
+            const term = document.getElementById('term_view' + pId);
+            sTermId = new Date().getTime();
 
-        if (term) {
-            sFitter = new FitAddon();
-            sTerm.loadAddon(new WebglAddon());
-            sTerm.loadAddon(new WebLinksAddon());
-            sTerm.loadAddon(new AttachAddon(sWebSoc, { bidirectional: true }));
-            sTerm.loadAddon(sFitter);
+            if (window.location.protocol.indexOf('https') === -1) {
+                sWebSoc = new WebSocket(`ws://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${'&shell=' + pInfo.shell.id}`);
+            } else {
+                sWebSoc = new WebSocket(`wss://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${'&shell=' + pInfo.shell.id}`);
+            }
 
-            sTerm.attachCustomKeyEventHandler((event) => {
-                if (event.ctrlKey && event.shiftKey && event.keyCode == 67) {
-                    event.preventDefault();
+            if (term) {
+                sFitter = new FitAddon();
+                sTerm.loadAddon(new WebglAddon());
+                sTerm.loadAddon(new WebLinksAddon());
+                sTerm.loadAddon(new AttachAddon(sWebSoc, { bidirectional: true }));
+                sTerm.loadAddon(sFitter);
 
-                    document.execCommand('copy');
-                    return false;
-                } else {
-                    return true;
-                }
-            });
+                sTerm.attachCustomKeyEventHandler((event) => {
+                    if (event.ctrlKey && event.shiftKey && event.keyCode == 67) {
+                        event.preventDefault();
 
-            sTerm.open(term);
-            sTerm.focus();
+                        document.execCommand('copy');
+                        return false;
+                    } else {
+                        return true;
+                    }
+                });
 
-            sTerm.onResize((aSize: { cols: number; rows: number }) => {
-                onSendReSizeInfo(aSize);
-            });
+                sTerm.open(term);
+                sTerm.focus();
 
-            setTimeout(() => {
-                try {
-                    sFitter && sFitter.fit();
-                    sResizeObserver.observe(term);
-                } catch (err) {
-                    console.log(err);
-                }
-            }, 400);
+                sTerm.onResize((aSize: { cols: number; rows: number }) => {
+                    onSendReSizeInfo(aSize);
+                });
+
+                setTimeout(() => {
+                    try {
+                        sFitter && sFitter.fit();
+                        sResizeObserver.observe(term);
+                    } catch (err) {
+                        console.log(err);
+                    }
+                }, 400);
+            }
         }
     };
     useEffect(() => {
         init();
 
         return () => {
-            sWebSoc.close();
+            sWebSoc && sWebSoc.close();
         };
     }, []);
 

@@ -7,7 +7,6 @@ import 'split-pane-react/esm/themes/default.css';
 import { useEffect, useState, useRef } from 'react';
 import { getLogin } from '@/api/repository/login';
 import Body from '@/components/editor/Body';
-import { useInterceptor } from '@/api/core/useInterceptor';
 import { getId } from '@/utils';
 import { useRecoilState } from 'recoil';
 import { gConsoleList } from '@/recoil/recoil';
@@ -26,22 +25,30 @@ const Home = () => {
 
     const sWebSoc: any = useRef(null);
 
-    const init = () => {
-        const sId = getId();
-        if (!sWebSoc.current) {
-            if (window.location.protocol.indexOf('https') === -1) {
-                sWebSoc.current = new WebSocket(`ws://${window.location.host}/web/api/console/${sId}/data?token=${localStorage.getItem('accessToken')}`);
-            } else {
-                sWebSoc.current = new WebSocket(`wss://${window.location.host}/web/api/console/${sId}/data?token=${localStorage.getItem('accessToken')}`);
+    const init = async () => {
+        const sResult = await getLogin();
+        if (sResult.reason === 'success') {
+            const sId = getId();
+            if (!sWebSoc.current) {
+                if (window.location.protocol.indexOf('https') === -1) {
+                    sWebSoc.current = new WebSocket(`ws://${window.location.host}/web/api/console/${sId}/data?token=${localStorage.getItem('accessToken')}`);
+                } else {
+                    sWebSoc.current = new WebSocket(`wss://${window.location.host}/web/api/console/${sId}/data?token=${localStorage.getItem('accessToken')}`);
+                }
+                let sCount = 0;
+                sWebSoc.current.onmessage = (aEvent: any) => {
+                    sCount++;
+                    JSON.parse(aEvent.data).type === 'log' && setText({ index: sCount, log: JSON.parse(aEvent.data).log });
+                };
+                sWebSoc.current.onopen = () => {
+                    localStorage.setItem('consoleId', sId);
+                };
+                sWebSoc.current.onclose = async () => {
+                    setTimeout(function () {
+                        init();
+                    }, 1000);
+                };
             }
-            let sCount = 0;
-            sWebSoc.current.onmessage = (event: any) => {
-                sCount++;
-                JSON.parse(event.data).type === 'log' && setText({ index: sCount, log: JSON.parse(event.data).log });
-            };
-            sWebSoc.current.onopen = () => {
-                localStorage.setItem('consoleId', sId);
-            };
         }
     };
 
@@ -55,14 +62,13 @@ const Home = () => {
         alignItems: 'center',
         justifyContent: 'center',
     };
-    const api = useInterceptor();
 
     const getPath = (aPath: any) => {
         setSavedPath(aPath);
     };
 
     const getInfo = async () => {
-        const sResult: any = await api(getLogin());
+        const sResult: any = await getLogin();
 
         setReferences(sResult.references);
         setServer(sResult.server);
@@ -96,7 +102,7 @@ const Home = () => {
     useEffect(() => {
         init();
         return () => {
-            sWebSoc.current.close();
+            sWebSoc.current && sWebSoc.current.close();
         };
     }, []);
 
