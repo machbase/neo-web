@@ -11,34 +11,22 @@ import icons from '@/utils/icons';
 import ConsoleTab from './ConsoleTab';
 
 const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => {
-    // setBoardList(
-    //     sBoardList.map((bItem) => {
-    //         return bItem.id === sSelectedTab
-    //             ? {
-    //                   ...bItem,
-    //                   type: aValue.type,
-    //                   name: aValue.label,
-    //                   panels: [],
-    //                   sheet: [],
-    //                   savedCode: false,
-    //                   shell: { icon: aValue.icon, theme: aValue.theme ? aValue.theme : '', id: aValue.id ? aValue.id : 'SHELL' },
-    //               }
-    //             : bItem;
-    //     })
-    // );
-
     const [sConsoleTab, setConsoleTab] = useState<any>([]);
     const [sSelectedTab, setSelectedTab] = useState('Console');
     const [sIsContextMenu, setIsContextMenu] = useState(false);
     const [sConsoleList] = useRecoilState<any>(gConsoleList);
     const MenuRef = useRef<HTMLDivElement>(null);
     const consoleRef = useRef<any>(null);
-
+    const [sNewLog, setNewLog] = useState(false);
     const onContextMenu = (e: React.MouseEvent) => {
         e.preventDefault();
         setIsContextMenu(true);
     };
     useEffect(() => {
+        setNewLog(true);
+        setTimeout(() => {
+            setNewLog(false);
+        }, 2000);
         if (consoleRef.current) consoleRef.current.scrollTop = consoleRef.current.scrollHeight + consoleRef.current.clientHeight;
     }, [sConsoleList]);
     useEffect(() => {
@@ -94,6 +82,8 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                 pDeleteConsoleTab={deleteConsoleTab}
                                 pSelectedTab={sSelectedTab}
                                 key={aIdx}
+                                pNewLog={sNewLog}
+                                pConsoleList={sConsoleList}
                                 pHandleSelectedTab={() => handleSelectedTab(aItem.id)}
                                 pTab={aItem}
                             ></ConsoleTab>

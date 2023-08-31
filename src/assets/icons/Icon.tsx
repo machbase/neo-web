@@ -10,11 +10,13 @@ export {
 
 export {
     VscChevronRight,
+    VscWarning,
     VscTerminalCmd as Cmd,
     VscSymbolFile,
     VscThreeBars,
     VscTerminal,
     VscNote,
+    VscPass,
     VscGraphLine,
     VscGear as Gear,
     VscFiles,
