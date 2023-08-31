@@ -56,11 +56,12 @@ const findVariableNParsedQuery = (aNoAnnotationList: string[]) => {
 const findStartNEndLine = (aSplitQueryList: string[], aSelection: SelectionType): { sStartLine: number; sEndLine: number } => {
     let sStartLine: number = aSelection.startLineNumber - 1;
     let sEndLine: number = aSelection.endLineNumber - 1;
+
     aSplitQueryList.map((aQuery: string, aIdx: number) => {
-        if (aQuery.includes('--') && aIdx <= sStartLine) {
+        if (aQuery.includes('--') && aIdx <= aSelection.startLineNumber - 1) {
             if (aQuery.split('--')[0].trim() === '') sStartLine -= 1;
         }
-        if (aQuery.includes('--') && aIdx <= sEndLine) {
+        if (aQuery.includes('--') && aIdx <= aSelection.endLineNumber - 1) {
             if (aQuery.split('--')[0].trim() === '') sEndLine -= 1;
         }
     });
@@ -73,7 +74,9 @@ const findCursorLength = (aNoAnnotationList: string[], aStartLine: number, aEndL
 
     aNoAnnotationList.map((aRow: string, aIdx: number) => {
         if (aStartLine <= aIdx && aIdx <= aEndLine) {
-            sSelectionLen = rTotalLen + aSelection.endColumn - 1 + aIdx;
+            if (aRow.trimEnd()[aRow.trimEnd().length - 1] === ';') {
+                sSelectionLen = rTotalLen + aSelection.endColumn - 1 + aIdx - (aRow.length - aRow.trimEnd().length);
+            } else sSelectionLen = rTotalLen + aSelection.endColumn - 1 + aIdx;
             if (sSelectionLen === 0) sSelectionLen = 1;
         }
         rTotalLen += aRow.length;
@@ -105,6 +108,7 @@ const findTargetQuery = (
                 });
             }
         }
+
         semiTotalLen += aRow.length + 1;
     });
 
@@ -120,6 +124,8 @@ export const sqlQueryParser = (aQueryTxt: string, aPosition: PositionType, aSele
     if (isBlankQuery(aQueryTxt)) return '';
     if (!aPosition) return '';
     if (!aSelection) return '';
+    console.log(aPosition);
+    console.log(aSelection);
     const sSplitQueryList = JSON.parse(JSON.stringify(aQueryTxt)).split('\n');
     if (isSelectAnnotationLine(sSplitQueryList, aPosition)) return '';
     const sNoAnnotationList = removeAnnotation(sSplitQueryList);
