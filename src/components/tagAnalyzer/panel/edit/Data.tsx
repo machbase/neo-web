@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { PlusCircle, Close, ArrowDown } from '@/assets/icons/Icon';
+import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input } from '@/components/inputs/Input';
 import AddTag from './AddTag';
 import './Data.scss';
+import { Select } from '@/components/inputs/Select';
 const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const [isModal, setIsModal] = useState(false);
 
@@ -43,18 +44,13 @@ const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                             <div className="set-mode">
                                 <div className="calc-mode">
                                     <span className="calc-mode-title">Calc Mode</span>
-                                    <div className="select-option">
-                                        <select onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'calculationMode')} defaultValue={aItem.calculationMode}>
-                                            {avgMode.map((bItem: any) => {
-                                                return (
-                                                    <option key={bItem.value} value={bItem.value}>
-                                                        {bItem.key}
-                                                    </option>
-                                                );
-                                            })}
-                                        </select>
-                                        <ArrowDown></ArrowDown>
-                                    </div>
+                                    <Select
+                                        pInitValue="avg"
+                                        pWidth={120}
+                                        pHeight={25}
+                                        onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'calculationMode')}
+                                        pOptions={avgMode.map((aItem) => aItem.value)}
+                                    />
                                 </div>
                                 <div className="tag-names">
                                     <span className="tag-names-title">

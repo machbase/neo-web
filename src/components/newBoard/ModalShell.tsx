@@ -5,7 +5,9 @@ import './ModalShell.scss';
 import icons from '@/utils/icons';
 import { Close } from '@/assets/icons/Icon';
 import { Success, Error } from '@/components/toast/Toast';
-import { TextButton } from '../buttons/TextButton';
+import { TextButton } from '@/components/buttons/TextButton';
+import { Input } from '@/components/inputs/Input';
+import { Select } from '@/components/inputs/Select';
 
 const ModalShell = ({ pGetInfo, pSetIsModal, pInfo }: any) => {
     const [sName, setName] = useState('');
@@ -69,25 +71,15 @@ const ModalShell = ({ pGetInfo, pSetIsModal, pInfo }: any) => {
                 <div className="edit-shell-info">
                     <div className="edit-shell-name">
                         <span>Name</span>
-                        <input value={sName} onChange={handleName} type="text" />
+                        <Input pWidth={210} pHeight={30} pValue={sName} pSetValue={() => null} onChange={handleName} />
                     </div>
                     <div className="edit-shell-command">
                         <span>Command</span>
-                        <input value={sCommand} onChange={handleCommand} type="text" />
+                        <Input pWidth={210} pHeight={30} pValue={sCommand} pSetValue={() => null} onChange={handleCommand} />
                     </div>
                     <div className="edit-shell-theme">
                         <span>Theme</span>
-                        {sTheme && (
-                            <select defaultValue={sTheme} onChange={handleTheme}>
-                                {sThemeList.map((aItem: any, aIdx: number) => {
-                                    return (
-                                        <option key={aIdx} value={aItem}>
-                                            {aItem}
-                                        </option>
-                                    );
-                                })}
-                            </select>
-                        )}
+                        {sTheme && <Select pWidth={210} pHeight={30} pInitValue={sTheme} onChange={handleTheme} pOptions={sThemeList} />}
                     </div>
                     <div className="edit-shell-icon">
                         <span>Icon</span>
