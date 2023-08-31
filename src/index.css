@@ -28,8 +28,8 @@
 }
 @font-face {
     font-family: 'Pretendard';
-    src: url('@/assets/font/Pretendard-Regular.woff') format(woff), ('@/assets/font/Pretendard-Medium.woff') format(woff), ('@/assets/font/Pretendard-Bold.woff') format(woff),
-        ('@/assets/font/Pretendard-SemiBold.woff') format(woff), ('@/assets/font/Pretendard-Bold.woff') format(woff);
+    src: url('@/assets/font/Pretendard-Regular.woff') format(woff), url('@/assets/font/Pretendard-Medium.woff') format(woff), url('@/assets/font/Pretendard-Bold.woff') format(woff),
+        url('@/assets/font/Pretendard-SemiBold.woff') format(woff), url('@/assets/font/Pretendard-Bold.woff') format(woff);
 }
 
 a {

@@ -164,10 +164,6 @@ const Sql = ({
         setMoreResult(true);
     };
 
-    const handleSaveModalOpen = () => {
-        setIsSaveModal(true);
-    };
-
     const fetchMoreResult = async () => {
         const paredQuery = getTargetQuery();
         const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery, sResultLimit, sTimeRange, sTimeZone));
