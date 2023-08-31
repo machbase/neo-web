@@ -95,8 +95,8 @@ export const WorkSheet = (props: WorkSheetProps) => {
             <div className="worksheet-header">
                 <IconButton pIcon={<IoPlayForwardSharp />} onClick={() => setAllRunCode(sAllRunCode + 1)} />
                 <div className="divider"></div>
-                <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
-                <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
+                <IconButton pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
+                <IconButton pIcon={<SaveAs size={18} />} onClick={() => setIsSaveModal(true)} />
             </div>
             <div className="worksheet-body">
                 <div className="worksheet">

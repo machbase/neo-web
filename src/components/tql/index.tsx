@@ -13,13 +13,12 @@ import { AiOutlineFileDone, AiOutlineFileMarkdown, BarChart, Save, VscJson, PiFi
 import { IconButton } from '../buttons/IconButton';
 
 interface TqlProps {
-    // setIsSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
-    // setIsOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
+    setIsSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
     pHandleSaveModalOpen: any;
 }
 
 const Tql = (props: TqlProps) => {
-    const { pHandleSaveModalOpen } = props;
+    const { pHandleSaveModalOpen, setIsSaveModal } = props;
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
@@ -125,7 +124,7 @@ const Tql = (props: TqlProps) => {
                         <IconButton pIcon={<Play />} onClick={() => getTqlData(sText)} />
                         <div style={{ display: 'flex' }}>
                             <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
-                            <IconButton pIcon={<SaveAs />} onClick={pHandleSaveModalOpen} />
+                            <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
                         </div>
                     </div>
                     <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
