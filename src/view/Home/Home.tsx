@@ -13,7 +13,6 @@ const Home = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['20%', '80%']);
     const [sTerminalSizes] = useState<string[] | number[]>(['100%', '0%']);
     const [sExtentionList, setExtentionList] = useState<any>([]);
-    const [sRecentFiles, setRecentFiles] = useState<any>([]);
     const [sReferences, setReferences] = useState<any>([]);
     const [sDraged, setDraged] = useState<any>(false);
     const [sSavedPath, setSavedPath] = useState();
@@ -49,8 +48,6 @@ const Home = () => {
         });
 
         setExtentionList(sResult.shells);
-
-        sResult.recents && setRecentFiles(sResult.recents[0].items);
     };
 
     const setStatus = () => {
@@ -72,7 +69,7 @@ const Home = () => {
             <div className="body-form">
                 <SplitPane sashRender={() => <></>} split="vertical" sizes={sSideSizes} onChange={setSideSizes} onDragEnd={changeDraged} onDragStart={setStatus}>
                     <Pane minSize={0} maxSize="50%">
-                        {sIsSidebar && <Side pServer={sServer} pRecentFiles={sRecentFiles} pGetInfo={getInfo} pSavedPath={sSavedPath}></Side>}
+                        {sIsSidebar && <Side pServer={sServer} pGetInfo={getInfo} pSavedPath={sSavedPath}></Side>}
                     </Pane>
                     <Pane>
                         <div
@@ -90,12 +87,11 @@ const Home = () => {
                                 pGetInfo={getInfo}
                                 pReferences={sReferences}
                                 pGetPath={getPath}
-                                pRecentFiles={sRecentFiles}
                             ></Body>
-                        {/* <SplitPane sashRender={() => <></>} split="horizontal" sizes={sTerminalSizes} onChange={setTerminalSizes}> */}
-                        {/* <Pane minSize={50}> */}
-                        {/* </Pane> */}
-                        {/* <div
+                            {/* <SplitPane sashRender={() => <></>} split="horizontal" sizes={sTerminalSizes} onChange={setTerminalSizes}> */}
+                            {/* <Pane minSize={50}> */}
+                            {/* </Pane> */}
+                            {/* <div
                                 style={{
                                     borderTop: '1px solid #3C4549',
                                     width: '100%',
@@ -104,7 +100,7 @@ const Home = () => {
                             >
                                 <Log></Log>
                             </div> */}
-                        {/* </SplitPane> */}
+                            {/* </SplitPane> */}
                         </div>
                     </Pane>
                 </SplitPane>

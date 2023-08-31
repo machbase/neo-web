@@ -19,7 +19,7 @@ import { PlusCircle } from '@/assets/icons/Icon';
 import { Error } from '@/components/toast/Toast';
 import { useNavigate } from 'react-router-dom';
 
-const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pRecentFiles, pGetInfo, pGetPath }: any) => {
+const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGetPath }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState<any>(gSelectedTab);
     const sFilterBoard = useRecoilValue(gSelectedBoard);
@@ -125,15 +125,7 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pRecentFiles, 
                 {sBoardList.map((aItem) => {
                     return (
                         <div key={aItem.id} style={aItem.id === sSelectedTab ? { width: '100%', height: '100%' } : { display: 'none' }}>
-                            {aItem.type === 'new' && (
-                                <NewBoard
-                                    pExtentionList={pExtentionList}
-                                    pRecentFiles={pRecentFiles}
-                                    pGetInfo={pGetInfo}
-                                    setIsOpenModal={setIsOpenModal}
-                                    pReferences={pReferences}
-                                />
-                            )}
+                            {aItem.type === 'new' && <NewBoard pExtentionList={pExtentionList} pGetInfo={pGetInfo} setIsOpenModal={setIsOpenModal} pReferences={pReferences} />}
                             {aItem.type === 'sql' && (
                                 <Sql pHandleSaveModalOpen={handleSaveModalOpen} pInfo={aItem} setIsOpenModal={setIsOpenModal} setIsSaveModal={setIsSaveModal}></Sql>
                             )}

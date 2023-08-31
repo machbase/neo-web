@@ -16,7 +16,7 @@ import { Error } from '@/components/toast/Toast';
 import { SaveModal } from '../modal/SaveModal';
 import OpenFile from './OpenFile';
 
-const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
+const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
     const sParedData: FileTreeType = {
         depth: 0,
         dirs: [],
@@ -38,7 +38,7 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
     const [selectedFile, setSelectedFile] = useState<FileType | undefined>(undefined);
     const [selectedContextFile, setSelectedContextFile] = useState<FileType | FileTreeType | undefined>(undefined);
     const [sLoadFileTree, setLoadFileTree] = useState<boolean>(false);
-    const [sCollapseRecent, setCollapseRecent] = useState(true);
+    const [sCollapseEditors, setCollapseEditors] = useState(true);
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
     // const sFileTreeRoot = useRecoilValue(gFileTreeRoot);
@@ -197,12 +197,12 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
         <div className="side-form">
             <div className="side-title">machbase-neo {pServer && pServer.version}</div>
             <div>
-                <div onClick={() => setCollapseRecent(!sCollapseRecent)} className="side-sub-title recent-title">
-                    <div className="collapse-icon">{sCollapseRecent ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
-                    Open Tab
+                <div onClick={() => setCollapseEditors(!sCollapseEditors)} className="side-sub-title editors-title">
+                    <div className="collapse-icon">{sCollapseEditors ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
+                    OPEN EDITORS
                 </div>
-                {sCollapseRecent && (
-                    <div className="recent-form">
+                {sCollapseEditors && (
+                    <div className="editors-form">
                         {sBoardList.length !== 0 &&
                             sBoardList.map((aBoard: any, aIdx: any) => {
                                 return <OpenFile pBoard={aBoard} pSetSelectedTab={setSelectedTab} pIdx={aIdx} key={aBoard.id}></OpenFile>;
@@ -210,11 +210,11 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
                     </div>
                 )}
             </div>
-            <div className="side-sub-title recent-title" onClick={() => setCollapseTree(!sCollapseTree)}>
+            <div className="side-sub-title editors-title" onClick={() => setCollapseTree(!sCollapseTree)}>
                 <div className="collapse-icon">{sCollapseTree ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
 
                 <div className="files-open-option">
-                    <div>Files</div> <FolderOpen onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
+                    <div>EXPLORER</div> <FolderOpen onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
                 </div>
             </div>
             {sCollapseTree &&
@@ -223,7 +223,7 @@ const Side = ({ pRecentFiles, pGetInfo, pSavedPath, pServer }: any) => {
                     <>...</>
                 ) : (
                     <>
-                        <Sidebar pRecentFileLength={pRecentFiles.length}>
+                        <Sidebar pBoardListLength={sBoardList.length}>
                             <FileTree rootDir={rootDir} selectedFile={selectedFile} onSelect={onSelect} onFetchDir={onFetchDir} onContextMenu={onContextMenu} />
                         </Sidebar>
                         <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
