@@ -51,7 +51,7 @@ export const SaveModal = (props: SaveModalProps) => {
     }, []);
 
     const handleClose = () => {
-        setIsOpen(false, sSelectedDir.join('/'));
+        setIsOpen(false);
     };
 
     const getFiles = async (aType: string, aPathArr?: any) => {
