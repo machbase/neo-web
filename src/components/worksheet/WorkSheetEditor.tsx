@@ -10,6 +10,7 @@ import TABLE from '@/components/table';
 import './WorkSheetEditor.scss';
 import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
 import { PositionType, SelectionType, sqlQueryParser } from '@/utils/sqlQueryParser';
+import { IconButton } from '../buttons/IconButton';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown';
 type MonacoLang = 'sql' | 'markdown' | 'go';
@@ -332,59 +333,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         );
     };
 
-    const ControlIcon = (aIcon: string, active: boolean) => {
-        switch (aIcon) {
-            case 'RunCode':
-                return (
-                    <div className="worksheet-ctr-icon-wrap">
-                        <div className="worksheet-ctr-icon" onClick={() => handleRunCode(sText)}>
-                            <Play />
-                        </div>
-                    </div>
-                );
-            case 'LocUp':
-                return (
-                    <div className="worksheet-ctr-icon-wrap">
-                        <div className="worksheet-ctr-icon" onClick={() => pCallback({ id: pData.id, event: 'LocUp' })}>
-                            <ArrowUpDouble />
-                        </div>
-                    </div>
-                );
-            case 'LocDown':
-                return (
-                    <div className="worksheet-ctr-icon-wrap">
-                        <div className="worksheet-ctr-icon" onClick={() => pCallback({ id: pData.id, event: 'LocDown' })}>
-                            <ArrowUpDouble style={{ transform: 'rotate(180deg)' }} />
-                        </div>
-                    </div>
-                );
-            case 'AddTop':
-                return (
-                    <div className="worksheet-ctr-icon-wrap">
-                        <div className="worksheet-ctr-icon" onClick={() => pCallback({ id: pData.id, event: 'AddTop' })}>
-                            <InsertRowTop />
-                        </div>
-                    </div>
-                );
-            case 'AddBottom':
-                return (
-                    <div className="worksheet-ctr-icon-wrap">
-                        <div className="worksheet-ctr-icon" onClick={() => pCallback({ id: pData.id, event: 'AddBottom' })}>
-                            <InsertRowTop style={{ transform: 'rotate(180deg)' }} />
-                        </div>
-                    </div>
-                );
-            case 'Delete':
-                return (
-                    <div className={active ? 'worksheet-ctr-icon-wrap' : 'worksheet-ctr-icon-disable'}>
-                        <div className="worksheet-ctr-icon" onClick={active ? () => pCallback({ id: pData.id, event: 'Delete' }) : () => {}}>
-                            <Delete />
-                        </div>
-                    </div>
-                );
-        }
-    };
-
     useOutsideClick(dropDownRef, () => setShowLang(false));
 
     return (
@@ -394,15 +342,28 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     <div className="worksheet-ctr" style={{ display: 'flex', height: '40px', justifyContent: 'end' }}>
                         {DropDown()}
                         {VerticalDivision()}
-                        {ControlIcon('RunCode', true)}
+                        <IconButton pIcon={<Play />} pIsActiveHover onClick={() => handleRunCode(sText)} />
                         {VerticalDivision()}
-                        {ControlIcon('LocUp', true)}
-                        {ControlIcon('LocDown', true)}
+                        <IconButton pIcon={<ArrowUpDouble />} pIsActiveHover onClick={() => pCallback({ id: pData.id, event: 'LocUp' })} />
+                        <IconButton
+                            pIcon={<ArrowUpDouble style={{ transform: 'rotate(180deg)' }} />}
+                            pIsActiveHover
+                            onClick={() => pCallback({ id: pData.id, event: 'LocDown' })}
+                        />
                         {VerticalDivision()}
-                        {ControlIcon('AddTop', true)}
-                        {ControlIcon('AddBottom', true)}
+                        <IconButton pIcon={<InsertRowTop />} pIsActiveHover onClick={() => pCallback({ id: pData.id, event: 'AddTop' })} />
+                        <IconButton
+                            pIcon={<InsertRowTop style={{ transform: 'rotate(180deg)' }} />}
+                            pIsActiveHover
+                            onClick={() => pCallback({ id: pData.id, event: 'AddBottom' })}
+                        />
                         {VerticalDivision()}
-                        {ControlIcon('Delete', pWorkSheets.length > 1)}
+                        <IconButton
+                            pIcon={<Delete />}
+                            pDisabled={!(pWorkSheets.length > 1)}
+                            pIsActiveHover
+                            onClick={pWorkSheets.length > 1 ? () => pCallback({ id: pData.id, event: 'Delete' }) : () => null}
+                        />
                     </div>
                     <div ref={resizeRef} className="editor">
                         <MonacoEditor
@@ -417,10 +378,14 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 </div>
                 {Result()}
             </div>
-            <div className="worksheet-collapse-ctr" onClick={() => setCollapse(!sCollapse)}>
-                <div className="worksheet-collapse-ctr-icon">
-                    {!sCollapse ? <HideOn /> : <HideOff className="worksheet-collapse-ctr-icon" style={{ transform: 'rotate(90deg)' }} />}
-                </div>
+            <div style={{ marginLeft: '5px' }}>
+                <IconButton
+                    pWidth={40}
+                    pHeight={40}
+                    pIcon={!sCollapse ? <HideOn size={18} /> : <HideOff size={18} style={{ transform: 'rotate(90deg)' }} />}
+                    pIsActiveHover
+                    onClick={() => setCollapse(!sCollapse)}
+                />
             </div>
         </div>
     );

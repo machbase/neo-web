@@ -6,6 +6,7 @@ import { gBoardList, gSelectedBoard } from '@/recoil/recoil';
 import { getId } from '@/utils';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { Save, SaveAs, IoPlayForwardSharp } from '@/assets/icons/Icon';
+import { IconButton } from '../buttons/IconButton';
 
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 interface WorkSheetProps {
@@ -92,16 +93,10 @@ export const WorkSheet = (props: WorkSheetProps) => {
     return (
         <div className="worksheet-wrapper">
             <div className="worksheet-header">
-                <div className="btn-cover" onClick={() => setAllRunCode(sAllRunCode + 1)}>
-                    <IoPlayForwardSharp />
-                </div>
+                <IconButton pIcon={<IoPlayForwardSharp />} onClick={() => setAllRunCode(sAllRunCode + 1)} />
                 <div className="divider"></div>
-                <div className="btn-cover" onClick={pHandleSaveModalOpen}>
-                    <Save />
-                </div>
-                <div className="btn-cover" onClick={() => setIsSaveModal(true)}>
-                    <SaveAs />
-                </div>
+                <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
+                <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
             </div>
             <div className="worksheet-body">
                 <div className="worksheet">

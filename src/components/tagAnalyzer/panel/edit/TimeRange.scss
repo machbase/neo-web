@@ -15,33 +15,17 @@
             }
         }
         .modal-date-picker {
-            z-index: 8;
             position: absolute;
-            bottom: 20px;
+            z-index: 8;
+            bottom: 28px;
             left: 0px;
+
+            input {
+                filter: invert(1);
+            }
         }
         .time-range-select-box {
             position: relative;
-            input {
-                option {
-                    background: #333644 !important;
-                    border-radius: 0;
-                }
-                color: #f8f8f8;
-                background: transparent;
-                border: none;
-                width: 160px;
-                padding: 0 4px;
-                height: 24px;
-            }
-            display: flex;
-            align-items: center;
-            width: 180px;
-            background-color: #2a2d37;
-            border: 0.5px solid rgba(255, 255, 255, 0.5);
-            color: #f8f8f8;
-
-            border-radius: 4px;
         }
         width: 300px;
     }

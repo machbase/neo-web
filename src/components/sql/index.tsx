@@ -15,6 +15,7 @@ import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, P
 import { isJsonString } from '@/utils/utils';
 import { PositionType, SelectionType, sqlQueryParser } from '@/utils/sqlQueryParser';
 import { MonacoEditor } from '../monaco/MonacoEditor';
+import { IconButton } from '@/components/buttons/IconButton';
 
 const Sql = ({
     pInfo,
@@ -208,22 +209,12 @@ const Sql = ({
                         ref={sNavi}
                         onWheel={handleMouseWheel}
                     >
-                        <div className="sql-header-play-btn">
-                            <Play size="20px" color="#939498" onClick={checkCtrl} />
-                        </div>
-                        <div className="sql-option-ctr" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-                            <div style={{ marginRight: '8px' }}>
-                                <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
-                            </div>
-                            <div style={{ marginRight: '8px' }}>
-                                <AUTOCOMBOBOX pName="sTimeZone" pList={IANA_TIMEZONES} pTarget={sTimeZone} pCallback={setTimeZone} />
-                            </div>
-                            <div className="btn-cover">
-                                <Save className="header-icon" style={{ cursor: 'pointer' }} onClick={pHandleSaveModalOpen} />
-                            </div>
-                            <div className="btn-cover">
-                                <SaveAs className="header-icon" onClick={handleSaveModalOpen} />
-                            </div>
+                        <IconButton pIcon={<Play />} onClick={checkCtrl} />
+                        <div className="sql-option-ctr">
+                            <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
+                            <AUTOCOMBOBOX pName="sTimeZone" pList={IANA_TIMEZONES} pTarget={sTimeZone} pCallback={setTimeZone} />
+                            <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
+                            <IconButton pIcon={<SaveAs />} onClick={pHandleSaveModalOpen} />
                         </div>
                     </div>
                     <div ref={sEditorRef} style={{ height: 'calc(100% - 40px)', width: '100%' }}>
@@ -272,12 +263,8 @@ const Sql = ({
                                 })}
                             </div>
                             <div className="sub-tab-header-icon-ctr">
-                                <div className={isVertical ? 'sub-tab-header-active-icon' : 'sub-tab-header-icon'}>
-                                    <LuFlipVertical style={{ transform: 'rotate(90deg)' }} onClick={handleSplitVertical} />
-                                </div>
-                                <div className={isVertical ? 'sub-tab-header-icon' : 'sub-tab-header-active-icon'}>
-                                    <LuFlipVertical onClick={handleSplitHorizontal} />
-                                </div>
+                                <IconButton pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />} pIsActive={isVertical} onClick={handleSplitVertical} />
+                                <IconButton pIcon={<LuFlipVertical />} pIsActive={!isVertical} onClick={handleSplitHorizontal} />
                             </div>
                         </div>
                         <RESULT pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'} pSqlResponseData={sSqlResponseData} onMoreResult={() => onMoreResult()} />

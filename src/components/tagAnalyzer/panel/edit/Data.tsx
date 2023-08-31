@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { PlusCircle, Close, ArrowDown } from '@/assets/icons/Icon';
+import { PlusCircle, Close } from '@/assets/icons/Icon';
+import { Input } from '@/components/inputs/Input';
 import AddTag from './AddTag';
 import './Data.scss';
+import { Select } from '@/components/inputs/Select';
 const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const [isModal, setIsModal] = useState(false);
 
@@ -42,29 +44,36 @@ const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                             <div className="set-mode">
                                 <div className="calc-mode">
                                     <span className="calc-mode-title">Calc Mode</span>
-                                    <div className="select-option">
-                                        <select onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'calculationMode')} defaultValue={aItem.calculationMode}>
-                                            {avgMode.map((bItem: any) => {
-                                                return (
-                                                    <option key={bItem.value} value={bItem.value}>
-                                                        {bItem.key}
-                                                    </option>
-                                                );
-                                            })}
-                                        </select>
-                                        <ArrowDown></ArrowDown>
-                                    </div>
+                                    <Select
+                                        pInitValue="avg"
+                                        pWidth={120}
+                                        pHeight={25}
+                                        onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'calculationMode')}
+                                        pOptions={avgMode.map((aItem) => aItem.value)}
+                                    />
                                 </div>
                                 <div className="tag-names">
                                     <span className="tag-names-title">
                                         Tag Names
                                         <span style={{ fontSize: '10px', marginLeft: '4px', marginBottom: '2px' }}>({aItem.table})</span>
                                     </span>
-                                    <input defaultValue={aItem.tagName} onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'tagName')} type="text" />
+                                    <Input
+                                        pWidth={120}
+                                        pHeight={24}
+                                        pValue={aItem.tagName}
+                                        pSetValue={() => null}
+                                        onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'tagName')}
+                                    />
                                 </div>
                                 <div className="alias">
                                     <span className="alias-title">Alias</span>
-                                    <input onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'alias')} defaultValue={aItem.alias} type="text" />
+                                    <Input
+                                        pWidth={120}
+                                        pHeight={24}
+                                        pValue={aItem.alias}
+                                        pSetValue={() => null}
+                                        onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'alias')}
+                                    />
                                 </div>
                             </div>
                             <div className="close">{pPanelInfo.tag_set.length !== 1 && <Close onClick={() => removeTag(aItem.key)} color="#f8f8f8"></Close>}</div>
