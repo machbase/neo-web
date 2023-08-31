@@ -9,7 +9,6 @@ import { TbParachute, Folder } from '@/assets/icons/Icon';
 
 interface NewBoardProps {
     pExtentionList: any;
-    pRecentFiles: any;
     pReferences: any;
     setIsOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
     pGetInfo: any;

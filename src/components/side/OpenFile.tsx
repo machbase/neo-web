@@ -74,7 +74,7 @@ const OpenFile = ({ pBoard, pSetSelectedTab, pIdx }: any) => {
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
             key={pBoard.id}
-            className="recent-list"
+            className="editors-list"
             onClick={() => pSetSelectedTab(pBoard.id)}
             style={
                 sSelectedTab === pBoard.id
@@ -85,7 +85,7 @@ const OpenFile = ({ pBoard, pSetSelectedTab, pIdx }: any) => {
             }
         >
             <span className="item-title">
-                <div className="recent-icon">{icons(pBoard.type)}</div>
+                <div className="editors-icon">{icons(pBoard.type)}</div>
                 <span>{pBoard.name}</span>
             </span>
             {sHover ? (
