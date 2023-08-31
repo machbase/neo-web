@@ -14,6 +14,7 @@ import './index.scss';
 import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, SaveAs } from '@/assets/icons/Icon';
 import { isJsonString } from '@/utils/utils';
 import { PositionType, SelectionType, sqlQueryParser } from '@/utils/sqlQueryParser';
+import { sqlMultiQueryParser } from '@/utils/sqlMultiQueryParser';
 import { MonacoEditor } from '../monaco/MonacoEditor';
 import { IconButton } from '@/components/buttons/IconButton';
 
@@ -106,6 +107,7 @@ const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHan
         else {
             parsedQuery = sqlQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection);
             setSqlLocation(aLocation);
+            // sqlMultiQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection);
         }
         if (!parsedQuery) return;
         (async () => {
