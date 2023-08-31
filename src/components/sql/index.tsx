@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from 'react';
-import Editor, { useMonaco } from '@monaco-editor/react';
 import SplitPane, { Pane } from 'split-pane-react';
 import RESULT from './result';
 import CHART from '@/components/chart';
@@ -14,18 +13,12 @@ import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 import './index.scss';
 import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, SaveAs } from '@/assets/icons/Icon';
 import { isJsonString } from '@/utils/utils';
+import { PositionType, SelectionType, sqlQueryParser } from '@/utils/sqlQueryParser';
+import { MonacoEditor } from '../monaco/MonacoEditor';
+import { IconButton } from '@/components/buttons/IconButton';
 
-const Sql = ({
-    pInfo,
-    pHandleSaveModalOpen,
-    setIsSaveModal,
-}: {
-    pInfo: any;
-    pHandleSaveModalOpen: any;
-    setIsSaveModal: (aValue: boolean) => void;
-    setIsOpenModal: (aValue: boolean) => void;
-}) => {
-    const monaco = useMonaco();
+const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHandleSaveModalOpen: any; setIsSaveModal: (aValue: boolean) => void }) => {
+    // const monaco = useMonaco();
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
@@ -38,10 +31,26 @@ const Sql = ({
     const [sResultLimit, setResultLimit] = useState<number>(1);
     const sEditorRef = useRef(null);
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
-    const [sEditor, setEditor] = useState<any>(null);
     const [sChartAxisList, setChartAxisList] = useState<string[]>([]);
+    const [sChartQueryList, setChartQueryList] = useState<string[]>([]);
     const sSaveCommand = useRef<any>(null);
     const sNavi = useRef(null);
+    const [sSqlLocation, setSqlLocation] = useState<{
+        position: PositionType;
+        selection: SelectionType;
+    }>({
+        position: { column: 1, lineNumber: 1 },
+        selection: {
+            endColumn: 1,
+            endLineNumber: 1,
+            positionColumn: 1,
+            positionLineNumber: 1,
+            selectionStartColumn: 1,
+            selectionStartLineNumber: 1,
+            startColumn: 1,
+            startLineNumber: 1,
+        },
+    });
 
     const handleMouseWheel = (e: any) => {
         const scrollable: any = sNavi.current;
@@ -82,82 +91,25 @@ const Sql = ({
     };
 
     const getTargetQuery = (): string => {
-        if (!sSqlQueryTxt) return '';
-        if (!sEditor) return '';
-        const sPosition = sEditor.getPosition().lineNumber - 1;
-        const sSelection = sEditor.getSelection();
-        const sSplitRQueryList = JSON.parse(JSON.stringify(sSqlQueryTxt)).split('\n');
-        const sIsAnnotation = sSplitRQueryList[sPosition].includes('--') && !sSplitRQueryList[sPosition].split('--')[0].trim();
-        if (sIsAnnotation) return '';
-        const sNoAnnotationList = sSplitRQueryList
-            .map((aQuery: string) => {
-                if (aQuery.includes('--') && !!aQuery.split('--')[0].trim()) {
-                    return aQuery.split('--')[0];
-                }
-
-                if (aQuery.includes('--')) return;
-                return aQuery;
-            })
-            .filter((aItem: any) => aItem);
-
-        let sStartLineNumber: number = sSelection.startLineNumber - 1;
-        let sEndLineNumber: number = sSelection.endLineNumber - 1;
-        ///////////////////////////////////////////////////
-        const sRegExp = new RegExp("([']*'[^']*')", 'igm');
-        let sTmpQuery = JSON.parse(JSON.stringify(sNoAnnotationList.join('\n')));
-        let sVariableList: { index: number | undefined; value: string; replaceValue: string }[] = [];
-        if (sTmpQuery.match(sRegExp)) {
-            sVariableList = sTmpQuery.match(sRegExp).map((aString: string) => {
-                return { value: aString, index: (sRegExp.exec(sTmpQuery) as any).index, replaceValue: aString.replaceAll(';', 'M') };
-            });
-            sVariableList.map((aVariable) => {
-                sTmpQuery = sTmpQuery.replace(aVariable.value, aVariable.replaceValue);
-            });
-        }
-        ///////////////////////////////////////////////////
-        sSplitRQueryList.map((aQuery: string, aIdx: number) => {
-            if (aQuery.includes('--') && aIdx <= sStartLineNumber) {
-                if (aQuery.split('--')[0].trim() === '') sStartLineNumber -= 1;
-            }
-            if (aQuery.includes('--') && aIdx <= sEndLineNumber) {
-                if (aQuery.split('--')[0].trim() === '') sEndLineNumber -= 1;
-            }
-        });
-
-        let rTotalLen = 0;
-        let sSelectionLoc = 0;
-        sNoAnnotationList.map((aRow: string, aIdx: number) => {
-            if (sStartLineNumber <= aIdx && aIdx <= sEndLineNumber) {
-                sSelectionLoc = rTotalLen + sSelection.endColumn - 1 + aIdx;
-                if (sSelectionLoc === 0) sSelectionLoc = 1;
-            }
-            rTotalLen += aRow.length;
-        });
-        let semiTotalLen = 0;
-        let targetQuery = '';
-        const sSemiList = sTmpQuery.split(';');
-        sSemiList.map((aRow: string, aIdx: number) => {
-            if (semiTotalLen < sSelectionLoc) {
-                targetQuery = sSemiList[aIdx];
-                if (sSemiList[aIdx].trim() === '') targetQuery = sSemiList[aIdx - 1];
-                if (targetQuery.includes("'")) {
-                    sVariableList.map((aVar, aIdx: number) => {
-                        if (targetQuery.includes(aVar.replaceValue)) {
-                            targetQuery = targetQuery.replace(sVariableList[aIdx].replaceValue, sVariableList[aIdx].value);
-                        }
-                    });
-                }
-            }
-            semiTotalLen += aRow.length + 1;
-        });
-        return targetQuery.split('\n').join(' ').trim();
+        return sqlQueryParser(sSqlQueryTxt, sSqlLocation.position, sSqlLocation.selection);
     };
 
-    const sqlMultiLineParser = () => {
-        const paredQuery: any = getTargetQuery();
-        if (!paredQuery) return;
+    const sqlMultiLineParser = (
+        _?: string,
+        aLocation?: {
+            position: PositionType;
+            selection: SelectionType;
+        }
+    ) => {
+        let parsedQuery = '';
+        if (!aLocation) parsedQuery = sqlQueryParser(sSqlQueryTxt, sSqlLocation.position, sSqlLocation.selection);
+        else {
+            parsedQuery = sqlQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection);
+            setSqlLocation(aLocation);
+        }
+        if (!parsedQuery) return;
         (async () => {
-            const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery.trim(), 1, sTimeRange, sTimeZone));
+            const sSqlResult = await getTqlChart(sqlBasicFormatter(parsedQuery.trim(), 1, sTimeRange, sTimeZone));
             switch (sSqlResult.status) {
                 case 200:
                     setSelectedSubTab('RESULT');
@@ -177,22 +129,15 @@ const Sql = ({
                 sSqlResult.data.data.columns[1] += ` (${sAddTimezoneTxt})`;
             }
 
+            const sLowerQuery = parsedQuery.toLowerCase();
+            if (!sLowerQuery.includes('delete') && !sLowerQuery.includes('update') && !sLowerQuery.includes('insert')) {
+                setChartQueryList([parsedQuery]);
+            } else setChartQueryList([]);
             if (sSqlResult.data.data) setChartAxisList(sSqlResult.data.data.columns);
             setResultLimit(2);
             setSqlResponseData(sSqlResult.data.data);
-            setLogList([...sLogList, `${paredQuery}\n${sSqlResult.data.reason} : ${sSqlResult.data.success}`]);
+            setLogList([...sLogList, `${parsedQuery}\n${sSqlResult.data.reason} : ${sSqlResult.data.success}`]);
         })();
-    };
-
-    const handleDownKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (window.navigator.platform.includes('Win') && e.ctrlKey && e.key === 'Enter') {
-            e.stopPropagation();
-            sqlMultiLineParser();
-        }
-        if (!window.navigator.platform.includes('Win') && e.metaKey && e.key === 'Enter') {
-            e.stopPropagation();
-            sqlMultiLineParser();
-        }
     };
 
     const getSubTabIcon = (aTarget: string) => {
@@ -208,10 +153,6 @@ const Sql = ({
 
     const onMoreResult = () => {
         setMoreResult(true);
-    };
-
-    const handleSaveModalOpen = () => {
-        setIsSaveModal(true);
     };
 
     const fetchMoreResult = async () => {
@@ -235,38 +176,6 @@ const Sql = ({
     };
 
     useEffect(() => {
-        if (!monaco) return;
-        monaco.editor.defineTheme('my-theme', {
-            base: 'vs-dark',
-            inherit: true,
-            rules: [
-                {
-                    token: '',
-                    fontStyle: 'D2Coding',
-                },
-            ],
-            colors: {
-                'editor.background': '#262831',
-            },
-        });
-        monaco.editor.setTheme('my-theme');
-        new monaco.Position(0, 0);
-        new monaco.Selection(0, 0, 0, 0);
-    }, [monaco]);
-
-    const handleMount = (editor: any) => {
-        setEditor(editor);
-        editor.focus();
-    };
-
-    const monacoOptions = {
-        minimap: {
-            enabled: false,
-        },
-        scrollBeyondLastLine: false,
-    };
-
-    useEffect(() => {
         if (sMoreResult) {
             fetchMoreResult();
             setMoreResult(false);
@@ -287,35 +196,16 @@ const Sql = ({
                         ref={sNavi}
                         onWheel={handleMouseWheel}
                     >
-                        <div className="sql-header-play-btn">
-                            <Play size="20px" color="#939498" onClick={checkCtrl} />
-                        </div>
-                        <div className="sql-option-ctr" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-                            <div style={{ marginRight: '8px' }}>
-                                <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
-                            </div>
-                            <div style={{ marginRight: '8px' }}>
-                                <AUTOCOMBOBOX pName="sTimeZone" pList={IANA_TIMEZONES} pTarget={sTimeZone} pCallback={setTimeZone} />
-                            </div>
-                            <div className="btn-cover">
-                                <Save className="header-icon" style={{ cursor: 'pointer' }} onClick={pHandleSaveModalOpen} />
-                            </div>
-                            <div className="btn-cover">
-                                <SaveAs className="header-icon" onClick={handleSaveModalOpen} />
-                            </div>
+                        <IconButton pIcon={<Play />} onClick={checkCtrl} />
+                        <div className="sql-option-ctr">
+                            <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
+                            <AUTOCOMBOBOX pName="sTimeZone" pList={IANA_TIMEZONES} pTarget={sTimeZone} pCallback={setTimeZone} />
+                            <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
+                            <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
                         </div>
                     </div>
-                    <div ref={sEditorRef} onKeyDownCapture={handleDownKey} style={{ height: 'calc(100% - 40px)', width: '100%' }}>
-                        <Editor
-                            height="100%"
-                            width="100%"
-                            defaultLanguage="sql"
-                            defaultValue={pInfo.code}
-                            theme="my-theme"
-                            onChange={handleChangeText}
-                            onMount={handleMount}
-                            options={monacoOptions}
-                        />
+                    <div ref={sEditorRef} style={{ height: 'calc(100% - 40px)', width: '100%' }}>
+                        <MonacoEditor pText={sSqlQueryTxt} pLang="sql" onChange={handleChangeText} onRunCode={sqlMultiLineParser} onSelectLine={setSqlLocation} />
                     </div>
                 </Pane>
                 <Pane style={{ overflow: 'initial' }}>
@@ -360,17 +250,14 @@ const Sql = ({
                                 })}
                             </div>
                             <div className="sub-tab-header-icon-ctr">
-                                <div className={isVertical ? 'sub-tab-header-active-icon' : 'sub-tab-header-icon'}>
-                                    <LuFlipVertical style={{ transform: 'rotate(90deg)' }} onClick={handleSplitVertical} />
-                                </div>
-                                <div className={isVertical ? 'sub-tab-header-icon' : 'sub-tab-header-active-icon'}>
-                                    <LuFlipVertical onClick={handleSplitHorizontal} />
-                                </div>
+                                <IconButton pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />} pIsActive={isVertical} onClick={handleSplitVertical} />
+                                <IconButton pIcon={<LuFlipVertical />} pIsActive={!isVertical} onClick={handleSplitHorizontal} />
                             </div>
                         </div>
                         <RESULT pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'} pSqlResponseData={sSqlResponseData} onMoreResult={() => onMoreResult()} />
                         <LOG pDisplay={sSelectedSubTab === 'LOG' ? '' : 'none'} pLogList={sLogList} onClearLog={() => onClearLog()} />
                         <CHART
+                            pQueryList={sChartQueryList}
                             pDisplay={sSelectedSubTab === 'CHART' ? '' : 'none'}
                             pChartAixsList={sChartAxisList}
                             pIsVertical={isVertical}

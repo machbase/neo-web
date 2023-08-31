@@ -1,0 +1,32 @@
+.icon-btn-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 8px;
+    cursor: pointer;
+
+    svg {
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    &:hover {
+        svg {
+            color: #f8f8f8;
+        }
+    }
+}
+
+.icon-btn-disabled {
+    cursor: auto;
+    svg {
+        color: rgba(255, 255, 255, 0.205) !important;
+    }
+}
+
+.icon-btn-active-hover {
+    background-color: transparent;
+    &:hover {
+        background-color: #52535a;
+    }
+}

@@ -9,6 +9,8 @@ import { sqlBasicFormatter } from '@/utils/sqlFormatter';
 import TABLE from '@/components/table';
 import './WorkSheetEditor.scss';
 import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
+import { PositionType, SelectionType, sqlQueryParser } from '@/utils/sqlQueryParser';
+import { IconButton } from '../buttons/IconButton';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown';
 type MonacoLang = 'sql' | 'markdown' | 'go';
@@ -44,7 +46,22 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sMarkdown, setMarkdown] = useState<string>('');
     const [sSql, setSql] = useState<any>(null);
     const [sCollapse, setCollapse] = useState<boolean>(pData.minimal ?? false);
-    const [sSqlLineNumber, setSqlLineNumber] = useState<number>(1);
+    const [sSqlLocation, setSqlLocation] = useState<{
+        position: PositionType;
+        selection: SelectionType;
+    }>({
+        position: { column: 1, lineNumber: 1 },
+        selection: {
+            endColumn: 1,
+            endLineNumber: 1,
+            positionColumn: 1,
+            positionLineNumber: 1,
+            selectionStartColumn: 1,
+            selectionStartLineNumber: 1,
+            startColumn: 1,
+            startLineNumber: 1,
+        },
+    });
     const [sSqlReason, setSqlReason] = useState<string>('');
     const dropDownRef = useRef(null);
 
@@ -125,10 +142,16 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setText(aText);
     };
 
-    const handleRunCode = (aText: string, aLineNum?: number) => {
+    const handleRunCode = (
+        aText: string,
+        aLocation?: {
+            position: PositionType;
+            selection: SelectionType;
+        }
+    ) => {
         if (sSelectedLang === 'TQL') getTqlData(aText);
         if (sSelectedLang === 'Markdown') setMarkdown(aText);
-        if (sSelectedLang === 'SQL') getSqlData(aText, aLineNum);
+        if (sSelectedLang === 'SQL') getSqlData(aText, aLocation);
     };
 
     const changeLanguage = (aLang: ServerLang) => {
@@ -146,30 +169,19 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
     };
 
-    const getTargetQuery = (aText: string, aLineNum: number): string => {
-        if (!aText) return '';
-        const tmpquerylist = JSON.parse(JSON.stringify(aText)).split('\n');
-        let TargetQuery = '';
-        let preTargetQuery = '';
-
-        tmpquerylist.map((aRow: string, aIdx: number) => {
-            TargetQuery = `${TargetQuery} ${aRow}`;
-            if (aRow.includes(';') && aIdx + 1 < aLineNum) {
-                preTargetQuery = TargetQuery;
-                TargetQuery = '';
-            }
-        });
-        return TargetQuery.split(';')[0].trim() ? TargetQuery.split(';')[0].trim() : preTargetQuery.split(';')[0].trim();
-    };
-
-    const getSqlData = (aText: string, aLineNum?: number) => {
-        let sTmpLineNum = 1;
-        if (aLineNum) {
-            sTmpLineNum = aLineNum;
-            setSqlLineNumber(aLineNum);
-        } else sTmpLineNum = sSqlLineNumber;
-
-        const parsedQuery = getTargetQuery(aText, sTmpLineNum);
+    const getSqlData = (
+        aText: string,
+        aLocation?: {
+            position: PositionType;
+            selection: SelectionType;
+        }
+    ) => {
+        let parsedQuery = '';
+        if (!aLocation) parsedQuery = sqlQueryParser(aText, sSqlLocation.position, sSqlLocation.selection);
+        else {
+            parsedQuery = sqlQueryParser(aText, aLocation.position, aLocation.selection);
+            setSqlLocation(aLocation);
+        }
         (async () => {
             const sSqlResult = await getTqlChart(sqlBasicFormatter(parsedQuery, 1, '2006-01-02 15:04:05', 'UTC'));
             switch (sSqlResult.status) {
@@ -321,59 +333,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         );
     };
 
-    const ControlIcon = (aIcon: string, active: boolean) => {
-        switch (aIcon) {
-            case 'RunCode':
-                return (
-                    <div className="worksheet-ctr-icon-wrap">
-                        <div className="worksheet-ctr-icon" onClick={() => handleRunCode(sText)}>
-                            <Play />
-                        </div>
-                    </div>
-                );
-            case 'LocUp':
-                return (
-                    <div className="worksheet-ctr-icon-wrap">
-                        <div className="worksheet-ctr-icon" onClick={() => pCallback({ id: pData.id, event: 'LocUp' })}>
-                            <ArrowUpDouble />
-                        </div>
-                    </div>
-                );
-            case 'LocDown':
-                return (
-                    <div className="worksheet-ctr-icon-wrap">
-                        <div className="worksheet-ctr-icon" onClick={() => pCallback({ id: pData.id, event: 'LocDown' })}>
-                            <ArrowUpDouble style={{ transform: 'rotate(180deg)' }} />
-                        </div>
-                    </div>
-                );
-            case 'AddTop':
-                return (
-                    <div className="worksheet-ctr-icon-wrap">
-                        <div className="worksheet-ctr-icon" onClick={() => pCallback({ id: pData.id, event: 'AddTop' })}>
-                            <InsertRowTop />
-                        </div>
-                    </div>
-                );
-            case 'AddBottom':
-                return (
-                    <div className="worksheet-ctr-icon-wrap">
-                        <div className="worksheet-ctr-icon" onClick={() => pCallback({ id: pData.id, event: 'AddBottom' })}>
-                            <InsertRowTop style={{ transform: 'rotate(180deg)' }} />
-                        </div>
-                    </div>
-                );
-            case 'Delete':
-                return (
-                    <div className={active ? 'worksheet-ctr-icon-wrap' : 'worksheet-ctr-icon-disable'}>
-                        <div className="worksheet-ctr-icon" onClick={active ? () => pCallback({ id: pData.id, event: 'Delete' }) : () => {}}>
-                            <Delete />
-                        </div>
-                    </div>
-                );
-        }
-    };
-
     useOutsideClick(dropDownRef, () => setShowLang(false));
 
     return (
@@ -383,15 +342,28 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     <div className="worksheet-ctr" style={{ display: 'flex', height: '40px', justifyContent: 'end' }}>
                         {DropDown()}
                         {VerticalDivision()}
-                        {ControlIcon('RunCode', true)}
+                        <IconButton pIcon={<Play />} pIsActiveHover onClick={() => handleRunCode(sText)} />
                         {VerticalDivision()}
-                        {ControlIcon('LocUp', true)}
-                        {ControlIcon('LocDown', true)}
+                        <IconButton pIcon={<ArrowUpDouble />} pIsActiveHover onClick={() => pCallback({ id: pData.id, event: 'LocUp' })} />
+                        <IconButton
+                            pIcon={<ArrowUpDouble style={{ transform: 'rotate(180deg)' }} />}
+                            pIsActiveHover
+                            onClick={() => pCallback({ id: pData.id, event: 'LocDown' })}
+                        />
                         {VerticalDivision()}
-                        {ControlIcon('AddTop', true)}
-                        {ControlIcon('AddBottom', true)}
+                        <IconButton pIcon={<InsertRowTop />} pIsActiveHover onClick={() => pCallback({ id: pData.id, event: 'AddTop' })} />
+                        <IconButton
+                            pIcon={<InsertRowTop style={{ transform: 'rotate(180deg)' }} />}
+                            pIsActiveHover
+                            onClick={() => pCallback({ id: pData.id, event: 'AddBottom' })}
+                        />
                         {VerticalDivision()}
-                        {ControlIcon('Delete', pWorkSheets.length > 1)}
+                        <IconButton
+                            pIcon={<Delete />}
+                            pDisabled={!(pWorkSheets.length > 1)}
+                            pIsActiveHover
+                            onClick={pWorkSheets.length > 1 ? () => pCallback({ id: pData.id, event: 'Delete' }) : () => null}
+                        />
                     </div>
                     <div ref={resizeRef} className="editor">
                         <MonacoEditor
@@ -399,17 +371,21 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                             pLang={sMonacoLanguage}
                             onChange={handleText}
                             onRunCode={handleRunCode}
-                            onSelectLine={sMonacoLanguage === 'sql' ? setSqlLineNumber : () => {}}
+                            onSelectLine={sMonacoLanguage === 'sql' ? setSqlLocation : () => {}}
                         />
                         <div className="drag-stick" draggable onDragStart={initValue} onDrag={resize} onDragEnd={setHeight}></div>
                     </div>
                 </div>
                 {Result()}
             </div>
-            <div className="worksheet-collapse-ctr" onClick={() => setCollapse(!sCollapse)}>
-                <div className="worksheet-collapse-ctr-icon">
-                    {!sCollapse ? <HideOn /> : <HideOff className="worksheet-collapse-ctr-icon" style={{ transform: 'rotate(90deg)' }} />}
-                </div>
+            <div style={{ marginLeft: '5px' }}>
+                <IconButton
+                    pWidth={40}
+                    pHeight={40}
+                    pIcon={!sCollapse ? <HideOn size={18} /> : <HideOff size={18} style={{ transform: 'rotate(90deg)' }} />}
+                    pIsActiveHover
+                    onClick={() => setCollapse(!sCollapse)}
+                />
             </div>
         </div>
     );

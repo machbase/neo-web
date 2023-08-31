@@ -3,13 +3,20 @@ import Editor, { useMonaco } from '@monaco-editor/react';
 import type { OnChange } from '@monaco-editor/react';
 import { useRecoilValue } from 'recoil';
 import { gSelectedTab } from '@/recoil/recoil';
+import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 
 export interface MonacoEditorProps {
     pText: string;
     pLang: string;
     onChange: OnChange;
-    onRunCode: (aText: string, aLineNum?: number) => void;
-    onSelectLine: (aLineNum: number) => void;
+    onRunCode: (
+        aText: string,
+        aLocation: {
+            position: PositionType;
+            selection: SelectionType;
+        }
+    ) => void;
+    onSelectLine: (aLocation: { position: PositionType; selection: SelectionType }) => void;
 }
 
 export const MonacoEditor = (props: MonacoEditorProps) => {
@@ -18,6 +25,18 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const [sCurrnetTab, setCurrentTab] = useState<any>();
     const [sEditor, setEditor] = useState<any>(null);
+
+    const sPositionDefaultValue = { column: 1, lineNumber: 1 };
+    const sSelectionDefaultValue = {
+        endColumn: 1,
+        endLineNumber: 1,
+        positionColumn: 1,
+        positionLineNumber: 1,
+        selectionStartColumn: 1,
+        selectionStartLineNumber: 1,
+        startColumn: 1,
+        startLineNumber: 1,
+    };
 
     const monacoOptions = {
         minimap: {
@@ -67,7 +86,11 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
             id: 'run-code',
             label: 'Run Code',
             keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-            run: () => onRunCode(aText, sEditor ? sEditor.getPosition().lineNumber : 1),
+            run: () =>
+                onRunCode(aText, {
+                    position: sEditor ? sEditor.getPosition() : sPositionDefaultValue,
+                    selection: sEditor ? sEditor.getSelection() : sSelectionDefaultValue,
+                }),
         };
 
         monaco.editor.addEditorAction(runCode);
@@ -75,7 +98,11 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
 
     const selectionLine = () => {
         if (!monaco) return;
-        onSelectLine(sEditor.getSelection().startLineNumber);
+
+        onSelectLine({
+            position: sEditor ? sEditor.getPosition() : sPositionDefaultValue,
+            selection: sEditor ? sEditor.getSelection() : sSelectionDefaultValue,
+        });
     };
 
     return (

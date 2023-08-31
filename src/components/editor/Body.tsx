@@ -11,6 +11,7 @@ import TagAnalyzer from '../tagAnalyzer/TagAnalyzer';
 import { useState, useRef, useEffect } from 'react';
 import { SaveModal } from '../modal/SaveModal';
 import useSaveCommand from '@/hooks/useSaveCommand';
+import useMoveTab from '@/hooks/useMoveTab';
 import { WorkSheet } from '@/components/worksheet/WorkSheet';
 import { getId } from '@/utils';
 import { postFileList } from '@/api/repository/api';
@@ -22,7 +23,7 @@ import { useNavigate } from 'react-router-dom';
 const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGetPath }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState<any>(gSelectedTab);
-    const sFilterBoard = useRecoilValue(gSelectedBoard);
+    const sFilterBoard = useRecoilValue<any>(gSelectedBoard);
     const [sIsSaveModal, setIsSaveModal] = useState<boolean>(false);
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
     const sSaveWorkSheet = useRecoilValue(gSaveWorkSheets);
@@ -97,7 +98,12 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGet
         setSelectedTab(sNewTab.id);
     };
 
+    const handleMoveTab = (aKeyNumber: number) => {
+        sBoardList[aKeyNumber - 1] && setSelectedTab(sBoardList[aKeyNumber - 1]?.id);
+    };
+
     useSaveCommand(handleSaveModalOpen);
+    useMoveTab(handleMoveTab);
 
     useEffect(() => {
         const expiredRt = () => {
@@ -126,10 +132,8 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGet
                     return (
                         <div key={aItem.id} style={aItem.id === sSelectedTab ? { width: '100%', height: '100%' } : { display: 'none' }}>
                             {aItem.type === 'new' && <NewBoard pExtentionList={pExtentionList} pGetInfo={pGetInfo} setIsOpenModal={setIsOpenModal} pReferences={pReferences} />}
-                            {aItem.type === 'sql' && (
-                                <Sql pHandleSaveModalOpen={handleSaveModalOpen} pInfo={aItem} setIsOpenModal={setIsOpenModal} setIsSaveModal={setIsSaveModal}></Sql>
-                            )}
-                            {aItem.type === 'tql' && <Tql pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsOpenModal} setIsSaveModal={setIsSaveModal}></Tql>}
+                            {aItem.type === 'sql' && <Sql pHandleSaveModalOpen={handleSaveModalOpen} pInfo={aItem} setIsSaveModal={setIsSaveModal}></Sql>}
+                            {aItem.type === 'tql' && <Tql pHandleSaveModalOpen={handleSaveModalOpen} setIsSaveModal={setIsSaveModal} />}
                             {aItem.type === 'taz' && (
                                 <TagAnalyzer
                                     pHandleSaveModalOpen={handleSaveModalOpen}

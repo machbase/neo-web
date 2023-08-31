@@ -64,6 +64,9 @@
                     position: absolute;
                     top: 30px;
                     right: 60px;
+                    input {
+                        filter: invert(1);
+                    }
                 }
                 .date-picker {
                     width: 200px;
@@ -127,22 +130,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        button {
-            border: 0.5px solid rgba(255, 255, 255, 0.5);
-            width: 100px;
-            margin: 0 8px;
-            color: white;
-            height: 34px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .apply {
-            background-color: #4199ff;
-        }
-        .cancel {
-            background-color: #656877;
-        }
+        gap: 10px;
     }
 }
 

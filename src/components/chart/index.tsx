@@ -7,19 +7,21 @@ import { Play } from '@/assets/icons/Icon';
 import './index.scss';
 
 const CHART = ({
+    pQueryList,
     pChartAixsList,
     pIsVertical,
     pDisplay,
     pSqlQueryTxt,
     pSizes,
 }: {
+    pQueryList: string[] | [];
     pChartAixsList: string[];
     pIsVertical: boolean;
     pDisplay: string;
     pSqlQueryTxt: () => string;
     pSizes: number[] | string[];
 }) => {
-    const [sResult, setResult] = useState<any>();
+    const [sResult, setResult] = useState<any>(null);
     const [sStyle, setStyle] = useState({ width: 0, height: 0 });
     const [sChartDiv, setChartDiv] = useState<any>(null);
     const [sSelectedXAxis, setSelectedXAxis] = useState<string>('');
@@ -34,21 +36,24 @@ const CHART = ({
         if (sSelectedXAxis && sSelectedYAxis)
             sTmpResult = await getTqlChart(sqlBasicChartFormatter(pSqlQueryTxt(), aSize.width, aSize.height, { x: sSelectedXAxis, y: sSelectedYAxis }));
         else sTmpResult = await getTqlChart(sqlBasicChartFormatter(pSqlQueryTxt(), aSize.width, aSize.height));
-        const sTheme = sTmpResult.data.theme === '-' ? 'vintage' : sTmpResult.data.theme;
-        const sDataLength = sTmpResult.data.chartOption.series[1].data.length;
-        sTmpResult.data.chartOption.dataZoom[0].start = 100 - (5 * aSize.width) / sDataLength;
-        sTmpResult.data.chartOption.dataZoom[0].end = 100;
+        const sIsData = !!sTmpResult.data.chartOption.series;
+        if (sIsData) {
+            const sTheme = sTmpResult.data.theme === '-' ? 'vintage' : sTmpResult.data.theme;
+            const sDataLength = sTmpResult.data.chartOption.series.length > 0 ? sTmpResult.data.chartOption.series[0].data.length : 0;
+            sTmpResult.data.chartOption.dataZoom[0].start = 100 - (5 * aSize.width) / sDataLength;
+            sTmpResult.data.chartOption.dataZoom[0].end = 100;
 
-        setResult(sTmpResult.data);
+            setResult(sTmpResult.data);
 
-        setTimeout(() => {
-            const tmpChartDiv = drawChart(sTmpResult.data, sTheme);
-            setChartDiv(tmpChartDiv);
-        }, 100);
+            setTimeout(() => {
+                const tmpChartDiv = drawChart(sTmpResult.data, sTheme);
+                setChartDiv(tmpChartDiv);
+            }, 100);
+        } else setResult(null);
     };
 
     useEffect(() => {
-        if (chartRef && chartRef.current && !!pSqlQueryTxt()) {
+        if (chartRef && chartRef.current && !!pSqlQueryTxt() && pQueryList.length > 0) {
             getChartData({
                 width: chartRef.current.clientWidth,
                 height: chartRef.current.clientHeight - sControlPanelHeight,
@@ -69,7 +74,7 @@ const CHART = ({
 
     const reDrawChart = () => {
         const sTmpChartDiv: any = sChartDiv;
-        const sDataLength = sResult.chartOption.series[1].data.length;
+        const sDataLength = sResult.chartOption.series && sResult.chartOption.series.length > 0 ? sResult.chartOption.series[0].data.length : 0;
         sTmpChartDiv._model.option.dataZoom[0].start = 100 - (5 * chartRef.current.clientWidth) / sDataLength;
         sTmpChartDiv._model.option.dataZoom[0].end = 100;
 
@@ -98,7 +103,7 @@ const CHART = ({
 
     return pDisplay === '' ? (
         <div ref={chartRef} className="chart-wrapper" style={{ height: 'calc(100% - 40px)' }}>
-            {pChartAixsList.length > 0 ? (
+            {pChartAixsList.length > 0 && pQueryList.length > 0 && sResult ? (
                 <>
                     <div className="chart-control" style={{ height: `${sControlPanelHeight}px` }}>
                         {sControlList.map((aControl: string) => {

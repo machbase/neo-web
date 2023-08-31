@@ -9,6 +9,7 @@ import General from './General';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { GearFill, Close } from '@/assets/icons/Icon';
+import { TextButton } from '@/components/buttons/TextButton';
 
 const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
@@ -96,15 +97,9 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel }: any) => {
                 </div>
             </div>
             <div className="modal-footer">
-                <button className="apply" onClick={() => apply()}>
-                    Apply
-                </button>
-                <button className="ok" onClick={() => save()}>
-                    OK
-                </button>
-                <button className="cancel" onClick={() => pSetEditPanel(false)}>
-                    Cancel
-                </button>
+                <TextButton pWidth={100} pHeight={30} pText="Apply" pBackgroundColor="#fdb532" onClick={apply} />
+                <TextButton pWidth={100} pHeight={30} pText="OK" pBackgroundColor="#4199ff" onClick={save} />
+                <TextButton pWidth={100} pHeight={30} pText="Cancel" pBackgroundColor="#666979" onClick={() => pSetEditPanel(false)} />
             </div>
         </div>
     );
