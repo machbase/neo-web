@@ -5,6 +5,7 @@ import { useState } from 'react';
 import ModalTimeRange from './ModalTimeRange';
 import moment from 'moment';
 import { Calendar, Save, Refresh, SaveAs } from '@/assets/icons/Icon';
+import { IconButton } from '../buttons/IconButton';
 
 const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
@@ -24,16 +25,10 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                         <span>Time range not set</span>
                     )}
                 </button>
-                <div className="btn-cover">
-                    <Refresh />
-                </div>
+                <IconButton pIcon={<Refresh />} onClick={() => null} />
                 <div className="border"></div>
-                <div className="btn-cover">
-                    <Save onClick={pSetHandleSaveModalOpen} />
-                </div>
-                <div className="btn-cover">
-                    <SaveAs onClick={pHandleSaveModalOpen} />
-                </div>
+                <IconButton pIcon={<Save />} onClick={pSetHandleSaveModalOpen} />
+                <IconButton pIcon={<SaveAs />} onClick={pHandleSaveModalOpen} />
             </div>
             <div className="panel-list">
                 {pInfo &&

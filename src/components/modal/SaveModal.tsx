@@ -14,6 +14,7 @@ import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { Error } from '@/components/toast/Toast';
 import { Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLeft, ArrowRight, NewFolder, FolderOpen } from '@/assets/icons/Icon';
 import icons from '@/utils/icons';
+import { TextButton } from '../buttons/TextButton';
 
 export interface SaveModalProps {
     setIsOpen: any;
@@ -494,20 +495,14 @@ export const SaveModal = (props: SaveModalProps) => {
                         </div>
                     ) : null}
                     <div className="button-group">
-                        <div
-                            className={`button ${pIsDarkMode ? 'theme-dark' : 'theme-white'} ok ${pIsSave && !sSaveFileName.endsWith(`.${sFileType}`) ? 'disabled' : ''}`}
+                        <TextButton
+                            pText="OK"
+                            pBackgroundColor="#4199ff"
+                            pIsDisabled={pIsSave && !sSaveFileName.endsWith(`.${sFileType}`)}
                             onClick={sSaveFileName.slice(-3) === `${sFileType}` && pIsSave ? saveFile : () => openFile(sSelectedFile)}
-                        >
-                            OK
-                        </div>
+                        />
                         <div style={{ width: '10px' }}></div>
-                        <div
-                            className={`button cancel ${pIsDarkMode ? 'theme-dark' : 'theme-white'}`}
-                            style={{ color: pIsDarkMode ? 'white' : 'rgba(38, 40, 49, 0.5)' }}
-                            onClick={handleClose}
-                        >
-                            Cancel
-                        </div>
+                        <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />
                     </div>
                 </Modal.Footer>
             </Modal>

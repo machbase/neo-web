@@ -5,6 +5,8 @@ import moment from 'moment';
 import { useEffect } from 'react';
 import OutsideClickHandler from 'react-outside-click-handler';
 import DatePicker from 'react-datepicker';
+import { Input } from '@/components/inputs/Input';
+import { convertTimeToFullDate } from '@/utils/helpers/date';
 
 const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const sTimeRange: any = TIME_RANGE;
@@ -54,6 +56,7 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
 
         setEndTime(aEvent);
     };
+
     const handleQuickTime = (aValue: any) => {
         let sStart: any;
         let sEnd: any;
@@ -70,9 +73,10 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
 
         pSetCopyPanelInfo({ ...pPanelInfo, range_bgn: sStart, range_end: sEnd });
 
-        setStartTime(aValue.value[0]);
-        setEndTime(aValue.value[1]);
+        setStartTime(convertTimeToFullDate(aValue.value[0]));
+        setEndTime(convertTimeToFullDate(aValue.value[1]));
     };
+
     return (
         <div className="time-range">
             <div className="first-row">
@@ -80,19 +84,22 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                     <span>From</span>
                     <div className="time-range-select-box">
                         {sStartTime !== undefined && (
-                            <input
-                                type="text"
-                                onChange={(aEvent: any) => handleStartTime(aEvent.target.value)}
-                                value={typeof sStartTime === 'string' ? sStartTime : moment(sStartTime).format('yyyy-MM-DD HH:mm:ss')}
-                                className="date-picker"
-                                onClick={() => setIsStart(true)}
-                            />
+                            <div onClick={() => setIsStart(true)}>
+                                <Input
+                                    pWidth={180}
+                                    pHeight={28}
+                                    onChange={(aEvent: any) => handleStartTime(aEvent.target.value)}
+                                    pValue={typeof sStartTime === 'string' ? sStartTime : moment(sStartTime).format('yyyy-MM-DD HH:mm:ss')}
+                                    pSetValue={() => null}
+                                />
+                            </div>
                         )}
                         {sIsStart && (
                             <OutsideClickHandler onOutsideClick={() => setIsStart(false)}>
                                 <DatePicker
+                                    selected={sStartTime}
                                     calendarClassName="modal-date-picker"
-                                    timeInputLabel=""
+                                    timeInputLabel="Time: "
                                     onChange={(date: any) => handleStartTime(date)}
                                     dateFormat="yyyy-MM-dd HH:mm:ss"
                                     showTimeInput
@@ -105,20 +112,23 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                 <div className="to">
                     <span>To</span>
                     <div className="time-range-select-box">
-                        {sEndTime !== undefined && (
-                            <input
-                                type="text"
-                                onChange={(aEvent: any) => handleEndTime(aEvent.target.value)}
-                                value={typeof sEndTime === 'string' ? sEndTime : moment(sEndTime).format('yyyy-MM-DD HH:mm:ss')}
-                                onClick={() => setIsEnd(true)}
-                                className="date-picker"
-                            />
+                        {sEndTime && (
+                            <div onClick={() => setIsEnd(true)}>
+                                <Input
+                                    pWidth={180}
+                                    pHeight={28}
+                                    onChange={(aEvent: any) => handleEndTime(aEvent.target.value)}
+                                    pValue={typeof sEndTime === 'string' ? sEndTime : moment(sEndTime).format('yyyy-MM-DD HH:mm:ss')}
+                                    pSetValue={() => null}
+                                />
+                            </div>
                         )}
                         {sIsEnd && (
                             <OutsideClickHandler onOutsideClick={() => setIsEnd(false)}>
                                 <DatePicker
+                                    selected={typeof sEndTime === 'string' && sEndTime.includes('now') ? moment(sEndTime).format('yyyy-MM-DD HH:mm:ss') : sEndTime}
                                     calendarClassName="modal-date-picker"
-                                    timeInputLabel=""
+                                    timeInputLabel="Time: "
                                     onChange={(date: any) => handleEndTime(date)}
                                     dateFormat="yyyy-MM-dd HH:mm:ss"
                                     showTimeInput

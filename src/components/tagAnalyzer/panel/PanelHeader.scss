@@ -24,19 +24,5 @@
                 color: #fdb532 !important;
             }
         }
-        button {
-            color: #a4a4a4;
-            background-color: transparent;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 0;
-            :hover {
-                color: #ffffff;
-            }
-        }
-        svg {
-            margin-left: 6px;
-        }
     }
 }

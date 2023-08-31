@@ -10,15 +10,15 @@ import { Markdown } from '../worksheet/Markdown';
 import { isValidJSON } from '@/utils';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import { AiOutlineFileDone, AiOutlineFileMarkdown, BarChart, Save, VscJson, PiFileCsvThin, TableHeader, TableNotHeader, LuFlipVertical, Play, SaveAs } from '@/assets/icons/Icon';
+import { IconButton } from '../buttons/IconButton';
 
 interface TqlProps {
     setIsSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
-    setIsOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
     pHandleSaveModalOpen: any;
 }
 
 const Tql = (props: TqlProps) => {
-    const { setIsSaveModal, pHandleSaveModalOpen } = props;
+    const { pHandleSaveModalOpen, setIsSaveModal } = props;
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
@@ -111,9 +111,6 @@ const Tql = (props: TqlProps) => {
         setCsvHeader(tempHeaders);
         setHeader(!sIsHeader);
     };
-    const handleSaveModalOpen = () => {
-        setIsSaveModal(true);
-    };
 
     const Resizer = () => {
         return <SashContent className={`${isVertical ? 'sash-style-vertical' : 'sash-style-horizontal'}`} />;
@@ -124,16 +121,10 @@ const Tql = (props: TqlProps) => {
             <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sizes} onChange={setSizes}>
                 <Pane minSize={50}>
                     <div className="tql-editor-header">
-                        <div className="btn-cover" onClick={() => getTqlData(sText)}>
-                            <Play />
-                        </div>
+                        <IconButton pIcon={<Play />} onClick={() => getTqlData(sText)} />
                         <div style={{ display: 'flex' }}>
-                            <div className="btn-cover">
-                                <Save onClick={pHandleSaveModalOpen} />
-                            </div>
-                            <div className="btn-cover">
-                                <SaveAs onClick={handleSaveModalOpen} />
-                            </div>
+                            <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
+                            <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
                         </div>
                     </div>
                     <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
@@ -157,23 +148,15 @@ const Tql = (props: TqlProps) => {
                                 </div>
                             </div>
                             <div className="tql-result-btn-group">
-                                <div className={`btn-cover ${sResultType === 'text' && sIsPrettier ? 'active' : ''} ${sResultType === 'csv' && sIsHeader ? 'active' : ''}`}>
-                                    {sResultType === 'text' && sTextField !== '' ? <VscJson onClick={() => setIsPrettier(!sIsPrettier)} /> : null}
-                                    {sResultType === 'csv' ? (
-                                        sIsHeader ? (
-                                            <TableHeader size={20} onClick={() => handleChangeHeader(sCsv)} />
-                                        ) : (
-                                            <TableNotHeader size={20} onClick={() => handleChangeHeader(sCsv)} />
-                                        )
-                                    ) : null}
-                                </div>
+                                {sResultType === 'text' && sTextField !== '' ? (
+                                    <IconButton pIcon={<VscJson />} pIsActive={sIsPrettier} onClick={() => setIsPrettier(!sIsPrettier)} />
+                                ) : null}
+                                {sResultType === 'csv' ? (
+                                    <IconButton pIcon={sIsHeader ? <TableHeader /> : <TableNotHeader />} pIsActive={sIsHeader} onClick={() => handleChangeHeader(sCsv)} />
+                                ) : null}
                                 <div className="divider" style={{ margin: '12px 3px' }}></div>
-                                <div className={`btn-cover ${isVertical ? 'active' : ''}`}>
-                                    <LuFlipVertical style={{ transform: 'rotate(90deg)' }} onClick={handleSplitVertical} />
-                                </div>
-                                <div className={`btn-cover ${isVertical ? '' : 'active'}`}>
-                                    <LuFlipVertical onClick={handleSplitHorizontal} />
-                                </div>
+                                <IconButton pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />} pIsActive={isVertical} onClick={handleSplitVertical} />
+                                <IconButton pIcon={<LuFlipVertical />} pIsActive={!isVertical} onClick={handleSplitHorizontal} />
                             </div>
                         </div>
                         <div className="tql-result-body" style={{ backgroundColor: '#1B1C21' }}>

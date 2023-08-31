@@ -2,7 +2,7 @@ name: auto Build
 
 on:
     pull_request:
-        branches: [main, dev_v2]
+        branches: [main, dev*]
 
 jobs:
     test:
@@ -24,3 +24,4 @@ jobs:
               env:
                   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
             - run: npm run build
+            - run: npm run test

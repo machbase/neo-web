@@ -60,56 +60,6 @@
                         }
                     }
                 }
-
-                .worksheet-ctr-icon-wrap {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    width: 30px;
-                    height: 30px;
-                    color: rgba(255, 255, 255, 0.5);
-
-                    :hover {
-                        color: #f8f8f8;
-                        border-radius: 10px;
-                        background-color: #393b41;
-                    }
-
-                    .worksheet-ctr-icon {
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        width: 30px;
-                        height: 30px;
-                        cursor: pointer;
-
-                        svg {
-                            width: 18px;
-                            height: 18px;
-                        }
-                    }
-                }
-                .worksheet-ctr-icon-disable {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    width: 30px;
-                    height: 30px;
-                    color: rgba(255, 255, 255, 0.205);
-
-                    .worksheet-ctr-icon {
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        width: 30px;
-                        height: 30px;
-
-                        svg {
-                            width: 18px;
-                            height: 18px;
-                        }
-                    }
-                }
             }
 
             .editor {
@@ -159,36 +109,6 @@
                 span {
                     margin-left: 8px;
                 }
-            }
-        }
-    }
-
-    .worksheet-collapse-ctr {
-        margin-left: 5px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 40px;
-        height: 40px;
-        color: rgba(255, 255, 255, 0.5);
-
-        :hover {
-            color: #f8f8f8;
-            border-radius: 10px;
-            background-color: #393b41;
-        }
-
-        .worksheet-collapse-ctr-icon {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-
-            svg {
-                width: 18px;
-                height: 18px;
             }
         }
     }
