@@ -27,6 +27,7 @@ export {
     VscChevronUp,
     VscTerminalCmd,
     VscTerminalPowershell as Powershell,
+    VscAdd,
 } from 'react-icons/vsc';
 
 export {

@@ -142,7 +142,7 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGet
                                     pSetIsSaveModal={setIsSaveModal}
                                 ></TagAnalyzer>
                             )}
-                            {aItem.type === 'term' && <Shell pInfo={aItem} pId={aItem.id}></Shell>}
+                            {aItem.type === 'term' && <Shell pSelectedTab={sSelectedTab} pInfo={aItem} pId={aItem.id}></Shell>}
                             {aItem.type === 'dsh' && <Dashboard pDraged={pDraged} pId={aItem.id} pSideSizes={pSideSizes}></Dashboard>}
                             {aItem.type === 'wrk' && <WorkSheet pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsOpenModal} setIsSaveModal={setIsSaveModal} />}
                         </div>

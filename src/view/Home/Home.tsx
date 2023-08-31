@@ -136,7 +136,11 @@ const Home = () => {
                                             height: '100%',
                                         }}
                                     >
-                                        <Console pTerminalSizes={sTerminalSizes} pSetTerminalSizes={setTerminalSizes}></Console>
+                                        <Console
+                                            pExtentionList={sExtentionList.filter((aItem: any) => aItem.type === 'term')}
+                                            pTerminalSizes={sTerminalSizes}
+                                            pSetTerminalSizes={setTerminalSizes}
+                                        ></Console>
                                     </div>
                                 </Pane>
                             </SplitPane>

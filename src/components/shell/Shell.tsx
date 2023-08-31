@@ -14,9 +14,11 @@ import { gSelectedTab } from '@/recoil/recoil';
 interface ShellProps {
     pId: string;
     pInfo: any;
+    pSelectedTab: string;
+    pType?: string;
 }
 
-export const Shell = ({ pId, pInfo }: ShellProps) => {
+export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     // ref ele
     const term_view: Element | any = useRef();
     // web socket
@@ -27,8 +29,6 @@ export const Shell = ({ pId, pInfo }: ShellProps) => {
     // let sTerm: any = null;
     // temr id
     let sTermId: any = null;
-
-    const [sSelectedTab] = useRecoilState<any>(gSelectedTab);
 
     let sTheme: any = Theme['dark'];
     if (pInfo.shell.theme && pInfo.shell.theme !== 'default') {
@@ -49,7 +49,7 @@ export const Shell = ({ pId, pInfo }: ShellProps) => {
 
     const sResizeObserver = new ResizeObserver(() => {
         try {
-            if (sSelectedTab === pId) {
+            if (pSelectedTab === pId) {
                 sFitter && sFitter.fit();
             }
         } catch (err) {
@@ -112,8 +112,8 @@ export const Shell = ({ pId, pInfo }: ShellProps) => {
 
     return (
         <div style={{ height: '100%', width: '100%' }}>
-            <div style={{ height: '40px' }}></div>
-            <div ref={term_view} id={'term_view' + pId} style={{ height: 'calc(100% - 40px)', width: '100%' }}></div>
+            <div style={pType ? {} : { height: '40px' }}></div>
+            <div ref={term_view} id={'term_view' + pId} style={pType ? { height: 'calc(100%)', width: '100%' } : { height: 'calc(100% - 40px)', width: '100%' }}></div>
         </div>
     );
 };
