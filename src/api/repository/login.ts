@@ -1,10 +1,10 @@
 import request from '../core';
 
 export const getLogin = () => {
-    return {
+    return request({
         method: 'GET',
         url: '/api/check',
-    };
+    });
 };
 
 export const postLogin = (params: any) => {

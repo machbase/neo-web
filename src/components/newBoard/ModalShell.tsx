@@ -17,7 +17,7 @@ const ModalShell = ({ pGetInfo, pSetIsModal, pInfo }: any) => {
 
     const sIconList = ['console-network-outline', 'monitor-small', 'console-line', 'powershell', 'laptop', 'database', 'database-outline'];
 
-    const sThemeList = ['default', 'white', 'dark', 'gray', 'galaxy'];
+    const sThemeList = ['default', 'white', 'dark', 'indigo', 'gray', 'galaxy'];
 
     useEffect(() => {
         setName(pInfo.label);

@@ -132,7 +132,7 @@ const Tql = (props: TqlProps) => {
                     </div>
                 </Pane>
                 <Pane style={{ overflow: 'initial' }}>
-                    <div className="tql-result-wrapper" style={{ marginTop: isVertical ? '' : '10px' }}>
+                    <div className="tql-result-wrapper">
                         <div className="tql-result-header">
                             <div className="tql-result-tab result-icon" style={{ color: '#fdb532' }}>
                                 <div className="round_right_wrap">

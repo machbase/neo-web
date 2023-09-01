@@ -8,15 +8,16 @@ import { postTerminalSize } from '../../api/repository/machiot';
 import Theme from '@/assets/ts/xtermTheme';
 
 import './Shell.scss';
-import { useRecoilState } from 'recoil';
-import { gSelectedTab } from '@/recoil/recoil';
+import { getLogin } from '@/api/repository/login';
 
 interface ShellProps {
     pId: string;
     pInfo: any;
+    pSelectedTab: string;
+    pType?: string;
 }
 
-export const Shell = ({ pId, pInfo }: ShellProps) => {
+export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     // ref ele
     const term_view: Element | any = useRef();
     // web socket
@@ -28,11 +29,9 @@ export const Shell = ({ pId, pInfo }: ShellProps) => {
     // temr id
     let sTermId: any = null;
 
-    const [sSelectedTab] = useRecoilState<any>(gSelectedTab);
-
     let sTheme: any = Theme['dark'];
     if (pInfo.shell.theme && pInfo.shell.theme !== 'default') {
-        const sData: 'gray' | 'ollie' | 'warmNeon' | 'galaxy' | 'white' | 'dark' = pInfo.shell.theme;
+        const sData: 'gray' | 'indigo' | 'ollie' | 'warmNeon' | 'galaxy' | 'white' | 'dark' = pInfo.shell.theme;
         sTheme = Theme[sData];
     }
 
@@ -40,7 +39,7 @@ export const Shell = ({ pId, pInfo }: ShellProps) => {
         theme: sTheme,
         fontFamily: '"D2Coding", "Monaco", "Lucida Console", "Courier New","D2Coding", sans-serif, monospace',
         allowProposedApi: true,
-        fontSize: 16,
+        fontSize: 14,
     });
 
     const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
@@ -49,7 +48,7 @@ export const Shell = ({ pId, pInfo }: ShellProps) => {
 
     const sResizeObserver = new ResizeObserver(() => {
         try {
-            if (sSelectedTab === pId) {
+            if (pSelectedTab === pId) {
                 sFitter && sFitter.fit();
             }
         } catch (err) {
@@ -57,63 +56,71 @@ export const Shell = ({ pId, pInfo }: ShellProps) => {
         }
     });
 
-    const init = () => {
-        const term = document.getElementById('term_view' + pId);
-        sTermId = new Date().getTime();
+    const init = async () => {
+        const sResult: any = await getLogin();
 
-        if (window.location.protocol.indexOf('https') === -1) {
-            sWebSoc = new WebSocket(`ws://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${'&shell=' + pInfo.shell.id}`);
-        } else {
-            sWebSoc = new WebSocket(`wss://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${'&shell=' + pInfo.shell.id}`);
-        }
+        if (sResult.reason === 'success') {
+            const term = document.getElementById('term_view' + pId);
+            sTermId = new Date().getTime();
 
-        if (term) {
-            sFitter = new FitAddon();
-            sTerm.loadAddon(new WebglAddon());
-            sTerm.loadAddon(new WebLinksAddon());
-            sTerm.loadAddon(new AttachAddon(sWebSoc, { bidirectional: true }));
-            sTerm.loadAddon(sFitter);
+            if (window.location.protocol.indexOf('https') === -1) {
+                sWebSoc = new WebSocket(`ws://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${'&shell=' + pInfo.shell.id}`);
+            } else {
+                sWebSoc = new WebSocket(`wss://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${'&shell=' + pInfo.shell.id}`);
+            }
 
-            sTerm.attachCustomKeyEventHandler((event) => {
-                if (event.ctrlKey && event.shiftKey && event.keyCode == 67) {
-                    event.preventDefault();
+            if (term) {
+                sFitter = new FitAddon();
+                sTerm.loadAddon(new WebglAddon());
+                sTerm.loadAddon(new WebLinksAddon());
+                sTerm.loadAddon(new AttachAddon(sWebSoc, { bidirectional: true }));
+                sTerm.loadAddon(sFitter);
 
-                    document.execCommand('copy');
-                    return false;
-                } else {
-                    return true;
-                }
-            });
+                sTerm.attachCustomKeyEventHandler((event) => {
+                    if (event.ctrlKey && event.shiftKey && event.keyCode == 67) {
+                        event.preventDefault();
 
-            sTerm.open(term);
-            sTerm.focus();
+                        document.execCommand('copy');
+                        return false;
+                    } else {
+                        return true;
+                    }
+                });
 
-            sTerm.onResize((aSize: { cols: number; rows: number }) => {
-                onSendReSizeInfo(aSize);
-            });
+                sTerm.open(term);
+                sTerm.focus();
 
-            setTimeout(() => {
-                try {
-                    sFitter && sFitter.fit();
-                    sResizeObserver.observe(term);
-                } catch (err) {
-                    console.log(err);
-                }
-            }, 400);
+                sTerm.onResize((aSize: { cols: number; rows: number }) => {
+                    onSendReSizeInfo(aSize);
+                });
+
+                setTimeout(() => {
+                    try {
+                        sFitter && sFitter.fit();
+                        sResizeObserver.observe(term);
+                    } catch (err) {
+                        console.log(err);
+                    }
+                }, 400);
+            }
         }
     };
     useEffect(() => {
         init();
 
         return () => {
-            sWebSoc.close();
+            sWebSoc && sWebSoc.close();
         };
     }, []);
 
     return (
         <div style={{ height: '100%', width: '100%' }}>
-            <div style={{ height: '40px' }}></div>
-            <div ref={term_view} id={'term_view' + pId} style={{ height: 'calc(100% - 40px)', width: '100%' }}></div>
+            <div style={pType ? {} : pInfo?.shell?.theme ? { boxShadow: '0px 1px 6px #181818', height: '40px' } : { height: '40px' }}></div>
+            <div
+                ref={term_view}
+                id={'term_view' + pId}
+                style={pType ? { height: 'calc(100%)', width: '100%', paddingTop: '4px' } : { height: 'calc(100% - 40px)', width: '100%', paddingTop: '4px' }}
+            ></div>
         </div>
     );
 };

@@ -42,6 +42,7 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
         minimap: {
             enabled: false,
         },
+        fontSize: 14,
         scrollBeyondLastLine: false,
     };
 

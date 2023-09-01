@@ -10,11 +10,15 @@ export {
 
 export {
     VscChevronRight,
+    VscWarning,
+    VscRecord,
+    VscTrash,
     VscTerminalCmd as Cmd,
     VscSymbolFile,
     VscThreeBars,
     VscTerminal,
     VscNote,
+    VscPass,
     VscGraphLine,
     VscGear as Gear,
     VscFiles,
@@ -27,6 +31,7 @@ export {
     VscChevronUp,
     VscTerminalCmd,
     VscTerminalPowershell as Powershell,
+    VscAdd,
 } from 'react-icons/vsc';
 
 export {
