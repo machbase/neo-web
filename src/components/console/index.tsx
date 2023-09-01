@@ -2,7 +2,7 @@ import './index.scss';
 import { useState, useEffect, useRef } from 'react';
 import { useRecoilState } from 'recoil';
 import { gConsoleList } from '@/recoil/recoil';
-import { VscAdd, VscChevronDown, VscChevronRight, VscChevronUp } from '@/assets/icons/Icon';
+import { VscAdd, VscChevronDown, VscTrash, VscChevronRight, VscChevronUp } from '@/assets/icons/Icon';
 import { getId } from '@/utils';
 import Shell from '../shell/Shell';
 import Menu from '../contextMenu/Menu';
@@ -14,7 +14,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
     const [sConsoleTab, setConsoleTab] = useState<any>([]);
     const [sSelectedTab, setSelectedTab] = useState('Console');
     const [sIsContextMenu, setIsContextMenu] = useState(false);
-    const [sConsoleList] = useRecoilState<any>(gConsoleList);
+    const [sConsoleList, setConsoleList] = useRecoilState<any>(gConsoleList);
     const MenuRef = useRef<HTMLDivElement>(null);
     const consoleRef = useRef<any>(null);
     const [sNewLog, setNewLog] = useState(false);
@@ -127,6 +127,8 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                             </Menu>
                         </div>
                     </div>
+                    {sConsoleTab && sSelectedTab === sConsoleTab[0]?.id && <VscTrash onClick={() => setConsoleList([])}></VscTrash>}
+
                     {pTerminalSizes[1] === 40 && <VscChevronUp onClick={() => pSetTerminalSizes(['72%', '28%'])}></VscChevronUp>}
                     {pTerminalSizes[1] !== 40 && <VscChevronDown onClick={() => pSetTerminalSizes(['', 40])}></VscChevronDown>}
                 </div>

@@ -12,6 +12,7 @@ export {
     VscChevronRight,
     VscWarning,
     VscRecord,
+    VscTrash,
     VscTerminalCmd as Cmd,
     VscSymbolFile,
     VscThreeBars,
