@@ -26,7 +26,7 @@ const Home = () => {
     const sWebSoc: any = useRef(null);
 
     const init = async () => {
-        const sResult = await getLogin();
+        const sResult: any = await getLogin();
         if (sResult.reason === 'success') {
             const sId = getId();
             if (!sWebSoc.current) {

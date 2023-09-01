@@ -7,7 +7,6 @@ import { getId } from '@/utils';
 import Shell from '../shell/Shell';
 import Menu from '../contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
-import icons from '@/utils/icons';
 import ConsoleTab from './ConsoleTab';
 
 const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => {
@@ -27,6 +26,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
         setTimeout(() => {
             setNewLog(false);
         }, 2000);
+        sConsoleList[sConsoleList.length - 1] && sConsoleList[sConsoleList.length - 1].level === 'ERROR' && setSelectedTab(sConsoleTab[0].id);
         if (consoleRef.current) consoleRef.current.scrollTop = consoleRef.current.scrollHeight + consoleRef.current.clientHeight;
     }, [sConsoleList]);
     useEffect(() => {
