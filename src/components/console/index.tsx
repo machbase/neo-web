@@ -158,7 +158,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                     );
                                 })
                             ) : (
-                                <div style={{ height: 'calc(100%)' }}>
+                                <div style={aItem && aItem?.shell?.theme === 'indigo' ? { height: 'calc(100%)', paddingTop: '4px' } : { height: '100%' }}>
                                     <Shell pSelectedTab={sSelectedTab} pType="bottom" pInfo={aItem} pId={aItem.id}></Shell>
                                 </div>
                             )}

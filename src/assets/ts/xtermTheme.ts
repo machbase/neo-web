@@ -100,4 +100,7 @@ export default {
         brightWhite: '#ffffff',
     },
     dark: {},
+    indigo: {
+        background: '#262831',
+    },
 };

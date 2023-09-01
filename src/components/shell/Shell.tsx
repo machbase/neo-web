@@ -31,7 +31,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
 
     let sTheme: any = Theme['dark'];
     if (pInfo.shell.theme && pInfo.shell.theme !== 'default') {
-        const sData: 'gray' | 'ollie' | 'warmNeon' | 'galaxy' | 'white' | 'dark' = pInfo.shell.theme;
+        const sData: 'gray' | 'indigo' | 'ollie' | 'warmNeon' | 'galaxy' | 'white' | 'dark' = pInfo.shell.theme;
         sTheme = Theme[sData];
     }
 
@@ -39,7 +39,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
         theme: sTheme,
         fontFamily: '"D2Coding", "Monaco", "Lucida Console", "Courier New","D2Coding", sans-serif, monospace',
         allowProposedApi: true,
-        fontSize: 16,
+        fontSize: 14,
     });
 
     const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
@@ -115,8 +115,12 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
 
     return (
         <div style={{ height: '100%', width: '100%' }}>
-            <div style={pType ? {} : { height: '40px' }}></div>
-            <div ref={term_view} id={'term_view' + pId} style={pType ? { height: 'calc(100%)', width: '100%' } : { height: 'calc(100% - 40px)', width: '100%' }}></div>
+            <div style={pType ? {} : pInfo?.shell?.theme ? { boxShadow: '0px 1px 6px #181818', height: '40px' } : { height: '40px' }}></div>
+            <div
+                ref={term_view}
+                id={'term_view' + pId}
+                style={pType ? { height: 'calc(100%)', width: '100%', paddingTop: '4px' } : { height: 'calc(100% - 40px)', width: '100%', paddingTop: '4px' }}
+            ></div>
         </div>
     );
 };
