@@ -21,6 +21,22 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
         e.preventDefault();
         setIsContextMenu(true);
     };
+
+    const setColor = (aItem: string) => {
+        switch (aItem) {
+            case 'TRACE':
+                return '#C4C4C4';
+            case 'DEBUG':
+                return '#F8F8F8';
+            case 'INFO':
+                return '#339900';
+            case 'ERROR':
+                return '#CC3300';
+            case 'WARN':
+                return '#FFCC00';
+        }
+    };
+
     useEffect(() => {
         setNewLog(true);
         setTimeout(() => {
@@ -29,6 +45,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
         sConsoleList[sConsoleList.length - 1] && sConsoleList[sConsoleList.length - 1].level === 'ERROR' && setSelectedTab(sConsoleTab[0].id);
         if (consoleRef.current) consoleRef.current.scrollTop = consoleRef.current.scrollHeight + consoleRef.current.clientHeight;
     }, [sConsoleList]);
+
     useEffect(() => {
         const defaultTabId = getId();
         setConsoleTab([
@@ -131,9 +148,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                             key={aIdx}
                                         >
                                             <VscChevronRight></VscChevronRight>
-                                            <span style={bItem.level === 'ERROR' ? { color: 'rgb(228, 18, 18)', marginRight: '8px' } : { color: '#20C997', marginRight: '8px' }}>
-                                                {bItem.level}
-                                            </span>
+                                            <span style={{ color: setColor(bItem.level), marginRight: '8px' }}>{bItem.level}</span>
                                             <span>{bItem.message}</span>
                                         </div>
                                     );

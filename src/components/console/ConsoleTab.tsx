@@ -1,11 +1,24 @@
-import { VscPass, VscWarning } from '@/assets/icons/Icon';
+import { VscRecord } from '@/assets/icons/Icon';
 import icons from '@/utils/icons';
 
 import { useState } from 'react';
 
 const ConsoleTab = ({ pSelectedTab, pNewLog, pDeleteConsoleTab, pHandleSelectedTab, pTab, pConsoleList }: any) => {
     const [sMouseHover, setMouseHover] = useState(false);
-
+    const setColor = (aItem: string) => {
+        switch (aItem) {
+            case 'TRACE':
+                return '#C4C4C4';
+            case 'DEBUG':
+                return '#F8F8F8';
+            case 'INFO':
+                return '#339900';
+            case 'ERROR':
+                return '#CC3300';
+            case 'WARN':
+                return '#FFCC00';
+        }
+    };
     return (
         <div style={{ display: 'flex', alignItems: 'center' }} onMouseEnter={() => setMouseHover(true)} onMouseLeave={() => setMouseHover(false)} onClick={pHandleSelectedTab}>
             <span
@@ -24,13 +37,7 @@ const ConsoleTab = ({ pSelectedTab, pNewLog, pDeleteConsoleTab, pHandleSelectedT
                 )}
                 {(!sMouseHover || pTab.type === 'console') && (
                     <span className="tab_close">
-                        {pNewLog && pTab.type === 'console' && pConsoleList[pConsoleList.length - 1]?.level === 'ERROR' ? (
-                            <VscWarning color="#C63100"></VscWarning>
-                        ) : pNewLog && pTab.type === 'console' && pConsoleList[pConsoleList.length - 1]?.level === 'ERROR' ? (
-                            <VscPass color="#319400"></VscPass>
-                        ) : (
-                            ''
-                        )}
+                        {pNewLog && pTab.type === 'console' && <VscRecord color={setColor(pConsoleList[pConsoleList.length - 1]?.level)}></VscRecord>}
                     </span>
                 )}
             </span>

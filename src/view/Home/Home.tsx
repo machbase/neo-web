@@ -53,7 +53,19 @@ const Home = () => {
     };
 
     useEffect(() => {
-        if (sText.log) setConsoleList([...sConsoleList, sText.log]);
+        if (sText.log) {
+            if (sConsoleList.length >= 200) {
+                setConsoleList([
+                    ...sConsoleList.filter((aItem: any, aIdx: number) => {
+                        aItem;
+                        return aIdx !== 0;
+                    }),
+                    sText.log,
+                ]);
+            } else {
+                setConsoleList([...sConsoleList, sText.log]);
+            }
+        }
     }, [sText]);
 
     const layoutCSS = {
