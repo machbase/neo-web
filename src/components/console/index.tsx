@@ -8,6 +8,7 @@ import Shell from '../shell/Shell';
 import Menu from '../contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import ConsoleTab from './ConsoleTab';
+import icons from '@/utils/icons';
 
 const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => {
     const [sConsoleTab, setConsoleTab] = useState<any>([]);
@@ -118,6 +119,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                 {pExtentionList.map((aItem: any) => {
                                     return (
                                         <Menu.Item onClick={(aEvent: any) => addConsoleTab(aEvent, aItem)} key={aItem.id}>
+                                            {icons(aItem.icon)}
                                             {aItem.label}
                                         </Menu.Item>
                                     );
