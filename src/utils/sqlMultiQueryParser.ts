@@ -50,6 +50,7 @@ const findVariableNParsedQuery = (aNoAnnotationList: string[]) => {
             sParsedQuery = sParsedQuery.replace(aVariable.value, aVariable.replaceValue);
         });
     }
+    if (sVariableList.length > 0) sVariableList = sVariableList.filter((aVariable) => aVariable.value.includes(';') && aVariable.replaceValue.includes('M'));
     return { sParsedQuery, sVariableList };
 };
 /** FIND START & END LINE */
@@ -60,13 +61,14 @@ const findStartNEndLine = (aSplitQueryList: string[], aSelection: SelectionType)
     const sEndColumn: number = aSelection.endColumn - 1;
 
     aSplitQueryList.map((aQuery: string, aIdx: number) => {
-        if (aQuery.includes('--') && aIdx <= sStartLine) {
+        if (aQuery.includes('--') && aIdx <= aSelection.startLineNumber - 1) {
             if (aQuery.split('--')[0].trim() === '') sStartLine -= 1;
         }
-        if (aQuery.includes('--') && aIdx <= sEndLine) {
+        if (aQuery.includes('--') && aIdx <= aSelection.endLineNumber - 1) {
             if (aQuery.split('--')[0].trim() === '') sEndLine -= 1;
         }
     });
+
     return { sStartLine, sEndLine, sStartColumn, sEndColumn };
 };
 /** FIND CURSOR LENGTH */
@@ -77,12 +79,13 @@ const findCursorLength = (aNoAnnotationList: string[], aStartLine: number, aEndL
 
     aNoAnnotationList.map((aRow: string, aIdx: number) => {
         if (aStartLine === aIdx) {
-            sSelectionStartLen = rTotalLen + aStartColumn + aIdx;
+            sSelectionStartLen = rTotalLen + aStartColumn;
+            if (sSelectionStartLen === 0) sSelectionStartLen = 1;
         }
         if (aIdx === aEndLine) {
-            sSelectionEndLen = rTotalLen + aEndColumn + aIdx;
+            sSelectionEndLen = rTotalLen + aEndColumn;
         }
-        rTotalLen += aRow.length;
+        rTotalLen += aRow.length + 1;
     });
 
     return { sSelectionStartLen, sSelectionEndLen };
@@ -98,22 +101,33 @@ const findTargetQuery = (
     }[]
 ) => {
     let semiTotalLen = 0;
-    let sBlank = false;
-    const targetQuery: string[] = [];
+    let sIsBlank = false;
+    let targetQuery: string[] = [];
     const sSemiList = aParsedQuery.split(';');
 
     sSemiList.map((aRow: string) => {
         if (targetQuery.length > 0 && semiTotalLen < sSelectionEndLen - (aRow.length - aRow.trim().length)) {
             targetQuery.push(aRow.split('\n').join(' ').trim());
         }
-        if (targetQuery.length === 0 && sSelectionStartLen < semiTotalLen + aRow.length + 1 && !sBlank) {
-            if (sSelectionStartLen + aRow.length - aRow.trimStart().length >= sSelectionEndLen) sBlank = true;
-            else targetQuery[0] = aRow.split('\n').join(' ').trim();
+        if (targetQuery.length === 0 && sSelectionStartLen < semiTotalLen + aRow.length + 1 && !sIsBlank) {
+            const sBlankCount = aRow.length - 1 - (aRow.trimStart().length - 1);
+            if (semiTotalLen + sBlankCount >= sSelectionEndLen) {
+                targetQuery = [];
+            } else targetQuery[0] = aRow.split('\n').join(' ').trim();
+            sIsBlank = true;
         }
         semiTotalLen += aRow.length + 1;
     });
-    console.log('targetquerylist', targetQuery);
 
+    if (targetQuery.length > 0 && aVariableList.length > 0) {
+        aVariableList.map((aVariable) => {
+            targetQuery.map((aQuery: string, aIdx: number) => {
+                if (aQuery.includes(aVariable.replaceValue)) {
+                    targetQuery[aIdx] = targetQuery[aIdx].replace(aVariable.replaceValue, aVariable.value);
+                }
+            });
+        });
+    }
     return targetQuery;
 };
 /**
