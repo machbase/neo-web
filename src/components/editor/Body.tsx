@@ -13,12 +13,13 @@ import { SaveModal } from '../modal/SaveModal';
 import useSaveCommand from '@/hooks/useSaveCommand';
 import useMoveTab from '@/hooks/useMoveTab';
 import { WorkSheet } from '@/components/worksheet/WorkSheet';
-import { getId } from '@/utils';
+import { extractionExtension, getId, isImage } from '@/utils';
 import { postFileList } from '@/api/repository/api';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { Error } from '@/components/toast/Toast';
 import { useNavigate } from 'react-router-dom';
+import { ImageBox } from '@/components/imageBox/ImageBox';
 
 const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGetPath }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -47,7 +48,7 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGet
         if (sIsSave) {
             const sIsAlreadySave = sFilterBoard.path !== '';
             if (sIsAlreadySave) {
-                const sFileType = sFilterBoard.name.slice(sFilterBoard.name.length - 3);
+                const sFileType = extractionExtension(sFilterBoard.name);
                 const sSaveData = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'taz' ? sFilterBoard : sFilterBoard?.code;
                 try {
                     const sResult: any = await postFileList(sSaveData, sFilterBoard.path.replace('/', ''), sFilterBoard.name);
@@ -145,6 +146,7 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGet
                             {aItem.type === 'term' && <Shell pSelectedTab={sSelectedTab} pInfo={aItem} pId={aItem.id}></Shell>}
                             {aItem.type === 'dsh' && <Dashboard pDraged={pDraged} pId={aItem.id} pSideSizes={pSideSizes}></Dashboard>}
                             {aItem.type === 'wrk' && <WorkSheet pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsOpenModal} setIsSaveModal={setIsSaveModal} />}
+                            {isImage(aItem.name) && <ImageBox pSrc={`data:image/${aItem.type};base64,${aItem.code}`} />}
                         </div>
                     );
                 })}

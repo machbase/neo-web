@@ -1,6 +1,6 @@
 import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gFileTree } from '@/recoil/fileTree';
-import { getId } from '@/utils';
+import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
 import { Delete, Download, VscChevronRight, VscChevronDown, FolderOpen } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
@@ -101,9 +101,9 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
             setSelectedTab(sExistBoard.id as string);
         } else {
             const sContentResult: any = await getFiles(`${file.path}${file.name}`);
-            let sTmpBoard: any = { id: sTmpId, name: file.name, type: file.id.slice(-3) as string, path: file.path, savedCode: sContentResult };
-
-            if (file.id.slice(-3) === 'wrk') {
+            const sFileExtension = extractionExtension(file.id);
+            let sTmpBoard: any = { id: sTmpId, name: file.name, type: sFileExtension, path: file.path, savedCode: sContentResult, code: '' };
+            if (sFileExtension === 'wrk') {
                 const sTmpData = JSON.parse(sContentResult);
                 if (sTmpData.data) {
                     sTmpBoard.sheet = sTmpData.data;
@@ -115,9 +115,19 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
                     sTmpBoard.sheet = sTmpData;
                     sTmpBoard.savedCode = JSON.stringify(sTmpData);
                 }
-            } else if (file.id.slice(-3) === 'taz') {
+            } else if (sFileExtension === 'taz') {
                 const sTmpData: any = JSON.parse(sContentResult);
-                sTmpBoard = { ...sTmpData, id: sTmpBoard.id, name: sTmpBoard.name, type: file.id.slice(-3), path: sTmpBoard.path, savedCode: JSON.stringify(sContentResult) };
+                sTmpBoard = { ...sTmpData, id: sTmpBoard.id, name: sTmpBoard.name, type: sFileExtension, path: sTmpBoard.path, savedCode: JSON.stringify(sContentResult) };
+            } else if (isImage(file.id)) {
+                const base64 = binaryCodeEncodeBase64(sContentResult);
+                const updateBoard = {
+                    ...sTmpBoard,
+                    code: base64,
+                    savedCode: base64,
+                    type: extractionExtension(file.id),
+                };
+                sTmpBoard = updateBoard;
+                setBoardList([...sBoardList, sTmpBoard]);
             } else sTmpBoard.code = sContentResult;
 
             pGetInfo();
