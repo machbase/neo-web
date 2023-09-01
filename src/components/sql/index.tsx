@@ -19,7 +19,6 @@ import { MonacoEditor } from '../monaco/MonacoEditor';
 import { IconButton } from '@/components/buttons/IconButton';
 
 const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHandleSaveModalOpen: any; setIsSaveModal: (aValue: boolean) => void }) => {
-    // const monaco = useMonaco();
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
@@ -102,44 +101,74 @@ const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHan
             selection: SelectionType;
         }
     ) => {
-        let parsedQuery = '';
-        if (!aLocation) parsedQuery = sqlQueryParser(sSqlQueryTxt, sSqlLocation.position, sSqlLocation.selection);
-        else {
-            parsedQuery = sqlQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection);
+        let parsedQuery: any = '';
+        if (!aLocation) {
+            // SINGLE
+            if (sSqlLocation.selection.endColumn === sSqlLocation.selection.startColumn)
+                parsedQuery = [sqlQueryParser(sSqlQueryTxt, sSqlLocation.position, sSqlLocation.selection)];
+            // MULTIPLE
+            else parsedQuery = sqlMultiQueryParser(sSqlQueryTxt, sSqlLocation.position, sSqlLocation.selection);
+        } else {
+            // SINGLE
+            if (aLocation.selection.endColumn === aLocation.selection.startColumn) parsedQuery = [sqlQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection)];
+            // MULTIPLE
+            else parsedQuery = sqlMultiQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection);
             setSqlLocation(aLocation);
-            // sqlMultiQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection);
         }
-        if (!parsedQuery) return;
-        (async () => {
-            const sSqlResult = await getTqlChart(sqlBasicFormatter(parsedQuery.trim(), 1, sTimeRange, sTimeZone));
-            switch (sSqlResult.status) {
-                case 200:
-                    setSelectedSubTab('RESULT');
-                    break;
-                default:
-                    setSelectedSubTab('LOG');
-            }
-            if (
-                !sTimeRange.includes('ns') &&
-                !sTimeRange.includes('us') &&
-                !sTimeRange.includes('ms') &&
-                !sTimeRange.includes('s') &&
-                !sTimeZone.includes('LOCAL') &&
-                !sTimeZone.includes('UTC')
-            ) {
-                const sAddTimezoneTxt = sTimeZone.split('/')[0];
-                sSqlResult.data.data.columns[1] += ` (${sAddTimezoneTxt})`;
-            }
+        if (!parsedQuery || parsedQuery.length === 0) return;
+        fetchSql(parsedQuery);
+    };
 
-            const sLowerQuery = parsedQuery.toLowerCase();
-            if (!sLowerQuery.includes('delete') && !sLowerQuery.includes('update') && !sLowerQuery.includes('insert')) {
-                setChartQueryList([parsedQuery]);
-            } else setChartQueryList([]);
-            if (sSqlResult.data.data) setChartAxisList(sSqlResult.data.data.columns);
-            setResultLimit(2);
-            setSqlResponseData(sSqlResult.data.data);
-            setLogList([...sLogList, `${parsedQuery}\n${sSqlResult.data.reason} : ${sSqlResult.data.success}`]);
-        })();
+    const fetchSql = async (aParsedQuery: string[]) => {
+        const sQueryReslutList: any = [];
+        try {
+            const fetchQuery = (aQuery: string) => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(async () => {
+                        const sQueryResult = await getTqlChart(sqlBasicFormatter(aQuery.trim(), 1, sTimeRange, sTimeZone));
+                        sQueryReslutList.push(sQueryResult);
+                        if (sQueryResult.data.success) resolve(true);
+                        else reject(false);
+                    }, 1);
+                });
+            };
+
+            await aParsedQuery.reduce(async (previousPromise: any, curQuery: string) => {
+                await previousPromise;
+                return fetchQuery(curQuery);
+            }, Promise.resolve());
+        } catch {
+            // Query false
+        }
+
+        if (
+            !sTimeRange.includes('ns') &&
+            !sTimeRange.includes('us') &&
+            !sTimeRange.includes('ms') &&
+            !sTimeRange.includes('s') &&
+            !sTimeZone.includes('LOCAL') &&
+            !sTimeZone.includes('UTC')
+        ) {
+            const sAddTimezoneTxt = sTimeZone.split('/')[0];
+            sQueryReslutList[sQueryReslutList.length - 1].data.data.columns[1] += ` (${sAddTimezoneTxt})`;
+        }
+
+        const sLowerQuery = aParsedQuery[sQueryReslutList.length - 1].toLowerCase();
+        if (!sLowerQuery.includes('delete') && !sLowerQuery.includes('update') && !sLowerQuery.includes('insert')) {
+            setChartQueryList([aParsedQuery[sQueryReslutList.length - 1]]);
+        } else setChartQueryList([]);
+        if (sQueryReslutList[sQueryReslutList.length - 1].data.data) setChartAxisList(sQueryReslutList[sQueryReslutList.length - 1].data.data.columns);
+        setResultLimit(2);
+        setSqlResponseData(sQueryReslutList[sQueryReslutList.length - 1].data.data);
+        setLogList([...sLogList, `${aParsedQuery}\n${sQueryReslutList[sQueryReslutList.length - 1].data.reason} : ${sQueryReslutList[sQueryReslutList.length - 1].data.success}`]);
+
+        if (sQueryReslutList[sQueryReslutList.length - 1].data.success === true) {
+            setSelectedSubTab('RESULT');
+            return true;
+        } else {
+            setSelectedSubTab('LOG');
+            return false;
+        }
     };
 
     const getSubTabIcon = (aTarget: string) => {
