@@ -13,7 +13,7 @@ const getTqlChart = (aData: string) => {
 const getChartMinMaxData = async (aTable: string, aTag: string) => {
     return await request({
         method: 'GET',
-        url: `/api/tables/${aTable}/tags/${aTag}/stat?timeformat=ns`,
+        url: encodeURIComponent(`/api/tables/${aTable}/tags/${aTag}/stat?timeformat=ns`),
     });
 };
 const getChartData = async (aTagTables: string, option: boolean, range: number, time: number) => {
@@ -121,11 +121,11 @@ const fetchCalculationData = async (params: any) => {
     // UTC+${-1 * (getTimeZoneValue() / 60)}
     // const sTimezone = String(-1 * (getTimeZoneValue() / 60));
     // sTimezone
-    const queryString = `/machbase?q=${sMainQuery}`;
+    const queryString = `/machbase?q=${encodeURIComponent(sMainQuery)}`;
 
     const sData = await request({
         method: 'GET',
-        url: encodeURI(queryString),
+        url: queryString,
     });
     if (sData.status >= 400) {
         Error(sData.data);
@@ -168,7 +168,7 @@ const fetchRawData = async (params: any) => {
     const sTimeQ = `(${sTimeCol}/1000000)` + ' as date';
     const sValueQ = sValueCol + ' as value';
 
-    let sQuery = `SELECT ${sTimeQ}, ${sValueQ} FROM ${Table} WHERE ${sNameCol} = '${TagNames}' AND ${sTimeCol} BETWEEN ${Start}000000 AND ${End}000000`;
+    let sQuery = `SELECT ${sTimeQ}, ${sValueQ} FROM ${Table} WHERE ${sNameCol} = '${encodeURIComponent(TagNames)}' AND ${sTimeCol} BETWEEN ${Start}000000 AND ${End}000000`;
 
     if (sOrderBy !== '') {
         sQuery = sQuery + ' ORDER BY ' + sOrderBy;
@@ -193,7 +193,7 @@ const fetchRawData = async (params: any) => {
 const fetchRangeData = async (Table: string, TagNames: string) => {
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=SELECT (min(time)) as MIN, (max(time)) as MAX FROM ${Table} WHERE name = '${TagNames}'`,
+        url: `/machbase?q=` + encodeURIComponent(`SELECT (min(time)) as MIN, (max(time)) as MAX FROM ${Table} WHERE name = '${TagNames}'`),
     });
     if (sData.status >= 400) {
         Error(sData.data);
@@ -253,7 +253,7 @@ const fetchRollUp = async (table: string) => {
 const fetchOnMinMaxTable = async (table: string, tagName: string) => {
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=select (min(min_time)),(max(max_time)) from v$${table}_stat where name = '${tagName}'`,
+        url: `/machbase?q=` + encodeURIComponent(`select (min(min_time)),(max(max_time)) from v$${table}_stat where name = '${tagName}'`),
     });
     if (sData.status >= 400) {
         Error(sData.data);

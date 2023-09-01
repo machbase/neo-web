@@ -24,6 +24,7 @@ const Home = () => {
     const [sText, setText] = useState<any>('');
 
     const sWebSoc: any = useRef(null);
+    let timer: any;
 
     const init = async () => {
         const sResult: any = await getLogin();
@@ -42,9 +43,11 @@ const Home = () => {
                 };
                 sWebSoc.current.onopen = () => {
                     localStorage.setItem('consoleId', sId);
+                    clearInterval(timer);
                 };
                 sWebSoc.current.onclose = async () => {
-                    setTimeout(function () {
+                    sWebSoc.current = null;
+                    timer = setInterval(() => {
                         init();
                     }, 1000);
                 };
@@ -114,6 +117,7 @@ const Home = () => {
     useEffect(() => {
         init();
         return () => {
+            clearInterval(timer);
             sWebSoc.current && sWebSoc.current.close();
         };
     }, []);

@@ -27,7 +27,7 @@ const TABLE = ({ pTableData, pMaxShowLen, clickEvent }: { pTableData: any; pMaxS
                 {pTableData && pTableData.columns ? (
                     <tr>
                         <th>
-                            <span style={{ marginLeft: '20px', cursor: 'default' }}>ROWNUM</span>
+                            <span style={{ marginLeft: '20px', cursor: 'default' }}></span>
                         </th>
                         {pTableData.columns.map((aColumn: string) => {
                             return (
@@ -52,7 +52,7 @@ const TABLE = ({ pTableData, pMaxShowLen, clickEvent }: { pTableData: any; pMaxS
                         return (
                             <tr key={'tbody-row' + aIdx} className={Number(aIdx) % 2 === 0 ? 'result-body-tr' : 'result-body-tr dark-odd'}>
                                 <td>
-                                    <span style={{ marginLeft: '20px', cursor: 'default' }}>{aIdx + 1}</span>
+                                    <span style={{ marginLeft: '20px', cursor: 'default', color: '#888888' }}>{aIdx + 1}</span>
                                 </td>
                                 {aRowList.map((aRowData: any, bIdx: number) => {
                                     return (
