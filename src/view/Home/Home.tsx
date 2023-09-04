@@ -1,6 +1,7 @@
 import Extension from '@/components/extension/index';
 import Side from '@/components/side/Side';
 import './Home.scss';
+import { useNavigate } from 'react-router-dom';
 import SplitPane, { Pane } from 'split-pane-react';
 import Console from '@/components/console/index';
 import 'split-pane-react/esm/themes/default.css';
@@ -8,7 +9,7 @@ import { useEffect, useState, useRef } from 'react';
 import { getLogin } from '@/api/repository/login';
 import Body from '@/components/editor/Body';
 import { getId } from '@/utils';
-import { useRecoilState } from 'recoil';
+import { useSetRecoilState } from 'recoil';
 import { gConsoleList } from '@/recoil/recoil';
 
 const Home = () => {
@@ -20,12 +21,13 @@ const Home = () => {
     const [sSavedPath, setSavedPath] = useState();
     const [sServer, setServer] = useState();
     const [sIsSidebar, setIsSidebar] = useState<boolean>(true);
-    const [sConsoleList, setConsoleList] = useRecoilState<any>(gConsoleList);
-    const [sText, setText] = useState<any>('');
+    const setConsoleList = useSetRecoilState<any>(gConsoleList);
+    const sNavigate = useNavigate();
 
     const sWebSoc: any = useRef(null);
     let timer: any;
 
+    let count = 0;
     const init = async () => {
         const sResult: any = await getLogin();
         if (sResult.reason === 'success') {
@@ -36,40 +38,29 @@ const Home = () => {
                 } else {
                     sWebSoc.current = new WebSocket(`wss://${window.location.host}/web/api/console/${sId}/data?token=${localStorage.getItem('accessToken')}`);
                 }
-                let sCount = 0;
                 sWebSoc.current.onmessage = (aEvent: any) => {
-                    sCount++;
-                    JSON.parse(aEvent.data).type === 'log' && setText({ index: sCount, log: JSON.parse(aEvent.data).log });
+                    setConsoleList((aData: any) => [...aData, JSON.parse(aEvent.data).log]);
                 };
                 sWebSoc.current.onopen = () => {
                     localStorage.setItem('consoleId', sId);
+                    count = 0;
                     clearInterval(timer);
                 };
                 sWebSoc.current.onclose = async () => {
                     sWebSoc.current = null;
                     timer = setInterval(() => {
                         init();
+                        count++;
+                        if (count > 60) {
+                            localStorage.removeItem('accessToken');
+                            localStorage.removeItem('refreshToken');
+                            sNavigate('/login');
+                        }
                     }, 1000);
                 };
             }
         }
     };
-
-    useEffect(() => {
-        if (sText.log) {
-            if (sConsoleList.length >= 200) {
-                setConsoleList([
-                    ...sConsoleList.filter((aItem: any, aIdx: number) => {
-                        aItem;
-                        return aIdx !== 0;
-                    }),
-                    sText.log,
-                ]);
-            } else {
-                setConsoleList([...sConsoleList, sText.log]);
-            }
-        }
-    }, [sText]);
 
     const layoutCSS = {
         height: '100%',
@@ -116,7 +107,11 @@ const Home = () => {
 
     useEffect(() => {
         init();
+        window.onbeforeunload = function () {
+            return false;
+        };
         return () => {
+            count = 0;
             clearInterval(timer);
             sWebSoc.current && sWebSoc.current.close();
         };
