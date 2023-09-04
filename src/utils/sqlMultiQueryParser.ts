@@ -80,7 +80,7 @@ const findCursorLength = (aNoAnnotationList: string[], aStartLine: number, aEndL
     aNoAnnotationList.map((aRow: string, aIdx: number) => {
         if (aStartLine === aIdx) {
             sSelectionStartLen = rTotalLen + aStartColumn;
-            if (sSelectionStartLen === 0) sSelectionStartLen = 1;
+            if (sSelectionStartLen <= 0) sSelectionStartLen = 1;
         }
         if (aIdx === aEndLine) {
             sSelectionEndLen = rTotalLen + aEndColumn;
