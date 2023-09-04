@@ -104,13 +104,15 @@ const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHan
         let parsedQuery: any = '';
         if (!aLocation) {
             // SINGLE
-            if (sSqlLocation.selection.endColumn === sSqlLocation.selection.startColumn)
+            if (sSqlLocation.selection.endColumn === sSqlLocation.selection.startColumn && sSqlLocation.selection.endLineNumber === sSqlLocation.selection.startLineNumber)
                 parsedQuery = [sqlQueryParser(sSqlQueryTxt, sSqlLocation.position, sSqlLocation.selection)];
             // MULTIPLE
             else parsedQuery = sqlMultiQueryParser(sSqlQueryTxt, sSqlLocation.position, sSqlLocation.selection);
         } else {
+            console.log('aLocation.selection', aLocation.selection);
             // SINGLE
-            if (aLocation.selection.endColumn === aLocation.selection.startColumn) parsedQuery = [sqlQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection)];
+            if (aLocation.selection.endColumn === aLocation.selection.startColumn && aLocation.selection.endLineNumber === aLocation.selection.startLineNumber)
+                parsedQuery = [sqlQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection)];
             // MULTIPLE
             else parsedQuery = sqlMultiQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection);
             setSqlLocation(aLocation);
