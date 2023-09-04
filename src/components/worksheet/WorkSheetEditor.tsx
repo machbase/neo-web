@@ -8,7 +8,7 @@ import useOutsideClick from '@/hooks/useOutsideClick';
 import { sqlSheetFormatter } from '@/utils/sqlFormatter';
 import TABLE from '@/components/table';
 import './WorkSheetEditor.scss';
-import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff, MoreFill } from '@/assets/icons/Icon';
+import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
 import { PositionType, SelectionType, sqlQueryParser } from '@/utils/sqlQueryParser';
 import { IconButton } from '../buttons/IconButton';
 
