@@ -6,6 +6,7 @@ import { FileUploader } from 'react-drag-drop-files';
 import { getTutorial } from '@/api/repository/api';
 import ShellMenu from './ShellMenu';
 import { TbParachute, Folder } from '@/assets/icons/Icon';
+import { extractionExtension } from '@/utils';
 
 interface NewBoardProps {
     pExtentionList: any;
@@ -56,15 +57,24 @@ const NewBoard = (props: NewBoardProps) => {
 
     const handleChange = async (aEvent: any) => {
         const sFile = aEvent;
-        const extension = sFile.name.slice(-4);
-        if (extension === '.wrk' || extension === '.sql' || extension === '.tql' || extension === '.taz') {
+        const extension = extractionExtension(sFile.name);
+        if (
+            extension === 'wrk' ||
+            extension === 'sql' ||
+            extension === 'tql' ||
+            extension === 'taz' ||
+            extension === 'json' ||
+            extension === 'csv' ||
+            extension === 'md' ||
+            extension === 'txt'
+        ) {
             const sResult: string = await readFile(sFile);
             uploadFile(sFile, sResult);
         }
     };
 
     const uploadFile = (aFileInfo: any, aFileValue: string) => {
-        const sTypeOption = aFileInfo.name.slice(-3);
+        const sTypeOption = extractionExtension(aFileInfo.name);
 
         if (sTypeOption === 'taz') {
             setBoardList(
@@ -72,7 +82,7 @@ const NewBoard = (props: NewBoardProps) => {
                     return aItem.id === sSelectedTab ? { ...JSON.parse(aFileValue), id: aItem.id } : aItem;
                 })
             );
-        } else if (sTypeOption === 'sql' || sTypeOption === 'tql') {
+        } else if (sTypeOption === 'sql' || sTypeOption === 'tql' || sTypeOption === 'json' || sTypeOption === 'csv' || sTypeOption === 'md' || sTypeOption === 'txt') {
             setBoardList(
                 sBoardList.map((aItem: any) => {
                     return aItem.id === sSelectedTab ? { ...aItem, name: aFileInfo.name, code: aFileValue, type: sTypeOption } : aItem;

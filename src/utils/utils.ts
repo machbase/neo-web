@@ -211,11 +211,11 @@ const getPaginationPages = (items: any, pageSize: number): any => {
 const isJsonString = (aString: string) => {
     try {
         const json = JSON.parse(aString);
-        return (typeof json === 'object');
+        return typeof json === 'object';
     } catch {
         return false;
     }
-}
+};
 export {
     utils,
     splitTimeDuration,

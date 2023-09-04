@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { reLogin } from '@/api/repository/login';
+import { isImage } from '@/utils';
 
 // Define custom type for headers
 interface CustomHeaders {
@@ -20,11 +21,17 @@ request.interceptors.request.use(
     (config: any) => {
         const sHeaders = config.headers as CustomHeaders;
 
-        const sFileOption = config.url?.split('?')[0].indexOf('/api/files');
-        const sFileSql = config.url?.split('?')[0].indexOf('.sql');
-        const sFileTql = config.url?.split('?')[0].indexOf('.tql');
-        const sFileTaz = config.url?.split('?')[0].indexOf('.taz');
-        const sFileWrk = config.url?.split('?')[0].indexOf('.wrk');
+        const sUrlSplit = config.url?.split('?');
+        const sFileOption = sUrlSplit[0].indexOf('/api/files');
+        const sFileSql = sUrlSplit[0].indexOf('.sql');
+        const sFileTql = sUrlSplit[0].indexOf('.tql');
+        const sFileTaz = sUrlSplit[0].indexOf('.taz');
+        const sFileWrk = sUrlSplit[0].indexOf('.wrk');
+        const sFileImg = isImage(sUrlSplit[0]);
+
+        if (sFileImg) {
+            config.responseType = 'arraybuffer';
+        }
         if ((sFileTaz !== -1 || sFileWrk !== -1) && config.method === 'post') {
             sHeaders['Content-Type'] = 'text/plain';
         }
@@ -70,6 +77,7 @@ request.interceptors.response.use(
             return response;
         }
         const res = response.data;
+
         // do something with respones
         return res;
     },
