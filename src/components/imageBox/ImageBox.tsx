@@ -18,6 +18,7 @@ export const ImageBox = (props: ImageBoxProps) => {
             slides={[{ src: pSrc }]}
             carousel={{ finite: true }}
             render={{ buttonPrev: () => null, buttonNext: () => null }}
+            styles={{ container: { backgroundColor: '#272831' } }}
         />
     );
 };
