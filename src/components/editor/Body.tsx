@@ -151,7 +151,7 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGet
                             {aItem.type === 'csv' && <TextExtension pLang="go" pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
                             {aItem.type === 'md' && <TextExtension pLang="markdown" pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
                             {aItem.type === 'txt' && <TextExtension pLang="go" pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
-                            {isImage(aItem.name) && <ImageBox pSrc={`data:image/${aItem.type};base64,${aItem.code}`} />}
+                            {isImage(aItem.name) && <ImageBox pBase64Code={aItem.code} pType={aItem.type} />}
                         </div>
                     );
                 })}
