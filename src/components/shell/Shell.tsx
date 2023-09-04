@@ -116,7 +116,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     }, []);
 
     return (
-        <div style={{ height: '100%', width: '100%' }}>
+        <div style={{ height: '100%', width: '100%', overflow: 'auto' }}>
             <div style={pType ? {} : pInfo?.shell?.theme ? { boxShadow: '0px 1px 6px #181818', height: '40px' } : { height: '40px' }}></div>
             <div
                 ref={term_view}
