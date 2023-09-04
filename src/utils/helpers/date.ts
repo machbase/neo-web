@@ -58,6 +58,7 @@ const stringParseNewDate = (aItem: string | number) => {
             moment(sTime).get('hour'),
             moment(sTime).get('minute'),
             moment(sTime).get('second'),
+            moment(sTime).get('millisecond'),
         ];
     } else {
         return aItem;

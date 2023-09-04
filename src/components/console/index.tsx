@@ -2,13 +2,15 @@ import './index.scss';
 import { useState, useEffect, useRef } from 'react';
 import { useRecoilState } from 'recoil';
 import { gConsoleList } from '@/recoil/recoil';
-import { VscAdd, VscChevronDown, VscTrash, VscChevronRight, VscChevronUp } from '@/assets/icons/Icon';
+import { VscAdd, VscChevronDown, VscTrash, VscChevronUp } from '@/assets/icons/Icon';
 import { getId } from '@/utils';
 import Shell from '../shell/Shell';
 import Menu from '../contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import ConsoleTab from './ConsoleTab';
 import icons from '@/utils/icons';
+import { stringParseNewDate } from '@/utils/helpers/date';
+import moment from 'moment';
 
 const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => {
     const [sConsoleTab, setConsoleTab] = useState<any>([]);
@@ -88,6 +90,22 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
         setSelectedTab(sConsoleTab[0].id);
     };
 
+    const changeUtcToText = (aUtcDate: number): string => {
+        const sNumberArr = stringParseNewDate(aUtcDate);
+        if (
+            typeof sNumberArr[0] === 'number' &&
+            typeof sNumberArr[1] === 'number' &&
+            typeof sNumberArr[2] === 'number' &&
+            typeof sNumberArr[3] === 'number' &&
+            typeof sNumberArr[4] === 'number' &&
+            typeof sNumberArr[5] === 'number' &&
+            typeof sNumberArr[6] === 'number'
+        ) {
+            const sMyDate = new Date(sNumberArr[0], sNumberArr[1] - 1, sNumberArr[2], sNumberArr[3], sNumberArr[4], sNumberArr[5], sNumberArr[6]);
+            return moment(sMyDate).format('YYYY-MM-DD HH:mm:ss.SSS');
+        } else return moment().format('YYYY-MM-DD HH:mm:ss SSS');
+    };
+
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
 
     return (
@@ -114,7 +132,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                         <span>
                             <VscChevronDown></VscChevronDown>
                         </span>
-                        <div style={{ position: 'absolute', top: 30, left: -80, zIndex: 10 }}>
+                        <div style={{ position: 'absolute', top: 30, left: -80, zIndex: 99 }}>
                             <Menu isOpen={sIsContextMenu}>
                                 {pExtentionList.map((aItem: any) => {
                                     return (
@@ -133,35 +151,51 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                     {pTerminalSizes[1] !== 40 && <VscChevronDown onClick={() => pSetTerminalSizes(['', 40])}></VscChevronDown>}
                 </div>
             </div>
-            <div ref={consoleRef} className="console-body">
+            <div className="console-body">
                 {sConsoleTab.map((aItem: any) => {
                     return (
-                        <div style={aItem.id === sSelectedTab ? { height: '100%', width: '100%' } : { display: 'none' }} key={aItem.id}>
-                            {aItem.type === 'console' ? (
-                                sConsoleList.length > 0 &&
-                                sConsoleList.map((bItem: any, aIdx: number) => {
-                                    return (
-                                        <div
-                                            style={{
-                                                paddingLeft: '12px',
-                                                fontSize: '14px',
-                                                fontFamily: 'D2coding',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                            }}
-                                            key={aIdx}
-                                        >
-                                            <VscChevronRight></VscChevronRight>
-                                            <span style={{ color: setColor(bItem.level), marginRight: '8px' }}>{bItem.level}</span>
-                                            <span>{bItem.message}</span>
-                                        </div>
-                                    );
-                                })
-                            ) : (
-                                <div style={aItem && aItem?.shell?.theme === 'indigo' ? { height: 'calc(100%)', paddingTop: '4px' } : { height: '100%' }}>
-                                    <Shell pSelectedTab={sSelectedTab} pType="bottom" pInfo={aItem} pId={aItem.id}></Shell>
+                        <div
+                            ref={consoleRef}
+                            style={aItem.id === sSelectedTab ? { height: '100%', width: '100%', overflow: 'auto' } : { display: 'none', overflow: 'auto' }}
+                            key={aItem.id}
+                        >
+                            {
+                                <div style={aItem.type === 'console' ? { overflow: 'auto' } : { display: 'none', overflow: 'auto' }}>
+                                    {sConsoleList.length > 0 &&
+                                        sConsoleList.map((bItem: any, aIdx: number) => {
+                                            return (
+                                                <div
+                                                    style={{
+                                                        paddingLeft: '24px',
+                                                        fontSize: '14px',
+                                                        fontFamily: 'D2coding',
+                                                        display: 'flex',
+                                                        alignItems: 'baseline',
+                                                    }}
+                                                    key={aIdx}
+                                                >
+                                                    <span style={{ color: '#f8f8f8', marginRight: '8px', width: '165px' }}>
+                                                        {changeUtcToText(Math.floor(bItem.timestamp / 1000000))}
+                                                    </span>
+                                                    <span style={{ color: setColor(bItem.level), marginRight: '8px', width: '40px' }}>{bItem.level}</span>
+                                                    <span style={{ width: 'calc(100% - 205px)' }}>{bItem.message}</span>
+                                                </div>
+                                            );
+                                        })}
                                 </div>
-                            )}
+                            }
+
+                            <div
+                                style={
+                                    aItem.type !== 'console'
+                                        ? aItem && aItem?.shell?.theme === 'indigo'
+                                            ? { height: 'calc(100%)', paddingTop: '4px', overflow: 'auto' }
+                                            : { height: '100%' }
+                                        : { display: 'none', overflow: 'auto' }
+                                }
+                            >
+                                <Shell pSelectedTab={sSelectedTab} pType="bottom" pInfo={aItem} pId={aItem.id}></Shell>
+                            </div>
                         </div>
                     );
                 })}
