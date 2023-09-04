@@ -75,6 +75,10 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
         }
     }, [monaco, pText, sSelectedTab]);
 
+    useEffect(() => {
+        if (sEditor) applyRunCode(pText);
+    }, [sEditor]);
+
     const handleMount = (editor: any) => {
         setEditor(editor);
         editor.focus();
