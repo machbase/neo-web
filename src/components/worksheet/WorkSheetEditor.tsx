@@ -47,7 +47,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sMarkdown, setMarkdown] = useState<string>('');
     const [sSql, setSql] = useState<any>(null);
     const [sCollapse, setCollapse] = useState<boolean>(pData.minimal ?? false);
-    const [sResultContentType, setResultContentType] = useState<ShowResultType>(pData.brief ? 'brief' : 'all');
+    const [sResultContentType, setResultContentType] = useState<ShowResultType>(pData.brief ? 'brief' : pData.brief === undefined ? 'brief' : 'all');
     const [sSqlLocation, setSqlLocation] = useState<{
         position: PositionType;
         selection: SelectionType;
