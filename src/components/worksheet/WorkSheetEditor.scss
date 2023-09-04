@@ -93,12 +93,79 @@
             margin: 1rem 0;
 
             .result-worksheet {
-                border: solid 1px #393b41;
-                border-radius: 10px;
                 overflow: hidden;
 
                 .result-wrapper {
                     border-radius: 10px !important;
+                }
+
+                .result-worksheet-sql {
+                    div {
+                        table {
+                            border: solid 1px #393b41;
+                            border-radius: 10px;
+                            width: calc(100%);
+                            table-layout: auto;
+                            font-family: 'D2Coding';
+                            overflow: hidden;
+                            border-collapse: separate;
+                            background-color: rgb(43, 43, 43);
+
+                            thead {
+                                color: #fdb532;
+                                background-color: #1c1c21;
+                                position: sticky;
+                                top: 0;
+                                left: 0;
+                                right: 0;
+                                z-index: 10;
+                                font-size: 14px;
+
+                                tr {
+                                    th {
+                                        max-width: 300px;
+                                        font-weight: bold;
+                                        padding: 0 16px;
+                                        min-width: 100px;
+                                        height: 25px;
+                                        text-align: start;
+                                        vertical-align: center !important;
+                                        text-overflow: ellipsis;
+                                        white-space: nowrap;
+                                    }
+                                }
+                            }
+
+                            tbody {
+                                tr {
+                                    td {
+                                        overflow: hidden;
+                                        text-overflow: ellipsis;
+                                        font-size: 14px;
+                                        white-space: nowrap;
+                                        max-width: 20vw;
+                                        font-weight: 300;
+                                        vertical-align: center !important;
+                                        padding: 0 16px;
+                                        height: 25px;
+                                    }
+                                }
+
+                                tr:nth-child(2n) {
+                                    background-color: #1c1c21;
+                                }
+                            }
+                        }
+
+                        blockquote {
+                            border-left: solid 4px #393b41;
+                            margin: 4px;
+
+                            p {
+                                margin-left: 8px;
+                            }
+                        }
+                    }
                 }
             }
 
