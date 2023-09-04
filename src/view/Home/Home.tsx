@@ -1,6 +1,7 @@
 import Extension from '@/components/extension/index';
 import Side from '@/components/side/Side';
 import './Home.scss';
+import { useNavigate } from 'react-router-dom';
 import SplitPane, { Pane } from 'split-pane-react';
 import Console from '@/components/console/index';
 import 'split-pane-react/esm/themes/default.css';
@@ -21,10 +22,12 @@ const Home = () => {
     const [sServer, setServer] = useState();
     const [sIsSidebar, setIsSidebar] = useState<boolean>(true);
     const setConsoleList = useSetRecoilState<any>(gConsoleList);
+    const sNavigate = useNavigate();
 
     const sWebSoc: any = useRef(null);
     let timer: any;
 
+    let count = 0;
     const init = async () => {
         const sResult: any = await getLogin();
         if (sResult.reason === 'success') {
@@ -40,12 +43,19 @@ const Home = () => {
                 };
                 sWebSoc.current.onopen = () => {
                     localStorage.setItem('consoleId', sId);
+                    count = 0;
                     clearInterval(timer);
                 };
                 sWebSoc.current.onclose = async () => {
                     sWebSoc.current = null;
                     timer = setInterval(() => {
                         init();
+                        count++;
+                        if (count > 60) {
+                            localStorage.removeItem('accessToken');
+                            localStorage.removeItem('refreshToken');
+                            sNavigate('/login');
+                        }
                     }, 1000);
                 };
             }
@@ -97,7 +107,11 @@ const Home = () => {
 
     useEffect(() => {
         init();
+        window.onbeforeunload = function () {
+            return false;
+        };
         return () => {
+            count = 0;
             clearInterval(timer);
             sWebSoc.current && sWebSoc.current.close();
         };

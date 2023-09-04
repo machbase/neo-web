@@ -30,6 +30,10 @@
                 svg {
                     margin-left: 2px;
                 }
+                .menu-wrapper {
+                    z-index: 99;
+                    position: relative;
+                }
             }
             .add-terminal:hover {
                 border-radius: 6px;
@@ -55,6 +59,7 @@
             color: #f8f8f8;
         }
         .tab_close {
+            margin-left: 4px;
             padding-left: 4px !important;
 
             width: 15px;

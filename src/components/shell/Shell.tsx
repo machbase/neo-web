@@ -43,7 +43,9 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     });
 
     const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
-        await postTerminalSize(sTermId, aSize);
+        if (aSize.cols > 11 && aSize.rows > 5) {
+            await postTerminalSize(sTermId, aSize);
+        }
     };
 
     const sResizeObserver = new ResizeObserver(() => {
