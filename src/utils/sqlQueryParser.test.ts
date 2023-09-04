@@ -201,6 +201,29 @@ test.each([
         },
         `INSERT INTO example VALUES('my-car', now, 1.2345 * 1.3)`,
     ],
+    [
+        `공백 없는 1번 라인 sql 실행`,
+        `select * from example;
+ 
+        select
+        * from
+        example
+        limit
+        2;
+        `,
+        { lineNumber: 1, column: 1 },
+        {
+            endColumn: 1,
+            endLineNumber: 1,
+            positionColumn: 1,
+            positionLineNumber: 1,
+            selectionStartColumn: 1,
+            selectionStartLineNumber: 1,
+            startColumn: 1,
+            startLineNumber: 1,
+        },
+        `select * from example`,
+    ],
 ])('SQL - %s', (_, aQueryText, aPosition, aSelection, expected) => {
     expect(sqlQueryParser(aQueryText, aPosition, aSelection)).toEqual(expected);
 });

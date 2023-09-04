@@ -77,7 +77,7 @@ const findCursorLength = (aNoAnnotationList: string[], aStartLine: number, aEndL
             if (aRow.trimEnd()[aRow.trimEnd().length - 1] === ';') {
                 sSelectionLen = rTotalLen + aSelection.endColumn - 1 + aIdx - (aRow.length - aRow.trimEnd().length);
             } else sSelectionLen = rTotalLen + aSelection.endColumn - 1 + aIdx;
-            if (sSelectionLen === 0) sSelectionLen = 1;
+            if (sSelectionLen <= 0) sSelectionLen = 1;
         }
         rTotalLen += aRow.length;
     });
