@@ -8,6 +8,10 @@ export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string,
     return 'SQL(`' + aSql + '`)\n' + 'DROP(' + (aLimit * 50 - 50) + `)\nTAKE(50)\nJSON(timeformat('` + aFormat + `'), tz('` + aTimezone + `'))`;
 };
 
+export const sqlSheetFormatter = (aSql: string, aBrief: boolean) => {
+    return 'SQL(`' + aSql + '`)\n' + `MARKDOWN(html(true), rownum(true), heading(true), brief(${aBrief}))`;
+};
+
 export const sqlBasicChartFormatter = (aSql: string, aWidth: number, aHeight: number, aAxis?: { x: string; y: string }) => {
     if (aAxis)
         return (

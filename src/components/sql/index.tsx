@@ -109,7 +109,6 @@ const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHan
             // MULTIPLE
             else parsedQuery = sqlMultiQueryParser(sSqlQueryTxt, sSqlLocation.position, sSqlLocation.selection);
         } else {
-            console.log('aLocation.selection', aLocation.selection);
             // SINGLE
             if (aLocation.selection.endColumn === aLocation.selection.startColumn && aLocation.selection.endLineNumber === aLocation.selection.startLineNumber)
                 parsedQuery = [sqlQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection)];

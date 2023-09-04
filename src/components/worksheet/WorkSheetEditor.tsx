@@ -5,10 +5,10 @@ import { ShowChart } from '@/components/tql/ShowChart';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { getId, isValidJSON } from '@/utils';
 import useOutsideClick from '@/hooks/useOutsideClick';
-import { sqlBasicFormatter } from '@/utils/sqlFormatter';
+import { sqlSheetFormatter } from '@/utils/sqlFormatter';
 import TABLE from '@/components/table';
 import './WorkSheetEditor.scss';
-import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
+import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff, MoreFill } from '@/assets/icons/Icon';
 import { PositionType, SelectionType, sqlQueryParser } from '@/utils/sqlQueryParser';
 import { IconButton } from '../buttons/IconButton';
 
@@ -17,6 +17,7 @@ type MonacoLang = 'sql' | 'markdown' | 'go';
 type ServerLang = 'markdown' | 'SQL' | 'go';
 type ServerLangType = 'tql' | 'mrk' | 'sql';
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
+type ShowResultType = 'brief' | 'all';
 
 interface WorkSheetEditorProps {
     pData: any;
@@ -46,6 +47,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sMarkdown, setMarkdown] = useState<string>('');
     const [sSql, setSql] = useState<any>(null);
     const [sCollapse, setCollapse] = useState<boolean>(pData.minimal ?? false);
+    const [sResultContentType, setResultContentType] = useState<ShowResultType>(pData.brief ? 'brief' : 'all');
     const [sSqlLocation, setSqlLocation] = useState<{
         position: PositionType;
         selection: SelectionType;
@@ -64,6 +66,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     });
     const [sSqlReason, setSqlReason] = useState<string>('');
     const dropDownRef = useRef(null);
+    const ResultContentTypeRef = useRef(null);
+    const [sShowResultContentType, setShowResultContentType] = useState<boolean>(false);
 
     useEffect(() => {
         handleRunCode(sText);
@@ -72,7 +76,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     useEffect(() => {
         const sCopyWorkSheets = JSON.parse(JSON.stringify(pWorkSheets));
         const sIndex = sCopyWorkSheets.findIndex((aSheet: any) => aSheet.id === pData.id);
-        const sPayload = {
+        const sPayload: any = {
             id: pData.id ?? getId(),
             contents: sText,
             height: initialSize,
@@ -87,11 +91,13 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             result: '',
             status: true,
         };
+
+        if (sMonacoLanguage === 'sql') sPayload.brief = sResultContentType === 'brief';
         if (sIndex !== -1) {
             sCopyWorkSheets[sIndex] = sPayload;
             setSheet(sCopyWorkSheets);
         }
-    }, [sText, initialSize, sCollapse, sSelectedLang]);
+    }, [sText, initialSize, sCollapse, sSelectedLang, sResultContentType]);
 
     const langConverter = (aTxt: ServerLangType) => {
         switch (aTxt) {
@@ -183,10 +189,10 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setSqlLocation(aLocation);
         }
         (async () => {
-            const sSqlResult = await getTqlChart(sqlBasicFormatter(parsedQuery, 1, '2006-01-02 15:04:05', 'UTC'));
+            const sSqlResult = await getTqlChart(sqlSheetFormatter(parsedQuery, sResultContentType === 'brief'));
             switch (sSqlResult.status) {
                 case 200:
-                    setSql(sSqlResult.data.data);
+                    setSql(sSqlResult.data);
                     break;
             }
             if (sSqlResult.data.reason) {
@@ -263,10 +269,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         return sSql ? (
             <>
                 <div className="result-worksheet">
-                    <TABLE pTableData={sSql} pMaxShowLen={true} clickEvent={() => {}} />
-                </div>
-                <div className="result-worksheet-total">
-                    <span>{`Total ${sSql && sSql.rows.length} records`}</span>
+                    <div className="result-worksheet-sql" dangerouslySetInnerHTML={{ __html: sSql }}></div>
                 </div>
             </>
         ) : (
@@ -283,7 +286,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     sTqlCsv ? (
                         <>
                             <div className="result-worksheet">
-                                <TABLE pTableData={{ columns: sTqlCsvHeader, rows: sTqlCsv, types: [] }} pMaxShowLen={true} clickEvent={() => {}} />
+                                <TABLE pTableData={{ columns: sTqlCsvHeader, rows: sTqlCsv, types: [] }} pMaxShowLen={false} clickEvent={() => {}} />
                             </div>
                             <div className="result-worksheet-total">
                                 <span>{`Total ${sTqlCsv && sTqlCsv.length} records`}</span>
@@ -333,7 +336,34 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         );
     };
 
+    const ResultContentType = () => {
+        return sMonacoLanguage === 'sql' ? (
+            <>
+                <div ref={ResultContentTypeRef} className="worksheet-ctr-lang" style={{ minWidth: '50px' }} onClick={() => setShowResultContentType(!sShowResultContentType)}>
+                    <div className="dropdown" style={{ width: '100%', justifyContent: 'space-between', marginLeft: '4px', marginRight: '4px' }}>
+                        <div className="worksheet-ctr-lang-selected">{sResultContentType}</div>
+                        <ArrowDown style={{ transform: sShowResultContentType ? 'rotate(180deg)' : '' }} />
+                        {sShowResultContentType && (
+                            <div className="worksheet-ctr-lang-content-list">
+                                <div className="worksheet-ctr-lang-content" onClick={() => setResultContentType('all')}>
+                                    All
+                                </div>
+                                <div className="worksheet-ctr-lang-content" onClick={() => setResultContentType('brief')}>
+                                    Brief
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                {VerticalDivision()}
+            </>
+        ) : (
+            <></>
+        );
+    };
+
     useOutsideClick(dropDownRef, () => setShowLang(false));
+    useOutsideClick(ResultContentTypeRef, () => setShowResultContentType(false));
 
     return (
         <div className="worksheet-editor-wrapper">
@@ -342,6 +372,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     <div className="worksheet-ctr" style={{ display: 'flex', height: '40px', justifyContent: 'end' }}>
                         {DropDown()}
                         {VerticalDivision()}
+                        {ResultContentType()}
                         <IconButton pIcon={<Play />} pIsActiveHover onClick={() => handleRunCode(sText)} />
                         {VerticalDivision()}
                         <IconButton pIcon={<ArrowUpDouble />} pIsActiveHover onClick={() => pCallback({ id: pData.id, event: 'LocUp' })} />
