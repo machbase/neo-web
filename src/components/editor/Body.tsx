@@ -20,6 +20,7 @@ import { PlusCircle } from '@/assets/icons/Icon';
 import { Error } from '@/components/toast/Toast';
 import { useNavigate } from 'react-router-dom';
 import { ImageBox } from '@/components/imageBox/ImageBox';
+import { TextExtension } from '@/components/textExtension/TextExtension';
 
 const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGetPath }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -75,7 +76,7 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGet
 
     const isSaveCheck = () => {
         const sType = sFilterBoard.type;
-        const saveList = ['sql', 'tql', 'wrk', 'taz'];
+        const saveList = ['sql', 'tql', 'wrk', 'taz', 'json', 'md', 'csv', 'txt'];
         if (saveList.some((aType) => aType === sType)) {
             return true;
         } else {
@@ -146,6 +147,10 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGet
                             {aItem.type === 'term' && <Shell pSelectedTab={sSelectedTab} pInfo={aItem} pId={aItem.id}></Shell>}
                             {aItem.type === 'dsh' && <Dashboard pDraged={pDraged} pId={aItem.id} pSideSizes={pSideSizes}></Dashboard>}
                             {aItem.type === 'wrk' && <WorkSheet pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsOpenModal} setIsSaveModal={setIsSaveModal} />}
+                            {aItem.type === 'json' && <TextExtension pLang="json" pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
+                            {aItem.type === 'csv' && <TextExtension pLang="go" pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
+                            {aItem.type === 'md' && <TextExtension pLang="markdown" pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
+                            {aItem.type === 'txt' && <TextExtension pLang="go" pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
                             {isImage(aItem.name) && <ImageBox pSrc={`data:image/${aItem.type};base64,${aItem.code}`} />}
                         </div>
                     );

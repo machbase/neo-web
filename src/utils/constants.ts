@@ -1,5 +1,3 @@
-import { getId } from '.';
-
 export const FORMAT_FULL_DATE = 'YYYY-MM-DD HH:mm:ss';
 export const LENGTH_LIST = 10;
 export const NOW = 'now';
@@ -265,7 +263,7 @@ export const FONT_SIZE = [
 ];
 
 export const DEFAULT_CHART = {
-    index_key: getId(),
+    index_key: new Date().getTime() + (Math.random() * 1000).toFixed(),
     chart_id: '',
     tag_set: [{ tag_names: '', calculation_mode: 'count', use_y2: 'N', alias: '', weight: 1.0 }],
     range_bgn: '',
@@ -328,3 +326,7 @@ export const DEFAULT_CHART = {
 };
 
 export const COLOR_SET = '5ca3f2,d06a5f,e2bb5c,86b66b,7070e0,6bcbc1,a673e8,e26daf,bac85d,87cedd';
+
+export const IMAGE_EXTENSION_LIST = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico'];
+
+export const FILE_EXTENSION_LIST = ['sql', 'tql', 'wrk', 'taz', 'json', 'md', 'csv', 'txt'];

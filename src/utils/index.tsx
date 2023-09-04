@@ -1,3 +1,5 @@
+import { IMAGE_EXTENSION_LIST } from '@/utils/constants';
+
 export const getId = () => {
     return new Date().getTime() + (Math.random() * 1000).toFixed();
 };
@@ -12,7 +14,7 @@ export const isValidJSON = (aString: string) => {
 };
 
 export const isImage = (aFileName: string) => {
-    const sImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico'];
+    const sImageExtensions = IMAGE_EXTENSION_LIST;
 
     const sDotIndex = aFileName.lastIndexOf('.');
     if (sDotIndex === -1) return false;

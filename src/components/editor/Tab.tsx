@@ -51,6 +51,10 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx }: any) => {
             switch (aBoard.type) {
                 case 'sql':
                 case 'tql':
+                case 'json':
+                case 'csv':
+                case 'md':
+                case 'txt':
                     setIsSaved(aBoard.code === pBoard.savedCode);
                     break;
                 case 'wrk':

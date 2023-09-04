@@ -5,7 +5,7 @@ import { gFileTree } from '@/recoil/fileTree';
 import './SaveModal.scss';
 import { gBoardList, gSelectedBoard, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { getId } from '@/utils';
+import { getId, extractionExtension } from '@/utils';
 import { FileType, FileTreeType, fileTreeParser } from '@/utils/fileTreeParser';
 import { getFiles as getFilesTree, deleteFile as deleteContextFile } from '@/api/repository/fileTree';
 import { Menu } from '@/components/contextMenu/Menu';
@@ -43,11 +43,14 @@ export const SaveModal = (props: SaveModalProps) => {
     const [sFileTree, setFileTree] = useRecoilState(gFileTree);
     const sSelectedBoard = useRecoilValue(gSelectedBoard);
 
-    const sCheckType = (aValue: string) => aValue === '.sql' || aValue === '.tql' || aValue === '.taz' || aValue === '.wrk';
+    const sCheckType = (aValue: string) =>
+        aValue === 'sql' || aValue === 'tql' || aValue === 'taz' || aValue === 'wrk' || aValue === 'json' || aValue === 'csv' || aValue === 'md' || aValue === 'txt';
 
     useEffect(() => {
         sSelectedBoard && sSelectedBoard.type ? setFileType(sSelectedBoard.type) : setFileType('');
-        setSaveFileName(sSelectedBoard ? (sCheckType(sSelectedBoard.name.slice(-4)) ? sSelectedBoard.name : sSelectedBoard.name + `.${sSelectedBoard.type}`) : `new.${sFileType}`);
+        setSaveFileName(
+            sSelectedBoard ? (sCheckType(extractionExtension(sSelectedBoard.name)) ? sSelectedBoard.name : sSelectedBoard.name + `.${sSelectedBoard.type}`) : `new.${sFileType}`
+        );
         getFiles(sSelectedBoard.type ?? '');
     }, []);
 
@@ -251,7 +254,7 @@ export const SaveModal = (props: SaveModalProps) => {
             setSelectedTab(sExistBoard.id as string);
         } else {
             const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
-            const sType = file.name.split('.').pop() as string;
+            const sType = extractionExtension(file.name);
             const sData = await getFilesTree(`${sSelectedDir.join('/')}/${file.name}`);
             let sParseData;
             if ((sType === 'wrk' && typeof sData === 'string') || (typeof sData === 'string' && sType === 'taz')) {
@@ -265,7 +268,7 @@ export const SaveModal = (props: SaveModalProps) => {
                         ...sParseData,
                         id: sTmpId,
                         name: file.name,
-                        type: file.name.split('.').pop() as string,
+                        type: sType,
                         path: sPath,
                         savedCode: JSON.stringify(sParseData),
                     },
@@ -279,7 +282,7 @@ export const SaveModal = (props: SaveModalProps) => {
                     {
                         id: sTmpId,
                         name: file.name,
-                        type: file.name.split('.').pop() as string,
+                        type: sType,
                         path: sPath,
                         savedCode: JSON.stringify(sDataObj.sheet),
                         ...sDataObj,
@@ -291,7 +294,7 @@ export const SaveModal = (props: SaveModalProps) => {
                     {
                         id: sTmpId,
                         name: file.name,
-                        type: file.name.split('.').pop() as string,
+                        type: sType,
                         path: sPath,
                         savedCode: sDataObj.code,
                         ...sDataObj,
@@ -499,7 +502,7 @@ export const SaveModal = (props: SaveModalProps) => {
                             pText="OK"
                             pBackgroundColor="#4199ff"
                             pIsDisabled={pIsSave && !sSaveFileName.endsWith(`.${sFileType}`)}
-                            onClick={sSaveFileName.slice(-3) === `${sFileType}` && pIsSave ? saveFile : () => openFile(sSelectedFile)}
+                            onClick={extractionExtension(sSaveFileName) === sFileType && pIsSave ? saveFile : () => openFile(sSelectedFile)}
                         />
                         <div style={{ width: '10px' }}></div>
                         <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />
