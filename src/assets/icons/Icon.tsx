@@ -6,6 +6,7 @@ export {
     AiOutlineFileDone,
     AiOutlineSnippets,
     AiOutlineFileMarkdown,
+    AiFillGithub,
 } from 'react-icons/ai';
 
 export {
@@ -33,6 +34,7 @@ export {
     VscTerminalPowershell as Powershell,
     VscAdd,
     VscMarkdown,
+    VscNewFile,
 } from 'react-icons/vsc';
 
 export {
@@ -70,7 +72,7 @@ export { BiLineChart as LineChart, BiLink, BiPlay as Play, BiSolidDownArrow, BiS
 
 export { FiSearch as Search, FiMonitor as Monitor } from 'react-icons/fi';
 
-export { TbParachute, TbRowInsertTop as InsertRowTop } from 'react-icons/tb';
+export { TbParachute, TbRowInsertTop as InsertRowTop, TbFolderPlus } from 'react-icons/tb';
 
 export { IoIosCopy as Copy } from 'react-icons/io';
 
@@ -78,10 +80,10 @@ export { GoPencil, GoTerminal, GoCommandPalette, GoDatabase } from 'react-icons/
 
 export { LuFlipVertical, LuMonitorSpeaker } from 'react-icons/lu';
 
-export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calendar } from 'react-icons/fa';
+export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calendar, FaFolderPlus } from 'react-icons/fa';
 
 export { FaFolderOpen as FolderOpen, FaFolder as Folder, FaArrowRotateRight as Refresh, FaGear as GearFill, FaDatabase } from 'react-icons/fa6';
 
-export { BsFiletypeCsv as Csv } from 'react-icons/bs';
+export { BsFiletypeCsv as Csv, BsGit } from 'react-icons/bs';
 
 export { ImImages as Image } from 'react-icons/im';

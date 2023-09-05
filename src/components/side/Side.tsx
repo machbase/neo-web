@@ -1,8 +1,8 @@
 import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { gFileTree } from '@/recoil/fileTree';
+import { gFileTree, gRecentDirectory } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
-import { Delete, Download, VscChevronRight, VscChevronDown, FolderOpen } from '@/assets/icons/Icon';
+import { Delete, Download, VscChevronRight, VscChevronDown, FolderOpen, TbFolderPlus, VscNewFile } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { FileTree } from '../fileTree/file-tree';
 import Sidebar from '../fileTree/sidebar';
@@ -15,6 +15,7 @@ import useOutsideClick from '@/hooks/useOutsideClick';
 import { Error } from '@/components/toast/Toast';
 import { SaveModal } from '../modal/SaveModal';
 import OpenFile from './OpenFile';
+import { FolderModal } from '../modal/FolderModal';
 
 const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
     const sParedData: FileTreeType = {
@@ -41,6 +42,8 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
     const [sCollapseEditors, setCollapseEditors] = useState(true);
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
+    const [sIsFolderModal, setIsFoldermodal] = useState<boolean>(false);
+    const setRecentDirectory = useSetRecoilState(gRecentDirectory);
     // const sFileTreeRoot = useRecoilValue(gFileTreeRoot);
 
     useEffect(() => {
@@ -180,6 +183,7 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
             const sResult: any = await deleteContextFile(selectedContextFile.path, selectedContextFile.name);
             if (sResult.reason === 'success') {
                 getFileTree();
+                setRecentDirectory('/');
             } else {
                 Error('Failed');
             }
@@ -199,6 +203,14 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
             URL.revokeObjectURL(sLink.href);
             closeContextMenu();
         }
+    };
+
+    const handleFolder = (aHandle: boolean, aEvent: any) => {
+        if (aEvent) {
+            aEvent.stopPropagation();
+        }
+
+        setIsFoldermodal(aHandle);
     };
 
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
@@ -224,7 +236,14 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
                 <div className="collapse-icon">{sCollapseTree ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
 
                 <div className="files-open-option">
-                    <div>EXPLORER</div> <FolderOpen onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
+                    <div>EXPLORER</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <FolderOpen onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
+                        <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {/* <VscNewFile /> */}
+                            <TbFolderPlus onClick={(aEvent: any) => handleFolder(true, aEvent)} />
+                        </div>
+                    </div>
                 </div>
             </div>
             {sCollapseTree &&
@@ -251,6 +270,7 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
                     </>
                 ))}
             {sIsOpenModal ? <SaveModal pIsDarkMode pIsSave={false} setIsOpen={handleIsOpenModal} /> : null}
+            {sIsFolderModal ? <FolderModal pIsDarkMode={true} setIsOpen={handleFolder} /> : null}
         </div>
     );
 };
