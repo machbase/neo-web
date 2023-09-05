@@ -24,8 +24,8 @@ const Home = () => {
     const setConsoleList = useSetRecoilState<any>(gConsoleList);
     const sNavigate = useNavigate();
 
+    const timer: any = useRef();
     const sWebSoc: any = useRef(null);
-    let timer: any;
 
     let count = 0;
     const init = async () => {
@@ -44,17 +44,19 @@ const Home = () => {
                 sWebSoc.current.onopen = () => {
                     localStorage.setItem('consoleId', sId);
                     count = 0;
-                    clearInterval(timer);
+                    clearInterval(timer.current);
                 };
                 sWebSoc.current.onclose = async () => {
                     sWebSoc.current = null;
-                    timer = setInterval(() => {
-                        init();
-                        count++;
+                    timer.current = setInterval(() => {
                         if (count > 60) {
+                            clearInterval(timer.current);
                             localStorage.removeItem('accessToken');
                             localStorage.removeItem('refreshToken');
                             sNavigate('/login');
+                        } else {
+                            init();
+                            count++;
                         }
                     }, 1000);
                 };
@@ -111,8 +113,8 @@ const Home = () => {
             return false;
         };
         return () => {
-            count = 0;
-            clearInterval(timer);
+            count = 61;
+            clearInterval(timer.current);
             sWebSoc.current && sWebSoc.current.close();
         };
     }, []);
