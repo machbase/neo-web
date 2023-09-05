@@ -2,7 +2,7 @@ import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gFileTree, gRecentDirectory } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
-import { Delete, Download, VscChevronRight, VscChevronDown, FolderOpen, TbFolderPlus, VscNewFile } from '@/assets/icons/Icon';
+import { Delete, Download, VscChevronRight, VscChevronDown, FolderOpen, TbFolderPlus } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { FileTree } from '../fileTree/file-tree';
 import Sidebar from '../fileTree/sidebar';
