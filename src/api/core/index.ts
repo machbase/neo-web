@@ -29,6 +29,7 @@ request.interceptors.request.use(
         const sFileWrk = sUrlSplit[0].indexOf('.wrk');
         const sFileImg = isImage(sUrlSplit[0]);
 
+        sHeaders['X-Console-Id'] = localStorage.getItem('consoleId');
         if (sFileImg) {
             config.responseType = 'arraybuffer';
         }
@@ -52,7 +53,6 @@ request.interceptors.request.use(
             sHeaders['Content-Type'] = 'text/plain';
         }
         if (config.url === '/api/tql') {
-            sHeaders['X-Console-Id'] = localStorage.getItem('consoleId');
             sHeaders['Content-Type'] = 'text/plain';
         }
         if (sHeaders && config.url !== `${baseURL}/api/login` && config.url !== `${baseURL}/api/login`) {
