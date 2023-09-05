@@ -16,14 +16,22 @@ const sScriptFileUrl = [
     '/web/echarts/themes/westeros.js',
     '/web/echarts/themes/wonderland.js',
 ];
-const divScripts = document.getElementsByTagName('head')[0];
 
-sScriptFileUrl.forEach((aItem, aIdx) => {
-    const sScript = document.createElement('script');
-    sScript.src = aItem;
-    sScript.type = 'text/javascript';
-    // sScript.async = true;
-    setTimeout(() => {
-        divScripts.appendChild(sScript);
-    }, aIdx * 50);
-});
+const loadScript = (url: string) => {
+    return new Promise((resolve, reject) => {
+        const sScript = document.createElement('script');
+        sScript.src = url;
+        sScript.type = 'text/javascript';
+        sScript.onload = resolve;
+        sScript.onerror = reject;
+        document.getElementsByTagName('head')[0].appendChild(sScript);
+    });
+};
+
+const loadScriptsSequentially = async (scriptUrls: string[]) => {
+    for (let url of scriptUrls) {
+        await loadScript(url);
+    }
+};
+
+loadScriptsSequentially(sScriptFileUrl);
