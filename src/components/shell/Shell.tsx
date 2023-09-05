@@ -121,7 +121,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
             <div
                 ref={term_view}
                 id={'term_view' + pId}
-                style={pType ? { height: 'calc(100%)', width: '100%', paddingTop: '4px' } : { height: 'calc(100% - 40px)', width: '100%', paddingTop: '4px' }}
+                style={pType ? { height: 'calc(100% - 1px)', width: '100%', paddingTop: '4px' } : { height: 'calc(100% - 41px)', width: '100%', paddingTop: '4px' }}
             ></div>
         </div>
     );

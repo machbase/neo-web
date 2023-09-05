@@ -154,11 +154,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
             <div className="console-body">
                 {sConsoleTab.map((aItem: any) => {
                     return (
-                        <div
-                            ref={consoleRef}
-                            style={aItem.id === sSelectedTab ? { height: '100%', width: '100%', overflow: 'auto' } : { display: 'none', overflow: 'auto' }}
-                            key={aItem.id}
-                        >
+                        <div ref={consoleRef} style={aItem.id === sSelectedTab ? { height: '100%', width: '100%' } : { display: 'none' }} key={aItem.id}>
                             {
                                 <div style={aItem.type === 'console' ? { overflow: 'auto' } : { display: 'none', overflow: 'auto' }}>
                                     {sConsoleList.length > 0 &&
@@ -194,7 +190,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                         : { display: 'none', overflow: 'auto' }
                                 }
                             >
-                                <Shell pSelectedTab={sSelectedTab} pType="bottom" pInfo={aItem} pId={aItem.id}></Shell>
+                                {aItem.type === 'shell' && <Shell pSelectedTab={sSelectedTab} pType="bottom" pInfo={aItem} pId={aItem.id}></Shell>}
                             </div>
                         </div>
                     );
