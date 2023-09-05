@@ -20,7 +20,6 @@ const request = axios.create({
 request.interceptors.request.use(
     (config: any) => {
         const sHeaders = config.headers as CustomHeaders;
-
         const sUrlSplit = config.url?.split('?');
         const sFileOption = sUrlSplit[0].indexOf('/api/files');
         const sFileSql = sUrlSplit[0].indexOf('.sql');
@@ -29,7 +28,10 @@ request.interceptors.request.use(
         const sFileWrk = sUrlSplit[0].indexOf('.wrk');
         const sFileImg = isImage(sUrlSplit[0]);
 
-        sHeaders['X-Console-Id'] = localStorage.getItem('consoleId');
+        if (!config.url.includes('login') && !config.url.includes('logout') && !config.url.includes('relogin') && !config.url.includes('check')) {
+            sHeaders['X-Console-Id'] = localStorage.getItem('consoleId');
+        }
+
         if (sFileImg) {
             config.responseType = 'arraybuffer';
         }
@@ -60,6 +62,10 @@ request.interceptors.request.use(
             if (accessToken) {
                 sHeaders.Authorization = `Bearer ${accessToken}`;
             }
+        }
+
+        if (config.url.includes('/api/files') && config?.data?.url && config.method === 'post') {
+            sHeaders['Content-Type'] = 'application/json';
         }
 
         return config;

@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import icons from '@/utils/icons';
 import { FileTreeType, FileType, sortDir, sortFile } from '@/utils/fileTreeParser';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { gRecentDirectory } from '@/recoil/fileTree';
 import { extractionExtension } from '@/utils';
 
 interface FileTreeProps {
@@ -65,17 +66,22 @@ const FileDiv = ({
 }) => {
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sBoardList] = useRecoilState(gBoardList);
-
+    const setRecentDirectory = useSetRecoilState(gRecentDirectory);
     const selectBoard: any = sBoardList.find((aItem) => aItem.id === sSelectedTab);
-
     const isSelected = selectBoard?.path + selectBoard?.name === file.path + file.id;
-
     const depth = file.depth;
+
+    const handleClick = () => {
+        if (file.type === 0) setRecentDirectory(file.path);
+        if (file.type === 1) setRecentDirectory(file.path + file.name + '/');
+        onClick();
+    };
+
     const handleOnContextMenu = (e: React.MouseEvent<HTMLDivElement>, afile: FileType | FileTreeType) => {
         onContextMenu(e, afile);
     };
     return (
-        <Div depth={depth} isSelected={isSelected} onClick={onClick} onContextMenu={(e) => handleOnContextMenu(e, file)}>
+        <Div depth={depth} isSelected={isSelected} onClick={handleClick} onContextMenu={(e) => handleOnContextMenu(e, file)}>
             <FileIcon name={icon} extension={extractionExtension(file.name) || ''} />
             <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{file.name}</span>
         </Div>
@@ -113,6 +119,7 @@ const DirDiv = ({
     let defaultOpen = false;
     if (selectedFile) defaultOpen = isChildSelected(directory, selectedFile);
     const [open, setOpen] = useState(defaultOpen);
+
     return (
         <>
             {

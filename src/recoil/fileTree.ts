@@ -11,3 +11,8 @@ export const gFileTreeRoot = selector({
         return get(gFileTree);
     },
 });
+
+export const gRecentDirectory = atom({
+    key: 'gRecentDirectory',
+    default: '/',
+});
