@@ -2,7 +2,6 @@ import './index.scss';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import icons from '@/utils/icons';
-import { FileUploader } from 'react-drag-drop-files';
 import { getTutorial } from '@/api/repository/api';
 import ShellMenu from './ShellMenu';
 import { TbParachute, Folder } from '@/assets/icons/Icon';
@@ -18,7 +17,6 @@ interface NewBoardProps {
 
 const NewBoard = (props: NewBoardProps) => {
     const { pExtentionList, pGetInfo, pReferences } = props;
-    const fileTypes = ['wrk', 'sql', 'tql', 'taz'];
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sSelectedTab] = useRecoilState<any>(gSelectedTab);
     const [sFileUploadStyle, setFileUploadStyle] = useState(false);
