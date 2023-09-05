@@ -37,7 +37,7 @@ request.interceptors.request.use(
             sHeaders['Content-Type'] = 'text/plain';
         }
 
-        if (sFileOption !== -1 && sFileTql === -1 && sFileSql === -1 && sFileTaz === -1 && sFileWrk === -1 && config.method === 'post') {
+        if (sFileOption !== -1 && (sFileTql !== -1 || sFileSql !== -1) && sFileTaz === -1 && sFileWrk === -1 && config.method === 'post') {
             sHeaders['Content-Type'] = 'text/plain';
         }
 
