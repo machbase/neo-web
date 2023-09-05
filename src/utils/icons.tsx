@@ -19,6 +19,7 @@ import {
     VscMarkdown,
     Csv,
     Document,
+    Image,
 } from '@/assets/icons/Icon';
 import { FaDesktop, FaLaptop } from 'react-icons/fa6';
 
@@ -44,6 +45,15 @@ const icons = (aType: string) => {
             return <Document />;
         case 'csv':
             return <Csv />;
+        case 'png':
+        case 'jpg':
+        case 'jpeg':
+        case 'bmp':
+        case 'webp':
+        case 'gif':
+        case 'svg':
+        case 'ico':
+            return <Image />;
         case 'term':
             return <GoTerminal />;
         case 'close':
