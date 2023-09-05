@@ -4,6 +4,7 @@ import icons from '@/utils/icons';
 import { FileTreeType, FileType, sortDir, sortFile } from '@/utils/fileTreeParser';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { extractionExtension } from '@/utils';
 
 interface FileTreeProps {
     rootDir: FileTreeType;
@@ -75,7 +76,7 @@ const FileDiv = ({
     };
     return (
         <Div depth={depth} isSelected={isSelected} onClick={onClick} onContextMenu={(e) => handleOnContextMenu(e, file)}>
-            <FileIcon name={icon} extension={file.name.split('.').pop() || ''} />
+            <FileIcon name={icon} extension={extractionExtension(file.name) || ''} />
             <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{file.name}</span>
         </Div>
     );

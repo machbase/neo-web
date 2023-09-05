@@ -32,6 +32,7 @@ export {
     VscTerminalCmd,
     VscTerminalPowershell as Powershell,
     VscAdd,
+    VscMarkdown,
 } from 'react-icons/vsc';
 
 export {
@@ -80,3 +81,5 @@ export { LuFlipVertical, LuMonitorSpeaker } from 'react-icons/lu';
 export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calendar } from 'react-icons/fa';
 
 export { FaFolderOpen as FolderOpen, FaFolder as Folder, FaArrowRotateRight as Refresh, FaGear as GearFill, FaDatabase } from 'react-icons/fa6';
+
+export { BsFiletypeCsv as Csv } from 'react-icons/bs';
