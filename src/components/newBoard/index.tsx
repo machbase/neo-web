@@ -7,6 +7,7 @@ import { getTutorial } from '@/api/repository/api';
 import ShellMenu from './ShellMenu';
 import { TbParachute, Folder } from '@/assets/icons/Icon';
 import { extractionExtension } from '@/utils';
+import { useState } from 'react';
 
 interface NewBoardProps {
     pExtentionList: any;
@@ -20,7 +21,7 @@ const NewBoard = (props: NewBoardProps) => {
     const fileTypes = ['wrk', 'sql', 'tql', 'taz'];
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sSelectedTab] = useRecoilState<any>(gSelectedTab);
-
+    const [sFileUploadStyle, setFileUploadStyle] = useState(false);
     const openReference = async (aValue: any) => {
         if (aValue.type === 'url') {
             window.open(aValue.address, aValue.target);
@@ -153,6 +154,22 @@ const NewBoard = (props: NewBoardProps) => {
         );
     };
 
+    const handleDragOver = (aEvent: any) => {
+        setFileUploadStyle(true);
+        aEvent.stopPropagation();
+        aEvent.preventDefault();
+    };
+
+    const updateFile = (aEvent: any, aType: string) => {
+        setFileUploadStyle(false);
+        if (aType === 'drag') {
+            aEvent.preventDefault();
+            handleChange(aEvent.dataTransfer.files[0]);
+        } else {
+            handleChange(aEvent.target.files[0]);
+        }
+    };
+
     return (
         <div className="inner">
             <div className="title">
@@ -162,20 +179,32 @@ const NewBoard = (props: NewBoardProps) => {
                 {pExtentionList.map((aItem: any) => {
                     return <ShellMenu key={aItem.id} pInfo={aItem} pChangeTabOption={changeTabOption} pSetIcon={setIcon} pGetInfo={pGetInfo}></ShellMenu>;
                 })}
-                <FileUploader
-                    classes="drag-drop"
-                    children={
-                        <div className="home_btn_box">
-                            <div className="home_btn">
-                                <TbParachute></TbParachute>
-                            </div>
-                            <p>Drop & Open</p>
+
+                <label
+                    onDragEnter={() => setFileUploadStyle(true)}
+                    onDragOver={(aEvent) => handleDragOver(aEvent)}
+                    onDragLeave={() => setFileUploadStyle(false)}
+                    onDrop={(aEvent: any) => updateFile(aEvent, 'drag')}
+                    style={{ position: 'relative' }}
+                >
+                    <input onChange={(aEvent: any) => updateFile(aEvent, 'click')} accept=".wrk,.sql,.tql,.taz" className="uploader" type="file" />
+                    <div
+                        style={
+                            sFileUploadStyle
+                                ? {
+                                      border: '1px dashed rgba(255, 255, 255, 0.16)',
+                                      backgroundColor: 'rgba(200, 200, 200, 0.24)',
+                                  }
+                                : {}
+                        }
+                        className="home_btn_box"
+                    >
+                        <div className="home_btn">
+                            <TbParachute></TbParachute>
                         </div>
-                    }
-                    handleChange={handleChange}
-                    name="file"
-                    types={fileTypes}
-                />
+                        <p>{sFileUploadStyle ? 'Drop here' : 'Drop & Open'}</p>
+                    </div>
+                </label>
             </div>
             <div className="divider"></div>
 

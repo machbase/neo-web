@@ -346,10 +346,10 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         {sShowResultContentType && (
                             <div className="worksheet-ctr-lang-content-list">
                                 <div className="worksheet-ctr-lang-content" onClick={() => setResultContentType('all')}>
-                                    All
+                                    Show result all
                                 </div>
                                 <div className="worksheet-ctr-lang-content" onClick={() => setResultContentType('brief')}>
-                                    Brief
+                                    Show result brief
                                 </div>
                             </div>
                         )}
