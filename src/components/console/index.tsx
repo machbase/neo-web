@@ -167,14 +167,14 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                                         fontFamily: 'D2coding',
                                                         display: 'flex',
                                                         alignItems: 'baseline',
+                                                        gap: '16px',
                                                     }}
                                                     key={aIdx}
                                                 >
-                                                    <span style={{ color: '#f8f8f8', marginRight: '8px', width: '165px' }}>
-                                                        {changeUtcToText(Math.floor(bItem.timestamp / 1000000))}
-                                                    </span>
-                                                    <span style={{ color: setColor(bItem.level), marginRight: '8px', width: '40px' }}>{bItem.level}</span>
-                                                    <span style={{ width: 'calc(100% - 205px)' }}>{bItem.message}</span>
+                                                    <span style={{ color: '#f8f8f8', whiteSpace: 'nowrap' }}>{changeUtcToText(Math.floor(bItem.timestamp / 1000000))}</span>
+                                                    <span style={{ color: setColor(bItem.level), whiteSpace: 'nowrap', minWidth: '35px' }}>{bItem.level}</span>
+                                                    <span style={{ color: '#f8f8f8', whiteSpace: 'nowrap' }}>{bItem.task}</span>
+                                                    <span>{bItem.message}</span>
                                                 </div>
                                             );
                                         })}
