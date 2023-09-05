@@ -15,52 +15,64 @@ import {
     GoDatabase,
     VscVm,
     VscTerminalCmd,
+    VscJson,
+    VscMarkdown,
+    Csv,
+    Document,
 } from '@/assets/icons/Icon';
 import { FaDesktop, FaLaptop } from 'react-icons/fa6';
 
 const icons = (aType: string) => {
     switch (aType) {
         case 'url':
-            return <BiLink></BiLink>;
+            return <BiLink />;
         case 'sql':
-            return <VscFile></VscFile>;
+            return <VscFile />;
         case 'new':
-            return <DocumentOutline></DocumentOutline>;
+            return <DocumentOutline />;
         case 'tql':
-            return <VscGraphScatter></VscGraphScatter>;
+            return <VscGraphScatter />;
         case 'taz':
-            return <VscGraphLine></VscGraphLine>;
+            return <VscGraphLine />;
         case 'wrk':
-            return <VscNotebook></VscNotebook>;
+            return <VscNotebook />;
+        case 'json':
+            return <VscJson />;
+        case 'md':
+            return <VscMarkdown />;
+        case 'txt':
+            return <Document />;
+        case 'csv':
+            return <Csv />;
         case 'term':
-            return <GoTerminal></GoTerminal>;
+            return <GoTerminal />;
         case 'close':
-            return <Close></Close>;
+            return <Close />;
         case 'closedDirectory':
             return <TreeFolder />;
         case 'openDirectory':
             return <TreeFolderOpen />;
         case 'console-network-outline':
-            return <GoCommandPalette></GoCommandPalette>;
+            return <GoCommandPalette />;
         case 'console-network':
-            return <VscVm></VscVm>;
+            return <VscVm />;
         case 'monitor-small':
-            return <VscTerminalCmd></VscTerminalCmd>;
+            return <VscTerminalCmd />;
         case 'console-line':
-            return <Powershell></Powershell>;
+            return <Powershell />;
         case 'powershell':
-            return <FaLaptop></FaLaptop>;
+            return <FaLaptop />;
         case 'laptop':
-            return <FaDesktop></FaDesktop>;
+            return <FaDesktop />;
         case 'database-outline':
-            return <FaDatabase></FaDatabase>;
+            return <FaDatabase />;
         case 'database':
-            return <GoDatabase></GoDatabase>;
+            return <GoDatabase />;
         case 'monitor':
-            return <GoTerminal></GoTerminal>;
+            return <GoTerminal />;
 
         default:
-            return <GoTerminal></GoTerminal>;
+            return <GoTerminal />;
     }
 
     return;
