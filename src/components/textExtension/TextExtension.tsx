@@ -7,7 +7,7 @@ import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import './TextExtension.scss';
 
 export interface TextExtensionProps {
-    pLang: 'json' | 'go' | 'typescript' | 'markdown';
+    pLang: 'json' | 'go' | 'typescript' | 'markdown' | 'css' | 'html';
     pHandleSaveModalOpen: () => void;
     setIsOpenModal: Dispatch<SetStateAction<boolean>>;
 }
@@ -46,7 +46,7 @@ export const TextExtension = (props: TextExtensionProps) => {
                 <IconButton pIcon={<SaveAs size={18} />} onClick={() => setIsOpenModal(true)} />
             </div>
             <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
-                <MonacoEditor pText={sText} pLang={pLang} onSelectLine={() => {}} onChange={handleChangeText} onRunCode={() => null} />
+                <MonacoEditor pText={sText} pLang={pLang} onSelectLine={() => null} onChange={handleChangeText} onRunCode={() => null} />
             </div>
         </div>
     );

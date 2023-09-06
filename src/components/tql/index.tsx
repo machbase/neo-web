@@ -22,7 +22,7 @@ const Tql = (props: TqlProps) => {
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
-    const [sText, setText] = useState<string>(``);
+    const [sText, setText] = useState<string>('');
     const [sCsv, setCsv] = useState<string[][]>([]);
     const [sCsvHeader, setCsvHeader] = useState<string[]>([]);
     const [sIsHeader, setHeader] = useState<boolean>(false);
@@ -128,7 +128,7 @@ const Tql = (props: TqlProps) => {
                         </div>
                     </div>
                     <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
-                        <MonacoEditor pText={sText} pLang="go" onSelectLine={() => {}} onChange={handleChangeText} onRunCode={getTqlData} />
+                        <MonacoEditor pText={sText} pLang="go" onSelectLine={() => null} onChange={handleChangeText} onRunCode={getTqlData} />
                     </div>
                 </Pane>
                 <Pane style={{ overflow: 'initial' }}>
