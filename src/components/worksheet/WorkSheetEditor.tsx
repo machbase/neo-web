@@ -132,7 +132,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
     };
 
-    const resize = (aEvent: React.DragEvent<HTMLDivElement>) => {
+    const resize = (aEvent: React.MouseEvent<HTMLDivElement>) => {
         if (aEvent.clientY && resizeRef.current) {
             resizeRef.current.style.height = `${initialSize + (aEvent.clientY - initialPos)}px`;
         }
@@ -140,7 +140,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
 
     const setHeight = (aEvent: React.DragEvent<HTMLDivElement>) => {
         if (aEvent.clientY && resizeRef.current) {
-            setInitialSize(initialSize + (aEvent.clientY - initialPos));
+            const sHeight = Number(resizeRef.current.style.height.replace(/\D/g, ''));
+            setInitialSize(sHeight);
         }
     };
 
