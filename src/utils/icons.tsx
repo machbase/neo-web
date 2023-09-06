@@ -20,6 +20,7 @@ import {
     Csv,
     Document,
     Image,
+    LuFolderGit,
 } from '@/assets/icons/Icon';
 import { FaDesktop, FaLaptop } from 'react-icons/fa6';
 
@@ -80,7 +81,8 @@ const icons = (aType: string) => {
             return <GoDatabase />;
         case 'monitor':
             return <GoTerminal />;
-
+        case 'gitDirectory':
+            return <LuFolderGit />;
         default:
             return <GoTerminal />;
     }

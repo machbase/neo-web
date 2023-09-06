@@ -34,13 +34,12 @@ export const FolderModal = (props: FolderModalProps) => {
         if (sDirectoryList.length > 0) {
             sPath = sDirectoryList.join('/') + '/' + sFolderName;
         } else sPath = sFolderName;
+
         if (sGitUrl) {
-            sPayload = { url: sGitUrl };
+            // command : clone, pull
+            sPayload = { url: sGitUrl, command: 'clone' };
         } else {
-            sPayload = {
-                isDir: true,
-                name: sFolderName,
-            };
+            sPayload = undefined;
         }
 
         const sResult: any = await postFileList(sPayload, sPath, '');
