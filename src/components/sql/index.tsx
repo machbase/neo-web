@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from 'react';
 import SplitPane, { Pane } from 'split-pane-react';
 import RESULT from './result';
 import CHART from '@/components/chart';
-import { LOG } from './log';
 import AUTOCOMBOBOX from './autoCombobox';
 import { gBoardList } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
@@ -84,10 +83,6 @@ const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHan
 
     const checkCtrl = async () => {
         sqlMultiLineParser();
-    };
-
-    const onClearLog = () => {
-        setLogList([]);
     };
 
     const getTargetQuery = (): string => {
