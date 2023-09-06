@@ -222,7 +222,7 @@ export const SaveModal = (props: SaveModalProps) => {
             const sParedData = fileTreeParser(sResponseData.data, '/' + sSelectedDir.join('/') + '/', sSelectedDir.length, sSelectedDir.at(-1) as string);
             sParedData.parentId = sPath.split('/').at(-1);
             sParedData.path = '/' + sPath + '/';
-            const sTmpDir = findDir(sFileTree, sParedData);
+            const sTmpDir = findDir(sFileTree as FileTreeType, sParedData);
             const sResult = JSON.parse(JSON.stringify(sFileTree));
             sResult.dirs = sTmpDir;
             setFileTree(sResult);

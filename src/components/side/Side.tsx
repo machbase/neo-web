@@ -275,7 +275,7 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
                                 onSelect={onSelect}
                                 onFetchDir={onFetchDir}
                                 onContextMenu={onContextMenu}
-                                onRefresh={handleRefresh}
+                                onRefresh={() => handleRefresh()}
                             />
                         </Sidebar>
                         <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
