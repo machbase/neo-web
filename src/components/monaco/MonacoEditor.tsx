@@ -21,10 +21,11 @@ export interface MonacoEditorProps {
 
 export const MonacoEditor = (props: MonacoEditorProps) => {
     const { pText, pLang, onChange, onRunCode, onSelectLine } = props;
-    const monaco = useMonaco();
+    const sMonaco = useMonaco();
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const [sCurrnetTab, setCurrentTab] = useState<any>();
     const [sEditor, setEditor] = useState<any>(null);
+    const [sCurrentLang, setCurrentLang] = useState<string>('');
 
     const sPositionDefaultValue = { column: 1, lineNumber: 1 };
     const sSelectionDefaultValue = {
@@ -51,9 +52,13 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
     }, []);
 
     useEffect(() => {
-        if (!monaco) return;
+        if (!sMonaco) return;
+        setCurrentLang(pLang);
+    }, [pLang]);
 
-        monaco.editor.defineTheme('my-theme', {
+    useEffect(() => {
+        if (!sMonaco) return;
+        sMonaco.editor.defineTheme('my-theme', {
             base: 'vs-dark',
             inherit: true,
             rules: [],
@@ -61,22 +66,25 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
                 'editor.background': '#1F2127',
             },
         });
-        monaco.editor.setTheme('my-theme');
+        sMonaco.editor.setTheme('my-theme');
 
-        new monaco.Position(0, 0);
-        new monaco.Selection(0, 0, 0, 0);
-    }, [monaco]);
+        new sMonaco.Position(0, 0);
+        new sMonaco.Selection(0, 0, 0, 0);
+        setCurrentLang(pLang);
+    }, [sMonaco]);
 
     useEffect(() => {
-        if (!monaco) return;
+        if (!sMonaco) return;
         const sId = sCurrnetTab === undefined ? sSelectedTab : sCurrnetTab;
         if (sId === sSelectedTab) {
             applyRunCode(pText);
         }
-    }, [monaco, pText, sSelectedTab]);
+    }, [sMonaco, pText, sSelectedTab]);
 
     useEffect(() => {
-        if (sEditor) applyRunCode(pText);
+        if (sEditor) {
+            applyRunCode(pText);
+        }
     }, [sEditor]);
 
     const handleMount = (editor: any) => {
@@ -85,12 +93,12 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
     };
 
     const applyRunCode = (aText: string) => {
-        if (!monaco) return;
+        if (!sMonaco) return;
 
         const runCode = {
             id: 'run-code',
             label: 'Run Code',
-            keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+            keybindings: [sMonaco.KeyMod.CtrlCmd | sMonaco.KeyCode.Enter],
             run: () =>
                 onRunCode(aText, {
                     position: sEditor ? sEditor.getPosition() : sPositionDefaultValue,
@@ -98,11 +106,11 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
                 }),
         };
 
-        monaco.editor.addEditorAction(runCode);
+        sMonaco.editor.addEditorAction(runCode);
     };
 
     const selectionLine = () => {
-        if (!monaco) return;
+        if (!sMonaco) return;
 
         onSelectLine({
             position: sEditor ? sEditor.getPosition() : sPositionDefaultValue,
@@ -112,7 +120,7 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
 
     return (
         <div style={{ width: '100%', height: '100%' }} onFocus={() => applyRunCode(pText)} onClick={selectionLine}>
-            <Editor height="100%" width="100%" language={pLang} value={pText} theme="my-theme" onChange={onChange} onMount={handleMount} options={monacoOptions} />
+            <Editor height="100%" width="100%" language={sCurrentLang} value={pText} theme="my-theme" onChange={onChange} onMount={handleMount} options={monacoOptions} />
         </div>
     );
 };
