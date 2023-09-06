@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from 'react';
 import SplitPane, { Pane } from 'split-pane-react';
 import RESULT from './result';
 import CHART from '@/components/chart';
-import { LOG } from './log';
 import AUTOCOMBOBOX from './autoCombobox';
 import { gBoardList } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
@@ -64,7 +63,7 @@ const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHan
         CHART = 'CHART',
         LOG = 'LOG',
     }
-    const sSqlTabList: SqlTabType[] = [SqlTabType.RESULT, SqlTabType.CHART, SqlTabType.LOG];
+    const sSqlTabList: SqlTabType[] = [SqlTabType.RESULT, SqlTabType.CHART];
 
     const handleSplitVertical = () => {
         setIsVertical(true);
@@ -84,10 +83,6 @@ const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHan
 
     const checkCtrl = async () => {
         sqlMultiLineParser();
-    };
-
-    const onClearLog = () => {
-        setLogList([]);
     };
 
     const getTargetQuery = (): string => {
@@ -167,7 +162,7 @@ const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHan
             setSelectedSubTab('RESULT');
             return true;
         } else {
-            setSelectedSubTab('LOG');
+            // setSelectedSubTab('LOG');
             return false;
         }
     };
@@ -287,7 +282,7 @@ const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHan
                             </div>
                         </div>
                         <RESULT pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'} pSqlResponseData={sSqlResponseData} onMoreResult={() => onMoreResult()} />
-                        <LOG pDisplay={sSelectedSubTab === 'LOG' ? '' : 'none'} pLogList={sLogList} onClearLog={() => onClearLog()} />
+                        {/* <LOG pDisplay={sSelectedSubTab === 'LOG' ? '' : 'none'} pLogList={sLogList} onClearLog={() => onClearLog()} /> */}
                         <CHART
                             pQueryList={sChartQueryList}
                             pDisplay={sSelectedSubTab === 'CHART' ? '' : 'none'}

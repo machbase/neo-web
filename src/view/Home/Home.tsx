@@ -45,9 +45,12 @@ const Home = () => {
                     localStorage.setItem('consoleId', sId);
                     count = 0;
                     clearInterval(timer.current);
+                    setConsoleList((aData: any) => [...aData, { timestamp: new Date().getTime(), level: '', task: '', message: 'Connection established' }]);
                 };
                 sWebSoc.current.onclose = async () => {
                     sWebSoc.current = null;
+                    setConsoleList((aData: any) => [...aData, { timestamp: new Date().getTime(), level: '', task: '', message: 'Connection lost' }]);
+
                     timer.current = setInterval(() => {
                         if (count > 60) {
                             clearInterval(timer.current);

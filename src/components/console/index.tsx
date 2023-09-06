@@ -17,7 +17,9 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
     const [sSelectedTab, setSelectedTab] = useState('Console');
     const [sIsContextMenu, setIsContextMenu] = useState(false);
     const [sConsoleList, setConsoleList] = useRecoilState<any>(gConsoleList);
+    const [sSelectTask, setSelectTask] = useState('none');
     const MenuRef = useRef<HTMLDivElement>(null);
+    const sFiledRef = useRef<HTMLDivElement>(null);
     const consoleRef = useRef<any>(null);
     const [sNewLog, setNewLog] = useState(false);
     const onContextMenu = (e: React.MouseEvent) => {
@@ -112,6 +114,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
     };
 
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
+    useOutsideClick(sFiledRef, () => setSelectTask('none'));
 
     return (
         <div className="console-form">
@@ -165,19 +168,38 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                     sConsoleList.map((bItem: any, aIdx: number) => {
                                         return (
                                             <div
-                                                style={{
-                                                    paddingLeft: '24px',
-                                                    fontSize: '14px',
-                                                    fontFamily: 'D2coding',
-                                                    display: 'flex',
-                                                    alignItems: 'baseline',
-                                                    gap: '16px',
-                                                }}
+                                                onClick={() => setSelectTask(bItem.task)}
+                                                style={
+                                                    sSelectTask === bItem.task
+                                                        ? {
+                                                              lineHeight: '117%',
+                                                              background: 'rgba(12,12,12, 0.6)',
+                                                              paddingLeft: '24px',
+                                                              fontSize: '14px',
+                                                              fontFamily: 'D2coding',
+                                                              display: 'flex',
+                                                              alignItems: 'baseline',
+                                                              gap: '16px',
+                                                              color: '#f4f4f4',
+                                                          }
+                                                        : {
+                                                              lineHeight: '117%',
+                                                              paddingLeft: '24px',
+                                                              fontSize: '14px',
+                                                              fontFamily: 'D2coding',
+                                                              display: 'flex',
+                                                              alignItems: 'baseline',
+                                                              gap: '16px',
+                                                              color: '#d1d1d1',
+                                                          }
+                                                }
                                                 key={aIdx}
                                             >
-                                                <span style={{ color: '#f8f8f8', whiteSpace: 'nowrap' }}>{changeUtcToText(Math.floor(bItem.timestamp / 1000000))}</span>
-                                                <span style={{ color: setColor(bItem.level), whiteSpace: 'nowrap', minWidth: '35px' }}>{bItem.level}</span>
-                                                <span style={{ color: '#f8f8f8', whiteSpace: 'nowrap' }}>{bItem.task}</span>
+                                                <span style={{ whiteSpace: 'nowrap' }}>
+                                                    {changeUtcToText(bItem.timestamp < 10000000000000 ? Math.floor(bItem.timestamp) : Math.floor(bItem.timestamp / 1000000))}
+                                                </span>
+                                                {bItem.level && <span style={{ color: setColor(bItem.level), whiteSpace: 'nowrap', minWidth: '35px' }}>{bItem.level}</span>}
+                                                {bItem.task && <span style={{ whiteSpace: 'nowrap' }}>{bItem.task}</span>}
                                                 <span>{bItem.message}</span>
                                             </div>
                                         );
