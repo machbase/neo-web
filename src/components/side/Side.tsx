@@ -2,7 +2,7 @@ import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gFileTree, gRecentDirectory } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
-import { Delete, Download, VscChevronRight, VscChevronDown, FolderOpen, TbFolderPlus } from '@/assets/icons/Icon';
+import { Delete, Download, VscChevronRight, VscChevronDown, FolderOpen, TbFolderPlus, MdRefresh } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { FileTree } from '../fileTree/file-tree';
 import Sidebar from '../fileTree/sidebar';
@@ -27,6 +27,10 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
         parentId: undefined,
         type: 0,
         path: 'ROOT',
+        gitClone: false,
+        gitUrl: undefined,
+        gitStatus: undefined,
+        virtual: false,
     };
     const [menuX, setMenuX] = useState<number>(0);
     const [menuY, setMenuY] = useState<number>(0);
@@ -64,6 +68,10 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
             parentId: pathArray[pathArray.length - 2] ? pathArray[pathArray.length - 2] : '0',
             path: '/' + removeLastItem(pathArray).join('/') ? removeLastItem(pathArray).join('/') : '/',
             type: 1,
+            gitClone: false,
+            gitUrl: undefined,
+            gitStatus: undefined,
+            virtual: false,
         });
     }, [pSavedPath]);
 
@@ -213,6 +221,11 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
         setIsFoldermodal(aHandle);
     };
 
+    const handleRefresh = (e?: MouseEvent) => {
+        if (e) e.stopPropagation();
+        getFileTree();
+    };
+
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
 
     return (
@@ -243,6 +256,9 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
                             {/* <VscNewFile /> */}
                             <TbFolderPlus onClick={(aEvent: any) => handleFolder(true, aEvent)} />
                         </div>
+                        <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <MdRefresh onClick={(e: any) => handleRefresh(e)} />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -253,7 +269,14 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
                 ) : (
                     <>
                         <Sidebar pBoardListLength={sBoardList.length}>
-                            <FileTree rootDir={rootDir} selectedFile={selectedFile} onSelect={onSelect} onFetchDir={onFetchDir} onContextMenu={onContextMenu} />
+                            <FileTree
+                                rootDir={rootDir}
+                                selectedFile={selectedFile}
+                                onSelect={onSelect}
+                                onFetchDir={onFetchDir}
+                                onContextMenu={onContextMenu}
+                                onRefresh={handleRefresh}
+                            />
                         </Sidebar>
                         <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
                             <Menu isOpen={sIsContextMenu}>

@@ -51,6 +51,8 @@ export {
     MdOutlineKeyboardArrowLeft as ArrowLeft,
     MdOutlineKeyboardArrowRight as ArrowRight,
     MdRawOn,
+    MdRefresh,
+    MdOutlineUpgrade,
 } from 'react-icons/md';
 
 export {
@@ -68,7 +70,7 @@ export { IoLogOutOutline as Logout, IoPlayForwardSharp, IoDocumentOutline as Doc
 
 export { PiFileCsvThin } from 'react-icons/pi';
 
-export { BiLineChart as LineChart, BiLink, BiPlay as Play, BiSolidDownArrow, BiSolidChart } from 'react-icons/bi';
+export { BiLineChart as LineChart, BiDownload, BiLink, BiPlay as Play, BiSolidDownArrow, BiSolidChart } from 'react-icons/bi';
 
 export { FiSearch as Search, FiMonitor as Monitor } from 'react-icons/fi';
 
@@ -78,7 +80,7 @@ export { IoIosCopy as Copy } from 'react-icons/io';
 
 export { GoPencil, GoTerminal, GoCommandPalette, GoDatabase } from 'react-icons/go';
 
-export { LuFlipVertical, LuMonitorSpeaker } from 'react-icons/lu';
+export { LuFlipVertical, LuMonitorSpeaker, LuFolderGit } from 'react-icons/lu';
 
 export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calendar, FaFolderPlus } from 'react-icons/fa';
 

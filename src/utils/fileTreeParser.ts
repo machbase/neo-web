@@ -7,6 +7,10 @@ export interface FileTreeType {
     parentId: string | undefined;
     type: Type;
     path: string | 'ROOT';
+    gitClone: boolean;
+    gitUrl: string | undefined;
+    gitStatus: string | undefined;
+    virtual: boolean;
 }
 export interface FileType {
     content: string;
@@ -25,15 +29,19 @@ export enum Type {
 }
 
 interface ResFileType {
+    gitClone: boolean;
+    gitUrl?: string;
     isDir: boolean;
     lastModifiedUnixMillis: bigint;
     name: string;
     type: string;
+    virtual: boolean;
 }
 export interface ResFileListType {
     children: ResFileType[];
     name: string;
     isDir: boolean;
+    gitClone: boolean;
 }
 export const fileTreeParser = (aResFileList: ResFileListType, aPath: string, aDepth: number, aParentId: string) => {
     const sParedData: FileTreeType = {
@@ -50,6 +58,10 @@ export const fileTreeParser = (aResFileList: ResFileListType, aPath: string, aDe
         parentId: undefined,
         type: aResFileList && aResFileList.isDir ? 1 : 0,
         path: aPath,
+        gitClone: aResFileList.gitClone,
+        gitUrl: undefined,
+        gitStatus: undefined,
+        virtual: false,
     };
     return sParedData;
 };
@@ -63,6 +75,10 @@ const dirFormatter = (aTarget: ResFileType, aPath: string, aDepth: number, aPare
         parentId: aParentId,
         type: 1,
         path: aPath,
+        gitClone: aTarget.gitClone ? true : false,
+        gitUrl: aTarget.gitClone ? aTarget.gitUrl : undefined,
+        gitStatus: undefined,
+        virtual: aTarget.virtual,
     };
 };
 const fileFormatter = (aTarget: ResFileType, aPath: string, aDepth: number, aParentId: string) => {

@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-const TestTarget = '192.168.1.137:5654';
+const TestTarget = '127.0.0.1:5654';
+// '192.168.1.137:5654';
 
 export default defineConfig({
     plugins: [react()],
