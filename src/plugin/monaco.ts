@@ -8,7 +8,6 @@ import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 export const setMonacoConfig = () => {
     self.MonacoEnvironment = {
         getWorker(_, label) {
-            // console.log('get worker', label);
             if (label === 'json') {
                 return new jsonWorker();
             }

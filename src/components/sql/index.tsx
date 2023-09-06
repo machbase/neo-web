@@ -64,7 +64,7 @@ const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHan
         CHART = 'CHART',
         LOG = 'LOG',
     }
-    const sSqlTabList: SqlTabType[] = [SqlTabType.RESULT, SqlTabType.CHART, SqlTabType.LOG];
+    const sSqlTabList: SqlTabType[] = [SqlTabType.RESULT, SqlTabType.CHART];
 
     const handleSplitVertical = () => {
         setIsVertical(true);
@@ -167,7 +167,7 @@ const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHan
             setSelectedSubTab('RESULT');
             return true;
         } else {
-            setSelectedSubTab('LOG');
+            // setSelectedSubTab('LOG');
             return false;
         }
     };
@@ -287,7 +287,7 @@ const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHan
                             </div>
                         </div>
                         <RESULT pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'} pSqlResponseData={sSqlResponseData} onMoreResult={() => onMoreResult()} />
-                        <LOG pDisplay={sSelectedSubTab === 'LOG' ? '' : 'none'} pLogList={sLogList} onClearLog={() => onClearLog()} />
+                        {/* <LOG pDisplay={sSelectedSubTab === 'LOG' ? '' : 'none'} pLogList={sLogList} onClearLog={() => onClearLog()} /> */}
                         <CHART
                             pQueryList={sChartQueryList}
                             pDisplay={sSelectedSubTab === 'CHART' ? '' : 'none'}
