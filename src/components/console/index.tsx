@@ -46,7 +46,12 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
             setNewLog(false);
         }, 2000);
         sConsoleList[sConsoleList.length - 1] && sConsoleList[sConsoleList.length - 1].level === 'ERROR' && setSelectedTab(sConsoleTab[0].id);
-        if (consoleRef.current) consoleRef.current.scrollTop = consoleRef.current.scrollHeight + consoleRef.current.clientHeight;
+        if (consoleRef.current) {
+            consoleRef.current.scrollTo({
+                top: consoleRef.current.scrollHeight + consoleRef.current.clientHeight,
+                behavior: 'smooth',
+            });
+        }
     }, [sConsoleList]);
 
     useEffect(() => {
@@ -151,35 +156,33 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                     {pTerminalSizes[1] !== 40 && <VscChevronDown onClick={() => pSetTerminalSizes(['', 40])}></VscChevronDown>}
                 </div>
             </div>
-            <div className="console-body">
+            <div ref={consoleRef} className="console-body">
                 {sConsoleTab.map((aItem: any) => {
                     return (
-                        <div ref={consoleRef} style={aItem.id === sSelectedTab ? { height: '100%', width: '100%' } : { display: 'none' }} key={aItem.id}>
-                            {
-                                <div style={aItem.type === 'console' ? { overflow: 'auto' } : { display: 'none', overflow: 'auto' }}>
-                                    {sConsoleList.length > 0 &&
-                                        sConsoleList.map((bItem: any, aIdx: number) => {
-                                            return (
-                                                <div
-                                                    style={{
-                                                        paddingLeft: '24px',
-                                                        fontSize: '14px',
-                                                        fontFamily: 'D2coding',
-                                                        display: 'flex',
-                                                        alignItems: 'baseline',
-                                                        gap: '16px',
-                                                    }}
-                                                    key={aIdx}
-                                                >
-                                                    <span style={{ color: '#f8f8f8', whiteSpace: 'nowrap' }}>{changeUtcToText(Math.floor(bItem.timestamp / 1000000))}</span>
-                                                    <span style={{ color: setColor(bItem.level), whiteSpace: 'nowrap', minWidth: '35px' }}>{bItem.level}</span>
-                                                    <span style={{ color: '#f8f8f8', whiteSpace: 'nowrap' }}>{bItem.task}</span>
-                                                    <span>{bItem.message}</span>
-                                                </div>
-                                            );
-                                        })}
-                                </div>
-                            }
+                        <div style={aItem.id === sSelectedTab ? { height: '100%', width: '100%' } : { display: 'none' }} key={aItem.id}>
+                            <div style={aItem.type === 'console' ? { overflow: 'auto' } : { display: 'none', overflow: 'auto' }}>
+                                {sConsoleList.length > 0 &&
+                                    sConsoleList.map((bItem: any, aIdx: number) => {
+                                        return (
+                                            <div
+                                                style={{
+                                                    paddingLeft: '24px',
+                                                    fontSize: '14px',
+                                                    fontFamily: 'D2coding',
+                                                    display: 'flex',
+                                                    alignItems: 'baseline',
+                                                    gap: '16px',
+                                                }}
+                                                key={aIdx}
+                                            >
+                                                <span style={{ color: '#f8f8f8', whiteSpace: 'nowrap' }}>{changeUtcToText(Math.floor(bItem.timestamp / 1000000))}</span>
+                                                <span style={{ color: setColor(bItem.level), whiteSpace: 'nowrap', minWidth: '35px' }}>{bItem.level}</span>
+                                                <span style={{ color: '#f8f8f8', whiteSpace: 'nowrap' }}>{bItem.task}</span>
+                                                <span>{bItem.message}</span>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
 
                             <div
                                 style={
