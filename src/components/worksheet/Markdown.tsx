@@ -4,6 +4,8 @@ import '@/assets/md/md.css';
 import '@/components/worksheet/Markdown.scss';
 import '@/assets/md/mdDark.css';
 import setMermaid from '@/plugin/mermaid';
+import { useRecoilState } from 'recoil';
+import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 
 interface MarkdownProps {
     pContents?: any;
@@ -14,6 +16,8 @@ interface MarkdownProps {
 export const Markdown = (props: MarkdownProps) => {
     const { pContents, pIdx, pType } = props;
     const [sMdxText, setMdxText] = useState<string>('');
+    const [sBoardList] = useRecoilState(gBoardList);
+    const [sSelectedTab] = useRecoilState(gSelectedTab);
 
     useEffect(() => {
         init();
@@ -22,7 +26,15 @@ export const Markdown = (props: MarkdownProps) => {
     const init = async () => {
         if (pContents) {
             if (pType === 'mrk') {
-                const sData = await postMd(pContents, true);
+                const sList = window.location.href;
+                const sSelectedBoard = sBoardList.find((aItem) => aItem.id === sSelectedTab);
+
+                let sReperer: any;
+                if (sSelectedBoard && sSelectedBoard.path !== '') {
+                    sReperer = sList.replace('/ui', '/api/tql') + sSelectedBoard.path + sSelectedBoard.name;
+                }
+
+                const sData = await postMd(pContents, true, sReperer);
                 setMdxText(`<article>${sData}</article>`);
             } else {
                 setMdxText(`<article>${pContents}</article>`);

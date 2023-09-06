@@ -9,12 +9,16 @@ const getFileList = (aFilter: string, aDir: string, aName: string) => {
     });
 };
 
-const postMd = (aData: string, aIsDark: boolean) => {
-    return request({
+const postMd = async (aData: string, aIsDark: boolean, referer?: string) => {
+    let sData: any = {
         method: 'POST',
         url: `/api/md?darkMode=${aIsDark}`,
         data: aData,
-    });
+    };
+    if (referer) {
+        sData = { ...sData, headers: { 'X-Referer': window.btoa(unescape(encodeURIComponent(referer))) } };
+    }
+    return request(sData);
 };
 
 const postFileList = (aContents: any, aDir: string, aFileName: string) => {
