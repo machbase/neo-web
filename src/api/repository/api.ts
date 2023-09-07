@@ -8,6 +8,12 @@ const getFileList = (aFilter: string, aDir: string, aName: string) => {
         url: normalizePath(`/api/files/${aDir}${aName ? '/' + aName : ''}${aFilter}`),
     });
 };
+const getReferenceList = () => {
+    return request({
+        method: 'GET',
+        url: `/api/refs`,
+    });
+};
 
 const postMd = async (aData: string, aIsDark: boolean, referer?: string) => {
     let sData: any = {
@@ -76,4 +82,4 @@ const postShell = (aInfo: any) => {
     });
 };
 
-export { getFileList, postFileList, getLicense, postLicense, deleteFileList, getTutorial, postMd, copyShell, removeShell, postShell };
+export { getFileList, postFileList, getLicense, postLicense, deleteFileList, getReferenceList, getTutorial, postMd, copyShell, removeShell, postShell };

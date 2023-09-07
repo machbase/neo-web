@@ -10,40 +10,16 @@ import { useState } from 'react';
 
 interface NewBoardProps {
     pExtentionList: any;
-    pReferences: any;
     setIsOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
     pGetInfo: any;
 }
 
 const NewBoard = (props: NewBoardProps) => {
-    const { pExtentionList, pGetInfo, pReferences } = props;
+    const { pExtentionList, pGetInfo } = props;
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sSelectedTab] = useRecoilState<any>(gSelectedTab);
     const [sFileUploadStyle, setFileUploadStyle] = useState(false);
-    const openReference = async (aValue: any) => {
-        if (aValue.type === 'url') {
-            window.open(aValue.address, aValue.target);
-        } else {
-            const sContentResult: any = await getTutorial(aValue.address);
-            if (aValue.type === 'tql') {
-                setBoardList(
-                    sBoardList.map((aItem) => {
-                        return aItem.id === sSelectedTab
-                            ? { ...aItem, type: aValue.type, name: aValue.title, code: sContentResult, path: '', panels: [], sheet: [], savedCode: false }
-                            : aItem;
-                    })
-                );
-            } else if (aValue.type === 'wrk') {
-                setBoardList(
-                    sBoardList.map((aItem) => {
-                        return aItem.id === sSelectedTab
-                            ? { ...aItem, type: aValue.type, name: aValue.title, code: '', panels: [], path: '', sheet: sContentResult.data, savedCode: false }
-                            : aItem;
-                    })
-                );
-            }
-        }
-    };
+
     const readFile = async (aItem: any) => {
         return (await new Promise((resolve) => {
             const reader = new FileReader();
@@ -203,27 +179,6 @@ const NewBoard = (props: NewBoardProps) => {
                         <p>{sFileUploadStyle ? 'Drop here' : 'Drop & Open'}</p>
                     </div>
                 </label>
-            </div>
-            <div className="divider"></div>
-
-            <div className="refrence-list">
-                {pReferences &&
-                    pReferences.map((aItem: any, aIdx: number) => {
-                        return (
-                            <div key={aIdx} className="folder-items">
-                                <Folder></Folder>
-                                {aItem.label}
-                                {aItem?.items?.map((aItem: any, aIdx: number) => {
-                                    return (
-                                        <div key={aIdx} className="link" onClick={() => openReference(aItem)}>
-                                            {icons(aItem.type)}
-                                            {aItem.title}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        );
-                    })}
             </div>
         </div>
     );

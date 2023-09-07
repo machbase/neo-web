@@ -22,7 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { ImageBox } from '@/components/imageBox/ImageBox';
 import { TextExtension } from '@/components/textExtension/TextExtension';
 
-const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGetPath }: any) => {
+const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState<any>(gSelectedTab);
     const sFilterBoard = useRecoilValue<any>(gSelectedBoard);
@@ -133,7 +133,7 @@ const Body = ({ pExtentionList, pSideSizes, pReferences, pDraged, pGetInfo, pGet
                 {sBoardList.map((aItem) => {
                     return (
                         <div key={aItem.id} style={aItem.id === sSelectedTab ? { width: '100%', height: '100%' } : { display: 'none' }}>
-                            {aItem.type === 'new' && <NewBoard pExtentionList={pExtentionList} pGetInfo={pGetInfo} setIsOpenModal={setIsOpenModal} pReferences={pReferences} />}
+                            {aItem.type === 'new' && <NewBoard pExtentionList={pExtentionList} pGetInfo={pGetInfo} setIsOpenModal={setIsOpenModal} />}
                             {aItem.type === 'sql' && <Sql pHandleSaveModalOpen={handleSaveModalOpen} pInfo={aItem} setIsSaveModal={setIsSaveModal}></Sql>}
                             {aItem.type === 'tql' && <Tql pHandleSaveModalOpen={handleSaveModalOpen} setIsSaveModal={setIsSaveModal} />}
                             {aItem.type === 'taz' && (

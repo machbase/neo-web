@@ -101,6 +101,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
             <div className="worksheet-body">
                 <div className="worksheet">
                     {sWorkSheets &&
+                        sWorkSheets.length !== 0 &&
                         sWorkSheets.map((aSheetItem: any, aIdx: number) => {
                             return (
                                 <WorkSheetEditor

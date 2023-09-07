@@ -9,20 +9,22 @@ import { useEffect, useState, useRef } from 'react';
 import { getLogin } from '@/api/repository/login';
 import Body from '@/components/editor/Body';
 import { getId } from '@/utils';
-import { useSetRecoilState } from 'recoil';
-import { gConsoleList } from '@/recoil/recoil';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import { gConsoleList, gExtensionList, gSelectedExtension } from '@/recoil/recoil';
+import ReferenceList from '@/components/side/ReferenceList';
 
 const Home = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['20%', '80%']);
     const [sTerminalSizes, setTerminalSizes] = useState<string[] | number[]>(['72%', '28%']);
-    const [sExtentionList, setExtentionList] = useState<any>([]);
-    const [sReferences, setReferences] = useState<any>([]);
+    const [sTabList, setTabList] = useState<any>([]);
     const [sDraged, setDraged] = useState<any>(false);
     const [sSavedPath, setSavedPath] = useState();
     const [sServer, setServer] = useState();
     const [sIsSidebar, setIsSidebar] = useState<boolean>(true);
     const setConsoleList = useSetRecoilState<any>(gConsoleList);
     const sNavigate = useNavigate();
+    const [sSelectedExtension] = useRecoilState<string>(gSelectedExtension);
+    const [sExtentionList] = useRecoilState<any>(gExtensionList);
 
     const timer: any = useRef();
     const sWebSoc: any = useRef(null);
@@ -81,20 +83,20 @@ const Home = () => {
     const getInfo = async () => {
         const sResult: any = await getLogin();
 
-        setReferences(sResult.references);
         setServer(sResult.server);
         const sortAttributes = (aItem: string, bItem: string) => {
             const sOrder = ['editable', 'cloneable', 'removable'];
             return sOrder.indexOf(aItem) - sOrder.indexOf(bItem);
         };
 
-        sResult.shells.forEach((aItem: any) => {
-            if (aItem.attributes && Array.isArray(aItem.attributes)) {
-                aItem.attributes.sort((aItem: string, bItem: string) => sortAttributes(Object.keys(aItem)[0], Object.keys(bItem)[0]));
-            }
-        });
+        sResult.shells.length !== 0 &&
+            sResult.shells.forEach((aItem: any) => {
+                if (aItem.attributes && Array.isArray(aItem.attributes)) {
+                    aItem.attributes.sort((aItem: string, bItem: string) => sortAttributes(Object.keys(aItem)[0], Object.keys(bItem)[0]));
+                }
+            });
 
-        setExtentionList(sResult.shells);
+        setTabList(sResult.shells);
     };
 
     const setStatus = () => {
@@ -128,7 +130,16 @@ const Home = () => {
             <div className="body-form">
                 <SplitPane sashRender={() => <></>} split="vertical" sizes={sSideSizes} onChange={setSideSizes} onDragEnd={changeDraged} onDragStart={setStatus}>
                     <Pane minSize={0} maxSize="50%">
-                        {sIsSidebar && <Side pServer={sServer} pGetInfo={getInfo} pSavedPath={sSavedPath}></Side>}
+                        {sExtentionList &&
+                            sExtentionList.length !== 0 &&
+                            sExtentionList.map((aItem: any) => {
+                                return (
+                                    <div key={aItem.id} style={aItem.id === sSelectedExtension ? { width: '100%', height: '100%' } : { display: 'none' }}>
+                                        {aItem.id === 'EXPLORER' && <Side pServer={sServer} pGetInfo={getInfo} pSavedPath={sSavedPath}></Side>}
+                                        {aItem.id === 'REFERENCE' && <ReferenceList pServer={sServer}></ReferenceList>}
+                                    </div>
+                                );
+                            })}
                     </Pane>
                     <Pane>
                         <div
@@ -141,12 +152,11 @@ const Home = () => {
                             <SplitPane sashRender={() => <></>} split="horizontal" sizes={sTerminalSizes} onChange={setTerminalSizes}>
                                 <Pane minSize={50}>
                                     <Body
-                                        pExtentionList={sExtentionList}
+                                        pExtentionList={sTabList}
                                         pTerminalSizes={sTerminalSizes}
                                         pSideSizes={sSideSizes}
                                         pDraged={sDraged}
                                         pGetInfo={getInfo}
-                                        pReferences={sReferences}
                                         pGetPath={getPath}
                                     ></Body>
                                 </Pane>
@@ -159,7 +169,7 @@ const Home = () => {
                                         }}
                                     >
                                         <Console
-                                            pExtentionList={sExtentionList.filter((aItem: any) => aItem.type === 'term')}
+                                            pExtentionList={sTabList.filter((aItem: any) => aItem.type === 'term')}
                                             pTerminalSizes={sTerminalSizes}
                                             pSetTerminalSizes={setTerminalSizes}
                                         ></Console>
