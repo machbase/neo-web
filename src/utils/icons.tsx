@@ -96,7 +96,7 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'gitOpenDirectory':
             return <MuiFolderGitOpen />;
         default:
-            return <MuiShell />;
+            return <GoTerminal />;
     }
 
     return;
