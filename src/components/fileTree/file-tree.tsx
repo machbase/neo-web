@@ -202,8 +202,8 @@ const DirDiv = ({
     const [open, setOpen] = useState(defaultOpen);
 
     const sDirectoryIcon = (): string => {
-        if (open) return directory.gitClone ? 'gitDirectory' : 'openDirectory';
-        else return directory.gitClone ? 'gitDirectory' : 'closedDirectory';
+        if (open) return directory.gitClone ? 'gitOpenDirectory' : 'openDirectory';
+        else return directory.gitClone ? 'gitClosedDirectory' : 'closedDirectory';
     };
 
     return (

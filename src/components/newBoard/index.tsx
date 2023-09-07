@@ -99,13 +99,13 @@ const NewBoard = (props: NewBoardProps) => {
     const setIcon = (aType: any) => {
         switch (aType.type) {
             case 'sql':
-                return icons('sql');
+                return icons('sql', true);
                 break;
             case 'tql':
-                return icons('tql');
+                return icons('tql', true);
                 break;
             case 'wrk':
-                return icons('wrk');
+                return icons('wrk', true);
                 break;
             case 'term':
                 if (
@@ -119,16 +119,16 @@ const NewBoard = (props: NewBoardProps) => {
                     aType.icon === 'monitor-small' ||
                     aType.icon === 'laptop'
                 ) {
-                    return icons(aType.icon);
+                    return icons(aType.icon, true);
                 } else {
-                    return icons('term');
+                    return icons('term', true);
                 }
                 break;
             case 'taz':
-                return icons('taz');
+                return icons('taz', true);
                 break;
             default:
-                return icons('none');
+                return icons('none', true);
                 break;
         }
     };
