@@ -11,13 +11,15 @@ import useDebounce from '@/hooks/useDebounce';
 
 export interface FolderModalProps {
     setIsOpen: any;
+    pIsGit: boolean;
     pIsDarkMode?: boolean;
+    pCallback: () => void;
 }
 
 export const FolderModal = (props: FolderModalProps) => {
-    const { setIsOpen, pIsDarkMode } = props;
+    const { setIsOpen, pIsDarkMode, pIsGit, pCallback } = props;
     const [sFolderName, setFolderName] = useState<string>('');
-    const [sGitUrl, setGitUrl] = useState<string>('https://github.com/machbase/neo-samples.git');
+    const [sGitUrl, setGitUrl] = useState<string>('');
     const sRecentDirectory = useRecoilValue(gRecentDirectory);
     const [sFolderPath, setFolderPath] = useState<string>('');
     const sGitUrlRef: any = useRef(null);
@@ -31,19 +33,22 @@ export const FolderModal = (props: FolderModalProps) => {
         let sPath = '';
         const sDirectoryList = (sRecentDirectory as string).split('/').filter((aDir: string) => aDir);
         let sPayload: any = {};
+
         if (sDirectoryList.length > 0) {
             sPath = sDirectoryList.join('/') + '/' + sFolderName;
         } else sPath = sFolderName;
 
-        if (sGitUrl) {
+        if (pIsGit) {
             // command : clone, pull
-            sPayload = { url: sGitUrl, command: 'clone' };
+            if (sGitUrl) sPayload = { url: sGitUrl, command: 'clone' };
+            else sPayload = undefined;
         } else {
             sPayload = undefined;
         }
 
         const sResult: any = await postFileList(sPayload, sPath, '');
         if (sResult && sResult.success) {
+            pCallback();
             handleClose();
         } else {
             console.error('');
@@ -72,32 +77,34 @@ export const FolderModal = (props: FolderModalProps) => {
                 <Modal.Header>
                     <div className="title">
                         <div className="title-content">
-                            <span>New Folder</span>
+                            <span>{pIsGit ? 'Git Clone' : 'New Folder'}</span>
                         </div>
                         <Close onClick={handleClose} />
                     </div>
                 </Modal.Header>
                 <Modal.Body>
                     <div className={`${pIsDarkMode ? 'folder-dark' : 'folder'}`}>
-                        <div className={`folder-${pIsDarkMode ? 'dark-' : ''}header`}>{sFolderPath}</div>
+                        <div className={`folder-${pIsDarkMode ? 'dark-' : ''}header`}>{sFolderName && sFolderName.length > 0 ? sFolderPath + sFolderName + '/' : sFolderPath}</div>
                         <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content`}>
                             <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-name`}>
                                 <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-name-wrap`}>
-                                    <span>name</span>
+                                    <span>Name</span>
                                 </div>
                                 <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark' : ''}`}>
                                     <input onChange={(e: any) => setFolderName(e.target.value)} value={sFolderName} />
                                 </div>
                             </div>
-                            <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-url`}>
-                                <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-url-wrap`}>
-                                    <BsGit />
-                                    <span>Clone</span>
+                            {pIsGit ? (
+                                <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-url`}>
+                                    <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-url-wrap`}>
+                                        <BsGit />
+                                        <span>Url</span>
+                                    </div>
+                                    <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark' : ''}`}>
+                                        <input ref={sGitUrlRef} onChange={(e: any) => setGitUrl(e.target.value)} value={sGitUrl} />
+                                    </div>
                                 </div>
-                                <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark' : ''}`}>
-                                    <input ref={sGitUrlRef} onChange={(e: any) => setGitUrl(e.target.value)} value={sGitUrl} />
-                                </div>
-                            </div>
+                            ) : null}
                         </div>
                     </div>
                 </Modal.Body>
