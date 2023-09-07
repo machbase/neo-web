@@ -55,6 +55,8 @@ export {
     MdOutlineUpgrade,
 } from 'react-icons/md';
 
+export { RxUpdate as Update } from 'react-icons/rx';
+
 export {
     HiTableCells as TableHeader,
     HiOutlineTableCells as TableNotHeader,
@@ -74,7 +76,7 @@ export { BiLineChart as LineChart, BiDownload, BiLink, BiPlay as Play, BiSolidDo
 
 export { FiSearch as Search, FiMonitor as Monitor } from 'react-icons/fi';
 
-export { TbParachute, TbRowInsertTop as InsertRowTop, TbFolderPlus } from 'react-icons/tb';
+export { TbParachute, TbRowInsertTop as InsertRowTop, TbFolderPlus, TbFolderDown, TbFolder, TbCloudDown } from 'react-icons/tb';
 
 export { IoIosCopy as Copy } from 'react-icons/io';
 

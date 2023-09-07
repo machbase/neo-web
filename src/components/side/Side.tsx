@@ -2,7 +2,7 @@ import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gFileTree, gRecentDirectory } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
-import { Delete, Download, VscChevronRight, VscChevronDown, FolderOpen, TbFolderPlus, MdRefresh } from '@/assets/icons/Icon';
+import { Delete, Download, Update, VscChevronRight, VscChevronDown, TbFolderPlus, TbCloudDown, TbFolder, MdRefresh } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { FileTree } from '../fileTree/file-tree';
 import Sidebar from '../fileTree/sidebar';
@@ -16,6 +16,7 @@ import { Error } from '@/components/toast/Toast';
 import { SaveModal } from '../modal/SaveModal';
 import OpenFile from './OpenFile';
 import { FolderModal } from '../modal/FolderModal';
+import { postFileList } from '@/api/repository/api';
 
 const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
     const sParedData: FileTreeType = {
@@ -47,6 +48,7 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
     const [sIsFolderModal, setIsFoldermodal] = useState<boolean>(false);
+    const [sIsGit, setIsGit] = useState(false);
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
     // const sFileTreeRoot = useRecoilValue(gFileTreeRoot);
 
@@ -213,11 +215,24 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
         }
     };
 
-    const handleFolder = (aHandle: boolean, aEvent: any) => {
+    const updateGitFolder = async () => {
+        if (selectedContextFile !== undefined) {
+            const sResult: any = await postFileList({ url: (selectedContextFile as any).gitUrl, command: 'pull' }, `${selectedContextFile.path}${selectedContextFile.name}`, '');
+            if (sResult && sResult.success) {
+                getFileTree();
+            } else {
+                console.error('');
+            }
+            closeContextMenu();
+        }
+    };
+
+    const handleFolder = (aHandle: boolean, aEvent: any, aIsGit: boolean) => {
         if (aEvent) {
             aEvent.stopPropagation();
         }
 
+        setIsGit(aIsGit);
         setIsFoldermodal(aHandle);
     };
 
@@ -251,10 +266,12 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
                 <div className="files-open-option">
                     <div>EXPLORER</div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <FolderOpen onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
+                        <TbFolder onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
                         <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {/* <VscNewFile /> */}
-                            <TbFolderPlus onClick={(aEvent: any) => handleFolder(true, aEvent)} />
+                            <TbFolderPlus onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
+                        </div>
+                        <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <TbCloudDown onClick={(aEvent: any) => handleFolder(true, aEvent, true)} />
                         </div>
                         <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <MdRefresh onClick={(e: any) => handleRefresh(e)} />
@@ -280,6 +297,12 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
                         </Sidebar>
                         <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
                             <Menu isOpen={sIsContextMenu}>
+                                {
+                                    <Menu.Item onClick={updateGitFolder}>
+                                        <Update />
+                                        <span>update</span>
+                                    </Menu.Item>
+                                }
                                 <Menu.Item onClick={deleteFile}>
                                     <Delete />
                                     <span>delete</span>
@@ -293,7 +316,7 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
                     </>
                 ))}
             {sIsOpenModal ? <SaveModal pIsDarkMode pIsSave={false} setIsOpen={handleIsOpenModal} /> : null}
-            {sIsFolderModal ? <FolderModal pIsDarkMode={true} setIsOpen={handleFolder} /> : null}
+            {sIsFolderModal ? <FolderModal pIsGit={sIsGit} pIsDarkMode={true} setIsOpen={handleFolder} pCallback={handleRefresh} /> : null}
         </div>
     );
 };
