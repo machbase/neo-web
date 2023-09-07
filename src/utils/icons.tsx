@@ -5,8 +5,6 @@ import {
     BiLink,
     Powershell,
     Close,
-    TreeFolder,
-    TreeFolderOpen,
     FaDatabase,
     VscNotebook,
     GoTerminal,

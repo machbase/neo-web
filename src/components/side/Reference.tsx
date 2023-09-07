@@ -1,6 +1,6 @@
 import { getTutorial } from '@/api/repository/api';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { binaryCodeEncodeBase64, extractionExtension, getId, isImage } from '@/utils';
+import { binaryCodeEncodeBase64, getId, isImage } from '@/utils';
 import icons from '@/utils/icons';
 import { useState } from 'react';
 import { VscChevronDown, VscChevronRight } from 'react-icons/vsc';

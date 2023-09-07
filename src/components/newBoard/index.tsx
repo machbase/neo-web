@@ -2,9 +2,8 @@ import './index.scss';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import icons from '@/utils/icons';
-import { getTutorial } from '@/api/repository/api';
 import ShellMenu from './ShellMenu';
-import { TbParachute, Folder } from '@/assets/icons/Icon';
+import { TbParachute } from '@/assets/icons/Icon';
 import { extractionExtension } from '@/utils';
 import { useState } from 'react';
 

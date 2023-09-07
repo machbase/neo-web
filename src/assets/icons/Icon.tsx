@@ -10,7 +10,6 @@ export {
 } from 'react-icons/ai';
 
 export {
-    VscBook,
     VscChevronRight,
     VscWarning,
     VscRecord,

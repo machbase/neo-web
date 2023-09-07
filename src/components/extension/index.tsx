@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscBook, VscLibrary } from '@/assets/icons/Icon';
+import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary } from '@/assets/icons/Icon';
 
 import ExtensionBtn from '@/components/extension/ExtensionBtn';
 import './index.scss';
