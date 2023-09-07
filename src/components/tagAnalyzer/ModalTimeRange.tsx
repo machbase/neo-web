@@ -1,16 +1,16 @@
 import { Calendar, Close } from '@/assets/icons/Icon';
 import './ModalTimeRange.scss';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { TIME_RANGE } from '@/utils/constants';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import moment from 'moment';
-import OutsideClickHandler from 'react-outside-click-handler';
 import { TextButton } from '../buttons/TextButton';
 import { Input } from '@/components/inputs/Input';
 import { convertTimeToFullDate } from '@/utils/helpers/date';
+import useOutsideClick from '@/hooks/useOutsideClick';
 
 const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
     const sTimeRange: any = TIME_RANGE;
@@ -22,6 +22,8 @@ const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
     const [sEndTime, setEndTime] = useState<any>(undefined);
     const [sIsStart, setIsStart] = useState<any>(false);
     const [sIsEnd, setIsEnd] = useState<any>(false);
+    const sStartRef = useRef<any>(null);
+    const sEndRef = useRef<any>(null);
 
     useEffect(() => {
         const sBoardStartTime = sBoardList.filter((aItem) => sSelectedTab === aItem.id)[0].range_bgn;
@@ -78,6 +80,9 @@ const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
         pSetTimeRangeModal(false);
     };
 
+    useOutsideClick(sStartRef, () => setIsStart(false));
+    useOutsideClick(sEndRef, () => setIsEnd(false));
+
     return (
         <div>
             <div onClick={() => pSetTimeRangeModal(false)} className="time-range-cover"></div>
@@ -94,7 +99,7 @@ const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
 
                 <div className="time-range-body">
                     <div className="top">
-                        <div className="from">
+                        <div ref={sStartRef} className="from">
                             <span className="span-from">From</span>
                             {sStartTime !== undefined && (
                                 <div onClick={() => setIsStart(true)}>
@@ -108,20 +113,18 @@ const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
                                 </div>
                             )}
                             {sIsStart && (
-                                <OutsideClickHandler onOutsideClick={() => setIsStart(false)}>
-                                    <DatePicker
-                                        selected={typeof sStartTime === 'string' && sStartTime.includes('now') ? moment(sStartTime).format('yyyy-MM-DD HH:mm:ss') : sStartTime}
-                                        calendarClassName="modal-date-picker"
-                                        timeInputLabel="Time: "
-                                        onChange={(date: any) => handleStartTime(date)}
-                                        dateFormat="yyyy-MM-dd HH:mm:ss"
-                                        showTimeInput
-                                        inline
-                                    ></DatePicker>
-                                </OutsideClickHandler>
+                                <DatePicker
+                                    selected={typeof sStartTime === 'string' && sStartTime.includes('now') ? moment(sStartTime).format('yyyy-MM-DD HH:mm:ss') : sStartTime}
+                                    calendarClassName="modal-date-picker"
+                                    timeInputLabel="Time: "
+                                    onChange={(date: any) => handleStartTime(date)}
+                                    dateFormat="yyyy-MM-dd HH:mm:ss"
+                                    showTimeInput
+                                    inline
+                                ></DatePicker>
                             )}
                         </div>
-                        <div className="to">
+                        <div ref={sEndRef} className="to">
                             <span className="span-to">To </span>
                             {sEndTime !== undefined && (
                                 <div onClick={() => setIsEnd(true)}>
@@ -135,17 +138,15 @@ const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
                                 </div>
                             )}
                             {sIsEnd && (
-                                <OutsideClickHandler onOutsideClick={() => setIsEnd(false)}>
-                                    <DatePicker
-                                        selected={typeof sEndTime === 'string' && sEndTime.includes('now') ? moment(sEndTime).format('yyyy-MM-DD HH:mm:ss') : sEndTime}
-                                        calendarClassName="modal-date-picker"
-                                        timeInputLabel="Time: "
-                                        onChange={(date: any) => handleEndTime(date)}
-                                        dateFormat="yyyy-MM-dd HH:mm:ss"
-                                        showTimeInput
-                                        inline
-                                    ></DatePicker>
-                                </OutsideClickHandler>
+                                <DatePicker
+                                    selected={typeof sEndTime === 'string' && sEndTime.includes('now') ? moment(sEndTime).format('yyyy-MM-DD HH:mm:ss') : sEndTime}
+                                    calendarClassName="modal-date-picker"
+                                    timeInputLabel="Time: "
+                                    onChange={(date: any) => handleEndTime(date)}
+                                    dateFormat="yyyy-MM-dd HH:mm:ss"
+                                    showTimeInput
+                                    inline
+                                ></DatePicker>
                             )}
                         </div>
                     </div>
