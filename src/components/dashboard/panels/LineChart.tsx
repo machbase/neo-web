@@ -9,8 +9,7 @@ const LineChart = ({ pValue, pDraged }: any) => {
     const [sFirstSet, setFirstSet] = useState(false);
 
     const getLineChart = async () => {
-        const sInput =
-            'INPUT(SQL(`' + 'select * from example' + '`))\n' + 'TAKE(50)\n' + `OUTPUT(CHART_LINE(size($w ?? '${ChartRef.current.clientWidth}px',$h ??'${pValue.h * 19}px')))`;
+        const sInput = 'INPUT(SQL(`' + 'select * from example' + '`))\n' + 'TAKE(50)\n' + `OUTPUT(CHART_LINE(size('${ChartRef.current.clientWidth}px','${pValue.h * 19}px')))`;
         const sResult: any = await getTqlChart(sInput);
 
         const sValue = ` <div class="chart_container">
