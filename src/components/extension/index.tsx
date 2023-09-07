@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 
-import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key } from '@/assets/icons/Icon';
+import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary } from '@/assets/icons/Icon';
 
 import ExtensionBtn from '@/components/extension/ExtensionBtn';
 import './index.scss';
 import { useRecoilState } from 'recoil';
-import { gSelectedExtension } from '@/recoil/recoil';
+import { gExtensionList, gSelectedExtension } from '@/recoil/recoil';
 import Menu from '../contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { LicenseModal } from '@/components/modal/LicenseModal';
@@ -16,14 +16,7 @@ const Extention = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const sNavigate = useNavigate();
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const MenuRef = useRef<HTMLDivElement>(null);
-    const [sExtentionList] = useState([
-        {
-            id: 'EXPLORER',
-            type: 'EXPLORER',
-            icon: 'file-document-outline',
-            label: 'EXPLORER',
-        },
-    ]);
+    const [sExtentionList] = useRecoilState<any>(gExtensionList);
     const [sSelectedExtension, setSelectedExtension] = useRecoilState<string>(gSelectedExtension);
     const [sIsLicenseModal, setIsLicenseModal] = useState<boolean>(false);
 
@@ -35,7 +28,7 @@ const Extention = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
         } else {
             pSetSideSizes(['20%', '80%']);
             pHandleSideBar(true);
-            setSelectedExtension(aItem.label);
+            setSelectedExtension(aItem.id);
         }
     };
 
@@ -68,6 +61,9 @@ const Extention = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
             case 'EXPLORER':
                 return <VscFiles></VscFiles>;
                 break;
+            case 'REFERENCE':
+                return <VscLibrary></VscLibrary>;
+                break;
             default:
                 return <Cmd></Cmd>;
                 break;
@@ -78,7 +74,7 @@ const Extention = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
 
     useEffect(() => {
         if (pIsSidebar) {
-            setSelectedExtension('EXPLORER');
+            setSelectedExtension(sSelectedExtension);
         } else {
             setSelectedExtension('');
         }
@@ -94,12 +90,11 @@ const Extention = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                                 <div
                                     key={aIdx}
                                     style={
-                                        sSelectedExtension === aItem.label
+                                        sSelectedExtension === aItem.id
                                             ? {
                                                   borderLeft: '4px solid #005FB8',
-                                                  cursor: 'pointer',
                                               }
-                                            : {}
+                                            : { cursor: 'pointer' }
                                     }
                                     onClick={() => selectExtension(aItem)}
                                 >
@@ -119,10 +114,6 @@ const Extention = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                         <ExtensionBtn pIcon={<Gear />} onClick={() => setIsOpen(!isOpen)} />
                         <div style={{ position: 'absolute', bottom: 1, left: '100%' }}>
                             <Menu isOpen={isOpen}>
-                                {/* <Menu.Item onClick={() => null}>
-                                    <MdSettingsApplications />
-                                    <span>Preferences</span>
-                                </Menu.Item> */}
                                 <Menu.Item onClick={() => setIsLicenseModal(true)}>
                                     <Key />
                                     <span>License</span>

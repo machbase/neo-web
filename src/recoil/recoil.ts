@@ -36,7 +36,24 @@ export const gConsoleList = atom<string>({
 
 export const gSelectedExtension = atom<string>({
     key: 'gSelectedExtension',
-    default: 'machbase-neo',
+    default: 'EXPLORER',
+});
+export const gExtensionList = atom<any>({
+    key: 'gExtensionList',
+    default: [
+        {
+            id: 'EXPLORER',
+            type: 'EXPLORER',
+            icon: 'file-document-outline',
+            label: 'EXPLORER',
+        },
+        {
+            id: 'REFERENCE',
+            type: 'REFERENCE',
+            icon: 'file-document-outline',
+            label: 'REFERENCE',
+        },
+    ],
 });
 
 export const gTables = atom<any>({

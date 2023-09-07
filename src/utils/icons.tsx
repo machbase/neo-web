@@ -5,8 +5,6 @@ import {
     BiLink,
     Powershell,
     Close,
-    TreeFolder,
-    TreeFolderOpen,
     FaDatabase,
     VscNotebook,
     GoTerminal,
@@ -30,6 +28,8 @@ import {
     MuiNewDocument,
     MuiTagAnalyzer,
     MuiTql,
+    MuiFolder,
+    MuiFolderOpen,
 } from '@/assets/icons/Mui';
 import { FaDesktop, FaLaptop } from 'react-icons/fa6';
 
@@ -70,9 +70,9 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'close':
             return <Close />;
         case 'closedDirectory':
-            return <TreeFolder />;
+            return <MuiFolder />;
         case 'openDirectory':
-            return <TreeFolderOpen />;
+            return <MuiFolderOpen />;
         case 'console-network-outline':
             return <GoCommandPalette />;
         case 'console-network':

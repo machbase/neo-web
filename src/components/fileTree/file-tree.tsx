@@ -174,7 +174,7 @@ const Div = styled.div<{
     display: flex;
     justify-content: space-between;
     padding-left: ${(props) => props.depth * 16}px;
-    background-color: ${(props) => (props.isSelected ? '#242424' : props.isGit ? '#4c4c4c' : 'transparent')};
+    background-color: ${(props) => (props.isSelected ? '#242424' : 'transparent')};
 
     :hover {
         cursor: pointer;

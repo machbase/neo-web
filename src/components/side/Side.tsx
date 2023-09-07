@@ -300,16 +300,16 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
                                 {
                                     <Menu.Item onClick={updateGitFolder}>
                                         <Update />
-                                        <span>update</span>
+                                        <span>Update</span>
                                     </Menu.Item>
                                 }
                                 <Menu.Item onClick={deleteFile}>
                                     <Delete />
-                                    <span>delete</span>
+                                    <span>Delete</span>
                                 </Menu.Item>
                                 <Menu.Item onClick={downloadFile}>
                                     <Download />
-                                    <span>download</span>
+                                    <span>Saved to local</span>
                                 </Menu.Item>
                             </Menu>
                         </div>

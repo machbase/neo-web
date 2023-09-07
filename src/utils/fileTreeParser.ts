@@ -46,9 +46,10 @@ export interface ResFileListType {
 export const fileTreeParser = (aResFileList: ResFileListType, aPath: string, aDepth: number, aParentId: string) => {
     const sParedData: FileTreeType = {
         depth: aDepth,
-        dirs: aResFileList.children
-            ? aResFileList.children.filter((aFile: ResFileType) => aFile.isDir).map((aTargetDir: ResFileType) => dirFormatter(aTargetDir, aPath, aDepth, aParentId))
-            : [],
+        dirs:
+            aResFileList && aResFileList.children
+                ? aResFileList.children.filter((aFile: ResFileType) => aFile.isDir).map((aTargetDir: ResFileType) => dirFormatter(aTargetDir, aPath, aDepth, aParentId))
+                : [],
         files:
             aResFileList && aResFileList.children
                 ? aResFileList.children.filter((bFile: ResFileType) => !bFile.isDir).map((bTargetFile: ResFileType) => fileFormatter(bTargetFile, aPath, aDepth, aParentId))

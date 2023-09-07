@@ -11,6 +11,7 @@ export { ReactComponent as MuiNewDocument } from '@/assets/icons/material/templa
 export { ReactComponent as MuiPowerShell } from '@/assets/icons/material/powershell.svg';
 export { ReactComponent as MuiTagAnalyzer } from '@/assets/icons/material/roadmap.svg';
 export { ReactComponent as MuiTql } from '@/assets/icons/material/log.svg';
-
+export { ReactComponent as MuiFolder } from '@/assets/icons/material/folder.svg';
+export { ReactComponent as MuiFolderOpen } from '@/assets/icons/material/folder-open.svg';
 export { ReactComponent as MuiFolderGit } from '@/assets/icons/material/folder-git.svg';
 export { ReactComponent as MuiFolderGitOpen } from '@/assets/icons/material/folder-git-open.svg';
