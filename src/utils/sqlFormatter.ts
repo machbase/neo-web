@@ -12,7 +12,7 @@ export const sqlSheetFormatter = (aSql: string, aBrief: boolean) => {
     return 'SQL(`' + aSql + '`)\n' + `MARKDOWN(html(true), rownum(true), heading(true), brief(${aBrief}))`;
 };
 
-export const sqlBasicChartFormatter = (aSql: string, aWidth: number, aHeight: number, aAxis?: { x: string; y: string }) => {
+export const sqlBasicChartFormatter = (aSql: string, aWidth: number, aHeight: number, aAxis?: { x: string; y: string; xIndex: number; yIndex: number }) => {
     if (aAxis)
         return (
             'SQL(`' +
@@ -20,14 +20,14 @@ export const sqlBasicChartFormatter = (aSql: string, aWidth: number, aHeight: nu
             '`)\n' +
             'TAKE(5000)\n' +
             'CHART_LINE(' +
-            `xAxis(0,'` +
+            `xAxis(${aAxis.xIndex},'` +
             aAxis.x +
-            `'), yAxis(1, '` +
+            `'), yAxis(${aAxis.yIndex}, '` +
             aAxis.y +
             `'),` +
             `dataZoom('slider', 0, 100),` +
-            'size($w ?? ' +
-            `'${aWidth}px',$h ??'${aHeight}px'))`
+            'size(' +
+            `'${aWidth}px','${aHeight}px'))`
         );
-    else return 'SQL(`' + aSql + '`)\n' + 'TAKE(5000)\n' + 'CHART_LINE(size($w ?? ' + `'${aWidth}px',$h ??'${aHeight}px'))`;
+    else return 'SQL(`' + aSql + '`)\n' + 'TAKE(5000)\n' + 'CHART_LINE(size(' + `'${aWidth}px','${aHeight}px'))`;
 };

@@ -34,7 +34,14 @@ const CHART = ({
         if (pChartAixsList.length === 0) return;
         let sTmpResult: any = '';
         if (sSelectedXAxis && sSelectedYAxis)
-            sTmpResult = await getTqlChart(sqlBasicChartFormatter(pSqlQueryTxt(), aSize.width, aSize.height, { x: sSelectedXAxis, y: sSelectedYAxis }));
+            sTmpResult = await getTqlChart(
+                sqlBasicChartFormatter(pSqlQueryTxt(), aSize.width, aSize.height, {
+                    x: sSelectedXAxis,
+                    y: sSelectedYAxis,
+                    xIndex: pChartAixsList.indexOf(sSelectedXAxis),
+                    yIndex: pChartAixsList.indexOf(sSelectedYAxis),
+                })
+            );
         else sTmpResult = await getTqlChart(sqlBasicChartFormatter(pSqlQueryTxt(), aSize.width, aSize.height));
         const sIsData = !!sTmpResult.data.chartOption.series;
         if (sIsData) {
