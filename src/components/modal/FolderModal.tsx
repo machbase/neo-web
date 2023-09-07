@@ -39,7 +39,6 @@ export const FolderModal = (props: FolderModalProps) => {
         } else sPath = sFolderName;
 
         if (pIsGit) {
-            // command : clone, pull
             if (sGitUrl) sPayload = { url: sGitUrl, command: 'clone' };
             else sPayload = undefined;
         } else {
@@ -86,14 +85,6 @@ export const FolderModal = (props: FolderModalProps) => {
                     <div className={`${pIsDarkMode ? 'folder-dark' : 'folder'}`}>
                         <div className={`folder-${pIsDarkMode ? 'dark-' : ''}header`}>{sFolderName && sFolderName.length > 0 ? sFolderPath + sFolderName + '/' : sFolderPath}</div>
                         <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content`}>
-                            <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-name`}>
-                                <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-name-wrap`}>
-                                    <span>Name</span>
-                                </div>
-                                <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark' : ''}`}>
-                                    <input onChange={(e: any) => setFolderName(e.target.value)} value={sFolderName} />
-                                </div>
-                            </div>
                             {pIsGit ? (
                                 <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-url`}>
                                     <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-url-wrap`}>
@@ -105,12 +96,20 @@ export const FolderModal = (props: FolderModalProps) => {
                                     </div>
                                 </div>
                             ) : null}
+                            <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-name`}>
+                                <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-name-wrap`}>
+                                    <span>Name</span>
+                                </div>
+                                <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark' : ''}`}>
+                                    <input onChange={(e: any) => setFolderName(e.target.value)} value={sFolderName} />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </Modal.Body>
                 <Modal.Footer>
                     <div className="button-group">
-                        <TextButton pText="OK" pBackgroundColor="#4199ff" pIsDisabled={!sFolderName} onClick={handleSave} />
+                        <TextButton pText="OK" pBackgroundColor="#4199ff" pIsDisabled={pIsGit ? !sFolderName || !sGitUrl : !sFolderName} onClick={handleSave} />
                         <div style={{ width: '10px' }}></div>
                         <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />
                     </div>
