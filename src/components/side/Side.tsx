@@ -2,7 +2,7 @@ import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gFileTree, gRecentDirectory } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
-import { Delete, Download, VscChevronRight, VscChevronDown, TbFolderPlus, TbCloudDown, TbFolder, MdRefresh } from '@/assets/icons/Icon';
+import { Delete, Download, Update, VscChevronRight, VscChevronDown, TbFolderPlus, TbCloudDown, TbFolder, MdRefresh } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { FileTree } from '../fileTree/file-tree';
 import Sidebar from '../fileTree/sidebar';
@@ -16,6 +16,7 @@ import { Error } from '@/components/toast/Toast';
 import { SaveModal } from '../modal/SaveModal';
 import OpenFile from './OpenFile';
 import { FolderModal } from '../modal/FolderModal';
+import { postFileList } from '@/api/repository/api';
 
 const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
     const sParedData: FileTreeType = {
@@ -214,6 +215,18 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
         }
     };
 
+    const updateGitFolder = async () => {
+        if (selectedContextFile !== undefined) {
+            const sResult: any = await postFileList({ url: (selectedContextFile as any).gitUrl, command: 'pull' }, `${selectedContextFile.path}${selectedContextFile.name}`, '');
+            if (sResult && sResult.success) {
+                getFileTree();
+            } else {
+                console.error('');
+            }
+            closeContextMenu();
+        }
+    };
+
     const handleFolder = (aHandle: boolean, aEvent: any, aIsGit: boolean) => {
         if (aEvent) {
             aEvent.stopPropagation();
@@ -284,6 +297,12 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
                         </Sidebar>
                         <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
                             <Menu isOpen={sIsContextMenu}>
+                                {
+                                    <Menu.Item onClick={updateGitFolder}>
+                                        <Update />
+                                        <span>update</span>
+                                    </Menu.Item>
+                                }
                                 <Menu.Item onClick={deleteFile}>
                                     <Delete />
                                     <span>delete</span>

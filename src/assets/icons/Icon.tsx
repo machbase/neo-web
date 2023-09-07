@@ -55,6 +55,8 @@ export {
     MdOutlineUpgrade,
 } from 'react-icons/md';
 
+export { RxUpdate as Update } from 'react-icons/rx';
+
 export {
     HiTableCells as TableHeader,
     HiOutlineTableCells as TableNotHeader,
