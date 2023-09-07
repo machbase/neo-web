@@ -5,7 +5,6 @@ import {
     BiLink,
     Powershell,
     Close,
-    DocumentOutline,
     TreeFolder,
     TreeFolderOpen,
     FaDatabase,
@@ -15,48 +14,59 @@ import {
     GoDatabase,
     VscVm,
     VscTerminalCmd,
-    VscJson,
-    VscMarkdown,
-    Csv,
-    Document,
-    Image,
-    LuFolderGit,
 } from '@/assets/icons/Icon';
+import {
+    MuiCsv,
+    MuiDocument,
+    MuiFolderGit,
+    MuiFolderGitOpen,
+    MuiImage,
+    MuiJson,
+    MuiMarkdown,
+    MuiSql,
+    MuiSvg,
+    MuiWorksheet,
+    MuiShell,
+    MuiNewDocument,
+    MuiTagAnalyzer,
+    MuiTql,
+} from '@/assets/icons/Mui';
 import { FaDesktop, FaLaptop } from 'react-icons/fa6';
 
-const icons = (aType: string) => {
+const icons = (aType: string, aIsHome?: boolean) => {
     switch (aType) {
         case 'url':
             return <BiLink />;
         case 'sql':
-            return <VscFile />;
+            return aIsHome ? <VscFile /> : <MuiSql />;
         case 'new':
-            return <DocumentOutline />;
+            return <MuiNewDocument />;
         case 'tql':
-            return <VscGraphScatter />;
+            return aIsHome ? <VscGraphScatter /> : <MuiTql />;
         case 'taz':
-            return <VscGraphLine />;
+            return aIsHome ? <VscGraphLine /> : <MuiTagAnalyzer />;
         case 'wrk':
-            return <VscNotebook />;
+            return aIsHome ? <VscNotebook /> : <MuiWorksheet />;
         case 'json':
-            return <VscJson />;
+            return <MuiJson />;
         case 'md':
-            return <VscMarkdown />;
+            return <MuiMarkdown />;
         case 'txt':
-            return <Document />;
+            return <MuiDocument />;
         case 'csv':
-            return <Csv />;
+            return <MuiCsv />;
         case 'png':
         case 'jpg':
         case 'jpeg':
         case 'bmp':
         case 'webp':
         case 'gif':
-        case 'svg':
         case 'ico':
-            return <Image />;
+            return <MuiImage />;
+        case 'svg':
+            return <MuiSvg />;
         case 'term':
-            return <GoTerminal />;
+            return aIsHome ? <GoTerminal /> : <MuiShell />;
         case 'close':
             return <Close />;
         case 'closedDirectory':
@@ -81,10 +91,12 @@ const icons = (aType: string) => {
             return <GoDatabase />;
         case 'monitor':
             return <GoTerminal />;
-        case 'gitDirectory':
-            return <LuFolderGit />;
+        case 'gitClosedDirectory':
+            return <MuiFolderGit />;
+        case 'gitOpenDirectory':
+            return <MuiFolderGitOpen />;
         default:
-            return <GoTerminal />;
+            return <MuiShell />;
     }
 
     return;

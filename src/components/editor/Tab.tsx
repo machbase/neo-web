@@ -90,7 +90,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx }: any) => {
             </div>
             <div className="tab-inner">
                 <span className="tab-name">
-                    <div style={{ display: 'flex', alignItems: 'center' }}>{icons(pBoard.type === 'term' ? pBoard.shell.icon : pBoard.type)}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', width: '19px' }}>{icons(pBoard.type === 'term' ? pBoard.shell.icon : pBoard.type)}</div>
                     <div style={{ display: 'flex', alignItems: 'center', paddingLeft: '0 !important' }}>
                         <span className="tab-text">{pBoard.name}</span>
                     </div>

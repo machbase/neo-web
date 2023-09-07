@@ -1,0 +1,16 @@
+export { ReactComponent as MuiShell } from '@/assets/icons/material/console.svg';
+export { ReactComponent as MuiSql } from '@/assets/icons/material/database.svg';
+export { ReactComponent as MuiDocument } from '@/assets/icons/material/document.svg';
+export { ReactComponent as MuiImage } from '@/assets/icons/material/image.svg';
+export { ReactComponent as MuiJson } from '@/assets/icons/material/json.svg';
+export { ReactComponent as MuiMarkdown } from '@/assets/icons/material/markdown.svg';
+export { ReactComponent as MuiWorksheet } from '@/assets/icons/material/contributing.svg';
+export { ReactComponent as MuiSvg } from '@/assets/icons/material/svg.svg';
+export { ReactComponent as MuiCsv } from '@/assets/icons/material/table.svg';
+export { ReactComponent as MuiNewDocument } from '@/assets/icons/material/template.svg';
+export { ReactComponent as MuiPowerShell } from '@/assets/icons/material/powershell.svg';
+export { ReactComponent as MuiTagAnalyzer } from '@/assets/icons/material/roadmap.svg';
+export { ReactComponent as MuiTql } from '@/assets/icons/material/log.svg';
+
+export { ReactComponent as MuiFolderGit } from '@/assets/icons/material/folder-git.svg';
+export { ReactComponent as MuiFolderGitOpen } from '@/assets/icons/material/folder-git-open.svg';

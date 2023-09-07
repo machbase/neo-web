@@ -24,7 +24,6 @@ export {
     VscGear as Gear,
     VscFiles,
     VscNotebook,
-    VscJson,
     VscFile,
     VscGraphScatter,
     VscVm,
@@ -33,8 +32,8 @@ export {
     VscTerminalCmd,
     VscTerminalPowershell as Powershell,
     VscAdd,
-    VscMarkdown,
     VscNewFile,
+    VscJson,
 } from 'react-icons/vsc';
 
 export {
@@ -68,7 +67,7 @@ export { RiArrowUpDoubleFill as ArrowUpDouble, RiMergeCellsVertical as HideOn, R
 
 export { FcFolder as TreeFolder, FcOpenedFolder as TreeFolderOpen } from 'react-icons/fc';
 
-export { IoLogOutOutline as Logout, IoPlayForwardSharp, IoDocumentOutline as DocumentOutline } from 'react-icons/io5';
+export { IoLogOutOutline as Logout, IoPlayForwardSharp } from 'react-icons/io5';
 
 export { PiFileCsvThin } from 'react-icons/pi';
 
@@ -82,12 +81,10 @@ export { IoIosCopy as Copy } from 'react-icons/io';
 
 export { GoPencil, GoTerminal, GoCommandPalette, GoDatabase } from 'react-icons/go';
 
-export { LuFlipVertical, LuMonitorSpeaker, LuFolderGit } from 'react-icons/lu';
+export { LuFlipVertical, LuMonitorSpeaker } from 'react-icons/lu';
 
 export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calendar, FaFolderPlus } from 'react-icons/fa';
 
 export { FaFolderOpen as FolderOpen, FaFolder as Folder, FaArrowRotateRight as Refresh, FaGear as GearFill, FaDatabase } from 'react-icons/fa6';
 
-export { BsFiletypeCsv as Csv, BsGit } from 'react-icons/bs';
-
-export { ImImages as Image } from 'react-icons/im';
+export { BsGit } from 'react-icons/bs';
