@@ -12,6 +12,7 @@ export default defineConfig({
     build: {
         chunkSizeWarningLimit: 10000,
         target: 'es2020',
+        sourcemap: false,
     },
     base: '/web/ui',
     server: {
