@@ -17,6 +17,7 @@ import OpenFile from './OpenFile';
 import { FolderModal } from '../modal/FolderModal';
 import { postFileList } from '@/api/repository/api';
 import { DeleteModal } from '../modal/DeleteModal';
+import SplitPane, { Pane } from 'split-pane-react';
 
 const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
     const sParedData: FileTreeType = {
@@ -44,7 +45,6 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
     const [selectedFile, setSelectedFile] = useState<FileType | undefined>(undefined);
     const [selectedContextFile, setSelectedContextFile] = useState<FileType | FileTreeType | undefined>(undefined);
     const [sLoadFileTree, setLoadFileTree] = useState<boolean>(false);
-    const [sCollapseEditors, setCollapseEditors] = useState(true);
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
     const [sIsFolderModal, setIsFoldermodal] = useState<boolean>(false);
@@ -52,7 +52,7 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
     const [, setConsoleList] = useRecoilState<any>(gConsoleList);
-    // const sFileTreeRoot = useRecoilValue(gFileTreeRoot);
+    const [sSideSizes, setSideSizes] = useState<any>(['15%', '85%']);
 
     useEffect(() => {
         getFileTree();
@@ -263,77 +263,91 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
             <div className="side-title">
                 <span>machbase-neo {pServer && pServer.version}</span>
             </div>
-            <div>
-                <div onClick={() => setCollapseEditors(!sCollapseEditors)} className="side-sub-title editors-title">
-                    <div className="collapse-icon">{sCollapseEditors ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
-                    <span className="title-text">OPEN EDITORS</span>
-                </div>
-                {sCollapseEditors && (
-                    <div className="editors-form">
-                        {sBoardList.length !== 0 &&
-                            sBoardList.map((aBoard: any, aIdx: any) => {
-                                return <OpenFile pBoard={aBoard} pSetSelectedTab={setSelectedTab} pIdx={aIdx} key={aBoard.id}></OpenFile>;
-                            })}
+            <SplitPane className="split-body" sashRender={() => <></>} split="horizontal" sizes={sSideSizes} onChange={setSideSizes}>
+                <Pane minSize={22} maxSize="40%">
+                    <div
+                        onClick={() => {
+                            if (sSideSizes[0] !== 22) {
+                                setSideSizes([22, 'calc(100% - 22px)']);
+                            } else {
+                                setSideSizes(['15%', '85%']);
+                            }
+                        }}
+                        className="side-sub-title editors-title"
+                    >
+                        <div className="collapse-icon">{sSideSizes[0] !== 22 ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
+                        <span className="title-text">OPEN EDITORS</span>
                     </div>
-                )}
-            </div>
-            <div className="side-sub-title editors-title" onClick={() => setCollapseTree(!sCollapseTree)}>
-                <div className="collapse-icon">{sCollapseTree ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
+                    {
+                        <div className="editors-form">
+                            {sBoardList.length !== 0 &&
+                                sBoardList.map((aBoard: any, aIdx: any) => {
+                                    return <OpenFile pBoard={aBoard} pSetSelectedTab={setSelectedTab} pIdx={aIdx} key={aBoard.id}></OpenFile>;
+                                })}
+                        </div>
+                    }
+                </Pane>
+                <Pane minSize={22}>
+                    <div className="side-sub-title editors-title" onClick={() => setCollapseTree(!sCollapseTree)}>
+                        <div className="collapse-icon">{sCollapseTree ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
 
-                <div className="files-open-option">
-                    <div>EXPLORER</div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <TbFolder onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
-                        <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <TbFolderPlus onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
-                        </div>
-                        <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <TbCloudDown onClick={(aEvent: any) => handleFolder(true, aEvent, true)} />
-                        </div>
-                        <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <MdRefresh onClick={(e: any) => handleRefresh(e)} />
+                        <div className="files-open-option">
+                            <div>EXPLORER</div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <TbFolder onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
+                                <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <TbFolderPlus onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
+                                </div>
+                                <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <TbCloudDown onClick={(aEvent: any) => handleFolder(true, aEvent, true)} />
+                                </div>
+                                <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <MdRefresh onClick={(e: any) => handleRefresh(e)} />
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            {sCollapseTree &&
-                (sLoadFileTree ? (
-                    // 🚧TODO
-                    <>...</>
-                ) : (
-                    <>
-                        <Sidebar pBoardListLength={sBoardList.length}>
-                            <FileTree
-                                rootDir={rootDir}
-                                selectedFile={selectedFile}
-                                onSelect={onSelect}
-                                onFetchDir={onFetchDir}
-                                onContextMenu={onContextMenu}
-                                onRefresh={() => handleRefresh()}
-                            />
-                        </Sidebar>
-                        <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
-                            <Menu isOpen={sIsContextMenu}>
-                                {(selectedContextFile as any)?.gitClone ? (
-                                    <Menu.Item onClick={updateGitFolder}>
-                                        <Update />
-                                        <span>Update</span>
-                                    </Menu.Item>
-                                ) : null}
-                                <Menu.Item onClick={deleteFile}>
-                                    <Delete />
-                                    <span>Delete</span>
-                                </Menu.Item>
-                                {(selectedContextFile as any)?.content ? (
-                                    <Menu.Item onClick={downloadFile}>
-                                        <Download />
-                                        <span>Saved to local</span>
-                                    </Menu.Item>
-                                ) : null}
-                            </Menu>
-                        </div>
-                    </>
-                ))}
+                    {sCollapseTree &&
+                        (sLoadFileTree ? (
+                            // 🚧TODO
+                            <>...</>
+                        ) : (
+                            <>
+                                <Sidebar>
+                                    <FileTree
+                                        rootDir={rootDir}
+                                        selectedFile={selectedFile}
+                                        onSelect={onSelect}
+                                        onFetchDir={onFetchDir}
+                                        onContextMenu={onContextMenu}
+                                        onRefresh={() => handleRefresh()}
+                                    />
+                                </Sidebar>
+                                <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
+                                    <Menu isOpen={sIsContextMenu}>
+                                        {(selectedContextFile as any)?.gitClone ? (
+                                            <Menu.Item onClick={updateGitFolder}>
+                                                <Update />
+                                                <span>Update</span>
+                                            </Menu.Item>
+                                        ) : null}
+                                        <Menu.Item onClick={deleteFile}>
+                                            <Delete />
+                                            <span>Delete</span>
+                                        </Menu.Item>
+                                        {(selectedContextFile as any)?.content ? (
+                                            <Menu.Item onClick={downloadFile}>
+                                                <Download />
+                                                <span>Saved to local</span>
+                                            </Menu.Item>
+                                        ) : null}
+                                    </Menu>
+                                </div>
+                            </>
+                        ))}
+                </Pane>
+            </SplitPane>
+
             {sIsOpenModal ? <SaveModal pIsDarkMode pIsSave={false} setIsOpen={handleIsOpenModal} /> : null}
             {sIsFolderModal ? <FolderModal pIsGit={sIsGit} pIsDarkMode={true} setIsOpen={handleFolder} pCallback={handleRefresh} /> : null}
             {sIsDeleteModal ? <DeleteModal pIsDarkMode setIsOpen={setIsDeleteModal} pFileInfo={selectedContextFile} pCallback={handleDeleteFile} /> : null}
