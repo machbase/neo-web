@@ -12,6 +12,7 @@ import { getId } from '@/utils';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gConsoleList, gExtensionList, gSelectedExtension } from '@/recoil/recoil';
 import ReferenceList from '@/components/side/ReferenceList';
+import DBExplorer from '@/components/side/DBExplorer/DBExplorer';
 
 const Home = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['20%', '80%']);
@@ -137,6 +138,7 @@ const Home = () => {
                                     <div key={aItem.id} style={aItem.id === sSelectedExtension ? { width: '100%', height: '100%' } : { display: 'none' }}>
                                         {aItem.id === 'EXPLORER' && <Side pServer={sServer} pGetInfo={getInfo} pSavedPath={sSavedPath}></Side>}
                                         {aItem.id === 'REFERENCE' && <ReferenceList pServer={sServer}></ReferenceList>}
+                                        {aItem.id === 'DBEXPLORER' && <DBExplorer pServer={sServer}></DBExplorer>}
                                     </div>
                                 );
                             })}

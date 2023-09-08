@@ -66,18 +66,20 @@ const Reference = ({ pValue }: any) => {
                     <span className="title-text">{pValue.label}</span>
                 </div>
             </div>
-            {sCollapseTree &&
-                pValue.items.map((aItem: any, aIdx: number) => {
-                    return (
-                        <div key={aIdx} onClick={() => openReference(aItem)} className="file-wrap">
-                            <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', wordBreak: 'break-all' }}>
-                                <span className="icons">{icons(aItem.type)}</span>
-                                <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{aItem.title}</span>
+            <div style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
+                {sCollapseTree &&
+                    pValue.items.map((aItem: any, aIdx: number) => {
+                        return (
+                            <div key={aIdx} onClick={() => openReference(aItem)} className="file-wrap">
+                                <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', wordBreak: 'break-all' }}>
+                                    <span className="icons">{icons(aItem.type)}</span>
+                                    <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{aItem.title}</span>
+                                </div>
+                                <div></div>
                             </div>
-                            <div></div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+            </div>
         </>
     );
 };
