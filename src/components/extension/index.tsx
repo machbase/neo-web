@@ -26,8 +26,10 @@ const Extention = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
             pHandleSideBar(false);
             pSetSideSizes([0, '100%']);
         } else {
-            pSetSideSizes(['20%', '80%']);
-            pHandleSideBar(true);
+            if (!pIsSidebar) {
+                pSetSideSizes(['20%', '80%']);
+                pHandleSideBar(true);
+            }
             setSelectedExtension(aItem.id);
         }
     };
