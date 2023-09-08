@@ -157,7 +157,16 @@ const FileDiv = ({
 
     return (
         <Div depth={depth} isSelected={isSelected} isGit={(file as FileTreeType).gitClone || false} onClick={handleClick} onContextMenu={(e) => handleOnContextMenu(e, file)}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                    wordBreak: 'break-all',
+                }}
+            >
                 <FileIcon name={icon} extension={extractionExtension(file.name) || ''} />
                 <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{file.name}</span>
             </div>
@@ -175,7 +184,10 @@ const Div = styled.div<{
     justify-content: space-between;
     padding-left: ${(props) => props.depth * 16}px;
     background-color: ${(props) => (props.isSelected ? '#242424' : 'transparent')};
-
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    word-break: break-all;
     :hover {
         cursor: pointer;
         background-color: #242424;
@@ -259,4 +271,8 @@ const Span = styled.span`
     margin-right: 6px;
     justify-content: center;
     align-items: center;
+    svg {
+        width: 16px;
+        height: 16px;
+    }
 `;

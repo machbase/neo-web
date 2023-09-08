@@ -63,14 +63,14 @@ const Reference = ({ pValue }: any) => {
                 <div className="collapse-icon">{sCollapseTree ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
 
                 <div className="files-open-option">
-                    <div>{pValue.label}</div>
+                    <span className="title-text">{pValue.label}</span>
                 </div>
             </div>
             {sCollapseTree &&
                 pValue.items.map((aItem: any, aIdx: number) => {
                     return (
                         <div key={aIdx} onClick={() => openReference(aItem)} className="file-wrap">
-                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', wordBreak: 'break-all' }}>
                                 <span className="icons">{icons(aItem.type)}</span>
                                 <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{aItem.title}</span>
                             </div>

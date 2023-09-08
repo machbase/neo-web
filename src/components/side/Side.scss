@@ -9,6 +9,12 @@
         padding: 4px 11px 0 20px;
         background-color: transparent;
         font-size: 11px;
+        span {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            word-break: break-all;
+        }
     }
     .side-sub-title {
         cursor: pointer;
@@ -19,6 +25,12 @@
         align-items: center;
         font-size: 13px;
         background-color: #242424;
+        .title-text {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            word-break: break-all;
+        }
         .files-open-option {
             width: calc(100% - 20px);
             display: flex;
@@ -39,6 +51,12 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            font-size: 13px;
+            min-width: 20px;
+            svg {
+                width: 13px;
+                height: 13px;
+            }
         }
     }
     .editors-form {
