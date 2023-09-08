@@ -16,6 +16,9 @@
             word-break: break-all;
         }
     }
+    .split-body {
+        height: calc(100% - 44px);
+    }
     .side-sub-title {
         cursor: pointer;
         height: 22px;
@@ -66,10 +69,10 @@
         }
     }
     .editors-form {
+        height: calc(100% - 22px);
         margin: 2px 0;
         display: flex;
         flex-direction: column;
-        max-height: calc(22 * 8px);
         overflow-y: auto;
         .editors-list {
             padding-right: 8px;

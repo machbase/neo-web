@@ -1,8 +1,16 @@
 import { ReactNode } from 'react';
 
-export const Sidebar = ({ children, pBoardListLength }: { children: ReactNode; pBoardListLength: any }) => {
+export const Sidebar = ({ children }: { children: ReactNode }) => {
     return (
-        <div style={{ backgroundColor: '#333333', height: `calc(100vh - ${pBoardListLength > 5 ? 88 + 5 * 22 : 88 + pBoardListLength * 22}px)`, overflow: 'auto' }}>{children}</div>
+        <div
+            style={{
+                backgroundColor: '#333333',
+                height: `calc(100% - 22px)`,
+                overflow: 'auto',
+            }}
+        >
+            {children}
+        </div>
     );
 };
 
