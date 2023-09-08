@@ -1,9 +1,9 @@
-import { useRef } from 'react';
-import "./Modal.scss";
+import { useRef, useState, useEffect } from 'react';
+import './Modal.scss';
 interface ChildProps {
     children: React.ReactNode;
 }
-export interface ModalProps extends ChildProps{
+export interface ModalProps extends ChildProps {
     pIsDarkMode?: boolean;
     className?: string;
     onOutSideClose?: () => void;
@@ -11,13 +11,27 @@ export interface ModalProps extends ChildProps{
 
 export const Modal = (props: ModalProps) => {
     const { children, className, pIsDarkMode, onOutSideClose } = props;
+    const [sIsStartInner, setIsStartInner] = useState<any>(null);
     const ModalRef = useRef<HTMLDivElement>(null);
 
+    useEffect(() => {
+        document.addEventListener('mousedown', handleInner);
+        return () => {
+            document.removeEventListener('mousedown', handleInner);
+        };
+    }, []);
+
     const handleClose = (aEvent: React.MouseEvent<HTMLDivElement>) => {
-        if (onOutSideClose && ModalRef.current && !ModalRef.current.contains(aEvent.target as Node)) {
+        if (onOutSideClose && ModalRef.current && !ModalRef.current.contains(aEvent.target as Node) && !sIsStartInner) {
             onOutSideClose();
         }
-    }
+    };
+
+    const handleInner = (event: MouseEvent) => {
+        if (ModalRef.current) {
+            setIsStartInner(ModalRef.current.contains(event.target as Node));
+        }
+    };
 
     return (
         <div className="modal-overlay" onClick={handleClose}>
@@ -25,25 +39,19 @@ export const Modal = (props: ModalProps) => {
                 {children}
             </div>
         </div>
-    )
-}
+    );
+};
 
 const Header = ({ children }: ChildProps) => {
-    return (
-        <div>{children}</div>
-    )
-}
+    return <div>{children}</div>;
+};
 
 const Body = ({ children }: ChildProps) => {
-    return (
-        <div>{children}</div>
-    )
-}
+    return <div>{children}</div>;
+};
 const Footer = ({ children }: ChildProps) => {
-    return (
-        <div>{children}</div>
-    )
-}
+    return <div>{children}</div>;
+};
 
 Modal.Header = Header;
 Modal.Body = Body;

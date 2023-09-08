@@ -1,4 +1,4 @@
-import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { GBoardListType, gBoardList, gConsoleList, gSelectedTab } from '@/recoil/recoil';
 import { gFileTree, gRecentDirectory } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
@@ -12,11 +12,11 @@ import { getFiles, deleteFile as deleteContextFile } from '@/api/repository/file
 import { FileTreeType, FileType, fileTreeParser } from '@/utils/fileTreeParser';
 import Menu from '../contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
-import { Error } from '@/components/toast/Toast';
 import { SaveModal } from '../modal/SaveModal';
 import OpenFile from './OpenFile';
 import { FolderModal } from '../modal/FolderModal';
 import { postFileList } from '@/api/repository/api';
+import { DeleteModal } from '../modal/DeleteModal';
 
 const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
     const sParedData: FileTreeType = {
@@ -49,7 +49,9 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
     const [sIsFolderModal, setIsFoldermodal] = useState<boolean>(false);
     const [sIsGit, setIsGit] = useState(false);
+    const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
+    const [, setConsoleList] = useRecoilState<any>(gConsoleList);
     // const sFileTreeRoot = useRecoilValue(gFileTreeRoot);
 
     useEffect(() => {
@@ -187,18 +189,31 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
         setIsContextMenu(false);
     };
 
-    const deleteFile = async () => {
-        const sConfirm = confirm(`Do you want to delete this file (${selectedContextFile?.name})?`);
-        if (sConfirm && selectedContextFile !== undefined) {
-            const sResult: any = await deleteContextFile(selectedContextFile.path, selectedContextFile.name);
+    const deleteFile = () => {
+        setIsDeleteModal(true);
+        closeContextMenu();
+    };
+
+    const handleDeleteFile = async (isRecursive: boolean) => {
+        if (selectedContextFile && selectedContextFile.path && selectedContextFile.name) {
+            const sRecursivePath = isRecursive ? selectedContextFile.name + '?recursive=true' : selectedContextFile.name;
+            const sResult: any = await deleteContextFile(selectedContextFile.path, sRecursivePath);
             if (sResult.reason === 'success') {
                 getFileTree();
                 setRecentDirectory('/');
             } else {
-                Error('Failed');
+                setConsoleList((prev: any) => [
+                    ...prev,
+                    {
+                        timestamp: new Date().getTime(),
+                        level: 'ERROR',
+                        task: '',
+                        message: sResult.data.reason,
+                    },
+                ]);
             }
         }
-        closeContextMenu();
+        setIsDeleteModal(false);
     };
 
     const downloadFile = async () => {
@@ -299,26 +314,29 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
                         </Sidebar>
                         <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
                             <Menu isOpen={sIsContextMenu}>
-                                {
+                                {(selectedContextFile as any)?.gitClone ? (
                                     <Menu.Item onClick={updateGitFolder}>
                                         <Update />
                                         <span>Update</span>
                                     </Menu.Item>
-                                }
+                                ) : null}
                                 <Menu.Item onClick={deleteFile}>
                                     <Delete />
                                     <span>Delete</span>
                                 </Menu.Item>
-                                <Menu.Item onClick={downloadFile}>
-                                    <Download />
-                                    <span>Saved to local</span>
-                                </Menu.Item>
+                                {(selectedContextFile as any)?.content ? (
+                                    <Menu.Item onClick={downloadFile}>
+                                        <Download />
+                                        <span>Saved to local</span>
+                                    </Menu.Item>
+                                ) : null}
                             </Menu>
                         </div>
                     </>
                 ))}
             {sIsOpenModal ? <SaveModal pIsDarkMode pIsSave={false} setIsOpen={handleIsOpenModal} /> : null}
             {sIsFolderModal ? <FolderModal pIsGit={sIsGit} pIsDarkMode={true} setIsOpen={handleFolder} pCallback={handleRefresh} /> : null}
+            {sIsDeleteModal ? <DeleteModal pIsDarkMode setIsOpen={setIsDeleteModal} pFileInfo={selectedContextFile} pCallback={handleDeleteFile} /> : null}
         </div>
     );
 };

@@ -471,8 +471,16 @@ export const SaveModal = (props: SaveModalProps) => {
                                             onClick={(aEvent) => handleSelectFile(aEvent, aItem)}
                                         >
                                             <div className="pl" style={{ width: '48%', maxWidth: '48%', minWidth: '48%', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <div className="pl-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    {aItem.type === 'dir' ? <TreeFolder height={100} /> : icons(aItem.type.replace('.', ''))}
+                                                <div className="pl-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '18px' }}>
+                                                    {aItem.type === 'dir' ? (
+                                                        aItem.gitClone ? (
+                                                            icons('gitClosedDirectory')
+                                                        ) : (
+                                                            <TreeFolder height={100} />
+                                                        )
+                                                    ) : (
+                                                        icons(aItem.type.replace('.', ''))
+                                                    )}
                                                 </div>
                                                 <span>{aItem.name}</span>
                                             </div>

@@ -1,12 +1,12 @@
 import './TimeRange.scss';
 import { TIME_RANGE } from '@/utils/constants';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import moment from 'moment';
 import { useEffect } from 'react';
-import OutsideClickHandler from 'react-outside-click-handler';
 import DatePicker from 'react-datepicker';
 import { Input } from '@/components/inputs/Input';
 import { convertTimeToFullDate } from '@/utils/helpers/date';
+import useOutsideClick from '@/hooks/useOutsideClick';
 
 const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const sTimeRange: any = TIME_RANGE;
@@ -15,6 +15,8 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const [sEndTime, setEndTime] = useState<any>(undefined);
     const [sIsStart, setIsStart] = useState<any>(false);
     const [sIsEnd, setIsEnd] = useState<any>(false);
+    const sStartRef = useRef<HTMLDivElement>(null);
+    const sEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const sBoardStartTime = pPanelInfo.range_bgn;
@@ -77,10 +79,13 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
         setEndTime(convertTimeToFullDate(aValue.value[1]));
     };
 
+    useOutsideClick(sStartRef, () => setIsStart(false));
+    useOutsideClick(sEndRef, () => setIsEnd(false));
+
     return (
         <div className="time-range">
             <div className="first-row">
-                <div className="from">
+                <div ref={sStartRef} className="from">
                     <span>From</span>
                     <div className="time-range-select-box">
                         {sStartTime !== undefined && (
@@ -95,21 +100,19 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                             </div>
                         )}
                         {sIsStart && (
-                            <OutsideClickHandler onOutsideClick={() => setIsStart(false)}>
-                                <DatePicker
-                                    selected={sStartTime}
-                                    calendarClassName="modal-date-picker"
-                                    timeInputLabel="Time: "
-                                    onChange={(date: any) => handleStartTime(date)}
-                                    dateFormat="yyyy-MM-dd HH:mm:ss"
-                                    showTimeInput
-                                    inline
-                                ></DatePicker>
-                            </OutsideClickHandler>
+                            <DatePicker
+                                selected={sStartTime}
+                                calendarClassName="modal-date-picker"
+                                timeInputLabel="Time: "
+                                onChange={(date: any) => handleStartTime(date)}
+                                dateFormat="yyyy-MM-dd HH:mm:ss"
+                                showTimeInput
+                                inline
+                            ></DatePicker>
                         )}
                     </div>
                 </div>
-                <div className="to">
+                <div ref={sEndRef} className="to">
                     <span>To</span>
                     <div className="time-range-select-box">
                         {sEndTime && (
@@ -124,17 +127,15 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                             </div>
                         )}
                         {sIsEnd && (
-                            <OutsideClickHandler onOutsideClick={() => setIsEnd(false)}>
-                                <DatePicker
-                                    selected={typeof sEndTime === 'string' && sEndTime.includes('now') ? moment(sEndTime).format('yyyy-MM-DD HH:mm:ss') : sEndTime}
-                                    calendarClassName="modal-date-picker"
-                                    timeInputLabel="Time: "
-                                    onChange={(date: any) => handleEndTime(date)}
-                                    dateFormat="yyyy-MM-dd HH:mm:ss"
-                                    showTimeInput
-                                    inline
-                                ></DatePicker>
-                            </OutsideClickHandler>
+                            <DatePicker
+                                selected={typeof sEndTime === 'string' && sEndTime.includes('now') ? moment(sEndTime).format('yyyy-MM-DD HH:mm:ss') : sEndTime}
+                                calendarClassName="modal-date-picker"
+                                timeInputLabel="Time: "
+                                onChange={(date: any) => handleEndTime(date)}
+                                dateFormat="yyyy-MM-dd HH:mm:ss"
+                                showTimeInput
+                                inline
+                            ></DatePicker>
                         )}
                     </div>
                 </div>
