@@ -245,11 +245,13 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
 
     return (
         <div className="side-form">
-            <div className="side-title">machbase-neo {pServer && pServer.version}</div>
+            <div className="side-title">
+                <span>machbase-neo {pServer && pServer.version}</span>
+            </div>
             <div>
                 <div onClick={() => setCollapseEditors(!sCollapseEditors)} className="side-sub-title editors-title">
                     <div className="collapse-icon">{sCollapseEditors ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
-                    OPEN EDITORS
+                    <span className="title-text">OPEN EDITORS</span>
                 </div>
                 {sCollapseEditors && (
                     <div className="editors-form">

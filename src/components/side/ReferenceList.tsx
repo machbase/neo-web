@@ -20,7 +20,9 @@ const ReferenceList = ({ pServer }: any) => {
 
     return (
         <div className="side-form">
-            <div className="side-title">machbase-neo {pServer && pServer.version}</div>
+            <div className="side-title">
+                <span>machbase-neo {pServer && pServer.version}</span>
+            </div>
             {sReferences &&
                 sReferences.length !== 0 &&
                 sReferences.map((aItem: any, aIdx: number) => {
