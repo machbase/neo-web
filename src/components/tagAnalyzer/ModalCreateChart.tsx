@@ -22,7 +22,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
 
     const [sSelectedTable, setSelectedTable] = useState<string>(sTables[0]);
     const [sTagList, setTagList] = useState<string[]>([]);
-    const [sTagPagination, setTagPagination] = useState(-1);
+    const [sTagPagination, setTagPagination] = useState(1);
     const [sCalcTagList, setCalcTagList] = useState<string[]>([]);
     const [sSelectedTag, setSelectedTag] = useState<any[]>([]);
     const [sRollupTable, setRollupTable] = useState<boolean>(false);
@@ -59,10 +59,12 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
     };
 
     const getTagList = async () => {
-        const sResult: any = await fetchTags(sSelectedTable);
-        if (sResult.success) {
-            setTagList(sResult.data.rows);
-            setTagPagination(1);
+        if (sSelectedTable) {
+            const sResult: any = await fetchTags(sSelectedTable);
+            if (sResult.success) {
+                setTagList(sResult.data.rows);
+                setTagPagination(1);
+            }
         }
     };
 
