@@ -115,10 +115,15 @@
 
                 .pl {
                     padding-left: 1rem;
+                    font-size: 30px;
 
                     .pl-icon {
                         width: 18px;
                         height: 18px;
+
+                        svg {
+                            width: 100%;
+                        }
                     }
                 }
 
