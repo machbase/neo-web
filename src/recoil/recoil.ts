@@ -29,7 +29,7 @@ export const gSelectedTab = atom<string>({
     default: defaultId,
 });
 
-export const gConsoleList = atom<string>({
+export const gConsoleList = atom<any>({
     key: 'gConsoleList',
     default: [] as any,
 });

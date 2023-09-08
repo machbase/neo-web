@@ -69,7 +69,7 @@
         margin: 2px 0;
         display: flex;
         flex-direction: column;
-        max-height: 110px;
+        max-height: calc(22 * 8px);
         overflow-y: auto;
         .editors-list {
             padding-right: 8px;
