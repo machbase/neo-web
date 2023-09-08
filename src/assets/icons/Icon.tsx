@@ -76,11 +76,11 @@ export { BiLineChart as LineChart, BiDownload, BiLink, BiPlay as Play, BiSolidDo
 
 export { FiSearch as Search, FiMonitor as Monitor } from 'react-icons/fi';
 
-export { TbParachute, TbRowInsertTop as InsertRowTop, TbFolderPlus, TbFolderDown, TbFolder, TbCloudDown } from 'react-icons/tb';
+export { TbParachute, TbRowInsertTop as InsertRowTop, TbFolderPlus, TbFolderDown, TbFolder, TbCloudDown, TbEyeMinus } from 'react-icons/tb';
 
 export { IoIosCopy as Copy } from 'react-icons/io';
 
-export { GoPencil, GoTerminal, GoCommandPalette, GoDatabase } from 'react-icons/go';
+export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase } from 'react-icons/go';
 
 export { LuFlipVertical, LuMonitorSpeaker } from 'react-icons/lu';
 

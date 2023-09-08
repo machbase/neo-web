@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary } from '@/assets/icons/Icon';
+import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase } from '@/assets/icons/Icon';
 
 import ExtensionBtn from '@/components/extension/ExtensionBtn';
 import './index.scss';
@@ -60,6 +60,9 @@ const Extention = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                 break;
             case 'EXPLORER':
                 return <VscFiles></VscFiles>;
+                break;
+            case 'DBEXPLORER':
+                return <GoDatabase></GoDatabase>;
                 break;
             case 'REFERENCE':
                 return <VscLibrary></VscLibrary>;

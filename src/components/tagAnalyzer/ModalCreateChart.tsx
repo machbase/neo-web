@@ -112,6 +112,12 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
             const sRes: any = await fetchRangeData(sSelectedTag[0].table, sSelectedTag[0].tagName);
             sMinMax = sRes.data;
         }
+
+        if (!sMinMax.rows[0][0] || !sMinMax.rows[0][1]) {
+            Error('Please insert Data.');
+
+            return;
+        }
         const minMillis = Math.floor(sMinMax.rows[0][0] / 1000000);
         const maxMillis = Math.floor(sMinMax.rows[0][1] / 1000000);
         if (sMinMax) {
@@ -207,7 +213,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                     <div className="table-select">
                         <div className="title">Table</div>
                         <div className="combobox-select">
-                            <Select pIsFullWidth pInitValue={sTables[0]} pHeight={32} onChange={changedTable} pOptions={sTables} />
+                            {<Select pIsFullWidth pInitValue={sTables ? sTables[0] : ''} pHeight={32} onChange={changedTable} pOptions={sTables ? sTables : []} />}
                         </div>
                     </div>
                     {!sRollupTable && <p>* The table is show because the roll-up table is not generated.</p>}

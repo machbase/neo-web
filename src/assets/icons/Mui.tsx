@@ -15,3 +15,5 @@ export { ReactComponent as MuiFolder } from '@/assets/icons/material/folder.svg'
 export { ReactComponent as MuiFolderOpen } from '@/assets/icons/material/folder-open.svg';
 export { ReactComponent as MuiFolderGit } from '@/assets/icons/material/folder-git.svg';
 export { ReactComponent as MuiFolderGitOpen } from '@/assets/icons/material/folder-git-open.svg';
+export { ReactComponent as MuiFolderLayOut } from '@/assets/icons/material/folder-layout.svg';
+export { ReactComponent as MuiFolderLayOutOpen } from '@/assets/icons/material/folder-layout-open.svg';

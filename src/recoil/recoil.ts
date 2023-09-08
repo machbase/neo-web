@@ -44,13 +44,16 @@ export const gExtensionList = atom<any>({
         {
             id: 'EXPLORER',
             type: 'EXPLORER',
-            icon: 'file-document-outline',
             label: 'EXPLORER',
+        },
+        {
+            id: 'DBEXPLORER',
+            type: 'DBEXPLORER',
+            label: 'DBEXPLORER',
         },
         {
             id: 'REFERENCE',
             type: 'REFERENCE',
-            icon: 'file-document-outline',
             label: 'REFERENCE',
         },
     ],
