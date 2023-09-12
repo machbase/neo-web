@@ -21,7 +21,9 @@ export const WorkSheet = (props: WorkSheetProps) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sWorkSheets, setWorkSheets] = useState<any>([]);
     const [sSelectedBoard] = useState<any>(useRecoilValue<any>(gSelectedBoard));
-    const [sAllRunCode, setAllRunCode] = useState<number>(0);
+    const [sAllRunCodeStatus, setAllRunCodeStatus] = useState<boolean>(false);
+    const [sAllRunCodeList, setAllRunCodeList] = useState<boolean[]>([]);
+    const [sRunCodeTarget, setRunCodeTarget] = useState<number | undefined>(undefined);
     const sNewWrkDefaultData = {
         contents: '',
         height: 200,
@@ -90,10 +92,32 @@ export const WorkSheet = (props: WorkSheetProps) => {
         else setWorkSheets(sSelectedBoard.sheet);
     }, [sSelectedBoard]);
 
+    const handleAllRunCode = (aStatus: boolean, aIdx: number) => {
+        if (!aStatus || sAllRunCodeList.length === aIdx + 1) {
+            setRunCodeTarget(undefined);
+            setAllRunCodeList([]);
+            setAllRunCodeStatus(false);
+        }
+        const sTmp = JSON.parse(JSON.stringify(sAllRunCodeList));
+        sTmp.splice(aIdx + 1, 1, aStatus);
+        setRunCodeTarget((sRunCodeTarget as number) + 1);
+        setAllRunCodeList(sTmp);
+    };
+
+    useEffect(() => {
+        if (sAllRunCodeStatus) {
+            sWorkSheets.length;
+            const sTmp = new Array(sWorkSheets.length).fill(false);
+            sTmp.splice(0, 1, true);
+            setRunCodeTarget(0);
+            setAllRunCodeList(sTmp);
+        }
+    }, [sAllRunCodeStatus]);
+
     return (
         <div className="worksheet-wrapper">
             <div className="worksheet-header">
-                <IconButton pIcon={<IoPlayForwardSharp />} onClick={() => setAllRunCode(sAllRunCode + 1)} />
+                <IconButton pIcon={<IoPlayForwardSharp />} onClick={() => setAllRunCodeStatus(true)} />
                 <div className="divider"></div>
                 <IconButton pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
                 <IconButton pIcon={<SaveAs size={18} />} onClick={() => setIsSaveModal(true)} />
@@ -108,9 +132,12 @@ export const WorkSheet = (props: WorkSheetProps) => {
                                     key={'sheet-' + aSheetItem.id}
                                     pData={aSheetItem}
                                     pIdx={aIdx}
+                                    pAllRunCodeTargetIdx={sRunCodeTarget}
+                                    pAllRunCodeStatus={sAllRunCodeStatus}
+                                    pAllRunCodeList={sAllRunCodeList}
+                                    pAllRunCodeCallback={(aStatus: boolean) => handleAllRunCode(aStatus, aIdx)}
                                     pWorkSheets={sWorkSheets}
                                     setSheet={setWorkSheets}
-                                    pAllRunCode={sAllRunCode}
                                     pCallback={handleCallback}
                                 />
                             );

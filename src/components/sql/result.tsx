@@ -62,7 +62,7 @@ const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, onMoreResult }: { pDi
     }, [pSqlResponseData]);
 
     return (
-        <div ref={sRootRef} className="sql-result-wrapper" style={{ display: pDisplay, height: 'calc(100% - 40px)', overflow: 'hidden', overflowY: 'scroll' }}>
+        <div ref={sRootRef} className="sql-result-wrapper" style={{ display: pDisplay, height: 'calc(100% - 40px)', overflow: 'auto' }}>
             <TABLE pTableData={pSqlResponseData} pMaxShowLen={pMaxShowLen} clickEvent={handleClick} />
             <div ref={sObserveRef} style={{ width: '100%', height: '1px' }} />
             <div ref={MenuRef} style={{ position: 'fixed', top: sMenuY, left: sMenuX, zIndex: 999 }}>

@@ -72,7 +72,7 @@ export { IoLogOutOutline as Logout, IoPlayForwardSharp } from 'react-icons/io5';
 
 export { PiFileCsvThin } from 'react-icons/pi';
 
-export { BiLineChart as LineChart, BiDownload, BiLink, BiPlay as Play, BiSolidDownArrow, BiSolidChart } from 'react-icons/bi';
+export { BiLineChart as LineChart, BiDownload, BiLink, BiPlay as Play, BiSolidDownArrow, BiSolidChart, BiSolidEdit } from 'react-icons/bi';
 
 export { FiSearch as Search, FiMonitor as Monitor } from 'react-icons/fi';
 
