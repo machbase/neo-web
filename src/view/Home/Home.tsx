@@ -26,6 +26,7 @@ const Home = () => {
     const sNavigate = useNavigate();
     const [sSelectedExtension] = useRecoilState<string>(gSelectedExtension);
     const [sExtentionList] = useRecoilState<any>(gExtensionList);
+    const [sDragStat, setDragStat] = useState<boolean>(false);
 
     const timer: any = useRef();
     const sWebSoc: any = useRef(null);
@@ -101,11 +102,13 @@ const Home = () => {
     };
 
     const setStatus = () => {
+        setDragStat(true);
         if (!sIsSidebar) {
             setIsSidebar(true);
         }
     };
     const changeDraged = () => {
+        setDragStat(false);
         setDraged(!sDraged);
     };
 
@@ -126,7 +129,7 @@ const Home = () => {
     }, []);
 
     return (
-        <div className="home-form">
+        <div className={sDragStat ? 'check-draged home-form' : 'home-form'}>
             <Extension pSetSideSizes={setSideSizes} pIsSidebar={sIsSidebar} pHandleSideBar={setIsSidebar}></Extension>
             <div className="body-form">
                 <SplitPane sashRender={() => <></>} split="vertical" sizes={sSideSizes} onChange={setSideSizes} onDragEnd={changeDraged} onDragStart={setStatus}>
@@ -151,9 +154,17 @@ const Home = () => {
                                 background: '#ffffff',
                             }}
                         >
-                            <SplitPane sashRender={() => <></>} split="horizontal" sizes={sTerminalSizes} onChange={setTerminalSizes}>
+                            <SplitPane
+                                sashRender={() => <></>}
+                                split="horizontal"
+                                sizes={sTerminalSizes}
+                                onChange={setTerminalSizes}
+                                onDragEnd={() => setDragStat(false)}
+                                onDragStart={() => setDragStat(true)}
+                            >
                                 <Pane minSize={50}>
                                     <Body
+                                        pSetDragStat={setDragStat}
                                         pExtentionList={sTabList}
                                         pTerminalSizes={sTerminalSizes}
                                         pSideSizes={sSideSizes}

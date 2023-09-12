@@ -1,9 +1,15 @@
 .home-form {
-  width: 100vw;
-  height: 100vh;
-  background: #f8f8f8;
-  display: flex;
+    width: 100vw;
+    height: 100vh;
+    background: #f8f8f8;
+    display: flex;
+}
+.check-draged {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 .body-form {
-  width: calc(100% - 48px);
+    width: calc(100% - 48px);
 }
