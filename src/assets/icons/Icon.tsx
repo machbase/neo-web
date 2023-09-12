@@ -53,6 +53,7 @@ export {
     MdRawOn,
     MdRefresh,
     MdOutlineUpgrade,
+    MdPreview,
 } from 'react-icons/md';
 
 export { RxUpdate as Update } from 'react-icons/rx';

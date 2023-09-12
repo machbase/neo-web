@@ -2,8 +2,9 @@ import { useState, Dispatch, SetStateAction, useEffect } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import { IconButton } from '@/components/buttons/IconButton';
-import { Save, SaveAs } from '@/assets/icons/Icon';
+import { Save, SaveAs, MdPreview } from '@/assets/icons/Icon';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { Markdown } from '@/components/worksheet/Markdown';
 import './TextExtension.scss';
 
 export interface TextExtensionProps {
@@ -18,6 +19,7 @@ export const TextExtension = (props: TextExtensionProps) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
+    const [sIsPreview, setIsPreView] = useState<boolean>(true);
 
     useEffect(() => {
         const sIsExist = sBoardList.findIndex((aItem) => aItem.id === sSelectedTab);
@@ -44,11 +46,16 @@ export const TextExtension = (props: TextExtensionProps) => {
     return (
         <div className="textextension-editor">
             <div className="textextension-editor-header">
+                {pLang === 'markdown' ? <IconButton pIcon={<MdPreview size={18} />} pIsActive={sIsPreview} onClick={() => setIsPreView(!sIsPreview)} /> : null}
                 <IconButton pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
                 <IconButton pIcon={<SaveAs size={18} />} onClick={() => setIsOpenModal(true)} />
             </div>
-            <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
-                <MonacoEditor pText={sText} pLang={sCurrentLang} onSelectLine={() => null} onChange={handleChangeText} onRunCode={() => null} />
+            <div style={{ width: '100%', height: 'calc(100% - 40px)', overflow: 'auto', padding: sIsPreview ? '0 1rem' : '', backgroundColor: sIsPreview ? '#1B1C21' : '' }}>
+                {!sIsPreview ? (
+                    <MonacoEditor pText={sText} pLang={sCurrentLang} onSelectLine={() => null} onChange={handleChangeText} onRunCode={() => null} />
+                ) : (
+                    <Markdown pIdx={1} pContents={sText} pType="mrk" />
+                )}
             </div>
         </div>
     );
