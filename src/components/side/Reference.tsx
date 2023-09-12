@@ -58,7 +58,7 @@ const Reference = ({ pValue }: any) => {
         }
     };
     return (
-        <>
+        <div style={{ overflow: 'auto', height: 'calc(100% - 40px)' }}>
             <div className="side-sub-title editors-title" onClick={() => setCollapseTree(!sCollapseTree)}>
                 <div className="collapse-icon">{sCollapseTree ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
 
@@ -66,7 +66,7 @@ const Reference = ({ pValue }: any) => {
                     <span className="title-text">{pValue.label}</span>
                 </div>
             </div>
-            <div style={{ overflow: 'auto' }}>
+            <div style={{ overflow: 'auto', height: 'calc(100% - 22px)' }}>
                 {sCollapseTree &&
                     pValue.items.map((aItem: any, aIdx: number) => {
                         return (
@@ -80,7 +80,7 @@ const Reference = ({ pValue }: any) => {
                         );
                     })}
             </div>
-        </>
+        </div>
     );
 };
 export default Reference;

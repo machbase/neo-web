@@ -18,6 +18,7 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
     const [sPanelRange, setPanelRange] = useState<any>({});
     const [sNavigatorRange, setNavigatorRange] = useState<any>({});
     const [sIsRaw, setIsRaw] = useState<boolean>(false);
+    const [sRangeOption, setRangeOption] = useState<any>({});
     const sSelectedTab = useRecoilValue(gSelectedTab);
 
     const fetchNavigatorData = async (aTimeRange: any) => {
@@ -166,6 +167,8 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
             pPanelInfo.interval_type.toLowerCase() === ''
                 ? calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth)
                 : { IntervalType: convertInterType(pPanelInfo.interval_type?.toLowerCase()), IntervalValue: 0 };
+
+        setRangeOption(sIntervalTime);
 
         for (let index = 0; index < sTagSet.length; index++) {
             const sTagSetElement = sTagSet[index];
@@ -367,6 +370,7 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
                 pPanelInfo={pPanelInfo}
                 pSetIsRaw={setIsRaw}
                 pIsRaw={sIsRaw}
+                pRangeOption={sRangeOption}
             ></PanelHeader>
             <div className="chart">
                 <div className="left" onClick={() => moveTimRange('l')}>

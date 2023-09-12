@@ -7,7 +7,7 @@ import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { Refresh, GearFill, Delete, MdRawOn } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 
-const PanelHeader = ({ pPanelInfo, pBoardInfo, pPanelRange, pSetIsRaw, pIsRaw, pFetchPanelData, pIsEdit }: any) => {
+const PanelHeader = ({ pPanelInfo, pRangeOption, pBoardInfo, pPanelRange, pSetIsRaw, pIsRaw, pFetchPanelData, pIsEdit }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sPanelRange, setPanelRage] = useState<any>({ startTime: 0, endTime: 0 });
@@ -34,6 +34,7 @@ const PanelHeader = ({ pPanelInfo, pBoardInfo, pPanelRange, pSetIsRaw, pIsRaw, p
             <div className="title">{pPanelInfo.chart_title}</div>
             <div className="time">
                 {sPanelRange.startTime} ~ {sPanelRange.endTime}
+                <span> {!pIsRaw && ` ( interval : ${pRangeOption.IntervalValue}${pRangeOption.IntervalType} )`}</span>
             </div>
             <div className="options">
                 <div className="raw">
