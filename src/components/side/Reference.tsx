@@ -58,7 +58,7 @@ const Reference = ({ pValue }: any) => {
         }
     };
     return (
-        <div style={{ overflow: 'auto', height: 'calc(100% - 40px)' }}>
+        <>
             <div className="side-sub-title editors-title" onClick={() => setCollapseTree(!sCollapseTree)}>
                 <div className="collapse-icon">{sCollapseTree ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
 
@@ -80,7 +80,7 @@ const Reference = ({ pValue }: any) => {
                         );
                     })}
             </div>
-        </div>
+        </>
     );
 };
 export default Reference;
