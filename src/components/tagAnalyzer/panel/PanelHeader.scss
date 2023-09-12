@@ -12,6 +12,10 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
+        span {
+            opacity: 0.8;
+            font-size: 11px;
+        }
     }
     .options {
         font-size: 15px;
