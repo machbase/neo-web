@@ -2,7 +2,7 @@ import { useState, Dispatch, SetStateAction, useEffect } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import { IconButton } from '@/components/buttons/IconButton';
-import { Save, SaveAs, MdPreview } from '@/assets/icons/Icon';
+import { Save, SaveAs, BiSolidEdit } from '@/assets/icons/Icon';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { Markdown } from '@/components/worksheet/Markdown';
 import './TextExtension.scss';
@@ -46,7 +46,7 @@ export const TextExtension = (props: TextExtensionProps) => {
     return (
         <div className="textextension-editor">
             <div className="textextension-editor-header">
-                {pLang === 'markdown' ? <IconButton pIcon={<MdPreview size={18} />} pIsActive={sIsPreview} onClick={() => setIsPreView(!sIsPreview)} /> : null}
+                {pLang === 'markdown' ? <IconButton pIcon={<BiSolidEdit size={18} />} pIsActive={!sIsPreview} onClick={() => setIsPreView(!sIsPreview)} /> : null}
                 <IconButton pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
                 <IconButton pIcon={<SaveAs size={18} />} onClick={() => setIsOpenModal(true)} />
             </div>
