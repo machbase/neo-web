@@ -22,14 +22,17 @@ type ShowResultType = 'brief' | 'all';
 interface WorkSheetEditorProps {
     pData: any;
     pIdx: number;
-    pAllRunCode: number;
     pWorkSheets: any[];
+    pAllRunCodeStatus: boolean;
+    pAllRunCodeList: boolean[];
+    pAllRunCodeTargetIdx: number | undefined;
+    pAllRunCodeCallback: (aStatus: boolean) => void;
     setSheet: React.Dispatch<React.SetStateAction<any>>;
     pCallback: (aData: { id: string; event: CallbackEventType }) => void;
 }
 
 export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
-    const { pData, pIdx, pAllRunCode, setSheet, pWorkSheets, pCallback } = props;
+    const { pData, pIdx, pAllRunCodeStatus, pAllRunCodeTargetIdx, pAllRunCodeList, pAllRunCodeCallback, setSheet, pWorkSheets, pCallback } = props;
     const sInitHeight = 200;
     const resizeRef = useRef<HTMLDivElement | null>(null);
     const [sText, setText] = useState<string>(pData.contents);
@@ -70,8 +73,10 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sShowResultContentType, setShowResultContentType] = useState<boolean>(false);
 
     useEffect(() => {
-        handleRunCode(sText);
-    }, [pAllRunCode]);
+        if (pAllRunCodeList.length > 0 && pAllRunCodeStatus && typeof pAllRunCodeTargetIdx === 'number' && pAllRunCodeList[pIdx] && pIdx === pAllRunCodeTargetIdx) {
+            handleRunCode(sText);
+        }
+    }, [pAllRunCodeList]);
 
     useEffect(() => {
         const sCopyWorkSheets = JSON.parse(JSON.stringify(pWorkSheets));
@@ -157,7 +162,12 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
     ) => {
         if (sSelectedLang === 'TQL') getTqlData(aText);
-        if (sSelectedLang === 'Markdown') setMarkdown(aText);
+        if (sSelectedLang === 'Markdown') {
+            if (pAllRunCodeStatus) {
+                pAllRunCodeCallback(true);
+            }
+            setMarkdown(aText);
+        }
         if (sSelectedLang === 'SQL') getSqlData(aText, aLocation);
     };
 
@@ -194,7 +204,10 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             switch (sSqlResult.status) {
                 case 200:
                     setSql(sSqlResult.data);
+                    if (pAllRunCodeStatus) pAllRunCodeCallback(true);
                     break;
+                default:
+                    if (pAllRunCodeStatus) pAllRunCodeCallback(false);
             }
             if (sSqlResult.data.reason) {
                 setSqlReason(sSqlResult.data.reason);
@@ -206,6 +219,12 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
 
     const getTqlData = async (aText: string) => {
         const sResult: any = await getTqlChart(aText);
+
+        if (sResult.status === 200) {
+            if (pAllRunCodeStatus) pAllRunCodeCallback(true);
+        } else {
+            if (pAllRunCodeStatus) pAllRunCodeCallback(false);
+        }
 
         if (sResult.status === 200 && sResult.headers && sResult.headers['x-chart-type'] === 'echarts') {
             setTqlResultType('html');
