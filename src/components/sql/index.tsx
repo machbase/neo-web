@@ -17,7 +17,17 @@ import { sqlMultiQueryParser } from '@/utils/sqlMultiQueryParser';
 import { MonacoEditor } from '../monaco/MonacoEditor';
 import { IconButton } from '@/components/buttons/IconButton';
 
-const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHandleSaveModalOpen: any; setIsSaveModal: (aValue: boolean) => void }) => {
+const Sql = ({
+    pInfo,
+    pHandleSaveModalOpen,
+    setIsSaveModal,
+    pSetDragStat,
+}: {
+    pInfo: any;
+    pHandleSaveModalOpen: any;
+    setIsSaveModal: (aValue: boolean) => void;
+    pSetDragStat: any;
+}) => {
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
@@ -211,7 +221,14 @@ const Sql = ({ pInfo, pHandleSaveModalOpen, setIsSaveModal }: { pInfo: any; pHan
 
     return (
         <div ref={sSaveCommand} style={{ width: '100%', height: '100%' }}>
-            <SplitPane sashRender={() => <></>} split={isVertical ? 'vertical' : 'horizontal'} sizes={sizes} onChange={setSizes}>
+            <SplitPane
+                sashRender={() => <></>}
+                split={isVertical ? 'vertical' : 'horizontal'}
+                onDragEnd={() => pSetDragStat(false)}
+                onDragStart={() => pSetDragStat(true)}
+                sizes={sizes}
+                onChange={setSizes}
+            >
                 <Pane minSize={50}>
                     <div
                         className="sql-header"

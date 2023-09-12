@@ -15,10 +15,11 @@ import { IconButton } from '../buttons/IconButton';
 interface TqlProps {
     setIsSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
     pHandleSaveModalOpen: any;
+    pSetDragStat: any;
 }
 
 const Tql = (props: TqlProps) => {
-    const { pHandleSaveModalOpen, setIsSaveModal } = props;
+    const { pHandleSaveModalOpen, setIsSaveModal, pSetDragStat } = props;
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
@@ -118,7 +119,14 @@ const Tql = (props: TqlProps) => {
 
     return (
         <div style={{ width: '100%', height: '100%' }}>
-            <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sizes} onChange={setSizes}>
+            <SplitPane
+                sashRender={() => Resizer()}
+                split={isVertical ? 'vertical' : 'horizontal'}
+                sizes={sizes}
+                onDragEnd={() => pSetDragStat(false)}
+                onDragStart={() => pSetDragStat(true)}
+                onChange={setSizes}
+            >
                 <Pane minSize={50}>
                     <div className="tql-editor-header">
                         <IconButton pIcon={<Play />} onClick={() => getTqlData(sText)} />
