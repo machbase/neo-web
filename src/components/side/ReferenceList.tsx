@@ -23,11 +23,13 @@ const ReferenceList = ({ pServer }: any) => {
             <div className="side-title">
                 <span>machbase-neo {pServer && pServer.version}</span>
             </div>
-            {sReferences &&
-                sReferences.length !== 0 &&
-                sReferences.map((aItem: any, aIdx: number) => {
-                    return <Reference key={aIdx} pValue={aItem} />;
-                })}
+            <div style={{ height: 'calc(100% - 40px)', overflow: 'auto' }}>
+                {sReferences &&
+                    sReferences.length !== 0 &&
+                    sReferences.map((aItem: any, aIdx: number) => {
+                        return <Reference key={aIdx} pValue={aItem} />;
+                    })}
+            </div>
         </div>
     );
 };
