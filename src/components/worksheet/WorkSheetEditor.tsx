@@ -226,7 +226,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             if (pAllRunCodeStatus) pAllRunCodeCallback(false);
         }
 
-        if (sResult.status === 200 && sResult.headers && sResult.headers['x-chart-type'] === 'echarts') {
+        if (sResult.status === 200 && sResult.headers && sResult.data && sResult.headers['x-chart-type'] === 'echarts') {
             setTqlResultType('html');
             setTqlChartData(sResult.data);
             return;
@@ -258,9 +258,23 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setTqlResultType('text');
             if (sResult.status === 200) {
                 if (typeof sResult.data !== 'string') {
-                    const sLength = sResult.data.data.rows.length;
-                    sResult.data.data.rows = sResult.data.data.rows.filter((_: number[], aIdx: number) => aIdx < 6 || sLength - 6 < aIdx);
-                    sResult.data.data.rows.splice(5, 0, '....');
+                    if (sResult.data.data.rows && sResult.data.data.rows.length > 10) {
+                        const sLength = sResult.data.data.rows.length;
+                        sResult.data.data.rows = sResult.data.data.rows.filter((_: number[], aIdx: number) => aIdx < 6 || sLength - 6 < aIdx);
+                        sResult.data.data.rows.splice(5, 0, '....');
+                    } else if (sResult.data.data.cols && sResult.data.data.cols[0].length > 10) {
+                        const sTempList: any = [];
+                        sResult.data.data.cols.forEach((col: any) => {
+                            const sColLength = col.length;
+                            const sColResult = col.filter((_: number[], aIdx: number) => aIdx < 6 || sColLength - 6 < aIdx);
+                            sColResult.splice(5, 0, '....');
+                            sTempList.push(sColResult);
+                        });
+                        sResult.data.data.cols = sTempList;
+                    } else if (sResult.data.data.message) {
+                        setTqlTextResult(sResult.data.data.message);
+                        return;
+                    }
                 }
                 setTqlTextResult(JSON.stringify(sResult.data));
                 return;
