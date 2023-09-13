@@ -561,9 +561,6 @@ const Div = styled.div<{
     justify-content: space-between;
     padding-left: ${(props) => props.depth * 16}px;
     background-color: ${(props) => (props.isLastItem ? '#3e3e3e' : props.isDndItem ? '#3e3e3e' : props.isDndSection ? '#3e3e3e' : props.isSelected ? '#242424' : 'transparent')};
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
     word-break: break-all;
     :hover {
         cursor: pointer;
