@@ -37,3 +37,7 @@ export const extractionExtension = (aFileName: string) => {
 
     return aFileName.slice(sDotIndex + 1).toLowerCase();
 };
+
+export const calcViewportHeight = (aPixel: number) => {
+    return Number(((aPixel / document.documentElement.clientHeight) * 100).toFixed(2));
+};

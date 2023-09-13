@@ -3,7 +3,7 @@ import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import { getTqlChart } from '@/api/repository/machiot';
 import { ShowChart } from '@/components/tql/ShowChart';
 import { Markdown } from '@/components/worksheet/Markdown';
-import { getId, isValidJSON } from '@/utils';
+import { calcViewportHeight, getId, isValidJSON } from '@/utils';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { sqlSheetFormatter } from '@/utils/sqlFormatter';
 import TABLE from '@/components/table';
@@ -33,7 +33,7 @@ interface WorkSheetEditorProps {
 
 export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const { pData, pIdx, pAllRunCodeStatus, pAllRunCodeTargetIdx, pAllRunCodeList, pAllRunCodeCallback, setSheet, pWorkSheets, pCallback } = props;
-    const sInitHeight = 200;
+    const sInitHeight = calcViewportHeight(200);
     const resizeRef = useRef<HTMLDivElement | null>(null);
     const [sText, setText] = useState<string>(pData.contents);
     const [initialPos, setInitialPos] = useState<number>(0);
@@ -125,27 +125,28 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
 
     useEffect(() => {
         if (resizeRef.current) {
-            resizeRef.current.style.height = pData.height ? pData.height + 'px' : sInitHeight + 'px';
+            resizeRef.current.style.height = pData.height ? pData.height + 'vh' : sInitHeight + 'vh';
             langConverter(pData.type);
         }
     }, []);
 
     const initValue = (aEvent: React.DragEvent<HTMLDivElement>) => {
         if (resizeRef.current) {
-            setInitialPos(aEvent.clientY);
-            setInitialSize(resizeRef.current.offsetHeight);
+            setInitialPos(calcViewportHeight(aEvent.clientY));
+            setInitialSize(calcViewportHeight(resizeRef.current.offsetHeight));
         }
     };
 
     const resize = (aEvent: React.MouseEvent<HTMLDivElement>) => {
         if (aEvent.clientY && resizeRef.current) {
-            resizeRef.current.style.height = `${initialSize + (aEvent.clientY - initialPos)}px`;
+            const sHeight = initialSize + (calcViewportHeight(aEvent.clientY) - initialPos);
+            resizeRef.current.style.height = `${sHeight}vh`;
         }
     };
 
     const setHeight = (aEvent: React.DragEvent<HTMLDivElement>) => {
         if (aEvent.clientY && resizeRef.current) {
-            const sHeight = Number(resizeRef.current.style.height.replace(/\D/g, ''));
+            const sHeight = Number(resizeRef.current.style.height.replace(/[^0-9.]/g, ''));
             setInitialSize(sHeight);
         }
     };
@@ -430,7 +431,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                             onClick={pWorkSheets.length > 1 ? () => pCallback({ id: pData.id, event: 'Delete' }) : () => null}
                         />
                     </div>
-                    <div ref={resizeRef} className="editor">
+                    <div ref={resizeRef} className="editor" style={{ borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px' }}>
                         <MonacoEditor
                             pText={sText}
                             pLang={sMonacoLanguage}
