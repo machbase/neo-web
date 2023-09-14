@@ -54,7 +54,9 @@ export const FileTree = (props: FileTreeProps) => {
             // DIR
             else {
                 sAddTargetPath = sEnterItem.path + sEnterItem.name + '/';
-                sParsedList = sDndTargetList.filter((aTarget: any) => aTarget.path !== sEnterItem.path + sEnterItem.name + '/');
+                sParsedList = sDndTargetList.filter(
+                    (aTarget: any) => aTarget.path !== sEnterItem.path + sEnterItem.name + '/' && aTarget.name !== sEnterItem.name && aTarget.depth !== sEnterItem.depth
+                );
             }
             if (!sParsedList.length || !sAddTargetPath) {
                 DndClear();
@@ -64,21 +66,51 @@ export const FileTree = (props: FileTreeProps) => {
             // remove
             sParsedList.map((aDeleteItem: any) => {
                 if (aDeleteItem.type === 0) sTestRoot = removeFile(sTestRoot, aDeleteItem);
-                else sTestRoot = findDirPath(sTestRoot, aDeleteItem);
+                else sTestRoot = removeDir(sTestRoot, aDeleteItem);
             });
             // add
             sParsedList.map((aAddItem: any) => {
                 if (sAddTargetPath === '/') {
-                    sTestRoot[sEnterItem.type === 0 ? 'files' : 'dirs'].push({ ...aAddItem, depth: 1, parentId: '0', path: '/' });
+                    if (aAddItem.type === 1) {
+                        const sDirTmp = { ...aAddItem, depth: 1, parentId: '0', path: '/' };
+                        if (aAddItem.dirs.length > 0) {
+                            const sFixedDepthDirs = modifyDepth(sDirTmp);
+                            sTestRoot.dirs.push(sFixedDepthDirs);
+                        } else {
+                            sDirTmp.files = sDirTmp.files.map((aFile: any) => {
+                                return { ...aFile, depth: sDirTmp.depth + 1, path: sDirTmp.path + sDirTmp.name + '/' };
+                            });
+                            sTestRoot.dirs.push(sDirTmp);
+                        }
+                    } else {
+                        sTestRoot.files.push({ ...aAddItem, depth: 1, parentId: '0', path: '/' });
+                    }
                 } else {
                     if (aAddItem.type === 0) sTestRoot.dirs = addTargetFile(sTestRoot, aAddItem, sAddTargetPath);
-                    else console.log('dir add');
+                    else sTestRoot.dirs = addTargetDir(sTestRoot, aAddItem, sAddTargetPath);
                 }
             });
             DndClear();
             props.onSetFileTree(JSON.parse(JSON.stringify(sTestRoot)));
         }
     }, [sIsDnd]);
+
+    const modifyDepth = (aDir: any) => {
+        const abc = JSON.parse(JSON.stringify(aDir));
+        if (aDir.dirs.length > 0) {
+            abc.dirs = aDir.dirs.map((bDir: any) => {
+                if (bDir.dirs.length > 0 || bDir.files.length > 0) {
+                    return modifyDepth({ ...bDir, depth: aDir.depth + 1, path: aDir.path + aDir.name + '/' });
+                } else return { ...bDir, depth: aDir.depth + 1, path: aDir.path + aDir.name + '/' };
+            });
+        }
+        if (aDir.files.length > 0) {
+            abc.files = aDir.files.map((aFile: any) => {
+                return { ...aFile, depth: aDir.depth + 1, path: aDir.path + aDir.name + '/' };
+            });
+        }
+        return abc;
+    };
 
     const removeFile = (aRoot: any, aItem: any) => {
         const sPath = aItem.path.split('/').filter((aPath: string) => !!aPath);
@@ -126,13 +158,54 @@ export const FileTree = (props: FileTreeProps) => {
             } else return aDir;
         });
     };
-
-    const findDirPath = (aRoot: any, aItem: any) => {
-        // console.log('findDirPath', aRoot, aItem);
+    const removeDir = (aRoot: any, aItem: any) => {
         const sPath = aItem.path.split('/').filter((aPath: string) => !!aPath);
-        // console.log('sPath', sPath);
+        if (sPath && sPath.length > 0) {
+            const sTmpDir = removeTargetDir(aRoot, aItem);
+            aRoot.dirs = sTmpDir;
+            return aRoot;
+        } else {
+            const sTmpDir = aRoot.dirs.filter((aDir: any) => !(aDir.name === aItem.name && aDir.path === aItem.path && aDir.depth === aItem.depth));
+            aRoot.dirs = sTmpDir;
+            return aRoot;
+        }
     };
-
+    const removeTargetDir = (aOriginDir: FileTreeType, aParedData: FileTreeType): any => {
+        return aOriginDir.dirs.map((aDir: FileTreeType) => {
+            if (aDir.depth + 1 === aParedData.depth && aDir.path + aDir.name + '/' === aParedData.path) {
+                const tmpDir = aDir.dirs.filter((aDir: any) => !(aDir.name === aParedData.name && aDir.path === aParedData.path && aDir.depth === aParedData.depth));
+                return { ...aDir, dirs: tmpDir };
+            } else if (aParedData.path.includes(aDir.name)) {
+                return { ...aDir, dirs: removeTargetDir(aDir, aParedData) };
+            } else return aDir;
+        });
+    };
+    const addTargetDir = (aOriginDir: FileTreeType, aParedData: FileTreeType, aAddTargetPath: string): any => {
+        return aOriginDir.dirs.map((aDir: any) => {
+            if (
+                sEnterItem.type === 0
+                    ? aDir.depth + 1 === sEnterItem.depth && aDir.path + aDir.name + '/' === sEnterItem.path
+                    : aDir.depth === sEnterItem.depth && aDir.name === sEnterItem.name && aDir.path === sEnterItem.path
+            ) {
+                const sTmp = {
+                    ...aDir,
+                    dirs: [
+                        ...aDir.dirs,
+                        {
+                            ...aParedData,
+                            depth: sEnterItem.type === 0 ? sEnterItem.depth : sEnterItem.depth + 1,
+                            parentId: sEnterItem.type === 0 ? sEnterItem.parentId : aDir.id,
+                            path: sEnterItem.type === 0 ? sEnterItem.path : sEnterItem.path + sEnterItem.name + '/',
+                        },
+                    ],
+                };
+                const sFixedDepthDirs = modifyDepth(sTmp);
+                return sFixedDepthDirs;
+            } else if (sEnterItem.path.includes(aDir.name)) {
+                return { ...aDir, dirs: addTargetDir(aDir, aParedData, aAddTargetPath) };
+            } else return aDir;
+        });
+    };
     return (
         <div onClick={HandleRootClick} style={{ height: '100%' }}>
             <SubTree
@@ -317,8 +390,6 @@ const FileDiv = ({
     const HandleDragEnd = (e: any) => {
         e.stopPropagation();
         onSetIsDnd(true);
-        // onSetDndTargetList(null);
-        // onSetEnterItem(null);
     };
 
     const HandleMultiDrag = (aFile: any) => {
