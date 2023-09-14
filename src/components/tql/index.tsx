@@ -51,7 +51,7 @@ const Tql = (props: TqlProps) => {
     const getTqlData = async (aText: string) => {
         const sResult: any = await getTqlChart(aText);
 
-        if (sResult.status === 200 && sResult.headers && sResult.daata && sResult.headers['x-chart-type'] === 'echarts') {
+        if (sResult.status === 200 && sResult.headers && sResult.data && sResult.headers['x-chart-type'] === 'echarts') {
             setResultType('html');
             setChartData(sResult.data);
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/markdown') {
