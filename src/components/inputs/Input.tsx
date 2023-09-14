@@ -7,12 +7,13 @@ export interface InputProps {
     pSetValue: React.Dispatch<React.SetStateAction<string>>;
     pType: 'text' | 'number';
     pIsFullWidth: boolean;
+    pBorderRadius: number;
     pIsDisabled: boolean;
     onChange: React.ChangeEventHandler<HTMLInputElement>;
 }
 
 export const Input = (props: InputProps) => {
-    const { pWidth, pHeight, pIsFullWidth, pValue, pSetValue, pType, pIsDisabled, onChange } = props;
+    const { pWidth, pBorderRadius, pHeight, pIsFullWidth, pValue, pSetValue, pType, pIsDisabled, onChange } = props;
 
     const handleChange = (aEvent: React.ChangeEvent<HTMLInputElement>) => {
         pSetValue(aEvent.target.value);
@@ -20,7 +21,10 @@ export const Input = (props: InputProps) => {
     };
 
     return (
-        <div className="custom-input-wrapper" style={{ width: pIsFullWidth ? '100%' : pWidth + 'px', height: pHeight + 'px', opacity: pIsDisabled ? '0.6' : '' }}>
+        <div
+            className="custom-input-wrapper"
+            style={{ width: pIsFullWidth ? '100%' : pWidth + 'px', height: pHeight + 'px', opacity: pIsDisabled ? '0.6' : '', borderRadius: pBorderRadius + 'px' }}
+        >
             <input type={pType} value={pValue} onChange={handleChange} disabled={pIsDisabled} />
         </div>
     );
@@ -32,4 +36,5 @@ Input.defaultProps = {
     pType: 'text',
     pIsFullWidth: false,
     pIsDisabled: false,
+    pBorderRadius: 8,
 };

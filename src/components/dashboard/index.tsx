@@ -8,28 +8,31 @@ import './index.scss';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { getId } from '@/utils';
-const Dashboard = ({ pId, pSideSizes, pDraged }: any) => {
+import Panel from './panels/Panel';
+import { VscDiffAdded } from 'react-icons/vsc';
+import CreatePanel from './createPanel/CreatePanel';
+import { IconButton } from '../buttons/IconButton';
+
+const Dashboard = ({ pSideSizes, pDraged, pInfo }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
     const sBoardRef: Element | any = useRef({});
     const [sBoardSize, setBoardSize] = useState(0);
-    const [sBoard, setBoard] = useState<any>({});
     const [sDraging, setDraging] = useState(true);
+    const [sCreateModal, setCreateModal] = useState(false);
 
     const changeLayout = (aItem: any) => {
         sDraging;
         setDrag(true);
-        const sCopyBoard = JSON.parse(JSON.stringify(sBoard));
+        const sCopyBoard = JSON.parse(JSON.stringify(pInfo));
         sCopyBoard.panels = aItem;
-        setBoard(sCopyBoard);
-        setBoardList(sBoardList.map((bItem) => (bItem.id === sCopyBoard.id ? { ...bItem, panels: sCopyBoard.panels } : bItem)));
+        setBoardList(sBoardList.map((bItem) => (bItem.id === sCopyBoard.id ? { ...bItem, dashboard: aItem } : bItem)));
     };
     const addItem = () => {
         const sAddItem = { i: getId(), x: 0, y: Infinity, w: 14, h: 10 };
-        setBoard({ ...sBoard, panels: [...sBoard.panels, sAddItem] });
         setBoardList(
             sBoardList.map((aItem) => {
-                return aItem.id === sBoard.id ? { ...aItem, panels: aItem.panels.concat(sAddItem) } : aItem;
+                return aItem.id === pInfo.id ? { ...aItem, dashboard: aItem.panels.concat(sAddItem) } : aItem;
             })
         );
     };
@@ -40,33 +43,46 @@ const Dashboard = ({ pId, pSideSizes, pDraged }: any) => {
 
     useEffect(() => {
         setBoardSize(typeof pSideSizes[1] !== 'string' ? pSideSizes[1] : sBoardRef?.current?.clientWidth);
-        setBoard(sBoardList.find((aItem: any) => aItem.id === pId));
     }, [sBoardRef?.current?.clientWidth, pSideSizes[1]]);
 
     return (
         <div ref={sBoardRef} className="dashboard-form">
-            <button onClick={addItem}>addItem</button>
-            <GridLayout
-                className="layout"
-                useCSSTransforms={false}
-                layout={sBoard && sBoard.panels}
-                cols={36}
-                autoSize={true}
-                rowHeight={30}
-                width={sBoardSize}
-                onDragStart={() => setDrag(false)}
-                onResizeStop={changeLayout}
-            >
-                {sBoard &&
-                    sBoard.panels &&
-                    sBoard.panels.map((aItem: any) => {
-                        return (
-                            <div style={{ border: '1px solid #999999', borderRadius: '4px', width: '100%', height: '100%' }} key={aItem.i}>
-                                <LineChart pDraged={pDraged} pValue={aItem}></LineChart>
-                            </div>
-                        );
-                    })}
-            </GridLayout>
+            <div className="board-header">
+                <IconButton pWidth={20} pHeight={20} pIcon={<VscDiffAdded></VscDiffAdded>} onClick={() => setCreateModal(true)}></IconButton>
+            </div>
+            <div className="board-body">
+                <GridLayout
+                    className="layout"
+                    useCSSTransforms={false}
+                    layout={pInfo && pInfo.panels}
+                    cols={36}
+                    autoSize={true}
+                    rowHeight={30}
+                    width={sBoardSize}
+                    onDragStart={() => setDrag(false)}
+                    onDragStop={() => setDrag(true)}
+                    onResizeStop={changeLayout}
+                    draggableHandle=".board-panel-header"
+                >
+                    {pInfo &&
+                        pInfo.panels &&
+                        pInfo.panels.map((aItem: any) => {
+                            return (
+                                <div key={aItem.i}>
+                                    <Panel pDraging={sDraging} pDraged={pDraged} pValue={aItem}></Panel>
+                                </div>
+                            );
+                        })}
+                </GridLayout>
+            </div>
+            {sCreateModal && (
+                <CreatePanel
+                    pDraged={pDraged}
+                    pAddItem={addItem}
+                    pInfo={{ ...pInfo, dashboard: [...pInfo.panels, { i: getId(), x: 0, y: Infinity, w: 14, h: 10 }] }}
+                    pSetCreateModal={setCreateModal}
+                ></CreatePanel>
+            )}
         </div>
     );
 };

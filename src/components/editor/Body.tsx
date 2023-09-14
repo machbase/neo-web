@@ -185,7 +185,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                 ></TagAnalyzer>
                             )}
                             {aItem.type === 'term' && <Shell pSelectedTab={sSelectedTab} pInfo={aItem} pId={aItem.id}></Shell>}
-                            {aItem.type === 'dsh' && <Dashboard pDraged={pDraged} pId={aItem.id} pSideSizes={pSideSizes}></Dashboard>}
+                            {aItem.type === 'dsh' && <Dashboard pInfo={aItem} pDraged={pDraged} pId={aItem.id} pSideSizes={pSideSizes}></Dashboard>}
                             {aItem.type === 'wrk' && (
                                 <WorkSheet
                                     pId={aItem.id}

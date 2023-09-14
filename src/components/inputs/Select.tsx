@@ -8,13 +8,15 @@ export interface SelectProps {
     pHeight: number;
     pOptions: string[];
     pIsFullWidth: boolean;
+    pBorderRadius: number;
     pIsReadonly: boolean;
     pInitValue: string;
+    pFontSize: number;
     onChange: React.ChangeEventHandler<HTMLInputElement>;
 }
 
 export const Select = (props: SelectProps) => {
-    const { pWidth, pHeight, pOptions, pIsFullWidth, pIsReadonly, pInitValue, onChange } = props;
+    const { pWidth, pFontSize, pHeight, pOptions, pIsFullWidth, pBorderRadius, pIsReadonly, pInitValue, onChange } = props;
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [selectValue, setSelectValue] = useState<string>(pInitValue);
     const optionRef = useRef<HTMLDivElement>(null);
@@ -40,19 +42,22 @@ export const Select = (props: SelectProps) => {
     useOutsideClick(optionRef, () => setIsOpen(false));
 
     return (
-        <div className="custom-select-wrapper" style={{ width: pIsFullWidth ? '100%' : pWidth + 'px', minWidth: pIsFullWidth ? '100%' : pWidth + 'px', height: pHeight + 'px' }}>
+        <div
+            className="custom-select-wrapper"
+            style={{ borderRadius: pBorderRadius + 'px', width: pIsFullWidth ? '100%' : pWidth + 'px', minWidth: pIsFullWidth ? '100%' : pWidth + 'px', height: pHeight + 'px' }}
+        >
             <div className="select-input" onClick={handleClick}>
-                <input readOnly={pIsReadonly} value={selectValue} placeholder="Select..." />
+                <input readOnly={pIsReadonly} value={selectValue} style={{ fontSize: pFontSize }} placeholder="Select..." />
                 <ArrowDown />
             </div>
             <div
                 ref={optionRef}
                 className="select-options"
-                style={{ display: isOpen ? 'block' : 'none', maxHeight: pHeight * 5 + 'px' }}
+                style={{ display: isOpen ? 'block' : 'none', maxHeight: pHeight * 5 + 'px', borderRadius: pBorderRadius + 'px' }}
                 onClick={(aEvent) => aEvent.stopPropagation()}
             >
                 {pOptions.map((aOption: string, aIdx) => (
-                    <div key={aOption + aIdx} className="options-item" onClick={() => handleSelect(aOption)}>
+                    <div key={aOption + aIdx} className="options-item" onClick={() => handleSelect(aOption)} style={{ fontSize: pFontSize }}>
                         {aOption}
                     </div>
                 ))}
@@ -67,4 +72,6 @@ Select.defaultProps = {
     pIsFullWidth: false,
     pIsReadonly: true,
     pInitValue: '',
+    pFontSize: 13,
+    pBorderRadius: 8,
 };

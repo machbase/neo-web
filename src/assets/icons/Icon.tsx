@@ -11,6 +11,7 @@ export {
 
 export {
     VscChevronRight,
+    VscDiffAdded,
     VscWarning,
     VscRecord,
     VscLibrary,
@@ -69,7 +70,7 @@ export { RiArrowUpDoubleFill as ArrowUpDouble, RiMergeCellsVertical as HideOn, R
 
 export { FcFolder as TreeFolder, FcOpenedFolder as TreeFolderOpen } from 'react-icons/fc';
 
-export { IoLogOutOutline as Logout, IoPlayForwardSharp } from 'react-icons/io5';
+export { IoArrowBackOutline, IoLogOutOutline as Logout, IoPlayForwardSharp } from 'react-icons/io5';
 
 export { PiFileCsvThin } from 'react-icons/pi';
 

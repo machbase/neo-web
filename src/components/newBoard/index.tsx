@@ -121,6 +121,7 @@ const NewBoard = (props: NewBoardProps) => {
                           sheet: [],
                           savedCode: false,
                           shell: { icon: aValue.icon, theme: aValue.theme ? aValue.theme : '', id: aValue.id ? aValue.id : 'SHELL' },
+                          dashboard: {},
                       }
                     : bItem;
             })

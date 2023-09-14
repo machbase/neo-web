@@ -3,13 +3,14 @@ import showChart from '@/plugin/eCharts';
 import { useLayoutEffect, useRef, useState } from 'react';
 import './LineChart.scss';
 
-const LineChart = ({ pValue, pDraged }: any) => {
+const LineChart = ({ pValue, pDraged, pInsetDraging }: any) => {
     const [sText, setText] = useState('');
     const ChartRef = useRef<any>();
     const [sFirstSet, setFirstSet] = useState(false);
 
     const getLineChart = async () => {
-        const sInput = 'INPUT(SQL(`' + 'select * from example' + '`))\n' + 'TAKE(50)\n' + `OUTPUT(CHART_LINE(size('${ChartRef.current.clientWidth}px','${pValue.h * 19}px')))`;
+        const sInput =
+            'SQL(`' + 'select * from example' + '`)\n' + 'TAKE(50)\n' + `CHART_LINE(size('${ChartRef.current.clientWidth}px','${ChartRef.current.clientHeight - 34}px'))`;
         const sResult: any = await getTqlChart(sInput);
 
         const sValue = ` <div class="chart_container">
@@ -24,14 +25,14 @@ const LineChart = ({ pValue, pDraged }: any) => {
 
     useLayoutEffect(() => {
         ChartRef?.current?.clientWidth && getLineChart();
-    }, [pValue.w, pValue.h, pDraged]);
+    }, [pValue.w, pValue.h, pDraged, pInsetDraging]);
 
     useLayoutEffect(() => {
         if (ChartRef?.current?.clientWidth && !sFirstSet) {
             setFirstSet(true);
             getLineChart();
         }
-    }, [ChartRef?.current?.clientWidth]);
+    }, [ChartRef?.current?.clientWidth, pInsetDraging]);
 
     return (
         <div ref={ChartRef} className="chart-form">

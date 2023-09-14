@@ -5,5 +5,23 @@
 .dashboard-form {
     width: 100%;
     overflow: auto;
-    height: 100%;
+    height: calc(100%);
+    background: #1b1c21;
+    position: relative;
+    .board-header {
+        position: relative;
+        height: 40px;
+        background-color: #262831;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        svg {
+            cursor: pointer;
+        }
+    }
+    .board-body {
+        overflow: auto;
+        height: calc(100% - 40px);
+        position: relative;
+    }
 }

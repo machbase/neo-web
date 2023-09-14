@@ -1,0 +1,22 @@
+.chart-footer {
+    .series-title {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.3rem 0.5rem;
+        border-radius: 4px;
+        position: relative;
+        font-size: 13px;
+        width: 50px;
+    }
+    .series {
+        .row {
+            .series-table {
+                display: flex;
+
+                align-items: center;
+                height: 32px;
+            }
+        }
+    }
+}

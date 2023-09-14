@@ -1,0 +1,97 @@
+.create-panel-form {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    background-color: #262831;
+    .header {
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        .left {
+            svg {
+                cursor: pointer;
+            }
+            display: flex;
+            align-items: center;
+            span {
+                margin-left: 8px;
+            }
+        }
+        .right {
+            display: flex;
+            font-size: 13px;
+            gap: 8px;
+        }
+    }
+    .body {
+        height: calc(100% - 40px);
+
+        .split-side {
+            .react-split__sash:hover::before {
+                border-color: rgba(87, 148, 242, 0.6);
+            }
+            .react-split__sash:hover::after {
+                background-color: transparent;
+            }
+            .react-split__sash::before {
+                border-right: 1px solid transparent;
+                height: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                content: '';
+                position: absolute;
+                transition: border-color 0.2s ease-in-out 0s;
+            }
+            .react-split__sash::after {
+                height: 200px;
+                width: 4px;
+                background: #4199ff;
+                opacity: 0.3;
+                content: '';
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transition: background 0.2s ease-in-out 0s;
+                transform: translate(-50%, -50%);
+                border-radius: 4px;
+            }
+        }
+        .split-bottom {
+            .react-split__sash:hover::before {
+                border-color: rgba(87, 148, 242, 0.6);
+            }
+            .react-split__sash:hover::after {
+                background-color: transparent;
+            }
+            .react-split__sash::before {
+                border-right: 0;
+
+                border-top: 1px solid transparent;
+                top: 50%;
+                width: 100%;
+                content: '';
+                position: absolute;
+                transition: border-color 0.2s ease-in-out 0s;
+                z-index: 9;
+            }
+            .react-split__sash::after {
+                z-index: 10;
+                background: #4199ff;
+                content: '';
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transition: background 0.2s ease-in-out 0s;
+                transform: translate(-50%, -50%);
+                border-radius: 4px;
+                height: 4px;
+                width: 200px;
+            }
+        }
+    }
+}
