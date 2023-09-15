@@ -36,6 +36,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
         over: undefined,
         end: false,
     });
+    const sBodyRef = useRef<any>(null);
     const sNavigate = useNavigate();
 
     const handleMouseWheel = (e: any) => {
@@ -142,7 +143,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
     }, [sTabDragInfo.end]);
 
     return (
-        <div style={{ width: '100%', height: '100%', background: '#262831' }}>
+        <div ref={sBodyRef} style={{ width: '100%', height: '100%', background: '#262831' }}>
             <div className="tab">
                 <div className="tab-list" onWheel={handleMouseWheel} ref={sTabRef}>
                     {sBoardList.length !== 0 &&
@@ -185,7 +186,9 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                 ></TagAnalyzer>
                             )}
                             {aItem.type === 'term' && <Shell pSelectedTab={sSelectedTab} pInfo={aItem} pId={aItem.id}></Shell>}
-                            {aItem.type === 'dsh' && <Dashboard pInfo={aItem} pDraged={pDraged} pId={aItem.id} pSideSizes={pSideSizes}></Dashboard>}
+                            {aItem.type === 'dsh' && (
+                                <Dashboard pWidth={sBodyRef?.current?.clientWidth} pInfo={aItem} pDraged={pDraged} pId={aItem.id} pSideSizes={pSideSizes}></Dashboard>
+                            )}
                             {aItem.type === 'wrk' && (
                                 <WorkSheet
                                     pId={aItem.id}

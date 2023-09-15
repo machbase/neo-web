@@ -2,10 +2,13 @@ import { Delete } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { gBoardList, GBoardListType, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
+import { useState } from 'react';
 import './PanelHeader.scss';
 
-const PanelHeader = ({ pValue, pDraging }: any) => {
+const PanelHeader = ({ pType, pPanelInfo }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
+    const [sMouseDown, setMouseDown] = useState(false);
+
     const [sSelectedTab] = useRecoilState(gSelectedTab);
 
     const removePanel = () => {
@@ -14,7 +17,10 @@ const PanelHeader = ({ pValue, pDraging }: any) => {
                 return aItem.id === sSelectedTab
                     ? {
                           ...aItem,
-                          panels: aItem.panels.filter((aItem: any) => aItem.i !== pValue.i),
+                          dashboard: {
+                              ...aItem.dashboard,
+                              panels: aItem.dashboard.panels.filter((aItem: any) => aItem.i !== pPanelInfo.i),
+                          },
                       }
                     : aItem;
             })
@@ -23,19 +29,23 @@ const PanelHeader = ({ pValue, pDraging }: any) => {
 
     return (
         <div
+            onMouseDown={() => setMouseDown(true)}
+            onMouseUp={() => setMouseDown(false)}
             style={
-                pDraging
-                    ? {
-                          cursor: 'grab',
-                      }
-                    : {
-                          cursor: 'grabbing',
-                      }
+                pType !== 'create'
+                    ? !sMouseDown
+                        ? {
+                              cursor: 'grab',
+                          }
+                        : {
+                              cursor: 'grabbing',
+                          }
+                    : {}
             }
             className="board-panel-header"
         >
             <div>CHART TITLE</div>
-            <span className="delete">{<IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}</span>
+            {pType !== 'create' && <span className="delete">{<IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}</span>}
         </div>
     );
 };

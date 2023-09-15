@@ -1,9 +1,9 @@
 import './CreatePanelRight.scss';
-const CreatePanelBody = () => {
+const CreatePanelRight = () => {
     return (
         <div className="chart-set-wrap">
             <div className="body">Chart Info</div>
         </div>
     );
 };
-export default CreatePanelBody;
+export default CreatePanelRight;
