@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import SplitPane, { Pane, SashContent } from 'split-pane-react';
 import { getTqlChart } from '@/api/repository/machiot';
-import { useRecoilState, useRecoilValue } from 'recoil';
-import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { gBoardList, gConsoleList, gSelectedTab } from '@/recoil/recoil';
 import { Table } from './Table';
 import './index.scss';
 import { ShowChart } from './ShowChart';
@@ -33,6 +33,7 @@ const Tql = (props: TqlProps) => {
     const [sTextField, setTextField] = useState<string>('');
     const [sIsPrettier, setIsPrettier] = useState<boolean>(false);
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
+    const setConsoleList = useSetRecoilState<any>(gConsoleList);
 
     useEffect(() => {
         const sIsExist = sBoardList.findIndex((aItem) => aItem.id === sSelectedTab);
@@ -51,7 +52,7 @@ const Tql = (props: TqlProps) => {
     const getTqlData = async (aText: string) => {
         const sResult: any = await getTqlChart(aText);
 
-        if (sResult.status === 200 && sResult.headers && sResult.daata && sResult.headers['x-chart-type'] === 'echarts') {
+        if (sResult.status === 200 && sResult.headers && sResult.headers['x-chart-type'] === 'echarts') {
             setResultType('html');
             setChartData(sResult.data);
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/markdown') {
@@ -63,11 +64,11 @@ const Tql = (props: TqlProps) => {
             const sTempCsv: string[][] = [];
 
             sResult.data.split('\n').map((aItem: string) => {
-                sTempCsv.push(aItem.split(','));
+                if (aItem) sTempCsv.push(aItem.split(','));
             });
 
             const tempHeaders: string[] = [];
-            sTempCsv[0].map((_, aIdx) => {
+            sTempCsv[0] && sTempCsv[0].map((_, aIdx) => {
                 tempHeaders.push('column' + aIdx);
             });
             setCsvHeader(tempHeaders);
@@ -81,10 +82,36 @@ const Tql = (props: TqlProps) => {
         } else {
             setResultType('text');
             if (sResult.status === 200) {
-                setTextField(JSON.stringify(sResult.data));
+                if (sResult.data && typeof sResult.data === 'object') {
+                    setTextField(JSON.stringify(sResult.data));
+                } else {
+                    setTextField('');
+                    setConsoleList((prev: any) => [
+                        ...prev,
+                        {
+                            timestamp: new Date().getTime(),
+                            level: 'ERROR',
+                            task: '',
+                            message: sResult.statusText,
+                        },
+                    ]);
+                }
                 return;
             } else {
-                setTextField(sResult.data.reason);
+                if (sResult.data && sResult.data.reason) {
+                    setTextField(sResult.data.reason);
+                } else {
+                    setTextField('');
+                    setConsoleList((prev: any) => [
+                        ...prev,
+                        {
+                            timestamp: new Date().getTime(),
+                            level: 'ERROR',
+                            task: '',
+                            message: sResult.statusText,
+                        },
+                    ]);
+                }
                 return;
             }
         }
