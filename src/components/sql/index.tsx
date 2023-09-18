@@ -34,11 +34,12 @@ const Sql = ({
     const [sTimeRange, setTimeRange] = useState('2006-01-02 15:04:05');
     const [sTimeZone, setTimeZone] = useState('LOCAL');
     const [sSelectedSubTab, setSelectedSubTab] = useState<'RESULT' | 'CHART' | 'LOG'>('RESULT');
-    const [sLogList, setLogList] = useState<string[]>([]);
+    // const [sLogList, setLogList] = useState<string[]>([]);
     const [sSqlQueryTxt, setSqlQueryTxt] = useState<string>(pInfo.code);
     const [sSqlResponseData, setSqlResponseData] = useState<any>();
     const [sResultLimit, setResultLimit] = useState<number>(1);
     const sEditorRef = useRef(null);
+    const [sErrLog, setErrLog] = useState<string | null>(null);
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
     const [sChartAxisList, setChartAxisList] = useState<string[]>([]);
     const [sChartQueryList, setChartQueryList] = useState<string[]>([]);
@@ -144,7 +145,7 @@ const Sql = ({
                 return fetchQuery(curQuery);
             }, Promise.resolve());
         } catch {
-            // Query false
+            setErrLog(sQueryReslutList.at(-1).data.reason);
         }
 
         if (
@@ -166,9 +167,10 @@ const Sql = ({
         if (sQueryReslutList[sQueryReslutList.length - 1].data.data) setChartAxisList(sQueryReslutList[sQueryReslutList.length - 1].data.data.columns);
         setResultLimit(2);
         setSqlResponseData(sQueryReslutList[sQueryReslutList.length - 1].data.data);
-        setLogList([...sLogList, `${aParsedQuery}\n${sQueryReslutList[sQueryReslutList.length - 1].data.reason} : ${sQueryReslutList[sQueryReslutList.length - 1].data.success}`]);
+        // setLogList([...sLogList, `${aParsedQuery}\n${sQueryReslutList[sQueryReslutList.length - 1].data.reason} : ${sQueryReslutList[sQueryReslutList.length - 1].data.success}`]);
 
         if (sQueryReslutList[sQueryReslutList.length - 1].data.success === true) {
+            setErrLog(null);
             setSelectedSubTab('RESULT');
             return true;
         } else {
@@ -196,7 +198,6 @@ const Sql = ({
         const paredQuery = getTargetQuery();
         const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery, sResultLimit, sTimeRange, sTimeZone));
         const sParsedSqlResult = await JSON.parse(isJsonString(sSqlResult.request.response) ? sSqlResult.request.response : '{}');
-
         if (sSqlResult.data.data && sParsedSqlResult) {
             setResultLimit(sResultLimit + 1);
             setSqlResponseData(
@@ -208,7 +209,7 @@ const Sql = ({
                     })
                 )
             );
-            setLogList([...sLogList, `${paredQuery}\n${sParsedSqlResult.elapse} : ${sParsedSqlResult.success}`]);
+            // setLogList([...sLogList, `${paredQuery}\n${sParsedSqlResult.elapse} : ${sParsedSqlResult.success}`]);
         }
     };
 
@@ -298,7 +299,14 @@ const Sql = ({
                                 <IconButton pIcon={<LuFlipVertical />} pIsActive={!isVertical} onClick={handleSplitHorizontal} />
                             </div>
                         </div>
-                        <RESULT pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'} pSqlResponseData={sSqlResponseData} onMoreResult={() => onMoreResult()} />
+                        {sErrLog ? (
+                            <div className="sql-error-body" style={{ padding: '0 1rem' }}>
+                                {sErrLog}
+                            </div>
+                        ) : (
+                            <RESULT pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'} pSqlResponseData={sSqlResponseData} onMoreResult={() => onMoreResult()} />
+                        )}
+
                         {/* <LOG pDisplay={sSelectedSubTab === 'LOG' ? '' : 'none'} pLogList={sLogList} onClearLog={() => onClearLog()} /> */}
                         <CHART
                             pQueryList={sChartQueryList}
