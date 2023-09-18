@@ -24,6 +24,8 @@ export const FileTree = (props: FileTreeProps) => {
     const [sEnterItem, setEnterItem] = useState<any>(null);
     const [sDndTargetList, setDndTargetList] = useState<any>(null);
     const [sIsDnd, setIsDnd] = useState<boolean>(false);
+    const [sLeaveItem, setLeaveItem] = useState<any>(null);
+    const [sLastItem, setLastItem] = useState<any>(null);
 
     const HandleRootClick = (e: any) => {
         if (e.metakey || e.ctrlKey) return;
@@ -37,6 +39,19 @@ export const FileTree = (props: FileTreeProps) => {
         setEnterItem(null);
         setIsDnd(false);
     };
+
+    const handleLastItem = () => {
+        if (props.rootDir.files.length > 0) {
+            setLastItem(props.rootDir.files.at(-1));
+        } else if (props.rootDir.dirs.length > 0 && props.rootDir.files.length === 0) {
+            setLastItem(props.rootDir.dirs.at(-1));
+        } else {
+            setLastItem(null);
+        }
+    };
+    useEffect(() => {
+        handleLastItem();
+    }, []);
 
     useEffect(() => {
         if (sIsDnd) {
@@ -54,14 +69,13 @@ export const FileTree = (props: FileTreeProps) => {
             // DIR
             else {
                 sAddTargetPath = sEnterItem.path + sEnterItem.name + '/';
-                sParsedList = sDndTargetList.filter(
-                    (aTarget: any) => aTarget.path !== sEnterItem.path + sEnterItem.name + '/' && aTarget.name !== sEnterItem.name && aTarget.depth !== sEnterItem.depth
-                );
+                sParsedList = sDndTargetList.filter((aTarget: any) => aTarget.path !== sEnterItem.path + sEnterItem.name + '/' && aTarget.name !== sEnterItem.name);
             }
             if (!sParsedList.length || !sAddTargetPath) {
                 DndClear();
                 return;
             }
+
             let sTestRoot = JSON.parse(JSON.stringify(props.rootDir));
             // remove
             sParsedList.map((aDeleteItem: any) => {
@@ -90,11 +104,11 @@ export const FileTree = (props: FileTreeProps) => {
                     else sTestRoot.dirs = addTargetDir(sTestRoot, aAddItem, sAddTargetPath);
                 }
             });
+            handleLastItem();
             DndClear();
             props.onSetFileTree(JSON.parse(JSON.stringify(sTestRoot)));
         }
     }, [sIsDnd]);
-
     const modifyDepth = (aDir: any) => {
         const abc = JSON.parse(JSON.stringify(aDir));
         if (aDir.dirs.length > 0) {
@@ -111,7 +125,6 @@ export const FileTree = (props: FileTreeProps) => {
         }
         return abc;
     };
-
     const removeFile = (aRoot: any, aItem: any) => {
         const sPath = aItem.path.split('/').filter((aPath: string) => !!aPath);
         if (sPath && sPath.length > 0) {
@@ -216,6 +229,9 @@ export const FileTree = (props: FileTreeProps) => {
                 sDndTargetList={sDndTargetList}
                 setDndTargetList={setDndTargetList}
                 setIsDnd={setIsDnd}
+                setLeaveItem={setLeaveItem}
+                sLeaveItem={sLeaveItem}
+                sLastItem={sLastItem}
             />
         </div>
     );
@@ -229,6 +245,9 @@ interface SubTreeProps {
     setDndTargetList: (item: any) => void;
     sEnterItem: any;
     setEnterItem: (item: any) => void;
+    sLastItem: any;
+    sLeaveItem: any;
+    setLeaveItem: (item: any) => void;
     onSelect: (file: FileType) => void;
     onFetchDir: (item: FileTreeType) => void;
     onContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: FileType | FileTreeType) => void;
@@ -250,6 +269,9 @@ const SubTree = (props: SubTreeProps) => {
                             onRefresh={props.onRefresh}
                             pEnterItem={props.sEnterItem}
                             onSetEnterItem={props.setEnterItem}
+                            pLeaveItem={props.sLeaveItem}
+                            onSetLeaveItem={props.setLeaveItem}
+                            pLastItem={props.sLastItem}
                             pDndTargetList={props.sDndTargetList}
                             onSetDndTargetList={props.setDndTargetList}
                             onSetIsDnd={props.setIsDnd}
@@ -269,6 +291,9 @@ const SubTree = (props: SubTreeProps) => {
                             onContextMenu={props.onContextMenu}
                             pEnterItem={props.sEnterItem}
                             onSetEnterItem={props.setEnterItem}
+                            pLastItem={props.sLastItem}
+                            pLeaveItem={props.sLeaveItem}
+                            onSetLeaveItem={props.setLeaveItem}
                             pDndTargetList={props.sDndTargetList}
                             onSetDndTargetList={props.setDndTargetList}
                             onSetIsDnd={props.setIsDnd}
@@ -346,6 +371,9 @@ const FileDiv = ({
     onSetDndTargetList,
     pEnterItem,
     onSetEnterItem,
+    pLastItem,
+    pLeaveItem,
+    onSetLeaveItem,
     onClick,
     onContextMenu,
     onRefresh,
@@ -358,6 +386,9 @@ const FileDiv = ({
     onSetDndTargetList: (item: any) => void;
     pEnterItem: any;
     onSetEnterItem: (item: any) => void;
+    pLastItem: any;
+    pLeaveItem: any;
+    onSetLeaveItem: (item: any) => void;
     onClick: () => void;
     onContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: FileType | FileTreeType) => void;
     onRefresh?: (e?: React.MouseEvent<HTMLDivElement>) => void;
@@ -430,20 +461,61 @@ const FileDiv = ({
             else return false;
         } else return false;
     };
+    const checkDndSection = (aFile: any): boolean => {
+        if (pEnterItem) {
+            const sFilePath = aFile.path.split('/').join('').trim();
+            const sEnterItemPath = pEnterItem.path.split('/').join('').trim();
+            const testexp = new RegExp(`^${pEnterItem.path + pEnterItem.name + '/'}`);
+            if (pEnterItem.type === 1 && aFile.name === pEnterItem.name && aFile.depth === pEnterItem.depth) return true;
+            if (pEnterItem.type === 0 && aFile.name === pEnterItem.name && aFile.depth === pEnterItem.depth) return true;
 
+            if (
+                pEnterItem.type === 1 &&
+                sFilePath.length > sEnterItemPath.length &&
+                sFilePath.includes(sEnterItemPath) &&
+                pEnterItem.depth <= aFile.depth &&
+                testexp.test(aFile.path)
+            ) {
+                return true;
+            }
+            return false;
+        } else return false;
+    };
+    const HandleDragLeave = (e: any, aTarget: any) => {
+        e.stopPropagation();
+        onSetLeaveItem(aTarget);
+    };
+
+    const checkLastItem = (): boolean => {
+        if (!pLeaveItem || !pEnterItem) return false;
+        if (
+            pLastItem.name === pEnterItem.name &&
+            pLastItem.path === pEnterItem.path &&
+            pLastItem.depth === pEnterItem.depth &&
+            pLastItem.name === pLeaveItem.name &&
+            pLastItem.path === pLeaveItem.path &&
+            pLastItem.depth === pLeaveItem.depth
+        ) {
+            return true;
+        }
+        return false;
+    };
     return (
         <div
             className="dragAndDrop"
             onDragStart={(event) => HandleDragStart(event, file)}
             onDragEnter={(event) => HandleDragEnter(event, file)}
             onDragEnd={HandleDragEnd}
+            onDragLeave={(event) => HandleDragLeave(event, file)}
             onClick={() => HandleMultiDrag(file)}
             draggable
         >
             <Div
                 depth={depth}
                 isDndItem={checkDndItem(file)}
+                isDndSection={checkDndSection(file)}
                 isSelected={isSelected}
+                isLastItem={checkLastItem()}
                 isGit={(file as FileTreeType).gitClone || false}
                 onClick={handleClick}
                 onContextMenu={(e) => handleOnContextMenu(e, file)}
@@ -472,18 +544,20 @@ const Div = styled.div<{
     isSelected: boolean;
     isGit: boolean;
     isDndItem: boolean;
+    isDndSection: boolean;
+    isLastItem: boolean;
 }>`
     display: flex;
     justify-content: space-between;
     padding-left: ${(props) => props.depth * 16}px;
-    background-color: ${(props) => (props.isDndItem ? '#3e3e3e' : props.isSelected ? '#242424' : 'transparent')};
+    background-color: ${(props) => (props.isLastItem ? '#3e3e3e' : props.isDndItem ? '#3e3e3e' : props.isDndSection ? '#3e3e3e' : props.isSelected ? '#242424' : 'transparent')};
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
     word-break: break-all;
     :hover {
         cursor: pointer;
-        background-color: ${(props) => (props.isDndItem ? '#3e3e3e' : '#242424')};
+        background-color: ${(props) => (props.isLastItem ? '#3e3e3e' : props.isDndItem ? '#3e3e3e' : props.isDndSection ? '#3e3e3e' : '#242424')};
     }
 `;
 
@@ -495,6 +569,9 @@ const DirDiv = ({
     onSetDndTargetList,
     pEnterItem,
     onSetEnterItem,
+    pLastItem,
+    pLeaveItem,
+    onSetLeaveItem,
     onSelect,
     onSelectDir,
     onContextMenu,
@@ -507,6 +584,9 @@ const DirDiv = ({
     onSetDndTargetList: (item: any) => void;
     pEnterItem: any;
     onSetEnterItem: (item: any) => void;
+    pLastItem: any;
+    pLeaveItem: any;
+    onSetLeaveItem: (item: any) => void;
     onSelect: (file: FileType) => void;
     onSelectDir: (item: FileTreeType) => void;
     onContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: FileType | FileTreeType) => void;
@@ -536,6 +616,9 @@ const DirDiv = ({
                     onRefresh={onRefresh}
                     pEnterItem={pEnterItem}
                     onSetEnterItem={onSetEnterItem}
+                    pLastItem={pLastItem}
+                    pLeaveItem={pLeaveItem}
+                    onSetLeaveItem={onSetLeaveItem}
                     pDndTargetList={pDndTargetList}
                     onSetDndTargetList={onSetDndTargetList}
                     onSetIsDnd={onSetIsDnd}
@@ -552,6 +635,9 @@ const DirDiv = ({
                     setDndTargetList={onSetDndTargetList}
                     sEnterItem={pEnterItem}
                     setEnterItem={onSetEnterItem}
+                    sLastItem={pLastItem}
+                    sLeaveItem={pLeaveItem}
+                    setLeaveItem={onSetLeaveItem}
                     setIsDnd={onSetIsDnd}
                 />
             ) : null}
