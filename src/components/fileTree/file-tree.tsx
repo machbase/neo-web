@@ -115,7 +115,6 @@ export const FileTree = (props: FileTreeProps) => {
                     else sTestRoot.dirs = addTargetDir(sTestRoot, aAddItem, sAddTargetPath);
                 }
             });
-            handleLastItem();
             DndClear();
             props.onSetFileTree(JSON.parse(JSON.stringify(sTestRoot)));
         }
