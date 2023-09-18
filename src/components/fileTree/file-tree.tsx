@@ -42,16 +42,19 @@ export const FileTree = (props: FileTreeProps) => {
 
     const handleLastItem = () => {
         if (props.rootDir.files.length > 0) {
-            setLastItem(props.rootDir.files.at(-1));
+            return props.rootDir.files.at(-1);
         } else if (props.rootDir.dirs.length > 0 && props.rootDir.files.length === 0) {
-            setLastItem(props.rootDir.dirs.at(-1));
+            return props.rootDir.dirs.at(-1);
         } else {
-            setLastItem(null);
+            return null;
         }
     };
+
     useEffect(() => {
-        handleLastItem();
-    }, []);
+        if (props.rootDir) {
+            setLastItem(handleLastItem());
+        }
+    }, [props.rootDir]);
 
     useEffect(() => {
         if (sIsDnd) {
@@ -62,7 +65,7 @@ export const FileTree = (props: FileTreeProps) => {
             let sParsedList: any = [];
             let sAddTargetPath: string = '';
             // FILE
-            if (sEnterItem.type === 0) {
+            if (sEnterItem.type === 0 || sLastItem.type === 1) {
                 sAddTargetPath = sEnterItem.path;
                 sParsedList = sDndTargetList.filter((aTarget: any) => aTarget.path !== sEnterItem.path);
             }
@@ -75,7 +78,6 @@ export const FileTree = (props: FileTreeProps) => {
                 DndClear();
                 return;
             }
-
             let sTestRoot = JSON.parse(JSON.stringify(props.rootDir));
             // remove
             sParsedList.map((aDeleteItem: any) => {
@@ -104,7 +106,6 @@ export const FileTree = (props: FileTreeProps) => {
                     else sTestRoot.dirs = addTargetDir(sTestRoot, aAddItem, sAddTargetPath);
                 }
             });
-            handleLastItem();
             DndClear();
             props.onSetFileTree(JSON.parse(JSON.stringify(sTestRoot)));
         }
@@ -466,9 +467,6 @@ const FileDiv = ({
             const sFilePath = aFile.path.split('/').join('').trim();
             const sEnterItemPath = pEnterItem.path.split('/').join('').trim();
             const testexp = new RegExp(`^${pEnterItem.path + pEnterItem.name + '/'}`);
-            if (pEnterItem.type === 1 && aFile.name === pEnterItem.name && aFile.depth === pEnterItem.depth) return true;
-            if (pEnterItem.type === 0 && aFile.name === pEnterItem.name && aFile.depth === pEnterItem.depth) return true;
-
             if (
                 pEnterItem.type === 1 &&
                 sFilePath.length > sEnterItemPath.length &&
@@ -477,8 +475,10 @@ const FileDiv = ({
                 testexp.test(aFile.path)
             ) {
                 return true;
+            } else {
+                if (pEnterItem.type === 1 && pEnterItem.name === aFile.name && pEnterItem.depth === aFile.depth && aFile.path === pEnterItem.path) return true;
+                return false;
             }
-            return false;
         } else return false;
     };
     const HandleDragLeave = (e: any, aTarget: any) => {

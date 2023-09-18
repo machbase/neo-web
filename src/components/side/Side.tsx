@@ -20,7 +20,12 @@ import { DeleteModal } from '../modal/DeleteModal';
 import SplitPane, { Pane } from 'split-pane-react';
 import { IconButton } from '@/components/buttons/IconButton';
 
-const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
+const Side = ({
+    pGetInfo,
+    pSavedPath,
+    pServer,
+}: // pExtensionList
+any) => {
     const sParedData: FileTreeType = {
         depth: 0,
         dirs: [],
@@ -316,6 +321,7 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
                                         onFetchDir={onFetchDir}
                                         onContextMenu={onContextMenu}
                                         onRefresh={() => handleRefresh()}
+                                        onSetFileTree={setFileTree}
                                     />
                                 </Sidebar>
                                 <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
@@ -342,7 +348,6 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
                         ))}
                 </Pane>
             </SplitPane>
-
             {sIsOpenModal ? <SaveModal pIsDarkMode pIsSave={false} setIsOpen={handleIsOpenModal} /> : null}
             {sIsFolderModal ? <FolderModal pIsGit={sIsGit} pIsDarkMode={true} setIsOpen={handleFolder} pCallback={handleRefresh} /> : null}
             {sIsDeleteModal ? <DeleteModal pIsDarkMode setIsOpen={setIsDeleteModal} pFileInfo={selectedContextFile} pCallback={handleDeleteFile} /> : null}
