@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import type { OnChange } from '@monaco-editor/react';
 import { useRecoilValue } from 'recoil';
@@ -17,15 +17,17 @@ export interface MonacoEditorProps {
         }
     ) => void;
     onSelectLine: (aLocation: { position: PositionType; selection: SelectionType }) => void;
+    setLineHeight?: Dispatch<SetStateAction<number>>;
 }
 
 export const MonacoEditor = (props: MonacoEditorProps) => {
-    const { pText, pLang, onChange, onRunCode, onSelectLine } = props;
+    const { pText, pLang, onChange, onRunCode, onSelectLine, setLineHeight } = props;
     const sMonaco = useMonaco();
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const [sCurrnetTab, setCurrentTab] = useState<any>();
     const [sEditor, setEditor] = useState<any>(null);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
+    const monacoRef = useRef<HTMLDivElement>(null);
 
     const sPositionDefaultValue = { column: 1, lineNumber: 1 };
     const sSelectionDefaultValue = {
@@ -83,6 +85,12 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
 
     useEffect(() => {
         if (sEditor) {
+            if (monacoRef.current && monacoRef.current.querySelector('.view-line')) {
+                const height = Number((monacoRef.current.querySelector('.view-line') as HTMLDivElement).style.height.replace(/[^0-9.]/g, ''));
+                if (setLineHeight) {
+                    setLineHeight(height);
+                }
+            }
             applyRunCode(pText);
         }
     }, [sEditor]);
@@ -119,7 +127,7 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
     };
 
     return (
-        <div style={{ width: '100%', height: '100%' }} onFocus={() => applyRunCode(pText)} onClick={selectionLine}>
+        <div ref={monacoRef} style={{ width: '100%', height: '100%' }} onFocus={() => applyRunCode(pText)} onClick={selectionLine}>
             <Editor height="100%" width="100%" language={sCurrentLang} value={pText} theme="my-theme" onChange={onChange} onMount={handleMount} options={monacoOptions} />
         </div>
     );

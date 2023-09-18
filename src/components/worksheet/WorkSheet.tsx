@@ -3,7 +3,7 @@ import './WorkSheet.scss';
 import { WorkSheetEditor } from './WorkSheetEditor';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList, gSelectedBoard } from '@/recoil/recoil';
-import { calcViewportHeight, getId } from '@/utils';
+import { getId } from '@/utils';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { Save, SaveAs, IoPlayForwardSharp } from '@/assets/icons/Icon';
 import { IconButton } from '../buttons/IconButton';
@@ -26,7 +26,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
     const [sRunCodeTarget, setRunCodeTarget] = useState<number | undefined>(undefined);
     const sNewWrkDefaultData = {
         contents: '',
-        height: calcViewportHeight(200),
+        height: 200,
         id: getId(),
         lang: [
             ['markdown', 'Markdown'],
