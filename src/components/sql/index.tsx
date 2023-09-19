@@ -122,7 +122,7 @@ const Sql = ({
             else parsedQuery = sqlMultiQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection);
             setSqlLocation(aLocation);
         }
-        if (!parsedQuery || parsedQuery.length === 0) return;
+        if (!parsedQuery || parsedQuery.length === 0 || (parsedQuery.length === 1 && parsedQuery[0].length === 0)) return;
         fetchSql(parsedQuery);
     };
 
