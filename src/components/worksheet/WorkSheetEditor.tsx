@@ -13,6 +13,7 @@ import { PositionType, SelectionType, sqlQueryParser } from '@/utils/sqlQueryPar
 import { IconButton } from '../buttons/IconButton';
 import { useSetRecoilState } from 'recoil';
 import { gConsoleList } from '@/recoil/recoil';
+import { sqlMultiQueryParser } from '@/utils/sqlMultiQueryParser';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown';
 type MonacoLang = 'sql' | 'markdown' | 'go';
@@ -141,7 +142,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             const sCurrentHeight = sLines * sMonacoLineHeight;
             resizeRef.current.style.height = sCurrentHeight + 'px';
         }
-    }, [sMonacoLineHeight])
+    }, [sMonacoLineHeight]);
 
     const initValue = (aEvent: React.DragEvent<HTMLDivElement>) => {
         if (resizeRef.current) {
@@ -207,28 +208,56 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             selection: SelectionType;
         }
     ) => {
-        let parsedQuery = '';
-        if (!aLocation) parsedQuery = sqlQueryParser(aText, sSqlLocation.position, sSqlLocation.selection);
-        else {
-            parsedQuery = sqlQueryParser(aText, aLocation.position, aLocation.selection);
+        setSql('');
+        let parsedQuery: any = '';
+        if (!aLocation) {
+            // SINGLE
+            if (sSqlLocation.selection.endColumn === sSqlLocation.selection.startColumn && sSqlLocation.selection.endLineNumber === sSqlLocation.selection.startLineNumber)
+                parsedQuery = [sqlQueryParser(aText, sSqlLocation.position, sSqlLocation.selection)];
+            // MULTIPLE
+            else parsedQuery = sqlMultiQueryParser(aText, sSqlLocation.position, sSqlLocation.selection);
+        } else {
+            // SINGLE
+            if (aLocation.selection.endColumn === aLocation.selection.startColumn && aLocation.selection.endLineNumber === aLocation.selection.startLineNumber)
+                parsedQuery = [sqlQueryParser(aText, aLocation.position, aLocation.selection)];
+            // MULTIPLE
+            else parsedQuery = sqlMultiQueryParser(aText, aLocation.position, aLocation.selection);
             setSqlLocation(aLocation);
         }
-        (async () => {
-            const sSqlResult = await getTqlChart(sqlSheetFormatter(parsedQuery, sResultContentType === 'brief'));
-            switch (sSqlResult.status) {
-                case 200:
-                    setSql(sSqlResult.data);
-                    if (pAllRunCodeStatus) pAllRunCodeCallback(true);
-                    break;
-                default:
-                    if (pAllRunCodeStatus) pAllRunCodeCallback(false);
-            }
-            if (sSqlResult.data.reason) {
-                setSqlReason(sSqlResult.data.reason);
-            } else {
-                setSqlReason('');
-            }
-        })();
+        if (!parsedQuery || parsedQuery.length === 0 || (parsedQuery.length === 1 && parsedQuery[0].length === 0)) {
+            if (pAllRunCodeStatus) pAllRunCodeCallback(true);
+            return;
+        }
+        fetchSql(parsedQuery);
+    };
+
+    const fetchSql = async (aParsedQuery: string[]) => {
+        const sQueryReslutList: any = [];
+        try {
+            const fetchQuery = (aQuery: string) => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(async () => {
+                        const sQueryResult = await getTqlChart(sqlSheetFormatter(aQuery.trim(), sResultContentType === 'brief'));
+                        sQueryReslutList.push(sQueryResult);
+                        if (sQueryResult.status === 200) resolve(true);
+                        else reject(false);
+                    }, 1);
+                });
+            };
+            await aParsedQuery.reduce(async (previousPromise: any, curQuery: string) => {
+                await previousPromise;
+                return fetchQuery(curQuery);
+            }, Promise.resolve());
+        } catch {
+            setSqlReason(sQueryReslutList.at(-1).data.reason);
+        }
+        if (sQueryReslutList.at(-1).status === 200 && aParsedQuery.length === sQueryReslutList.length) {
+            setSqlReason('');
+            setSql(sQueryReslutList[sQueryReslutList.length - 1].data);
+            if (pAllRunCodeStatus) pAllRunCodeCallback(true);
+        } else {
+            if (pAllRunCodeStatus) pAllRunCodeCallback(false);
+        }
     };
 
     const getTqlData = async (aText: string) => {
@@ -261,9 +290,10 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             });
 
             const tempHeaders: string[] = [];
-            sTempCsv[0] && sTempCsv[0].map((_, aIdx) => {
-                tempHeaders.push('COLUMN' + aIdx);
-            });
+            sTempCsv[0] &&
+                sTempCsv[0].map((_, aIdx) => {
+                    tempHeaders.push('COLUMN' + aIdx);
+                });
 
             setTqlCsv(sTempCsv);
             setTqlCsvHeader(tempHeaders);
