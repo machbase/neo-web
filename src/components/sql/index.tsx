@@ -165,6 +165,8 @@ const Sql = ({
             setChartQueryList([aParsedQuery[sQueryReslutList.length - 1]]);
         } else setChartQueryList([]);
         if (sQueryReslutList[sQueryReslutList.length - 1].data.data) setChartAxisList(sQueryReslutList[sQueryReslutList.length - 1].data.data.columns);
+        else setChartAxisList([]);
+
         setResultLimit(2);
         setSqlResponseData(sQueryReslutList[sQueryReslutList.length - 1].data.data);
         // setLogList([...sLogList, `${aParsedQuery}\n${sQueryReslutList[sQueryReslutList.length - 1].data.reason} : ${sQueryReslutList[sQueryReslutList.length - 1].data.success}`]);
