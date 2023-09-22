@@ -66,13 +66,13 @@ const AUTOCOMBOBOX = ({ pName, pList, pTarget, pCallback }: { pName: string; pLi
         if (e.keyCode === 40) {
             const pLen = sShowList.length;
             comboboxRef.current.children[pLen === sItemIdx + 1 ? pLen - 1 : sItemIdx + 1].focus();
-            comboboxRef.current.scrollTo(0, 18 * sItemIdx - 260);
+            comboboxRef.current.scrollTo(0, 20 * sItemIdx - 260);
             setItemIdx(pLen === sItemIdx + 1 ? pLen - 1 : sItemIdx + 1);
             e.preventDefault();
         }
         if (e.keyCode === 38) {
             comboboxRef.current.children[sItemIdx === 0 ? 0 : sItemIdx - 1].focus();
-            comboboxRef.current.scrollTo(0, 18 * sItemIdx - 260);
+            comboboxRef.current.scrollTo(0, 20 * sItemIdx - 260);
             setItemIdx(sItemIdx === 0 ? 0 : sItemIdx - 1);
             e.preventDefault();
         }
