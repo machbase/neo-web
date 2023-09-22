@@ -20,7 +20,12 @@ export const SearchInput = (props: SearchInputProps) => {
         setIsExpand(false);
     };
 
-    useDebounce([sValue], () => onChange(sValue), 300);
+    const handleChange = () => {
+        if (sIsExpand) onChange(sValue);
+    };
+
+    useDebounce([sValue], handleChange, 300);
+
     return (
         <div onClick={(e) => (pClickStopPropagation ? e.stopPropagation() : null)} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             {sIsExpand ? (

@@ -20,6 +20,7 @@ import { DeleteModal } from '../modal/DeleteModal';
 import SplitPane, { Pane } from 'split-pane-react';
 import { IconButton } from '@/components/buttons/IconButton';
 import { SearchInput } from '../inputs/SearchInput';
+import { TreeViewFilter } from '@/utils/treeViewFilter';
 
 const Side = ({
     pGetInfo,
@@ -264,7 +265,16 @@ any) => {
     };
 
     const handleSearch = (aValue: string) => {
-        console.log('aValue', aValue);
+        if (!aValue) {
+            setRootDir(JSON.parse(JSON.stringify(sFileTree)));
+        }
+        if (aValue && aValue !== '') {
+            const sFilterTree = TreeViewFilter({
+                origin: sFileTree,
+                filterTxt: aValue,
+            });
+            setRootDir(sFilterTree);
+        }
     };
 
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
@@ -305,7 +315,7 @@ any) => {
                             <div>EXPLORER</div>
                             <div style={{ display: 'flex', alignItems: 'center' }}>
                                 <div style={{ marginRight: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <SearchInput pWidth={120} pHeight={20} pClickStopPropagation onChange={handleSearch} />
+                                    <SearchInput pWidth={120} pHeight={20} pClickStopPropagation onChange={(value: string) => handleSearch(value)} />
                                 </div>
                                 <IconButton pWidth={20} pHeight={20} pIcon={<TbFolder size={15} />} onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
                                 <IconButton pWidth={20} pHeight={20} pIcon={<TbFolderPlus size={15} />} onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
