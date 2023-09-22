@@ -299,13 +299,15 @@ const Sql = ({
                                 <IconButton pIcon={<LuFlipVertical />} pIsActive={!isVertical} onClick={handleSplitHorizontal} />
                             </div>
                         </div>
-                        {sErrLog ? (
-                            <div className="sql-error-body" style={{ padding: '0 1rem' }}>
-                                {sErrLog}
-                            </div>
-                        ) : (
-                            <RESULT pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'} pSqlResponseData={sSqlResponseData} onMoreResult={() => onMoreResult()} />
-                        )}
+                        {sSelectedSubTab === 'RESULT' ? (
+                            sErrLog ? (
+                                <div className="sql-error-body" style={{ padding: '0 1rem' }}>
+                                    {sErrLog}
+                                </div>
+                            ) : (
+                                <RESULT pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'} pSqlResponseData={sSqlResponseData} onMoreResult={() => onMoreResult()} />
+                            )
+                        ) : null}
 
                         {/* <LOG pDisplay={sSelectedSubTab === 'LOG' ? '' : 'none'} pLogList={sLogList} onClearLog={() => onClearLog()} /> */}
                         <CHART
