@@ -19,6 +19,7 @@ import { postFileList } from '@/api/repository/api';
 import { DeleteModal } from '../modal/DeleteModal';
 import SplitPane, { Pane } from 'split-pane-react';
 import { IconButton } from '@/components/buttons/IconButton';
+import { SearchInput } from '../inputs/SearchInput';
 
 const Side = ({
     pGetInfo,
@@ -262,6 +263,10 @@ any) => {
         getFileTree();
     };
 
+    const handleSearch = (aValue: string) => {
+        console.log('aValue', aValue);
+    };
+
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
 
     return (
@@ -296,10 +301,12 @@ any) => {
                 <Pane minSize={22}>
                     <div className="side-sub-title editors-title" onClick={() => setCollapseTree(!sCollapseTree)}>
                         <div className="collapse-icon">{sCollapseTree ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
-
                         <div className="files-open-option">
                             <div>EXPLORER</div>
                             <div style={{ display: 'flex', alignItems: 'center' }}>
+                                <div style={{ marginRight: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <SearchInput pWidth={120} pHeight={20} pClickStopPropagation onChange={handleSearch} />
+                                </div>
                                 <IconButton pWidth={20} pHeight={20} pIcon={<TbFolder size={15} />} onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
                                 <IconButton pWidth={20} pHeight={20} pIcon={<TbFolderPlus size={15} />} onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
                                 <IconButton pWidth={20} pHeight={20} pIcon={<TbCloudDown size={15} />} onClick={(aEvent: any) => handleFolder(true, aEvent, true)} />

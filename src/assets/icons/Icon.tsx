@@ -53,6 +53,7 @@ export {
     MdRawOn,
     MdRefresh,
     MdOutlineUpgrade,
+    MdOutlineCancel as Cancel,
 } from 'react-icons/md';
 
 export { RxUpdate as Update } from 'react-icons/rx';
