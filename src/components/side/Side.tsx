@@ -105,8 +105,8 @@ any) => {
 
     useEffect(() => {
         if (sFileTree.name && sFileTree.id) {
+            setRootDir(JSON.parse(JSON.stringify(sFileTree)));
             if (sSearchFilter) handleSearch(sSearchTxt);
-            else setRootDir(JSON.parse(JSON.stringify(sFileTree)));
         }
     }, [sFileTree]);
 
