@@ -72,15 +72,7 @@ const Login = () => {
             <div className="login-card">
                 <img alt="" src={LoginLogo} />
                 <div className="input-form">
-                    <input
-                        ref={sIdRef}
-                        className="input-id input normal-text"
-                        placeholder="User ID"
-                        type="text"
-                        onKeyDown={keyDownLogin}
-                        value={sLoginId}
-                        onInput={handleLoginId}
-                    />
+                    <input ref={sIdRef} className="input-id input normal-text" placeholder="User" type="text" onKeyDown={keyDownLogin} value={sLoginId} onInput={handleLoginId} />
                     <input
                         ref={sPasswordRef}
                         className="input-password input normal-text"
