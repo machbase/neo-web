@@ -1,11 +1,12 @@
 import { getTqlChart } from '@/api/repository/machiot';
-import showChart from '@/plugin/eCharts';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { drawChart } from '@/plugin/eCharts';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import './LineChart.scss';
 
-const LineChart = ({ pValue, pDraged, pInsetDraging }: any) => {
+const LineChart = ({ pPanelInfo, pDraged, pInsetDraging }: any) => {
     const [sText, setText] = useState('');
     const ChartRef = useRef<any>();
+    const [sChart, setChart] = useState<any>({});
     const [sFirstSet, setFirstSet] = useState(false);
 
     const getLineChart = async () => {
@@ -19,20 +20,28 @@ const LineChart = ({ pValue, pDraged, pInsetDraging }: any) => {
 
         setText(sValue);
         setTimeout(() => {
-            showChart(sResult.data, 'dark');
-        });
+            setChart(drawChart(sResult.data, 'dark'));
+        }, 10);
     };
 
-    useLayoutEffect(() => {
-        ChartRef?.current?.clientWidth && getLineChart();
-    }, [pValue.w, pValue.h, pDraged, pInsetDraging]);
+    useEffect(() => {
+        console.log(pPanelInfo);
+        getLineChart();
+    }, []);
 
-    useLayoutEffect(() => {
-        if (ChartRef?.current?.clientWidth && !sFirstSet) {
-            setFirstSet(true);
-            getLineChart();
-        }
-    }, [ChartRef?.current?.clientWidth, pInsetDraging]);
+    useEffect(() => {
+        console.log(sChart);
+    }, [pPanelInfo]);
+    // useLayoutEffect(() => {
+    //     ChartRef?.current?.clientWidth && getLineChart();
+    // }, [pPanelInfo.w, pPanelInfo.h, pDraged, pInsetDraging]);
+
+    // useLayoutEffect(() => {
+    //     if (ChartRef?.current?.clientWidth && !sFirstSet) {
+    //         setFirstSet(true);
+    //         getLineChart();
+    //     }
+    // }, [ChartRef?.current?.clientWidth, pInsetDraging]);
 
     return (
         <div ref={ChartRef} className="chart-form">

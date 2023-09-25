@@ -13,6 +13,7 @@ export {
     VscChevronRight,
     VscDiffAdded,
     VscWarning,
+    VscSync,
     VscRecord,
     VscLibrary,
     VscTrash,

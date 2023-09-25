@@ -13,7 +13,7 @@ const PanelHeader = ({ pType, pPanelInfo }: any) => {
 
     const removePanel = () => {
         setBoardList(
-            sBoardList.map((aItem) => {
+            sBoardList.map((aItem: any) => {
                 return aItem.id === sSelectedTab
                     ? {
                           ...aItem,
@@ -44,7 +44,7 @@ const PanelHeader = ({ pType, pPanelInfo }: any) => {
             }
             className="board-panel-header"
         >
-            <div>CHART TITLE</div>
+            <div>{pPanelInfo.panelName}</div>
             {pType !== 'create' && <span className="delete">{<IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}</span>}
         </div>
     );

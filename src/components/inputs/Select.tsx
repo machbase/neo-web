@@ -1,10 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import './Select.scss';
 import { ArrowDown } from '@/assets/icons/Icon';
 import useOutsideClick from '@/hooks/useOutsideClick';
 
 export interface SelectProps {
-    pWidth: number;
+    pWidth: number | string;
     pHeight: number;
     pOptions: string[];
     pIsFullWidth: boolean;
@@ -12,11 +12,12 @@ export interface SelectProps {
     pIsReadonly: boolean;
     pInitValue: string;
     pFontSize: number;
+    pIsDisabled: boolean;
     onChange: React.ChangeEventHandler<HTMLInputElement>;
 }
 
 export const Select = (props: SelectProps) => {
-    const { pWidth, pFontSize, pHeight, pOptions, pIsFullWidth, pBorderRadius, pIsReadonly, pInitValue, onChange } = props;
+    const { pWidth, pIsDisabled, pFontSize, pHeight, pOptions, pIsFullWidth, pBorderRadius, pIsReadonly, pInitValue, onChange } = props;
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [selectValue, setSelectValue] = useState<string>(pInitValue);
     const optionRef = useRef<HTMLDivElement>(null);
@@ -41,13 +42,21 @@ export const Select = (props: SelectProps) => {
 
     useOutsideClick(optionRef, () => setIsOpen(false));
 
+    useEffect(() => {
+        setSelectValue(pOptions[0]);
+    }, [pOptions]);
     return (
         <div
             className="custom-select-wrapper"
-            style={{ borderRadius: pBorderRadius + 'px', width: pIsFullWidth ? '100%' : pWidth + 'px', minWidth: pIsFullWidth ? '100%' : pWidth + 'px', height: pHeight + 'px' }}
+            style={{
+                borderRadius: pBorderRadius + 'px',
+                width: pIsFullWidth ? '100%' : typeof pWidth === 'string' ? pWidth : pWidth + 'px',
+                minWidth: pIsFullWidth ? '100%' : pWidth + 'px',
+                height: pHeight + 'px',
+            }}
         >
             <div className="select-input" onClick={handleClick}>
-                <input readOnly={pIsReadonly} value={selectValue} style={{ fontSize: pFontSize }} placeholder="Select..." />
+                <input readOnly={pIsReadonly} value={selectValue} disabled={pIsDisabled} style={{ fontSize: pFontSize }} placeholder="Select..." />
                 <ArrowDown />
             </div>
             <div
@@ -73,5 +82,6 @@ Select.defaultProps = {
     pIsReadonly: true,
     pInitValue: '',
     pFontSize: 13,
+    pIsDisabled: false,
     pBorderRadius: 8,
 };

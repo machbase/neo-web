@@ -1,18 +1,20 @@
 import { getTableInfo } from '@/api/repository/api';
 import { fetchTags } from '@/api/repository/machiot';
-import { Refresh, VscChevronDown, VscChevronUp } from '@/assets/icons/Icon';
+import { Close, Refresh, VscSync } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { Select } from '@/components/inputs/Select';
 import { getId } from '@/utils';
 import { getTableType, tagAggregatorList } from '@/utils/dashboardUtil';
 import { useEffect, useState } from 'react';
+import Filter from './Filter';
 import './Series.scss';
 import Value from './Value';
 const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOption }: any) => {
     const [sTagList, setTagList] = useState<any>([]);
-    const [sTagAggregatorList] = useState<any>([]);
+    const [sTimeList, setTimeList] = useState<any>([]);
+    const [sSelectedTableType, setSelectedTableType] = useState<any>(pSeriesInfo.table[4]);
 
-    const [sValueList, setValueList] = useState<any>([]);
+    const [sColumnList, setColumnList] = useState<any>([]);
     const [sCollapse, setCollapse] = useState(true);
 
     const changedOption = (aKey: string, aData: any) => {
@@ -25,15 +27,18 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
         const sTable = pTableList.find((aItem: any) => aItem[3] === aData.target.value);
 
         if (aKey === 'table') {
-            getTableType(sTable[4]) === 'tag' && getTagList(aData.target.value);
-            getValueList(aData.target.value);
+            setSelectedTableType(getTableType(sTable[4]));
+            getTableType(sTable[4]) === 'tag' ? getTagList(aData.target.value) : sTable[4];
+            getColumnList(aData.target.value);
         }
     };
 
-    const getValueList = async (aTable: string) => {
+    const getColumnList = async (aTable: string) => {
         const sTable = pTableList.find((aItem: any) => aItem[3] === aTable);
         const sData = await getTableInfo(sTable[2]);
-        setValueList(sData.data.rows);
+        setTimeList(sData.data.rows.filter((aItem: any) => aItem[1] === 6));
+
+        setColumnList(sData.data.rows);
     };
 
     const getTagList = async (aTable: any) => {
@@ -44,14 +49,14 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
             })
         );
     };
-    const changeValueOption = (aKey: string, aData: any, aId: string) => {
+    const changeValueOption = (aKey: string, aData: any, aId: string, aChangedKey: string) => {
         pSetPanelOption({
             ...pPanelOption,
             series: pPanelOption.series.map((aItem: any) => {
                 return aItem.id === pSeriesInfo.id
                     ? {
                           ...aItem,
-                          values: aItem.values.map((bItem: any) => {
+                          [aChangedKey]: aItem?.[aChangedKey].map((bItem: any) => {
                               return bItem.id === aId ? { ...bItem, [aKey]: aData.target.value } : bItem;
                           }),
                       }
@@ -64,11 +69,26 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
         pSetPanelOption({
             ...pPanelOption,
             series: pPanelOption.series.map((aItem: any) => {
-                return aItem.id === pSeriesInfo.id ? { ...aItem, values: [...aItem.values, { id: getId(), alias: '', value: '' }] } : aItem;
+                return aItem.id === pSeriesInfo.id ? { ...aItem, values: [...aItem.values, { id: getId(), column: '', operator: '', value: '' }] } : aItem;
             }),
         });
     };
-    const pRemoveValue = (aId: string) => {
+    const addFilter = () => {
+        pSetPanelOption({
+            ...pPanelOption,
+            series: pPanelOption.series.map((aItem: any) => {
+                return aItem.id === pSeriesInfo.id ? { ...aItem, filter: [...aItem.filter, { id: getId(), alias: '', value: '', aggregator: '' }] } : aItem;
+            }),
+        });
+    };
+
+    const deleteSeries = () => {
+        pSetPanelOption({
+            ...pPanelOption,
+            series: pPanelOption.series.filter((aItem: any) => aItem.id !== pSeriesInfo.id),
+        });
+    };
+    const removeValue = (aId: string) => {
         pSetPanelOption({
             ...pPanelOption,
             series: pPanelOption.series.map((aItem: any) => {
@@ -77,64 +97,133 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
         });
     };
 
+    const removeFilter = (aId: string) => {
+        pSetPanelOption({
+            ...pPanelOption,
+            series: pPanelOption.series.map((aItem: any) => {
+                return aItem.id === pSeriesInfo.id ? { ...aItem, filter: aItem.filter.filter((aItem: any) => aItem.id !== aId) } : aItem;
+            }),
+        });
+    };
     useEffect(() => {
+        const sTable = pTableList.find((aItem: any) => aItem[3] === pSeriesInfo.table);
+        setSelectedTableType(getTableType(sTable[4]));
         getTagList(pSeriesInfo.table);
+        getColumnList(pSeriesInfo.table);
     }, []);
+
+    useEffect(() => {
+        sSelectedTableType === 'log' && setCollapse(false);
+    }, [sSelectedTableType]);
 
     return (
         <div className="series">
             <div className="row">
                 <div className="row-header">
-                    <div className="row-header-left">
-                        <div className="series-table">
-                            <span className="series-title"> Table </span>
-                            <Select
-                                pFontSize={12}
-                                pWidth={175}
-                                pBorderRadius={4}
-                                pInitValue={pSeriesInfo.table}
-                                pHeight={26}
-                                onChange={(aEvent: any) => changedOption('table', aEvent)}
-                                pOptions={pTableList.map((aItem: any) => {
-                                    return aItem[3];
-                                })}
-                            />
-                            <IconButton pWidth={25} pHeight={26} pIcon={<Refresh></Refresh>} onClick={() => pGetTables()}></IconButton>
+                    {!sCollapse && (
+                        <div style={sCollapse ? { display: 'none' } : {}} className="row-header-left">
+                            <div className="series-table">
+                                <span className="series-title">
+                                    Table
+                                    <IconButton pWidth={25} pHeight={26} pIcon={<Refresh></Refresh>} onClick={() => pGetTables()}></IconButton>
+                                </span>
+                                <Select
+                                    pFontSize={12}
+                                    pWidth={175}
+                                    pBorderRadius={4}
+                                    pInitValue={pSeriesInfo.table}
+                                    pHeight={26}
+                                    onChange={(aEvent: any) => changedOption('table', aEvent)}
+                                    pOptions={pTableList.map((aItem: any) => {
+                                        return aItem[3];
+                                    })}
+                                />
+                            </div>
+                            <div className="details">
+                                <div className="series-table">
+                                    <span className="series-title"> TimeField </span>
+                                    {sTimeList[0] && (
+                                        <Select
+                                            pFontSize={12}
+                                            pWidth={175}
+                                            pBorderRadius={4}
+                                            pInitValue={sTimeList[0] && sTimeList[0][0]}
+                                            pHeight={26}
+                                            onChange={(aEvent: any) => changedOption('time', aEvent)}
+                                            pOptions={sTimeList.map((aItem: any) => {
+                                                return aItem[0];
+                                            })}
+                                        />
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                        <div className="series-table">
-                            <span className="series-title"> Tag </span>
-                            <Select
-                                pFontSize={12}
-                                pWidth={200}
-                                pBorderRadius={4}
-                                pInitValue={pSeriesInfo.tag ? pSeriesInfo.tag : sTagList[0]}
-                                pHeight={26}
-                                onChange={(aEvent: any) => changedOption('tag', aEvent)}
-                                pOptions={sTagList}
-                            />
+                    )}
+                    {sCollapse && (
+                        <div className="row-header-left">
+                            <div className="series-table">
+                                <span className="series-title"> Table </span>
+                                <Select
+                                    pFontSize={12}
+                                    pWidth={175}
+                                    pBorderRadius={4}
+                                    pInitValue={pSeriesInfo.table}
+                                    pHeight={26}
+                                    onChange={(aEvent: any) => changedOption('table', aEvent)}
+                                    pOptions={pTableList.map((aItem: any) => {
+                                        return aItem[3];
+                                    })}
+                                />
+                                <IconButton pWidth={25} pHeight={26} pIcon={<Refresh></Refresh>} onClick={() => pGetTables()}></IconButton>
+                            </div>
+                            <div className="series-table">
+                                <span className="series-title"> Tag </span>
+                                {sTagList[0] && (
+                                    <Select
+                                        pFontSize={12}
+                                        pWidth={200}
+                                        pBorderRadius={4}
+                                        pInitValue={pSeriesInfo.tag ? pSeriesInfo.tag : sTagList[0]}
+                                        pHeight={26}
+                                        onChange={(aEvent: any) => changedOption('tag', aEvent)}
+                                        pOptions={sTagList}
+                                    />
+                                )}
+                            </div>
+                            <div className="series-table">
+                                <span className="series-title"> Aggregator </span>
+                                <Select
+                                    pFontSize={12}
+                                    pWidth={200}
+                                    pBorderRadius={4}
+                                    pInitValue={tagAggregatorList[0]}
+                                    pHeight={26}
+                                    onChange={(aEvent: any) => changedOption('aggregator', aEvent)}
+                                    pOptions={tagAggregatorList}
+                                />
+                            </div>
                         </div>
-                        <div className="series-table">
-                            <span className="series-title"> Aggregator </span>
-                            <Select
-                                pFontSize={12}
-                                pWidth={200}
-                                pBorderRadius={4}
-                                pInitValue={tagAggregatorList[0]}
-                                pHeight={26}
-                                onChange={(aEvent: any) => changedOption('aggregator', aEvent)}
-                                pOptions={tagAggregatorList}
-                            />
-                        </div>
-                    </div>
+                    )}
                     <div className="row-header-right">
                         <IconButton
                             pWidth={20}
                             pHeight={20}
-                            pIcon={sCollapse ? <VscChevronDown></VscChevronDown> : <VscChevronUp></VscChevronUp>}
-                            onClick={() => setCollapse(!sCollapse)}
+                            pIsActive={!sCollapse}
+                            pDisabled={sSelectedTableType !== 'tag'}
+                            pIcon={!sCollapse ? <VscSync color="#FDB532"></VscSync> : <VscSync></VscSync>}
+                            onClick={sSelectedTableType !== 'tag' ? () => {} : () => setCollapse(!sCollapse)}
+                        ></IconButton>
+                        <IconButton
+                            pDisabled={pPanelOption.series.length === 1}
+                            pWidth={20}
+                            pHeight={20}
+                            pIcon={<Close></Close>}
+                            onClick={pPanelOption.series.length !== 1 ? () => deleteSeries() : () => {}}
                         ></IconButton>
                     </div>
                 </div>
+                {!sCollapse && <div className="divider" style={{ margin: '6px 4px' }}></div>}
+
                 <div style={sCollapse ? { display: 'none' } : {}} className="details">
                     <div>
                         {pSeriesInfo.values.map((aItem: any, aIdx: number) => {
@@ -143,30 +232,34 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
                                     key={aItem.id}
                                     pChangeValueOption={changeValueOption}
                                     pAddValue={addValue}
-                                    pRemoveValue={pRemoveValue}
+                                    pRemoveValue={removeValue}
                                     pSeriesInfo={pSeriesInfo}
                                     pValue={aItem}
                                     pIdx={aIdx}
-                                    pValueList={sValueList}
+                                    pCloumnList={sColumnList}
                                 ></Value>
                             );
                         })}
                     </div>
-                    <div className="details">
-                        <div className="series-table">
-                            <span className="series-title"> TimeField </span>
-                            <Select
-                                pFontSize={12}
-                                pWidth={200}
-                                pBorderRadius={4}
-                                pInitValue={sValueList[0] && sValueList[0][0]}
-                                pHeight={26}
-                                onChange={(aEvent: any) => changedOption('time', aEvent)}
-                                pOptions={sValueList.map((aItem: any) => {
-                                    return aItem[0];
-                                })}
-                            />
-                        </div>
+                </div>
+                {!sCollapse && <div className="divider" style={{ margin: '6px 4px' }}></div>}
+
+                <div style={sCollapse ? { display: 'none' } : {}} className="details">
+                    <div>
+                        {pSeriesInfo.filter.map((aItem: any, aIdx: number) => {
+                            return (
+                                <Filter
+                                    key={aItem.id}
+                                    pCloumnList={sColumnList}
+                                    pSeriesInfo={pSeriesInfo}
+                                    pFilterInfo={aItem}
+                                    pChangeValueOption={changeValueOption}
+                                    pIdx={aIdx}
+                                    pAddFilter={addFilter}
+                                    pRemoveFilter={removeFilter}
+                                ></Filter>
+                            );
+                        })}
                     </div>
                 </div>
             </div>

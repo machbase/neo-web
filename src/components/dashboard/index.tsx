@@ -25,7 +25,7 @@ const Dashboard = ({ pInfo, pWidth }: any) => {
         !aValue && changeLayout(aEvent);
     };
     const changeLayout = (aItem: any) => {
-        setBoardList(sBoardList.map((bItem) => (bItem.id === pInfo.id ? { ...bItem, dashboard: { ...bItem.dashboard, panels: aItem } } : bItem)));
+        setBoardList(sBoardList.map((bItem: any) => (bItem.id === pInfo.id ? { ...bItem, dashboard: { ...bItem.dashboard, panels: aItem } } : bItem)));
     };
 
     return (

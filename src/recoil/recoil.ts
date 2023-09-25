@@ -21,20 +21,6 @@ export const gBoardList = atom<GBoardListType[]>({
             shell: {},
             savedCode: false,
         },
-        {
-            id: getId(),
-            type: 'dsh',
-            name: 'dsh',
-            path: '',
-            code: '',
-            panels: [],
-            range_bgn: '',
-            range_end: '',
-            sheet: [],
-            shell: { icon: 'file-document-outline', theme: '', id: 'dsh' },
-            savedCode: false,
-            dashboard: { panels: [{ i: getId(), x: 0, y: 0, w: 6, h: 4, series: [], type: '' }] },
-        },
     ],
 });
 

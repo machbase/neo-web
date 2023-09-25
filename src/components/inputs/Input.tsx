@@ -1,7 +1,7 @@
 import './Input.scss';
 
 export interface InputProps {
-    pWidth: number;
+    pWidth: number | string;
     pHeight: number;
     pValue: string;
     pSetValue: React.Dispatch<React.SetStateAction<string>>;
@@ -23,7 +23,12 @@ export const Input = (props: InputProps) => {
     return (
         <div
             className="custom-input-wrapper"
-            style={{ width: pIsFullWidth ? '100%' : pWidth + 'px', height: pHeight + 'px', opacity: pIsDisabled ? '0.6' : '', borderRadius: pBorderRadius + 'px' }}
+            style={{
+                width: pIsFullWidth ? '100%' : typeof pWidth === 'string' ? pWidth : pWidth + 'px',
+                height: pHeight + 'px',
+                opacity: pIsDisabled ? '0.6' : '',
+                borderRadius: pBorderRadius + 'px',
+            }}
         >
             <input type={pType} value={pValue} onChange={handleChange} disabled={pIsDisabled} />
         </div>

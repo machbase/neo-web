@@ -5,12 +5,13 @@ export const tagTableValue = () => {
     return {
         id: getId(),
         table: '',
+        type: 'tag',
         aggregator: '',
         tag: '',
-        filter: [],
+        filter: [{ id: getId(), column: '', operator: '', value: '' }],
         name: '',
         time: '',
-        values: [{ id: getId(), alias: '', value: '' }],
+        values: [{ id: getId(), alias: '', value: '', aggregator: '' }],
         useRollup: '',
     };
 };
@@ -30,18 +31,68 @@ const logTableValue = () => {
 
 export const defaultTimeSeriesData = (aTable: any) => {
     const sData = {
+        //default Option
+        panelName: 'chart Title',
         dataType: 'timeSeries',
         chartType: 'line',
-        timeRange: {
-            start: new Date().getTime() - 30000,
-            end: new Date().getTime(),
-            refreshTime: 0,
-        },
         i: getId(),
         x: 0,
         y: 0,
         w: 7,
         h: 7,
+        // Info
+        useDataZoom: false,
+        dataZoomType: 'silder',
+        dataZoomMin: 0,
+        dataZoomMax: 100,
+        useOpacity: false,
+        opacity: 1,
+        useAutoRotate: false,
+        autoRotate: 0,
+        useGridSize: false,
+        gridSizeWidth: 100,
+        gridSizeHeight: 100,
+        gridSizeDepth: 100,
+        useVisualMap: false,
+        visualMapMin: 0,
+        visualMapMax: 1,
+        useMarkArea: false,
+        markArea: [
+            {
+                id: getId(),
+                coord0: 'now+1s',
+                coord1: 'now+2s',
+                label: 'Error',
+                color: '#ff000033',
+                opacity: 0,
+            },
+        ],
+        theme: 'vintage',
+        // otherInfo
+        // showXTickline: true,
+        // showYTickline: true,
+        // pixelsPerTick: 3,
+        // zeroBase: false,
+        // useCustom: false,
+        // lineWidth: 1,
+        // useCustomMin: 0,
+        // useCustomMax: 0,
+        // showPoint: false,
+        // pointRadius: 1,
+        // showYaxisRightTickline: false,
+        // zeroBaseRightYaxis: false,
+        // useRightYaxis: false,
+        // useCustomRightYaxis: false,
+        // useCustomRightYaxisMin: 0,
+        // useCustomRightYaxisMax: 0,
+
+        //timeRange
+        timeRange: {
+            start: new Date().getTime() - 30000,
+            end: new Date().getTime(),
+            refreshTime: 0,
+        },
+        // query
         series: [getTableType(aTable[4]) === 'tag' ? { ...tagTableValue(), table: aTable[3] } : { ...logTableValue(), table: aTable[3] }],
     };
     return sData;

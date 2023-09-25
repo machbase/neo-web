@@ -7,8 +7,6 @@ import { useEffect, useState } from 'react';
 import CreatePanelBody from './CreatePanelBody';
 import CreatePanelFotter from './CreatePanelFotter';
 import CreatePanelRight from './CreatePanelRight';
-import { fetchTablesData } from '@/api/repository/machiot';
-import { getId } from '@/utils';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { defaultTimeSeriesData, getTableType } from '@/utils/dashboardUtil';
@@ -19,16 +17,21 @@ const CreatePanel = ({ pSetCreateModal, pType, pBoardInfo }: { pType: string; pS
     const [sBottomSizes, setBottomSizes] = useState<any>(['60%', '40%']);
     const [sInsetDraging, setInsetDraging] = useState(false);
     const [sPanelOption, setPanelOption] = useState<any>({});
+    const [sAppliedPanelOption, setAppliedPanelOption] = useState<any>({});
     const [sTableList, setTableList] = useState<any>([]);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
     const addPanel = () => {
         setBoardList(
-            sBoardList.map((aItem) => {
+            sBoardList.map((aItem: any) => {
                 return aItem.id === pBoardInfo.id ? { ...aItem, dashboard: { ...aItem.dashboard, panels: [...aItem.dashboard.panels, sPanelOption] } } : aItem;
             })
         );
         pSetCreateModal(false);
+    };
+
+    const applyPanel = () => {
+        setAppliedPanelOption(sPanelOption);
     };
 
     const getTables = async (aStatus: any) => {
@@ -36,10 +39,11 @@ const CreatePanel = ({ pSetCreateModal, pType, pBoardInfo }: { pType: string; pS
         if (sResult.success) {
             const newTable = sResult.data.rows.filter((aItem: any) => getTableType(aItem[4]) === 'log' || getTableType(aItem[4]) === 'tag');
 
-            // const tagTableList = newTable.map((aItem: any) => aItem[sIdx]);
             setTableList(newTable);
             if (aStatus === 'init') {
-                setPanelOption(defaultTimeSeriesData(newTable[0]));
+                const sData = defaultTimeSeriesData(newTable[0]);
+                setPanelOption(sData);
+                setAppliedPanelOption(sData);
             }
         }
     };
@@ -50,8 +54,6 @@ const CreatePanel = ({ pSetCreateModal, pType, pBoardInfo }: { pType: string; pS
 
     useEffect(() => {
         init();
-
-        // setPanelOption(pPanelInfo);
     }, []);
 
     return (
@@ -78,10 +80,21 @@ const CreatePanel = ({ pSetCreateModal, pType, pBoardInfo }: { pType: string; pS
                         pBorderColor="#4199ff"
                         pHeight={28}
                         pWidth={65}
+                        pFontColor="#4199ff"
+                        pBorderRadius={2}
+                        pIsDisabled={JSON.stringify(sPanelOption) === JSON.stringify(sAppliedPanelOption)}
+                        onClick={() => applyPanel()}
+                        pText="Apply"
+                        pBackgroundColor="transparent"
+                    />
+                    <TextButton
+                        pBorderColor="#4199ff"
+                        pHeight={28}
+                        pWidth={65}
                         pBorderRadius={2}
                         pIsDisabled={false}
                         onClick={() => addPanel()}
-                        pText="Apply"
+                        pText="Save"
                         pBackgroundColor="#4199ff"
                     />
                 </div>
@@ -107,7 +120,9 @@ const CreatePanel = ({ pSetCreateModal, pType, pBoardInfo }: { pType: string; pS
                             sizes={sBottomSizes}
                             onChange={setBottomSizes}
                         >
-                            <Pane maxSize="90%">{pBoardInfo.id && <CreatePanelBody pType={pType} pInsetDraging={sInsetDraging} pValue={pBoardInfo}></CreatePanelBody>}</Pane>
+                            <Pane maxSize="90%">
+                                {sAppliedPanelOption.i && <CreatePanelBody pType={pType} pInsetDraging={sInsetDraging} pPanelInfo={sAppliedPanelOption}></CreatePanelBody>}
+                            </Pane>
                             <Pane>
                                 {sTableList.length !== 0 && sPanelOption.i && (
                                     <CreatePanelFotter
@@ -120,9 +135,7 @@ const CreatePanel = ({ pSetCreateModal, pType, pBoardInfo }: { pType: string; pS
                             </Pane>
                         </SplitPane>
                     </Pane>
-                    <Pane>
-                        <CreatePanelRight></CreatePanelRight>
-                    </Pane>
+                    <Pane>{sPanelOption.i && <CreatePanelRight pPanelOption={sPanelOption} pSetPanelOption={setPanelOption}></CreatePanelRight>}</Pane>
                 </SplitPane>
             </div>
         </div>

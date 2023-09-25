@@ -25,6 +25,7 @@ export const TextButton = (props: TextButtonProps) => {
                 backgroundColor: pBackgroundColor,
                 opacity: pIsDisabled ? '0.6' : '1',
                 color: pFontColor,
+                cursor: pIsDisabled ? 'unset' : 'pointer',
                 borderColor: pBorderColor,
                 borderRadius: pBorderRadius + 'px',
             }}
