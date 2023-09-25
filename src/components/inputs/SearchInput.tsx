@@ -7,34 +7,39 @@ export interface SearchInputProps {
     pWidth: number;
     pHeight: number;
     pClickStopPropagation: boolean;
+    pIsExpand: boolean;
     onChange: (value: string) => void;
+    onResetFilter: () => void;
+    onChangeExpand: (status: boolean) => void;
 }
 
 export const SearchInput = (props: SearchInputProps) => {
-    const { pWidth, pHeight, pClickStopPropagation, onChange } = props;
+    const { pWidth, pHeight, pClickStopPropagation, pIsExpand, onChange, onResetFilter, onChangeExpand } = props;
     const [sValue, setValue] = useState<string>('');
-    const [sIsExpand, setIsExpand] = useState<boolean>(false);
+    // const [sIsExpand, setIsExpand] = useState<boolean>(false);
 
     const handleClose = () => {
+        onResetFilter();
         setValue('');
-        setIsExpand(false);
+        // setIsExpand(false);
+        onChangeExpand(false);
     };
 
     const handleChange = () => {
-        if (sIsExpand) onChange(sValue);
+        if (pIsExpand) onChange(sValue);
     };
 
     useDebounce([sValue], handleChange, 300);
 
     return (
         <div onClick={(e) => (pClickStopPropagation ? e.stopPropagation() : null)} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            {sIsExpand ? (
+            {pIsExpand ? (
                 <div className="custom-input-wrapper" style={{ width: pWidth + 'px', height: pHeight + 'px', display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                     <input type={'text'} value={sValue} onChange={(e) => setValue(e.target.value)} />
                     <Cancel onClick={handleClose} />
                 </div>
             ) : (
-                <Search onClick={() => setIsExpand(true)} />
+                <Search onClick={() => onChangeExpand(true)} />
             )}
         </div>
     );

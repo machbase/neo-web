@@ -41,6 +41,7 @@ any) => {
         gitUrl: undefined,
         gitStatus: undefined,
         virtual: false,
+        isOpen: false,
     };
     const [menuX, setMenuX] = useState<number>(0);
     const [menuY, setMenuY] = useState<number>(0);
@@ -61,6 +62,8 @@ any) => {
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
     const [, setConsoleList] = useRecoilState<any>(gConsoleList);
     const [sSideSizes, setSideSizes] = useState<any>(['15%', '85%']);
+    const [sSearchFilter, setSearchFilter] = useState<boolean>(false);
+    const [sSearchTxt, setSearchTxt] = useState<string>('');
 
     useEffect(() => {
         getFileTree();
@@ -71,20 +74,24 @@ any) => {
             return;
         }
         const pathArray: any = pSavedPath.split('/');
-        onFetchDir({
-            depth: pathArray.length,
-            dirs: [],
-            files: [],
-            id: pathArray[pathArray.length - 1],
-            name: pathArray[pathArray.length - 1],
-            parentId: pathArray[pathArray.length - 2] ? pathArray[pathArray.length - 2] : '0',
-            path: '/' + removeLastItem(pathArray).join('/') ? removeLastItem(pathArray).join('/') : '/',
-            type: 1,
-            gitClone: false,
-            gitUrl: undefined,
-            gitStatus: undefined,
-            virtual: false,
-        });
+        onFetchDir(
+            {
+                depth: pathArray.length,
+                dirs: [],
+                files: [],
+                id: pathArray[pathArray.length - 1],
+                name: pathArray[pathArray.length - 1],
+                parentId: pathArray[pathArray.length - 2] ? pathArray[pathArray.length - 2] : '0',
+                path: '/' + removeLastItem(pathArray).join('/') ? removeLastItem(pathArray).join('/') : '/',
+                type: 1,
+                gitClone: false,
+                gitUrl: undefined,
+                gitStatus: undefined,
+                virtual: false,
+                isOpen: false,
+            },
+            false
+        );
     }, [pSavedPath]);
 
     const handleIsOpenModal = (aBool: boolean, aEvent?: any) => {
@@ -98,7 +105,8 @@ any) => {
 
     useEffect(() => {
         if (sFileTree.name && sFileTree.id) {
-            setRootDir(JSON.parse(JSON.stringify(sFileTree)));
+            if (sSearchFilter) handleSearch(sSearchTxt);
+            else setRootDir(JSON.parse(JSON.stringify(sFileTree)));
         }
     }, [sFileTree]);
 
@@ -164,16 +172,20 @@ any) => {
         return sBoardList.filter((aBoard: GBoardListType) => aBoard.name === aTargetFile.name && aBoard.path === aTargetFile.path)[0];
     };
 
-    const onFetchDir = async (aSelectedDir: FileTreeType) => {
-        const sReturn = await getFiles(`${aSelectedDir.path}${aSelectedDir.name}/`);
-        const sParedData = fileTreeParser(sReturn.data, `${aSelectedDir.path}${aSelectedDir.name}/`, aSelectedDir.depth, aSelectedDir.name);
-
-        if (sParedData.dirs.length > 0 || sParedData.files.length > 0) {
-            const sTmpDir = findDir(rootDir, sParedData, aSelectedDir);
-            const sResult = JSON.parse(JSON.stringify(rootDir));
-            sResult.dirs = sTmpDir;
-            setFileTree(JSON.parse(JSON.stringify(sResult)));
+    const onFetchDir = async (aSelectedDir: FileTreeType, aIsOpen: boolean) => {
+        let sReturn = null;
+        let sParedData = null;
+        if (aIsOpen) {
+            sReturn = await getFiles(`${aSelectedDir.path}${aSelectedDir.name}/`);
+            sParedData = fileTreeParser(sReturn.data, `${aSelectedDir.path}${aSelectedDir.name}/`, aSelectedDir.depth, aSelectedDir.name);
+        } else {
+            sParedData = aSelectedDir;
         }
+        sParedData.isOpen = aIsOpen;
+        const sTmpDir = findDir(sFileTree as any, sParedData, aSelectedDir);
+        const sResult = JSON.parse(JSON.stringify(sFileTree));
+        sResult.dirs = sTmpDir;
+        setFileTree(JSON.parse(JSON.stringify(sResult)));
     };
 
     const findDir = (aOriginDir: FileTreeType, aParedData: FileTreeType, aTargetDir: FileTreeType): FileTreeType[] => {
@@ -265,8 +277,9 @@ any) => {
     };
 
     const handleSearch = (aValue: string) => {
+        setSearchTxt(aValue);
         if (!aValue) {
-            setRootDir(JSON.parse(JSON.stringify(sFileTree)));
+            handleSearchReset();
         }
         if (aValue && aValue !== '') {
             const sFilterTree = TreeViewFilter({
@@ -275,6 +288,10 @@ any) => {
             });
             setRootDir(sFilterTree);
         }
+    };
+
+    const handleSearchReset = () => {
+        setRootDir(JSON.parse(JSON.stringify(sFileTree)));
     };
 
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
@@ -315,7 +332,15 @@ any) => {
                             <div>EXPLORER</div>
                             <div style={{ display: 'flex', alignItems: 'center' }}>
                                 <div style={{ marginRight: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <SearchInput pWidth={120} pHeight={20} pClickStopPropagation onChange={(value: string) => handleSearch(value)} />
+                                    <SearchInput
+                                        pWidth={120}
+                                        pHeight={20}
+                                        pClickStopPropagation
+                                        pIsExpand={sSearchFilter}
+                                        onChange={handleSearch}
+                                        onResetFilter={handleSearchReset}
+                                        onChangeExpand={setSearchFilter}
+                                    />
                                 </div>
                                 <IconButton pWidth={20} pHeight={20} pIcon={<TbFolder size={15} />} onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
                                 <IconButton pWidth={20} pHeight={20} pIcon={<TbFolderPlus size={15} />} onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
@@ -326,7 +351,6 @@ any) => {
                     </div>
                     {sCollapseTree &&
                         (sLoadFileTree ? (
-                            // 🚧TODO
                             <>...</>
                         ) : (
                             <>

@@ -13,7 +13,7 @@ interface FileTreeProps {
     rootDir: FileTreeType;
     selectedFile: FileType | undefined;
     onSelect: (file: FileType) => void;
-    onFetchDir: (item: FileTreeType) => void;
+    onFetchDir: (item: FileTreeType, isOpen: boolean) => void;
     onContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: FileType | FileTreeType) => void;
     onRefresh?: (e?: React.MouseEvent<HTMLDivElement>) => void;
     onSetFileTree: (fileTree: any) => void;
@@ -250,7 +250,7 @@ interface SubTreeProps {
     sLeaveItem: any;
     setLeaveItem: (item: any) => void;
     onSelect: (file: FileType) => void;
-    onFetchDir: (item: FileTreeType) => void;
+    onFetchDir: (item: FileTreeType, isOpen: boolean) => void;
     onContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: FileType | FileTreeType) => void;
     onRefresh?: (e?: React.MouseEvent<HTMLDivElement>) => void;
 }
@@ -401,7 +401,6 @@ const FileDiv = ({
     const isSelected = selectBoard?.path + selectBoard?.name === file.path + file.id;
     const depth = file.depth;
 
-    // test dnd
     const HandleDragStart = (e: any, aData: any) => {
         // const nImg = new Image();
         // nImg.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Free_logo.svg/1200px-Free_logo.svg.png';
@@ -588,16 +587,12 @@ const DirDiv = ({
     pLeaveItem: any;
     onSetLeaveItem: (item: any) => void;
     onSelect: (file: FileType) => void;
-    onSelectDir: (item: FileTreeType) => void;
+    onSelectDir: (item: FileTreeType, isOpen: boolean) => void;
     onContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: FileType | FileTreeType) => void;
     onRefresh?: (e?: React.MouseEvent<HTMLDivElement>) => void;
 }) => {
-    let defaultOpen = false;
-    if (selectedFile) defaultOpen = isChildSelected(directory, selectedFile);
-    const [open, setOpen] = useState(defaultOpen);
-
     const sDirectoryIcon = (): string => {
-        if (open) return directory.gitClone ? 'gitOpenDirectory' : 'openDirectory';
+        if (directory.isOpen) return directory.gitClone ? 'gitOpenDirectory' : 'openDirectory';
         else return directory.gitClone ? 'gitClosedDirectory' : 'closedDirectory';
     };
 
@@ -609,8 +604,7 @@ const DirDiv = ({
                     icon={sDirectoryIcon()}
                     selectedFile={selectedFile}
                     onClick={() => {
-                        if (!open) onSelectDir(directory);
-                        setOpen(!open);
+                        onSelectDir(directory, !directory.isOpen);
                     }}
                     onContextMenu={onContextMenu}
                     onRefresh={onRefresh}
@@ -624,7 +618,7 @@ const DirDiv = ({
                     onSetIsDnd={onSetIsDnd}
                 />
             }
-            {open ? (
+            {directory.isOpen ? (
                 <SubTree
                     directory={directory}
                     selectedFile={selectedFile}
@@ -643,27 +637,6 @@ const DirDiv = ({
             ) : null}
         </>
     );
-};
-
-const isChildSelected = (directory: FileTreeType, selectedFile: FileType) => {
-    let res: boolean = false;
-
-    function isChild(dir: FileTreeType, file: FileType) {
-        if (selectedFile.parentId === dir.id) {
-            res = true;
-            return;
-        }
-        if (selectedFile.parentId === '0') {
-            res = false;
-            return;
-        }
-        dir.dirs.forEach((item) => {
-            isChild(item, file);
-        });
-    }
-
-    isChild(directory, selectedFile);
-    return res;
 };
 
 const FileIcon = ({ extension, name }: { name?: string; extension?: string }) => {
