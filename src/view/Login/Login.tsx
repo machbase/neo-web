@@ -1,4 +1,4 @@
-import React, { ChangeEvent, useState, useEffect } from 'react';
+import React, { ChangeEvent, useState, useEffect, useRef } from 'react';
 import LoginLogo from '../../assets/image/logo_machbaseNeo_general_a.png';
 
 import './Login.scss';
@@ -12,6 +12,8 @@ const Login = () => {
     const [sLoginId, setLoginId] = useState<string>('');
     const [sPassword, setPassword] = useState<string>('');
     const [sRememberId, setRememberId] = useState(false);
+    const sIdRef = useRef<HTMLInputElement>(null);
+    const sPasswordRef = useRef<HTMLInputElement>(null);
 
     const handleLoginId = (aEvent: ChangeEvent<HTMLInputElement>) => {
         setLoginId(aEvent.target.value);
@@ -30,6 +32,9 @@ const Login = () => {
         if (sData) {
             setRememberId(true);
             setLoginId(sData);
+            if (sPasswordRef.current) sPasswordRef.current.focus();
+        } else {
+            if (sIdRef.current) sIdRef.current.focus();
         }
     }, []);
 
@@ -67,8 +72,17 @@ const Login = () => {
             <div className="login-card">
                 <img alt="" src={LoginLogo} />
                 <div className="input-form">
-                    <input className="input-id input normal-text" placeholder="User ID" type="text" onKeyDown={keyDownLogin} value={sLoginId} onInput={handleLoginId} />
                     <input
+                        ref={sIdRef}
+                        className="input-id input normal-text"
+                        placeholder="User ID"
+                        type="text"
+                        onKeyDown={keyDownLogin}
+                        value={sLoginId}
+                        onInput={handleLoginId}
+                    />
+                    <input
+                        ref={sPasswordRef}
                         className="input-password input normal-text"
                         value={sPassword}
                         onInput={handlePassword}
