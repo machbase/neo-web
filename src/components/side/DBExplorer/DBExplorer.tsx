@@ -1,5 +1,5 @@
 import { getTableList } from '@/api/repository/api';
-import { Refresh, TbEyeMinus } from '@/assets/icons/Icon';
+import { TbEyeMinus, MdRefresh } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { useEffect, useState } from 'react';
 import { VscChevronDown, VscChevronRight } from 'react-icons/vsc';
@@ -41,9 +41,8 @@ const DBExplorer = ({ pServer }: any) => {
                 <div className="files-open-option">
                     <span className="title-text">DB EXPLORER</span>
                     <span className="sub-title-navi">
-                        <IconButton pWidth={24} pHeight={13} pIcon={<Refresh />} onClick={(aEvent: any) => init(aEvent)}></IconButton>
-
-                        <IconButton pWidth={24} pHeight={13} pIsActive={!sShowHiddenObj} pIcon={<TbEyeMinus />} onClick={setHiddenObj}></IconButton>
+                        <IconButton pWidth={20} pHeight={20} pIsActive={!sShowHiddenObj} pIcon={<TbEyeMinus size={15} />} onClick={setHiddenObj} />
+                        <IconButton pWidth={20} pHeight={20} pIcon={<MdRefresh size={15} />} onClick={(aEvent: any) => init(aEvent)} />
                     </span>
                 </div>
             </div>

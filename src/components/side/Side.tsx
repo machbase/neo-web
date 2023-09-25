@@ -2,7 +2,7 @@ import { GBoardListType, gBoardList, gConsoleList, gSelectedTab } from '@/recoil
 import { gFileTree, gRecentDirectory } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
-import { Delete, Download, Update, VscChevronRight, VscChevronDown, TbFolderPlus, TbCloudDown, TbFolder, MdRefresh } from '@/assets/icons/Icon';
+import { Delete, Download, Update, VscChevronRight, VscChevronDown, TbFolderPlus, TbCloudDown, TbFolder, MdRefresh, Refresh } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { FileTree } from '../fileTree/file-tree';
 import Sidebar from '../fileTree/sidebar';
@@ -18,6 +18,7 @@ import { FolderModal } from '../modal/FolderModal';
 import { postFileList } from '@/api/repository/api';
 import { DeleteModal } from '../modal/DeleteModal';
 import SplitPane, { Pane } from 'split-pane-react';
+import { IconButton } from '@/components/buttons/IconButton';
 
 const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
     const sParedData: FileTreeType = {
@@ -293,17 +294,11 @@ const Side = ({ pGetInfo, pSavedPath, pServer }: any) => {
 
                         <div className="files-open-option">
                             <div>EXPLORER</div>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <TbFolder onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
-                                <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <TbFolderPlus onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
-                                </div>
-                                <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <TbCloudDown onClick={(aEvent: any) => handleFolder(true, aEvent, true)} />
-                                </div>
-                                <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <MdRefresh onClick={(e: any) => handleRefresh(e)} />
-                                </div>
+                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                                <IconButton pWidth={20} pHeight={20} pIcon={<TbFolder size={15} />} onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
+                                <IconButton pWidth={20} pHeight={20} pIcon={<TbFolderPlus size={15} />} onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
+                                <IconButton pWidth={20} pHeight={20} pIcon={<TbCloudDown size={15} />} onClick={(aEvent: any) => handleFolder(true, aEvent, true)} />
+                                <IconButton pWidth={20} pHeight={20} pIcon={<MdRefresh size={15} />} onClick={(e: any) => handleRefresh(e)} />
                             </div>
                         </div>
                     </div>
