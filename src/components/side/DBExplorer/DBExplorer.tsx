@@ -1,5 +1,5 @@
 import { getTableList } from '@/api/repository/api';
-import { TbEyeMinus } from '@/assets/icons/Icon';
+import { Refresh, TbEyeMinus } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { useEffect, useState } from 'react';
 import { VscChevronDown, VscChevronRight } from 'react-icons/vsc';
@@ -10,7 +10,8 @@ const DBExplorer = ({ pServer }: any) => {
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sShowHiddenObj, setShowHiddenObj] = useState(true);
 
-    const init = async () => {
+    const init = async (aEvent?: any) => {
+        if (aEvent) aEvent.stopPropagation();
         const sData = await getTableList();
         setDBList(
             sData.data.rows.map((aItem: (string | number)[]) => {
@@ -40,6 +41,8 @@ const DBExplorer = ({ pServer }: any) => {
                 <div className="files-open-option">
                     <span className="title-text">DB EXPLORER</span>
                     <span className="sub-title-navi">
+                        <IconButton pWidth={24} pHeight={13} pIcon={<Refresh />} onClick={(aEvent: any) => init(aEvent)}></IconButton>
+
                         <IconButton pWidth={24} pHeight={13} pIsActive={!sShowHiddenObj} pIcon={<TbEyeMinus />} onClick={setHiddenObj}></IconButton>
                     </span>
                 </div>

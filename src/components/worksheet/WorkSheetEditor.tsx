@@ -11,6 +11,8 @@ import './WorkSheetEditor.scss';
 import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
 import { PositionType, SelectionType, sqlQueryParser } from '@/utils/sqlQueryParser';
 import { IconButton } from '../buttons/IconButton';
+import { useSetRecoilState } from 'recoil';
+import { gConsoleList } from '@/recoil/recoil';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown';
 type MonacoLang = 'sql' | 'markdown' | 'go';
@@ -72,6 +74,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const ResultContentTypeRef = useRef(null);
     const [sShowResultContentType, setShowResultContentType] = useState<boolean>(false);
     const [sMonacoLineHeight, setMonacoLineHeight] = useState<number>(pData.lineHeight ?? 19);
+    const setConsoleList = useSetRecoilState<any>(gConsoleList);
 
     useEffect(() => {
         if (pAllRunCodeList.length > 0 && pAllRunCodeStatus && typeof pAllRunCodeTargetIdx === 'number' && pAllRunCodeList[pIdx] && pIdx === pAllRunCodeTargetIdx) {
@@ -258,7 +261,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             });
 
             const tempHeaders: string[] = [];
-            sTempCsv[0].map((_, aIdx) => {
+            sTempCsv[0] && sTempCsv[0].map((_, aIdx) => {
                 tempHeaders.push('COLUMN' + aIdx);
             });
 
@@ -268,12 +271,12 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         } else {
             setTqlResultType('text');
             if (sResult.status === 200) {
-                if (typeof sResult.data !== 'string') {
+                if (sResult.data && typeof sResult.data === 'object') {
                     if (sResult.data.data.rows && sResult.data.data.rows.length > 10) {
                         const sLength = sResult.data.data.rows.length;
                         sResult.data.data.rows = sResult.data.data.rows.filter((_: number[], aIdx: number) => aIdx < 6 || sLength - 6 < aIdx);
                         sResult.data.data.rows.splice(5, 0, '....');
-                    } else if (sResult.data.data.cols && sResult.data.data.cols[0].length > 10) {
+                    } else if (sResult.data.data.cols && sResult.data.data.cols.length > 0 && sResult.data.data.cols[0].length > 10) {
                         const sTempList: any = [];
                         sResult.data.data.cols.forEach((col: any) => {
                             const sColLength = col.length;
@@ -286,11 +289,36 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         setTqlTextResult(sResult.data.data.message);
                         return;
                     }
+                    setTqlTextResult(JSON.stringify(sResult.data));
+                    return;
+                } else {
+                    setTqlTextResult('');
+                    setConsoleList((prev: any) => [
+                        ...prev,
+                        {
+                            timestamp: new Date().getTime(),
+                            level: 'ERROR',
+                            task: '',
+                            message: sResult.statusText,
+                        },
+                    ]);
+                    return;
                 }
-                setTqlTextResult(JSON.stringify(sResult.data));
-                return;
             } else {
-                setTqlTextResult(sResult.data.reason);
+                if (sResult.data.reason) {
+                    setTqlTextResult(sResult.data.reason);
+                } else {
+                    setTqlTextResult('');
+                    setConsoleList((prev: any) => [
+                        ...prev,
+                        {
+                            timestamp: new Date().getTime(),
+                            level: 'ERROR',
+                            task: '',
+                            message: sResult.statusText,
+                        },
+                    ]);
+                }
                 return;
             }
         }
