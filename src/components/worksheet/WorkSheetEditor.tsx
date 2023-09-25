@@ -3,7 +3,7 @@ import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import { getTqlChart } from '@/api/repository/machiot';
 import { ShowChart } from '@/components/tql/ShowChart';
 import { Markdown } from '@/components/worksheet/Markdown';
-import { getId, isValidJSON } from '@/utils';
+import { getId, isValidJSON, getMonacoLines } from '@/utils';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { sqlSheetFormatter } from '@/utils/sqlFormatter';
 import TABLE from '@/components/table';
@@ -73,6 +73,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const dropDownRef = useRef(null);
     const ResultContentTypeRef = useRef(null);
     const [sShowResultContentType, setShowResultContentType] = useState<boolean>(false);
+    const [sMonacoLineHeight, setMonacoLineHeight] = useState<number>(pData.lineHeight ?? 19);
     const setConsoleList = useSetRecoilState<any>(gConsoleList);
 
     useEffect(() => {
@@ -88,6 +89,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             id: pData.id ?? getId(),
             contents: sText,
             height: initialSize,
+            lineHeight: sMonacoLineHeight,
             minimal: sCollapse,
             type: sSelectedLang === 'Markdown' ? 'mrk' : sSelectedLang.toLowerCase(),
             tqlType: sSelectedLang === 'TQL' ? sTqlResultType : null,
@@ -105,7 +107,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             sCopyWorkSheets[sIndex] = sPayload;
             setSheet(sCopyWorkSheets);
         }
-    }, [sText, initialSize, sCollapse, sSelectedLang, sResultContentType]);
+    }, [sText, initialSize, sCollapse, sSelectedLang, sResultContentType, sMonacoLineHeight]);
 
     const langConverter = (aTxt: ServerLangType) => {
         switch (aTxt) {
@@ -133,6 +135,14 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
     }, []);
 
+    useEffect(() => {
+        if (resizeRef.current) {
+            const sLines = getMonacoLines(pData.height ? pData.height : sInitHeight, pData.lineHeight ? pData.lineHeight : sMonacoLineHeight);
+            const sCurrentHeight = sLines * sMonacoLineHeight;
+            resizeRef.current.style.height = sCurrentHeight + 'px';
+        }
+    }, [sMonacoLineHeight])
+
     const initValue = (aEvent: React.DragEvent<HTMLDivElement>) => {
         if (resizeRef.current) {
             setInitialPos(aEvent.clientY);
@@ -142,13 +152,14 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
 
     const resize = (aEvent: React.MouseEvent<HTMLDivElement>) => {
         if (aEvent.clientY && resizeRef.current) {
-            resizeRef.current.style.height = `${initialSize + (aEvent.clientY - initialPos)}px`;
+            const sHeight = initialSize + (aEvent.clientY - initialPos);
+            resizeRef.current.style.height = `${sHeight}px`;
         }
     };
 
     const setHeight = (aEvent: React.DragEvent<HTMLDivElement>) => {
         if (aEvent.clientY && resizeRef.current) {
-            const sHeight = Number(resizeRef.current.style.height.replace(/\D/g, ''));
+            const sHeight = Number(resizeRef.current.style.height.replace(/[^0-9.]/g, ''));
             setInitialSize(sHeight);
         }
     };
@@ -458,13 +469,14 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                             onClick={pWorkSheets.length > 1 ? () => pCallback({ id: pData.id, event: 'Delete' }) : () => null}
                         />
                     </div>
-                    <div ref={resizeRef} className="editor">
+                    <div ref={resizeRef} className="editor" style={{ borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px' }}>
                         <MonacoEditor
                             pText={sText}
                             pLang={sMonacoLanguage}
                             onChange={handleText}
                             onRunCode={handleRunCode}
                             onSelectLine={sMonacoLanguage === 'sql' ? setSqlLocation : () => {}}
+                            setLineHeight={setMonacoLineHeight}
                         />
                         <div className="drag-stick" draggable onDragStart={initValue} onDrag={resize} onDragEnd={setHeight}></div>
                     </div>

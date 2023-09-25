@@ -37,3 +37,7 @@ export const extractionExtension = (aFileName: string) => {
 
     return aFileName.slice(sDotIndex + 1).toLowerCase();
 };
+
+export const getMonacoLines = (aWrapperHeight: number, aLineHeight: number) => {
+    return Number((aWrapperHeight / aLineHeight).toFixed(2));
+};
