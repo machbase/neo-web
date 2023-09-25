@@ -33,6 +33,15 @@
 .sql-body {
     background-color: #1c1c21;
 
+    .sql-error-body {
+        width: 100%;
+        min-height: calc(100% - 40px);
+
+        font-size: 14px;
+        font-family: 'D2Coding';
+        overflow-y: auto;
+    }
+
     .sql_tab {
         background-color: #1c1c21;
         height: 40px;
