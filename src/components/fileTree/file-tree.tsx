@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from '@emotion/styled';
 import icons from '@/utils/icons';
 import { FileTreeType, FileType, sortDir, sortFile } from '@/utils/fileTreeParser';
@@ -8,6 +8,7 @@ import { gFileTree, gRecentDirectory } from '@/recoil/fileTree';
 import { extractionExtension } from '@/utils';
 import { BiDownload } from '@/assets/icons/Icon';
 import { postFileList } from '@/api/repository/api';
+import { findItemByUniqueKey } from '@/utils/file-manager';
 
 interface FileTreeProps {
     rootDir: FileTreeType;
@@ -28,9 +29,12 @@ export const FileTree = (props: FileTreeProps) => {
     const [sLastItem, setLastItem] = useState<any>(null);
     const [sFileTree] = useRecoilState(gFileTree);
     const [sIsDropZone, setIsDropZone] = useState<boolean>(false);
+    const sTreeRef = useRef<any>(null);
+    const [sKeyItem, setKeyItem] = useState<string>('');
 
     const HandleRootClick = (e: any) => {
         if (e.metakey || e.ctrlKey) return;
+        setKeyItem('');
         setDndTargetList(null);
         setEnterItem(null);
         setRecentDirectory('/');
@@ -229,9 +233,49 @@ export const FileTree = (props: FileTreeProps) => {
             } else return aDir;
         });
     };
+    const handleKeyDown = (e: any) => {
+        const TreeNodeIdList = Array.from(sTreeRef.current.childNodes).map((aChild: any) => {
+            return aChild.id;
+        });
+        const tempChildId = sKeyItem ? sKeyItem : props.selectedFile ? props.selectedFile.path + props.selectedFile.name + '-' + props.selectedFile.depth : TreeNodeIdList[0];
+        const TargetChildIndex = TreeNodeIdList.indexOf(tempChildId);
+        switch (e.code) {
+            case 'ArrowUp':
+                {
+                    e.stopPropagation();
+                    if (TargetChildIndex === 0) setKeyItem(TreeNodeIdList.at(-1));
+                    else setKeyItem(TreeNodeIdList[TargetChildIndex - 1]);
+                }
+                break;
+            case 'ArrowDown':
+                {
+                    e.stopPropagation();
+                    if (TargetChildIndex === TreeNodeIdList.length - 1) setKeyItem(TreeNodeIdList[0]);
+                    else setKeyItem(TreeNodeIdList[TargetChildIndex + 1]);
+                }
+                break;
+            case 'Enter':
+                {
+                    e.stopPropagation();
+                    const sTargetItem = findItemByUniqueKey(props.rootDir, sKeyItem);
+                    sTargetItem.type === 0
+                        ? (props.onSelect(sTargetItem), setKeyItem(''))
+                        : sTargetItem.isOpen
+                        ? props.onFetchDir(sTargetItem, false)
+                        : props.onFetchDir(sTargetItem, true);
+                }
+                break;
+        }
+    };
     return (
-        <div onClick={HandleRootClick} style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div>
+        <div
+            tabIndex={-1}
+            onBlur={() => setKeyItem('')}
+            onKeyDown={handleKeyDown}
+            onClick={HandleRootClick}
+            style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}
+        >
+            <div ref={sTreeRef}>
                 <SubTree
                     directory={props.rootDir}
                     {...props}
@@ -243,6 +287,7 @@ export const FileTree = (props: FileTreeProps) => {
                     setLeaveItem={setLeaveItem}
                     sLeaveItem={sLeaveItem}
                     sLastItem={sLastItem}
+                    sKeyItem={sKeyItem}
                 />
             </div>
             <div
@@ -265,6 +310,7 @@ interface SubTreeProps {
     setEnterItem: (item: any) => void;
     sLastItem: any;
     sLeaveItem: any;
+    sKeyItem: string;
     setLeaveItem: (item: any) => void;
     onSelect: (file: FileType) => void;
     onFetchDir: (item: FileTreeType, isOpen: boolean) => void;
@@ -293,6 +339,7 @@ const SubTree = (props: SubTreeProps) => {
                             pDndTargetList={props.sDndTargetList}
                             onSetDndTargetList={props.setDndTargetList}
                             onSetIsDnd={props.setIsDnd}
+                            pKeyItem={props.sKeyItem}
                         />
                     </React.Fragment>
                 ))
@@ -315,6 +362,7 @@ const SubTree = (props: SubTreeProps) => {
                             pDndTargetList={props.sDndTargetList}
                             onSetDndTargetList={props.setDndTargetList}
                             onSetIsDnd={props.setIsDnd}
+                            pKeyItem={props.sKeyItem}
                         />
                     </React.Fragment>
                 ))
@@ -395,6 +443,7 @@ const FileDiv = ({
     onClick,
     onContextMenu,
     onRefresh,
+    pKeyItem,
 }: {
     file: FileType | FileTreeType;
     icon?: string;
@@ -406,6 +455,7 @@ const FileDiv = ({
     onSetEnterItem: (item: any) => void;
     pLastItem: any;
     pLeaveItem: any;
+    pKeyItem: string;
     onSetLeaveItem: (item: any) => void;
     onClick: () => void;
     onContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: FileType | FileTreeType) => void;
@@ -452,16 +502,6 @@ const FileDiv = ({
         } else {
             onSetDndTargetList([aFile]);
         }
-    };
-    const handleClick = (e: any) => {
-        if (e.metakey || e.ctrlKey) return;
-        e.stopPropagation();
-        onSetDndTargetList(null);
-        onSetEnterItem(null);
-        if ((file as FileTreeType).virtual) return;
-        if (file.type === 0) setRecentDirectory(file.path);
-        if (file.type === 1) setRecentDirectory(file.path + file.name + '/');
-        onClick();
     };
     const handleOnContextMenu = (e: React.MouseEvent<HTMLDivElement>, afile: FileType | FileTreeType) => {
         onContextMenu(e, afile);
@@ -510,15 +550,27 @@ const FileDiv = ({
         }
         return false;
     };
+    const handleClick = (e: any) => {
+        if (e.metakey || e.ctrlKey) return;
+        e.stopPropagation();
+        onSetDndTargetList(null);
+        onSetEnterItem(null);
+        if ((file as FileTreeType).virtual) return;
+        if (file.type === 0) setRecentDirectory(file.path);
+        if (file.type === 1) setRecentDirectory(file.path + file.name + '/');
+        onClick();
+    };
     return (
         <div
             className="dragAndDrop"
+            id={file.path + file.name + '-' + file.depth}
             onDragStart={(event) => HandleDragStart(event, file)}
             onDragEnter={(event) => HandleDragEnter(event, file)}
             onDragEnd={HandleDragEnd}
             onDragLeave={(event) => HandleDragLeave(event, file)}
             onClick={() => HandleMultiDrag(file)}
             draggable
+            style={{ border: file.path + file.name + '-' + file.depth === pKeyItem ? 'solid 1px #c9d1d9' : 'none' }}
         >
             <Div
                 depth={depth}
@@ -583,6 +635,7 @@ const DirDiv = ({
     onSelectDir,
     onContextMenu,
     onRefresh,
+    pKeyItem,
 }: {
     directory: FileTreeType;
     selectedFile: FileType | undefined;
@@ -593,6 +646,7 @@ const DirDiv = ({
     onSetEnterItem: (item: any) => void;
     pLastItem: any;
     pLeaveItem: any;
+    pKeyItem: string;
     onSetLeaveItem: (item: any) => void;
     onSelect: (file: FileType) => void;
     onSelectDir: (item: FileTreeType, isOpen: boolean) => void;
@@ -624,6 +678,7 @@ const DirDiv = ({
                     pDndTargetList={pDndTargetList}
                     onSetDndTargetList={onSetDndTargetList}
                     onSetIsDnd={onSetIsDnd}
+                    pKeyItem={pKeyItem}
                 />
             }
             {directory.isOpen ? (
@@ -641,6 +696,7 @@ const DirDiv = ({
                     sLeaveItem={pLeaveItem}
                     setLeaveItem={onSetLeaveItem}
                     setIsDnd={onSetIsDnd}
+                    sKeyItem={pKeyItem}
                 />
             ) : null}
         </>

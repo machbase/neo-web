@@ -114,3 +114,27 @@ export function sortDir(l: Directory, r: Directory) {
 export function sortFile(l: File, r: File) {
     return l.name.localeCompare(r.name);
 }
+
+/** findItemByUniqueKey
+ * @rootDir Directory
+ * @uniqueKey Item.path + Item.name + '-' + Item.depth
+ */
+export function findItemByUniqueKey(rootDir: Directory, aUniqueKey: string) {
+    let TargetItem: any = undefined;
+    function findFile(rootDir: Directory, aKey: string) {
+        rootDir.files.forEach((file: any) => {
+            if (file.path + file.name + '-' + file.depth === aKey) {
+                TargetItem = file;
+                return;
+            }
+        });
+        rootDir.dirs.forEach((dir: any) => {
+            if (dir.path + dir.name + '-' + dir.depth === aKey) {
+                TargetItem = dir;
+                return;
+            } else findFile(dir, aKey);
+        });
+    }
+    findFile(rootDir, aUniqueKey);
+    return TargetItem;
+}
