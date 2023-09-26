@@ -138,3 +138,23 @@ export function findItemByUniqueKey(rootDir: Directory, aUniqueKey: string) {
     findFile(rootDir, aUniqueKey);
     return TargetItem;
 }
+
+export function findParentDirByUniqueKey(rootDir: Directory, aUniqueKey: string) {
+    let TargetItem: any = undefined;
+    function findFile(rootDir: Directory, aKey: string) {
+        rootDir.files.forEach((file: any) => {
+            if (file.path + file.name + '-' + file.depth === aKey) {
+                TargetItem = rootDir;
+                return;
+            }
+        });
+        rootDir.dirs.forEach((dir: any) => {
+            if (dir.path + dir.name + '-' + dir.depth === aKey) {
+                TargetItem = rootDir;
+                return;
+            } else findFile(dir, aKey);
+        });
+    }
+    findFile(rootDir, aUniqueKey);
+    return TargetItem.path + TargetItem.name + '-' + TargetItem.depth;
+}

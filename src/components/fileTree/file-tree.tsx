@@ -8,7 +8,7 @@ import { gFileTree, gRecentDirectory } from '@/recoil/fileTree';
 import { extractionExtension } from '@/utils';
 import { BiDownload } from '@/assets/icons/Icon';
 import { postFileList } from '@/api/repository/api';
-import { findItemByUniqueKey } from '@/utils/file-manager';
+import { findItemByUniqueKey, findParentDirByUniqueKey } from '@/utils/file-manager';
 
 interface FileTreeProps {
     rootDir: FileTreeType;
@@ -234,35 +234,71 @@ export const FileTree = (props: FileTreeProps) => {
         });
     };
     const handleKeyDown = (e: any) => {
+        if (!sKeyItem) {
+            setKeyItem(sTreeRef.current.childNodes[0].id);
+            return;
+        }
         const TreeNodeIdList = Array.from(sTreeRef.current.childNodes).map((aChild: any) => {
             return aChild.id;
         });
-        const tempChildId = sKeyItem ? sKeyItem : props.selectedFile ? props.selectedFile.path + props.selectedFile.name + '-' + props.selectedFile.depth : TreeNodeIdList[0];
-        const TargetChildIndex = TreeNodeIdList.indexOf(tempChildId);
+        const TargetChildIndex = TreeNodeIdList.indexOf(sKeyItem);
         switch (e.code) {
             case 'ArrowUp':
                 {
                     e.stopPropagation();
-                    if (TargetChildIndex === 0) setKeyItem(TreeNodeIdList.at(-1));
-                    else setKeyItem(TreeNodeIdList[TargetChildIndex - 1]);
+                    if (TargetChildIndex === 0) {
+                        setKeyItem(TreeNodeIdList[0]);
+                        break;
+                    } else setKeyItem(TreeNodeIdList[TargetChildIndex - 1]);
                 }
                 break;
             case 'ArrowDown':
                 {
                     e.stopPropagation();
-                    if (TargetChildIndex === TreeNodeIdList.length - 1) setKeyItem(TreeNodeIdList[0]);
-                    else setKeyItem(TreeNodeIdList[TargetChildIndex + 1]);
+                    if (TargetChildIndex === TreeNodeIdList.length - 1) {
+                        setKeyItem(TreeNodeIdList[TreeNodeIdList.length - 1]);
+                        break;
+                    } else setKeyItem(TreeNodeIdList[TargetChildIndex + 1]);
                 }
                 break;
             case 'Enter':
                 {
                     e.stopPropagation();
+                    if (!sKeyItem) break;
                     const sTargetItem = findItemByUniqueKey(props.rootDir, sKeyItem);
                     sTargetItem.type === 0
                         ? (props.onSelect(sTargetItem), setKeyItem(''))
                         : sTargetItem.isOpen
                         ? props.onFetchDir(sTargetItem, false)
                         : props.onFetchDir(sTargetItem, true);
+                }
+                break;
+            case 'ArrowRight':
+                {
+                    e.stopPropagation();
+                    if (!sKeyItem) break;
+                    const sTargetItem = findItemByUniqueKey(props.rootDir, sKeyItem);
+                    if (sTargetItem.type === 1) {
+                        if (sTargetItem.dirs.length === 0 && sTargetItem.files.length === 0) {
+                            sTargetItem.isOpen ? null : props.onFetchDir(sTargetItem, true);
+                            break;
+                        }
+                        sTargetItem.isOpen ? setKeyItem(TreeNodeIdList[TargetChildIndex + 1]) : props.onFetchDir(sTargetItem, true);
+                    }
+                }
+                break;
+            case 'ArrowLeft':
+                {
+                    e.stopPropagation();
+                    if (!sKeyItem) break;
+                    const sTargetItem = findItemByUniqueKey(props.rootDir, sKeyItem);
+                    if (sTargetItem.type === 1 && !sTargetItem.isOpen && sTargetItem.path == '/') break;
+                    if (sTargetItem.type === 1 && sTargetItem.isOpen) {
+                        props.onFetchDir(sTargetItem, false);
+                        break;
+                    }
+                    const sParentUniqueKey = findParentDirByUniqueKey(props.rootDir, sKeyItem);
+                    setKeyItem(sParentUniqueKey);
                 }
                 break;
         }
@@ -570,7 +606,7 @@ const FileDiv = ({
             onDragLeave={(event) => HandleDragLeave(event, file)}
             onClick={() => HandleMultiDrag(file)}
             draggable
-            style={{ border: file.path + file.name + '-' + file.depth === pKeyItem ? 'solid 1px #c9d1d9' : 'none' }}
+            style={{ border: file.path + file.name + '-' + file.depth === pKeyItem ? 'solid 1px #c9d1d9' : 'solid 1px transparent' }}
         >
             <Div
                 depth={depth}

@@ -190,7 +190,7 @@ any) => {
 
     const findDir = (aOriginDir: FileTreeType, aParedData: FileTreeType, aTargetDir: FileTreeType): FileTreeType[] => {
         return aOriginDir.dirs.map((aDir: FileTreeType) => {
-            if (aDir.name === aTargetDir.name && aDir.depth === aTargetDir.depth) return { ...aParedData, path: aTargetDir.path };
+            if (aDir.name === aTargetDir.name && aDir.depth === aTargetDir.depth && aDir.path === aTargetDir.path) return { ...aParedData, path: aTargetDir.path };
             else if (aParedData.path.includes(aDir.name)) {
                 return { ...aDir, dirs: findDir(aDir, aParedData, aTargetDir) };
             } else return aDir;
