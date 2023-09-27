@@ -21,6 +21,8 @@ interface FileTreeProps {
     onRename: (item: any, name: string) => void;
 }
 
+const FileTreeKeyList = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'];
+
 export const FileTree = (props: FileTreeProps) => {
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
     const [sEnterItem, setEnterItem] = useState<any>(null);
@@ -164,6 +166,7 @@ export const FileTree = (props: FileTreeProps) => {
         });
     };
     const handleKeyDown = (e: any) => {
+        if (!FileTreeKeyList.includes(e.code)) return;
         if (!sKeyItem) {
             setKeyItem(sTreeRef.current.childNodes[0].id);
             return;
@@ -196,6 +199,7 @@ export const FileTree = (props: FileTreeProps) => {
                     e.stopPropagation();
                     if (!sKeyItem) break;
                     const sTargetItem = findItemByUniqueKey(props.rootDir, sKeyItem);
+                    if (!sTargetItem) break;
                     sTargetItem.type === 0
                         ? (props.onSelect(sTargetItem), setKeyItem(''))
                         : sTargetItem.isOpen
@@ -208,6 +212,7 @@ export const FileTree = (props: FileTreeProps) => {
                     e.stopPropagation();
                     if (!sKeyItem) break;
                     const sTargetItem = findItemByUniqueKey(props.rootDir, sKeyItem);
+                    if (!sTargetItem) break;
                     if (sTargetItem.type === 1) {
                         if (sTargetItem.dirs.length === 0 && sTargetItem.files.length === 0) {
                             sTargetItem.isOpen ? null : props.onFetchDir(sTargetItem, true);
@@ -222,13 +227,14 @@ export const FileTree = (props: FileTreeProps) => {
                     e.stopPropagation();
                     if (!sKeyItem) break;
                     const sTargetItem = findItemByUniqueKey(props.rootDir, sKeyItem);
+                    if (!sTargetItem) break;
                     if (sTargetItem.type === 1 && !sTargetItem.isOpen && sTargetItem.path == '/') break;
                     if (sTargetItem.type === 1 && sTargetItem.isOpen) {
                         props.onFetchDir(sTargetItem, false);
                         break;
                     }
                     const sParentUniqueKey = findParentDirByUniqueKey(props.rootDir, sKeyItem);
-                    setKeyItem(sParentUniqueKey);
+                    if (sParentUniqueKey !== '/\\-0') setKeyItem(sParentUniqueKey);
                 }
                 break;
         }
