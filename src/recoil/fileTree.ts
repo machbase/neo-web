@@ -16,3 +16,8 @@ export const gRecentDirectory = atom({
     key: 'gRecentDirectory',
     default: '/',
 });
+
+export const gRenameFile = atom({
+    key: 'gRename',
+    default: undefined,
+});

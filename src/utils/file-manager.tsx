@@ -158,3 +158,22 @@ export function findParentDirByUniqueKey(rootDir: Directory, aUniqueKey: string)
     findFile(rootDir, aUniqueKey);
     return TargetItem.path + TargetItem.name + '-' + TargetItem.depth;
 }
+
+export function renameManager(rootDir: Directory, aUniqueKey: string, rename: string) {
+    const sResult = JSON.parse(JSON.stringify(rootDir));
+
+    function findTarget(rootDir: Directory, aKey: string, rename: string) {
+        rootDir.files = rootDir.files.map((file: any) => {
+            if (file.path + file.name + '-' + file.depth === aKey) {
+                return { ...file, id: rename, name: rename };
+            } else return file;
+        });
+        rootDir.dirs = rootDir.dirs.map((dir: any) => {
+            if (dir.path + dir.name + '-' + dir.depth === aKey) {
+                return { ...dir, id: rename, name: rename, dirs: [], files: [], isOpen: false };
+            } else return findTarget(dir, aKey, rename);
+        });
+        return rootDir;
+    }
+    return findTarget(sResult, aUniqueKey, rename);
+}

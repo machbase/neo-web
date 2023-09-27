@@ -1,8 +1,8 @@
 import { GBoardListType, gBoardList, gConsoleList, gSelectedTab } from '@/recoil/recoil';
-import { gFileTree, gRecentDirectory } from '@/recoil/fileTree';
+import { gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
-import { Delete, Download, Update, VscChevronRight, VscChevronDown, TbFolderPlus, TbCloudDown, TbFolder, MdRefresh } from '@/assets/icons/Icon';
+import { Delete, Download, Update, Rename, VscChevronRight, VscChevronDown, TbFolderPlus, TbCloudDown, TbFolder, MdRefresh } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { FileTree } from '../fileTree/file-tree';
 import Sidebar from '../fileTree/sidebar';
@@ -21,6 +21,7 @@ import SplitPane, { Pane } from 'split-pane-react';
 import { IconButton } from '@/components/buttons/IconButton';
 import { SearchInput } from '../inputs/SearchInput';
 import { TreeViewFilter } from '@/utils/treeViewFilter';
+import { renameManager } from '@/utils/file-manager';
 
 const Side = ({
     pGetInfo,
@@ -47,6 +48,7 @@ any) => {
     const [menuY, setMenuY] = useState<number>(0);
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
     const MenuRef = useRef<HTMLDivElement>(null);
+    const setRename = useSetRecoilState(gRenameFile);
     const setSelectedTab = useSetRecoilState<string>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sFileTree, setFileTree] = useRecoilState(gFileTree);
@@ -188,6 +190,11 @@ any) => {
         setFileTree(JSON.parse(JSON.stringify(sResult)));
     };
 
+    const onRename = async (aSelectedItem: any, aName: string) => {
+        const sResultRoot = renameManager(sFileTree as any, aSelectedItem.path + aSelectedItem.name + '-' + aSelectedItem.depth, aName);
+        setFileTree(JSON.parse(JSON.stringify(sResultRoot)));
+    };
+
     const findDir = (aOriginDir: FileTreeType, aParedData: FileTreeType, aTargetDir: FileTreeType): FileTreeType[] => {
         return aOriginDir.dirs.map((aDir: FileTreeType) => {
             if (aDir.name === aTargetDir.name && aDir.depth === aTargetDir.depth && aDir.path === aTargetDir.path) return { ...aParedData, path: aTargetDir.path };
@@ -294,6 +301,13 @@ any) => {
         setRootDir(JSON.parse(JSON.stringify(sFileTree)));
     };
 
+    const handleRename = () => {
+        if (selectedContextFile !== undefined) {
+            setRename(selectedContextFile as any);
+        }
+        closeContextMenu();
+    };
+
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
 
     return (
@@ -363,10 +377,15 @@ any) => {
                                         onContextMenu={onContextMenu}
                                         onRefresh={() => handleRefresh()}
                                         onSetFileTree={setFileTree}
+                                        onRename={onRename}
                                     />
                                 </Sidebar>
                                 <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
                                     <Menu isOpen={sIsContextMenu}>
+                                        <Menu.Item onClick={handleRename}>
+                                            <Rename />
+                                            <span>Rename</span>
+                                        </Menu.Item>
                                         {(selectedContextFile as any)?.gitClone ? (
                                             <Menu.Item onClick={updateGitFolder}>
                                                 <Update />
