@@ -568,21 +568,20 @@ const FileDiv = ({
     };
     const checkDndSection = (aFile: any): boolean => {
         if (pEnterItem) {
-            const sFilePath = aFile.path.split('/').join('').trim();
-            const sEnterItemPath = pEnterItem.path.split('/').join('').trim();
-            const testexp = new RegExp(`^${pEnterItem.path + pEnterItem.name + '/'}`);
+            if (pEnterItem.type === 0 && pEnterItem.parentId === '0') return true;
+            const DirExp = new RegExp(`^${pEnterItem.path + pEnterItem.name + '/'}?`);
+            const sParentPath = pEnterItem.path
+                .split('/')
+                .filter((aItem: any) => aItem !== pEnterItem.parentId)
+                .join('/');
+            const FileExp = new RegExp(`^${sParentPath}?`);
             if (
-                pEnterItem.type === 1 &&
-                sFilePath.length > sEnterItemPath.length &&
-                sFilePath.includes(sEnterItemPath) &&
-                pEnterItem.depth <= aFile.depth &&
-                testexp.test(aFile.path)
+                DirExp.test(aFile.path) ||
+                pEnterItem === aFile ||
+                (pEnterItem.type === 0 && FileExp.test(aFile.path) && (pEnterItem.parentId === aFile.id || aFile.path.includes(pEnterItem.parentId)))
             ) {
                 return true;
-            } else {
-                if (pEnterItem.type === 1 && pEnterItem.name === aFile.name && pEnterItem.depth === aFile.depth && aFile.path === pEnterItem.path) return true;
-                return false;
-            }
+            } else return false;
         } else return false;
     };
     const HandleDragLeave = (e: any, aTarget: any) => {
