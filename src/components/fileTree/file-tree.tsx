@@ -651,7 +651,6 @@ const FileDiv = ({
             onClick={() => HandleMultiDrag(file)}
             onKeyDown={sIsRename ? (e) => e.stopPropagation() : () => {}}
             draggable
-            style={{ border: file.path + file.name + '-' + file.depth === pKeyItem ? 'solid 1px #c9d1d9' : 'solid 1px transparent' }}
         >
             <Div
                 depth={depth}
@@ -662,6 +661,7 @@ const FileDiv = ({
                 isGit={(file as FileTreeType).gitClone || false}
                 onClick={handleClick}
                 onContextMenu={(e) => handleOnContextMenu(e, file)}
+                isBorder={file.path + file.name + '-' + file.depth === pKeyItem}
             >
                 <div
                     style={{
@@ -714,6 +714,7 @@ const Div = styled.div<{
     isDndItem: boolean;
     isDndSection: boolean;
     isLastItem: boolean;
+    isBorder: boolean;
 }>`
     display: flex;
     justify-content: space-between;
@@ -724,6 +725,7 @@ const Div = styled.div<{
         cursor: pointer;
         background-color: ${(props) => (props.isLastItem ? '#3e3e3e' : props.isDndItem ? '#3e3e3e' : props.isDndSection ? '#3e3e3e' : '#242424')};
     }
+    border: ${(props) => (props.isBorder ? 'solid 1px #c9d1d9' : 'solid 1px transparent')};
 `;
 
 const DirDiv = ({
