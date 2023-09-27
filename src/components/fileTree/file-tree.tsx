@@ -215,7 +215,7 @@ export const FileTree = (props: FileTreeProps) => {
                     if (!sTargetItem) break;
                     if (sTargetItem.type === 1) {
                         if (sTargetItem.dirs.length === 0 && sTargetItem.files.length === 0) {
-                            sTargetItem.isOpen ? setKeyItem(TreeNodeIdList[TargetChildIndex + 1]) : props.onFetchDir(sTargetItem, true);
+                            sTargetItem.isOpen ? null : props.onFetchDir(sTargetItem, true);
                             break;
                         }
                         sTargetItem.isOpen ? setKeyItem(TreeNodeIdList[TargetChildIndex + 1]) : props.onFetchDir(sTargetItem, true);
