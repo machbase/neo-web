@@ -1,5 +1,5 @@
 import { GBoardListType, gBoardList, gConsoleList, gSelectedTab } from '@/recoil/recoil';
-import { gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
+import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
 import { Delete, Download, Update, Rename, VscChevronRight, VscChevronDown, TbFolderPlus, TbCloudDown, TbFolder, MdRefresh } from '@/assets/icons/Icon';
@@ -66,6 +66,7 @@ any) => {
     const [sSideSizes, setSideSizes] = useState<any>(['15%', '85%']);
     const [sSearchFilter, setSearchFilter] = useState<boolean>(false);
     const [sSearchTxt, setSearchTxt] = useState<string>('');
+    const [sDeleteFileList, setDeleteFileList] = useRecoilState(gDeleteFileList);
 
     useEffect(() => {
         getFileTree();
@@ -221,23 +222,76 @@ any) => {
         closeContextMenu();
     };
 
+    const multiDelete = async (aDelList: any) => {
+        const sReslutList: any = [];
+        try {
+            const deleteApi = (aDelItem: any) => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(async () => {
+                        const sResult = await deleteContextFile(aDelItem.path, aDelItem.query);
+                        sReslutList.push(sResult);
+                        if ((sResult as any).success) resolve(true);
+                        else reject(false);
+                    }, 1);
+                });
+            };
+
+            await aDelList.reduce(async (previousPromise: any, curQuery: string) => {
+                await previousPromise;
+                return deleteApi(curQuery);
+            }, Promise.resolve());
+        } catch {
+            setConsoleList((prev: any) => [
+                ...prev,
+                {
+                    timestamp: new Date().getTime(),
+                    level: 'ERROR',
+                    task: '',
+                    message: sReslutList.at(-1).data.reason,
+                },
+            ]);
+            setRecentDirectory('/');
+        }
+
+        if (sReslutList.some((aResult: any) => aResult.success === true)) {
+            getFileTree();
+            setRecentDirectory('/');
+        }
+    };
+
     const handleDeleteFile = async (isRecursive: boolean) => {
-        if (selectedContextFile && selectedContextFile.path && selectedContextFile.name) {
-            const sRecursivePath = isRecursive ? selectedContextFile.name + '?recursive=true' : selectedContextFile.name;
-            const sResult: any = await deleteContextFile(selectedContextFile.path, sRecursivePath);
-            if (sResult.reason === 'success') {
-                getFileTree();
-                setRecentDirectory('/');
-            } else {
-                setConsoleList((prev: any) => [
-                    ...prev,
-                    {
-                        timestamp: new Date().getTime(),
-                        level: 'ERROR',
-                        task: '',
-                        message: sResult.data.reason,
-                    },
-                ]);
+        if (sDeleteFileList && (sDeleteFileList as any).length > 0) {
+            const sRecursivePath: any = { path: undefined, query: undefined };
+            const sDeleteList = JSON.parse(JSON.stringify(sDeleteFileList)).map((aDelFile: any) => {
+                return { path: aDelFile.path, query: isRecursive && aDelFile.type === 1 ? aDelFile.name + '?recursive=true' : aDelFile.name };
+            });
+            if (selectedContextFile && selectedContextFile.path && selectedContextFile.name) {
+                sRecursivePath.path = selectedContextFile.path;
+                if (isRecursive && selectedContextFile.type === 1) sRecursivePath.query = selectedContextFile.name + '?recursive=true';
+                else sRecursivePath.query = selectedContextFile.name;
+            }
+
+            if (!sDeleteList.some((aItem: any) => aItem.path === sRecursivePath.path && aItem.query === sRecursivePath.query)) sDeleteList.push(sRecursivePath);
+            setDeleteFileList(undefined);
+            multiDelete(sDeleteList);
+        } else {
+            if (selectedContextFile && selectedContextFile.path && selectedContextFile.name) {
+                const sRecursivePath = isRecursive ? selectedContextFile.name + '?recursive=true' : selectedContextFile.name;
+                const sResult: any = await deleteContextFile(selectedContextFile.path, sRecursivePath);
+                if (sResult.reason === 'success') {
+                    getFileTree();
+                    setRecentDirectory('/');
+                } else {
+                    setConsoleList((prev: any) => [
+                        ...prev,
+                        {
+                            timestamp: new Date().getTime(),
+                            level: 'ERROR',
+                            task: '',
+                            message: sResult.data.reason,
+                        },
+                    ]);
+                }
             }
         }
         setIsDeleteModal(false);

@@ -21,3 +21,8 @@ export const gRenameFile = atom({
     key: 'gRename',
     default: undefined,
 });
+
+export const gDeleteFileList = atom({
+    key: 'gDeleteFileList',
+    default: undefined,
+});

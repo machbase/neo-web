@@ -4,11 +4,12 @@ import icons from '@/utils/icons';
 import { FileTreeType, FileType, sortDir, sortFile } from '@/utils/fileTreeParser';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
+import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
 import { extractionExtension } from '@/utils';
 import { BiDownload } from '@/assets/icons/Icon';
 import { postFileList } from '@/api/repository/api';
 import { findItemByUniqueKey, findParentDirByUniqueKey } from '@/utils/file-manager';
+import useThrottle from '@/hooks/useThrottle';
 
 interface FileTreeProps {
     rootDir: FileTreeType;
@@ -26,7 +27,8 @@ const FileTreeKeyList = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Ent
 export const FileTree = (props: FileTreeProps) => {
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
     const [sEnterItem, setEnterItem] = useState<any>(null);
-    const [sDndTargetList, setDndTargetList] = useState<any>(null);
+    // const [sDndTargetList, setDndTargetList] = useState<any>(null);
+    const [sDeleteFileList, setDeleteFileList] = useRecoilState(gDeleteFileList);
     const [sIsDnd, setIsDnd] = useState<boolean>(false);
     const [sLeaveItem, setLeaveItem] = useState<any>(null);
     const [sLastItem, setLastItem] = useState<any>(null);
@@ -34,15 +36,18 @@ export const FileTree = (props: FileTreeProps) => {
     const [sIsDropZone, setIsDropZone] = useState<boolean>(false);
     const sTreeRef = useRef<any>(null);
     const [sKeyItem, setKeyItem] = useState<string>('');
+    const [sDragOverItem, setDragOverItem] = useState<string>('');
     const HandleRootClick = (e: any) => {
         if (e.metakey || e.ctrlKey) return;
         setKeyItem('');
-        setDndTargetList(null);
+        // setDndTargetList(null);
+        setDeleteFileList(undefined);
         setEnterItem(null);
         setRecentDirectory('/');
     };
     const DndClear = () => {
-        setDndTargetList(null);
+        // setDndTargetList(null);
+        setDeleteFileList(undefined);
         setEnterItem(null);
         setIsDnd(false);
     };
@@ -244,6 +249,16 @@ export const FileTree = (props: FileTreeProps) => {
         if (aFile.type === 0) sExpand = '.' + aFile.name.split('.')[1];
         props.onRename(aFile, aName + sExpand);
     };
+    const handleDragOver = () => {
+        // console.log('handleDragOver', sDragOverItem);
+        // console.log('sEnterItem', sEnterItem);
+        // const sTargetItem = findItemByUniqueKey(props.rootDir, sDragOverItem);
+        // console.log('props.sTargetItem', sTargetItem);
+        // props.onFetchDir(sTargetItem, true);
+        // setDragOverItem('');
+    };
+
+    useThrottle(sDragOverItem, handleDragOver, 1000);
 
     useEffect(() => {
         if (props.rootDir) {
@@ -259,21 +274,25 @@ export const FileTree = (props: FileTreeProps) => {
             }
             let sParsedList: any = [];
             let sAddTargetPath: string = '';
+            console.log('sDeleteFileList', sDeleteFileList);
             // ROOT (DROP ZONE)
             if (sIsDropZone) {
                 sAddTargetPath = '/';
-                sParsedList = sDndTargetList.filter((aTarget: any) => aTarget.path !== '/');
+                // sParsedList = sDndTargetList.filter((aTarget: any) => aTarget.path !== '/');
+                sParsedList = (sDeleteFileList as any).filter((aTarget: any) => aTarget.path !== '/');
                 setIsDropZone(false);
             } else {
                 // FILE
                 if (sEnterItem.type === 0) {
                     sAddTargetPath = sEnterItem.path;
-                    sParsedList = sDndTargetList.filter((aTarget: any) => aTarget.path !== sEnterItem.path);
+                    // sParsedList = sDndTargetList.filter((aTarget: any) => aTarget.path !== sEnterItem.path);
+                    sParsedList = (sDeleteFileList as any).filter((aTarget: any) => aTarget.path !== sEnterItem.path);
                 }
                 // DIR
                 else {
                     sAddTargetPath = sEnterItem.path + sEnterItem.name + '/';
-                    sParsedList = sDndTargetList.filter((aTarget: any) => aTarget.path !== sEnterItem.path + sEnterItem.name + '/' && aTarget.name !== sEnterItem.name);
+                    // sParsedList = sDndTargetList.filter((aTarget: any) => aTarget.path !== sEnterItem.path + sEnterItem.name + '/' && aTarget.name !== sEnterItem.name);
+                    sParsedList = (sDeleteFileList as any).filter((aTarget: any) => aTarget.path !== sEnterItem.path + sEnterItem.name + '/' && aTarget.name !== sEnterItem.name);
                 }
             }
             if (!sParsedList.length || !sAddTargetPath) {
@@ -326,14 +345,17 @@ export const FileTree = (props: FileTreeProps) => {
                     {...props}
                     sEnterItem={sEnterItem}
                     setEnterItem={setEnterItem}
-                    sDndTargetList={sDndTargetList}
-                    setDndTargetList={setDndTargetList}
+                    // sDndTargetList={sDndTargetList}
+                    sDndTargetList={sDeleteFileList}
+                    // setDndTargetList={setDndTargetList}
+                    setDndTargetList={setDeleteFileList}
                     setIsDnd={setIsDnd}
                     setLeaveItem={setLeaveItem}
                     sLeaveItem={sLeaveItem}
                     sLastItem={sLastItem}
                     sKeyItem={sKeyItem}
                     onRename={handleRename}
+                    onDragOver={setDragOverItem}
                 />
             </div>
             <div
@@ -363,6 +385,7 @@ interface SubTreeProps {
     onContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: FileType | FileTreeType) => void;
     onRefresh?: (e?: React.MouseEvent<HTMLDivElement>) => void;
     onRename: (file: any, name: string) => void;
+    onDragOver: (key: string) => void;
 }
 
 const SubTree = (props: SubTreeProps) => {
@@ -388,6 +411,7 @@ const SubTree = (props: SubTreeProps) => {
                             onSetIsDnd={props.setIsDnd}
                             pKeyItem={props.sKeyItem}
                             onRename={props.onRename}
+                            onDragOver={props.onDragOver}
                         />
                     </React.Fragment>
                 ))
@@ -412,6 +436,7 @@ const SubTree = (props: SubTreeProps) => {
                             onSetIsDnd={props.setIsDnd}
                             pKeyItem={props.sKeyItem}
                             onRename={props.onRename}
+                            onDragOver={props.onDragOver}
                         />
                     </React.Fragment>
                 ))
@@ -494,6 +519,7 @@ const FileDiv = ({
     onRefresh,
     pKeyItem,
     onRename,
+    onDragOver,
 }: {
     file: FileType | FileTreeType;
     icon?: string;
@@ -511,6 +537,7 @@ const FileDiv = ({
     onContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: FileType | FileTreeType) => void;
     onRefresh?: (e?: React.MouseEvent<HTMLDivElement>) => void;
     onRename: (file: any, name: string) => void;
+    onDragOver: (key: string) => void;
 }) => {
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sBoardList] = useRecoilState(gBoardList);
@@ -632,6 +659,10 @@ const FileDiv = ({
             resetRenameValue();
         } else resetRenameValue();
     };
+    const handleDragOver = () => {
+        if (file.type === 1 && !(file as any).isOpen) onDragOver(file.path + file.name + '-' + file.depth);
+        return;
+    };
 
     useEffect(() => {
         if (sRenameItem === file) {
@@ -649,6 +680,7 @@ const FileDiv = ({
             onDragLeave={(event) => HandleDragLeave(event, file)}
             onClick={() => HandleMultiDrag(file)}
             onKeyDown={sIsRename ? (e) => e.stopPropagation() : () => {}}
+            onDragOver={handleDragOver}
             draggable
         >
             <Div
@@ -744,6 +776,7 @@ const DirDiv = ({
     onRefresh,
     pKeyItem,
     onRename,
+    onDragOver,
 }: {
     directory: FileTreeType;
     selectedFile: FileType | undefined;
@@ -761,6 +794,7 @@ const DirDiv = ({
     onContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: FileType | FileTreeType) => void;
     onRefresh?: (e?: React.MouseEvent<HTMLDivElement>) => void;
     onRename: (file: any, name: string) => void;
+    onDragOver: (key: string) => void;
 }) => {
     const sDirectoryIcon = (): string => {
         if (directory.isOpen) return directory.gitClone ? 'gitOpenDirectory' : 'openDirectory';
@@ -788,6 +822,7 @@ const DirDiv = ({
                     onSetIsDnd={onSetIsDnd}
                     pKeyItem={pKeyItem}
                     onRename={onRename}
+                    onDragOver={onDragOver}
                 />
             }
             {directory.isOpen ? (
@@ -807,6 +842,7 @@ const DirDiv = ({
                     setIsDnd={onSetIsDnd}
                     sKeyItem={pKeyItem}
                     onRename={onRename}
+                    onDragOver={onDragOver}
                 />
             ) : null}
         </>
