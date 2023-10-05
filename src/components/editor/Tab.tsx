@@ -4,7 +4,9 @@ import icons from '@/utils/icons';
 import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { SaveCricle } from '@/assets/icons/Icon';
-const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx }: any) => {
+import './Tab.scss';
+
+const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTabDragInfo }: any) => {
     const [sHover, setHover] = useState(false);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sIsSaved, setIsSaved] = useState<boolean>(false);
@@ -77,6 +79,21 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx }: any) => {
         }
         return;
     };
+    const handleDragStart = () => {
+        pSetTabDragInfo({ ...pTabDragInfo, start: pIdx });
+    };
+    const handleDragEnter = (e: any) => {
+        e.stopPropagation();
+        e.preventDefault();
+        pSetTabDragInfo({ ...pTabDragInfo, enter: pIdx });
+    };
+    const handleDragEnd = (e: any) => {
+        e.stopPropagation();
+        e.preventDefault();
+        pSetTabDragInfo({ ...pTabDragInfo, end: true });
+    };
+    // const handleDragLeave = (e: any) => {};
+    // const handleDragOver = (e: any) => {};
 
     return (
         <button
@@ -88,7 +105,14 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx }: any) => {
             <div className="round_right_wrap">
                 <div className="round_right"></div>
             </div>
-            <div className="tab-inner">
+            <div
+                draggable
+                onDragStart={handleDragStart}
+                onDragEnter={handleDragEnter}
+                onDragEnd={handleDragEnd}
+                //
+                className="tab-inner"
+            >
                 <span className="tab-name">
                     <div style={{ display: 'flex', alignItems: 'center', width: '19px' }}>{icons(pBoard.type === 'term' ? pBoard.shell.icon : pBoard.type)}</div>
                     <div style={{ display: 'flex', alignItems: 'center', paddingLeft: '0 !important' }}>

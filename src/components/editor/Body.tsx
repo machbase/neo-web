@@ -30,6 +30,12 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
     const sSaveWorkSheet = useRecoilValue(gSaveWorkSheets);
     const sTabRef = useRef(null);
+    const [sTabDragInfo, setTabDragInfo] = useState<{ start: number | undefined; over: number | undefined; enter: number | undefined; end: boolean }>({
+        start: undefined,
+        enter: undefined,
+        over: undefined,
+        end: false,
+    });
     const sNavigate = useNavigate();
 
     const handleMouseWheel = (e: any) => {
@@ -104,6 +110,10 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
         sBoardList[aKeyNumber - 1] && setSelectedTab(sBoardList[aKeyNumber - 1]?.id);
     };
 
+    const clearTabDragInfo = () => {
+        setTabDragInfo({ start: undefined, enter: undefined, over: undefined, end: false });
+    };
+
     useSaveCommand(handleSaveModalOpen);
     useMoveTab(handleMoveTab);
 
@@ -115,16 +125,39 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
         return () => window.removeEventListener('logoutEvent', expiredRt);
     }, []);
 
+    useEffect(() => {
+        if (sTabDragInfo.end) {
+            if (sTabDragInfo.start === sTabDragInfo.enter) clearTabDragInfo();
+            else {
+                const sTmpBoardList = JSON.parse(JSON.stringify(sBoardList));
+                const sTargetTab = sTmpBoardList.splice(sTabDragInfo.start, 1)[0];
+                sTmpBoardList.splice(sTabDragInfo.enter, 0, sTargetTab);
+                setBoardList(sTmpBoardList);
+                clearTabDragInfo();
+            }
+        }
+    }, [sTabDragInfo.end]);
+
     return (
         <div style={{ width: '100%', height: '100%', background: '#262831' }}>
             <div className="tab">
                 <div className="tab-list" onWheel={handleMouseWheel} ref={sTabRef}>
                     {sBoardList.length !== 0 &&
                         sBoardList.map((aBoard: any, aIdx: number) => {
-                            return <Tab key={aBoard.id} pBoard={aBoard} pSelectedTab={sSelectedTab} pSetSelectedTab={setSelectTab} pIdx={aIdx}></Tab>;
+                            return (
+                                <Tab
+                                    // Add drag event
+                                    key={aBoard.id}
+                                    pBoard={aBoard}
+                                    pSelectedTab={sSelectedTab}
+                                    pSetSelectedTab={setSelectTab}
+                                    pIdx={aIdx}
+                                    pTabDragInfo={sTabDragInfo}
+                                    pSetTabDragInfo={setTabDragInfo}
+                                />
+                            );
                         })}
                 </div>
-
                 <div style={{ margin: '4px 14px 0 14px', display: 'flex', alignItems: 'center' }}>
                     <PlusCircle className="plus-icon" size="20px" onClick={addFile} style={{ cursor: 'pointer' }}></PlusCircle>
                 </div>
