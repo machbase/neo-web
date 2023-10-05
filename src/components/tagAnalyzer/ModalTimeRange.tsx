@@ -3,16 +3,14 @@ import './ModalTimeRange.scss';
 import { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { TIME_RANGE } from '@/utils/constants';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import moment from 'moment';
 import { TextButton } from '../buttons/TextButton';
 import { convertTimeToFullDate } from '@/utils/helpers/date';
+import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 
 const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
-    const sTimeRange: any = TIME_RANGE;
-
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
@@ -116,19 +114,7 @@ const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
                     <div className="bottom">
                         <div className="quick-range">Quick Range</div>
                         <div className="list">
-                            {sTimeRange.map((aItem: any, aIdx: number) => {
-                                return (
-                                    <div key={aIdx} className="quick-select-form">
-                                        {aItem.map((bItem: any) => {
-                                            return (
-                                                <div key={bItem.name} className="btn">
-                                                    <span onClick={() => handleQuickTime(bItem)}>{bItem.name}</span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                );
-                            })}
+                            <SelectTimeRanges onClick={handleQuickTime} />
                         </div>
                     </div>
                 </div>

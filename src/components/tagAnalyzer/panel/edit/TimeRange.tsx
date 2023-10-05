@@ -1,14 +1,11 @@
 import './TimeRange.scss';
-import { TIME_RANGE } from '@/utils/constants';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import moment from 'moment';
-import { useEffect } from 'react';
 import DatePicker from 'react-datepicker';
+import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 import { convertTimeToFullDate } from '@/utils/helpers/date';
 
 const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
-    const sTimeRange: any = TIME_RANGE;
-
     const [sStartTime, setStartTime] = useState<any>(undefined);
     const [sEndTime, setEndTime] = useState<any>(undefined);
 
@@ -104,19 +101,7 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
             <div className="second-row">
                 <div className="quick-range">Quick Range</div>
                 <div>
-                    {sTimeRange.map((aItem: any, aIdx: number) => {
-                        return (
-                            <div key={aIdx} className="quick-select-form">
-                                {aItem.map((bItem: any) => {
-                                    return (
-                                        <div key={bItem.name} className="btn">
-                                            <span onClick={() => handleQuickTime(bItem)}>{bItem.name}</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        );
-                    })}
+                    <SelectTimeRanges onClick={handleQuickTime} />
                 </div>
             </div>
         </div>
