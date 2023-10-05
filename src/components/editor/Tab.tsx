@@ -4,10 +4,13 @@ import icons from '@/utils/icons';
 import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { SaveCricle } from '@/assets/icons/Icon';
-const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx }: any) => {
+import './Tab.scss';
+
+const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTabDragInfo }: any) => {
     const [sHover, setHover] = useState(false);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sIsSaved, setIsSaved] = useState<boolean>(false);
+    const [sDragOver, setDragOver] = useState<NodeJS.Timeout | any>(null);
 
     useEffect(() => {
         compareValue(pBoard);
@@ -77,18 +80,57 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx }: any) => {
         }
         return;
     };
+    const handleDragStart = () => {
+        pSetSelectedTab(pBoard.id);
+        pSetTabDragInfo({ ...pTabDragInfo, start: pIdx });
+    };
+    const handleDragEnter = () => {
+        pSetTabDragInfo({ ...pTabDragInfo, enter: pIdx });
+    };
+    const handleDragEnd = (e: any) => {
+        e.stopPropagation();
+        pSetTabDragInfo({ ...pTabDragInfo, end: true });
+    };
+
+    const handleDragOver = (e: any) => {
+        e.stopPropagation();
+        if (sDragOver) clearTimeout(sDragOver);
+        setDragOver(
+            setTimeout(() => {
+                pSetTabDragInfo({ ...pTabDragInfo, over: pIdx });
+            }, 10)
+        );
+    };
+
+    const handleDragLeave = (e: any) => {
+        e.stopPropagation();
+        clearTimeout(sDragOver);
+    };
 
     return (
         <button
             onClick={() => pSetSelectedTab(pBoard.id)}
             onMouseEnter={() => handleHover(true)}
             onMouseLeave={() => handleHover(false)}
-            className={pSelectedTab === pBoard.id ? 'tab_button tab_select' : 'tab_button tab_none_select'}
+            className={
+                pSelectedTab === pBoard.id
+                    ? 'tab_button tab_select'
+                    : `tab_button tab_none_select ${pTabDragInfo.over === pIdx && pTabDragInfo.start !== pIdx ? 'tab_none_select_drag_over' : ''}`
+            }
         >
             <div className="round_right_wrap">
                 <div className="round_right"></div>
             </div>
-            <div className="tab-inner">
+            <div
+                // add event
+                draggable
+                onDragStart={handleDragStart}
+                onDragEnter={handleDragEnter}
+                onDragEnd={handleDragEnd}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                className="tab-inner"
+            >
                 <span className="tab-name">
                     <div style={{ display: 'flex', alignItems: 'center', width: '19px' }}>{icons(pBoard.type === 'term' ? pBoard.shell.icon : pBoard.type)}</div>
                     <div style={{ display: 'flex', alignItems: 'center', paddingLeft: '0 !important' }}>
