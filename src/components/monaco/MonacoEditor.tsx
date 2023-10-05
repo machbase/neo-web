@@ -4,7 +4,7 @@ import type { OnChange } from '@monaco-editor/react';
 import { useRecoilValue } from 'recoil';
 import { gSelectedTab } from '@/recoil/recoil';
 import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
-
+import './MonacoScrollBarTrack.scss';
 export interface MonacoEditorProps {
     pText: string;
     pLang: string;
