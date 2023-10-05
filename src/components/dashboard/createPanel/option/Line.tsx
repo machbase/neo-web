@@ -76,7 +76,7 @@ const Line = ({ pPanelOption, pChangedOption }: any) => {
                                     Start
                                     <Input
                                         pIsDisabled={!pPanelOption.useMarkArea}
-                                        pWidth={'30%'}
+                                        pWidth={'calc(100% - 50px)'}
                                         pHeight={28}
                                         pType="text"
                                         pValue={aItem.coord0}
@@ -89,7 +89,7 @@ const Line = ({ pPanelOption, pChangedOption }: any) => {
                                     End
                                     <Input
                                         pIsDisabled={!pPanelOption.useMarkArea}
-                                        pWidth={'30%'}
+                                        pWidth={'calc(100% - 40px)'}
                                         pHeight={28}
                                         pType="text"
                                         pValue={aItem.coord1}
@@ -99,10 +99,10 @@ const Line = ({ pPanelOption, pChangedOption }: any) => {
                                     />
                                 </span>
                             </div>
-
+                            Label
                             <Input
                                 pIsDisabled={!pPanelOption.useMarkArea}
-                                pWidth={'30%'}
+                                pWidth={'100%'}
                                 pHeight={28}
                                 pType="text"
                                 pValue={aItem.label}
@@ -110,9 +110,10 @@ const Line = ({ pPanelOption, pChangedOption }: any) => {
                                 pBorderRadius={4}
                                 onChange={(aEvent: any) => pChangedOption(aEvent, 'dataZoomMax')}
                             />
+                            Color
                             <Input
                                 pIsDisabled={!pPanelOption.useMarkArea}
-                                pWidth={'30%'}
+                                pWidth={'100%'}
                                 pHeight={28}
                                 pType="text"
                                 pValue={aItem.color}
@@ -120,9 +121,10 @@ const Line = ({ pPanelOption, pChangedOption }: any) => {
                                 pBorderRadius={4}
                                 onChange={(aEvent: any) => pChangedOption(aEvent, 'dataZoomMax')}
                             />
+                            Opacity
                             <Input
                                 pIsDisabled={!pPanelOption.useMarkArea}
-                                pWidth={'30%'}
+                                pWidth={'100%'}
                                 pHeight={28}
                                 pType="number"
                                 pValue={aItem.opacity}

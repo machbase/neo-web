@@ -13,11 +13,12 @@ export interface SelectProps {
     pInitValue: string;
     pFontSize: number;
     pIsDisabled: boolean;
+    pAutoChanged: boolean;
     onChange: React.ChangeEventHandler<HTMLInputElement>;
 }
 
 export const Select = (props: SelectProps) => {
-    const { pWidth, pIsDisabled, pFontSize, pHeight, pOptions, pIsFullWidth, pBorderRadius, pIsReadonly, pInitValue, onChange } = props;
+    const { pWidth, pAutoChanged, pIsDisabled, pFontSize, pHeight, pOptions, pIsFullWidth, pBorderRadius, pIsReadonly, pInitValue, onChange } = props;
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [selectValue, setSelectValue] = useState<string>(pInitValue);
     const optionRef = useRef<HTMLDivElement>(null);
@@ -43,8 +44,8 @@ export const Select = (props: SelectProps) => {
     useOutsideClick(optionRef, () => setIsOpen(false));
 
     useEffect(() => {
-        setSelectValue(pOptions[0]);
-    }, [pOptions]);
+        pAutoChanged && setSelectValue(pOptions[0]);
+    }, [pOptions[0]]);
     return (
         <div
             className="custom-select-wrapper"
@@ -83,5 +84,6 @@ Select.defaultProps = {
     pInitValue: '',
     pFontSize: 13,
     pIsDisabled: false,
+    pAutoChanged: false,
     pBorderRadius: 8,
 };

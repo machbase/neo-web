@@ -1,0 +1,36 @@
+.create-panel-form {
+    .chart-footer-form {
+        padding: 8px 8px 8px 16px;
+        height: 100%;
+        .chart-footer-tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 2px 8px;
+            font-size: 13px;
+            div {
+                cursor: pointer;
+                &:hover {
+                    opacity: 1 !important;
+                }
+                padding: 0 8px;
+            }
+        }
+        .chart-footer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: calc(100% - 24px);
+            .body {
+                border-radius: 4px;
+                width: 100%;
+                height: 100%;
+                border: 1px solid #b8c8da41;
+                background-color: #141518;
+                padding: 6px;
+                overflow: auto;
+            }
+        }
+    }
+}

@@ -1,9 +1,10 @@
 import { getTqlChart } from '@/api/repository/machiot';
 import { drawChart } from '@/plugin/eCharts';
+import { createQuery } from '@/utils/dashboardUtil';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import './LineChart.scss';
 
-const LineChart = ({ pPanelInfo, pDraged, pInsetDraging }: any) => {
+const LineChart = ({ pPanelInfo, pBoardInfo, pDraged, pInsetDraging }: any) => {
     const [sText, setText] = useState('');
     const ChartRef = useRef<any>();
     const [sChart, setChart] = useState<any>({});
@@ -24,13 +25,26 @@ const LineChart = ({ pPanelInfo, pDraged, pInsetDraging }: any) => {
         }, 10);
     };
 
-    useEffect(() => {
+    const setForm = async () => {
+        console.log(pBoardInfo);
+        pPanelInfo.series.map((aItem: any) => {
+            // console.log(createQuery(aItem));
+            const sInput =
+                'SQL(`' + 'select * from example' + '`)\n' + 'TAKE(50)\n' + `CHART_LINE(size('${ChartRef.current.clientWidth}px','${ChartRef.current.clientHeight - 34}px'))`;
+            // const sResult: any = await getTqlChart(sInput);
+        });
+
         console.log(pPanelInfo);
+    };
+
+    useEffect(() => {
+        setForm();
         getLineChart();
     }, []);
 
     useEffect(() => {
-        console.log(sChart);
+        setForm();
+        console.log(pPanelInfo);
     }, [pPanelInfo]);
     // useLayoutEffect(() => {
     //     ChartRef?.current?.clientWidth && getLineChart();

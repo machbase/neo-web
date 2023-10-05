@@ -5,7 +5,7 @@ import { TextButton } from '@/components/buttons/TextButton';
 import SplitPane, { Pane } from 'split-pane-react';
 import { useEffect, useState } from 'react';
 import CreatePanelBody from './CreatePanelBody';
-import CreatePanelFotter from './CreatePanelFotter';
+import CreatePanelFooter from './CreatePanelFooter';
 import CreatePanelRight from './CreatePanelRight';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
@@ -14,7 +14,7 @@ import { getTableList } from '@/api/repository/api';
 
 const CreatePanel = ({ pSetCreateModal, pType, pBoardInfo }: { pType: string; pSetCreateModal: (aValue: boolean) => void; pBoardInfo: any }) => {
     const [sSideSizes, setSideSizes] = useState<any>(['75%', '25%']);
-    const [sBottomSizes, setBottomSizes] = useState<any>(['60%', '40%']);
+    const [sBottomSizes, setBottomSizes] = useState<any>(['50%', '50%']);
     const [sInsetDraging, setInsetDraging] = useState(false);
     const [sPanelOption, setPanelOption] = useState<any>({});
     const [sAppliedPanelOption, setAppliedPanelOption] = useState<any>({});
@@ -125,12 +125,12 @@ const CreatePanel = ({ pSetCreateModal, pType, pBoardInfo }: { pType: string; pS
                             </Pane>
                             <Pane>
                                 {sTableList.length !== 0 && sPanelOption.i && (
-                                    <CreatePanelFotter
+                                    <CreatePanelFooter
                                         pGetTables={getTables}
                                         pTableList={sTableList}
                                         pPanelOption={sPanelOption}
                                         pSetPanelOption={setPanelOption}
-                                    ></CreatePanelFotter>
+                                    ></CreatePanelFooter>
                                 )}
                             </Pane>
                         </SplitPane>

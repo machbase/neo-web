@@ -4,14 +4,14 @@ import { Select } from '@/components/inputs/Select';
 import { useState } from 'react';
 import './CreatePanelRight.scss';
 import Line from './option/Line';
+import CheckBox from '@/components/inputs/CheckBox';
+
 const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
     const [sPanelOptionCollapse, setPanelOptionCollapse] = useState(true);
     const [sChartOptionCollapse, setChartOpitonCollapse] = useState(true);
-    // const [sTimeOptionCollapse, setTimeOpitonCollapse] = useState(true);
+    const [sTimeOptionCollapse, setTimeOptionCollapse] = useState(true);
 
     const changedOption = (aEvent: any, aKey: string) => {
-        console.log(aEvent);
-        console.log(aKey);
         pSetPanelOption({ ...pPanelOption, [aKey]: Object.keys(aEvent.target).includes('checked') ? aEvent.target.checked : aEvent.target.value });
     };
 
@@ -66,12 +66,6 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                     </div>
                     <div className="divider" style={{ margin: '12px 3px' }}></div>
                 </div>
-                {/* <div className="normal">
-                    <div className="panel-option-header" onClick={() => setTimeOpitonCollapse(!sTimeOptionCollapse)}>
-                        <div className="collapse-icon">{sTimeOptionCollapse ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
-                        Time Option
-                    </div>
-                </div> */}
             </div>
         </div>
     );

@@ -10,7 +10,7 @@
         --disabled-inner: #e1e6f9;
         -webkit-appearance: none;
         -moz-appearance: none;
-        height: 16px;
+        height: 13px;
         outline: none;
         display: inline-block;
         vertical-align: top;
@@ -55,7 +55,7 @@
         box-shadow: 0 0 0 var(--focus);
     }
     .checkbox-wrapper-13 input[type='checkbox']:not(.switch) {
-        width: 16px;
+        width: 13px;
     }
     .checkbox-wrapper-13 input[type='checkbox']:not(.switch):after {
         opacity: var(--o, 0);
@@ -74,8 +74,8 @@
         border-radius: 50%;
     }
     .checkbox-wrapper-13 input[type='checkbox']:not(.switch):after {
-        width: 5px;
-        height: 9px;
+        width: 4px;
+        height: 8px;
         border: 2px solid var(--active-inner);
         border-top: 0;
         border-left: 0;

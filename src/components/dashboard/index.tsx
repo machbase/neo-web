@@ -12,8 +12,12 @@ import { VscDiffAdded } from 'react-icons/vsc';
 import CreatePanel from './createPanel/CreatePanel';
 import { IconButton } from '../buttons/IconButton';
 import { defaultTimeSeriesData } from '@/utils/dashboardUtil';
+import { Calendar } from '@/assets/icons/Icon';
+import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
+import moment from 'moment';
 
 const Dashboard = ({ pInfo, pWidth }: any) => {
+    const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
     const [sIsDrag, setIsDrag] = useState(false);
@@ -32,6 +36,18 @@ const Dashboard = ({ pInfo, pWidth }: any) => {
         <div ref={sBoardRef} className="dashboard-form">
             <div className="board-header">
                 <IconButton pWidth={20} pHeight={20} pIcon={<VscDiffAdded></VscDiffAdded>} onClick={() => setCreateModal(true)}></IconButton>
+                <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
+                    <Calendar />
+                    {pInfo && pInfo.range_bgn ? (
+                        <span>
+                            {(typeof pInfo.range_bgn === 'string' && pInfo.range_bgn.includes('now') ? pInfo.range_bgn : moment(pInfo.range_bgn).format('yyyy-MM-DD HH:mm:ss')) +
+                                '~' +
+                                (typeof pInfo.range_end === 'string' && pInfo.range_end.includes('now') ? pInfo.range_end : moment(pInfo.range_end).format('yyyy-MM-DD HH:mm:ss'))}
+                        </span>
+                    ) : (
+                        <span>Time range not set</span>
+                    )}
+                </button>
             </div>
             {pWidth && (
                 <div className="board-body">
@@ -53,13 +69,14 @@ const Dashboard = ({ pInfo, pWidth }: any) => {
                             pInfo.dashboard.panels.map((aItem: any) => {
                                 return (
                                     <div key={aItem.i}>
-                                        <Panel pPanelInfo={aItem}></Panel>
+                                        <Panel pBoardInfo={pInfo} pPanelInfo={aItem}></Panel>
                                     </div>
                                 );
                             })}
                     </GridLayout>
                 </div>
             )}
+            {sTimeRangeModal && <ModalTimeRange pSetTimeRangeModal={setTimeRangeModal}></ModalTimeRange>}
             {sCreateModal && <CreatePanel pType="create" pBoardInfo={pInfo} pSetCreateModal={setCreateModal}></CreatePanel>}
         </div>
     );

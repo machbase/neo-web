@@ -2,6 +2,7 @@ import { getTableInfo } from '@/api/repository/api';
 import { fetchTags } from '@/api/repository/machiot';
 import { Close, Refresh, VscSync } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
+import CheckBox from '@/components/inputs/CheckBox';
 import { Select } from '@/components/inputs/Select';
 import { getId } from '@/utils';
 import { getTableType, tagAggregatorList } from '@/utils/dashboardUtil';
@@ -114,6 +115,13 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
 
     useEffect(() => {
         sSelectedTableType === 'log' && setCollapse(false);
+        sSelectedTableType === 'tag' &&
+            pSetPanelOption({
+                ...pPanelOption,
+                series: pPanelOption.series.map((aItem: any) => {
+                    return aItem.id === pSeriesInfo.id ? { ...aItem, values: aItem.values.filter((aItem: any, aIdx: number) => aIdx === 0) } : aItem;
+                }),
+            });
     }, [sSelectedTableType]);
 
     return (
@@ -134,9 +142,7 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
                                     pInitValue={pSeriesInfo.table}
                                     pHeight={26}
                                     onChange={(aEvent: any) => changedOption('table', aEvent)}
-                                    pOptions={pTableList.map((aItem: any) => {
-                                        return aItem[3];
-                                    })}
+                                    pOptions={pTableList.map((aItem: any) => aItem[3])}
                                 />
                             </div>
                             <div className="details">
@@ -145,6 +151,7 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
                                     {sTimeList[0] && (
                                         <Select
                                             pFontSize={12}
+                                            pAutoChanged={true}
                                             pWidth={175}
                                             pBorderRadius={4}
                                             pInitValue={sTimeList[0] && sTimeList[0][0]}
@@ -156,6 +163,15 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
                                         />
                                     )}
                                 </div>
+                            </div>
+                            <div className="details">
+                                <span className="series-title"> use </span>
+                                <CheckBox
+                                    pSize={12}
+                                    onChange={(aEvent: any) => changedOption('useRollup', aEvent.target.value)}
+                                    pDefaultChecked={pPanelOption.useRollup}
+                                    pText={'Rollup'}
+                                ></CheckBox>
                             </div>
                         </div>
                     )}
@@ -182,6 +198,7 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
                                     <Select
                                         pFontSize={12}
                                         pWidth={200}
+                                        pAutoChanged={true}
                                         pBorderRadius={4}
                                         pInitValue={pSeriesInfo.tag ? pSeriesInfo.tag : sTagList[0]}
                                         pHeight={26}
@@ -194,6 +211,7 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
                                 <span className="series-title"> Aggregator </span>
                                 <Select
                                     pFontSize={12}
+                                    pAutoChanged={true}
                                     pWidth={200}
                                     pBorderRadius={4}
                                     pInitValue={tagAggregatorList[0]}
@@ -230,6 +248,7 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
                             return (
                                 <Value
                                     key={aItem.id}
+                                    pSelectedTableType={sSelectedTableType}
                                     pChangeValueOption={changeValueOption}
                                     pAddValue={addValue}
                                     pRemoveValue={removeValue}

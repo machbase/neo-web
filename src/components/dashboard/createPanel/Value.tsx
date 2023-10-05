@@ -4,14 +4,20 @@ import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 import { tagAggregatorList } from '@/utils/dashboardUtil';
 
-const Value = ({ pSeriesInfo, pValue, pCloumnList, pIdx, pAddValue, pRemoveValue, pChangeValueOption }: any) => {
+const Value = ({ pSeriesInfo, pValue, pCloumnList, pSelectedTableType, pIdx, pAddValue, pRemoveValue, pChangeValueOption }: any) => {
     return (
         <div className="values">
             <div className="series-table">
                 <span className="series-title">
                     Value
                     {pIdx === pSeriesInfo.values.length - 1 ? (
-                        <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle></PlusCircle>} onClick={() => pAddValue()}></IconButton>
+                        <IconButton
+                            pDisabled={pSelectedTableType === 'tag'}
+                            pWidth={25}
+                            pHeight={26}
+                            pIcon={<PlusCircle></PlusCircle>}
+                            onClick={pSelectedTableType === 'tag' ? () => {} : () => pAddValue()}
+                        ></IconButton>
                     ) : (
                         <IconButton pWidth={25} pHeight={26} pIcon={<Close></Close>} onClick={() => pRemoveValue(pValue.id)}></IconButton>
                     )}
@@ -21,6 +27,7 @@ const Value = ({ pSeriesInfo, pValue, pCloumnList, pIdx, pAddValue, pRemoveValue
                         pFontSize={12}
                         pWidth={175}
                         pBorderRadius={4}
+                        pAutoChanged={true}
                         pInitValue={pCloumnList.filter((aItem: any) => aItem[0] === 'VALUE')[0] ? 'VALUE' : pCloumnList[0] && pCloumnList[0][0]}
                         pHeight={26}
                         onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
