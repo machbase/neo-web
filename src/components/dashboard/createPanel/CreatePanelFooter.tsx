@@ -1,6 +1,6 @@
 import './CreatePanelFooter.scss';
 import Series from './Series';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { tagTableValue } from '@/utils/dashboardUtil';
 
@@ -12,7 +12,7 @@ const CreatePanelFotter = ({ pTableList, pGetTables, pSetPanelOption, pPanelOpti
             <div className="chart-footer-tab">
                 <div style={sTab === 'Query' ? { borderBottom: '2px solid #005FB8' } : { borderBottom: '2px solid transparent', opacity: 0.8 }} onClick={() => setTab('Query')}>
                     Query
-                    <div></div>
+                    <span className="series-count">{Number(pPanelOption.series.length)}</span>
                 </div>
                 <div style={sTab === 'Time' ? { borderBottom: '2px solid #005FB8' } : { borderBottom: '2px solid transparent', opacity: 0.8 }} onClick={() => setTab('Time')}>
                     Time

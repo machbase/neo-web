@@ -6,13 +6,10 @@ import '/node_modules/react-resizable/css/styles.css';
 import './index.scss';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
-import { getId } from '@/utils';
 import Panel from './panels/Panel';
-import { VscDiffAdded } from 'react-icons/vsc';
 import CreatePanel from './createPanel/CreatePanel';
 import { IconButton } from '../buttons/IconButton';
-import { defaultTimeSeriesData } from '@/utils/dashboardUtil';
-import { Calendar } from '@/assets/icons/Icon';
+import { Calendar, TbSquarePlus } from '@/assets/icons/Icon';
 import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
 import moment from 'moment';
 
@@ -35,7 +32,7 @@ const Dashboard = ({ pInfo, pWidth }: any) => {
     return (
         <div ref={sBoardRef} className="dashboard-form">
             <div className="board-header">
-                <IconButton pWidth={20} pHeight={20} pIcon={<VscDiffAdded></VscDiffAdded>} onClick={() => setCreateModal(true)}></IconButton>
+                <IconButton pWidth={24} pHeight={24} pIcon={<TbSquarePlus></TbSquarePlus>} onClick={() => setCreateModal(true)}></IconButton>
                 <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
                     <Calendar />
                     {pInfo && pInfo.range_bgn ? (

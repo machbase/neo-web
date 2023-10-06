@@ -79,7 +79,7 @@ export { BiLineChart as LineChart, BiDownload, BiLink, BiPlay as Play, BiSolidDo
 
 export { FiSearch as Search, FiMonitor as Monitor } from 'react-icons/fi';
 
-export { TbParachute, TbRowInsertTop as InsertRowTop, TbFolderPlus, TbFolderDown, TbFolder, TbCloudDown, TbEyeMinus } from 'react-icons/tb';
+export { TbSquarePlus, TbParachute, TbRowInsertTop as InsertRowTop, TbFolderPlus, TbFolderDown, TbFolder, TbCloudDown, TbEyeMinus } from 'react-icons/tb';
 
 export { IoIosCopy as Copy } from 'react-icons/io';
 

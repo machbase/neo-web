@@ -9,6 +9,7 @@
     background: #1b1c21;
     position: relative;
     .board-header {
+        gap: 8px;
         position: relative;
         height: 40px;
         background-color: #262831;
@@ -17,6 +18,27 @@
         padding: 0 16px;
         svg {
             cursor: pointer;
+        }
+        .plus-btn {
+            border: 0.5px solid rgba(255, 255, 255, 0.5);
+            display: flex;
+            border-radius: 6px;
+            height: 24px;
+            width: 24px;
+            justify-content: center;
+            align-items: center;
+            svg {
+                height: 16px;
+                width: 16px;
+                color: rgba(255, 255, 255, 0.5);
+            }
+
+            &:hover {
+                svg {
+                    color: #f8f8f8;
+                }
+                border-color: #f8f8f8;
+            }
         }
         .set-global-option-btn {
             &:hover {

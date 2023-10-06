@@ -8,7 +8,22 @@
             gap: 8px;
             padding: 2px 8px;
             font-size: 13px;
+            .series-count {
+                background-color: #a4a4a46e;
+                border-radius: 50%;
+                color: #e4e4e4;
+                display: flex;
+                width: 14px;
+                height: 14px;
+                font-size: 11px;
+                align-items: stretch;
+                justify-content: center;
+                margin-left: 4px;
+            }
             div {
+                display: flex;
+                align-items: center;
+
                 cursor: pointer;
                 &:hover {
                     opacity: 1 !important;

@@ -26,15 +26,10 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pDraged, pInsetDraging }: any) => {
     };
 
     const setForm = async () => {
-        console.log(pBoardInfo);
         pPanelInfo.series.map((aItem: any) => {
-            // console.log(createQuery(aItem));
             const sInput =
                 'SQL(`' + 'select * from example' + '`)\n' + 'TAKE(50)\n' + `CHART_LINE(size('${ChartRef.current.clientWidth}px','${ChartRef.current.clientHeight - 34}px'))`;
-            // const sResult: any = await getTqlChart(sInput);
         });
-
-        console.log(pPanelInfo);
     };
 
     useEffect(() => {
@@ -44,7 +39,6 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pDraged, pInsetDraging }: any) => {
 
     useEffect(() => {
         setForm();
-        console.log(pPanelInfo);
     }, [pPanelInfo]);
     // useLayoutEffect(() => {
     //     ChartRef?.current?.clientWidth && getLineChart();
