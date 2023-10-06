@@ -1,29 +1,21 @@
 import { Calendar, Close } from '@/assets/icons/Icon';
 import './ModalTimeRange.scss';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { TIME_RANGE } from '@/utils/constants';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import moment from 'moment';
 import { TextButton } from '../buttons/TextButton';
-import { Input } from '@/components/inputs/Input';
 import { convertTimeToFullDate } from '@/utils/helpers/date';
-import useOutsideClick from '@/hooks/useOutsideClick';
+import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 
 const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
-    const sTimeRange: any = TIME_RANGE;
-
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
     const [sStartTime, setStartTime] = useState<any>(undefined);
     const [sEndTime, setEndTime] = useState<any>(undefined);
-    const [sIsStart, setIsStart] = useState<any>(false);
-    const [sIsEnd, setIsEnd] = useState<any>(false);
-    const sStartRef = useRef<any>(null);
-    const sEndRef = useRef<any>(null);
 
     useEffect(() => {
         const sBoardStartTime = sBoardList.filter((aItem) => sSelectedTab === aItem.id)[0].range_bgn;
@@ -80,9 +72,6 @@ const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
         pSetTimeRangeModal(false);
     };
 
-    useOutsideClick(sStartRef, () => setIsStart(false));
-    useOutsideClick(sEndRef, () => setIsEnd(false));
-
     return (
         <div>
             <div onClick={() => pSetTimeRangeModal(false)} className="time-range-cover"></div>
@@ -99,73 +88,33 @@ const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
 
                 <div className="time-range-body">
                     <div className="top">
-                        <div ref={sStartRef} className="from">
+                        <div className="from">
                             <span className="span-from">From</span>
-                            {sStartTime !== undefined && (
-                                <div onClick={() => setIsStart(true)}>
-                                    <Input
-                                        pWidth={210}
-                                        pHeight={30}
-                                        onChange={(aEvent: any) => handleStartTime(aEvent.target.value)}
-                                        pValue={typeof sStartTime === 'string' ? sStartTime : moment(sStartTime).format('yyyy-MM-DD HH:mm:ss')}
-                                        pSetValue={() => null}
-                                    />
-                                </div>
-                            )}
-                            {sIsStart && (
-                                <DatePicker
-                                    selected={typeof sStartTime === 'string' && sStartTime.includes('now') ? moment(sStartTime).format('yyyy-MM-DD HH:mm:ss') : sStartTime}
-                                    calendarClassName="modal-date-picker"
-                                    timeInputLabel="Time: "
-                                    onChange={(date: any) => handleStartTime(date)}
-                                    dateFormat="yyyy-MM-dd HH:mm:ss"
-                                    showTimeInput
-                                    inline
-                                ></DatePicker>
-                            )}
+                            <DatePicker
+                                selected={typeof sStartTime === 'string' && sStartTime.includes('now') ? moment(sStartTime).format('yyyy-MM-DD HH:mm:ss') : sStartTime}
+                                calendarClassName="modal-date-picker"
+                                timeInputLabel="Time: "
+                                onChange={(date: any) => handleStartTime(date)}
+                                dateFormat="yyyy-MM-dd HH:mm:ss"
+                                showTimeInput
+                            ></DatePicker>
                         </div>
-                        <div ref={sEndRef} className="to">
+                        <div className="to">
                             <span className="span-to">To </span>
-                            {sEndTime !== undefined && (
-                                <div onClick={() => setIsEnd(true)}>
-                                    <Input
-                                        pWidth={210}
-                                        pHeight={30}
-                                        onChange={(aEvent: any) => handleStartTime(aEvent.target.value)}
-                                        pValue={typeof sEndTime === 'string' ? sEndTime : moment(sEndTime).format('yyyy-MM-DD HH:mm:ss')}
-                                        pSetValue={() => null}
-                                    />
-                                </div>
-                            )}
-                            {sIsEnd && (
-                                <DatePicker
-                                    selected={typeof sEndTime === 'string' && sEndTime.includes('now') ? moment(sEndTime).format('yyyy-MM-DD HH:mm:ss') : sEndTime}
-                                    calendarClassName="modal-date-picker"
-                                    timeInputLabel="Time: "
-                                    onChange={(date: any) => handleEndTime(date)}
-                                    dateFormat="yyyy-MM-dd HH:mm:ss"
-                                    showTimeInput
-                                    inline
-                                ></DatePicker>
-                            )}
+                            <DatePicker
+                                selected={typeof sEndTime === 'string' && sEndTime.includes('now') ? moment(sEndTime).format('yyyy-MM-DD HH:mm:ss') : sEndTime}
+                                calendarClassName="modal-date-picker"
+                                timeInputLabel="Time: "
+                                onChange={(date: any) => handleEndTime(date)}
+                                dateFormat="yyyy-MM-dd HH:mm:ss"
+                                showTimeInput
+                            ></DatePicker>
                         </div>
                     </div>
                     <div className="bottom">
                         <div className="quick-range">Quick Range</div>
                         <div className="list">
-                            {sTimeRange.map((aItem: any, aIdx: number) => {
-                                return (
-                                    <div key={aIdx} className="quick-select-form">
-                                        {aItem.map((bItem: any) => {
-                                            return (
-                                                <div key={bItem.name} className="btn">
-                                                    <span onClick={() => handleQuickTime(bItem)}>{bItem.name}</span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                );
-                            })}
+                            <SelectTimeRanges onClick={handleQuickTime} />
                         </div>
                     </div>
                 </div>
