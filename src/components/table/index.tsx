@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils';
 import './index.scss';
 /**
  * @param pTableData
@@ -56,7 +57,7 @@ const TABLE = ({ pTableData, pMaxShowLen, clickEvent }: { pTableData: any; pMaxS
                                 </td>
                                 {aRowList.map((aRowData: any, bIdx: number) => {
                                     return (
-                                        <td className="result-table-item" key={aRowData + bIdx} onContextMenu={(e) => clickEvent(e, aRowData)}>
+                                        <td className="result-table-item" key={generateUUID()} onContextMenu={(e) => clickEvent(e, aRowData)}>
                                             <span>{aRowData}</span>
                                         </td>
                                     );
