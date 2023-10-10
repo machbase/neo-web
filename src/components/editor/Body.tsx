@@ -65,6 +65,9 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                         if (sFileType === 'wrk') {
                             sTempBoardList[sIndex].sheet = sSaveWorkSheet;
                             sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveWorkSheet);
+                        } else if (sFileType === 'json' && typeof sSaveData === 'object') {
+                            sTempBoardList[sIndex].code = JSON.stringify(sSaveData, null, 4);
+                            sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveData, null, 4);
                         } else {
                             sTempBoardList[sIndex].code = sSaveData;
                             sTempBoardList[sIndex].savedCode = sSaveData;
