@@ -5,6 +5,7 @@ import './Table.scss';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import TABLE from '@/components/table';
 import { Copy, Monitor, Close } from '@/assets/icons/Icon';
+import { ClipboardCopy } from '@/utils/ClipboardCopy';
 
 interface TableProps {
     items: any[][];
@@ -43,12 +44,7 @@ export const Table = (props: TableProps) => {
     };
 
     const handleCopy = (aCopyValue: string) => {
-        const textArea = document.createElement('textarea');
-        textArea.value = aCopyValue;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('Copy');
-        textArea.remove();
+        ClipboardCopy(aCopyValue);
         closeContextMenu();
     };
 

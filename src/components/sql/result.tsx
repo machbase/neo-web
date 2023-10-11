@@ -7,6 +7,7 @@ import Modal from '../modal/Modal';
 import TABLE from '@/components/table';
 
 import './result.scss';
+import { ClipboardCopy } from '@/utils/ClipboardCopy';
 
 const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, onMoreResult }: { pDisplay: string; pSqlResponseData: any; pMaxShowLen?: boolean; onMoreResult: () => void }) => {
     const [observe, unobserve] = useObserver(0, onMoreResult);
@@ -34,7 +35,7 @@ const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, onMoreResult }: { pDi
     };
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(sSelectedItem);
+        ClipboardCopy(sSelectedItem);
         closeContextMenu();
     };
 
