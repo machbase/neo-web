@@ -60,8 +60,8 @@ export const SaveModal = (props: SaveModalProps) => {
 
     const getFiles = async (aType: string, aPathArr?: any) => {
         const sData = await getFileList(pIsSave ? `?filter=*.${aType}` : '', aPathArr ? aPathArr.join('/') : sSelectedDir.join('/'), '');
-        setFileList(sData.data.children);
-        setFilterFileList(sData.data.children);
+        setFileList(sData.data.children ?? []);
+        setFilterFileList(sData.data.children ?? []);
     };
 
     const changeSaveFileName = (aEvent: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,8 +125,8 @@ export const SaveModal = (props: SaveModalProps) => {
                 deletePath.pop();
                 setDeletePath(deletePath);
                 const sData = await getFileList(pIsSave ? `?filter=*.${sFileType}` : '', currentPath.join('/'), '');
-                setFileList(sData.data.children);
-                setFilterFileList(sData.data.children);
+                setFileList(sData.data.children ?? []);
+                setFilterFileList(sData.data.children ?? []);
             } else {
                 getFiles(sFileType, currentPath);
             }
@@ -313,9 +313,10 @@ export const SaveModal = (props: SaveModalProps) => {
 
     const makeFolder = () => {
         const sFilterList = sFileList.filter((aItem) => aItem.isDir && aItem.name.startsWith('new'));
+        const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
 
         if (sFilterList.length === 0) {
-            postFileList('', sSelectedDir.join('/'), `new`);
+            postFileList(undefined, sPath, `new`);
         } else {
             const sSortData = sFilterList
                 .map((aItem) => {
@@ -334,16 +335,15 @@ export const SaveModal = (props: SaveModalProps) => {
 
             const sIdx = sData.findIndex((aItem) => !aItem);
             if (sIdx === 0) {
-                postFileList('', sSelectedDir.join('/'), `new`);
+                postFileList(undefined, sPath, `new`);
             } else if (sIdx !== -1) {
-                postFileList('', sSelectedDir.join('/'), `new-${sIdx}`);
+                postFileList(undefined, sPath, `new-${sIdx}`);
             } else {
-                postFileList('', sSelectedDir.join('/'), `new-${sSortData.length}`);
+                postFileList(undefined, sPath, `new-${sSortData.length}`);
             }
         }
         getFiles(sFileType);
-        const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
-        updateFileTree(sPath);
+        updateFileTree('/');
     };
 
     const onContextMenu = (e: React.MouseEvent, file: FileType | FileTreeType) => {
