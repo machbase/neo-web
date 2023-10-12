@@ -64,6 +64,11 @@ export const gTables = atom<any>({
     default: [],
 });
 
+export const gRollupTableList = atom<any>({
+    key: 'gRollupTableList',
+    default: [],
+});
+
 export const gSelectedBoard = selector<any>({
     key: 'gSelectedBoard',
     get: ({ get }) => {

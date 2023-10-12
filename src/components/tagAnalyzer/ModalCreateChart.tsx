@@ -5,7 +5,7 @@ import Line from '@/assets/image/img_chart_03.png';
 import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab, gTables } from '@/recoil/recoil';
-import { fetchOnMinMaxTable, fetchOnRollupTable, fetchRangeData, fetchTableName, fetchTags } from '@/api/repository/machiot';
+import { fetchOnMinMaxTable, fetchRangeData, fetchTableName, fetchTags } from '@/api/repository/machiot';
 import { DEFAULT_CHART } from '@/utils/constants';
 import { convertChartDefault } from '@/utils/utils';
 import { getId } from '@/utils';
@@ -25,7 +25,6 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
     const [sTagPagination, setTagPagination] = useState(1);
     const [sCalcTagList, setCalcTagList] = useState<string[]>([]);
     const [sSelectedTag, setSelectedTag] = useState<any[]>([]);
-    const [sRollupTable, setRollupTable] = useState<boolean>(false);
     const [sSelectedChartType, setSelectedChartType] = useState<string>('Zone');
     const [sTagInputValue, setTagInputValue] = useState<string>('');
 
@@ -178,7 +177,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                 calculationMode: 'avg',
                 alias: '',
                 weight: 1.0,
-                onRollup: sRollupTable,
+                // onRollup: false,
                 colName: { name: sData.rows[0][0], time: sData.rows[1][0], value: sData.rows[2][0] },
             },
         ]);
@@ -188,14 +187,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
         setTagPagination(aStatus ? sTagPagination + 1 : sTagPagination - 1);
     };
 
-    const changedTable = async (aEvent: any) => {
-        const sRes = await fetchOnRollupTable(aEvent.target.value);
-        if (sRes.data.rows.length === 0) {
-            setRollupTable(false);
-        } else {
-            setRollupTable(true);
-        }
-
+    const changedTable = (aEvent: any) => {
         setSelectedTable(aEvent.target.value);
     };
 
@@ -218,7 +210,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                             {<Select pIsFullWidth pInitValue={sTables ? sTables[0] : ''} pHeight={32} onChange={changedTable} pOptions={sTables ? sTables : []} />}
                         </div>
                     </div>
-                    {!sRollupTable && <p>* The table is show because the roll-up table is not generated.</p>}
+                    {/* {!sRollupTable && <p>* The table is show because the roll-up table is not generated.</p>} */}
                     <div className="chart-select">
                         <div className="title">Chart</div>
                         <div className="select-chart-form">

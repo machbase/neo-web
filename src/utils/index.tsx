@@ -37,3 +37,13 @@ export const extractionExtension = (aFileName: string) => {
 
     return aFileName.slice(sDotIndex + 1).toLowerCase();
 };
+
+export const isRollup = (aRollups: any, aTableName: string, aInterval: number) => {
+    if (aRollups[aTableName] && aInterval > 0) {
+        const aValue = aRollups[aTableName];
+        const aResult = aValue.find((aRollupTime: any) => aInterval % aRollupTime === 0);
+        return !!aResult;
+    } else {
+        return false;
+    }
+};

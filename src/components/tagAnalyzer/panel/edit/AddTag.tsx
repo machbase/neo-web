@@ -2,7 +2,7 @@ import './AddTag.scss';
 import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { gTables } from '@/recoil/recoil';
-import { fetchOnRollupTable, fetchTableName, fetchTags } from '@/api/repository/machiot';
+import { fetchTableName, fetchTags } from '@/api/repository/machiot';
 import { convertTagChartType } from '@/utils/utils';
 import { getId } from '@/utils';
 import { BiSolidChart, Close, ArrowLeft, ArrowRight, Search } from '@/assets/icons/Icon';
@@ -19,7 +19,6 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
     const [sTagPagination, setTagPagination] = useState(-1);
     const [sCalcTagList, setCalcTagList] = useState<string[]>([]);
     const [sSelectedTag, setSelectedTag] = useState<any[]>([]);
-    const [sRollupTable, setRollupTable] = useState<boolean>(false);
     const [sTagInputValue, setTagInputValue] = useState<string>('');
 
     const avgMode = [
@@ -111,7 +110,6 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                 calculationMode: 'avg',
                 alias: '',
                 weight: 1.0,
-                onRollup: sRollupTable,
                 colName: { name: sData.rows[0][0], time: sData.rows[1][0], value: sData.rows[2][0] },
             },
         ]);
@@ -122,13 +120,6 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
     };
 
     const changedTable = async (aEvent: any) => {
-        const sRes = await fetchOnRollupTable(aEvent.target.value);
-        if (sRes.data.rows.length === 0) {
-            setRollupTable(false);
-        } else {
-            setRollupTable(true);
-        }
-
         setSelectedTable(aEvent.target.value);
     };
 
@@ -151,8 +142,7 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                             <Select pIsFullWidth pInitValue={sTables[0]} pHeight={32} onChange={changedTable} pOptions={sTables} />
                         </div>
                     </div>
-                    {!sRollupTable && <p>* The table is show because the roll-up table is not generated.</p>}
-
+                    {/* {!sRollupTable && <p>* The table is show because the roll-up table is not generated.</p>} */}
                     <div className="tag-select">
                         <div className="title">Tag</div>
                         <div className="tag-form">
