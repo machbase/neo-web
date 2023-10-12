@@ -4,14 +4,12 @@ const useThrottle = (aObserve: string, aCallback: () => void, aTime: number | un
     const [sThrottleTimer, setThrottleTimer] = useState<any>(null);
 
     useEffect(() => {
-        if (!aObserve) return;
         if (sThrottleTimer) clearTimeout(sThrottleTimer);
-        if (aObserve !== '')
-            setThrottleTimer(
-                setTimeout(() => {
-                    aCallback();
-                }, aTime)
-            );
+        setThrottleTimer(
+            setTimeout(() => {
+                aCallback();
+            }, aTime)
+        );
     }, [aObserve]);
 };
 

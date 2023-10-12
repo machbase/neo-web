@@ -250,12 +250,11 @@ export const FileTree = (props: FileTreeProps) => {
         props.onRename(aFile, aName + sExpand);
     };
     const handleDragOver = () => {
-        // console.log('handleDragOver', sDragOverItem);
-        // console.log('sEnterItem', sEnterItem);
-        // const sTargetItem = findItemByUniqueKey(props.rootDir, sDragOverItem);
-        // console.log('props.sTargetItem', sTargetItem);
-        // props.onFetchDir(sTargetItem, true);
-        // setDragOverItem('');
+        const sTargetItem = findItemByUniqueKey(props.rootDir, sDragOverItem);
+        if (sTargetItem && sTargetItem.type === 1) {
+            props.onFetchDir(sTargetItem, true);
+        }
+        if (sDragOverItem !== '') setDragOverItem('');
     };
 
     useThrottle(sDragOverItem, handleDragOver, 1000);
@@ -274,7 +273,6 @@ export const FileTree = (props: FileTreeProps) => {
             }
             let sParsedList: any = [];
             let sAddTargetPath: string = '';
-            console.log('sDeleteFileList', sDeleteFileList);
             // ROOT (DROP ZONE)
             if (sIsDropZone) {
                 sAddTargetPath = '/';
@@ -661,7 +659,7 @@ const FileDiv = ({
     };
     const handleDragOver = () => {
         if (file.type === 1 && !(file as any).isOpen) onDragOver(file.path + file.name + '-' + file.depth);
-        return;
+        else onDragOver('');
     };
 
     useEffect(() => {
