@@ -60,7 +60,7 @@ export const fileTreeParser = (aResFileList: ResFileListType, aPath: string, aDe
         parentId: undefined,
         type: aResFileList && aResFileList.isDir ? 1 : 0,
         path: aPath,
-        gitClone: aResFileList.gitClone,
+        gitClone: aResFileList.gitClone || false,
         gitUrl: undefined,
         gitStatus: undefined,
         isOpen: false,
