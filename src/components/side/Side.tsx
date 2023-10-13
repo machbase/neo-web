@@ -67,6 +67,7 @@ any) => {
     const [sSearchFilter, setSearchFilter] = useState<boolean>(false);
     const [sSearchTxt, setSearchTxt] = useState<string>('');
     const [sDeleteFileList, setDeleteFileList] = useRecoilState(gDeleteFileList);
+    const [sIsFetch, setIsFetch] = useState<boolean>(false);
 
     useEffect(() => {
         getFileTree();
@@ -176,19 +177,25 @@ any) => {
     };
 
     const onFetchDir = async (aSelectedDir: FileTreeType, aIsOpen: boolean) => {
-        let sReturn = null;
-        let sParedData = null;
-        if (aIsOpen) {
-            sReturn = await getFiles(`${aSelectedDir.path}${aSelectedDir.name}/`);
-            sParedData = fileTreeParser(sReturn.data, `${aSelectedDir.path}${aSelectedDir.name}/`, aSelectedDir.depth, aSelectedDir.name);
-        } else {
-            sParedData = aSelectedDir;
+        if (!sIsFetch) {
+            setIsFetch(true);
+            let sReturn = null;
+            let sParedData = null;
+
+            if (aIsOpen) {
+                sReturn = await getFiles(`${aSelectedDir.path}${aSelectedDir.name}/`);
+                sParedData = fileTreeParser(sReturn.data, `${aSelectedDir.path}${aSelectedDir.name}/`, aSelectedDir.depth, aSelectedDir.name);
+            } else {
+                sParedData = aSelectedDir;
+            }
+
+            sParedData.isOpen = aIsOpen;
+            const sTmpDir = findDir(sFileTree as any, sParedData, aSelectedDir);
+            const sResult = JSON.parse(JSON.stringify(sFileTree));
+            sResult.dirs = sTmpDir;
+            setFileTree(JSON.parse(JSON.stringify(sResult)));
+            setIsFetch(false);
         }
-        sParedData.isOpen = aIsOpen;
-        const sTmpDir = findDir(sFileTree as any, sParedData, aSelectedDir);
-        const sResult = JSON.parse(JSON.stringify(sFileTree));
-        sResult.dirs = sTmpDir;
-        setFileTree(JSON.parse(JSON.stringify(sResult)));
     };
 
     const onRename = async (aSelectedItem: any, aName: string) => {

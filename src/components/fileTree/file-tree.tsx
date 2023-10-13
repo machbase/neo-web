@@ -10,6 +10,7 @@ import { BiDownload } from '@/assets/icons/Icon';
 import { postFileList } from '@/api/repository/api';
 import { findItemByUniqueKey, findParentDirByUniqueKey } from '@/utils/file-manager';
 import useThrottle from '@/hooks/useThrottle';
+import { moveFile } from '@/api/repository/fileTree';
 
 interface FileTreeProps {
     rootDir: FileTreeType;
@@ -27,11 +28,8 @@ const FileTreeKeyList = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Ent
 export const FileTree = (props: FileTreeProps) => {
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
     const [sEnterItem, setEnterItem] = useState<any>(null);
-    // const [sDndTargetList, setDndTargetList] = useState<any>(null);
     const [sDeleteFileList, setDeleteFileList] = useRecoilState(gDeleteFileList);
     const [sIsDnd, setIsDnd] = useState<boolean>(false);
-    const [sLeaveItem, setLeaveItem] = useState<any>(null);
-    const [sLastItem, setLastItem] = useState<any>(null);
     const [sFileTree] = useRecoilState(gFileTree);
     const [sIsDropZone, setIsDropZone] = useState<boolean>(false);
     const sTreeRef = useRef<any>(null);
@@ -40,25 +38,14 @@ export const FileTree = (props: FileTreeProps) => {
     const HandleRootClick = (e: any) => {
         if (e.metakey || e.ctrlKey) return;
         setKeyItem('');
-        // setDndTargetList(null);
         setDeleteFileList(undefined);
         setEnterItem(null);
         setRecentDirectory('/');
     };
     const DndClear = () => {
-        // setDndTargetList(null);
         setDeleteFileList(undefined);
         setEnterItem(null);
         setIsDnd(false);
-    };
-    const handleLastItem = () => {
-        if (props.rootDir.files.length > 0) {
-            return props.rootDir.files.at(-1);
-        } else if (props.rootDir.dirs.length > 0 && props.rootDir.files.length === 0) {
-            return props.rootDir.dirs.at(-1);
-        } else {
-            return null;
-        }
     };
     const modifyDepth = (aDir: any) => {
         const abc = JSON.parse(JSON.stringify(aDir));
@@ -244,10 +231,14 @@ export const FileTree = (props: FileTreeProps) => {
                 break;
         }
     };
-    const handleRename = (aFile: any, aName: string) => {
+    const handleRename = async (aFile: any, aName: string) => {
         let sExpand: string = '';
         if (aFile.type === 0) sExpand = '.' + aFile.name.split('.')[1];
-        props.onRename(aFile, aName + sExpand);
+        if (aFile.name.split('.')[0] === aName) return;
+        const sOldName = aFile.path + aFile.name;
+        const sCurName = aFile.path + aName + sExpand;
+        const sRenameResult: any = await moveFile(sOldName, sCurName);
+        if (sRenameResult.success) props.onRename(aFile, aName + sExpand);
     };
     const handleDragOver = () => {
         const sTargetItem = findItemByUniqueKey(props.rootDir, sDragOverItem);
@@ -260,12 +251,6 @@ export const FileTree = (props: FileTreeProps) => {
     useThrottle(sDragOverItem, handleDragOver, 1000);
 
     useEffect(() => {
-        if (props.rootDir) {
-            setLastItem(handleLastItem());
-        }
-    }, [props.rootDir]);
-
-    useEffect(() => {
         if (sIsDnd) {
             if (!sEnterItem && !sIsDropZone) {
                 DndClear();
@@ -276,20 +261,17 @@ export const FileTree = (props: FileTreeProps) => {
             // ROOT (DROP ZONE)
             if (sIsDropZone) {
                 sAddTargetPath = '/';
-                // sParsedList = sDndTargetList.filter((aTarget: any) => aTarget.path !== '/');
                 sParsedList = (sDeleteFileList as any).filter((aTarget: any) => aTarget.path !== '/');
                 setIsDropZone(false);
             } else {
                 // FILE
                 if (sEnterItem.type === 0) {
                     sAddTargetPath = sEnterItem.path;
-                    // sParsedList = sDndTargetList.filter((aTarget: any) => aTarget.path !== sEnterItem.path);
                     sParsedList = (sDeleteFileList as any).filter((aTarget: any) => aTarget.path !== sEnterItem.path);
                 }
                 // DIR
                 else {
                     sAddTargetPath = sEnterItem.path + sEnterItem.name + '/';
-                    // sParsedList = sDndTargetList.filter((aTarget: any) => aTarget.path !== sEnterItem.path + sEnterItem.name + '/' && aTarget.name !== sEnterItem.name);
                     sParsedList = (sDeleteFileList as any).filter((aTarget: any) => aTarget.path !== sEnterItem.path + sEnterItem.name + '/' && aTarget.name !== sEnterItem.name);
                 }
             }
@@ -297,38 +279,56 @@ export const FileTree = (props: FileTreeProps) => {
                 DndClear();
                 return;
             }
-            let sTestRoot = JSON.parse(JSON.stringify(sFileTree));
-            // remove
-            sParsedList.map((aDeleteItem: any) => {
-                if (aDeleteItem.type === 0) sTestRoot = removeFile(sTestRoot, aDeleteItem);
-                else sTestRoot = removeDir(sTestRoot, aDeleteItem);
-            });
-            // add
-            sParsedList.map((aAddItem: any) => {
-                if (sAddTargetPath === '/') {
-                    if (aAddItem.type === 1) {
-                        const sDirTmp = { ...aAddItem, depth: 1, parentId: '0', path: '/' };
-                        if (aAddItem.dirs.length > 0) {
-                            const sFixedDepthDirs = modifyDepth(sDirTmp);
-                            sTestRoot.dirs.push(sFixedDepthDirs);
-                        } else {
-                            sDirTmp.files = sDirTmp.files.map((aFile: any) => {
-                                return { ...aFile, depth: sDirTmp.depth + 1, path: sDirTmp.path + sDirTmp.name + '/' };
-                            });
-                            sTestRoot.dirs.push(sDirTmp);
-                        }
-                    } else {
-                        sTestRoot.files.push({ ...aAddItem, depth: 1, parentId: '0', path: '/' });
-                    }
-                } else {
-                    if (aAddItem.type === 0) sTestRoot.dirs = addTargetFile(sTestRoot, aAddItem, sAddTargetPath);
-                    else sTestRoot.dirs = addTargetDir(sTestRoot, aAddItem, sAddTargetPath);
+
+            (async () => {
+                const moveResult: any = [];
+                for (const aItem of sParsedList) {
+                    const sOldPath = aItem.path + aItem.name;
+                    const sDestinationPath = sIsDropZone ? '/' + aItem.name : sEnterItem.path + (sEnterItem.type === 0 ? '' : sEnterItem.name + '/') + aItem.name;
+                    const aResult: any = await moveFile(sOldPath, sDestinationPath);
+                    if (aResult.success) moveResult.push(aResult);
                 }
-            });
-            DndClear();
-            props.onSetFileTree(JSON.parse(JSON.stringify(sTestRoot)));
+                if (
+                    moveResult.length > 0 &&
+                    moveResult.reduce((preVal: boolean, aRes: any) => {
+                        return !preVal || aRes.success;
+                    }, true)
+                ) {
+                    let sTestRoot = JSON.parse(JSON.stringify(sFileTree));
+                    // remove
+                    sParsedList.map((aDeleteItem: any) => {
+                        if (aDeleteItem.type === 0) sTestRoot = removeFile(sTestRoot, aDeleteItem);
+                        else sTestRoot = removeDir(sTestRoot, aDeleteItem);
+                    });
+                    // add
+                    sParsedList.map((aAddItem: any) => {
+                        if (sAddTargetPath === '/') {
+                            if (aAddItem.type === 1) {
+                                const sDirTmp = { ...aAddItem, depth: 1, parentId: '0', path: '/' };
+                                if (aAddItem.dirs.length > 0) {
+                                    const sFixedDepthDirs = modifyDepth(sDirTmp);
+                                    sTestRoot.dirs.push(sFixedDepthDirs);
+                                } else {
+                                    sDirTmp.files = sDirTmp.files.map((aFile: any) => {
+                                        return { ...aFile, depth: sDirTmp.depth + 1, path: sDirTmp.path + sDirTmp.name + '/' };
+                                    });
+                                    sTestRoot.dirs.push(sDirTmp);
+                                }
+                            } else {
+                                sTestRoot.files.push({ ...aAddItem, depth: 1, parentId: '0', path: '/' });
+                            }
+                        } else {
+                            if (aAddItem.type === 0) sTestRoot.dirs = addTargetFile(sTestRoot, aAddItem, sAddTargetPath);
+                            else sTestRoot.dirs = addTargetDir(sTestRoot, aAddItem, sAddTargetPath);
+                        }
+                    });
+                    props.onSetFileTree(JSON.parse(JSON.stringify(sTestRoot)));
+                }
+                DndClear();
+            })();
         }
     }, [sIsDnd]);
+
     return (
         <div
             tabIndex={-1}
@@ -343,23 +343,26 @@ export const FileTree = (props: FileTreeProps) => {
                     {...props}
                     sEnterItem={sEnterItem}
                     setEnterItem={setEnterItem}
-                    // sDndTargetList={sDndTargetList}
                     sDndTargetList={sDeleteFileList}
-                    // setDndTargetList={setDndTargetList}
                     setDndTargetList={setDeleteFileList}
                     setIsDnd={setIsDnd}
-                    setLeaveItem={setLeaveItem}
-                    sLeaveItem={sLeaveItem}
-                    sLastItem={sLastItem}
                     sKeyItem={sKeyItem}
+                    sIsDropzone={sIsDropZone}
                     onRename={handleRename}
                     onDragOver={setDragOverItem}
                 />
             </div>
             <div
                 className="rootdropzone"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => setIsDropZone(true)}
+                onDragOver={(e) => {
+                    setIsDropZone(true);
+                    setDragOverItem('');
+                    e.preventDefault();
+                }}
+                onDragLeave={(e) => {
+                    setIsDropZone(false);
+                    e.preventDefault();
+                }}
                 style={{ flexGrow: '1', width: '100%', backgroundColor: 'transparent' }}
             />
         </div>
@@ -374,10 +377,8 @@ interface SubTreeProps {
     setDndTargetList: (item: any) => void;
     sEnterItem: any;
     setEnterItem: (item: any) => void;
-    sLastItem: any;
-    sLeaveItem: any;
+    sIsDropzone: boolean;
     sKeyItem: string;
-    setLeaveItem: (item: any) => void;
     onSelect: (file: FileType) => void;
     onFetchDir: (item: FileTreeType, isOpen: boolean) => void;
     onContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: FileType | FileTreeType) => void;
@@ -387,10 +388,16 @@ interface SubTreeProps {
 }
 
 const SubTree = (props: SubTreeProps) => {
+    const [sDir, setDir] = useState([...props.directory.dirs]);
+    const [sFile, setFile] = useState([...props.directory.files]);
+    useEffect(() => {
+        setDir([...props.directory.dirs]);
+        setFile([...props.directory.files]);
+    }, [props.directory]);
     return (
         <>
-            {props.directory.dirs.length > 0 ? (
-                props.directory.dirs.sort(sortDir).map((dir) => (
+            {sDir.length > 0 ? (
+                sDir.sort(sortDir).map((dir) => (
                     <React.Fragment key={'' + dir.depth + dir.id}>
                         <DirDiv
                             directory={dir}
@@ -401,23 +408,21 @@ const SubTree = (props: SubTreeProps) => {
                             onRefresh={props.onRefresh}
                             pEnterItem={props.sEnterItem}
                             onSetEnterItem={props.setEnterItem}
-                            pLeaveItem={props.sLeaveItem}
-                            onSetLeaveItem={props.setLeaveItem}
-                            pLastItem={props.sLastItem}
                             pDndTargetList={props.sDndTargetList}
                             onSetDndTargetList={props.setDndTargetList}
                             onSetIsDnd={props.setIsDnd}
                             pKeyItem={props.sKeyItem}
                             onRename={props.onRename}
                             onDragOver={props.onDragOver}
+                            pIsDropzone={props.sIsDropzone}
                         />
                     </React.Fragment>
                 ))
             ) : (
                 <></>
             )}
-            {props.directory.files.length > 0 ? (
-                props.directory.files.sort(sortFile).map((file) => (
+            {sFile.length > 0 ? (
+                sFile.sort(sortFile).map((file) => (
                     <React.Fragment key={'' + file.depth + file.id}>
                         <FileDiv
                             file={file}
@@ -426,15 +431,13 @@ const SubTree = (props: SubTreeProps) => {
                             onContextMenu={props.onContextMenu}
                             pEnterItem={props.sEnterItem}
                             onSetEnterItem={props.setEnterItem}
-                            pLastItem={props.sLastItem}
-                            pLeaveItem={props.sLeaveItem}
-                            onSetLeaveItem={props.setLeaveItem}
                             pDndTargetList={props.sDndTargetList}
                             onSetDndTargetList={props.setDndTargetList}
                             onSetIsDnd={props.setIsDnd}
                             pKeyItem={props.sKeyItem}
                             onRename={props.onRename}
                             onDragOver={props.onDragOver}
+                            pIsDropzone={props.sIsDropzone}
                         />
                     </React.Fragment>
                 ))
@@ -509,15 +512,13 @@ const FileDiv = ({
     onSetDndTargetList,
     pEnterItem,
     onSetEnterItem,
-    pLastItem,
-    pLeaveItem,
-    onSetLeaveItem,
     onClick,
     onContextMenu,
     onRefresh,
     pKeyItem,
     onRename,
     onDragOver,
+    pIsDropzone,
 }: {
     file: FileType | FileTreeType;
     icon?: string;
@@ -527,10 +528,8 @@ const FileDiv = ({
     onSetDndTargetList: (item: any) => void;
     pEnterItem: any;
     onSetEnterItem: (item: any) => void;
-    pLastItem: any;
-    pLeaveItem: any;
     pKeyItem: string;
-    onSetLeaveItem: (item: any) => void;
+    pIsDropzone: boolean;
     onClick: () => void;
     onContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: FileType | FileTreeType) => void;
     onRefresh?: (e?: React.MouseEvent<HTMLDivElement>) => void;
@@ -609,24 +608,6 @@ const FileDiv = ({
             } else return false;
         } else return false;
     };
-    const HandleDragLeave = (e: any, aTarget: any) => {
-        e.stopPropagation();
-        onSetLeaveItem(aTarget);
-    };
-    const checkLastItem = (): boolean => {
-        if (!pLeaveItem || !pEnterItem) return false;
-        if (
-            pLastItem.name === pEnterItem.name &&
-            pLastItem.path === pEnterItem.path &&
-            pLastItem.depth === pEnterItem.depth &&
-            pLastItem.name === pLeaveItem.name &&
-            pLastItem.path === pLeaveItem.path &&
-            pLastItem.depth === pLeaveItem.depth
-        ) {
-            return true;
-        }
-        return false;
-    };
     const handleClick = (e: any) => {
         if (e.metakey || e.ctrlKey) return;
         e.stopPropagation();
@@ -675,7 +656,6 @@ const FileDiv = ({
             onDragStart={(event) => HandleDragStart(event, file)}
             onDragEnter={(event) => HandleDragEnter(event, file)}
             onDragEnd={HandleDragEnd}
-            onDragLeave={(event) => HandleDragLeave(event, file)}
             onClick={() => HandleMultiDrag(file)}
             onKeyDown={sIsRename ? (e) => e.stopPropagation() : () => {}}
             onDragOver={handleDragOver}
@@ -686,8 +666,8 @@ const FileDiv = ({
                 isDndItem={checkDndItem(file)}
                 isDndSection={checkDndSection(file)}
                 isSelected={isSelected}
-                isLastItem={checkLastItem()}
                 isGit={(file as FileTreeType).gitClone || false}
+                isDropzone={pIsDropzone}
                 onClick={handleClick}
                 onContextMenu={(e) => handleOnContextMenu(e, file)}
                 isBorder={file.path + file.name + '-' + file.depth === pKeyItem}
@@ -742,17 +722,17 @@ const Div = styled.div<{
     isGit: boolean;
     isDndItem: boolean;
     isDndSection: boolean;
-    isLastItem: boolean;
     isBorder: boolean;
+    isDropzone: boolean;
 }>`
     display: flex;
     justify-content: space-between;
     padding-left: ${(props) => props.depth * 16}px;
-    background-color: ${(props) => (props.isLastItem ? '#3e3e3e' : props.isDndItem ? '#3e3e3e' : props.isDndSection ? '#3e3e3e' : props.isSelected ? '#242424' : 'transparent')};
+    background-color: ${(props) => (props.isDropzone ? '#3e3e3e' : props.isDndItem ? '#3e3e3e' : props.isDndSection ? '#3e3e3e' : props.isSelected ? '#242424' : 'transparent')};
     word-break: break-all;
     :hover {
         cursor: pointer;
-        background-color: ${(props) => (props.isLastItem ? '#3e3e3e' : props.isDndItem ? '#3e3e3e' : props.isDndSection ? '#3e3e3e' : '#242424')};
+        background-color: ${(props) => (props.isDropzone ? '#3e3e3e' : props.isDndItem ? '#3e3e3e' : props.isDndSection ? '#3e3e3e' : '#242424')};
     }
     border: ${(props) => (props.isBorder ? 'solid 1px #c9d1d9' : 'solid 1px transparent')};
 `;
@@ -765,9 +745,6 @@ const DirDiv = ({
     onSetDndTargetList,
     pEnterItem,
     onSetEnterItem,
-    pLastItem,
-    pLeaveItem,
-    onSetLeaveItem,
     onSelect,
     onSelectDir,
     onContextMenu,
@@ -775,6 +752,7 @@ const DirDiv = ({
     pKeyItem,
     onRename,
     onDragOver,
+    pIsDropzone,
 }: {
     directory: FileTreeType;
     selectedFile: FileType | undefined;
@@ -783,10 +761,8 @@ const DirDiv = ({
     onSetDndTargetList: (item: any) => void;
     pEnterItem: any;
     onSetEnterItem: (item: any) => void;
-    pLastItem: any;
-    pLeaveItem: any;
     pKeyItem: string;
-    onSetLeaveItem: (item: any) => void;
+    pIsDropzone: boolean;
     onSelect: (file: FileType) => void;
     onSelectDir: (item: FileTreeType, isOpen: boolean) => void;
     onContextMenu: (e: React.MouseEvent<HTMLDivElement>, file: FileType | FileTreeType) => void;
@@ -812,15 +788,13 @@ const DirDiv = ({
                     onRefresh={onRefresh}
                     pEnterItem={pEnterItem}
                     onSetEnterItem={onSetEnterItem}
-                    pLastItem={pLastItem}
-                    pLeaveItem={pLeaveItem}
-                    onSetLeaveItem={onSetLeaveItem}
                     pDndTargetList={pDndTargetList}
                     onSetDndTargetList={onSetDndTargetList}
                     onSetIsDnd={onSetIsDnd}
                     pKeyItem={pKeyItem}
                     onRename={onRename}
                     onDragOver={onDragOver}
+                    pIsDropzone={pIsDropzone}
                 />
             }
             {directory.isOpen ? (
@@ -834,13 +808,11 @@ const DirDiv = ({
                     setDndTargetList={onSetDndTargetList}
                     sEnterItem={pEnterItem}
                     setEnterItem={onSetEnterItem}
-                    sLastItem={pLastItem}
-                    sLeaveItem={pLeaveItem}
-                    setLeaveItem={onSetLeaveItem}
                     setIsDnd={onSetIsDnd}
                     sKeyItem={pKeyItem}
                     onRename={onRename}
                     onDragOver={onDragOver}
+                    sIsDropzone={pIsDropzone}
                 />
             ) : null}
         </>

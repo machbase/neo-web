@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import svgr from 'vite-plugin-svgr'
+import svgr from 'vite-plugin-svgr';
 const TestTarget = '127.0.0.1:5654';
 // '192.168.1.137:5654';
 
