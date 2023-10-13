@@ -2,7 +2,19 @@ import { GBoardListType, gBoardList, gConsoleList, gSelectedTab } from '@/recoil
 import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
-import { Delete, Download, Update, Rename, VscChevronRight, VscChevronDown, TbFolderPlus, TbCloudDown, TbFolder, MdRefresh } from '@/assets/icons/Icon';
+import {
+    Delete,
+    Download,
+    Update,
+    Rename,
+    VscChevronRight,
+    VscChevronDown,
+    TbFolderPlus,
+    TbCloudDown,
+    TbFolder,
+    MdRefresh,
+    // VscNewFile
+} from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { FileTree } from '../fileTree/file-tree';
 import Sidebar from '../fileTree/sidebar';
@@ -68,6 +80,7 @@ any) => {
     const [sSearchTxt, setSearchTxt] = useState<string>('');
     const [sDeleteFileList, setDeleteFileList] = useRecoilState(gDeleteFileList);
     const [sIsFetch, setIsFetch] = useState<boolean>(false);
+    // const [sIsFileModal, setIsFileModal] = useState<boolean>(false);
 
     useEffect(() => {
         getFileTree();
@@ -218,6 +231,7 @@ any) => {
         setMenuY(e.pageY);
         setIsContextMenu(true);
         setSelectedContextFile(file);
+        setRecentDirectory(`${file.path + file.name}/`);
     };
 
     const closeContextMenu = () => {
@@ -369,6 +383,15 @@ any) => {
         closeContextMenu();
     };
 
+    // const handleFile = (aEvent: any) => {
+    //     if (aEvent) {
+    //         aEvent.stopPropagation();
+    //     }
+    //     if (selectedContextFile) setRecentDirectory(`${selectedContextFile.path + selectedContextFile.name}`);
+    //     else setRecentDirectory('/');
+    //     setIsFileModal(true);
+    // };
+
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
 
     return (
@@ -418,6 +441,7 @@ any) => {
                                     />
                                 </div>
                                 <IconButton pWidth={20} pHeight={20} pIcon={<TbFolder size={15} />} onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
+                                {/* <IconButton pWidth={20} pHeight={20} pIcon={<VscNewFile size={15} />} onClick={(aEvent: any) => handleFile(aEvent)} /> */}
                                 <IconButton pWidth={20} pHeight={20} pIcon={<TbFolderPlus size={15} />} onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
                                 <IconButton pWidth={20} pHeight={20} pIcon={<TbCloudDown size={15} />} onClick={(aEvent: any) => handleFolder(true, aEvent, true)} />
                                 <IconButton pWidth={20} pHeight={20} pIcon={<MdRefresh size={15} />} onClick={(e: any) => handleRefresh(e)} />
@@ -443,6 +467,22 @@ any) => {
                                 </Sidebar>
                                 <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
                                     <Menu isOpen={sIsContextMenu}>
+                                        {(selectedContextFile as any)?.type === 1 && !(selectedContextFile as any)?.virtual ? (
+                                            <>
+                                                {/* <Menu.Item onClick={(aEvent: any) => handleFile(aEvent)}>
+                                                    <VscNewFile size={12} />
+                                                    <span>New File...</span>
+                                                </Menu.Item> */}
+                                                <Menu.Item onClick={(aEvent: any) => handleFolder(true, aEvent, false)}>
+                                                    <TbFolderPlus size={12} />
+                                                    <span>New Folder...</span>
+                                                </Menu.Item>
+                                                <Menu.Item onClick={(aEvent: any) => handleFolder(true, aEvent, true)}>
+                                                    <TbCloudDown size={12} />
+                                                    <span>Git Clone...</span>
+                                                </Menu.Item>
+                                            </>
+                                        ) : null}
                                         <Menu.Item onClick={handleRename}>
                                             <Rename />
                                             <span>Rename</span>
@@ -470,6 +510,7 @@ any) => {
                 </Pane>
             </SplitPane>
             {sIsOpenModal ? <SaveModal pIsDarkMode pIsSave={false} setIsOpen={handleIsOpenModal} /> : null}
+            {/* {sIsFileModal ? <>sIsFileModal</> : null} */}
             {sIsFolderModal ? <FolderModal pIsGit={sIsGit} pIsDarkMode={true} setIsOpen={handleFolder} pCallback={handleRefresh} /> : null}
             {sIsDeleteModal ? <DeleteModal pIsDarkMode setIsOpen={setIsDeleteModal} pFileInfo={selectedContextFile} pCallback={handleDeleteFile} /> : null}
         </div>
