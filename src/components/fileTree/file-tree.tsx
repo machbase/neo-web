@@ -562,6 +562,7 @@ const FileDiv = ({
         e.stopPropagation();
     };
     const HandleDragEnd = (e: any) => {
+        onDragOver('');
         e.stopPropagation();
         onSetIsDnd(true);
     };
