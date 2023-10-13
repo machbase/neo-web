@@ -17,3 +17,11 @@ export const deleteFile = (aDir: string, aFileName: string) => {
         url: normalizePath(`/api/files/${aDir}/${aFileName}`),
     });
 };
+
+export const moveFile = (aPath: string, aDestinationPath: string) => {
+    return request({
+        method: 'PUT',
+        url: `/api/files${aPath}`,
+        data: { destination: `${aDestinationPath}` },
+    });
+};

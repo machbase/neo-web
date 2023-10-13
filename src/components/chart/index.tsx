@@ -80,6 +80,7 @@ const CHART = ({
     }, [pChartAixsList]);
 
     const reDrawChart = () => {
+        if (!sResult) return;
         const sTmpChartDiv: any = sChartDiv;
         const sDataLength = sResult.chartOption.series && sResult.chartOption.series.length > 0 ? sResult.chartOption.series[0].data.length : 0;
         sTmpChartDiv._model.option.dataZoom[0].start = 100 - (5 * chartRef.current.clientWidth) / sDataLength;
@@ -106,7 +107,7 @@ const CHART = ({
         }
     };
 
-    useDebounce(chartRef, [pSizes, pIsVertical], reDrawChart);
+    useDebounce([pSizes, pIsVertical], reDrawChart);
 
     return pDisplay === '' ? (
         <div ref={chartRef} className="chart-wrapper" style={{ height: 'calc(100% - 40px)' }}>

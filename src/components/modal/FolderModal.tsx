@@ -62,7 +62,7 @@ export const FolderModal = (props: FolderModalProps) => {
         setFolderName(sPathList[sPathList.length - 1].split('.')[0]);
     };
 
-    useDebounce(sGitUrlRef, [sGitUrl], handleFoldername);
+    useDebounce([sGitUrl], handleFoldername);
 
     useEffect(() => {
         if (setIsOpen) {

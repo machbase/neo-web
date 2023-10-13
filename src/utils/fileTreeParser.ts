@@ -11,6 +11,7 @@ export interface FileTreeType {
     gitUrl: string | undefined;
     gitStatus: string | undefined;
     virtual: boolean;
+    isOpen: boolean;
 }
 export interface FileType {
     content: string;
@@ -62,6 +63,7 @@ export const fileTreeParser = (aResFileList: ResFileListType, aPath: string, aDe
         gitClone: aResFileList.gitClone,
         gitUrl: undefined,
         gitStatus: undefined,
+        isOpen: false,
         virtual: false,
     };
     return sParedData;
@@ -80,6 +82,7 @@ const dirFormatter = (aTarget: ResFileType, aPath: string, aDepth: number, aPare
         gitUrl: aTarget.gitClone ? aTarget.gitUrl : undefined,
         gitStatus: undefined,
         virtual: aTarget.virtual,
+        isOpen: false,
     };
 };
 const fileFormatter = (aTarget: ResFileType, aPath: string, aDepth: number, aParentId: string) => {

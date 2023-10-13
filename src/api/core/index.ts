@@ -35,6 +35,10 @@ request.interceptors.request.use(
             sHeaders['X-Console-Id'] = localStorage.getItem('consoleId');
         }
 
+        if (config.url.includes('/api/files') && config.method === 'put') {
+            sHeaders['Content-Type'] = 'application/json';
+        }
+
         if (sFileImg) {
             config.responseType = 'arraybuffer';
         }
