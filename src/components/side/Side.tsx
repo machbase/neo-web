@@ -2,7 +2,19 @@ import { GBoardListType, gBoardList, gConsoleList, gSelectedTab } from '@/recoil
 import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
-import { Delete, Download, Update, Rename, VscChevronRight, VscChevronDown, TbFolderPlus, TbCloudDown, TbFolder, MdRefresh, VscNewFile } from '@/assets/icons/Icon';
+import {
+    Delete,
+    Download,
+    Update,
+    Rename,
+    VscChevronRight,
+    VscChevronDown,
+    TbFolderPlus,
+    TbCloudDown,
+    // TbFolder,
+    MdRefresh,
+    VscNewFile,
+} from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { FileTree } from '../fileTree/file-tree';
 import Sidebar from '../fileTree/sidebar';
@@ -19,8 +31,8 @@ import { postFileList } from '@/api/repository/api';
 import { DeleteModal } from '../modal/DeleteModal';
 import SplitPane, { Pane } from 'split-pane-react';
 import { IconButton } from '@/components/buttons/IconButton';
-import { SearchInput } from '../inputs/SearchInput';
-import { TreeViewFilter } from '@/utils/treeViewFilter';
+// import { SearchInput } from '../inputs/SearchInput';
+// import { TreeViewFilter } from '@/utils/treeViewFilter';
 import { renameManager } from '@/utils/file-manager';
 import { FileModal } from '../modal/FileModal';
 
@@ -65,8 +77,8 @@ any) => {
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
     const [, setConsoleList] = useRecoilState<any>(gConsoleList);
     const [sSideSizes, setSideSizes] = useState<any>(['15%', '85%']);
-    const [sSearchFilter, setSearchFilter] = useState<boolean>(false);
-    const [sSearchTxt, setSearchTxt] = useState<string>('');
+    // const [sSearchFilter, setSearchFilter] = useState<boolean>(false);
+    // const [sSearchTxt, setSearchTxt] = useState<string>('');
     const [sDeleteFileList, setDeleteFileList] = useRecoilState(gDeleteFileList);
     const [sIsFetch, setIsFetch] = useState<boolean>(false);
     const [sIsFileModal, setIsFileModal] = useState<boolean>(false);
@@ -112,7 +124,7 @@ any) => {
     useEffect(() => {
         if (sFileTree.name && sFileTree.id) {
             setRootDir(JSON.parse(JSON.stringify(sFileTree)));
-            if (sSearchFilter) handleSearch(sSearchTxt);
+            // if (sSearchFilter) handleSearch(sSearchTxt);
         }
     }, [sFileTree]);
 
@@ -347,23 +359,23 @@ any) => {
         getFileTree();
     };
 
-    const handleSearch = (aValue: string) => {
-        setSearchTxt(aValue);
-        if (!aValue) {
-            handleSearchReset();
-        }
-        if (aValue && aValue !== '') {
-            const sFilterTree = TreeViewFilter({
-                origin: sFileTree,
-                filterTxt: aValue,
-            });
-            setRootDir(sFilterTree);
-        }
-    };
+    // const handleSearch = (aValue: string) => {
+    //     setSearchTxt(aValue);
+    //     if (!aValue) {
+    //         handleSearchReset();
+    //     }
+    //     if (aValue && aValue !== '') {
+    //         const sFilterTree = TreeViewFilter({
+    //             origin: sFileTree,
+    //             filterTxt: aValue,
+    //         });
+    //         setRootDir(sFilterTree);
+    //     }
+    // };
 
-    const handleSearchReset = () => {
-        setRootDir(JSON.parse(JSON.stringify(sFileTree)));
-    };
+    // const handleSearchReset = () => {
+    //     setRootDir(JSON.parse(JSON.stringify(sFileTree)));
+    // };
 
     const handleRename = () => {
         if (selectedContextFile !== undefined) {
@@ -376,6 +388,8 @@ any) => {
         if (aEvent) {
             aEvent.stopPropagation();
         }
+        // if (selectedContextFile) setRecentDirectory(`${selectedContextFile.path + selectedContextFile.name}`);
+        // else setRecentDirectory('/');
         setIsFileModal(true);
     };
 
@@ -416,7 +430,7 @@ any) => {
                         <div className="files-open-option">
                             <div>EXPLORER</div>
                             <div style={{ display: 'flex', alignItems: 'center' }}>
-                                <div style={{ marginRight: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {/* <div style={{ marginRight: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <SearchInput
                                         pWidth={120}
                                         pHeight={20}
@@ -426,8 +440,8 @@ any) => {
                                         onResetFilter={handleSearchReset}
                                         onChangeExpand={setSearchFilter}
                                     />
-                                </div>
-                                <IconButton pWidth={20} pHeight={20} pIcon={<TbFolder size={15} />} onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} />
+                                </div> */}
+                                {/* <IconButton pWidth={20} pHeight={20} pIcon={<TbFolder size={15} />} onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} /> */}
                                 <IconButton pWidth={20} pHeight={20} pIcon={<VscNewFile size={15} />} onClick={(aEvent: any) => handleFile(aEvent)} />
                                 <IconButton pWidth={20} pHeight={20} pIcon={<TbFolderPlus size={15} />} onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
                                 <IconButton pWidth={20} pHeight={20} pIcon={<TbCloudDown size={15} />} onClick={(aEvent: any) => handleFolder(true, aEvent, true)} />
