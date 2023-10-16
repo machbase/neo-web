@@ -568,7 +568,7 @@ const FileDiv = ({
     };
     const HandleMultiDrag = (aFile: any) => {
         if (pDndTargetList && pDndTargetList.length > 0) {
-            if (pDndTargetList.includes(aFile)) {
+            if (pDndTargetList.some((v: any) => v.depth === aFile.depth && v.name === aFile.name && v.path === aFile.path)) {
                 const tmp = JSON.parse(JSON.stringify(pDndTargetList));
                 tmp.splice(
                     tmp.findIndex((aItem: any) => aItem.name === aFile.name && aItem.path === aFile.path),
