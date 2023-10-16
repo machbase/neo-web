@@ -286,22 +286,17 @@ export const FileTree = (props: FileTreeProps) => {
                     const sOldPath = aItem.path + aItem.name;
                     const sDestinationPath = sIsDropZone ? '/' + aItem.name : sEnterItem.path + (sEnterItem.type === 0 ? '' : sEnterItem.name + '/') + aItem.name;
                     const aResult: any = await moveFile(sOldPath, sDestinationPath);
-                    if (aResult.success) moveResult.push(aResult);
+                    if (aResult.success) moveResult.push(aItem);
                 }
-                if (
-                    moveResult.length > 0 &&
-                    moveResult.reduce((preVal: boolean, aRes: any) => {
-                        return !preVal || aRes.success;
-                    }, true)
-                ) {
+                if (moveResult.length > 0) {
                     let sTestRoot = JSON.parse(JSON.stringify(sFileTree));
                     // remove
-                    sParsedList.map((aDeleteItem: any) => {
+                    moveResult.map((aDeleteItem: any) => {
                         if (aDeleteItem.type === 0) sTestRoot = removeFile(sTestRoot, aDeleteItem);
                         else sTestRoot = removeDir(sTestRoot, aDeleteItem);
                     });
                     // add
-                    sParsedList.map((aAddItem: any) => {
+                    moveResult.map((aAddItem: any) => {
                         if (sAddTargetPath === '/') {
                             if (aAddItem.type === 1) {
                                 const sDirTmp = { ...aAddItem, depth: 1, parentId: '0', path: '/' };
@@ -568,7 +563,7 @@ const FileDiv = ({
     };
     const HandleMultiDrag = (aFile: any) => {
         if (pDndTargetList && pDndTargetList.length > 0) {
-            if (pDndTargetList.includes(aFile)) {
+            if (pDndTargetList.some((v: any) => v.depth === aFile.depth && v.name === aFile.name && v.path === aFile.path)) {
                 const tmp = JSON.parse(JSON.stringify(pDndTargetList));
                 tmp.splice(
                     tmp.findIndex((aItem: any) => aItem.name === aFile.name && aItem.path === aFile.path),
