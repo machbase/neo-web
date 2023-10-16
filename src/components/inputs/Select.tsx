@@ -40,7 +40,7 @@ export const Select = (props: SelectProps) => {
     useOutsideClick(optionRef, () => setIsOpen(false));
 
     return (
-        <div className="custom-select-wrapper" style={{ width: pIsFullWidth ? '100%' : pWidth + 'px', height: pHeight + 'px' }}>
+        <div className="custom-select-wrapper" style={{ width: pIsFullWidth ? '100%' : pWidth + 'px', minWidth: pIsFullWidth ? '100%' : pWidth + 'px', height: pHeight + 'px' }}>
             <div className="select-input" onClick={handleClick}>
                 <input readOnly={pIsReadonly} value={selectValue} placeholder="Select..." />
                 <ArrowDown />

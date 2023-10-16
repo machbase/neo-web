@@ -14,6 +14,7 @@ import { Error } from '@/components/toast/Toast';
 import { TextButton } from '../buttons/TextButton';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
+import { Tooltip } from 'react-tooltip';
 
 const ModalCreateChart = ({ pCloseModal }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
@@ -263,10 +264,11 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                             <div className="select-tag-form">
                                 <div className="select-tag-wrap">
                                     <div className="select-tab">
-                                        {sCalcTagList.map((aItem: string) => {
+                                        {sCalcTagList.map((aItem: string, aIdx: number) => {
                                             return (
-                                                <button key={aItem} onClick={() => setTag(aItem)}>
-                                                    {aItem}
+                                                <button key={aItem} className={`tag-tooltip-${aIdx}`} onClick={() => setTag(aItem)}>
+                                                    <Tooltip anchorSelect={`.tag-tooltip-${aIdx}`} content={aItem} />
+                                                    <div className="tag-text">{aItem}</div>
                                                 </button>
                                             );
                                         })}
@@ -299,12 +301,13 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                                         {sSelectedTag.map((aItem: any, aIdx: number) => {
                                             return (
                                                 <button
+                                                    key={aItem.key}
                                                     onClick={() => {
                                                         removeSelectedTag(aIdx);
                                                     }}
-                                                    key={aItem.key}
                                                 >
-                                                    <div>{aItem.tagName}</div>
+                                                    <Tooltip anchorSelect={`.tooltip-${aIdx}`} content={aItem.tagName} />
+                                                    <div className={`select-text tooltip-${aIdx}`}>{aItem.tagName}</div>
                                                     <Select
                                                         pWidth={70}
                                                         pHeight={25}

@@ -348,7 +348,7 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
         });
         fetchNavigatorData({
             startTime: Math.round(sData.startTime),
-            endTime: Math.round(pPanelInfo.default_range.max),
+            endTime: Math.round(sData.endTime),
         });
         setPanelRange({
             startTime: Math.round(sData.startTime + (sData.endTime - sData.startTime) * 0.4),
