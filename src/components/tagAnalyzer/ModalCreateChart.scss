@@ -123,6 +123,7 @@
                     border-radius: 8px;
                     padding: 8px 0;
                     button {
+                        width: 100%;
                         align-items: center;
                         border: none;
                         display: flex;
@@ -131,6 +132,22 @@
                         color: white;
                         padding: 0 8px;
                         padding-bottom: 4px;
+
+                        .tag-text,
+                        .select-text {
+                            overflow: hidden;
+                            white-space: nowrap;
+                            text-overflow: ellipsis;
+                        }
+                        .tag-text {
+                            max-width: 100%;
+                        }
+                        .select-text {
+                            max-width: calc(100% - 70px);
+                        }
+                    }
+                    .react-tooltip {
+                        opacity: 1 !important;
                     }
                 }
                 .bottom-page {
