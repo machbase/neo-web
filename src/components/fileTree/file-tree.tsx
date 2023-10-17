@@ -206,6 +206,7 @@ export const FileTree = (props: FileTreeProps) => {
                     if (!sKeyItem) break;
                     const sTargetItem = findItemByUniqueKey(props.rootDir, sKeyItem);
                     if (!sTargetItem) break;
+                    if (sTargetItem.virtual) break;
                     if (sTargetItem.type === 1) {
                         if (sTargetItem.dirs.length === 0 && sTargetItem.files.length === 0) {
                             sTargetItem.isOpen ? null : props.onFetchDir(sTargetItem, true);
