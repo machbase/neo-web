@@ -11,6 +11,7 @@ export {
 
 export {
     VscChevronRight,
+    VscChevronLeft,
     VscDiffAdded,
     VscWarning,
     VscSync,

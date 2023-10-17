@@ -1,9 +1,37 @@
+import { Close, Delete, PlusCircle } from '@/assets/icons/Icon';
+import { IconButton } from '@/components/buttons/IconButton';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
+import { getId } from '@/utils';
 import './Line.scss';
 
-const Line = ({ pPanelOption, pChangedOption }: any) => {
+const Line = ({ pPanelOption, pChangedOption, pSetPanelOption }: any) => {
+    const changeValueOption = (aKey: string, aData: any, aId: string) => {
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                markArea: aPrev.markArea.map((aItem: any) => {
+                    return aItem.id === aId
+                        ? {
+                              ...aItem,
+                              [aKey]: aData,
+                          }
+                        : aItem;
+                }),
+            };
+        });
+    };
+
+    const deleteMarkArea = (aId: string) => {
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                markArea: aPrev.markArea.filter((aItem: any) => aItem.id !== aId),
+            };
+        });
+    };
+
     return (
         <div className="line-wrap">
             <div className="row title">Theme</div>
@@ -33,7 +61,7 @@ const Line = ({ pPanelOption, pChangedOption }: any) => {
                     pInitValue={pPanelOption.dataZoomType}
                     pHeight={30}
                     onChange={(aEvent: any) => pChangedOption(aEvent, 'dataZoomType')}
-                    pOptions={['silder', 'inside']}
+                    pOptions={['slider', 'inside']}
                 />
             </div>
             <div className="row">
@@ -63,7 +91,19 @@ const Line = ({ pPanelOption, pChangedOption }: any) => {
                 />
             </div>
 
-            <div className="row title">Mark Area</div>
+            <div className="row title">
+                Mark Area
+                <IconButton
+                    pWidth={25}
+                    pHeight={26}
+                    pIcon={<PlusCircle></PlusCircle>}
+                    onClick={() => {
+                        pSetPanelOption((aPrev: any) => {
+                            return { ...aPrev, markArea: [...aPrev.markArea, { id: getId(), coord0: 'now+1s', coord: 'now+2s', label: 'Error', opacity: '1' }] };
+                        });
+                    }}
+                ></IconButton>
+            </div>
             <div className="row">
                 <CheckBox onChange={(aEvent: any) => pChangedOption(aEvent, 'useMarkArea')} pDefaultChecked={pPanelOption.useMarkArea} pText={'use Mark Area'}></CheckBox>
             </div>
@@ -82,7 +122,7 @@ const Line = ({ pPanelOption, pChangedOption }: any) => {
                                         pValue={aItem.coord0}
                                         pSetValue={() => null}
                                         pBorderRadius={4}
-                                        onChange={(aEvent: any) => pChangedOption(aEvent, 'dataZoomMax')}
+                                        onChange={(aEvent: any) => changeValueOption('coord0', aEvent.target.value, aItem.id)}
                                     />
                                 </span>
                                 <span>
@@ -95,8 +135,17 @@ const Line = ({ pPanelOption, pChangedOption }: any) => {
                                         pValue={aItem.coord1}
                                         pSetValue={() => null}
                                         pBorderRadius={4}
-                                        onChange={(aEvent: any) => pChangedOption(aEvent, 'dataZoomMax')}
+                                        onChange={(aEvent: any) => changeValueOption('coord1', aEvent.target.value, aItem.id)}
                                     />
+                                </span>
+                                <span>
+                                    <IconButton
+                                        pDisabled={pPanelOption.markArea.length === 1 || !pPanelOption.useMarkArea}
+                                        pWidth={25}
+                                        pHeight={26}
+                                        pIcon={<Delete></Delete>}
+                                        onClick={() => deleteMarkArea(aItem.id)}
+                                    ></IconButton>
                                 </span>
                             </div>
                             Label
@@ -108,7 +157,7 @@ const Line = ({ pPanelOption, pChangedOption }: any) => {
                                 pValue={aItem.label}
                                 pSetValue={() => null}
                                 pBorderRadius={4}
-                                onChange={(aEvent: any) => pChangedOption(aEvent, 'dataZoomMax')}
+                                onChange={(aEvent: any) => changeValueOption('label', aEvent.target.value, aItem.id)}
                             />
                             Color
                             <Input
@@ -119,7 +168,7 @@ const Line = ({ pPanelOption, pChangedOption }: any) => {
                                 pValue={aItem.color}
                                 pSetValue={() => null}
                                 pBorderRadius={4}
-                                onChange={(aEvent: any) => pChangedOption(aEvent, 'dataZoomMax')}
+                                onChange={(aEvent: any) => changeValueOption('color', aEvent.target.value, aItem.id)}
                             />
                             Opacity
                             <Input
@@ -130,8 +179,9 @@ const Line = ({ pPanelOption, pChangedOption }: any) => {
                                 pValue={aItem.opacity}
                                 pSetValue={() => null}
                                 pBorderRadius={4}
-                                onChange={(aEvent: any) => pChangedOption(aEvent, 'dataZoomMax')}
+                                onChange={(aEvent: any) => changeValueOption('opacity', aEvent.target.value, aItem.id)}
                             />
+                            <div className="divider" style={{ margin: '12px 3px' }}></div>
                         </div>
                     );
                 })}

@@ -122,6 +122,12 @@ const NewBoard = (props: NewBoardProps) => {
                           savedCode: false,
                           shell: { icon: aValue.icon, theme: aValue.theme ? aValue.theme : '', id: aValue.id ? aValue.id : 'SHELL' },
                           dashboard: {
+                              timeRange: {
+                                  start: 'now-10h',
+                                  end: 'now',
+                                  useRefresh: false,
+                                  refreshTime: 5000,
+                              },
                               panels: [],
                           },
                       }

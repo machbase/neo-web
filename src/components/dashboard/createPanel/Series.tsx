@@ -10,26 +10,47 @@ import { useEffect, useState } from 'react';
 import Filter from './Filter';
 import './Series.scss';
 import Value from './Value';
-const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOption }: any) => {
+const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption }: any) => {
     const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>(pSeriesInfo.table[4]);
+    // const [sTableInfo, setTableInfo] = useState<any>([]);
 
     const [sColumnList, setColumnList] = useState<any>([]);
-    const [sCollapse, setCollapse] = useState(true);
+
+    const setOption = (aKey: string, aData: any) => {
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                series: aPrev.series.map((aItem: any) => {
+                    return aItem.id === pSeriesInfo.id ? { ...aItem, [aKey]: aData } : aItem;
+                }),
+            };
+        });
+    };
 
     const changedOption = (aKey: string, aData: any) => {
-        pSetPanelOption({
-            ...pPanelOption,
-            series: pPanelOption.series.map((aItem: any) => {
-                return aItem.id === pSeriesInfo.id ? { ...aItem, [aKey]: aData.target.value } : aItem;
-            }),
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                series: aPrev.series.map((aItem: any) => {
+                    return aItem.id === pSeriesInfo.id ? { ...aItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value } : aItem;
+                }),
+            };
         });
         const sTable = pTableList.find((aItem: any) => aItem[3] === aData.target.value);
 
         if (aKey === 'table') {
             setSelectedTableType(getTableType(sTable[4]));
-            getTableType(sTable[4]) === 'tag' ? getTagList(aData.target.value) : sTable[4];
+            getTableType(sTable[4]) === 'tag' && getTagList(aData.target.value);
+            pSetPanelOption((aPrev: any) => {
+                return {
+                    ...aPrev,
+                    series: aPrev.series.map((aItem: any) => {
+                        return aItem.id === pSeriesInfo.id ? { ...aItem, type: getTableType(sTable[4]) } : aItem;
+                    }),
+                };
+            });
             getColumnList(aData.target.value);
         }
     };
@@ -39,7 +60,48 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
         const sData = await getTableInfo(sTable[2]);
         setTimeList(sData.data.rows.filter((aItem: any) => aItem[1] === 6));
 
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                series: aPrev.series.map((aItem: any) => {
+                    return aItem.id === pSeriesInfo.id ? { ...aItem, type: getTableType(sTable[4]), tableInfo: sData.data.rows } : aItem;
+                }),
+            };
+        });
+
         setColumnList(sData.data.rows);
+        if (pType === 'create') {
+            pSetPanelOption((aPrev: any) => {
+                return {
+                    ...aPrev,
+                    series: aPrev.series.map((aItem: any) => {
+                        return aItem.id === pSeriesInfo.id
+                            ? {
+                                  ...aItem,
+                                  time: sData.data.rows.filter((aItem: any) => {
+                                      return aItem[1] === 6;
+                                  })[0][0],
+                                  value: sData.data.rows.filter((aItem: any) => {
+                                      return (
+                                          aItem[1] === 4 ||
+                                          aItem[1] === 8 ||
+                                          aItem[1] === 12 ||
+                                          aItem[1] === 16 ||
+                                          aItem[1] === 20 ||
+                                          aItem[1] === 104 ||
+                                          aItem[1] === 108 ||
+                                          aItem[1] === 112
+                                      );
+                                  })[0][0],
+                                  name: sData.data.rows.filter((aItem: any) => {
+                                      return aItem[1] === 5;
+                                  }),
+                              }
+                            : aItem;
+                    }),
+                };
+            });
+        }
     };
 
     const getTagList = async (aTable: any) => {
@@ -51,59 +113,71 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
         );
     };
     const changeValueOption = (aKey: string, aData: any, aId: string, aChangedKey: string) => {
-        pSetPanelOption({
-            ...pPanelOption,
-            series: pPanelOption.series.map((aItem: any) => {
-                return aItem.id === pSeriesInfo.id
-                    ? {
-                          ...aItem,
-                          [aChangedKey]: aItem?.[aChangedKey].map((bItem: any) => {
-                              return bItem.id === aId ? { ...bItem, [aKey]: aData.target.value } : bItem;
-                          }),
-                      }
-                    : aItem;
-            }),
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                series: aPrev.series.map((aItem: any) => {
+                    return aItem.id === pSeriesInfo.id
+                        ? {
+                              ...aItem,
+                              [aChangedKey]: aItem?.[aChangedKey].map((bItem: any) => {
+                                  return bItem.id === aId ? { ...bItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value } : bItem;
+                              }),
+                          }
+                        : aItem;
+                }),
+            };
         });
     };
 
     const addValue = () => {
-        pSetPanelOption({
-            ...pPanelOption,
-            series: pPanelOption.series.map((aItem: any) => {
-                return aItem.id === pSeriesInfo.id ? { ...aItem, values: [...aItem.values, { id: getId(), column: '', operator: '', value: '' }] } : aItem;
-            }),
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                series: aPrev.series.map((aItem: any) => {
+                    return aItem.id === pSeriesInfo.id ? { ...aItem, values: [...aItem.values, { id: getId(), column: '', operator: '=', value: '' }] } : aItem;
+                }),
+            };
         });
     };
     const addFilter = () => {
-        pSetPanelOption({
-            ...pPanelOption,
-            series: pPanelOption.series.map((aItem: any) => {
-                return aItem.id === pSeriesInfo.id ? { ...aItem, filter: [...aItem.filter, { id: getId(), alias: '', value: '', aggregator: '' }] } : aItem;
-            }),
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                series: aPrev.series.map((aItem: any) => {
+                    return aItem.id === pSeriesInfo.id ? { ...aItem, filter: [...aItem.filter, { id: getId(), alias: '', value: '', aggregator: 'avg', useFilter: true }] } : aItem;
+                }),
+            };
         });
     };
 
     const deleteSeries = () => {
-        pSetPanelOption({
-            ...pPanelOption,
-            series: pPanelOption.series.filter((aItem: any) => aItem.id !== pSeriesInfo.id),
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                series: aPrev.series.filter((aItem: any) => aItem.id !== pSeriesInfo.id),
+            };
         });
     };
     const removeValue = (aId: string) => {
-        pSetPanelOption({
-            ...pPanelOption,
-            series: pPanelOption.series.map((aItem: any) => {
-                return aItem.id === pSeriesInfo.id ? { ...aItem, values: aItem.values.filter((aItem: any) => aItem.id !== aId) } : aItem;
-            }),
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                series: aPrev.series.map((aItem: any) => {
+                    return aItem.id === pSeriesInfo.id ? { ...aItem, values: aItem.values.filter((aItem: any) => aItem.id !== aId) } : aItem;
+                }),
+            };
         });
     };
 
     const removeFilter = (aId: string) => {
-        pSetPanelOption({
-            ...pPanelOption,
-            series: pPanelOption.series.map((aItem: any) => {
-                return aItem.id === pSeriesInfo.id ? { ...aItem, filter: aItem.filter.filter((aItem: any) => aItem.id !== aId) } : aItem;
-            }),
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                series: aPrev.series.map((aItem: any) => {
+                    return aItem.id === pSeriesInfo.id ? { ...aItem, filter: aItem.filter.filter((aItem: any) => aItem.id !== aId) } : aItem;
+                }),
+            };
         });
     };
     useEffect(() => {
@@ -114,7 +188,13 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
     }, []);
 
     useEffect(() => {
-        sSelectedTableType === 'log' && setCollapse(false);
+        if (pType === 'create') {
+            setOption('tag', sTagList[0]);
+        }
+    }, [sTagList]);
+
+    useEffect(() => {
+        sSelectedTableType === 'log' && setOption('useCustom', true);
         sSelectedTableType === 'tag' &&
             pSetPanelOption({
                 ...pPanelOption,
@@ -128,8 +208,8 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
         <div className="series">
             <div className="row">
                 <div className="row-header">
-                    {!sCollapse && (
-                        <div style={sCollapse ? { display: 'none' } : {}} className="row-header-left">
+                    {pSeriesInfo.useCustom && (
+                        <div style={!pSeriesInfo.useCustom ? { display: 'none' } : {}} className="row-header-left">
                             <div className="series-table">
                                 <span className="series-title">
                                     Table
@@ -164,18 +244,17 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
                                     )}
                                 </div>
                             </div>
-                            <div className="details">
-                                <span className="series-title"> use </span>
+                            <div className="details padding-4">
                                 <CheckBox
                                     pSize={12}
-                                    onChange={(aEvent: any) => changedOption('useRollup', aEvent.target.value)}
+                                    onChange={(aEvent: any) => changedOption('useRollup', aEvent)}
                                     pDefaultChecked={pPanelOption.useRollup}
                                     pText={'Rollup'}
                                 ></CheckBox>
                             </div>
                         </div>
                     )}
-                    {sCollapse && (
+                    {!pSeriesInfo.useCustom && (
                         <div className="row-header-left">
                             <div className="series-table">
                                 <span className="series-title"> Table </span>
@@ -209,16 +288,18 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
                             </div>
                             <div className="series-table">
                                 <span className="series-title"> Aggregator </span>
-                                <Select
-                                    pFontSize={12}
-                                    pAutoChanged={true}
-                                    pWidth={200}
-                                    pBorderRadius={4}
-                                    pInitValue={tagAggregatorList[0]}
-                                    pHeight={26}
-                                    onChange={(aEvent: any) => changedOption('aggregator', aEvent)}
-                                    pOptions={tagAggregatorList}
-                                />
+                                {pSeriesInfo.aggregator && (
+                                    <Select
+                                        pFontSize={12}
+                                        pAutoChanged={true}
+                                        pWidth={200}
+                                        pBorderRadius={4}
+                                        pInitValue={pSeriesInfo.aggregator}
+                                        pHeight={26}
+                                        onChange={(aEvent: any) => changedOption('aggregator', aEvent)}
+                                        pOptions={tagAggregatorList}
+                                    />
+                                )}
                             </div>
                         </div>
                     )}
@@ -226,10 +307,10 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
                         <IconButton
                             pWidth={20}
                             pHeight={20}
-                            pIsActive={!sCollapse}
+                            pIsActive={pSeriesInfo.useCustom}
                             pDisabled={sSelectedTableType !== 'tag'}
-                            pIcon={!sCollapse ? <VscSync color="#FDB532"></VscSync> : <VscSync></VscSync>}
-                            onClick={sSelectedTableType !== 'tag' ? () => {} : () => setCollapse(!sCollapse)}
+                            pIcon={pSeriesInfo.useCustom ? <VscSync color="#FDB532"></VscSync> : <VscSync></VscSync>}
+                            onClick={sSelectedTableType !== 'tag' ? () => {} : () => setOption('useCustom', !pSeriesInfo.useCustom)}
                         ></IconButton>
                         <IconButton
                             pDisabled={pPanelOption.series.length === 1}
@@ -240,9 +321,9 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
                         ></IconButton>
                     </div>
                 </div>
-                {!sCollapse && <div className="divider" style={{ margin: '6px 4px' }}></div>}
+                {pSeriesInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
 
-                <div style={sCollapse ? { display: 'none' } : {}} className="details">
+                <div style={!pSeriesInfo.useCustom ? { display: 'none' } : {}} className="details">
                     <div>
                         {pSeriesInfo.values.map((aItem: any, aIdx: number) => {
                             return (
@@ -261,9 +342,9 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pGetTables, pSetPanelOp
                         })}
                     </div>
                 </div>
-                {!sCollapse && <div className="divider" style={{ margin: '6px 4px' }}></div>}
+                {pSeriesInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
 
-                <div style={sCollapse ? { display: 'none' } : {}} className="details">
+                <div style={!pSeriesInfo.useCustom ? { display: 'none' } : {}} className="details">
                     <div>
                         {pSeriesInfo.filter.map((aItem: any, aIdx: number) => {
                             return (

@@ -1,10 +1,10 @@
 import LineChart from './chart/LineChart';
 import PanelHeader from './PanelHeader';
 import './Panel.scss';
-const Panel = ({ pBoardInfo, pType, pPanelInfo }: any) => {
+const Panel = ({ pBoardInfo, pShowEditPanel, pType, pPanelInfo }: any) => {
     return (
         <div className="panel-wrap">
-            <PanelHeader pType={pType} pPanelInfo={pPanelInfo}></PanelHeader>
+            <PanelHeader pShowEditPanel={pShowEditPanel} pType={pType} pBoardInfo={pBoardInfo} pPanelInfo={pPanelInfo}></PanelHeader>
             {pPanelInfo && <LineChart pBoardInfo={pBoardInfo} pPanelInfo={pPanelInfo}></LineChart>}
         </div>
     );

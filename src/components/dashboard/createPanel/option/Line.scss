@@ -4,9 +4,6 @@
     flex-direction: column;
     .row {
         margin: 0 4px 6px 4px;
-        // .mark-area-option {
-        //     display: flex;
-        // }
         .mark-area-option {
             .row {
                 display: flex;
@@ -26,6 +23,8 @@
         gap: 4px;
     }
     .title {
+        display: flex;
+        align-items: center;
         font-size: 13.5px;
         margin: 6px 0 4px 0 !important;
         color: #f8f8f8;

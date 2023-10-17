@@ -1,5 +1,6 @@
 import { Close, PlusCircle } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
+import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 
@@ -53,6 +54,14 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                     pSetValue={() => null}
                     onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
                 />
+            </div>
+            <div className="series-table padding-4">
+                <CheckBox
+                    pSize={12}
+                    onChange={(aEvent: any) => pChangeValueOption('useFilter', aEvent, pFilterInfo.id, 'filter')}
+                    pDefaultChecked={pFilterInfo.useFilter}
+                    pText={'use'}
+                ></CheckBox>
             </div>
         </div>
     );

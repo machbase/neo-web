@@ -54,7 +54,7 @@ const Value = ({ pSeriesInfo, pValue, pCloumnList, pSelectedTableType, pIdx, pAd
                     pFontSize={12}
                     pWidth={175}
                     pBorderRadius={4}
-                    pInitValue={tagAggregatorList[0]}
+                    pInitValue={'avg'}
                     pHeight={26}
                     onChange={(aEvent: any) => pChangeValueOption('aggregator', aEvent, pValue.id, 'values')}
                     pOptions={tagAggregatorList}

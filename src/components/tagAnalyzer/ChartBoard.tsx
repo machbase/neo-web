@@ -37,7 +37,7 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                         return <Panel key={aItem.index_key} pBoardInfo={pInfo} pPanelInfo={aItem}></Panel>;
                     })}
                 <CreateChart></CreateChart>
-                {sTimeRangeModal && <ModalTimeRange pSetTimeRangeModal={setTimeRangeModal}></ModalTimeRange>}
+                {sTimeRangeModal && <ModalTimeRange pType={'tagAnalyzer'} pSetTimeRangeModal={setTimeRangeModal}></ModalTimeRange>}
             </div>
         </div>
     );

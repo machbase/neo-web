@@ -3,8 +3,11 @@ import Series from './Series';
 import { useState } from 'react';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { tagTableValue } from '@/utils/dashboardUtil';
+import DatePicker from 'react-datepicker';
+import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
+import CheckBox from '@/components/inputs/CheckBox';
 
-const CreatePanelFotter = ({ pTableList, pGetTables, pSetPanelOption, pPanelOption }: any) => {
+const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
     const [sTab, setTab] = useState('Query');
 
     return (
@@ -24,6 +27,7 @@ const CreatePanelFotter = ({ pTableList, pGetTables, pSetPanelOption, pPanelOpti
                         return (
                             <Series
                                 key={aItem.id}
+                                pType={pType}
                                 pPanelOption={pPanelOption}
                                 pTableList={pTableList}
                                 pGetTables={pGetTables}
@@ -49,7 +53,42 @@ const CreatePanelFotter = ({ pTableList, pGetTables, pSetPanelOption, pPanelOpti
                         <PlusCircle color="#FDB532"></PlusCircle>
                     </div>
                 </div>
-                <div style={sTab === 'Query' ? { display: 'none' } : {}} className="body"></div>
+                <div style={sTab === 'Query' ? { display: 'none' } : {}} className="body time-wrap">
+                    <div className="date-picker">
+                        <CheckBox
+                            onChange={(aEvent: any) => {
+                                pSetPanelOption({ ...pPanelOption, useCustomTime: Object.keys(aEvent.target).includes('checked') ? aEvent.target.checked : aEvent.target.value });
+                            }}
+                            pDefaultChecked={pPanelOption.useCustomTime}
+                            pText={'use Custom Time'}
+                        />
+                        From
+                        <DatePicker
+                            popperPlacement="right"
+                            // selected={typeof sEndTime === 'string' && sEndTime.includes('now') ? moment(sEndTime).format('yyyy-MM-DD HH:mm:ss') : sEndTime}
+                            disabled={!pPanelOption.useCustomTime}
+                            calendarClassName="modal-date-picker"
+                            timeInputLabel="Time: "
+                            onChange={() => {}}
+                            dateFormat="yyyy-MM-dd HH:mm:ss"
+                            showTimeInput
+                        ></DatePicker>
+                        To
+                        <DatePicker
+                            popperPlacement="right"
+                            disabled={!pPanelOption.useCustomTime}
+                            // selected={typeof sEndTime === 'string' && sEndTime.includes('now') ? moment(sEndTime).format('yyyy-MM-DD HH:mm:ss') : sEndTime}
+                            calendarClassName="modal-date-picker"
+                            timeInputLabel="Time: "
+                            onChange={() => {}}
+                            dateFormat="yyyy-MM-dd HH:mm:ss"
+                            showTimeInput
+                        ></DatePicker>
+                    </div>
+                    <div className="select-time-range">
+                        <SelectTimeRanges onClick={() => {}} />
+                    </div>
+                </div>
             </div>
         </div>
     );

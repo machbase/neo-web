@@ -40,231 +40,141 @@ export const checkValueBracket = (value: string) => {
         return false;
     }
 };
-// export const createQuery = (aInfo: any) => {
-//     console.log(aInfo);
-//      `   SELECT ${aInfo.time} AS TIME,
-//      ${aInfo.values[0].value} AS '${aInfo.values[0].alias}' FROM(
-//         SELECT DATE_TRUNC('${aInfo.values[0].aggregator}', ${aInfo.time}, 5) AS TIME,
-//         ${aInfo.values[0].aggregator}(${aInfo.values[0].value}) AS VALUE FROM ${aInfo.table} WHERE TIME BETWEEN FROM_TIMESTAMP(1483196400000000000)AND FROM_TIMESTAMP(1483538400000000000)GROUP BY TIME
-//     )ORDER BY TIME LIMIT 2976`
-// };
-// export const createQuery = (aSeries: any) => {
-//     // const rangeFrom: string = (request.range.from.valueOf() * 1000000).toString(10);
-//     // const rangeTo: string = (request.range.to.valueOf() * 1000000).toString(10);
-//     // const intervalMs: string = convertToMachbaseIntervalMs(request.intervalMs);
 
-//     let subQueryFlag = false;
-//     let isRollup = target.rollupTable;
-//     let customTitle = '';
+export const setUnitTime = (aTime: any) => {
+    if (aTime === 'now') return new Date().getTime();
+    else if (!isNaN(Number(aTime))) return Number(aTime);
+    else {
+        let sAggrPlus = true;
 
-//     // query var
-//     let selectQuery = '';
-//     let rollupTimeQuery = '';
-//     let timeQuery = '';
-//     let andQuery = '';
-//     let groupByQuery = '';
-//     let orderByQuery = '';
-//     let limitQuery = '';
-//     let baseQuery = '';
-//     let resultQuery = '';
+        if (aTime.includes('-')) sAggrPlus = false;
 
-//     const andQueryList: string[] = [];
+        const sCalcTime = aTime.slice(0, -1).split(sAggrPlus ? '+' : '-')[1];
 
-//     // Use subquery if more than one day
-//     if (request.intervalMs >= 60 * 60 * 24 * 1000) {
-//         subQueryFlag = true;
-//     }
+        let sSecTime = -1;
+        switch (aTime.slice(-1)) {
+            case 's':
+                sSecTime = sCalcTime * 1000;
+                break;
+            case 'm':
+                sSecTime = sCalcTime * 1000 * 60;
+                break;
+            case 'h':
+                sSecTime = sCalcTime * 1000 * 3600;
+                break;
+            case 'd':
+                sSecTime = sCalcTime * 1000 * 24 * 3600;
+                break;
+        }
 
-//     if (target.hide) {
-//         continue;
-//     }
+        return new Date().getTime() - sSecTime;
+    }
+};
 
-//     // check Time Column exists
-//     if (!target.timeField || target.timeField === '') {
-//         continue;
-//     }
+export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number) => {
+    if (aInfo.useRollup && aTime.IntervalType === 'day') {
+        //
+        return '';
+    } else {
+        let sTime = '';
+        let sValue = '';
+        const sTableName = aInfo.table;
+        let sWhereTime = '';
+        let sFilter = '';
 
-//     // setting title
-//     customTitle = target.title ? "'" + target.title + "'" : '';
-//     if (target.valueType === 'select') {
-//         customTitle = 'VALUE';
-//     }
+        if (aInfo.useRollup) {
+            sTime = `${aInfo.time} ROLLUP ${aTime.IntervalValue} ${aTime.IntervalType}`;
+        } else {
+            let sRollupValue = 1;
+            if (aTime.IntervalType === 'sec') {
+                sRollupValue = 1;
+            } else if (aTime.IntervalType === 'min') {
+                sRollupValue = 60;
+            } else if (aTime.IntervalType === 'hour') {
+                sRollupValue = 3600;
+            }
+            const sTimeValue = sRollupValue * 1000000000;
+            sTime = `${aInfo.time} / ${sTimeValue} * ${sTimeValue} AS TIME`;
+        }
 
-//     // check raw data for aggr
-//     if (checkValueBracket(target.valueField!) && target.valueType === 'input') {
-//         selectQuery = ' ' + target.valueField;
-//         if (customTitle !== '') {
-//             selectQuery += ' AS ' + customTitle;
-//         }
-//         groupByQuery = 'GROUP BY TIME';
-//     } else if (target.aggrFunc !== '' && target.aggrFunc !== 'none') {
-//         if (target.aggrFunc === 'count(*)') {
-//             selectQuery = ' ' + target.aggrFunc + ' AS VALUE ';
-//         } else if (target.aggrFunc === 'first' || target.aggrFunc === 'last') {
-//             selectQuery = ' ' + target.aggrFunc + '(' + target.timeField + ',' + target.valueField + ') AS VALUE ';
-//         } else {
-//             selectQuery = ' ' + target.aggrFunc + '(' + target.valueField + ') ';
-//             if (customTitle !== '') {
-//                 selectQuery += ' AS ' + customTitle;
-//             }
-//         }
-//         groupByQuery = 'GROUP BY TIME';
-//     } else {
-//         selectQuery = ' ' + target.valueField;
-//         if (customTitle !== '') {
-//             selectQuery += ' AS ' + customTitle;
-//         }
-//         rollupTimeQuery = target.timeField + ' AS TIME ';
-//     }
+        if (aInfo.type === 'tag') {
+            if (aInfo.useCustom) {
+                let sAlias;
+                if (!aInfo.values[0].alias) {
+                    sAlias = `${aInfo.values[0].aggregator}(${aInfo.values[0].value})`;
+                } else {
+                    sAlias = aInfo.values[0].alias;
+                }
+                sValue = `${aInfo.values[0].aggregator}(${aInfo.values[0].value}) as "${sAlias}"`;
+            } else {
+                sValue = `${aInfo.aggregator}(${aInfo.value}) as "${aInfo.aggregator}(${aInfo.value})"`;
+            }
+        } else {
+            const sList = aInfo.values.map((aItem: any) => {
+                let sAlias;
+                if (!aItem.alias) {
+                    sAlias = `${aItem.aggregator}(${aItem.value})`;
+                } else {
+                    sAlias = aItem.alias;
+                }
+                return `${aItem.aggregator}(${aItem.value}) as "${sAlias}"`;
+            });
+            sValue = sList.join(', ');
+        }
 
-//     // existed time field
-//     if (target.timeField !== '') {
-//         if (intervalMs.split(' ')[1] === 'msec' || groupByQuery === '') {
-//             isRollup = false;
-//         }
-//         // use rollup
-//         if (isRollup) {
-//             if (subQueryFlag) {
-//                 if (target.aggrFunc?.toUpperCase() === 'AVG') {
-//                     selectQuery =
-//                         ' ' + target.aggrFunc + '(' + target.valueField + ') AS VALUE, SUM(' + target.valueField + ') AS SUMVAL, COUNT(' + target.valueField + ') AS CNTVAL';
-//                 }
-//                 rollupTimeQuery = target.timeField + ' ROLLUP ' + '1 hour' + ' AS TIME ';
-//             } else {
-//                 rollupTimeQuery = target.timeField + ' ROLLUP ' + intervalMs + ' AS TIME ';
-//             }
-//             // not use rollup
-//         } else {
-//             if (subQueryFlag) {
-//                 const nanoSec = request.intervalMs * 1000 * 1000;
-//                 rollupTimeQuery = `${target.timeField} / ${nanoSec} * ${nanoSec} AS TIME`;
-//             } else {
-//                 const intervalSplit = intervalMs.split(' ');
-//                 rollupTimeQuery = "DATE_TRUNC('" + intervalSplit[1] + "', " + target.timeField + ', ' + intervalSplit[0] + ') AS TIME ';
-//             }
-//         }
-//     }
+        sWhereTime = `${aInfo.time} between ${aStart}000000 and ${aEnd}000000`;
 
-//     // create time (where query)
-//     timeQuery = ' WHERE ' + target.timeField + ' BETWEEN FROM_TIMESTAMP(' + rangeFrom + ') AND FROM_TIMESTAMP(' + rangeTo + ') ';
+        const sFilterList = aInfo.filter.map((aItem: any) => {
+            let sValue = '';
+            if (aItem.useFilter) {
+                const sTableInfo = aInfo.tableInfo.find((bItem: any) => {
+                    return bItem[0] === aItem.column;
+                });
 
-//     // create filter (and query)
-//     if (target.filters) {
-//         target.filters.map((v: any) => {
-//             if (!v.isStr && (v.key === 'none' || v.value === '')) {
-//                 return;
-//             }
-//             if (v.isStr && v.condition === '') {
-//                 return;
-//             }
-//             if (!v.isStr) {
-//                 let queryStr = '';
-//                 if (v.op === 'in') {
-//                     if (!v.value.startsWith('$')) {
-//                         v.value = v.value
-//                             .split(',')
-//                             .map((val: any) => {
-//                                 const trimVal = val.trim();
-//                                 return trimVal.startsWith("'") ? trimVal : "'" + trimVal + "'";
-//                             })
-//                             .join(',');
-//                     }
-//                     v.value = '(' + v.value + ')';
-//                     queryStr = ' AND ' + v.key + ' ' + v.op + ' ' + v.value;
-//                 } else {
-//                     if (!v.value.startsWith('$')) {
-//                         queryStr = ' AND ' + v.key + v.op;
-//                         if (!isNumberType(parseInt(v.type, 10)) && !v.value.startsWith("'")) {
-//                             queryStr += "'" + v.value + "'";
-//                         } else {
-//                             queryStr += v.value;
-//                         }
-//                     } else {
-//                         queryStr = ' AND ' + v.key + v.op + v.value;
-//                     }
-//                 }
-//                 andQueryList.push(queryStr + ' ');
-//             } else {
-//                 andQueryList.push(' AND ' + v.condition + ' ');
-//             }
-//         });
-//         andQuery = andQueryList.join(' ');
-//     }
+                if (
+                    sTableInfo &&
+                    (sTableInfo[1] === 4 ||
+                        sTableInfo[1] === 8 ||
+                        sTableInfo[1] === 12 ||
+                        sTableInfo[1] === 16 ||
+                        sTableInfo[1] === 20 ||
+                        sTableInfo[1] === 104 ||
+                        sTableInfo[1] === 108 ||
+                        sTableInfo[1] === 112)
+                ) {
+                    sValue = `${aItem.value}`;
+                } else {
+                    sValue = `'${aItem.value}'`;
+                }
+                return `${aItem.column} ${aItem.operator} ${sValue}`;
+            } else {
+                return '';
+            }
+        });
+        sFilter = sFilterList.join(' AND ');
 
-//     // order by query
-//     orderByQuery = ' ORDER BY TIME ';
+        const sQuery = `SELECT ${sTime}, ${sValue} FROM ${sTableName} WHERE ${sWhereTime} ${aInfo.useCustom ? '' : `AND NAME = ` + `'` + aInfo.tag + `'`} ${
+            aInfo.useCustom ? (sFilter ? 'AND ' + sFilter : '') : ``
+        } group by TIME order by TIME`;
+        return sQuery;
+    }
+};
 
-//     // limit query
-//     if (groupByQuery === '' || request.maxDataPoints === 0) {
-//         limitQuery = 'LIMIT 5000';
-//     } else {
-//         limitQuery = 'LIMIT ' + request.maxDataPoints! * 2;
-//     }
-
-//     // base query
-//     baseQuery = rollupTimeQuery + ', ' + selectQuery + ' FROM ' + target.tableName + timeQuery + andQuery + groupByQuery;
-
-//     // result query
-//     if (target.valueType === 'input') {
-//         resultQuery = 'SELECT ' + baseQuery + ' ' + orderByQuery + ' ' + limitQuery;
-//     } else {
-//         customTitle = "'" + target.aggrFunc + '(' + target.valueField + ')' + "'";
-//         // if (target.aggrFunc === 'count(*)') {
-//         //   customTitle = '\'' + target.aggrFunc + '\'';
-//         // }
-//         if (target.aggrFunc === 'none') {
-//             customTitle = "'" + target.valueField + "'";
-//         }
-//         if (
-//             target.tableType === 6 &&
-//             target.aggrFunc !== 'none' &&
-//             target.filters &&
-//             target.filters.length > 0 &&
-//             target.filters[0].value !== '' &&
-//             target.filters[0].key !== 'none' &&
-//             !target.filters[0].isStr
-//         ) {
-//             customTitle = "'" + target.filters[0].value.replace(/'/gi, '') + '(' + target.aggrFunc + ")'";
-//         }
-//         if (target.title !== '') {
-//             customTitle = "'" + target.title + "'";
-//         }
-//         if (isRollup && subQueryFlag) {
-//             const nanoSec = request.intervalMs * 1000 * 1000;
-//             if (target.aggrFunc === 'sum' || target.aggrFunc === 'sumsq' || target.aggrFunc === 'count') {
-//                 resultQuery = `SELECT TIME / ${nanoSec} * ${nanoSec} AS TIME, SUM(VALUE) AS ${customTitle} FROM (SELECT ${baseQuery}) ${groupByQuery} ${orderByQuery} ${limitQuery}`;
-//             } else if (target.aggrFunc === 'min' || target.aggrFunc === 'max') {
-//                 resultQuery = `SELECT TIME / ${nanoSec} * ${nanoSec} AS TIME, ${target.aggrFunc}(VALUE) AS ${customTitle} FROM (SELECT ${baseQuery}) ${groupByQuery} ${orderByQuery} ${limitQuery}`;
-//             } else if (target.aggrFunc === 'avg') {
-//                 resultQuery = `SELECT TIME / ${nanoSec} * ${nanoSec} AS TIME, SUM(SUMVAL) / SUM(CNTVAL) AS ${customTitle} FROM (SELECT ${baseQuery}) ${groupByQuery} ${orderByQuery} ${limitQuery}`;
-//             }
-//         } else {
-//             // SELECT TIME AS TIME, VALUE AS {{TITLE}} FROM ({{BASEQUERY}}) {{ORDERBY}} {{LIMIT}}
-//             resultQuery = 'SELECT TIME AS TIME, VALUE AS ' + customTitle + ' FROM (SELECT ' + baseQuery + ') ' + orderByQuery + ' ' + limitQuery;
-//         }
-//     }
-
-//     // console.log('result query ', resultQuery)
-
-//     // Interpolate variables. set default format to 'sqlstring'. use 'raw' in numeric var name (ex : ${servers:raw})
-//     console.log(resultQuery);
-//     // target.queryText = getTemplateSrv().replace(resultQuery, request.scopedVars, 'sqlstring');
-//     // targets.push(target);
-
-//     // return targets
-// };
 export const tagTableValue = () => {
     return {
         id: getId(),
         table: '',
+        tableInfo: [],
         type: 'tag',
-        aggregator: '',
-        tag: '',
-        filter: [{ id: getId(), column: '', operator: '', value: '' }],
+        filter: [{ id: getId(), column: '', operator: '=', value: '', useFilter: true }],
+        values: [{ id: getId(), alias: '', value: '', aggregator: 'avg' }],
+        useRollup: false,
         name: '',
         time: '',
-        values: [{ id: getId(), alias: '', value: '', aggregator: '' }],
-        useRollup: false,
+        useCustom: false,
+        aggregator: 'avg',
+        tag: '',
+        value: '',
     };
 };
 
@@ -294,7 +204,7 @@ export const defaultTimeSeriesData = (aTable: any) => {
         h: 7,
         // Info
         useDataZoom: false,
-        dataZoomType: 'silder',
+        dataZoomType: 'slider',
         dataZoomMin: 0,
         dataZoomMax: 100,
         useOpacity: false,
@@ -309,6 +219,9 @@ export const defaultTimeSeriesData = (aTable: any) => {
         visualMapMin: 0,
         visualMapMax: 1,
         useMarkArea: false,
+        start: '',
+        end: '',
+        refresh: '',
         markArea: [
             {
                 id: getId(),
@@ -339,10 +252,12 @@ export const defaultTimeSeriesData = (aTable: any) => {
         // useCustomRightYaxisMax: 0,
 
         //timeRange
+        useCustomTime: false,
         timeRange: {
-            start: new Date().getTime() - 30000,
-            end: new Date().getTime(),
-            refreshTime: 0,
+            start: '',
+            end: '',
+            useRefresh: false,
+            refreshTime: '',
         },
         // query
         series: [getTableType(aTable[4]) === 'tag' ? { ...tagTableValue(), table: aTable[3] } : { ...logTableValue(), table: aTable[3] }],

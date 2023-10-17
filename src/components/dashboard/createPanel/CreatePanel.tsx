@@ -12,7 +12,7 @@ import { gBoardList } from '@/recoil/recoil';
 import { defaultTimeSeriesData, getTableType } from '@/utils/dashboardUtil';
 import { getTableList } from '@/api/repository/api';
 
-const CreatePanel = ({ pSetCreateModal, pType, pBoardInfo }: { pType: string; pSetCreateModal: (aValue: boolean) => void; pBoardInfo: any }) => {
+const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelId: string; pType: string; pSetCreateModal: (aValue: boolean) => void; pBoardInfo: any }) => {
     const [sSideSizes, setSideSizes] = useState<any>(['75%', '25%']);
     const [sBottomSizes, setBottomSizes] = useState<any>(['50%', '50%']);
     const [sInsetDraging, setInsetDraging] = useState(false);
@@ -27,6 +27,26 @@ const CreatePanel = ({ pSetCreateModal, pType, pBoardInfo }: { pType: string; pS
                 return aItem.id === pBoardInfo.id ? { ...aItem, dashboard: { ...aItem.dashboard, panels: [...aItem.dashboard.panels, sPanelOption] } } : aItem;
             })
         );
+
+        pSetCreateModal(false);
+    };
+
+    const editPanel = () => {
+        setBoardList((aPrev: any) => {
+            return aPrev.map((aItem: any) => {
+                return aItem.id === pBoardInfo.id
+                    ? {
+                          ...aItem,
+                          dashboard: {
+                              ...aItem.dashboard,
+                              panels: aItem.dashboard.panels.map((bItem: any) => {
+                                  return bItem.i === pPanelId ? sPanelOption : bItem;
+                              }),
+                          },
+                      }
+                    : aItem;
+            });
+        });
         pSetCreateModal(false);
     };
 
@@ -34,22 +54,26 @@ const CreatePanel = ({ pSetCreateModal, pType, pBoardInfo }: { pType: string; pS
         setAppliedPanelOption(sPanelOption);
     };
 
-    const getTables = async (aStatus: any) => {
+    const getTables = async (aStatus: boolean) => {
         const sResult: any = await getTableList();
         if (sResult.success) {
             const newTable = sResult.data.rows.filter((aItem: any) => getTableType(aItem[4]) === 'log' || getTableType(aItem[4]) === 'tag');
-
             setTableList(newTable);
-            if (aStatus === 'init') {
-                const sData = defaultTimeSeriesData(newTable[0]);
-                setPanelOption(sData);
-                setAppliedPanelOption(sData);
+            if (aStatus) {
+                if (pType === 'create') {
+                    const sData = defaultTimeSeriesData(newTable[0]);
+                    setPanelOption(sData);
+                    setAppliedPanelOption(sData);
+                } else {
+                    setPanelOption(pBoardInfo.dashboard.panels.find((aItem: any) => aItem.i === pPanelId));
+                    setAppliedPanelOption(pBoardInfo.dashboard.panels.find((aItem: any) => aItem.i === pPanelId));
+                }
             }
         }
     };
 
     const init = async () => {
-        getTables('init');
+        getTables(true);
     };
 
     useEffect(() => {
@@ -93,7 +117,7 @@ const CreatePanel = ({ pSetCreateModal, pType, pBoardInfo }: { pType: string; pS
                         pWidth={65}
                         pBorderRadius={2}
                         pIsDisabled={false}
-                        onClick={() => addPanel()}
+                        onClick={pType === 'create' ? () => addPanel() : () => editPanel()}
                         pText="Save"
                         pBackgroundColor="#4199ff"
                     />
@@ -121,11 +145,14 @@ const CreatePanel = ({ pSetCreateModal, pType, pBoardInfo }: { pType: string; pS
                             onChange={setBottomSizes}
                         >
                             <Pane maxSize="90%">
-                                {sAppliedPanelOption.i && <CreatePanelBody pType={pType} pInsetDraging={sInsetDraging} pPanelInfo={sAppliedPanelOption}></CreatePanelBody>}
+                                {sAppliedPanelOption.i && (
+                                    <CreatePanelBody pBoardInfo={pBoardInfo} pType={pType} pInsetDraging={sInsetDraging} pPanelInfo={sAppliedPanelOption}></CreatePanelBody>
+                                )}
                             </Pane>
                             <Pane>
                                 {sTableList.length !== 0 && sPanelOption.i && (
                                     <CreatePanelFooter
+                                        pType={pType}
                                         pGetTables={getTables}
                                         pTableList={sTableList}
                                         pPanelOption={sPanelOption}

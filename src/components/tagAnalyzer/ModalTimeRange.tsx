@@ -10,7 +10,7 @@ import { TextButton } from '../buttons/TextButton';
 import { convertTimeToFullDate } from '@/utils/helpers/date';
 import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 
-const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
+const ModalTimeRange = ({ pType, pSetTimeRangeModal }: any) => {
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
@@ -63,11 +63,19 @@ const ModalTimeRange = ({ pSetTimeRangeModal }: any) => {
             sEnd = moment(sEndTime).unix() * 1000;
         }
 
-        setBoardList(
-            sBoardList.map((aItem) => {
-                return aItem.id === sSelectedTab ? { ...aItem, range_bgn: sStart, range_end: sEnd } : aItem;
-            })
-        );
+        if (pType === 'dashboard') {
+            setBoardList((aPrev: any) =>
+                aPrev.map((aItem: any) => {
+                    return aItem.id === sSelectedTab ? { ...aItem, dashboard: { ...aItem.dashboard, timeRange: { start: sStart, end: sEnd } } } : aItem;
+                })
+            );
+        } else {
+            setBoardList((aPrev: any) =>
+                aPrev.map((aItem: any) => {
+                    return aItem.id === sSelectedTab ? { ...aItem, range_bgn: sStart, range_end: sEnd } : aItem;
+                })
+            );
+        }
 
         pSetTimeRangeModal(false);
     };

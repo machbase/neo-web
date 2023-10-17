@@ -9,7 +9,6 @@ import CheckBox from '@/components/inputs/CheckBox';
 const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
     const [sPanelOptionCollapse, setPanelOptionCollapse] = useState(true);
     const [sChartOptionCollapse, setChartOpitonCollapse] = useState(true);
-    const [sTimeOptionCollapse, setTimeOptionCollapse] = useState(true);
 
     const changedOption = (aEvent: any, aKey: string) => {
         pSetPanelOption({ ...pPanelOption, [aKey]: Object.keys(aEvent.target).includes('checked') ? aEvent.target.checked : aEvent.target.value });
@@ -61,7 +60,7 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
 
                     <div style={sChartOptionCollapse ? { marginLeft: '18px' } : { display: 'none' }}>
                         {(pPanelOption.chartType === 'line' || pPanelOption.chartType === 'bar' || pPanelOption.chartType === 'scatter') && (
-                            <Line pPanelOption={pPanelOption} pChangedOption={changedOption}></Line>
+                            <Line pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pChangedOption={changedOption}></Line>
                         )}
                     </div>
                     <div className="divider" style={{ margin: '12px 3px' }}></div>

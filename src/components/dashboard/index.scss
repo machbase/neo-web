@@ -2,12 +2,17 @@
     border-right: 2px solid rgba(255, 255, 255, 0.4) !important;
     border-bottom: 2px solid rgba(255, 255, 255, 0.4) !important;
 }
+
 .dashboard-form {
     width: 100%;
     overflow: auto;
     height: calc(100%);
     background: #1b1c21;
     position: relative;
+    .layout {
+        width: 100%;
+        height: 100% !important;
+    }
     .board-header {
         gap: 8px;
         position: relative;

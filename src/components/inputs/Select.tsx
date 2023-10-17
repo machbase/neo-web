@@ -22,7 +22,7 @@ export const Select = (props: SelectProps) => {
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [selectValue, setSelectValue] = useState<string>(pInitValue);
     const optionRef = useRef<HTMLDivElement>(null);
-
+    const isMounted = useRef(false);
     const handleSelect = (aValue: string) => {
         setSelectValue(aValue);
         setIsOpen(false);
@@ -44,7 +44,11 @@ export const Select = (props: SelectProps) => {
     useOutsideClick(optionRef, () => setIsOpen(false));
 
     useEffect(() => {
-        pAutoChanged && setSelectValue(pOptions[0]);
+        if (isMounted.current) {
+            pAutoChanged && setSelectValue(pOptions[0]);
+        } else {
+            isMounted.current = true;
+        }
     }, [pOptions[0]]);
     return (
         <div
