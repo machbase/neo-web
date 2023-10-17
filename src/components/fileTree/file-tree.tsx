@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import icons from '@/utils/icons';
 import { FileTreeType, FileType, sortDir, sortFile } from '@/utils/fileTreeParser';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
 import { extractionExtension } from '@/utils';
 import { BiDownload } from '@/assets/icons/Icon';
@@ -26,6 +26,7 @@ interface FileTreeProps {
 const FileTreeKeyList = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'];
 
 export const FileTree = (props: FileTreeProps) => {
+    const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
     const [sEnterItem, setEnterItem] = useState<any>(null);
     const [sDeleteFileList, setDeleteFileList] = useRecoilState(gDeleteFileList);
@@ -205,6 +206,7 @@ export const FileTree = (props: FileTreeProps) => {
                     if (!sKeyItem) break;
                     const sTargetItem = findItemByUniqueKey(props.rootDir, sKeyItem);
                     if (!sTargetItem) break;
+                    if (sTargetItem.virtual) break;
                     if (sTargetItem.type === 1) {
                         if (sTargetItem.dirs.length === 0 && sTargetItem.files.length === 0) {
                             sTargetItem.isOpen ? null : props.onFetchDir(sTargetItem, true);
@@ -317,6 +319,16 @@ export const FileTree = (props: FileTreeProps) => {
                             else sTestRoot.dirs = addTargetDir(sTestRoot, aAddItem, sAddTargetPath);
                         }
                     });
+                    const fileList = moveResult.filter((aFile: any) => aFile.type === 0);
+                    const sTmpBoardList = JSON.parse(JSON.stringify(sBoardList));
+                    sTmpBoardList.map((aBoard: any, aIdx: number) => {
+                        fileList.map((fItem: any) => {
+                            if (aBoard.name === fItem.name && aBoard.path === fItem.path) {
+                                sTmpBoardList[aIdx] = { ...aBoard, path: sAddTargetPath };
+                            }
+                        });
+                    });
+                    setBoardList(sTmpBoardList);
                     props.onSetFileTree(JSON.parse(JSON.stringify(sTestRoot)));
                 }
                 DndClear();
