@@ -213,6 +213,13 @@ any) => {
     };
 
     const onRename = async (aSelectedItem: any, aName: string) => {
+        const sTmpBoardList = JSON.parse(JSON.stringify(sBoardList));
+        const updateBoardList = sTmpBoardList.map((aBoard: any) => {
+            if (aBoard.name === aSelectedItem.name && aBoard.path === aSelectedItem.path) {
+                return { ...aBoard, name: aName };
+            } else return aBoard;
+        });
+        setBoardList(updateBoardList);
         const sResultRoot = renameManager(sFileTree as any, aSelectedItem.path + aSelectedItem.name + '-' + aSelectedItem.depth, aName);
         setFileTree(JSON.parse(JSON.stringify(sResultRoot)));
     };
