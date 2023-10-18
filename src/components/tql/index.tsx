@@ -53,8 +53,22 @@ const Tql = (props: TqlProps) => {
         const sResult: any = await getTqlChart(aText);
 
         if (sResult.status === 200 && sResult.headers && sResult.headers['x-chart-type'] === 'echarts') {
-            setResultType('html');
-            setChartData(sResult.data);
+            if (sResult.data && sResult.data.chartID) {
+                setResultType('html');
+                setChartData(sResult.data);
+            } else {
+                setResultType('text');
+                setTextField('');
+                setConsoleList((prev: any) => [
+                    ...prev,
+                    {
+                        timestamp: new Date().getTime(),
+                        level: 'ERROR',
+                        task: '',
+                        message: sResult.statusText,
+                    },
+                ]);
+            }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/markdown') {
             setResultType('mrk');
             setMarkdown(sResult.data);
@@ -68,9 +82,10 @@ const Tql = (props: TqlProps) => {
             });
 
             const tempHeaders: string[] = [];
-            sTempCsv[0] && sTempCsv[0].map((_, aIdx) => {
-                tempHeaders.push('column' + aIdx);
-            });
+            sTempCsv[0] &&
+                sTempCsv[0].map((_, aIdx) => {
+                    tempHeaders.push('column' + aIdx);
+                });
             setCsvHeader(tempHeaders);
             setHeader(true);
 

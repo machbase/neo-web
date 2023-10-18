@@ -235,7 +235,11 @@ const fetchTags = async (table: string) => {
         url: `/api/tables/${table}/tags`,
     });
     if (sData.status >= 400) {
-        Error(sData.data);
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
     }
     return sData;
 };
