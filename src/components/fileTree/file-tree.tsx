@@ -284,6 +284,7 @@ export const FileTree = (props: FileTreeProps) => {
 
             (async () => {
                 const moveResult: any = [];
+
                 for (const aItem of sParsedList) {
                     const sOldPath = aItem.path + aItem.name;
                     const sDestinationPath = sIsDropZone ? '/' + aItem.name : sEnterItem.path + (sEnterItem.type === 0 ? '' : sEnterItem.name + '/') + aItem.name;
@@ -319,16 +320,24 @@ export const FileTree = (props: FileTreeProps) => {
                             else sTestRoot.dirs = addTargetDir(sTestRoot, aAddItem, sAddTargetPath);
                         }
                     });
-                    const fileList = moveResult.filter((aFile: any) => aFile.type === 0);
-                    const sTmpBoardList = JSON.parse(JSON.stringify(sBoardList));
-                    sTmpBoardList.map((aBoard: any, aIdx: number) => {
-                        fileList.map((fItem: any) => {
+                    const updateBoardList = JSON.parse(JSON.stringify(sBoardList));
+                    updateBoardList.map((aBoard: any, aIdx: number) => {
+                        moveResult.map((fItem: any) => {
                             if (aBoard.name === fItem.name && aBoard.path === fItem.path) {
-                                sTmpBoardList[aIdx] = { ...aBoard, path: sAddTargetPath };
+                                updateBoardList[aIdx] = { ...aBoard, path: sAddTargetPath };
+                            } else if (aBoard.path.includes(fItem.path + fItem.name + '/')) {
+                                const sNewPath = aBoard.path.replace(
+                                    fItem.path + fItem.name + '/',
+                                    sIsDropZone ? '/' + fItem.name + '/' : sEnterItem.path + (sEnterItem.type === 0 ? '' : sEnterItem.name + '/' + fItem.name + '/')
+                                );
+                                updateBoardList[aIdx] = {
+                                    ...aBoard,
+                                    path: sNewPath,
+                                };
                             }
                         });
                     });
-                    setBoardList(sTmpBoardList);
+                    setBoardList(updateBoardList);
                     props.onSetFileTree(JSON.parse(JSON.stringify(sTestRoot)));
                 }
                 DndClear();
