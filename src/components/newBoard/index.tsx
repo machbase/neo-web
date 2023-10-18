@@ -125,8 +125,7 @@ const NewBoard = (props: NewBoardProps) => {
                               timeRange: {
                                   start: 'now-10h',
                                   end: 'now',
-                                  useRefresh: false,
-                                  refreshTime: 5000,
+                                  refresh: 'Off',
                               },
                               panels: [],
                           },

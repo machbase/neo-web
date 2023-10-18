@@ -1,14 +1,16 @@
 import { getTqlChart } from '@/api/repository/machiot';
+import useInterval from '@/hooks/useInterval';
 import { drawChart } from '@/plugin/eCharts';
-import { createQuery, setUnitTime } from '@/utils/dashboardUtil';
+import { calcInterval, calcRefreshTime, createQuery, setUnitTime } from '@/utils/dashboardUtil';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import './LineChart.scss';
 
-const LineChart = ({ pPanelInfo, pBoardInfo }: any) => {
+const LineChart = ({ pPanelInfo, pBoardInfo, pType }: any) => {
     const [sText, setText] = useState('');
     const ChartRef = useRef<any>();
     const [sChart, setChart] = useState<any>({});
     const [sChartData, setChartData] = useState<any>({});
+    const timerRef = useRef<any>();
 
     useEffect(() => {
         if (sChart.id) {
@@ -85,98 +87,32 @@ const LineChart = ({ pPanelInfo, pBoardInfo }: any) => {
         setChartData(sData);
     };
 
-    const calcInterval = (aBgn: number, aEnd: number, aWidth: number): { IntervalType: string; IntervalValue: number } => {
-        const sDiff = aEnd - aBgn;
-        const sSecond = Math.floor(sDiff / 1000);
-        const sCalc = sSecond / (aWidth / 3);
-        const sRet = { type: 'sec', value: 1 };
-        if (sCalc > 60 * 60 * 12) {
-            // interval > 12H
-            sRet.type = 'day';
-            sRet.value = Math.ceil(sCalc / (60 * 60 * 24));
-        } else if (sCalc > 60 * 60 * 6) {
-            // interval > 6H
-            sRet.type = 'hour';
-            sRet.value = 12;
-        } else if (sCalc > 60 * 60 * 3) {
-            // interval > 3H
-            sRet.type = 'hour';
-            sRet.value = 6;
-        } else if (sCalc > 60 * 60) {
-            // interval > 1H
-            sRet.type = 'hour';
-            sRet.value = Math.ceil(sCalc / (60 * 60));
-        } else if (sCalc > 60 * 30) {
-            // interval > 30M
-            sRet.type = 'hour';
-            sRet.value = 1;
-        } else if (sCalc > 60 * 20) {
-            // interval > 20M
-            sRet.type = 'min';
-            sRet.value = 30;
-        } else if (sCalc > 60 * 15) {
-            // interval > 15M
-            sRet.type = 'min';
-            sRet.value = 20;
-        } else if (sCalc > 60 * 10) {
-            // interval > 10M
-            sRet.type = 'min';
-            sRet.value = 15;
-        } else if (sCalc > 60 * 5) {
-            // interval > 5M
-            sRet.type = 'min';
-            sRet.value = 10;
-        } else if (sCalc > 60 * 3) {
-            // interval > 3M
-            sRet.type = 'min';
-            sRet.value = 5;
-        } else if (sCalc > 60) {
-            // interval > 1M
-            sRet.type = 'min';
-            sRet.value = Math.ceil(sCalc / 60);
-        } else if (sCalc > 30) {
-            // interval > 30S
-            sRet.type = 'min';
-            sRet.value = 1;
-        } else if (sCalc > 20) {
-            // interval > 20S
-            sRet.type = 'sec';
-            sRet.value = 30;
-        } else if (sCalc > 15) {
-            // interval > 15S
-            sRet.type = 'sec';
-            sRet.value = 20;
-        } else if (sCalc > 10) {
-            // interval > 10S
-            sRet.type = 'sec';
-            sRet.value = 15;
-        } else if (sCalc > 5) {
-            // interval > 5S
-            sRet.type = 'sec';
-            sRet.value = 10;
-        } else if (sCalc > 3) {
-            // interval > 3S
-            sRet.type = 'sec';
-            sRet.value = 5;
-        } else {
-            sRet.type = 'sec';
-            sRet.value = Math.ceil(sCalc);
-        }
-        if (sRet.value < 1) {
-            sRet.value = 1;
-        }
-        return {
-            IntervalType: sRet.type,
-            IntervalValue: sRet.value,
-        };
-    };
-
-    useLayoutEffect(() => {
+    useEffect(() => {
+        // let timerRef: any = null;
         setTimeout(() => {
-            setForm();
+            if (pType !== 'create' && pType !== 'edit' && pBoardInfo.dashboard.timeRange.refresh !== 'Off') {
+                if (timerRef.current) {
+                    clearInterval(timerRef.current);
+                    timerRef.current = null;
+                    timerRef.current = setInterval(() => {
+                        setForm();
+                    }, calcRefreshTime(pBoardInfo.dashboard.timeRange.refresh));
+                } else {
+                    timerRef.current = setInterval(() => {
+                        setForm();
+                    }, calcRefreshTime(pBoardInfo.dashboard.timeRange.refresh));
+                }
+            }
         }, 100);
-    }, [pPanelInfo.x, pPanelInfo.y, pPanelInfo.w, pPanelInfo.h, pPanelInfo, pBoardInfo.dashboard.timeRange.start, pBoardInfo.dashboard.timeRange.end]);
 
+        return () => {
+            clearInterval(timerRef.current);
+        };
+    }, [pBoardInfo.dashboard.timeRange.refresh]);
+
+    useEffect(() => {
+        setForm();
+    }, [pPanelInfo.x, pPanelInfo.y, pPanelInfo.w, pPanelInfo.h, pPanelInfo, pBoardInfo.dashboard.timeRange.start, pBoardInfo.dashboard.timeRange.end]);
     return (
         <div ref={ChartRef} className="chart-form">
             <div className="inner-html-form" dangerouslySetInnerHTML={{ __html: sText }}></div>

@@ -41,7 +41,7 @@ const Dashboard = ({ pInfo, pWidth }: any) => {
                 return aItem.id === pInfo.id
                     ? {
                           ...aItem,
-                          dashboard: { ...aItem.dashboard, timeRange: { start: sStartTime, end: sEndTime } },
+                          dashboard: { ...aItem.dashboard, timeRange: { ...aItem.dashboard.timeRange, start: sStartTime, end: sEndTime } },
                       }
                     : aItem;
             })
@@ -99,6 +99,7 @@ const Dashboard = ({ pInfo, pWidth }: any) => {
                     ) : (
                         <span>Time range not set</span>
                     )}
+                    , Refresh : {pInfo.dashboard.timeRange.refresh}
                 </button>
                 <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight></VscChevronRight>} onClick={() => moveTimRange('r')}></IconButton>
             </div>

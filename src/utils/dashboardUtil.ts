@@ -191,6 +191,8 @@ const logTableValue = () => {
     };
 };
 
+export const refreshTimeList = ['Off', '3 seconds', '5 seconds', '10 seconds', '30 seconds', '1 minute', '5 minutes', '10 minutes', '1 hour'];
+
 export const defaultTimeSeriesData = (aTable: any) => {
     const sData = {
         //default Option
@@ -256,13 +258,106 @@ export const defaultTimeSeriesData = (aTable: any) => {
         timeRange: {
             start: '',
             end: '',
-            useRefresh: false,
-            refreshTime: '',
+            refreshTime: 'Off',
         },
         // query
         series: [getTableType(aTable[4]) === 'tag' ? { ...tagTableValue(), table: aTable[3] } : { ...logTableValue(), table: aTable[3] }],
     };
     return sData;
+};
+
+export const calcRefreshTime = (aTime: string) => {
+    const sTime = aTime.split(' ')[0];
+    const sType = aTime.split(' ')[1];
+    if (sType === 'seconds') return Number(sTime) * 1000;
+    else if (sType === 'minute' || sType === 'minutes') return Number(sTime) * 1000 * 60;
+    else return Number(sTime) * 1000 * 60 * 60;
+};
+
+export const calcInterval = (aBgn: number, aEnd: number, aWidth: number): { IntervalType: string; IntervalValue: number } => {
+    const sDiff = aEnd - aBgn;
+    const sSecond = Math.floor(sDiff / 1000);
+    const sCalc = sSecond / (aWidth / 3);
+    const sRet = { type: 'sec', value: 1 };
+    if (sCalc > 60 * 60 * 12) {
+        // interval > 12H
+        sRet.type = 'day';
+        sRet.value = Math.ceil(sCalc / (60 * 60 * 24));
+    } else if (sCalc > 60 * 60 * 6) {
+        // interval > 6H
+        sRet.type = 'hour';
+        sRet.value = 12;
+    } else if (sCalc > 60 * 60 * 3) {
+        // interval > 3H
+        sRet.type = 'hour';
+        sRet.value = 6;
+    } else if (sCalc > 60 * 60) {
+        // interval > 1H
+        sRet.type = 'hour';
+        sRet.value = Math.ceil(sCalc / (60 * 60));
+    } else if (sCalc > 60 * 30) {
+        // interval > 30M
+        sRet.type = 'hour';
+        sRet.value = 1;
+    } else if (sCalc > 60 * 20) {
+        // interval > 20M
+        sRet.type = 'min';
+        sRet.value = 30;
+    } else if (sCalc > 60 * 15) {
+        // interval > 15M
+        sRet.type = 'min';
+        sRet.value = 20;
+    } else if (sCalc > 60 * 10) {
+        // interval > 10M
+        sRet.type = 'min';
+        sRet.value = 15;
+    } else if (sCalc > 60 * 5) {
+        // interval > 5M
+        sRet.type = 'min';
+        sRet.value = 10;
+    } else if (sCalc > 60 * 3) {
+        // interval > 3M
+        sRet.type = 'min';
+        sRet.value = 5;
+    } else if (sCalc > 60) {
+        // interval > 1M
+        sRet.type = 'min';
+        sRet.value = Math.ceil(sCalc / 60);
+    } else if (sCalc > 30) {
+        // interval > 30S
+        sRet.type = 'min';
+        sRet.value = 1;
+    } else if (sCalc > 20) {
+        // interval > 20S
+        sRet.type = 'sec';
+        sRet.value = 30;
+    } else if (sCalc > 15) {
+        // interval > 15S
+        sRet.type = 'sec';
+        sRet.value = 20;
+    } else if (sCalc > 10) {
+        // interval > 10S
+        sRet.type = 'sec';
+        sRet.value = 15;
+    } else if (sCalc > 5) {
+        // interval > 5S
+        sRet.type = 'sec';
+        sRet.value = 10;
+    } else if (sCalc > 3) {
+        // interval > 3S
+        sRet.type = 'sec';
+        sRet.value = 5;
+    } else {
+        sRet.type = 'sec';
+        sRet.value = Math.ceil(sCalc);
+    }
+    if (sRet.value < 1) {
+        sRet.value = 1;
+    }
+    return {
+        IntervalType: sRet.type,
+        IntervalValue: sRet.value,
+    };
 };
 
 export const getTableType = (aTypeNumber: number) => {
