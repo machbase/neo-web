@@ -217,6 +217,8 @@ any) => {
         const updateBoardList = sTmpBoardList.map((aBoard: any) => {
             if (aBoard.name === aSelectedItem.name && aBoard.path === aSelectedItem.path) {
                 return { ...aBoard, name: aName };
+            } else if (aBoard.path.includes(aSelectedItem.path + aSelectedItem.name + '/')) {
+                return { ...aBoard, path: aBoard.path.replace(aSelectedItem.path + aSelectedItem.name, aSelectedItem.path + aName) };
             } else return aBoard;
         });
         setBoardList(updateBoardList);
@@ -408,8 +410,6 @@ any) => {
         if (aEvent) {
             aEvent.stopPropagation();
         }
-        // if (selectedContextFile) setRecentDirectory(`${selectedContextFile.path + selectedContextFile.name}`);
-        // else setRecentDirectory('/');
         setIsFileModal(true);
     };
 
