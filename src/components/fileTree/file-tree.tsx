@@ -192,6 +192,7 @@ export const FileTree = (props: FileTreeProps) => {
                     e.stopPropagation();
                     if (!sKeyItem) break;
                     const sTargetItem = findItemByUniqueKey(props.rootDir, sKeyItem);
+                    if (sTargetItem.virtual) break;
                     if (!sTargetItem) break;
                     sTargetItem.type === 0
                         ? (props.onSelect(sTargetItem), setKeyItem(''))

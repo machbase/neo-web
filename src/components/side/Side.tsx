@@ -281,6 +281,11 @@ any) => {
             });
 
             if (updateBoardList.length > 0) setSelectedTab(updateBoardList[0].id);
+            else {
+                const tmpId = getId();
+                updateBoardList = [{ id: tmpId, type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false }];
+                setSelectedTab(tmpId);
+            }
             setBoardList(updateBoardList);
         }
         getFileTree();
@@ -316,11 +321,19 @@ any) => {
                     let updateBoardList: any = [];
                     if (selectedContextFile.type === 0) {
                         updateBoardList = sTmpBoardList.filter((aBoard: any) => !(aBoard.name === selectedContextFile.name && aBoard.path === selectedContextFile.path));
-                        setBoardList(updateBoardList);
+                        if (updateBoardList.length === 0) {
+                            const tmpId = getId();
+                            setBoardList([{ id: tmpId, type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false }]);
+                            setSelectedTab(tmpId);
+                        } else setBoardList(updateBoardList);
                         if (updateBoardList.length > 0) setSelectedTab(updateBoardList[0].id);
                     } else {
                         updateBoardList = sTmpBoardList.filter((bBoard: any) => selectedContextFile.path + selectedContextFile.name + '/' !== bBoard.path);
-                        setBoardList(updateBoardList);
+                        if (updateBoardList.length === 0) {
+                            const tmpId = getId();
+                            setBoardList([{ id: tmpId, type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false }]);
+                            setSelectedTab(tmpId);
+                        } else setBoardList(updateBoardList);
                         if (updateBoardList.length > 0) setSelectedTab(updateBoardList[0].id);
                     }
                     getFileTree();
