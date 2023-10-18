@@ -302,7 +302,7 @@ const getFile = async () => {
         onClosePopup();
         return;
     }
-    if (sData && sData.reason) {
+    if (sData && sData.success) {
         sList.value = [];
         if (sSelectedClickDir.value.length !== 0) sList.value.push({ isDir: false, lastModifiedUnixMillis: '', name: '..', size: '', type: 'back' });
         sData.data.children &&
@@ -313,12 +313,13 @@ const getFile = async () => {
         sClickFile.value = '';
     } else {
         const sPathIdx = gTabList.value.findIndex((aItem) => aItem.path === `/` + sSelectedClickDir.value.join('/') && aItem.board_name === sSelectedClickData.value);
-
         if (sPathIdx !== -1) {
-            gTabList.value.splice(
-                gTabList.value.findIndex((aItem) => aItem.board_id === gSelectedTab.value),
-                1
-            );
+            if (props.pNewOpen) {
+                gTabList.value.splice(
+                    gTabList.value.findIndex((aItem) => aItem.board_id === gSelectedTab.value),
+                    1
+                );
+            }
             store.commit(MutationTypes.setSelectedTab, gTabList.value[sPathIdx].board_id);
             onClosePopup();
             return;
