@@ -37,6 +37,9 @@ request.interceptors.request.use(
         if (sHeaders && (config.url === '/api/md?darkMode=false' || config.url === '/api/md?darkMode=true')) {
             config.headers[`Content-Type`] = 'text/plain';
         }
+        if (sFileSql !== -1 && sFileOption !== -1 && config.method === 'post') {
+            config.headers[`Content-Type`] = 'text/plain';
+        }
 
         if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1 || sFileWrk !== -1) && config.method === 'get') {
             config.transformResponse = function (data) {
