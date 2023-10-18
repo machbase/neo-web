@@ -270,6 +270,27 @@ const fetchOnRollupTable = async (table: string) => {
     }
     return sData;
 };
+const getRollupTableList = async () => {
+    const sData = await request({
+        method: 'GET',
+        url: `/machbase?q=select root_table, interval_time from v$rollup group by root_table, interval_time order by root_table asc, interval_time desc`,
+    });
+    if (sData.status >= 400) {
+        Error(sData.data);
+    }
+    const sConvertArray: any = {};
+    if (sData.data.rows && sData.data.rows.length > 0) {
+        sData.data.rows.map((aItem: any) => {
+            if (!sConvertArray[aItem[0]]) {
+                sConvertArray[aItem[0]] = [];
+            }
+            sConvertArray[aItem[0]].push(aItem[1]);
+        });
+        return sConvertArray;
+    } else {
+        return [];
+    }
+};
 
 export {
     fetchCalculationData,
@@ -287,4 +308,5 @@ export {
     getChartData,
     getChartMinMaxData,
     getTqlChart,
+    getRollupTableList,
 };

@@ -49,3 +49,13 @@ export const generateUUID = () => {
         return value.toString(16);
     });
 };
+
+export const isRollup = (aRollups: any, aTableName: string, aInterval: number) => {
+    if (aRollups[aTableName] && aInterval > 0) {
+        const aValue = aRollups[aTableName];
+        const aResult = aValue.find((aRollupTime: any) => aInterval % aRollupTime === 0);
+        return !!aResult;
+    } else {
+        return false;
+    }
+};

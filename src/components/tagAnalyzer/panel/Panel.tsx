@@ -8,7 +8,8 @@ import { getDateRange } from '@/utils/helpers/date';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import { ArrowLeft, ArrowRight } from '@/assets/icons/Icon';
 import { useRecoilValue } from 'recoil';
-import { gSelectedTab } from '@/recoil/recoil';
+import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
+import { isRollup } from '@/utils';
 
 const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
     const sAreaChart = useRef<any>();
@@ -20,6 +21,7 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
     const [sIsRaw, setIsRaw] = useState<boolean>(false);
     const [sRangeOption, setRangeOption] = useState<any>({});
     const sSelectedTab = useRecoilValue(gSelectedTab);
+    const sRollupTableList = useRecoilValue(gRollupTableList);
 
     const fetchNavigatorData = async (aTimeRange: any) => {
         const sChartWidth = sAreaChart.current.clientWidth;
@@ -56,7 +58,7 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
                 TagNames: sTagSetElement.tagName,
                 Start: Math.round(sTimeRange.startTime),
                 End: Math.round(sTimeRange.endTime),
-                Rollup: sTagSetElement.onRollup,
+                Rollup: isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue)),
                 CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
                 ...sIntervalTime,
                 colName: sTagSetElement.colName,
@@ -195,7 +197,7 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
                     TagNames: sTagSetElement.tagName,
                     Start: Math.round(sTimeRange.startTime),
                     End: Math.round(sTimeRange.endTime),
-                    Rollup: sTagSetElement.onRollup,
+                    Rollup: isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue)),
                     CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
                     ...sIntervalTime,
                     colName: sTagSetElement.colName,
@@ -316,6 +318,21 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
                 return 'day';
             default:
                 return gUnit;
+        }
+    };
+
+    const getInterval = (aType: string, aValue: number) => {
+        switch (aType) {
+            case 'sec':
+                return aValue * 1000;
+            case 'min':
+                return aValue * 60 * 1000;
+            case 'hour':
+                return aValue * 60 * 60 * 1000;
+            case 'day':
+                return aValue * 24 * 60 * 60 * 1000;
+            default:
+                return 0;
         }
     };
 

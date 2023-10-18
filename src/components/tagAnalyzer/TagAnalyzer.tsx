@@ -1,11 +1,12 @@
-import { fetchTablesData } from '@/api/repository/machiot';
-import { gTables } from '@/recoil/recoil';
+import { fetchTablesData, getRollupTableList } from '@/api/repository/machiot';
+import { gRollupTableList, gTables } from '@/recoil/recoil';
 import { useEffect } from 'react';
 import { useSetRecoilState } from 'recoil';
 import ChartBoard from './ChartBoard';
 
 const tagAnalyzer = ({ pInfo, pHandleSaveModalOpen, pSetIsSaveModal, pSetIsOpenModal }: any) => {
     const setTables = useSetRecoilState(gTables);
+    const setRollupTabls = useSetRecoilState(gRollupTableList);
 
     const handleSaveModalOpen = () => {
         pSetIsSaveModal(true);
@@ -26,8 +27,14 @@ const tagAnalyzer = ({ pInfo, pHandleSaveModalOpen, pSetIsSaveModal, pSetIsOpenM
         }
     };
 
+    const getRollupTables = async () => {
+        const sResult: any = await getRollupTableList();
+        setRollupTabls(sResult);
+    };
+
     useEffect(() => {
         getTables();
+        getRollupTables();
     }, []);
 
     return (
