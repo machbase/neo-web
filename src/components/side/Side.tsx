@@ -217,6 +217,8 @@ any) => {
         const updateBoardList = sTmpBoardList.map((aBoard: any) => {
             if (aBoard.name === aSelectedItem.name && aBoard.path === aSelectedItem.path) {
                 return { ...aBoard, name: aName };
+            } else if (aBoard.path.includes(aSelectedItem.path + aSelectedItem.name + '/')) {
+                return { ...aBoard, path: aBoard.path.replace(aSelectedItem.path + aSelectedItem.name, aSelectedItem.path + aName) };
             } else return aBoard;
         });
         setBoardList(updateBoardList);
@@ -253,46 +255,48 @@ any) => {
 
     const multiDelete = async (aDelList: any) => {
         const sReslutList: any = [];
-        try {
-            const deleteApi = (aDelItem: any) => {
-                return new Promise((resolve, reject) => {
-                    setTimeout(async () => {
-                        const sResult = await deleteContextFile(aDelItem.path, aDelItem.query);
-                        sReslutList.push(sResult);
-                        if ((sResult as any).success) resolve(true);
-                        else reject(false);
-                    }, 1);
-                });
-            };
-
-            await aDelList.reduce(async (previousPromise: any, curQuery: string) => {
-                await previousPromise;
-                return deleteApi(curQuery);
-            }, Promise.resolve());
-        } catch {
-            setConsoleList((prev: any) => [
-                ...prev,
-                {
-                    timestamp: new Date().getTime(),
-                    level: 'ERROR',
-                    task: '',
-                    message: sReslutList.at(-1).data.reason,
-                },
-            ]);
-            setRecentDirectory('/');
+        for (const aItem of aDelList) {
+            const aResult: any = await deleteContextFile(aItem.path, aItem.query);
+            if (aResult.success) sReslutList.push(aItem);
+            else {
+                setConsoleList((prev: any) => [
+                    ...prev,
+                    {
+                        timestamp: new Date().getTime(),
+                        level: 'ERROR',
+                        task: '',
+                        message: aResult.data.reason,
+                    },
+                ]);
+            }
         }
+        if (sReslutList && sReslutList.length > 0) {
+            let updateBoardList: any = JSON.parse(JSON.stringify(sBoardList));
+            sReslutList.map((aResult: any) => {
+                if (aResult.type === 0) {
+                    updateBoardList = updateBoardList.filter((aBoard: any) => !(aBoard.name === aResult.name && aBoard.path === aResult.path));
+                } else {
+                    updateBoardList = updateBoardList.filter((aBoard: any) => !aBoard.path.includes(aResult.path + aResult.name + '/'));
+                }
+            });
 
-        if (sReslutList.some((aResult: any) => aResult.success === true)) {
-            getFileTree();
-            setRecentDirectory('/');
+            if (updateBoardList.length > 0) setSelectedTab(updateBoardList[0].id);
+            setBoardList(updateBoardList);
         }
+        getFileTree();
+        setRecentDirectory('/');
     };
 
     const handleDeleteFile = async (isRecursive: boolean) => {
         if (sDeleteFileList && (sDeleteFileList as any).length > 0) {
             const sRecursivePath: any = { path: undefined, query: undefined };
             const sDeleteList = JSON.parse(JSON.stringify(sDeleteFileList)).map((aDelFile: any) => {
-                return { path: aDelFile.path, query: isRecursive && aDelFile.type === 1 ? aDelFile.name + '?recursive=true' : aDelFile.name };
+                return {
+                    path: aDelFile.path,
+                    query: isRecursive && aDelFile.type === 1 ? aDelFile.name + '?recursive=true' : aDelFile.name,
+                    name: aDelFile.name,
+                    type: aDelFile.type,
+                };
             });
             if (selectedContextFile && selectedContextFile.path && selectedContextFile.name) {
                 sRecursivePath.path = selectedContextFile.path;
@@ -308,6 +312,17 @@ any) => {
                 const sRecursivePath = isRecursive ? selectedContextFile.name + '?recursive=true' : selectedContextFile.name;
                 const sResult: any = await deleteContextFile(selectedContextFile.path, sRecursivePath);
                 if (sResult.reason === 'success') {
+                    const sTmpBoardList = JSON.parse(JSON.stringify(sBoardList));
+                    let updateBoardList: any = [];
+                    if (selectedContextFile.type === 0) {
+                        updateBoardList = sTmpBoardList.filter((aBoard: any) => !(aBoard.name === selectedContextFile.name && aBoard.path === selectedContextFile.path));
+                        setBoardList(updateBoardList);
+                        if (updateBoardList.length > 0) setSelectedTab(updateBoardList[0].id);
+                    } else {
+                        updateBoardList = sTmpBoardList.filter((bBoard: any) => selectedContextFile.path + selectedContextFile.name + '/' !== bBoard.path);
+                        setBoardList(updateBoardList);
+                        if (updateBoardList.length > 0) setSelectedTab(updateBoardList[0].id);
+                    }
                     getFileTree();
                     setRecentDirectory('/');
                 } else {
@@ -395,8 +410,6 @@ any) => {
         if (aEvent) {
             aEvent.stopPropagation();
         }
-        // if (selectedContextFile) setRecentDirectory(`${selectedContextFile.path + selectedContextFile.name}`);
-        // else setRecentDirectory('/');
         setIsFileModal(true);
     };
 

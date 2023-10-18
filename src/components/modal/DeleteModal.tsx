@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { Close, VscWarning } from '@/assets/icons/Icon';
 import { TextButton } from '@/components/buttons/TextButton';
 import { FileTreeType, FileType } from '@/utils/fileTreeParser';
-import Modal from './Modal';
-
-import './DeleteModal.scss';
 import { gDeleteFileList } from '@/recoil/fileTree';
 import { useRecoilState } from 'recoil';
+import Modal from './Modal';
+import './DeleteModal.scss';
 
 export interface DeleteModalProps {
     setIsOpen: any;
