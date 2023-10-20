@@ -569,7 +569,7 @@ const FileDiv = ({
         // e.dataTransfer.setDragImage(nImg, -10, -10);
         e.stopPropagation();
         if (pDndTargetList && pDndTargetList.length > 0) {
-            if (!pDndTargetList.includes(aData)) onSetDndTargetList([...pDndTargetList, aData]);
+            if (pDndTargetList.every((v: any) => !(v.path === aData.path && v.name === aData.name))) onSetDndTargetList([...pDndTargetList, aData]);
         } else {
             onSetDndTargetList([aData]);
         }
@@ -585,15 +585,19 @@ const FileDiv = ({
     };
     const HandleMultiDrag = (aFile: any) => {
         if (pDndTargetList && pDndTargetList.length > 0) {
-            if (pDndTargetList.some((v: any) => v.depth === aFile.depth && v.name === aFile.name && v.path === aFile.path)) {
-                const tmp = JSON.parse(JSON.stringify(pDndTargetList));
-                tmp.splice(
-                    tmp.findIndex((aItem: any) => aItem.name === aFile.name && aItem.path === aFile.path),
+            const tmp = JSON.parse(JSON.stringify(pDndTargetList));
+            const sWithoutChildList = tmp.filter((aTarget: any) => !aTarget.path.includes(aFile.path + aFile.name + '/'));
+            if (sWithoutChildList.some((c: any) => c.type === 1 && aFile.path.includes(c.path + c.name + '/'))) {
+                return;
+            }
+            if (sWithoutChildList.some((v: any) => v.depth === aFile.depth && v.name === aFile.name && v.path === aFile.path)) {
+                sWithoutChildList.splice(
+                    sWithoutChildList.findIndex((aItem: any) => aItem.name === aFile.name && aItem.path === aFile.path),
                     1
                 );
-                onSetDndTargetList(tmp);
+                onSetDndTargetList(sWithoutChildList);
             } else {
-                onSetDndTargetList([...pDndTargetList, aFile]);
+                onSetDndTargetList([...sWithoutChildList, aFile]);
             }
         } else {
             onSetDndTargetList([aFile]);
