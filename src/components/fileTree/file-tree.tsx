@@ -5,7 +5,7 @@ import { FileTreeType, FileType, sortDir, sortFile } from '@/utils/fileTreeParse
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
-import { extractionExtension } from '@/utils';
+import { binaryCodeEncodeBase64, extractionExtension, isImage } from '@/utils';
 import { BiDownload } from '@/assets/icons/Icon';
 import { postFileList } from '@/api/repository/api';
 import { findItemByUniqueKey, findParentDirByUniqueKey } from '@/utils/file-manager';
@@ -241,9 +241,9 @@ export const FileTree = (props: FileTreeProps) => {
         const sOldName = aFile.path + aFile.name;
         const sCurName = aFile.path + aName + sExpand;
         const sRenameResult: any = await moveFile(sOldName, sCurName);
-        if (sRenameResult.success) props.onRename(aFile, aName + sExpand);
+        if (sRenameResult.success || (isImage(aFile.name) && binaryCodeEncodeBase64(sRenameResult))) props.onRename(aFile, aName + sExpand);
     };
-    const handleDragOver = () => {
+    const handleDragOver: any = () => {
         const sTargetItem = findItemByUniqueKey(props.rootDir, sDragOverItem);
         if (sTargetItem && sTargetItem.type === 1) {
             props.onFetchDir(sTargetItem, true);
@@ -290,7 +290,7 @@ export const FileTree = (props: FileTreeProps) => {
                     const sOldPath = aItem.path + aItem.name;
                     const sDestinationPath = sIsDropZone ? '/' + aItem.name : sEnterItem.path + (sEnterItem.type === 0 ? '' : sEnterItem.name + '/') + aItem.name;
                     const aResult: any = await moveFile(sOldPath, sDestinationPath);
-                    if (aResult.success) moveResult.push(aItem);
+                    if (aResult.success || (isImage(aItem.name) && binaryCodeEncodeBase64(aResult))) moveResult.push(aItem);
                 }
                 if (moveResult.length > 0) {
                     let sTestRoot = JSON.parse(JSON.stringify(sFileTree));
@@ -604,8 +604,15 @@ const FileDiv = ({
     };
     const checkDndItem = (aFile: any): boolean => {
         if (pDndTargetList && pDndTargetList.length > 0) {
-            if (pDndTargetList.findIndex((aTarget: any) => aTarget.name === aFile.name && aTarget.path === aFile.path) !== -1) return true;
-            else return false;
+            if (pDndTargetList.findIndex((aTarget: any) => aTarget.type === 0 && aTarget.name === aFile.name && aTarget.path === aFile.path) !== -1) {
+                return true;
+            } else if (
+                pDndTargetList.findIndex(
+                    (aTarget: any) => aTarget.type === 1 && ((aTarget.name === aFile.name && aTarget.path === aFile.path) || aFile.path.includes(aTarget.path + aTarget.name + '/'))
+                ) !== -1
+            ) {
+                return true;
+            } else return false;
         } else return false;
     };
     const checkDndSection = (aFile: any): boolean => {
