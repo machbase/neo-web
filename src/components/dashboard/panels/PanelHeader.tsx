@@ -1,15 +1,13 @@
-import { Delete, GearFill } from '@/assets/icons/Icon';
+import { Delete, GearFill, VscRecord } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { gBoardList, GBoardListType, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import { useState } from 'react';
 import './PanelHeader.scss';
-import CreatePanel from '../createPanel/CreatePanel';
-
-const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pBoardInfo }: any) => {
+import { Tooltip } from 'react-tooltip';
+const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sMouseDown, setMouseDown] = useState(false);
-    const [sCreateModal, setCreateModal] = useState(false);
 
     const [sSelectedTab] = useRecoilState(gSelectedTab);
 
@@ -49,15 +47,23 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pBoardInfo }: any) => 
             >
                 <div>{pPanelInfo.panelName}</div>
                 <div className="panel-header-navigator">
+                    <a data-tooltip-place="bottom" id="my-anchor-element">
+                        {pPanelInfo.useCustomTime && <VscRecord color="#339900"></VscRecord>}
+                        <Tooltip
+                            className="tooltip"
+                            anchorSelect="#my-anchor-element"
+                            content={`${pPanelInfo.timeRange.start} ~ ${pPanelInfo.timeRange.end} , ${pPanelInfo.timeRange.refresh}`}
+                        />
+                    </a>
+
                     {pType !== 'create' && pType !== 'edit' && (
-                        <span className="delete">{<IconButton pWidth={25} pIcon={<GearFill size={14} />} onClick={() => pShowEditPanel(true, pPanelInfo.i)} />}</span>
+                        <span className="delete">{<IconButton pWidth={25} pIcon={<GearFill size={14} />} onClick={() => pShowEditPanel('edit', pPanelInfo.i)} />}</span>
                     )}
                     {pType !== 'create' && pType !== 'edit' && (
                         <span className="delete">{<IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}</span>
                     )}
                 </div>
             </div>
-            {/* {sCreateModal && <CreatePanel pType="edit" pBoardInfo={pBoardInfo} pSetCreateModal={setCreateModal}></CreatePanel>} */}
         </>
     );
 };

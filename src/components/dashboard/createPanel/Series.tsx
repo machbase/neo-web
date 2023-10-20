@@ -96,6 +96,23 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
                                   name: sData.data.rows.filter((aItem: any) => {
                                       return aItem[1] === 5;
                                   }),
+                                  values: aItem.values.map((aItem: any) => {
+                                      return {
+                                          ...aItem,
+                                          value: sData.data.rows.filter((aItem: any) => {
+                                              return (
+                                                  aItem[1] === 4 ||
+                                                  aItem[1] === 8 ||
+                                                  aItem[1] === 12 ||
+                                                  aItem[1] === 16 ||
+                                                  aItem[1] === 20 ||
+                                                  aItem[1] === 104 ||
+                                                  aItem[1] === 108 ||
+                                                  aItem[1] === 112
+                                              );
+                                          })[0][0],
+                                      };
+                                  }),
                               }
                             : aItem;
                     }),
@@ -247,6 +264,7 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
                             <div className="details padding-4">
                                 <CheckBox
                                     pSize={12}
+                                    pIsDisabled={sSelectedTableType !== 'tag'}
                                     onChange={(aEvent: any) => changedOption('useRollup', aEvent)}
                                     pDefaultChecked={pPanelOption.useRollup}
                                     pText={'Rollup'}

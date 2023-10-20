@@ -65,6 +65,9 @@ export const setUnitTime = (aTime: any) => {
             case 'd':
                 sSecTime = sCalcTime * 1000 * 24 * 3600;
                 break;
+            case 'y':
+                sSecTime = sCalcTime * 1000 * 24 * 3600 * 365;
+                break;
         }
 
         return new Date().getTime() - sSecTime;
@@ -72,15 +75,97 @@ export const setUnitTime = (aTime: any) => {
 };
 
 export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number) => {
-    if (aInfo.useRollup && aTime.IntervalType === 'day') {
-        //
-        return '';
+    if (aInfo.useRollup && aTime.IntervalType === 'day' && aInfo.type === 'tag' && aInfo.useCustom && aInfo.aggregator !== 'none') {
+        let sTime = '';
+        let sValue = '';
+        let sSubQuery = '';
+        let sFilter = '';
+        const sWhereTime = `${aInfo.time} between ${aStart}000000 and ${aEnd}000000`;
+
+        let sRollupValue = 1;
+        if (aTime.IntervalType === 'sec') {
+            sRollupValue = 1;
+        } else if (aTime.IntervalType === 'min') {
+            sRollupValue = 60;
+        } else if (aTime.IntervalType === 'hour') {
+            sRollupValue = 3600;
+        }
+        const sTimeValue = sRollupValue * 1000000000;
+        sTime = `${aInfo.time} / ${sTimeValue} * ${sTimeValue} AS TIME`;
+
+        const sList = aInfo.values.map((aItem: any) => {
+            let sAlias;
+            let sInfoValue;
+            if (aItem.aggregator === 'avg') {
+                sInfoValue = `sum(SVAL)/ sum(CVAL)`;
+            } else if (aInfo.aggregator === 'sum' || aInfo.aggregator === 'count' || aInfo.aggregator === 'sumsq') {
+                sInfoValue = `${aInfo.aggregator}(SVAL)`;
+            } else if (aInfo.aggregator === 'min' || aInfo.aggregator === 'max') {
+                sInfoValue = `${aInfo.aggregator}(SVAL)`;
+            }
+
+            if (!aItem.alias) {
+                sAlias = `${aItem.aggregator}(${aItem.value})`;
+            } else {
+                sAlias = aItem.alias;
+            }
+            if (aItem.aggregator === 'none') return `${aItem.value} as "${sAlias}"`;
+            return `${sInfoValue} as "${sAlias}"`;
+        });
+        sValue = sList.join(', ');
+
+        let sSubQTime = '';
+        let sSubQValue = '';
+
+        sSubQTime = `${aInfo.time} ROLLUP 1 HOUR as TIME`;
+
+        if (aInfo.aggregator === 'avg') {
+            sSubQValue = `sum(${aInfo.value}) as SVAL, count(${aInfo.value}) as CVAL`;
+        } else {
+            sSubQValue = `${aInfo.aggregator}(${aInfo.value}) as CVAL`;
+        }
+
+        const sFilterList = aInfo.filter.map((aItem: any) => {
+            let sValue = '';
+            if (aItem.useFilter) {
+                const sTableInfo = aInfo.tableInfo.find((bItem: any) => {
+                    return bItem[0] === aItem.column;
+                });
+
+                if (
+                    sTableInfo &&
+                    (sTableInfo[1] === 4 ||
+                        sTableInfo[1] === 8 ||
+                        sTableInfo[1] === 12 ||
+                        sTableInfo[1] === 16 ||
+                        sTableInfo[1] === 20 ||
+                        sTableInfo[1] === 104 ||
+                        sTableInfo[1] === 108 ||
+                        sTableInfo[1] === 112)
+                ) {
+                    sValue = `${aItem.value}`;
+                } else {
+                    sValue = `'${aItem.value}'`;
+                }
+                return `${aItem.column} ${aItem.operator} ${sValue}`;
+            } else {
+                return '';
+            }
+        });
+        sFilter = sFilterList.join(' AND ');
+
+        sSubQuery = `SELECT ${sSubQTime}, ${sSubQValue} FROM ${aInfo.table} WHERE ${sWhereTime} AND ${sFilter} GROUP BY TIME`;
+
+        const sQuery = `SELECT ${sTime}, ${sValue} FROM (${sSubQuery}) GROUP BY TIME ORDER BY TIME`;
+
+        return sQuery;
     } else {
         let sTime = '';
         let sValue = '';
         const sTableName = aInfo.table;
         let sWhereTime = '';
         let sFilter = '';
+        let useGroupBy = true;
 
         if (aInfo.useRollup) {
             sTime = `${aInfo.time} ROLLUP ${aTime.IntervalValue} ${aTime.IntervalType}`;
@@ -105,9 +190,18 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
                 } else {
                     sAlias = aInfo.values[0].alias;
                 }
-                sValue = `${aInfo.values[0].aggregator}(${aInfo.values[0].value}) as "${sAlias}"`;
+                sValue =
+                    aInfo.values[0].aggregator === 'none' ? `${aInfo.values[0].value} as "${sAlias}"` : `${aInfo.values[0].aggregator}(${aInfo.values[0].value}) as "${sAlias}"`;
+                if (aInfo.values[0].aggregator === 'none') useGroupBy = false;
             } else {
-                sValue = `${aInfo.aggregator}(${aInfo.value}) as "${aInfo.aggregator}(${aInfo.value})"`;
+                sValue =
+                    aInfo.aggregator === 'none'
+                        ? `${aInfo.value} as "${aInfo.aggregator}(${aInfo.value})"`
+                        : `${aInfo.aggregator}(${aInfo.value}) as "${aInfo.aggregator}(${aInfo.value})"`;
+            }
+            if (aInfo.aggregator === 'none') {
+                useGroupBy = false;
+                sValue = `${aInfo.value} as "${'raw'}(${aInfo.value})"`;
             }
         } else {
             const sList = aInfo.values.map((aItem: any) => {
@@ -116,6 +210,11 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
                     sAlias = `${aItem.aggregator}(${aItem.value})`;
                 } else {
                     sAlias = aItem.alias;
+                }
+                if (aItem.aggregator === 'none') {
+                    useGroupBy = false;
+
+                    return `${aItem.value} as "${sAlias}"`;
                 }
                 return `${aItem.aggregator}(${aItem.value}) as "${sAlias}"`;
             });
@@ -155,7 +254,8 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
 
         const sQuery = `SELECT ${sTime}, ${sValue} FROM ${sTableName} WHERE ${sWhereTime} ${aInfo.useCustom ? '' : `AND NAME = ` + `'` + aInfo.tag + `'`} ${
             aInfo.useCustom ? (sFilter ? 'AND ' + sFilter : '') : ``
-        } group by TIME order by TIME`;
+        } ${!useGroupBy ? '' : 'GROUP BY TIME'} ORDER BY TIME`;
+
         return sQuery;
     }
 };
@@ -258,7 +358,7 @@ export const defaultTimeSeriesData = (aTable: any) => {
         timeRange: {
             start: '',
             end: '',
-            refreshTime: 'Off',
+            refresh: 'Off',
         },
         // query
         series: [getTableType(aTable[4]) === 'tag' ? { ...tagTableValue(), table: aTable[3] } : { ...logTableValue(), table: aTable[3] }],

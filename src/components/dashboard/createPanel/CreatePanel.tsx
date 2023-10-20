@@ -11,6 +11,7 @@ import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { defaultTimeSeriesData, getTableType } from '@/utils/dashboardUtil';
 import { getTableList } from '@/api/repository/api';
+import moment from 'moment';
 
 const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelId: string; pType: string; pSetCreateModal: (aValue: boolean) => void; pBoardInfo: any }) => {
     const [sSideSizes, setSideSizes] = useState<any>(['75%', '25%']);
@@ -22,6 +23,28 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
     const addPanel = () => {
+        if (sPanelOption.useCustomTime) {
+            let sStart: any;
+            let sEnd: any;
+            if (typeof sPanelOption.timeRange.start === 'string' && sPanelOption.timeRange.start.includes('now')) {
+                sStart = sPanelOption.timeRange.start;
+            } else {
+                sStart = moment(sPanelOption.timeRange.start).unix() * 1000;
+                if (sStart < 0 || isNaN(sStart)) {
+                    Error('Please check the entered time.');
+                    return;
+                }
+            }
+            if (typeof sPanelOption.timeRange.end === 'string' && sPanelOption.timeRange.end.includes('now')) {
+                sEnd = sPanelOption.timeRange.end;
+            } else {
+                sEnd = moment(sPanelOption.timeRange.end).unix() * 1000;
+                if (sEnd < 0 || isNaN(sEnd)) {
+                    Error('Please check the entered time.');
+                    return;
+                }
+            }
+        }
         setBoardList(
             sBoardList.map((aItem: any) => {
                 return aItem.id === pBoardInfo.id ? { ...aItem, dashboard: { ...aItem.dashboard, panels: [...aItem.dashboard.panels, sPanelOption] } } : aItem;
@@ -51,7 +74,31 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
     };
 
     const applyPanel = () => {
-        setAppliedPanelOption(sPanelOption);
+        if (sPanelOption.useCustomTime) {
+            let sStart: any;
+            let sEnd: any;
+            if (typeof sPanelOption.timeRange.start === 'string' && sPanelOption.timeRange.start.includes('now')) {
+                sStart = sPanelOption.timeRange.start;
+            } else {
+                sStart = moment(sPanelOption.timeRange.start).unix() * 1000;
+                if (sStart < 0 || isNaN(sStart)) {
+                    Error('Please check the entered time.');
+                    return;
+                }
+            }
+            if (typeof sPanelOption.timeRange.end === 'string' && sPanelOption.timeRange.end.includes('now')) {
+                sEnd = sPanelOption.timeRange.end;
+            } else {
+                sEnd = moment(sPanelOption.timeRange.end).unix() * 1000;
+                if (sEnd < 0 || isNaN(sEnd)) {
+                    Error('Please check the entered time.');
+                    return;
+                }
+            }
+            setAppliedPanelOption({ ...sPanelOption, timeRange: { ...sPanelOption.timeRange, start: sStart, end: sEnd } });
+        } else {
+            setAppliedPanelOption(sPanelOption);
+        }
     };
 
     const getTables = async (aStatus: boolean) => {

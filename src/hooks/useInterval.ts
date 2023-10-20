@@ -1,27 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
-const useInterval = (callback: any, delay: any) => {
-    const [savedCallback, setSavedCallback] = useState<any>(null); // useState사용
+function useInterval(callback: any, delay: any) {
+    const savedCallback = useRef<any>(); //클로저 역할을 해주는 useRef. 렌더를 해도 초기화 되지 않는다.
 
-    // callback이 바뀔 때마다 실행
-    // 첫 실행에 callback이 한 번 들어옴 -> 리렌더링 -> 다시 들어옴 -> 리렌더링 -> .. 무한 반복
-    // 원래의 의도는 callback이 새로 들어오면 그 callback을 저장해두고 아래의 setInterval을 다시 실행해주려는 의도
+    // callback(setCount)가 변경될 때를 useEffect가 감지해서 최신상태를 저장한다.
     useEffect(() => {
-        setSavedCallback(callback);
+        savedCallback.current = callback;
     }, [callback]);
 
-    // mount가 끝나고 1번 일어남
-    // 맨 처음 mount가 끝나고 savedCallback은 null이기 때문에 setInterval의 executeCallback이 제대로 실행되지 않음 (null이기 때문에)
+    // 인터벌과 클리어 세팅
     useEffect(() => {
-        console.log(savedCallback());
-        const executeCallback = () => {
-            savedCallback();
-        };
-
-        const timerId = setInterval(executeCallback, delay);
-
-        return () => clearInterval(timerId);
-    }, []);
-};
+        function tick() {
+            savedCallback.current();
+        }
+        if (delay !== null) {
+            const id = setInterval(tick, delay);
+            return () => clearInterval(id); //바로바로 클리어를 해주기 때문에 메모리를 차지하지 않는다.
+        }
+    }, [delay]);
+}
 
 export default useInterval;

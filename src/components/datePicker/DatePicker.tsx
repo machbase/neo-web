@@ -11,7 +11,7 @@ import useOutsideClick from '@/hooks/useOutsideClick';
 import { Error } from '@/components/toast/Toast';
 import moment from 'moment';
 
-const DatePicker = ({ pTimeValue, pSetApply, onChange }: any) => {
+const DatePicker = ({ pTimeValue, pSetApply, onChange, pTopPixel }: any) => {
     const [sIsModalPicker, setIsModalPicker] = useState<boolean>(false);
     const [sHours, setHours] = useState<any>(0);
     const [sMinute, setMinute] = useState<any>(0);
@@ -45,7 +45,7 @@ const DatePicker = ({ pTimeValue, pSetApply, onChange }: any) => {
                     style={{
                         position: 'fixed',
                         left: sInputRef.current.offsetLeft,
-                        top: sInputRef.current.offsetTop + 32,
+                        top: sInputRef.current.offsetTop + pTopPixel,
                         zIndex: 99999999,
                     }}
                 >

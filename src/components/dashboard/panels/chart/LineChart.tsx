@@ -2,7 +2,7 @@ import { getTqlChart } from '@/api/repository/machiot';
 import useInterval from '@/hooks/useInterval';
 import { drawChart } from '@/plugin/eCharts';
 import { calcInterval, calcRefreshTime, createQuery, setUnitTime } from '@/utils/dashboardUtil';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './LineChart.scss';
 
 const LineChart = ({ pPanelInfo, pBoardInfo, pType }: any) => {
@@ -10,7 +10,9 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType }: any) => {
     const ChartRef = useRef<any>();
     const [sChart, setChart] = useState<any>({});
     const [sChartData, setChartData] = useState<any>({});
-    const timerRef = useRef<any>();
+    const [sDataReturn, setDataReturn] = useState<any>('Please set up a Query.');
+    const [sDataReturnStatus, setDataReturnStatus] = useState<boolean>(false);
+    const didMount = useRef(false);
 
     useEffect(() => {
         if (sChart.id) {
@@ -38,6 +40,7 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType }: any) => {
     const setForm = async () => {
         let sData: any = {};
 
+        let sAPIStatus = true;
         const sPanelTimeRange = pPanelInfo.timeRange;
         const sBoardTimeRange = pBoardInfo.dashboard.timeRange;
 
@@ -67,7 +70,6 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType }: any) => {
             } else {
                 sMarkArea = '';
             }
-            // const sMarkArea = pPanelInfo.useMarkArea ? `, markArea(${}, coord1 [, label [, color [, opacity]]])`
             const sChartType =
                 pPanelInfo.chartType === 'line' ? 'CHART_LINE' : pPanelInfo.chartType === 'bar' ? 'CHART_BAR' : pPanelInfo.chartType === 'scatter' ? 'CHART_SCATTER' : '';
             const sResult: any = await getTqlChart(
@@ -78,44 +80,72 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType }: any) => {
                     `${sChartType}(size('${ChartRef.current.clientWidth}px','${ChartRef.current.clientHeight}px')${sTheme}${sSlider}${sMarkArea})`
             );
 
+            if (!sResult.data.chartID) {
+                setDataReturn(sResult.data.reason);
+                sAPIStatus = false;
+                break;
+            }
+
             if (sData.chartID) {
-                sData.chartOption.series.push(sResult.data.chartOption.series[0]);
+                if (sResult.data.chartOption.series) {
+                    sData.chartOption.series.push(sResult.data.chartOption.series[0]);
+                }
             } else {
                 sData = sResult.data;
             }
         }
-        setChartData(sData);
+
+        if (sAPIStatus) {
+            setDataReturnStatus(true);
+            setChartData(sData);
+        } else {
+            setDataReturnStatus(false);
+        }
+    };
+
+    const sSetIntervalTime = () => {
+        if (pType === 'create' || pType === 'edit') return null;
+        if (pPanelInfo.timeRange.refresh === 'Off') {
+            if (pBoardInfo.dashboard.timeRange.refresh === 'Off') {
+                return null;
+            } else {
+                return calcRefreshTime(pBoardInfo.dashboard.timeRange.refresh);
+            }
+        } else {
+            return calcRefreshTime(pPanelInfo.timeRange.refresh);
+        }
     };
 
     useEffect(() => {
-        // let timerRef: any = null;
-        setTimeout(() => {
-            if (pType !== 'create' && pType !== 'edit' && pBoardInfo.dashboard.timeRange.refresh !== 'Off') {
-                if (timerRef.current) {
-                    clearInterval(timerRef.current);
-                    timerRef.current = null;
-                    timerRef.current = setInterval(() => {
-                        setForm();
-                    }, calcRefreshTime(pBoardInfo.dashboard.timeRange.refresh));
-                } else {
-                    timerRef.current = setInterval(() => {
-                        setForm();
-                    }, calcRefreshTime(pBoardInfo.dashboard.timeRange.refresh));
-                }
-            }
-        }, 100);
-
-        return () => {
-            clearInterval(timerRef.current);
-        };
-    }, [pBoardInfo.dashboard.timeRange.refresh]);
-
+        if (pType === 'create') {
+            if (didMount.current) setForm();
+        } else {
+            setForm();
+        }
+    }, [pPanelInfo.x, pPanelInfo.y, pPanelInfo.w, pPanelInfo.h, pPanelInfo]);
     useEffect(() => {
+        if (pType === 'create') {
+            if (didMount.current) setForm();
+            else didMount.current = true;
+        } else {
+            if (!pPanelInfo.useCustomTime) {
+                setForm();
+            }
+        }
+    }, [pBoardInfo.dashboard.timeRange.start, pBoardInfo.dashboard.timeRange.end]);
+
+    useInterval(() => {
         setForm();
-    }, [pPanelInfo.x, pPanelInfo.y, pPanelInfo.w, pPanelInfo.h, pPanelInfo, pBoardInfo.dashboard.timeRange.start, pBoardInfo.dashboard.timeRange.end]);
+    }, sSetIntervalTime());
+
     return (
-        <div ref={ChartRef} className="chart-form">
-            <div className="inner-html-form" dangerouslySetInnerHTML={{ __html: sText }}></div>
+        <div
+            ref={ChartRef}
+            style={!sDataReturnStatus ? (sDataReturn === 'Please set up a Query.' ? { color: 'rgb(65, 153, 255)' } : { color: 'rgb(231, 65, 131)' }) : {}}
+            className="chart-form"
+        >
+            {!sDataReturnStatus && sDataReturn}
+            <div style={!sDataReturnStatus ? { display: 'none' } : {}} className="inner-html-form" dangerouslySetInnerHTML={{ __html: sText }}></div>
         </div>
     );
 };

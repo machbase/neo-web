@@ -128,6 +128,12 @@ const Dashboard = ({ pInfo, pWidth }: any) => {
                                 );
                             })}
                     </GridLayout>
+                    {pInfo.dashboard.panels.length === 0 && (
+                        <div className="non-set-panel">
+                            <IconButton pWidth={70} pHeight={70} pIcon={<TbSquarePlus size="70px"></TbSquarePlus>} onClick={() => showEditPanel('create')}></IconButton>
+                            Create New Panel
+                        </div>
+                    )}
                 </div>
             )}
             {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal}></ModalTimeRange>}

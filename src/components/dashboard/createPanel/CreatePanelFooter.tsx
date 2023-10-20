@@ -2,13 +2,33 @@ import './CreatePanelFooter.scss';
 import Series from './Series';
 import { useState } from 'react';
 import { PlusCircle } from '@/assets/icons/Icon';
-import { tagTableValue } from '@/utils/dashboardUtil';
-import DatePicker from 'react-datepicker';
+import { refreshTimeList, tagTableValue } from '@/utils/dashboardUtil';
+import DatePicker from '@/components/datePicker/DatePicker';
+
 import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 import CheckBox from '@/components/inputs/CheckBox';
+import { Select } from '@/components/inputs/Select';
 
 const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
     const [sTab, setTab] = useState('Query');
+
+    const setUseTimePicker = (aKey: string, aValue: any) => {
+        pSetPanelOption((aPrev: any) => {
+            return { ...aPrev, timeRange: { ...aPrev.timeRange, [aKey]: aValue } };
+        });
+    };
+
+    const handleTime = (aKey: string, aEvent: any) => {
+        pSetPanelOption((aPrev: any) => {
+            return { ...aPrev, timeRange: { ...aPrev.timeRange, [aKey]: aEvent.target.value } };
+        });
+    };
+
+    const handleQuickTime = (aValue: any) => {
+        pSetPanelOption((aPrev: any) => {
+            return { ...aPrev, timeRange: { ...aPrev.timeRange, start: aValue.value[0], end: aValue.value[1] } };
+        });
+    };
 
     return (
         <div className="chart-footer-form">
@@ -54,39 +74,58 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                     </div>
                 </div>
                 <div style={sTab === 'Query' ? { display: 'none' } : {}} className="body time-wrap">
-                    <div className="date-picker">
-                        <CheckBox
-                            onChange={(aEvent: any) => {
-                                pSetPanelOption({ ...pPanelOption, useCustomTime: Object.keys(aEvent.target).includes('checked') ? aEvent.target.checked : aEvent.target.value });
-                            }}
-                            pDefaultChecked={pPanelOption.useCustomTime}
-                            pText={'use Custom Time'}
-                        />
-                        From
-                        <DatePicker
-                            popperPlacement="right"
-                            // selected={typeof sEndTime === 'string' && sEndTime.includes('now') ? moment(sEndTime).format('yyyy-MM-DD HH:mm:ss') : sEndTime}
-                            disabled={!pPanelOption.useCustomTime}
-                            calendarClassName="modal-date-picker"
-                            timeInputLabel="Time: "
-                            onChange={() => {}}
-                            dateFormat="yyyy-MM-dd HH:mm:ss"
-                            showTimeInput
-                        ></DatePicker>
-                        To
-                        <DatePicker
-                            popperPlacement="right"
-                            disabled={!pPanelOption.useCustomTime}
-                            // selected={typeof sEndTime === 'string' && sEndTime.includes('now') ? moment(sEndTime).format('yyyy-MM-DD HH:mm:ss') : sEndTime}
-                            calendarClassName="modal-date-picker"
-                            timeInputLabel="Time: "
-                            onChange={() => {}}
-                            dateFormat="yyyy-MM-dd HH:mm:ss"
-                            showTimeInput
-                        ></DatePicker>
+                    <div className="time-form">
+                        <div className="time-header">Time</div>
+                        <div className="time-set-form">
+                            <div className="date-picker">
+                                <CheckBox
+                                    onChange={(aEvent: any) => {
+                                        pSetPanelOption((aPrev: any) => {
+                                            return { ...aPrev, useCustomTime: Object.keys(aEvent.target).includes('checked') ? aEvent.target.checked : aEvent.target.value };
+                                        });
+                                    }}
+                                    pDefaultChecked={pPanelOption.useCustomTime}
+                                    pText={'use Custom Time'}
+                                />
+                                <div>
+                                    From
+                                    <DatePicker
+                                        pTopPixel={55}
+                                        pTimeValue={pPanelOption.timeRange.start}
+                                        onChange={(date: any) => handleTime('start', date)}
+                                        pSetApply={(date: any) => setUseTimePicker('start', date)}
+                                    ></DatePicker>
+                                </div>
+                                <div>
+                                    To
+                                    <DatePicker
+                                        pTopPixel={55}
+                                        pTimeValue={pPanelOption.timeRange.end}
+                                        onChange={(date: any) => handleTime('end', date)}
+                                        pSetApply={(date: any) => setUseTimePicker('end', date)}
+                                    ></DatePicker>
+                                </div>
+                            </div>
+                            <div className="select-time-range">
+                                <SelectTimeRanges onClick={handleQuickTime} />
+                            </div>
+                        </div>
                     </div>
-                    <div className="select-time-range">
-                        <SelectTimeRanges onClick={() => {}} />
+                    <div className="time-divider"></div>
+                    <div className="refresh-form">
+                        <div className="time-header">Refresh</div>
+
+                        <div className="refresh-set-form">
+                            <Select
+                                pInitValue={pPanelOption.timeRange.refresh}
+                                pFontSize={12}
+                                pWidth={200}
+                                pBorderRadius={4}
+                                pHeight={30}
+                                onChange={(aEvent: any) => setUseTimePicker('refresh', aEvent.target.value)}
+                                pOptions={refreshTimeList}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

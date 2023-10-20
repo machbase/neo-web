@@ -18,6 +18,7 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
         <div className="chart-set-wrap">
             <div className="body">
                 <div className="select">
+                    {/* add '3DLine', '3DBar', '3DScatter' */}
                     <Select
                         pFontSize={14}
                         pWidth={'100%'}
@@ -25,7 +26,7 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                         pInitValue={pPanelOption.chartType}
                         pHeight={30}
                         onChange={(aEvent: any) => changedOption(aEvent, 'chartType')}
-                        pOptions={['line', 'bar', 'scatter', '3DLine', '3DBar', '3DScatter']}
+                        pOptions={['line', 'bar', 'scatter']}
                     />
                 </div>
 

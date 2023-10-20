@@ -1,6 +1,6 @@
 import { Calendar, Close } from '@/assets/icons/Icon';
 import './ModalTimeRange.scss';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import DatePicker from '@/components/datePicker/DatePicker';
@@ -8,7 +8,6 @@ import 'react-datepicker/dist/react-datepicker.css';
 import moment from 'moment';
 import { TextButton } from '../buttons/TextButton';
 import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
-import useOutsideClick from '@/hooks/useOutsideClick';
 import { Error } from '../toast/Toast';
 import { Select } from '../inputs/Select';
 import { refreshTimeList } from '@/utils/dashboardUtil';
@@ -120,11 +119,16 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal }: any) => {
                     <div className="top">
                         <div className="from">
                             <span className="span-from">From</span>
-                            <DatePicker pTimeValue={sStartTime} onChange={(date: any) => handleStartTime(date)} pSetApply={(date: any) => setStartTime(date)}></DatePicker>
+                            <DatePicker
+                                pTopPixel={32}
+                                pTimeValue={sStartTime}
+                                onChange={(date: any) => handleStartTime(date)}
+                                pSetApply={(date: any) => setStartTime(date)}
+                            ></DatePicker>
                         </div>
                         <div className="to">
                             <span className="span-to">To </span>
-                            <DatePicker pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date)} pSetApply={(date: any) => setEndTime(date)}></DatePicker>
+                            <DatePicker pTopPixel={32} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date)} pSetApply={(date: any) => setEndTime(date)}></DatePicker>
                         </div>
                         {pType === 'dashboard' && (
                             <div className="to">
