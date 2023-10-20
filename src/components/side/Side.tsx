@@ -257,7 +257,7 @@ any) => {
         const sReslutList: any = [];
         for (const aItem of aDelList) {
             const aResult: any = await deleteContextFile(aItem.path, aItem.query);
-            if (aResult.success) sReslutList.push(aItem);
+            if (aResult.success || (isImage(aItem.name) && binaryCodeEncodeBase64(aResult))) sReslutList.push(aItem);
             else {
                 setConsoleList((prev: any) => [
                     ...prev,
@@ -316,7 +316,7 @@ any) => {
             if (selectedContextFile && selectedContextFile.path && selectedContextFile.name) {
                 const sRecursivePath = isRecursive ? selectedContextFile.name + '?recursive=true' : selectedContextFile.name;
                 const sResult: any = await deleteContextFile(selectedContextFile.path, sRecursivePath);
-                if (sResult.reason === 'success') {
+                if (sResult.reason === 'success' || (isImage(selectedContextFile.name) && binaryCodeEncodeBase64(sResult))) {
                     const sTmpBoardList = JSON.parse(JSON.stringify(sBoardList));
                     let updateBoardList: any = [];
                     if (selectedContextFile.type === 0) {
@@ -328,7 +328,7 @@ any) => {
                         } else setBoardList(updateBoardList);
                         if (updateBoardList.length > 0) setSelectedTab(updateBoardList[0].id);
                     } else {
-                        updateBoardList = sTmpBoardList.filter((bBoard: any) => selectedContextFile.path + selectedContextFile.name + '/' !== bBoard.path);
+                        updateBoardList = sTmpBoardList.filter((cBoard: any) => !cBoard.path.includes(selectedContextFile.path + selectedContextFile.name + '/'));
                         if (updateBoardList.length === 0) {
                             const tmpId = getId();
                             setBoardList([{ id: tmpId, type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false }]);

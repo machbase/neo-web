@@ -5,7 +5,7 @@ import { FileTreeType, FileType, sortDir, sortFile } from '@/utils/fileTreeParse
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
-import { extractionExtension } from '@/utils';
+import { binaryCodeEncodeBase64, extractionExtension, isImage } from '@/utils';
 import { BiDownload } from '@/assets/icons/Icon';
 import { postFileList } from '@/api/repository/api';
 import { findItemByUniqueKey, findParentDirByUniqueKey } from '@/utils/file-manager';
@@ -241,9 +241,9 @@ export const FileTree = (props: FileTreeProps) => {
         const sOldName = aFile.path + aFile.name;
         const sCurName = aFile.path + aName + sExpand;
         const sRenameResult: any = await moveFile(sOldName, sCurName);
-        if (sRenameResult.success) props.onRename(aFile, aName + sExpand);
+        if (sRenameResult.success || (isImage(aFile.name) && binaryCodeEncodeBase64(sRenameResult))) props.onRename(aFile, aName + sExpand);
     };
-    const handleDragOver = () => {
+    const handleDragOver: any = () => {
         const sTargetItem = findItemByUniqueKey(props.rootDir, sDragOverItem);
         if (sTargetItem && sTargetItem.type === 1) {
             props.onFetchDir(sTargetItem, true);
@@ -290,7 +290,7 @@ export const FileTree = (props: FileTreeProps) => {
                     const sOldPath = aItem.path + aItem.name;
                     const sDestinationPath = sIsDropZone ? '/' + aItem.name : sEnterItem.path + (sEnterItem.type === 0 ? '' : sEnterItem.name + '/') + aItem.name;
                     const aResult: any = await moveFile(sOldPath, sDestinationPath);
-                    if (aResult.success) moveResult.push(aItem);
+                    if (aResult.success || (isImage(aItem.name) && binaryCodeEncodeBase64(aResult))) moveResult.push(aItem);
                 }
                 if (moveResult.length > 0) {
                     let sTestRoot = JSON.parse(JSON.stringify(sFileTree));
@@ -569,7 +569,7 @@ const FileDiv = ({
         // e.dataTransfer.setDragImage(nImg, -10, -10);
         e.stopPropagation();
         if (pDndTargetList && pDndTargetList.length > 0) {
-            if (!pDndTargetList.includes(aData)) onSetDndTargetList([...pDndTargetList, aData]);
+            if (pDndTargetList.every((v: any) => !(v.path === aData.path && v.name === aData.name))) onSetDndTargetList([...pDndTargetList, aData]);
         } else {
             onSetDndTargetList([aData]);
         }
@@ -585,15 +585,19 @@ const FileDiv = ({
     };
     const HandleMultiDrag = (aFile: any) => {
         if (pDndTargetList && pDndTargetList.length > 0) {
-            if (pDndTargetList.some((v: any) => v.depth === aFile.depth && v.name === aFile.name && v.path === aFile.path)) {
-                const tmp = JSON.parse(JSON.stringify(pDndTargetList));
-                tmp.splice(
-                    tmp.findIndex((aItem: any) => aItem.name === aFile.name && aItem.path === aFile.path),
+            const tmp = JSON.parse(JSON.stringify(pDndTargetList));
+            const sWithoutChildList = tmp.filter((aTarget: any) => !aTarget.path.includes(aFile.path + aFile.name + '/'));
+            if (sWithoutChildList.some((c: any) => c.type === 1 && aFile.path.includes(c.path + c.name + '/'))) {
+                return;
+            }
+            if (sWithoutChildList.some((v: any) => v.depth === aFile.depth && v.name === aFile.name && v.path === aFile.path)) {
+                sWithoutChildList.splice(
+                    sWithoutChildList.findIndex((aItem: any) => aItem.name === aFile.name && aItem.path === aFile.path),
                     1
                 );
-                onSetDndTargetList(tmp);
+                onSetDndTargetList(sWithoutChildList);
             } else {
-                onSetDndTargetList([...pDndTargetList, aFile]);
+                onSetDndTargetList([...sWithoutChildList, aFile]);
             }
         } else {
             onSetDndTargetList([aFile]);
@@ -604,8 +608,15 @@ const FileDiv = ({
     };
     const checkDndItem = (aFile: any): boolean => {
         if (pDndTargetList && pDndTargetList.length > 0) {
-            if (pDndTargetList.findIndex((aTarget: any) => aTarget.name === aFile.name && aTarget.path === aFile.path) !== -1) return true;
-            else return false;
+            if (pDndTargetList.findIndex((aTarget: any) => aTarget.type === 0 && aTarget.name === aFile.name && aTarget.path === aFile.path) !== -1) {
+                return true;
+            } else if (
+                pDndTargetList.findIndex(
+                    (aTarget: any) => aTarget.type === 1 && ((aTarget.name === aFile.name && aTarget.path === aFile.path) || aFile.path.includes(aTarget.path + aTarget.name + '/'))
+                ) !== -1
+            ) {
+                return true;
+            } else return false;
         } else return false;
     };
     const checkDndSection = (aFile: any): boolean => {
