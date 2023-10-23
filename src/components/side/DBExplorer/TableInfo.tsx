@@ -3,20 +3,30 @@ import { MuiFolderLayOut, MuiFolderLayOutOpen } from '@/assets/icons/Mui';
 import { useState } from 'react';
 import { GoDotFill } from 'react-icons/go';
 
-const TableInfo = ({ pShowHiddenObj, pValue, pSetDBList, pDBList }: any) => {
+const TableInfo = ({
+    pShowHiddenObj,
+    pValue,
+}: // , pSetDBList, pDBList
+any) => {
     const [sCollapseTree, setCollapseTree] = useState(false);
     const [sIsGetData, setIsGetData] = useState(false);
+    const [sResData, setResData] = useState<any>([]);
+    const _DEFAULT_DB: string = 'MACHBASEDB';
 
     const getTableInfoData = async () => {
         if (!sIsGetData) {
             setIsGetData(true);
-            const sData: any = await getTableInfo(pValue.info[2]);
-
-            pSetDBList(
-                pDBList.map((aItem: any) => {
-                    return aItem.info[2] === pValue.info[2] ? { ...aItem, child: sData.data.rows } : aItem;
-                })
-            );
+            // let sTableId: string = '';
+            // if (pValue.info[0] === _DEFAULT_DB) sTableId = pValue.info[2].toString();
+            // else sTableId = pValue.info[2].toString();
+            // else sTableId = `${pValue.info[0]}.${pValue.info[1]}.${pValue.info[3]}`;
+            const sData: any = await getTableInfo(pValue.info[6], pValue.info[2]);
+            setResData(sData.data.rows);
+            // pSetDBList(
+            //     pDBList.map((aItem: any) => {
+            //         return JSON.stringify(aItem.info) === JSON.stringify(pValue.info) ? { ...aItem, child: sData.data.rows } : aItem;
+            //     })
+            // );
         }
         setCollapseTree(!sCollapseTree);
     };
@@ -112,7 +122,14 @@ const TableInfo = ({ pShowHiddenObj, pValue, pSetDBList, pDBList }: any) => {
                     <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', wordBreak: 'break-all' }}>
                         <span className="icons">{sCollapseTree ? <MuiFolderLayOutOpen /> : <MuiFolderLayOut />}</span>
                         <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', margin: 'auto 0 auto 1px' }}>
-                            {pValue.info[3]}
+                            {pValue.info[0] === _DEFAULT_DB ? (
+                                <span> {pValue.info[3]} </span>
+                            ) : (
+                                <span>
+                                    {pValue.info[3]}
+                                    <span style={{ color: '#8C8C8C', fontSize: '12px', fontWeight: 'bold' }}>{` (${pValue.info[0]}.${pValue.info[1]}.${pValue.info[3]})`} </span>
+                                </span>
+                            )}
                         </span>
                     </div>
                     <div style={{ fontSize: '12px', whiteSpace: 'nowrap', opacity: '0.4', paddingRight: '4px' }}>{getTableType(pValue.info[4])}</div>
@@ -120,7 +137,7 @@ const TableInfo = ({ pShowHiddenObj, pValue, pSetDBList, pDBList }: any) => {
             )}
             {sCollapseTree && (
                 <div>
-                    {pValue.child.map((aItem: any, aIdx: number) => {
+                    {sResData.map((aItem: any, aIdx: number) => {
                         return (
                             startsWithUnderscore(pValue.info[3]) &&
                             startsWithUnderscore(aItem[0]) && (

@@ -57,16 +57,15 @@ const postLicense = (aItem: any) => {
 };
 
 const getTableList = async () => {
-    const queryString = `/machbase?q=SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, case a.DATABASE_ID  when -1 then 'MACHBASEDB' else d.MOUNTDB end as DB_NAME from M$SYS_TABLES a left join V$STORAGE_MOUNT_DATABASES d on a.DATABASE_ID = d.BACKUP_TBSID) as j where u.USER_ID = j.USER_ID order by j.NAME`;
+    const queryString = `/machbase?q=SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, case a.DATABASE_ID  when -1 then 'MACHBASEDB' else d.MOUNTDB end as DB_NAME from M$SYS_TABLES a left join V$STORAGE_MOUNT_DATABASES d on a.DATABASE_ID = d.BACKUP_TBSID) as j where u.USER_ID = j.USER_ID order by j.NAME`;
 
     return await request({
         method: 'GET',
         url: queryString,
     });
 };
-const getTableInfo = async (aTableId: string) => {
-    const queryString = `/machbase?q=select name, type, length, id from M$SYS_COLUMNS where table_id = ${aTableId} order by id`;
-
+const getTableInfo = async (aDataBaseId: string, aTableId: string) => {
+    const queryString = `/machbase?q=select name, type, length, id from M$SYS_COLUMNS where table_id = ${aTableId} and database_id = ${aDataBaseId} order by id`;
     return await request({
         method: 'GET',
         url: queryString,
