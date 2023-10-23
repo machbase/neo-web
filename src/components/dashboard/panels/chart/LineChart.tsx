@@ -230,7 +230,7 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
             style={!sDataReturnStatus ? (sDataReturn === 'Please set up a Query.' ? { color: 'rgb(65, 153, 255)' } : { color: 'rgb(231, 65, 131)' }) : {}}
             className="chart-form"
         >
-            {!sDataReturnStatus && sDataReturn}
+            {!sDataReturnStatus ? (pType === 'create' ? sDataReturn : 'Loading...') : ''}
             <div style={!sDataReturnStatus ? { display: 'none' } : {}} className="inner-html-form" dangerouslySetInnerHTML={{ __html: sText }}></div>
         </div>
     );
