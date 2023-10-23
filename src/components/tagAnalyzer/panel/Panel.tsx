@@ -10,6 +10,7 @@ import { ArrowLeft, ArrowRight } from '@/assets/icons/Icon';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { isRollup } from '@/utils';
+import useDebounce from '@/hooks/useDebounce';
 
 const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
     const sAreaChart = useRef<any>();
@@ -24,7 +25,7 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
     const sRollupTableList = useRecoilValue(gRollupTableList);
 
     const fetchNavigatorData = async (aTimeRange: any) => {
-        const sChartWidth = sAreaChart.current.clientWidth;
+        const sChartWidth = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
 
         const sLimit = pPanelInfo.count;
         let sCount = -1;
@@ -144,7 +145,7 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
     };
 
     const fetchPanelData = async (aTimeRange?: any) => {
-        const sChartWidth = sAreaChart.current.clientWidth;
+        const sChartWidth = sAreaChart.current.clientWidth === 0 ? 1 : sAreaChart.current.clientWidth;
 
         const sLimit = pPanelInfo.count;
         let sCount = -1;
@@ -357,7 +358,7 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
         }
     }, [pBoardInfo.range_bgn, pBoardInfo.range_end, pPanelInfo.range_bgn, pPanelInfo.range_end]);
 
-    useEffect(() => {
+    const setRange = () => {
         const sData: any = getDateRange(pPanelInfo, pBoardInfo);
         fetchPanelData({
             startTime: Math.round(sData.startTime + (sData.endTime - sData.startTime) * 0.4),
@@ -375,7 +376,9 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
             startTime: Math.round(sData.startTime),
             endTime: Math.round(sData.endTime),
         });
-    }, []);
+    };
+
+    useDebounce([], setRange, 100);
 
     return (
         <div className="panel-form">

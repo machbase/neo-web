@@ -45,7 +45,7 @@ const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                                 <div className="calc-mode">
                                     <span className="calc-mode-title">Calc Mode</span>
                                     <Select
-                                        pInitValue="avg"
+                                        pInitValue={aItem.calculationMode ?? 'avg'}
                                         pWidth={120}
                                         pHeight={25}
                                         onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'calculationMode')}
