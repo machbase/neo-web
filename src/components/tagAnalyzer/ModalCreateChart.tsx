@@ -169,12 +169,13 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
     const setTag = async (aValue: any) => {
         const sResult: any = await fetchTableName(sSelectedTable);
         const sData = sResult.data;
+        const sSplitTableName = sSelectedTable.indexOf('.') === -1 ? sSelectedTable : sSelectedTable.split('.')[sSelectedTable.split('.').length - 1];
         setSelectedTag([
             ...sSelectedTag,
             {
                 key: getId(),
                 tagName: aValue,
-                table: sSelectedTable,
+                table: sSplitTableName,
                 calculationMode: 'avg',
                 alias: '',
                 weight: 1.0,
