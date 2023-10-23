@@ -44,7 +44,15 @@ export const SaveModal = (props: SaveModalProps) => {
     const sSelectedBoard = useRecoilValue(gSelectedBoard);
 
     const sCheckType = (aValue: string) =>
-        aValue === 'sql' || aValue === 'tql' || aValue === 'taz' || aValue === 'wrk' || aValue === 'json' || aValue === 'csv' || aValue === 'md' || aValue === 'txt';
+        aValue === 'sql' ||
+        aValue === 'tql' ||
+        aValue === 'taz' ||
+        aValue === 'dsh' ||
+        aValue === 'wrk' ||
+        aValue === 'json' ||
+        aValue === 'csv' ||
+        aValue === 'md' ||
+        aValue === 'txt';
 
     useEffect(() => {
         sSelectedBoard && sSelectedBoard.type ? setFileType(sSelectedBoard.type) : setFileType('');
@@ -137,7 +145,7 @@ export const SaveModal = (props: SaveModalProps) => {
         const sFileName = sSaveFileName;
         const sTab = sBoardList.find((aItem) => aItem.id === sSelectedTab);
         const sDupFile = sFileList && sFileList.find((aItem) => aItem.name === sFileName);
-        const sSaveData = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'taz' ? sTab : sTab?.code;
+        const sSaveData = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'taz' || sFileType === 'dsh' ? sTab : sTab?.code;
         if (sDupFile && sTab?.name !== sFileName) {
             const sConfirm = confirm('Do you want to overwrite it?');
             if (sConfirm) {
@@ -257,11 +265,11 @@ export const SaveModal = (props: SaveModalProps) => {
             const sType = extractionExtension(file.name);
             const sData = await getFilesTree(`${sSelectedDir.join('/')}/${file.name}`);
             let sParseData;
-            if ((sType === 'wrk' && typeof sData === 'string') || (typeof sData === 'string' && sType === 'taz')) {
+            if ((sType === 'wrk' && typeof sData === 'string') || (typeof sData === 'string' && (sType === 'taz' || sType === 'dsh'))) {
                 sParseData = JSON.parse(sData);
             }
             const sDataObj = sType === 'wrk' ? { sheet: sParseData.data } : { code: sData };
-            if (sType === 'taz') {
+            if (sType === 'taz' || sType === 'dsh') {
                 setBoardList([
                     ...sBoardList,
                     {

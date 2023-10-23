@@ -256,6 +256,8 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
             aInfo.useCustom ? (sFilter ? 'AND ' + sFilter : '') : ``
         } ${!useGroupBy ? '' : 'GROUP BY TIME'} ORDER BY TIME`;
 
+        sQuery.replace('CHART_LINE', 'CHART_LINE');
+
         return sQuery;
     }
 };

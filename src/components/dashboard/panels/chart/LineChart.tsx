@@ -1,26 +1,39 @@
 import { getTqlChart } from '@/api/repository/machiot';
-import useInterval from '@/hooks/useInterval';
+import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { drawChart } from '@/plugin/eCharts';
 import { calcInterval, calcRefreshTime, createQuery, setUnitTime } from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
 import './LineChart.scss';
 
-const LineChart = ({ pPanelInfo, pBoardInfo, pType }: any) => {
+const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pRefreshCount }: any) => {
     const [sText, setText] = useState('');
     const ChartRef = useRef<any>();
     const [sChart, setChart] = useState<any>({});
     const [sChartData, setChartData] = useState<any>({});
     const [sDataReturn, setDataReturn] = useState<any>('Please set up a Query.');
     const [sDataReturnStatus, setDataReturnStatus] = useState<boolean>(false);
+    const sChangedValue = useRef<boolean>(false);
+    const sTimerRef = useRef<boolean>(false);
     const didMount = useRef(false);
 
     useEffect(() => {
+        if (pType === 'create' || pType === 'edit') {
+            sChartData.chartID && getLineChart();
+            return;
+        }
+
+        if (sChangedValue.current) {
+            sChartData.chartID && getLineChart();
+            sChangedValue.current = false;
+            return;
+        }
+
         if (sChart.id) {
-            sChart.setOption(sChartData.chartOption);
-            sChart.resize({
-                width: ChartRef.current.clientWidth + 'px',
-                height: ChartRef.current.clientHeight + 'px',
-            });
+            sChart.setOption({ series: sChartData.chartOption.series, xAxis: sChartData.chartOption.xAxis, yAxis: sChartData.chartOption.yAxis });
+            // sChart.resize({
+            //     width: ChartRef.current.clientWidth + 'px',
+            //     height: ChartRef.current.clientHeight + 'px',
+            // });
         } else {
             sChartData.chartID && getLineChart();
         }
@@ -33,20 +46,21 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType }: any) => {
 
         setText(sValue);
         setTimeout(() => {
-            setChart(drawChart(sChartData, 'dark'));
+            setChart(drawChart(sChartData, pPanelInfo.theme));
         }, 10);
     };
 
     const setForm = async () => {
+        sTimerRef.current = true;
         let sData: any = {};
 
         let sAPIStatus = true;
         const sPanelTimeRange = pPanelInfo.timeRange;
         const sBoardTimeRange = pBoardInfo.dashboard.timeRange;
 
-        for (const aItem of pPanelInfo.series) {
+        for (let i = 0; i < pPanelInfo.series.length; i++) {
             const sQuery: string = createQuery(
-                aItem,
+                pPanelInfo.series[i],
                 calcInterval(
                     pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.start) : setUnitTime(sBoardTimeRange.start),
                     pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.end) : setUnitTime(sBoardTimeRange.end),
@@ -101,6 +115,7 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType }: any) => {
         } else {
             setDataReturnStatus(false);
         }
+        sTimerRef.current = false;
     };
 
     const sSetIntervalTime = () => {
@@ -117,26 +132,97 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType }: any) => {
     };
 
     useEffect(() => {
+        if (pType !== 'create' && pType !== 'edit') {
+            sChangedValue.current = true;
+        }
         if (pType === 'create') {
             if (didMount.current) setForm();
         } else {
             setForm();
         }
-    }, [pPanelInfo.x, pPanelInfo.y, pPanelInfo.w, pPanelInfo.h, pPanelInfo]);
+    }, [
+        pPanelInfo.chartType,
+        pPanelInfo.dataType,
+        pPanelInfo.dataZoomMax,
+        pPanelInfo.dataZoomMin,
+        pPanelInfo.dataZoomType,
+        pPanelInfo.gridSizeDepth,
+        pPanelInfo.gridSizeHeight,
+        pPanelInfo.gridSizeWidth,
+        pPanelInfo.markArea,
+        pPanelInfo.panelName,
+        pPanelInfo.opacity,
+        pPanelInfo.theme,
+        pPanelInfo.useAutoRotate,
+        pPanelInfo.useCustomTime,
+        pPanelInfo.useDataZoom,
+        pPanelInfo.useGridSize,
+        pPanelInfo.useMarkArea,
+        pPanelInfo.useOpacity,
+        pPanelInfo.useVisualMap,
+        pPanelInfo.visualMapMax,
+        pPanelInfo.visualMapMin,
+        pPanelInfo.series,
+    ]);
+
     useEffect(() => {
         if (pType === 'create') {
             if (didMount.current) setForm();
-            else didMount.current = true;
+        } else {
+            setForm();
+        }
+    }, [pRefreshCount]);
+
+    useEffect(() => {
+        if (sChart.id) {
+            setTimeout(() => {
+                sChart.resize({
+                    width: ChartRef.current.clientWidth + 'px',
+                    height: ChartRef.current.clientHeight + 'px',
+                });
+            }, 300);
+            setTimeout(() => {
+                setForm();
+            }, 200);
+        }
+    }, [pPanelInfo.x, pPanelInfo.y, pPanelInfo.w, pPanelInfo.h]);
+
+    useEffect(() => {
+        if (pType === 'create') {
+            if (didMount.current) setForm();
         } else {
             if (!pPanelInfo.useCustomTime) {
                 setForm();
             }
         }
+        return () => {
+            const chartElement = document.getElementById(sChart.id);
+            // @ts-ignore
+            if (chartElement && echarts.getInstanceByDom(chartElement)) {
+                // @ts-ignore
+                echarts.dispose(chartElement);
+            }
+        };
     }, [pBoardInfo.dashboard.timeRange.start, pBoardInfo.dashboard.timeRange.end]);
 
-    useInterval(() => {
-        setForm();
+    useOverlapTimeout(() => {
+        !sTimerRef.current && setForm();
     }, sSetIntervalTime());
+
+    useEffect(() => {
+        if (didMount.current) {
+            if (!pInsetDraging) {
+                setForm();
+            }
+        }
+    }, [pInsetDraging]);
+    useEffect(() => {
+        if (didMount.current) {
+            if (!pDragStat) {
+                setForm();
+            }
+        } else didMount.current = true;
+    }, [pDragStat]);
 
     return (
         <div

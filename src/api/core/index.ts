@@ -25,6 +25,7 @@ request.interceptors.request.use(
         const sFileSql = sUrlSplit[0].indexOf('.sql');
         const sFileTql = sUrlSplit[0].indexOf('.tql');
         const sFileTaz = sUrlSplit[0].indexOf('.taz');
+        const sFileDsh = sUrlSplit[0].indexOf('.dsh');
         const sFileWrk = sUrlSplit[0].indexOf('.wrk');
         const sFileMd = sUrlSplit[0].indexOf('.md');
         const sFileCsv = sUrlSplit[0].indexOf('.csv');
@@ -42,7 +43,7 @@ request.interceptors.request.use(
         if (sFileImg) {
             config.responseType = 'arraybuffer';
         }
-        if ((sFileTaz !== -1 || sFileWrk !== -1) && config.method === 'post') {
+        if ((sFileTaz !== -1 || sFileWrk !== -1 || sFileDsh !== -1) && config.method === 'post') {
             sHeaders['Content-Type'] = 'text/plain';
         }
 
@@ -56,7 +57,7 @@ request.interceptors.request.use(
             sHeaders['Content-Type'] = 'text/plain';
         }
 
-        if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1 || sFileWrk !== -1) && config.method === 'get') {
+        if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1 || sFileDsh !== -1 || sFileWrk !== -1) && config.method === 'get') {
             config.transformResponse = function (data: any) {
                 return data;
             };

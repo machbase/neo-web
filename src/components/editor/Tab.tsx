@@ -65,9 +65,10 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
                     break;
                 } else {
                     setIsSaved(JSON.stringify(aBoard.sheet) === pBoard.savedCode);
-                    break;
                 }
+                break;
             case 'taz':
+            case 'dsh':
             case 'new':
             case 'term':
                 setIsSaved(aBoard.savedCode === pBoard.savedCode);

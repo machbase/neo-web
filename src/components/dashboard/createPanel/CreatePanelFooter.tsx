@@ -8,6 +8,7 @@ import DatePicker from '@/components/datePicker/DatePicker';
 import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Select } from '@/components/inputs/Select';
+import { getId } from '@/utils';
 
 const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
     const [sTab, setTab] = useState('Query');
@@ -57,7 +58,11 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                         );
                     })}
                     <div
-                        onClick={() => pSetPanelOption({ ...pPanelOption, series: [...pPanelOption.series, { ...tagTableValue(), table: pTableList[0][3] }] })}
+                        onClick={() =>
+                            pSetPanelOption((aPrev: any) => {
+                                return { ...aPrev, series: [...aPrev.series, { ...aPrev.series[aPrev.series.length - 1], id: getId() }] };
+                            })
+                        }
                         className="plus-wrap"
                         style={{
                             border: '1px solid #777777',

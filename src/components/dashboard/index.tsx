@@ -9,12 +9,12 @@ import { gBoardList } from '@/recoil/recoil';
 import Panel from './panels/Panel';
 import CreatePanel from './createPanel/CreatePanel';
 import { IconButton } from '../buttons/IconButton';
-import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight } from '@/assets/icons/Icon';
+import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs } from '@/assets/icons/Icon';
 import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
 import moment from 'moment';
 import { setUnitTime } from '@/utils/dashboardUtil';
 
-const Dashboard = ({ pInfo, pWidth }: any) => {
+const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveModal }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
@@ -102,6 +102,8 @@ const Dashboard = ({ pInfo, pWidth }: any) => {
                     , Refresh : {pInfo.dashboard.timeRange.refresh}
                 </button>
                 <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight></VscChevronRight>} onClick={() => moveTimRange('r')}></IconButton>
+                <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
+                <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
             </div>
             {pWidth && (
                 <div className="board-body">
@@ -123,7 +125,7 @@ const Dashboard = ({ pInfo, pWidth }: any) => {
                             pInfo.dashboard.panels.map((aItem: any) => {
                                 return (
                                     <div key={aItem.i}>
-                                        <Panel pShowEditPanel={showEditPanel} pBoardInfo={pInfo} pPanelInfo={aItem}></Panel>
+                                        <Panel pDragStat={pDragStat} pShowEditPanel={showEditPanel} pBoardInfo={pInfo} pPanelInfo={aItem}></Panel>
                                     </div>
                                 );
                             })}

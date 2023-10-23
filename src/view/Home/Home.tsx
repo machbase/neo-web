@@ -98,7 +98,7 @@ const Home = () => {
                 }
             });
 
-        setTabList([...sResult.shells, { icon: 'file-document-outline', id: 'dsh', label: 'dsh', type: 'dsh' }]);
+        setTabList([...sResult.shells, { icon: 'file-document-outline', id: 'dsh', label: 'Dashboard', type: 'dsh' }]);
     };
 
     const setStatus = () => {
@@ -168,6 +168,7 @@ const Home = () => {
                             >
                                 <Pane minSize={50}>
                                     <Body
+                                        pDragStat={sDragStat}
                                         pSetDragStat={setDragStat}
                                         pExtentionList={sTabList}
                                         pTerminalSizes={sTerminalSizes}
