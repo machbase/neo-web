@@ -1,11 +1,11 @@
 <template>
     <div class="popup">
-        <!-- <div class="popup__input">
+        <div class="popup__input">
             <p class="popup__input-label">UI Theme</p>
             <div class="popup__input-content">
                 <ComboboxSelect @e-on-change="(aValue) => aIsChangeTheme(aValue, true)" :p-data="THEME_MODE" :p-string-default="SELECT_THEME" :p-value="cPreferences.theme" />
             </div>
-        </div> -->
+        </div>
         <div class="popup__input">
             <p class="popup__input-label">Font Size</p>
             <div class="popup__input-content">

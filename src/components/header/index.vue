@@ -46,7 +46,7 @@
             <button @click="onChildGroup" class="header__link--group-item drop">
                 <v-icon>mdi-cog</v-icon>
                 <div ref="childGroup" class="child-group">
-                    <div @click="onClickPopupItem(PopupType.PREFERENCES)" class="item">
+                    <!-- <div @click="onClickPopupItem(PopupType.PREFERENCES)" class="item">
                         <v-icon
                             v-if="sHeaderType === RouteNames.TAG_VIEW || sHeaderType === RouteNames.NEW"
                             @click="onClickPopupItem(PopupType.SAVE_DASHBOARD)"
@@ -55,7 +55,7 @@
                             size="small"
                         ></v-icon>
                         Preferences...
-                    </div>
+                    </div> -->
                     <div>
                         <img v-if="sHeaderType === RouteNames.CHART_EDIT" @click="onSaveEdit" class="icon" :src="i_b_save_2" />
                     </div>
