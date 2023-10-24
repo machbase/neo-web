@@ -1,5 +1,6 @@
 import request from '@/api/core';
 import { Error } from '@/components/toast/Toast';
+import { ADMIN_ID } from '@/utils/constants';
 // import { getTimeZoneValue } from '@/utils/utils';
 
 const getTqlChart = (aData: string) => {
@@ -40,9 +41,21 @@ const fetchData = async (aSql: string, aFormat: string, aTimezone: any, aLimit?:
 };
 const fetchTableName = async (aTable: any) => {
     let DBName = '';
-    if (aTable.indexOf('.') === -1) DBName = String(-1);
-    else DBName = `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = 'MOUNTDB')`;
-    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MC.DATABASE_ID = ${DBName} AND MT.NAME = '${aTable}' AND MC.NAME <> '_RID' ORDER BY MC.ID`;
+    let sTableName = aTable;
+    let sUserName = ADMIN_ID;
+    const sTableInfos = aTable.split('.');
+    if (aTable.indexOf('.') === -1 || sTableInfos.length < 3) {
+        DBName = String(-1);
+        if (sTableInfos.length === 2) {
+            sUserName = sTableInfos[0];
+            sTableName = sTableInfos[sTableInfos.length - 1];
+        }
+    } else {
+        DBName = `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = '${sTableInfos[0]}')`;
+        sTableName = sTableInfos[sTableInfos.length - 1];
+        sUserName = sTableInfos[1];
+    }
+    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER('${sUserName}') AND MC.DATABASE_ID = ${DBName} AND MT.NAME = '${sTableName}' AND MC.NAME <> '_RID' ORDER BY MC.ID`;
 
     const queryString = `/machbase?q=${sSql}`;
 
@@ -102,7 +115,7 @@ const fetchCalculationData = async (params: any) => {
         if (!Rollup) {
             sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
         }
-        sSubQuery = `select ${sCol} as mtime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
+        sSubQuery = `select ${sCol} as mTime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
         sMainQuery = `SELECT to_timestamp(${sOnedayOversize})/1000000 AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${
             Count * 1
         }`;
@@ -114,7 +127,7 @@ const fetchCalculationData = async (params: any) => {
             sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
         }
 
-        sSubQuery = `select ${sCol} as mtime, count(${sValue}) as mValue from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
+        sSubQuery = `select ${sCol} as mTime, count(${sValue}) as mValue from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
         sMainQuery = `SELECT to_timestamp(${sOnedayOversize}/1000000) AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${Count * 1}`;
     }
 

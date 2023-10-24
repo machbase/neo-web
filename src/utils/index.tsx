@@ -1,4 +1,4 @@
-import { IMAGE_EXTENSION_LIST } from '@/utils/constants';
+import { ADMIN_ID, DEFAULT_DB_NAME, IMAGE_EXTENSION_LIST } from '@/utils/constants';
 
 export const getId = () => {
     return new Date().getTime() + (Math.random() * 1000).toFixed();
@@ -58,4 +58,44 @@ export const isRollup = (aRollups: any, aTableName: string, aInterval: number) =
     } else {
         return false;
     }
+};
+
+export const decodeJwt = (aToken: string) => {
+    const sBase64Url = aToken.split('.')[1];
+    const sBase64 = sBase64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const sJwtInfo = decodeURIComponent(
+        atob(sBase64)
+            .split('')
+            .map(function (c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join('')
+    );
+
+    return JSON.parse(sJwtInfo);
+};
+
+export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
+    const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub;
+    const sIsAdmin = sCurrentUserName.toLowerCase() === ADMIN_ID;
+    const sDbIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'DB');
+    const sUserIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'USER');
+    const sTableIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'NAME');
+
+    let sParseTables = aTableInfo.rows.filter((aItem: any) => aItem[4] === 'Tag Table');
+    if (!sIsAdmin) {
+        sParseTables = sParseTables.filter((aItem: any) => aItem[sDbIdx].toLowerCase() === DEFAULT_DB_NAME);
+    }
+
+    return sParseTables.map((aItem: any) => {
+        if (aItem[sDbIdx].toLowerCase() !== DEFAULT_DB_NAME) {
+            return aItem[sDbIdx] + '.' + aItem[sUserIdx] + '.' + aItem[sTableIdx];
+        } else {
+            if (aItem[sUserIdx].toUpperCase() === sCurrentUserName.toUpperCase()) {
+                return aItem[sTableIdx];
+            } else {
+                return aItem[sUserIdx] + '.' + aItem[sTableIdx];
+            }
+        }
+    });
 };

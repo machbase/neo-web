@@ -330,3 +330,6 @@ export const COLOR_SET = '5ca3f2,d06a5f,e2bb5c,86b66b,7070e0,6bcbc1,a673e8,e26da
 export const IMAGE_EXTENSION_LIST = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico'];
 
 export const FILE_EXTENSION_LIST = ['sql', 'tql', 'wrk', 'taz', 'json', 'md', 'csv', 'txt'];
+
+export const ADMIN_ID = 'sys';
+export const DEFAULT_DB_NAME = 'machbasedb';

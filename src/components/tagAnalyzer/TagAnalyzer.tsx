@@ -3,6 +3,7 @@ import { gRollupTableList, gTables } from '@/recoil/recoil';
 import { useEffect } from 'react';
 import { useSetRecoilState } from 'recoil';
 import ChartBoard from './ChartBoard';
+import { parseTables } from '@/utils';
 
 const tagAnalyzer = ({ pInfo, pHandleSaveModalOpen, pSetIsSaveModal, pSetIsOpenModal }: any) => {
     const setTables = useSetRecoilState(gTables);
@@ -18,12 +19,8 @@ const tagAnalyzer = ({ pInfo, pHandleSaveModalOpen, pSetIsSaveModal, pSetIsOpenM
     const getTables = async () => {
         const sResult: any = await fetchTablesData();
         if (sResult.success) {
-            const sIdx = sResult.data.columns.findIndex((aItem: any) => aItem === 'NAME');
-
-            const newTable = sResult.data.rows.filter((aItem: any) => aItem[4] === 'Tag Table');
-
-            const tagTableList = newTable.map((aItem: any) => aItem[sIdx]);
-            setTables(tagTableList);
+            const sParseTables = parseTables(sResult.data);
+            setTables(sParseTables);
         }
     };
 
