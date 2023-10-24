@@ -185,13 +185,16 @@ export const SaveModal = (props: SaveModalProps) => {
                 return;
             } else return;
         }
-
         const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
+        const sSameFile: any = sTab && sPath === sTab.path.replace('//', '/') && sFileName === sTab.name;
         const sResult: any = await postFileList(sSaveData, sPath, sFileName);
         if (sResult.success) {
-            updateFileTree(sPath);
-
             handleClose();
+            if (sSameFile) {
+                updateFileTree('/');
+                return;
+            }
+            updateFileTree(sPath);
 
             setBoardList(
                 sBoardList.map((aItem: any) => {
@@ -244,7 +247,6 @@ export const SaveModal = (props: SaveModalProps) => {
             Error('please select file');
             return;
         }
-        const sTmpId = getId();
         const sExistBoard = getExistBoard(file);
         if (file.isDir) {
             handleForwardPath(file.name);
@@ -261,6 +263,7 @@ export const SaveModal = (props: SaveModalProps) => {
                 sParseData = JSON.parse(sData);
             }
             const sDataObj = sType === 'wrk' ? { sheet: sParseData.data } : { code: sData };
+            const sTmpId = getId();
             if (sType === 'taz') {
                 setBoardList([
                     ...sBoardList,
