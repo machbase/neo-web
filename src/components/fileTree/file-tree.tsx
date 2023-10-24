@@ -729,7 +729,7 @@ const FileDiv = ({
                             <input
                                 type="text"
                                 value={sName}
-                                onChange={(e) => FileNameValidator(e.target.value) ? setName(e.target.value) : null}
+                                onChange={(e) => (FileNameValidator(e.target.value) ? setName(e.target.value) : null)}
                                 autoFocus
                                 onFocus={(e) => e.target.setSelectionRange(0, sName.length)}
                                 onBlur={handleBlur}
@@ -740,7 +740,7 @@ const FileDiv = ({
                         <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{file.name}</span>
                     )}
                 </div>
-                {(file as FileTreeType).gitClone ? GitIcon(file as FileTreeType, onRefresh) : null}
+                {(file as FileTreeType).gitClone && (file as FileTreeType).virtual ? GitIcon(file as FileTreeType, onRefresh) : null}
             </Div>
         </div>
     );
