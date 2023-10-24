@@ -31,13 +31,14 @@ import moment from 'moment';
 import DatePicker from '@/components/common/date-picker/index.vue';
 import TimeDuration from '@/components/common/date-list/date-time-duration.vue';
 import '@vuepic/vue-datepicker/dist/main.css';
-import { defineEmits, ref, onMounted, defineProps } from 'vue';
+import { defineEmits, ref, onMounted, defineProps, computed } from 'vue';
 import { toDateUtcChart } from '@/utils/utils';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { fetchRangeData } from '@/api/repository/machiot';
 import { FORMAT_FULL_DATE } from '@/utils/constants';
 import { TimeLineType } from '@/interface/date';
+import { toast, ToastOptions } from 'vue3-toastify';
 
 interface TimeDurationProps {
     pIsFromTime?: boolean;
@@ -66,11 +67,23 @@ const OnTimeRange = (data: any) => {
         ? (dateStart.value = moment(dateEnd.value).subtract(data.number, data.format).format(FORMAT_FULL_DATE))
         : (dateEnd.value = moment(dateStart.value).add(data.number, data.format).format(FORMAT_FULL_DATE));
 };
+const cIsDarkMode = computed(() => store.getters.getDarkMode) as any;
+
 const onSetting = () => {
-    emit('eSettingPopup', {
-        dateStart: dateStart.value,
-        dateEnd: dateEnd.value,
-    });
+    const sRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+    if (sRegex.test(dateStart.value) && sRegex.test(dateEnd.value)) {
+        emit('eSettingPopup', {
+            dateStart: dateStart.value,
+            dateEnd: dateEnd.value,
+        });
+    } else {
+        toast('Please match the date format.', {
+            autoClose: 1000,
+            theme: !cIsDarkMode ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
+    }
 };
 
 const onClosePopup = () => {
