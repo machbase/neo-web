@@ -4,12 +4,12 @@
             <p class="title">From</p>
             <div class="row">
                 <DatePicker @e-change-time="changeTimeStart" :p-disabled="pIsFromTime" :p-init="dateStart" />
-                <input class="input disable-icon" :disabled="pIsFromTime" type="text" :value="dateStart" />
+                <input class="input disable-icon" :disabled="pIsFromTime" type="text" v-model="dateStart" />
             </div>
             <p class="title">To</p>
             <div class="row">
                 <DatePicker @e-change-time="changeTimeEnd" :p-disabled="!pIsFromTime" :p-init="dateEnd" />
-                <input class="input disable-icon" :disabled="!pIsFromTime" type="text" :value="dateEnd" />
+                <input class="input disable-icon" :disabled="!pIsFromTime" type="text" v-model="dateEnd" />
             </div>
             <!-- <div>
                 <p class="title">Duration</p>
@@ -52,6 +52,7 @@ const number = ref();
 const format = ref();
 
 const changeTimeStart = (data: Date) => {
+    console.log(data);
     dateStart.value = moment(data).format(FORMAT_FULL_DATE);
 };
 const changeTimeEnd = (data: Date) => {
@@ -62,8 +63,8 @@ const OnTimeRange = (data: any) => {
     number.value = data.number;
     format.value = data.format;
     props.pIsFromTime === false
-        ? (dateEnd.value = moment(dateStart.value).add(data.number, data.format).format(FORMAT_FULL_DATE))
-        : (dateStart.value = moment(dateEnd.value).subtract(data.number, data.format).format(FORMAT_FULL_DATE));
+        ? (dateStart.value = moment(dateEnd.value).subtract(data.number, data.format).format(FORMAT_FULL_DATE))
+        : (dateEnd.value = moment(dateStart.value).add(data.number, data.format).format(FORMAT_FULL_DATE));
 };
 const onSetting = () => {
     emit('eSettingPopup', {

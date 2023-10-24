@@ -7,7 +7,7 @@
         :dark="cIsDarkMode"
         :disabled="pDisabled"
         enable-seconds
-        :format="'yyyy-MM-dd HH:mm'"
+        :format="'yyyy-MM-dd HH:mm:ss'"
         position="left"
     >
         <template #trigger>
@@ -40,14 +40,14 @@ watch(
         emit('eChangeTime', sDate.value);
     }
 );
-watch(
-    () => props.pInit,
-    () => {
-        if (!props.pInit) return;
-        sDate.value = props.pInit;
-    },
-    { immediate: true }
-);
+// watch(
+//     () => props.pInit,
+//     () => {
+//         if (!props.pInit) return;
+//         sDate.value = props.pInit;
+//     },
+//     { immediate: true }
+// );
 </script>
 
 <style lang="scss" scoped>
