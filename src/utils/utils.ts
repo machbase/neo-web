@@ -6,6 +6,7 @@ import { COLOR_SET } from './constants';
 import { MAX_TAG_COUNT } from '@/components/popup-list/popup/constant';
 import { YorN } from '@/interface/constants';
 import { string } from 'joi';
+import { ChartType } from '@/enums/app';
 
 const utils = {};
 
@@ -193,6 +194,7 @@ function convertChartDefault(aChartDefault: PanelInfo, aTag: TempNewChartData): 
         stroke: chart.stroke,
         fill: chart.fill,
         tag_set: tagSet,
+        chart_type: convertChartTypeToString(aTag.chartType),
     };
 }
 const getPaginationPages = (items: any, pageSize: number): any => {
@@ -207,6 +209,11 @@ const getPaginationPages = (items: any, pageSize: number): any => {
     }
     return paginationItems;
 };
+const convertChartTypeToString = (aType: number) => {
+    if (aType === ChartType.Zone) return 'area';
+    else if (aType === ChartType.Dot) return 'dot';
+    else return 'line';
+}
 export {
     utils,
     splitTimeDuration,

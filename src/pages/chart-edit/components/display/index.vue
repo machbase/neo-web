@@ -46,8 +46,8 @@ interface PropsTab {
 const props = defineProps<PropsTab>();
 const mapToPropsChartSelect: any = {
     line: ChartType.Line,
-    areaLine: ChartType.Zone,
-    pointLine: ChartType.Dot,
+    area: ChartType.Zone,
+    dot: ChartType.Dot,
 };
 
 const emit = defineEmits(['eOnChange']);
@@ -80,7 +80,7 @@ const onSelectChart = (data: ChartType) => {
 const mapChartType = {
     [ChartType.Line]: 'line',
     [ChartType.Zone]: 'area',
-    [ChartType.Dot]: 'line',
+    [ChartType.Dot]: 'dot',
 };
 watchEffect(() => {
     let border_color = colorBorder.value.trim().toLowerCase();
