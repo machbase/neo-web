@@ -461,13 +461,21 @@ const onChangeZoom = () => {
 const onChangeTimeRange = async (eValue: any) => {
     await areaChart.value.updateMinMaxNavigator(toTimeUtcChart(eValue.dateStart), toTimeUtcChart(eValue.dateEnd));
 
-    if (data.sTimeLine.startTime < toTimeUtcChart(eValue.dateStart) && toTimeUtcChart(eValue.dateEnd) < data.sTimeLine.endTime) {
-        areaChart.value.updateMinMaxChart(toTimeUtcChart(eValue.dateStart), toTimeUtcChart(eValue.dateEnd));
-    } else if (data.sTimeLine.startTime < toTimeUtcChart(eValue.dateStart) && toTimeUtcChart(eValue.dateEnd) > data.sTimeLine.endTime) {
-        areaChart.value.updateMinMaxChart(toTimeUtcChart(eValue.dateStart), data.sTimeLine.endTime);
-    } else if (data.sTimeLine.startTime > toTimeUtcChart(eValue.dateStart) && toTimeUtcChart(eValue.dateEnd) < data.sTimeLine.endTime) {
-        areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, toTimeUtcChart(eValue.dateEnd));
+    let sStart = data.sTimeLine.startTime;
+    let sEnd = data.sTimeLine.endTime;
+
+    if (data.sTimeLine.startTime < toTimeUtcChart(eValue.dateStart)) {
+        sStart = toTimeUtcChart(eValue.dateStart);
+    } else if (data.sTimeLine.endTime > toTimeUtcChart(eValue.dateEnd)) {
+        sEnd = toTimeUtcChart(eValue.dateEnd);
     }
+
+    if (sStart > sEnd) {
+        areaChart.value.updateMinMaxChart(toTimeUtcChart(eValue.dateStart), toTimeUtcChart(eValue.dateEnd));
+        return;
+    }
+
+    areaChart.value.updateMinMaxChart(sStart, sEnd);
 };
 const onChangeSRF = async (eValue: any) => {
     switch (eValue) {
