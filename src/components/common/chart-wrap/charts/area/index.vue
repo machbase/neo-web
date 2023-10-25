@@ -460,7 +460,14 @@ const onChangeZoom = () => {
 };
 const onChangeTimeRange = async (eValue: any) => {
     await areaChart.value.updateMinMaxNavigator(toTimeUtcChart(eValue.dateStart), toTimeUtcChart(eValue.dateEnd));
-    areaChart.value.updateMinMaxChart(eValue.dateStart, eValue.dateEnd);
+
+    if (data.sTimeLine.startTime < toTimeUtcChart(eValue.dateStart) && toTimeUtcChart(eValue.dateEnd) < data.sTimeLine.endTime) {
+        areaChart.value.updateMinMaxChart(toTimeUtcChart(eValue.dateStart), toTimeUtcChart(eValue.dateEnd));
+    } else if (data.sTimeLine.startTime < toTimeUtcChart(eValue.dateStart) && toTimeUtcChart(eValue.dateEnd) > data.sTimeLine.endTime) {
+        areaChart.value.updateMinMaxChart(toTimeUtcChart(eValue.dateStart), data.sTimeLine.endTime);
+    } else if (data.sTimeLine.startTime > toTimeUtcChart(eValue.dateStart) && toTimeUtcChart(eValue.dateEnd) < data.sTimeLine.endTime) {
+        areaChart.value.updateMinMaxChart(data.sTimeLine.startTime, toTimeUtcChart(eValue.dateEnd));
+    }
 };
 const onChangeSRF = async (eValue: any) => {
     switch (eValue) {
