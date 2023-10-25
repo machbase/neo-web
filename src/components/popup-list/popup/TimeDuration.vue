@@ -4,12 +4,12 @@
             <p class="title">From</p>
             <div class="row">
                 <DatePicker @e-change-time="changeTimeStart" :p-disabled="pIsFromTime" :p-init="dateStart" />
-                <input class="input disable-icon" :disabled="pIsFromTime" type="text" v-model="dateStart" />
+                <input v-model="dateStart" class="input disable-icon" :disabled="pIsFromTime" type="text" />
             </div>
             <p class="title">To</p>
             <div class="row">
                 <DatePicker @e-change-time="changeTimeEnd" :p-disabled="!pIsFromTime" :p-init="dateEnd" />
-                <input class="input disable-icon" :disabled="!pIsFromTime" type="text" v-model="dateEnd" />
+                <input v-model="dateEnd" class="input disable-icon" :disabled="!pIsFromTime" type="text" />
             </div>
             <!-- <div>
                 <p class="title">Duration</p>
@@ -32,7 +32,7 @@ import DatePicker from '@/components/common/date-picker/index.vue';
 import TimeDuration from '@/components/common/date-list/date-time-duration.vue';
 import '@vuepic/vue-datepicker/dist/main.css';
 import { defineEmits, ref, onMounted, defineProps, computed } from 'vue';
-import { toDateUtcChart } from '@/utils/utils';
+import { toDateUtcChart, toTimeUtcChart } from '@/utils/utils';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { fetchRangeData } from '@/api/repository/machiot';
@@ -71,7 +71,10 @@ const cIsDarkMode = computed(() => store.getters.getDarkMode) as any;
 
 const onSetting = () => {
     const sRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
-    if (sRegex.test(dateStart.value) && sRegex.test(dateEnd.value)) {
+
+    const sIsTrueTimeRange = toTimeUtcChart(dateStart.value) < toTimeUtcChart(dateEnd.value);
+
+    if (sRegex.test(dateStart.value) && sRegex.test(dateEnd.value) && sIsTrueTimeRange) {
         emit('eSettingPopup', {
             dateStart: dateStart.value,
             dateEnd: dateEnd.value,

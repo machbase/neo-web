@@ -1,5 +1,6 @@
 import request from '@/api/core';
 import { toast, ToastOptions } from 'vue3-toastify';
+import moment from 'moment';
 
 const isDarkMode = () => {
     const sData: any = localStorage.getItem('gPreference');
@@ -309,6 +310,16 @@ const fetchOnMinMaxTable = async (table: string, tagName: string) => {
             type: 'error',
         } as ToastOptions);
     }
+
+    if (!sData.data.rows[0][0] || !sData.data.rows[0][1]) {
+        sData.data.rows = [
+            [
+                moment(new Date().setHours(new Date().getHours() - 3)).format('YYYY-MM-DD HH:mm:ss') + ' 000:000:000',
+                moment(new Date()).format('YYYY-MM-DDTHH:mm:ss') + ' 000:000:000',
+            ],
+        ];
+    }
+
     return sData;
 };
 const fetchOnRollupTable = async (table: string) => {
