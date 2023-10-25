@@ -14,7 +14,9 @@ import HighchartsVue from 'highcharts-vue';
 import More from 'highcharts/highcharts-more';
 import Stock from 'highcharts/modules/stock';
 import HighchartsNoData from 'highcharts/modules/no-data-to-display';
+import hljs from 'highlight.js';
 
+hljs;
 HighchartsNoData(HighCharts);
 Stock(HighCharts);
 createApp(App)
