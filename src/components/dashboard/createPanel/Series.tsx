@@ -9,7 +9,12 @@ import { getTableType, tagAggregatorList } from '@/utils/dashboardUtil';
 import { useEffect, useState } from 'react';
 import Filter from './Filter';
 import './Series.scss';
+import { CompactPicker } from 'react-color';
+
 import Value from './Value';
+import useOutsideClick from '@/hooks/useOutsideClick';
+import { useRef } from 'react';
+
 const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption }: any) => {
     const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
@@ -17,6 +22,8 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
     // const [sTableInfo, setTableInfo] = useState<any>([]);
 
     const [sColumnList, setColumnList] = useState<any>([]);
+    const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
+    const sColorPickerRef = useRef<any>(null);
 
     const setOption = (aKey: string, aData: any) => {
         pSetPanelOption((aPrev: any) => {
@@ -221,6 +228,8 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
             });
     }, [sSelectedTableType]);
 
+    useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
+
     return (
         <div className="series">
             <div className="row">
@@ -322,6 +331,29 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
                         </div>
                     )}
                     <div className="row-header-right">
+                        <div ref={sColorPickerRef} style={{ position: 'relative' }}>
+                            <IconButton
+                                pWidth={20}
+                                pHeight={20}
+                                pIcon={
+                                    <div
+                                        style={{ width: '14px', cursor: 'pointer', height: '14px', marginRight: '4px', borderRadius: '50%', backgroundColor: pSeriesInfo.color }}
+                                    ></div>
+                                }
+                                onClick={() => setIsColorPicker(!sIsColorPicker)}
+                            ></IconButton>
+
+                            {sIsColorPicker && (
+                                <div className="color-picker">
+                                    <CompactPicker
+                                        color={pSeriesInfo.color}
+                                        onChangeComplete={(aInfo: any) => {
+                                            setOption('color', aInfo.hex);
+                                        }}
+                                    ></CompactPicker>
+                                </div>
+                            )}
+                        </div>
                         <IconButton
                             pWidth={20}
                             pHeight={20}

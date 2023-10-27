@@ -1,7 +1,7 @@
 import { getTqlChart } from '@/api/repository/machiot';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { drawChart } from '@/plugin/eCharts';
-import { calcInterval, calcRefreshTime, createQuery, setUnitTime } from '@/utils/dashboardUtil';
+import { addTimeToString, calcInterval, calcRefreshTime, createQuery, setUnitTime } from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
 import './LineChart.scss';
 
@@ -15,10 +15,14 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
     const sChangedValue = useRef<boolean>(false);
     const sTimerRef = useRef<boolean>(false);
     const didMount = useRef(false);
+    const sIsReload = useRef(false);
+    const sRefClientWidth = useRef<number>(0);
+    const sRefClientHeight = useRef<number>(0);
 
     useEffect(() => {
-        if (pType === 'create' || pType === 'edit') {
+        if (pType === 'create' || pType === 'edit' || sIsReload.current) {
             sChartData.chartID && getLineChart();
+            sIsReload.current = false;
             return;
         }
 
@@ -51,6 +55,12 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
     };
 
     const setForm = async () => {
+        if (ChartRef.current.clientWidth !== 0) {
+            sRefClientWidth.current = ChartRef.current.clientWidth;
+        }
+        if (ChartRef.current.clientHeight !== 0) {
+            sRefClientHeight.current = ChartRef.current.clientHeight;
+        }
         sTimerRef.current = true;
         let sData: any = {};
 
@@ -58,20 +68,27 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
         const sPanelTimeRange = pPanelInfo.timeRange;
         const sBoardTimeRange = pBoardInfo.dashboard.timeRange;
 
+        const sStartTime = pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.start) : setUnitTime(sBoardTimeRange.start);
+        const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.end) : setUnitTime(sBoardTimeRange.end);
+
+        const sIntervalInfo = calcInterval(sStartTime, sEndTime, sRefClientWidth.current);
+
         for (let i = 0; i < pPanelInfo.series.length; i++) {
             const sQuery: string = createQuery(
                 pPanelInfo.series[i],
-                calcInterval(
-                    pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.start) : setUnitTime(sBoardTimeRange.start),
-                    pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.end) : setUnitTime(sBoardTimeRange.end),
-                    ChartRef.current.clientWidth
-                ),
+                sIntervalInfo,
                 pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.start) : setUnitTime(sBoardTimeRange.start),
                 pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.end) : setUnitTime(sBoardTimeRange.end)
             );
 
             const sTheme = `, theme('${pPanelInfo.theme ? pPanelInfo.theme : 'vintage'}')`;
             const sSlider = pPanelInfo.useDataZoom ? `, dataZoom('${pPanelInfo.dataZoomType}',${pPanelInfo.dataZoomMin},${pPanelInfo.dataZoomMax})` : '';
+
+            const sName = pPanelInfo.series[i].useCustom
+                ? pPanelInfo.series[i].values[0].alias
+                    ? pPanelInfo.series[i].values[0].alias
+                    : `${pPanelInfo.series[i].values[0].aggregator}(${pPanelInfo.series[i].filter[0].value})`
+                : `${pPanelInfo.series[i].aggregator}(${pPanelInfo.series[i].tag})`;
 
             let sMarkArea;
             if (pPanelInfo.useMarkArea) {
@@ -90,8 +107,14 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
                 'SQL(`' +
                     sQuery +
                     '`)\n' +
-                    `TAKE(${(ChartRef.current.clientWidth / 3).toFixed()})\n` +
-                    `${sChartType}(size('${ChartRef.current.clientWidth}px','${ChartRef.current.clientHeight}px')${sTheme}${sSlider}${sMarkArea})`
+                    `TAKE(${(sRefClientWidth.current / 3).toFixed()})\n` +
+                    `${sChartType}(size('${sRefClientWidth.current}px','${sRefClientHeight.current}px')${sTheme}${sSlider}${sMarkArea}, ` +
+                    'seriesOptions(`{' +
+                    `"name":"${sName}",` +
+                    `"label" : {"show" : true}, ` +
+                    `"itemStyle" : {"color":"${pPanelInfo.series[i].color}"}, ` +
+                    `"lineStyle" : {"width" : 1}` +
+                    '}`))'
             );
 
             if (!sResult.data.chartID) {
@@ -103,8 +126,18 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
             if (sData.chartID) {
                 if (sResult.data.chartOption.series) {
                     sData.chartOption.series.push(sResult.data.chartOption.series[0]);
+                } else {
+                    sIsReload.current = true;
+                    sResult.data.chartOption.xAxis[0] = { ...sResult.data.chartOption.xAxis[0], splitLine: { lineStyle: { width: 0.8, opacity: 0.3 } } };
+                    sResult.data.chartOption.yAxis[0] = { ...sResult.data.chartOption.yAxis[0], splitLine: { lineStyle: { width: 0.8, opacity: 0.3 } } };
+                    sData = sResult.data;
                 }
             } else {
+                if (!sResult.data.chartOption.series || (sChartData.chartOption && !sChartData.chartOption.series)) {
+                    sIsReload.current = true;
+                }
+                sResult.data.chartOption.xAxis[0] = { ...sResult.data.chartOption.xAxis[0], splitLine: { lineStyle: { width: 0.8, opacity: 0.3 } } };
+                sResult.data.chartOption.yAxis[0] = { ...sResult.data.chartOption.yAxis[0], splitLine: { lineStyle: { width: 0.8, opacity: 0.3 } } };
                 sData = sResult.data;
             }
         }
@@ -230,7 +263,17 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
             style={!sDataReturnStatus ? (sDataReturn === 'Please set up a Query.' ? { color: 'rgb(65, 153, 255)' } : { color: 'rgb(231, 65, 131)' }) : {}}
             className="chart-form"
         >
-            {!sDataReturnStatus ? (pType === 'create' ? sDataReturn : 'Loading...') : ''}
+            {!sDataReturnStatus
+                ? pType === 'create'
+                    ? sDataReturn === 'Please set up a Query.'
+                        ? 'Please set up a Query.'
+                        : sDataReturn
+                    : pType === 'edit'
+                    ? sDataReturn === 'Please set up a Query.'
+                        ? 'Loading...'
+                        : sDataReturn
+                    : 'Loading...'
+                : ''}
             <div style={!sDataReturnStatus ? { display: 'none' } : {}} className="inner-html-form" dangerouslySetInnerHTML={{ __html: sText }}></div>
         </div>
     );

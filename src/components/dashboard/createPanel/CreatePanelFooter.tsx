@@ -11,6 +11,7 @@ import { Select } from '@/components/inputs/Select';
 import { getId } from '@/utils';
 
 const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
+    const sColorList = ['#73BF69', '#F2CC0C', '#8AB8FF', '#FF780A', '#F2495C', '#5794F2', '#B877D9', '#705DA0', '#37872D', '#FADE2A'];
     const [sTab, setTab] = useState('Query');
 
     const setUseTimePicker = (aKey: string, aValue: any) => {
@@ -57,26 +58,31 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                             ></Series>
                         );
                     })}
-                    <div
-                        onClick={() =>
-                            pSetPanelOption((aPrev: any) => {
-                                return { ...aPrev, series: [...aPrev.series, { ...aPrev.series[aPrev.series.length - 1], id: getId() }] };
-                            })
-                        }
-                        className="plus-wrap"
-                        style={{
-                            border: '1px solid #777777',
-                            minHeight: '50px',
-                            borderRadius: '4px',
-                            padding: '8px',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                        }}
-                    >
-                        <PlusCircle color="#FDB532"></PlusCircle>
-                    </div>
+                    {pPanelOption.series.length < 10 && (
+                        <div
+                            onClick={() =>
+                                pSetPanelOption((aPrev: any) => {
+                                    return {
+                                        ...aPrev,
+                                        series: [...aPrev.series, { ...aPrev.series[aPrev.series.length - 1], id: getId(), color: sColorList[aPrev.series.length + 1] }],
+                                    };
+                                })
+                            }
+                            className="plus-wrap"
+                            style={{
+                                border: '1px solid #777777',
+                                minHeight: '50px',
+                                borderRadius: '4px',
+                                padding: '8px',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <PlusCircle color="#FDB532"></PlusCircle>
+                        </div>
+                    )}
                 </div>
                 <div style={sTab === 'Query' ? { display: 'none' } : {}} className="body time-wrap">
                     <div className="time-form">

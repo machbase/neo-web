@@ -266,6 +266,7 @@ export const tagTableValue = () => {
     return {
         id: getId(),
         table: '',
+        color: '#73BF69',
         tableInfo: [],
         type: 'tag',
         filter: [{ id: getId(), column: '', operator: '=', value: '', useFilter: true }],

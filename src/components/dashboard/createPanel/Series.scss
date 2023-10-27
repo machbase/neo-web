@@ -65,6 +65,14 @@
             .row-header-right {
                 display: flex;
                 align-items: center;
+                .color-picker {
+                    z-index: 1;
+                    position: absolute;
+                    right: 0px;
+                    top: 14px;
+                    padding: 8px;
+                    border-radius: 4px;
+                }
             }
             .series-table {
                 display: flex;
