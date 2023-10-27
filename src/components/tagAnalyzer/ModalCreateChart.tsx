@@ -90,7 +90,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
     const setTagMode = (aEvent: any, aValue: any) => {
         setSelectedTag(
             sSelectedTag.map((aItem) => {
-                return aItem.table === aValue.table && aItem.tagName === aValue.tagName ? { ...aItem, calculationMode: aEvent.target.value } : aItem;
+                return aItem.table === aValue.table && aItem.key === aValue.key ? { ...aItem, calculationMode: aEvent.target.value } : aItem;
             })
         );
     };

@@ -173,7 +173,9 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                             {aItem.type === 'sql' && (
                                 <Sql pSetDragStat={pSetDragStat} pHandleSaveModalOpen={handleSaveModalOpen} pInfo={aItem} setIsSaveModal={setIsSaveModal}></Sql>
                             )}
-                            {aItem.type === 'tql' && <Tql pSetDragStat={pSetDragStat} pHandleSaveModalOpen={handleSaveModalOpen} setIsSaveModal={setIsSaveModal} />}
+                            {aItem.type === 'tql' && (
+                                <Tql pCode={aItem.code} pSetDragStat={pSetDragStat} pHandleSaveModalOpen={handleSaveModalOpen} setIsSaveModal={setIsSaveModal} />
+                            )}
                             {aItem.type === 'taz' && (
                                 <TagAnalyzer
                                     pHandleSaveModalOpen={handleSaveModalOpen}
@@ -184,11 +186,21 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                             )}
                             {aItem.type === 'term' && <Shell pSelectedTab={sSelectedTab} pInfo={aItem} pId={aItem.id}></Shell>}
                             {aItem.type === 'dsh' && <Dashboard pDraged={pDraged} pId={aItem.id} pSideSizes={pSideSizes}></Dashboard>}
-                            {aItem.type === 'wrk' && <WorkSheet pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsOpenModal} setIsSaveModal={setIsSaveModal} />}
-                            {aItem.type === 'json' && <TextExtension pLang="json" pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
-                            {aItem.type === 'csv' && <TextExtension pLang="go" pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
-                            {aItem.type === 'md' && <TextExtension pLang="markdown" pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
-                            {aItem.type === 'txt' && <TextExtension pLang="go" pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
+                            {aItem.type === 'wrk' && (
+                                <WorkSheet
+                                    pId={aItem.id}
+                                    pSheet={aItem.sheet}
+                                    pHandleSaveModalOpen={handleSaveModalOpen}
+                                    setIsOpenModal={setIsOpenModal}
+                                    setIsSaveModal={setIsSaveModal}
+                                />
+                            )}
+                            {aItem.type === 'json' && <TextExtension pLang="json" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
+                            {aItem.type === 'csv' && <TextExtension pLang="go" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
+                            {aItem.type === 'md' && (
+                                <TextExtension pLang="markdown" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />
+                            )}
+                            {aItem.type === 'txt' && <TextExtension pLang="go" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
                             {isImage(aItem.name) && <ImageBox pBase64Code={aItem.code} pType={aItem.type} />}
                         </div>
                     );
