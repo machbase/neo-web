@@ -10,7 +10,7 @@ import { getLogin } from '@/api/repository/login';
 import Body from '@/components/editor/Body';
 import { getId } from '@/utils';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { gConsoleList, gExtensionList, gSelectedExtension } from '@/recoil/recoil';
+import { gConsoleSelector, gExtensionList, gSelectedExtension } from '@/recoil/recoil';
 import ReferenceList from '@/components/side/ReferenceList';
 import DBExplorer from '@/components/side/DBExplorer/DBExplorer';
 
@@ -22,7 +22,7 @@ const Home = () => {
     const [sSavedPath, setSavedPath] = useState();
     const [sServer, setServer] = useState();
     const [sIsSidebar, setIsSidebar] = useState<boolean>(true);
-    const setConsoleList = useSetRecoilState<any>(gConsoleList);
+    const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
     const sNavigate = useNavigate();
     const [sSelectedExtension] = useRecoilState<string>(gSelectedExtension);
     const [sExtentionList] = useRecoilState<any>(gExtensionList);
