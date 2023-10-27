@@ -1,4 +1,4 @@
-import { GBoardListType, gBoardList, gConsoleList, gSelectedTab } from '@/recoil/recoil';
+import { GBoardListType, gBoardList, gConsoleSelector, gSelectedTab } from '@/recoil/recoil';
 import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
@@ -75,7 +75,7 @@ any) => {
     const [sIsGit, setIsGit] = useState(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
-    const [, setConsoleList] = useRecoilState<any>(gConsoleList);
+    const [, setConsoleList] = useRecoilState<any>(gConsoleSelector);
     const [sSideSizes, setSideSizes] = useState<any>(['15%', '85%']);
     // const [sSearchFilter, setSearchFilter] = useState<boolean>(false);
     // const [sSearchTxt, setSearchTxt] = useState<string>('');

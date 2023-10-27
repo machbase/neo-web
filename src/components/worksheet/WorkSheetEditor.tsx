@@ -12,7 +12,7 @@ import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff }
 import { PositionType, SelectionType, sqlQueryParser } from '@/utils/sqlQueryParser';
 import { IconButton } from '../buttons/IconButton';
 import { useSetRecoilState } from 'recoil';
-import { gConsoleList } from '@/recoil/recoil';
+import { gConsoleSelector } from '@/recoil/recoil';
 import { sqlMultiQueryParser } from '@/utils/sqlMultiQueryParser';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown';
@@ -75,7 +75,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const ResultContentTypeRef = useRef(null);
     const [sShowResultContentType, setShowResultContentType] = useState<boolean>(false);
     const [sMonacoLineHeight, setMonacoLineHeight] = useState<number>(pData.lineHeight ?? 19);
-    const setConsoleList = useSetRecoilState<any>(gConsoleList);
+    const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
 
     useEffect(() => {
         if (pAllRunCodeList.length > 0 && pAllRunCodeStatus && typeof pAllRunCodeTargetIdx === 'number' && pAllRunCodeList[pIdx] && pIdx === pAllRunCodeTargetIdx) {

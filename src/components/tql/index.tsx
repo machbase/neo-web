@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import SplitPane, { Pane, SashContent } from 'split-pane-react';
 import { getTqlChart } from '@/api/repository/machiot';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { gBoardList, gConsoleList, gSelectedTab } from '@/recoil/recoil';
+import { gBoardList, gConsoleSelector, gSelectedTab } from '@/recoil/recoil';
 import { Table } from './Table';
 import './index.scss';
 import { ShowChart } from './ShowChart';
@@ -35,7 +35,7 @@ const Tql = (props: TqlProps) => {
     const [sIsPrettier, setIsPrettier] = useState<boolean>(false);
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
-    const setConsoleList = useSetRecoilState<any>(gConsoleList);
+    const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
 
     useEffect(() => {
         setText(pCode);

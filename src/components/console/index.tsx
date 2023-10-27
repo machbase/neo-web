@@ -1,7 +1,7 @@
 import './index.scss';
 import { useState, useEffect, useRef } from 'react';
 import { useRecoilState } from 'recoil';
-import { gConsoleList } from '@/recoil/recoil';
+import { gConsoleSelector } from '@/recoil/recoil';
 import { VscAdd, VscChevronDown, VscTrash, VscChevronUp } from '@/assets/icons/Icon';
 import { getId } from '@/utils';
 import Shell from '../shell/Shell';
@@ -16,7 +16,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
     const [sConsoleTab, setConsoleTab] = useState<any>([]);
     const [sSelectedTab, setSelectedTab] = useState('Console');
     const [sIsContextMenu, setIsContextMenu] = useState(false);
-    const [sConsoleList, setConsoleList] = useRecoilState<any>(gConsoleList);
+    const [sConsoleList, setConsoleList] = useRecoilState<any>(gConsoleSelector);
     const [sSelectTask, setSelectTask] = useState('none');
     const MenuRef = useRef<HTMLDivElement>(null);
     const sFiledRef = useRef<HTMLDivElement>(null);
