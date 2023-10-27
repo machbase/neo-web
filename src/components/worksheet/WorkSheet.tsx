@@ -1,26 +1,27 @@
 import { useState, useEffect } from 'react';
 import './WorkSheet.scss';
 import { WorkSheetEditor } from './WorkSheetEditor';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { gBoardList, gSelectedBoard } from '@/recoil/recoil';
-import { getId } from '@/utils';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import { gBoardList } from '@/recoil/recoil';
+import { getId, isEmpty } from '@/utils';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { Save, SaveAs, IoPlayForwardSharp } from '@/assets/icons/Icon';
 import { IconButton } from '../buttons/IconButton';
 
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 interface WorkSheetProps {
+    pId: string;
+    pSheet: any;
     pHandleSaveModalOpen: () => void;
     setIsSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
     setIsOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const WorkSheet = (props: WorkSheetProps) => {
-    const { pHandleSaveModalOpen, setIsSaveModal } = props;
+    const { pId, pSheet, pHandleSaveModalOpen, setIsSaveModal } = props;
     const setSaveWorkSheet = useSetRecoilState(gSaveWorkSheets);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sWorkSheets, setWorkSheets] = useState<any>([]);
-    const [sSelectedBoard] = useState<any>(useRecoilValue<any>(gSelectedBoard));
     const [sAllRunCodeStatus, setAllRunCodeStatus] = useState<boolean>(false);
     const [sAllRunCodeList, setAllRunCodeList] = useState<boolean[]>([]);
     const [sRunCodeTarget, setRunCodeTarget] = useState<number | undefined>(undefined);
@@ -38,7 +39,11 @@ export const WorkSheet = (props: WorkSheetProps) => {
         status: true,
         type: 'mrk',
     };
+
     useEffect(() => {
+        if (!isEmpty(pSheet)) {
+            setWorkSheets(pSheet);
+        } else setWorkSheets([sNewWrkDefaultData]);
         return () => {
             setSaveWorkSheet([]);
         };
@@ -81,16 +86,10 @@ export const WorkSheet = (props: WorkSheetProps) => {
         setSaveWorkSheet(sWorkSheets);
         setBoardList(
             sBoardList.map((aItem) => {
-                return aItem.id === sSelectedBoard.id ? { ...aItem, sheet: sWorkSheets } : aItem;
+                return aItem.id === pId ? { ...aItem, sheet: sWorkSheets } : aItem;
             })
         );
     }, [sWorkSheets]);
-
-    useEffect(() => {
-        if (!sSelectedBoard) return;
-        if (sSelectedBoard.sheet && sSelectedBoard.sheet.length === 0) setWorkSheets([sNewWrkDefaultData]);
-        else setWorkSheets(sSelectedBoard.sheet);
-    }, [sSelectedBoard]);
 
     const handleAllRunCode = (aStatus: boolean, aIdx: number) => {
         if (!aStatus || sAllRunCodeList.length === aIdx + 1) {

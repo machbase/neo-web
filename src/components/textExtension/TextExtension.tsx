@@ -9,12 +9,13 @@ import './TextExtension.scss';
 
 export interface TextExtensionProps {
     pLang: 'json' | 'go' | 'typescript' | 'markdown' | 'css' | 'html';
+    pCode: string | object;
     pHandleSaveModalOpen: () => void;
     setIsOpenModal: Dispatch<SetStateAction<boolean>>;
 }
 
 export const TextExtension = (props: TextExtensionProps) => {
-    const { pLang, pHandleSaveModalOpen, setIsOpenModal } = props;
+    const { pLang, pCode, pHandleSaveModalOpen, setIsOpenModal } = props;
     const [sText, setText] = useState<string>('');
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
@@ -22,13 +23,10 @@ export const TextExtension = (props: TextExtensionProps) => {
     const [sIsPreview, setIsPreView] = useState<boolean>(pLang === 'markdown' ? true : false);
 
     useEffect(() => {
-        const sIsExist = sBoardList.findIndex((aItem) => aItem.id === sSelectedTab);
-        if (sIsExist !== -1 && sBoardList[sIsExist].code) {
-            if (typeof sBoardList[sIsExist].code === 'object') {
-                setText(JSON.stringify(sBoardList[sIsExist].code, null, 4));
-            } else {
-                setText(sBoardList[sIsExist].code);
-            }
+        if (typeof pCode === 'object') {
+            setText(JSON.stringify(pCode, null, 4));
+        } else {
+            setText(pCode);
         }
         setCurrentLang(pLang);
     }, []);
