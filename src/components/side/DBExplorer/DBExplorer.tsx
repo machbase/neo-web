@@ -10,19 +10,57 @@ const DBExplorer = ({ pServer }: any) => {
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sShowHiddenObj, setShowHiddenObj] = useState(true);
 
+    const TableTypeConverter = (aType: number): string => {
+        switch (aType) {
+            case 0:
+                return 'log';
+            case 1:
+                return 'fixed';
+            case 3:
+                return 'volatile';
+            case 4:
+                return 'lookup';
+            case 5:
+                return 'keyValue';
+            case 6:
+                return 'tag';
+            default:
+                return '';
+        }
+    };
+
     const init = async (aEvent?: any) => {
         if (aEvent) aEvent.stopPropagation();
         const sData = await getTableList();
-        setDBList(
-            sData.data.rows.map((aItem: (string | number)[]) => {
-                return { info: aItem, child: [] };
-            })
-        );
+        const DB_NAME_LIST: string[] = Array.from(new Set(sData.data.rows.map((aRow: any) => aRow[0])));
+        if (DB_NAME_LIST.length > 0 && DB_NAME_LIST.includes('MACHBASEDB')) DB_NAME_LIST.unshift(...DB_NAME_LIST.splice(DB_NAME_LIST.indexOf('MACHBASEDB'), 1));
+        let DB_LIST: any = [];
+        DB_NAME_LIST
+            ? (DB_LIST = DB_NAME_LIST.map((aName: string) => {
+                  return {
+                      dbName: aName,
+                      tableList: {
+                          log: [], // Log 0
+                          fixed: [], // Fixed 1
+                          volatile: [], // Volatile 3
+                          lookup: [], // Lookup 4
+                          keyValue: [], // Key Value 5
+                          tag: [], // Tag 6
+                      },
+                  };
+              }))
+            : null;
+        sData.data.rows.map((bRow: any) => {
+            DB_LIST.map((aDB: any, aIdx: number) => {
+                if (aDB.dbName === bRow[0])
+                    bRow[1] === 'SYS' ? DB_LIST[aIdx].tableList[TableTypeConverter(bRow[4])].unshift(bRow) : DB_LIST[aIdx].tableList[TableTypeConverter(bRow[4])].push(bRow);
+            });
+        });
+        setDBList(DB_LIST);
     };
 
     const setHiddenObj = (aEvent: any) => {
         aEvent.stopPropagation();
-
         setShowHiddenObj(!sShowHiddenObj);
     };
 
@@ -36,7 +74,7 @@ const DBExplorer = ({ pServer }: any) => {
                 <span>machbase-neo {pServer && pServer.version}</span>
             </div>
             <div className="side-sub-title editors-title" onClick={() => setCollapseTree(!sCollapseTree)}>
-                <div className="collapse-icon">{sCollapseTree ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
+                <div className="collapse-icon">{sCollapseTree ? <VscChevronDown /> : <VscChevronRight />}</div>
 
                 <div className="files-open-option">
                     <span className="title-text">DB EXPLORER</span>
@@ -50,8 +88,8 @@ const DBExplorer = ({ pServer }: any) => {
                 {sCollapseTree &&
                     sDBList &&
                     sDBList.length !== 0 &&
-                    sDBList.map((aTable: any, aIdx: number) => {
-                        return <TableInfo pShowHiddenObj={sShowHiddenObj} key={aIdx} pValue={aTable} pDBList={sDBList} pSetDBList={setDBList}></TableInfo>;
+                    sDBList.map((aDB: any, aIdx: number) => {
+                        return <TableInfo pShowHiddenObj={sShowHiddenObj} key={aIdx} pValue={aDB} pDBList={sDBList} pSetDBList={setDBList} />;
                     })}
             </div>
         </div>

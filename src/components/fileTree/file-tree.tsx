@@ -668,7 +668,8 @@ const FileDiv = ({
             resetRenameValue();
         } else resetRenameValue();
     };
-    const handleDragOver = () => {
+    const handleDragOver = (e: any) => {
+        e.preventDefault();
         if (file.type === 1 && !(file as any).isOpen) onDragOver(file.path + file.name + '-' + file.depth);
         else onDragOver('');
     };

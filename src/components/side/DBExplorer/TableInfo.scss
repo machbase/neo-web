@@ -1,0 +1,115 @@
+.db-exp-comm {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-pack: justify;
+    -webkit-justify-content: space-between;
+    justify-content: space-between;
+    font-size: 13px;
+    .icons {
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: -ms-flexbox;
+        width: 16px;
+        height: 22px;
+        margin-right: 6px;
+        -webkit-box-pack: center;
+        -ms-flex-pack: center;
+        -webkit-justify-content: center;
+        justify-content: center;
+        -webkit-align-items: center;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        svg {
+            width: 16px;
+        }
+        .fill-enable {
+            fill: #00ff00;
+        }
+        .fill-disable {
+            fill: #ff0000;
+        }
+    }
+}
+.db-wrap {
+    padding-left: 16px;
+    cursor: pointer;
+
+    .db-folder-wrap {
+        display: flex;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        word-break: break-all;
+
+        &-name {
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+    }
+}
+.db-wrap:hover {
+    background-color: #242424;
+}
+.table-wrap {
+    flex-direction: column;
+
+    &-label {
+        &-content {
+            padding-left: 52px;
+            cursor: default;
+            font-size: 14px;
+            opacity: 0.9;
+            color: #f0f18e;
+        }
+    }
+
+    &-content {
+        .table-column-wrap {
+            padding-left: 36px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            cursor: pointer;
+
+            .table-column-l {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+            }
+        }
+        .table-column-wrap:hover {
+            background-color: #242424;
+        }
+        .table-type {
+            font-size: 12px;
+            opacity: 0.8;
+            padding-right: 4px;
+            white-space: nowrap;
+            color: #8c8c8c;
+        }
+
+        .table-column-content {
+            display: flex;
+            flex-direction: row;
+            cursor: default;
+            padding-left: 52px;
+
+            &-row {
+                width: 100%;
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                cursor: default;
+            }
+        }
+        .table-column-content:hover {
+            background-color: #242424;
+        }
+    }
+}
