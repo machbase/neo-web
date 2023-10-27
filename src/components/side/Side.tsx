@@ -144,6 +144,7 @@ any) => {
     };
 
     const onSelect = async (file: FileType) => {
+        closeContextMenu();
         const sTmpId = getId();
         const sExistBoard = getExistBoard(file);
         if (sExistBoard) {
@@ -191,6 +192,7 @@ any) => {
     };
 
     const onFetchDir = async (aSelectedDir: FileTreeType, aIsOpen: boolean) => {
+        closeContextMenu();
         if (!sIsFetch) {
             setIsFetch(true);
             let sReturn = null;
