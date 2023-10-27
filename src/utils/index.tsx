@@ -99,3 +99,7 @@ export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
         }
     });
 };
+
+export const isEmpty = (aArr: any) => {
+    return Array.isArray(aArr) && aArr.length === 0;
+};

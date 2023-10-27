@@ -346,7 +346,7 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
             if (sPanelRange.startTime) fetchPanelData(sPanelRange);
             if (sPanelRange.startTime) fetchNavigatorData(sNavigatorRange);
         }
-    }, [pPanelInfo]);
+    }, [pPanelInfo, sSelectedTab]);
 
     useEffect(() => {
         if (pBoardInfo.id === sSelectedTab) {

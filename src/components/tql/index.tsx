@@ -13,13 +13,14 @@ import { AiOutlineFileDone, AiOutlineFileMarkdown, BarChart, Save, VscJson, PiFi
 import { IconButton } from '../buttons/IconButton';
 
 interface TqlProps {
+    pCode: string;
     setIsSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
     pHandleSaveModalOpen: any;
     pSetDragStat: any;
 }
 
 const Tql = (props: TqlProps) => {
-    const { pHandleSaveModalOpen, setIsSaveModal, pSetDragStat } = props;
+    const { pCode, pHandleSaveModalOpen, setIsSaveModal, pSetDragStat } = props;
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
@@ -33,13 +34,12 @@ const Tql = (props: TqlProps) => {
     const [sTextField, setTextField] = useState<string>('');
     const [sIsPrettier, setIsPrettier] = useState<boolean>(false);
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
+    const [sCurrentLang, setCurrentLang] = useState<string>('');
     const setConsoleList = useSetRecoilState<any>(gConsoleList);
 
     useEffect(() => {
-        const sIsExist = sBoardList.findIndex((aItem) => aItem.id === sSelectedTab);
-        if (sIsExist !== -1 && sBoardList[sIsExist].code) {
-            setText(sBoardList[sIsExist].code);
-        }
+        setText(pCode);
+        setCurrentLang('go');
     }, []);
 
     const handleSplitVertical = () => {
@@ -178,7 +178,7 @@ const Tql = (props: TqlProps) => {
                         </div>
                     </div>
                     <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
-                        <MonacoEditor pText={sText} pLang="go" onSelectLine={() => null} onChange={handleChangeText} onRunCode={getTqlData} />
+                        <MonacoEditor pText={sText} pLang={sCurrentLang} onSelectLine={() => null} onChange={handleChangeText} onRunCode={getTqlData} />
                     </div>
                 </Pane>
                 <Pane style={{ overflow: 'initial' }}>
