@@ -1,5 +1,6 @@
 const sScriptFileUrl = [
     `/web/echarts/echarts.min.js`,
+    `/web/echarts/echarts@4.min.js`,
     `/web/echarts/echarts-gl.min.js`,
     `/web/echarts/echarts-liquidfill.min.js`,
     `/web/echarts/echarts-wordcloud.min.js`,
