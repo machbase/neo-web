@@ -1,8 +1,6 @@
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import type { OnChange } from '@monaco-editor/react';
-import { useRecoilValue } from 'recoil';
-import { gSelectedTab } from '@/recoil/recoil';
 import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 import './MonacoScrollBarTrack.scss';
 export interface MonacoEditorProps {
@@ -23,8 +21,6 @@ export interface MonacoEditorProps {
 export const MonacoEditor = (props: MonacoEditorProps) => {
     const { pText, pLang, onChange, onRunCode, onSelectLine, setLineHeight } = props;
     const sMonaco = useMonaco();
-    const sSelectedTab = useRecoilValue(gSelectedTab);
-    const [sCurrnetTab, setCurrentTab] = useState<any>();
     const [sEditor, setEditor] = useState<any>(null);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
     const monacoRef = useRef<HTMLDivElement>(null);
@@ -50,10 +46,6 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
     };
 
     useEffect(() => {
-        setCurrentTab(sSelectedTab);
-    }, []);
-
-    useEffect(() => {
         if (!sMonaco) return;
         setCurrentLang(pLang);
     }, [pLang]);
@@ -77,11 +69,8 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
 
     useEffect(() => {
         if (!sMonaco) return;
-        const sId = sCurrnetTab === undefined ? sSelectedTab : sCurrnetTab;
-        if (sId === sSelectedTab) {
-            applyRunCode(pText);
-        }
-    }, [sMonaco, pText, sSelectedTab]);
+        applyRunCode(pText);
+    }, [sMonaco, pText]);
 
     useEffect(() => {
         if (sEditor) {
