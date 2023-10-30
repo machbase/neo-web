@@ -75,7 +75,6 @@ const DBExplorer = ({ pServer }: any) => {
             </div>
             <div className="side-sub-title editors-title" onClick={() => setCollapseTree(!sCollapseTree)}>
                 <div className="collapse-icon">{sCollapseTree ? <VscChevronDown /> : <VscChevronRight />}</div>
-
                 <div className="files-open-option">
                     <span className="title-text">DB EXPLORER</span>
                     <span className="sub-title-navi">

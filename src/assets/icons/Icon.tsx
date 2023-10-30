@@ -79,7 +79,7 @@ export { FiSearch as Search, FiMonitor as Monitor } from 'react-icons/fi';
 
 export { TbParachute, TbRowInsertTop as InsertRowTop, TbFolderPlus, TbFolderDown, TbFolder, TbCloudDown, TbEyeMinus } from 'react-icons/tb';
 
-export { IoIosCopy as Copy } from 'react-icons/io';
+export { IoIosCopy as Copy, IoIosArrowForward } from 'react-icons/io';
 
 export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase } from 'react-icons/go';
 
@@ -89,6 +89,8 @@ export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calend
 
 export { FaFolderOpen as FolderOpen, FaFolder as Folder, FaArrowRotateRight as Refresh, FaGear as GearFill, FaDatabase } from 'react-icons/fa6';
 
-export { BsGit } from 'react-icons/bs';
+export { BsGit, BsTable } from 'react-icons/bs';
 
 export { CgRename as Rename } from 'react-icons/cg';
+
+export { TfiLayoutColumn3Alt } from 'react-icons/tfi';

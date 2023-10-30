@@ -77,8 +77,9 @@ const getColumnIndexInfo = async (aDataBaseId: string, aTableId: string) => {
         url: queryString,
     });
 };
-const getRollupTable = async (aTableName: string) => {
-    const queryString = `/machbase?q=select root_table, interval_time, rollup_table, enabled from v$rollup where root_table='${aTableName}' group by root_table, enabled, interval_time, rollup_table order by interval_time asc`;
+const getRollupTable = async (aTableName: string, aUserName: string) => {
+    // select root_table, interval_time, rollup_table, enabled, m.name as user_name from v$rollup as v, m$sys_users as m where v.user_id=m.user_id and m.name='${aUserName}' and root_table='${aTableName}' group by user_name, root_table, enabled, interval_time, rollup_table order by interval_time asc;
+    const queryString = `/machbase?q=select root_table, interval_time, rollup_table, enabled, m.name as user_name from v$rollup as v, m$sys_users as m where v.user_id=m.user_id and m.name='${aUserName}' and root_table='${aTableName}' group by user_name, root_table, enabled, interval_time, rollup_table order by interval_time asc`;
     return await request({
         method: 'GET',
         url: queryString,
