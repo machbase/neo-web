@@ -200,6 +200,20 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                                 </span>
                                                 {bItem.level && <span style={{ color: setColor(bItem.level), whiteSpace: 'nowrap', minWidth: '35px' }}>{bItem.level}</span>}
                                                 {bItem.task && <span style={{ whiteSpace: 'nowrap' }}>{bItem.task}</span>}
+                                                {bItem.repeat && (
+                                                    <div
+                                                        style={{
+                                                            background: setColor(bItem.level),
+                                                            borderRadius: '40%',
+                                                            fontSize: '12px',
+                                                            padding: '0 5px 0 3px',
+                                                            display: 'flex',
+                                                            justifyContent: 'center',
+                                                        }}
+                                                    >
+                                                        {bItem.repeat}
+                                                    </div>
+                                                )}
                                                 <span>{bItem.message}</span>
                                             </div>
                                         );
