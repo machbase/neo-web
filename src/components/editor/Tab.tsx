@@ -50,33 +50,31 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
     };
 
     const compareValue = (aBoard: any) => {
-        if (pSelectedTab === aBoard.id) {
-            switch (aBoard.type) {
-                case 'sql':
-                case 'tql':
-                case 'json':
-                case 'csv':
-                case 'md':
-                case 'txt':
-                    setIsSaved(aBoard.code === pBoard.savedCode);
+        switch (aBoard.type) {
+            case 'sql':
+            case 'tql':
+            case 'json':
+            case 'csv':
+            case 'md':
+            case 'txt':
+                setIsSaved(aBoard.code === pBoard.savedCode);
+                break;
+            case 'wrk':
+                if (JSON.parse(pBoard.savedCode).data) {
+                    setIsSaved(`{"data":${JSON.stringify(aBoard.sheet)}}` === pBoard.savedCode);
                     break;
-                case 'wrk':
-                    if (JSON.parse(pBoard.savedCode).data) {
-                        setIsSaved(`{"data":${JSON.stringify(aBoard.sheet)}}` === pBoard.savedCode);
-                        break;
-                    } else {
-                        setIsSaved(JSON.stringify(aBoard.sheet) === pBoard.savedCode);
-                        break;
-                    }
-                case 'taz':
-                case 'new':
-                case 'term':
-                    setIsSaved(aBoard.savedCode === pBoard.savedCode);
+                } else {
+                    setIsSaved(JSON.stringify(aBoard.sheet) === pBoard.savedCode);
                     break;
-                default:
-                    setIsSaved(aBoard.code === pBoard.savedCode);
-                    break;
-            }
+                }
+            case 'taz':
+            case 'new':
+            case 'term':
+                setIsSaved(aBoard.savedCode === pBoard.savedCode);
+                break;
+            default:
+                setIsSaved(aBoard.code === pBoard.savedCode);
+                break;
         }
         return;
     };
