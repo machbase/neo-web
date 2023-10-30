@@ -1,11 +1,9 @@
 import { getTableInfo, getColumnIndexInfo, getRollupTable } from '@/api/repository/api';
-// import { MuiFolderLayOut, MuiFolderLayOutOpen, MuiFolder, MuiFolderOpen } from '@/assets/icons/Mui';
 import { useState } from 'react';
 import { GoDotFill } from 'react-icons/go';
 import { FaDatabase } from 'react-icons/fa';
 import { TfiLayoutColumn3Alt } from 'react-icons/tfi';
 import { VscChevronRight } from 'react-icons/vsc';
-
 import './TableInfo.scss';
 
 const TableInfo = ({ pShowHiddenObj, pValue }: any) => {
@@ -220,7 +218,7 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                                                     <GoDotFill></GoDotFill>
                                                 </span>
                                                 <div className="table-column-content-row">
-                                                    <span>{bColumn[0]}</span>
+                                                    <span className="l-txt">{bColumn[0]}</span>
                                                     <div className="r-txt">
                                                         {getColumnType(bColumn[1] as number) + ' '}
                                                         {bColumn[1] === 5 && `(${bColumn[2]})`}
@@ -242,7 +240,7 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                                                 <GoDotFill></GoDotFill>
                                             </span>
                                             <div className="table-column-content-row">
-                                                <span>{aIndex[1]}</span>
+                                                <span className="l-txt">{aIndex[1]}</span>
                                                 <div className="r-txt">
                                                     <span>{getIndexType(aIndex[2] as number)}</span>
                                                     <span style={{ marginLeft: '3px' }}>({aIndex[0]})</span>
@@ -263,7 +261,7 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                                                 <GoDotFill className={`fill-${aRollup[3] === 1 ? 'enable' : 'disable'}`}></GoDotFill>
                                             </span>
                                             <div className="table-column-content-row">
-                                                <span>{aRollup[2]}</span>
+                                                <span className="l-txt">{aRollup[2]}</span>
                                                 <div className="r-txt">
                                                     <span style={{ marginLeft: '3px' }}>{aRollup[1]}ms</span>
                                                 </div>
