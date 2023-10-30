@@ -111,14 +111,13 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
                     `${sChartType}(size('${sRefClientWidth.current}px','${sRefClientHeight.current}px')${sTheme}${sSlider}${sMarkArea}, ` +
                     'seriesOptions(`{' +
                     `"name":"${sName}",` +
-                    `"label" : {"show" : true}, ` +
+                    `"label" : {"show" : false}, ` +
                     `"itemStyle" : {"color":"${pPanelInfo.series[i].color}"}, ` +
                     `"lineStyle" : {"width" : 1}` +
                     '}`), ' +
                     'globalOptions(`{' +
-                    `animation : true,` +
-                    `"xAxis": [ {"splitLine" : {"lineStyle" : { width: 0.8, opacity: 0.3 }}}]` +
-                    `"yAxis": [ {"splitLine" : {"lineStyle" : { width: 0.8, opacity: 0.3 }}}]` +
+                    `"xAxis": [ {"splitLine" : {show: false,"lineStyle" : { width: 0.8, opacity: 0.3 }}}]` +
+                    `"yAxis": [ {"splitLine" : {show: false, "lineStyle" : { width: 0.8, opacity: 0.3 }}}]` +
                     '`))'
             );
 
