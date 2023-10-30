@@ -50,10 +50,6 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
     };
 
     useEffect(() => {
-        setCurrentTab(sSelectedTab);
-    }, []);
-
-    useEffect(() => {
         if (!sMonaco) return;
         setCurrentLang(pLang);
     }, [pLang]);
@@ -77,11 +73,8 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
 
     useEffect(() => {
         if (!sMonaco) return;
-        const sId = sCurrnetTab === undefined ? sSelectedTab : sCurrnetTab;
-        if (sId === sSelectedTab) {
-            applyRunCode(pText);
-        }
-    }, [sMonaco, pText, sSelectedTab]);
+        applyRunCode(pText);
+    }, [sMonaco, pText]);
 
     useEffect(() => {
         if (sEditor) {
