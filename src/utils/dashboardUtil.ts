@@ -168,7 +168,7 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
         let useGroupBy = true;
 
         if (aInfo.useRollup) {
-            sTime = `${aInfo.time} ROLLUP ${aTime.IntervalValue} ${aTime.IntervalType}`;
+            sTime = `${aInfo.time} ROLLUP ${aTime.IntervalValue} ${aTime.IntervalType} AS TIME`;
         } else {
             let sRollupValue = 1;
             if (aTime.IntervalType === 'sec') {
