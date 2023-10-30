@@ -1,8 +1,6 @@
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import type { OnChange } from '@monaco-editor/react';
-import { useRecoilValue } from 'recoil';
-import { gSelectedTab } from '@/recoil/recoil';
 import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 import './MonacoScrollBarTrack.scss';
 export interface MonacoEditorProps {
