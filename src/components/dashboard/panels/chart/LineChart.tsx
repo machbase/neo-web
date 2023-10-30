@@ -81,7 +81,7 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
                 pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.end) : setUnitTime(sBoardTimeRange.end)
             );
 
-            const sTheme = `, theme('${pPanelInfo.theme ? pPanelInfo.theme : 'vintage'}')`;
+            const sTheme = `, theme('${pPanelInfo.theme ? pPanelInfo.theme : 'westeros'}')`;
             const sSlider = pPanelInfo.useDataZoom ? `, dataZoom('${pPanelInfo.dataZoomType}',${pPanelInfo.dataZoomMin},${pPanelInfo.dataZoomMax})` : '';
 
             const sName = pPanelInfo.series[i].useCustom
@@ -114,7 +114,12 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
                     `"label" : {"show" : true}, ` +
                     `"itemStyle" : {"color":"${pPanelInfo.series[i].color}"}, ` +
                     `"lineStyle" : {"width" : 1}` +
-                    '}`))'
+                    '}`), ' +
+                    'globalOptions(`{' +
+                    `animation : true,` +
+                    `"xAxis": [ {"splitLine" : {"lineStyle" : { width: 0.8, opacity: 0.3 }}}]` +
+                    `"yAxis": [ {"splitLine" : {"lineStyle" : { width: 0.8, opacity: 0.3 }}}]` +
+                    '`))'
             );
 
             if (!sResult.data.chartID) {
@@ -128,16 +133,12 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
                     sData.chartOption.series.push(sResult.data.chartOption.series[0]);
                 } else {
                     sIsReload.current = true;
-                    sResult.data.chartOption.xAxis[0] = { ...sResult.data.chartOption.xAxis[0], splitLine: { lineStyle: { width: 0.8, opacity: 0.3 } } };
-                    sResult.data.chartOption.yAxis[0] = { ...sResult.data.chartOption.yAxis[0], splitLine: { lineStyle: { width: 0.8, opacity: 0.3 } } };
                     sData = sResult.data;
                 }
             } else {
                 if (!sResult.data.chartOption.series || (sChartData.chartOption && !sChartData.chartOption.series)) {
                     sIsReload.current = true;
                 }
-                sResult.data.chartOption.xAxis[0] = { ...sResult.data.chartOption.xAxis[0], splitLine: { lineStyle: { width: 0.8, opacity: 0.3 } } };
-                sResult.data.chartOption.yAxis[0] = { ...sResult.data.chartOption.yAxis[0], splitLine: { lineStyle: { width: 0.8, opacity: 0.3 } } };
                 sData = sResult.data;
             }
         }

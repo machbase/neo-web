@@ -337,7 +337,7 @@ export const defaultTimeSeriesData = (aTable: any) => {
                 opacity: 0,
             },
         ],
-        theme: 'vintage',
+        theme: 'westeros',
         // otherInfo
         // showXTickline: true,
         // showYTickline: true,
