@@ -30,6 +30,7 @@ const DBExplorer = ({ pServer }: any) => {
     };
 
     const init = async (aEvent?: any) => {
+        setDBList([]);
         if (aEvent) aEvent.stopPropagation();
         const sData = await getTableList();
         const DB_NAME_LIST: string[] = Array.from(new Set(sData.data.rows.map((aRow: any) => aRow[0])));
