@@ -23,8 +23,6 @@ export interface MonacoEditorProps {
 export const MonacoEditor = (props: MonacoEditorProps) => {
     const { pText, pLang, onChange, onRunCode, onSelectLine, setLineHeight } = props;
     const sMonaco = useMonaco();
-    const sSelectedTab = useRecoilValue(gSelectedTab);
-    const [sCurrnetTab, setCurrentTab] = useState<any>();
     const [sEditor, setEditor] = useState<any>(null);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
     const monacoRef = useRef<HTMLDivElement>(null);
