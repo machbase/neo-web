@@ -1,5 +1,6 @@
 import request from '@/api/core';
 import { Error } from '@/components/toast/Toast';
+import { decodeJwt } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 // import { getTimeZoneValue } from '@/utils/utils';
 
@@ -70,6 +71,8 @@ const fetchTableName = async (aTable: any) => {
 const fetchCalculationData = async (params: any) => {
     const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue, Rollup, colName } = params;
 
+    const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
+    const sTableName = sCurrentUserName === ADMIN_ID ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
     const sName = colName.name;
     const sTime = colName.time;
     const sValue = colName.value;
@@ -105,7 +108,7 @@ const fetchCalculationData = async (params: any) => {
             sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
         }
 
-        sSubQuery = `select ${sCol} as mTime, ${CalculationMode}(${sValue}) as mValue from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
+        sSubQuery = `select ${sCol} as mTime, ${CalculationMode}(${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
         sMainQuery = `select to_timestamp(${sOnedayOversize}/1000000) as time, ${CalculationMode}(mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${
             Count * 1
         }`;
@@ -115,7 +118,7 @@ const fetchCalculationData = async (params: any) => {
         if (!Rollup) {
             sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
         }
-        sSubQuery = `select ${sCol} as mTime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
+        sSubQuery = `select ${sCol} as mTime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
         sMainQuery = `SELECT to_timestamp(${sOnedayOversize})/1000000 AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${
             Count * 1
         }`;
@@ -127,7 +130,7 @@ const fetchCalculationData = async (params: any) => {
             sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
         }
 
-        sSubQuery = `select ${sCol} as mTime, count(${sValue}) as mValue from ${Table} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
+        sSubQuery = `select ${sCol} as mTime, count(${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
         sMainQuery = `SELECT to_timestamp(${sOnedayOversize}/1000000) AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${Count * 1}`;
     }
 
@@ -141,9 +144,12 @@ const fetchCalculationData = async (params: any) => {
         url: queryString,
     });
     if (sData.status >= 400) {
-        Error(sData.data);
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
     }
-
     return sData;
 };
 
@@ -197,19 +203,44 @@ const fetchRawData = async (params: any) => {
         url: queryString,
     });
     if (sData.status >= 400) {
-        Error(sData.data);
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
     }
 
     return sData;
 };
 
-const fetchRangeData = async (Table: string, TagNames: string) => {
+const fetchRangeData = async (Table: string, TagNames: string, time: string) => {
+    const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
+    const sTableName = sCurrentUserName === ADMIN_ID ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=` + encodeURIComponent(`SELECT (min(time)) as MIN, (max(time)) as MAX FROM ${Table} WHERE name = '${TagNames}'`),
+        url: `/machbase?q=` + encodeURIComponent(`SELECT (min(${time})) as MIN, (max(${time})) as MAX FROM ${sTableName} WHERE name = '${TagNames}'`),
     });
     if (sData.status >= 400) {
-        Error(sData.data);
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
+    }
+    return sData;
+};
+
+const fetchOnMinMaxTable = async (table: string, userName: string) => {
+    const sData = await request({
+        method: 'GET',
+        url: `/machbase?q=` + encodeURIComponent(`select MIN(min_time), MAX(max_time) from ${userName}.v$${table}_stat`),
+    });
+    if (sData.status >= 400) {
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
     }
     return sData;
 };
@@ -225,7 +256,11 @@ const fetchRollupData = async (params: any) => {
         },
     });
     if (sData.status >= 400) {
-        Error(sData.data);
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
     }
     return sData;
 };
@@ -236,7 +271,11 @@ const fetchTablesData = async () => {
         url: `/api/tables`,
     });
     if (sData.status >= 400) {
-        Error(sData.data);
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
     }
 
     return sData;
@@ -262,18 +301,11 @@ const fetchRollUp = async (table: string) => {
         url: `/machiot/rollup/${table}`,
     });
     if (sData.status >= 400) {
-        Error(sData.data);
-    }
-    return sData;
-};
-
-const fetchOnMinMaxTable = async (table: string, tagName: string) => {
-    const sData = await request({
-        method: 'GET',
-        url: `/machbase?q=` + encodeURIComponent(`select (min(min_time)),(max(max_time)) from v$${table}_stat where name = '${tagName}'`),
-    });
-    if (sData.status >= 400) {
-        Error(sData.data);
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
     }
     return sData;
 };
@@ -283,26 +315,38 @@ const fetchOnRollupTable = async (table: string) => {
         url: `/machbase?q=select * from v$rollup where root_table = '${table}' and ENABLED = 1 `,
     });
     if (sData.status >= 400) {
-        Error(sData.data);
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
     }
     return sData;
 };
 const getRollupTableList = async () => {
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=select root_table, interval_time from v$rollup group by root_table, interval_time order by root_table asc, interval_time desc`,
+        url: `/machbase?q=select u.name as user_name, root_table, interval_time from v$rollup as v, m$sys_users as u where v.user_id = u.user_id group by root_table, interval_time, user_name order by root_table asc, interval_time desc`,
     });
     if (sData.status >= 400) {
-        Error(sData.data);
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
     }
     const sConvertArray: any = {};
     if (sData.data.rows && sData.data.rows.length > 0) {
-        sData.data.rows.map((aItem: any) => {
-            if (!sConvertArray[aItem[0]]) {
-                sConvertArray[aItem[0]] = [];
+        for (const [user, table, value] of sData.data.rows) {
+            if (!sConvertArray[user]) {
+                sConvertArray[user] = {};
             }
-            sConvertArray[aItem[0]].push(aItem[1]);
-        });
+            if (!sConvertArray[user][table]) {
+                sConvertArray[user][table] = [];
+            }
+            sConvertArray[user][table].push(value);
+        }
+
         return sConvertArray;
     } else {
         return [];
