@@ -57,22 +57,34 @@ const postLicense = (aItem: any) => {
 };
 
 const getTableList = async () => {
-    const queryString = `/machbase?q=SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, case a.DATABASE_ID  when -1 then 'MACHBASEDB' else d.MOUNTDB end as DB_NAME from M$SYS_TABLES a left join V$STORAGE_MOUNT_DATABASES d on a.DATABASE_ID = d.BACKUP_TBSID) as j where u.USER_ID = j.USER_ID order by j.NAME`;
-
+    const queryString = `/machbase?q=SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, case a.DATABASE_ID  when -1 then 'MACHBASEDB' else d.MOUNTDB end as DB_NAME from M$SYS_TABLES a left join V$STORAGE_MOUNT_DATABASES d on a.DATABASE_ID = d.BACKUP_TBSID) as j where u.USER_ID = j.USER_ID order by j.NAME`;
     return await request({
         method: 'GET',
         url: queryString,
     });
 };
-const getTableInfo = async (aTableId: string) => {
-    const queryString = `/machbase?q=select name, type, length, id from M$SYS_COLUMNS where table_id = ${aTableId} order by id`;
-
+const getTableInfo = async (aDataBaseId: string, aTableId: string) => {
+    const queryString = `/machbase?q=select name, type, length, id from M$SYS_COLUMNS where table_id = ${aTableId} and database_id = ${aDataBaseId} order by id`;
     return await request({
         method: 'GET',
         url: queryString,
     });
 };
-
+const getColumnIndexInfo = async (aDataBaseId: string, aTableId: string) => {
+    const queryString = `/machbase?q=select c.name as col_name, i.name as index_name, i.type as index_type from m$sys_index_columns c inner join m$sys_indexes i on c.database_id=i.database_id and c.table_id=i.table_id and c.index_id=i.id where c.database_id=${aDataBaseId} and c.table_id=${aTableId}`;
+    return await request({
+        method: 'GET',
+        url: queryString,
+    });
+};
+const getRollupTable = async (aTableName: string, aUserName: string) => {
+    // select root_table, interval_time, rollup_table, enabled, m.name as user_name from v$rollup as v, m$sys_users as m where v.user_id=m.user_id and m.name='${aUserName}' and root_table='${aTableName}' group by user_name, root_table, enabled, interval_time, rollup_table order by interval_time asc;
+    const queryString = `/machbase?q=select root_table, interval_time, rollup_table, enabled, m.name as user_name from v$rollup as v, m$sys_users as m where v.user_id=m.user_id and m.name='${aUserName}' and root_table='${aTableName}' group by user_name, root_table, enabled, interval_time, rollup_table order by interval_time asc`;
+    return await request({
+        method: 'GET',
+        url: queryString,
+    });
+};
 const getTutorial = (aUrl: any) => {
     return request({
         method: 'get',
@@ -100,4 +112,20 @@ const postShell = (aInfo: any) => {
     });
 };
 
-export { getFileList, postFileList, getLicense, getTableList, postLicense, deleteFileList, getReferenceList, getTutorial, postMd, copyShell, removeShell, postShell, getTableInfo };
+export {
+    getColumnIndexInfo,
+    getRollupTable,
+    getFileList,
+    postFileList,
+    getLicense,
+    getTableList,
+    postLicense,
+    deleteFileList,
+    getReferenceList,
+    getTutorial,
+    postMd,
+    copyShell,
+    removeShell,
+    postShell,
+    getTableInfo,
+};

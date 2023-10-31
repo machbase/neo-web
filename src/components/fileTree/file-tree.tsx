@@ -11,6 +11,7 @@ import { postFileList } from '@/api/repository/api';
 import { findItemByUniqueKey, findParentDirByUniqueKey } from '@/utils/file-manager';
 import useThrottle from '@/hooks/useThrottle';
 import { moveFile } from '@/api/repository/fileTree';
+import { FileNameValidator } from '@/utils/FileExtansion';
 
 interface FileTreeProps {
     rootDir: FileTreeType;
@@ -651,7 +652,7 @@ const FileDiv = ({
         if (e.code === 'Enter') {
             e.stopPropagation();
             if (sName && sName.length > 0) {
-                onRename(file, sName);
+                if (FileNameValidator(sName)) onRename(file, sName);
                 resetRenameValue();
             }
         }
@@ -663,11 +664,12 @@ const FileDiv = ({
     };
     const handleBlur = () => {
         if (sName && sName.length > 0) {
-            onRename(file, sName);
+            if (FileNameValidator(sName)) onRename(file, sName);
             resetRenameValue();
         } else resetRenameValue();
     };
-    const handleDragOver = () => {
+    const handleDragOver = (e: any) => {
+        e.preventDefault();
         if (file.type === 1 && !(file as any).isOpen) onDragOver(file.path + file.name + '-' + file.depth);
         else onDragOver('');
     };
@@ -728,7 +730,7 @@ const FileDiv = ({
                             <input
                                 type="text"
                                 value={sName}
-                                onChange={(e: any) => setName(e.target.value)}
+                                onChange={(e) => (FileNameValidator(e.target.value) ? setName(e.target.value) : null)}
                                 autoFocus
                                 onFocus={(e) => e.target.setSelectionRange(0, sName.length)}
                                 onBlur={handleBlur}
@@ -739,7 +741,7 @@ const FileDiv = ({
                         <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{file.name}</span>
                     )}
                 </div>
-                {(file as FileTreeType).gitClone ? GitIcon(file as FileTreeType, onRefresh) : null}
+                {(file as FileTreeType).gitClone && (file as FileTreeType).virtual ? GitIcon(file as FileTreeType, onRefresh) : null}
             </Div>
         </div>
     );

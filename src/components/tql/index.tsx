@@ -36,6 +36,7 @@ const Tql = (props: TqlProps) => {
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
     const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
+//    const setConsoleList = useSetRecoilState<any>(gConsoleList);
 
     useEffect(() => {
         setText(pCode);

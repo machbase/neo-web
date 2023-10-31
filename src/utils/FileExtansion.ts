@@ -11,11 +11,28 @@ export const FileType = [
     'taz',
     // 'dsh',
 ];
-
-export const FileTypeValidator = (aTxt: string): boolean => {
-    const FileRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9]+.{1}(${FileType.join('|')})$`, 'gm');
+// validator file name n extension
+export const FileNameAndExtensionValidator = (aTxt: string): boolean => {
+    const FileRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9_-]+\\.{1}(${FileType.join('|')}){1}$`, 'gm');
     return FileRegExp.test(aTxt);
 };
+// validator file name
+export const FileNameValidator = (aTxt: string): boolean => {
+    const FileRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\-\\_]*$`, 'gm');
+    return FileRegExp.test(aTxt);
+};
+// validator path root '/'
+export const PathRootValidator = (aTxt: string): boolean => {
+    if (aTxt.includes('..') || aTxt.includes('./') || aTxt.includes('/.')) return false;
+    const DoubleSlash = new RegExp(`//`, 'gm');
+    const BaseRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9]*`, 'gm');
+    const FileRegExp = aTxt.split('/').every((aItem) => {
+        if (aItem.includes('.')) return BaseRegExp.test(aItem.split('.')[1]);
+        else return FileNameValidator(aItem);
+    });
+    return FileRegExp && !DoubleSlash.test(aTxt);
+};
+
 // WRK
 export const FileWrkDfltVal = {
     data: [
