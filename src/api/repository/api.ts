@@ -63,8 +63,9 @@ const getTableList = async () => {
         url: queryString,
     });
 };
-const getTableInfo = async (aDataBaseId: string, aTableId: string) => {
-    const queryString = `/machbase?q=select name, type, length, id from M$SYS_COLUMNS where table_id = ${aTableId} and database_id = ${aDataBaseId} order by id`;
+const getTableInfo = async (aTableId: string) => {
+    const queryString = `/machbase?q=select name, type, length, id from M$SYS_COLUMNS where table_id = ${aTableId} order by id`;
+
     return await request({
         method: 'GET',
         url: queryString,

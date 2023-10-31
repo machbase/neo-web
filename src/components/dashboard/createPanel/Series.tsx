@@ -64,7 +64,7 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
 
     const getColumnList = async (aTable: string) => {
         const sTable = pTableList.find((aItem: any) => aItem[3] === aTable);
-        const sData = await getTableInfo(sTable[6], sTable[2]);
+        const sData = await getTableInfo(sTable[2]);
         setTimeList(sData.data.rows.filter((aItem: any) => aItem[1] === 6));
 
         pSetPanelOption((aPrev: any) => {
