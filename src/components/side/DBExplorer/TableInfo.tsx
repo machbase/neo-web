@@ -103,13 +103,73 @@ const TableInfo = ({ pShowHiddenObj, pValue, pSetDBList, pDBList }: any) => {
 
     return (
         <>
-            {startsWithUnderscore(pValue.info[3]) && (
-                <div className="file-wrap" style={{ alignItems: 'baseline' }} onClick={() => getTableInfoData()}>
-                    <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', wordBreak: 'break-all' }}>
-                        <span className="icons">{sCollapseTree ? <MuiFolderLayOutOpen /> : <MuiFolderLayOut />}</span>
-                        <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', margin: 'auto 0 auto 1px' }}>
-                            {pValue.info[3]}
-                        </span>
+            {columnNameList.map((aColumn: string, aIdx: number) => {
+                return (
+                    <div key={`${props.pKey}-columns-${aColumn}-${aIdx}`}>
+                        {aColumn === 'columns' && props.pColumnList.length > 0 && (
+                            <div key={`${props.pKey}-columns-columns-${aColumn}-${aIdx}-content`}>
+                                {!props.pShowHiddenObj && <LabelDiv pTxt={aColumn} />}
+                                {props.pColumnList.map((bColumn, bIdx: number) => {
+                                    return (
+                                        checkDisplay('column', bColumn) && (
+                                            <div className="table-column-content" key={`${props.pKey}-columns-${aColumn}-${aIdx}-${bColumn}-${bIdx}`}>
+                                                <span className="icons" style={{ marginRight: '2px', opacity: '0.5' }}>
+                                                    <GoDotFill></GoDotFill>
+                                                </span>
+                                                <div className="table-column-content-row">
+                                                    <span className="l-txt">{bColumn[0]}</span>
+                                                    <div className="r-txt">
+                                                        {getColumnType(bColumn[1] as number) + ' '}
+                                                        {bColumn[1] === 5 && `(${bColumn[2]})`}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    );
+                                })}
+                            </div>
+                        )}
+                        {aColumn === 'index' && props.pIndexList.length > 0 && checkDisplay('index') && (
+                            <div key={`${props.pKey}-columns-index-${aColumn}-${aIdx}-content`}>
+                                <LabelDiv pTxt={aColumn} />
+                                {props.pIndexList.map((aIndex, aIdx: number) => {
+                                    return (
+                                        <div className="table-column-content" key={`${props.pKey}-columns-index-${aColumn}-${aIndex}-${aIdx}`}>
+                                            <span className="icons" style={{ marginRight: '2px', opacity: '0.5' }}>
+                                                <GoDotFill></GoDotFill>
+                                            </span>
+                                            <div className="table-column-content-row">
+                                                <span className="l-txt">{aIndex[1]}</span>
+                                                <div className="r-txt">
+                                                    <span>{getIndexType(aIndex[2] as number)}</span>
+                                                    <span style={{ marginLeft: '3px' }}>({aIndex[0]})</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        {aColumn === 'rollup' && props.pRollupList.length > 0 && checkDisplay('rollup') && (
+                            <div key={`${props.pKey}-columns-rollup-${aColumn}-${aIdx}-content`}>
+                                <LabelDiv pTxt={aColumn} />
+                                {props.pRollupList.map((aRollup, aIdx: number) => {
+                                    return (
+                                        <div className="table-column-content" key={`${props.pKey}-columns-rollup-${aColumn}-${aRollup}-${aIdx}`}>
+                                            <span className="icons" style={{ marginRight: '2px', opacity: '0.5' }}>
+                                                <GoDotFill className={`fill-${aRollup[3] === 1 ? 'enable' : 'disable'}`}></GoDotFill>
+                                            </span>
+                                            <div className="table-column-content-row">
+                                                <span className="l-txt">{aRollup[2]}</span>
+                                                <div className="r-txt">
+                                                    <span style={{ marginLeft: '3px' }}>{aRollup[1]}ms</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                     <div style={{ fontSize: '12px', whiteSpace: 'nowrap', opacity: '0.4', paddingRight: '4px' }}>{getTableType(pValue.info[4])}</div>
                 </div>

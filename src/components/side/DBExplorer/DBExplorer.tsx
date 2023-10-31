@@ -13,12 +13,25 @@ const DBExplorer = ({ pServer }: any) => {
     const init = async (aEvent?: any) => {
         setDBList([]);
         if (aEvent) aEvent.stopPropagation();
-        const sData: any = await getTableList();
-        setDBList(
-            sData.data.rows.map((aItem: (string | number)[]) => {
-                return { info: aItem, child: [] };
-            })
-        );
+        const sData = await getTableList();
+        const DB_NAME_LIST: string[] = Array.from(new Set(sData.data.rows.map((aRow: any) => aRow[0])));
+        if (DB_NAME_LIST.length > 0 && DB_NAME_LIST.includes('MACHBASEDB')) DB_NAME_LIST.unshift(...DB_NAME_LIST.splice(DB_NAME_LIST.indexOf('MACHBASEDB'), 1));
+        let DB_LIST: any = [];
+        DB_NAME_LIST
+            ? (DB_LIST = DB_NAME_LIST.map((aName: string) => {
+                  return {
+                      dbName: aName,
+                      tableList: { log: [], fixed: [], volatile: [], lookup: [], keyValue: [], tag: [] },
+                  };
+              }))
+            : null;
+        sData.data.rows.map((bRow: any) => {
+            DB_LIST.map((aDB: any, aIdx: number) => {
+                if (aDB.dbName === bRow[0])
+                    bRow[1] === 'SYS' ? DB_LIST[aIdx].tableList[TableTypeConverter(bRow[4])].unshift(bRow) : DB_LIST[aIdx].tableList[TableTypeConverter(bRow[4])].push(bRow);
+            });
+        });
+        setDBList(DB_LIST);
     };
 
     const setHiddenObj = (aEvent: any) => {
