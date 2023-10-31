@@ -1,0 +1,151 @@
+.db-exp-comm {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-pack: justify;
+    -webkit-justify-content: space-between;
+    justify-content: space-between;
+    font-size: 13px;
+    .icons {
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: -ms-flexbox;
+        width: 16px;
+        height: 22px;
+        margin-right: 6px;
+        -webkit-box-pack: center;
+        -ms-flex-pack: center;
+        -webkit-justify-content: center;
+        justify-content: center;
+        -webkit-align-items: center;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        svg {
+            width: 16px;
+        }
+        .fill-enable {
+            fill: #00ff00;
+        }
+        .fill-disable {
+            fill: #ff0000;
+        }
+    }
+}
+.db-wrap {
+    padding: 2px 16px 2px 16px;
+    overflow: hidden;
+    cursor: pointer;
+
+    .db-folder-wrap {
+        display: flex;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        word-break: break-all;
+
+        &-name {
+            margin-top: 3px;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+    }
+}
+.db-wrap:hover {
+    background-color: #242424;
+}
+.table-wrap {
+    flex-direction: column;
+
+    &-label {
+        &-content {
+            padding-left: 52px;
+            cursor: default;
+            font-size: 14px;
+            color: #c4cae1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    &-content {
+        .table-column-wrap {
+            padding-left: 36px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+
+            cursor: pointer;
+
+            .table-column-l {
+                display: flex;
+                flex-direction: row;
+                align-items: end;
+                overflow: hidden;
+                text-overflow: ellipsis;
+
+                .table-name {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+            }
+        }
+        .table-column-wrap:hover {
+            background-color: #242424;
+        }
+        .table-type {
+            font-size: 14px;
+            padding-right: 4px;
+            white-space: nowrap;
+            color: #8c8c8c;
+        }
+
+        .table-column-content {
+            display: flex;
+            flex-direction: row;
+            cursor: default;
+            padding-left: 52px;
+
+            &-row {
+                width: 100%;
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                cursor: default;
+                .l-txt {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+        .table-column-content:hover {
+            background-color: #242424;
+        }
+    }
+    .r-txt {
+        font-size: 14px;
+        color: #939498;
+        margin-right: 4px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        word-break: break-all;
+        overflow: hidden;
+        margin-left: 10px;
+    }
+}
+.db-exp-arrow {
+    width: 12px;
+    height: 22px;
+    min-width: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 4px;
+}
+.db-exp-arrow-bottom {
+    rotate: 90deg;
+}

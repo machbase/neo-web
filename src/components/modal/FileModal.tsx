@@ -8,7 +8,7 @@ import Modal from './Modal';
 import './FileModal.scss';
 import { postFileList } from '@/api/repository/api';
 import useDebounce from '@/hooks/useDebounce';
-import { FileTazDfltVal, FileTypeValidator, FileWrkDfltVal } from '@/utils/FileExtansion';
+import { FileNameAndExtensionValidator, FileTazDfltVal, FileWrkDfltVal, PathRootValidator } from '@/utils/FileExtansion';
 
 export interface FileModalProps {
     setIsOpen: any;
@@ -18,10 +18,9 @@ export interface FileModalProps {
 
 export const FileModal = (props: FileModalProps) => {
     const { setIsOpen, pIsDarkMode, pCallback } = props;
-    const [sFileName, setFileName] = useState<string>('');
     const sRecentDirectory = useRecoilValue(gRecentDirectory);
     const [sFilePath, setFilePath] = useState<string>('');
-    const [sValResult, setValResut] = useState<boolean>(false);
+    const [sValResult, setValResut] = useState<boolean>(true);
     const sInputRef = useRef<HTMLInputElement>(null);
 
     const handleClose = () => {
@@ -29,30 +28,25 @@ export const FileModal = (props: FileModalProps) => {
     };
 
     const handleSave = async () => {
-        if (!sFileName) return;
-        let sPath = '';
-        const sDirectoryList = (sRecentDirectory as string).split('/').filter((aDir: string) => aDir);
-        const fileName = sFileName.split('.');
+        if (!sFilePath || sFilePath === '') return;
+        const fileName = (sFilePath.split('/').at(-1) as string).split('.');
         const parsedExtension = fileName[1].toLowerCase();
         let sPayload: any = undefined;
 
-        if (sDirectoryList.length > 0) {
-            sPath = sDirectoryList.join('/') + '/' + fileName[0] + '.' + parsedExtension;
-        } else sPath = fileName[0] + '.' + parsedExtension;
         if (parsedExtension.includes('wrk')) sPayload = FileWrkDfltVal;
         if (parsedExtension.includes('taz')) sPayload = FileTazDfltVal;
 
-        const sResult: any = await postFileList(sPayload, '', sPath);
+        const sResult: any = await postFileList(sPayload, '', sFilePath);
         if (sResult && sResult.success) {
             pCallback();
             handleClose();
         } else {
-            console.error('');
+            setValResut(false);
         }
     };
 
     const handlefileName = () => {
-        setValResut(FileTypeValidator(sFileName.toLowerCase()));
+        setValResut(FileNameAndExtensionValidator((sFilePath.split('/').at(-1) as string).toLowerCase()));
     };
 
     const handleEnter = (e: any) => {
@@ -63,7 +57,16 @@ export const FileModal = (props: FileModalProps) => {
         }
     };
 
-    useDebounce([sFileName], handlefileName);
+    const pathHandler = (e: any) => {
+        if (e.target.value === '') return setFilePath('/');
+        if (!e.nativeEvent.data && sFilePath === '/') return;
+        if (!PathRootValidator(e.target.value)) return;
+        if (e.target.value[0] !== '/') return;
+
+        setFilePath(e.target.value);
+    };
+
+    useDebounce([sFilePath], handlefileName);
 
     useEffect(() => {
         if (setIsOpen) {
@@ -90,16 +93,16 @@ export const FileModal = (props: FileModalProps) => {
                 </Modal.Header>
                 <Modal.Body>
                     <div className={`${pIsDarkMode ? 'file-dark' : 'file'}`}>
-                        <div className={`file-${pIsDarkMode ? 'dark-' : ''}header`}>{sFileName && sFileName.length > 0 ? sFilePath + sFileName : sFilePath}</div>
+                        <div className={`file-${pIsDarkMode ? 'dark-' : ''}header`}>{sFilePath}</div>
                         <div className={`file-${pIsDarkMode ? 'dark-' : ''}content`}>
                             <div className={`file-${pIsDarkMode ? 'dark-' : ''}content-name`}>
                                 <div className={`file-${pIsDarkMode ? 'dark-' : ''}content-name-wrap`}>
                                     <span>Name</span>
                                 </div>
                                 <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark' : ''}`}>
-                                    <input ref={sInputRef} onChange={(e: any) => setFileName(e.target.value)} value={sFileName} onKeyDown={handleEnter} />
+                                    <input ref={sInputRef} onChange={pathHandler} value={sFilePath} onKeyDown={handleEnter} />
                                 </div>
-                                {sValResult ? null : <div className={`file-${pIsDarkMode ? 'dark-' : ''}val-result-false`}> {'* Please check name.'}</div>}
+                                {sValResult ? null : <div className={`file-${pIsDarkMode ? 'dark-' : ''}val-result-false`}> {'* Please check name and path.'}</div>}
                             </div>
                         </div>
                     </div>
