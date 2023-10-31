@@ -1,7 +1,7 @@
 import { getTqlChart } from '@/api/repository/machiot';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { drawChart } from '@/plugin/eCharts';
-import { addTimeToString, calcInterval, calcRefreshTime, createQuery, setUnitTime } from '@/utils/dashboardUtil';
+import { calcInterval, calcRefreshTime, createQuery, setUnitTime } from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
 import './LineChart.scss';
 

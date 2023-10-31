@@ -61,6 +61,7 @@ const DatePicker = ({ pTimeValue, pSetApply, onChange, pTopPixel }: any) => {
                                 <MultiSectionDigitalClock
                                     className="time-clock"
                                     onChange={(aValue: any, state: any, view: any) => {
+                                        state;
                                         if (view === 'hours') {
                                             setHours(aValue.$H);
                                         } else if (view === 'minutes') {

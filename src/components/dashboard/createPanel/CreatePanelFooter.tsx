@@ -2,7 +2,7 @@ import './CreatePanelFooter.scss';
 import Series from './Series';
 import { useState } from 'react';
 import { PlusCircle } from '@/assets/icons/Icon';
-import { refreshTimeList, tagTableValue } from '@/utils/dashboardUtil';
+import { refreshTimeList } from '@/utils/dashboardUtil';
 import DatePicker from '@/components/datePicker/DatePicker';
 
 import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';

@@ -223,7 +223,15 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
             pSetPanelOption({
                 ...pPanelOption,
                 series: pPanelOption.series.map((aItem: any) => {
-                    return aItem.id === pSeriesInfo.id ? { ...aItem, values: aItem.values.filter((aItem: any, aIdx: number) => aIdx === 0) } : aItem;
+                    return aItem.id === pSeriesInfo.id
+                        ? {
+                              ...aItem,
+                              values: aItem.values.filter((aItem: any, aIdx: number) => {
+                                  aItem;
+                                  return aIdx === 0;
+                              }),
+                          }
+                        : aItem;
                 }),
             });
     }, [sSelectedTableType]);

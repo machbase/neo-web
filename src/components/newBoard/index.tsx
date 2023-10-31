@@ -103,6 +103,8 @@ const NewBoard = (props: NewBoardProps) => {
             case 'taz':
                 return icons('taz', true);
                 break;
+            case 'dsh':
+                return icons('dsh', true);
             default:
                 return icons('none', true);
                 break;

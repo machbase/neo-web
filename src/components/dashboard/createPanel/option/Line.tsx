@@ -1,4 +1,4 @@
-import { Close, Delete, PlusCircle } from '@/assets/icons/Icon';
+import { Delete, PlusCircle } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';

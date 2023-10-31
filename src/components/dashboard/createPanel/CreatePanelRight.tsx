@@ -4,7 +4,6 @@ import { Select } from '@/components/inputs/Select';
 import { useState } from 'react';
 import './CreatePanelRight.scss';
 import Line from './option/Line';
-import CheckBox from '@/components/inputs/CheckBox';
 
 const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
     const [sPanelOptionCollapse, setPanelOptionCollapse] = useState(true);

@@ -1,4 +1,3 @@
-import { NONAME } from 'dns';
 import { getId } from '.';
 
 export const convertToMachbaseIntervalMs = (intervalMs: number) => {
@@ -21,16 +20,6 @@ export const convertToMachbaseIntervalMs = (intervalMs: number) => {
         unit = 'day';
     }
     return ms + ' ' + unit;
-};
-
-export const isNumberType = (type: number) => {
-    const colType = ColumnType.find((item) => item.key === type);
-    const Numbers = ['SHORT', 'INTEGER', 'LONG', 'FLOAT', 'DOUBLE', 'USHORT', 'UINTEGER', 'ULONG'];
-    if (colType && Numbers.some((item) => item === colType.value)) {
-        return true;
-    } else {
-        return false;
-    }
 };
 
 export const checkValueBracket = (value: string) => {
