@@ -2,7 +2,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { MultiSectionDigitalClock } from '@mui/x-date-pickers/MultiSectionDigitalClock';
-import './datePicker.scss';
+import './DatePicker.scss';
 import { TextButton } from '../buttons/TextButton';
 import { IconButton } from '../buttons/IconButton';
 import { Calendar } from '@/assets/icons/Icon';
