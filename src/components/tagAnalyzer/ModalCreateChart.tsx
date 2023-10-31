@@ -6,9 +6,9 @@ import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab, gTables } from '@/recoil/recoil';
 import { fetchOnMinMaxTable, fetchRangeData, fetchTableName, fetchTags } from '@/api/repository/machiot';
-import { DEFAULT_CHART } from '@/utils/constants';
+import { ADMIN_ID, DEFAULT_CHART } from '@/utils/constants';
 import { convertChartDefault } from '@/utils/utils';
-import { getId } from '@/utils';
+import { decodeJwt, getId } from '@/utils';
 import { BiSolidChart, Close, Search, ArrowLeft, ArrowRight } from '@/assets/icons/Icon';
 import { Error } from '@/components/toast/Toast';
 import { TextButton } from '../buttons/TextButton';
@@ -107,11 +107,16 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
 
         let sMinMax;
 
-        const sRes: any = await fetchOnMinMaxTable(sSelectedTag[0].table, sSelectedTag[0].tagName);
-        if (sRes.data.rows[0]) {
+        const sTime = sSelectedTag[0].colName.time;
+        const sSplitTableName = sSelectedTag[0].table.split('.');
+
+        if (sSplitTableName.length === 3) {
+            const sRes: any = await fetchRangeData(sSelectedTag[0].table, sSelectedTag[0].tagName, sTime);
             sMinMax = sRes.data;
         } else {
-            const sRes: any = await fetchRangeData(sSelectedTag[0].table, sSelectedTag[0].tagName);
+            const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
+            const sUserName = sCurrentUserName === ADMIN_ID ? ADMIN_ID : sSplitTableName.length === 1 ? sCurrentUserName : sSplitTableName[0];
+            const sRes: any = await fetchOnMinMaxTable(sSplitTableName[sSplitTableName.length - 1], sUserName);
             sMinMax = sRes.data;
         }
 
@@ -169,13 +174,12 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
     const setTag = async (aValue: any) => {
         const sResult: any = await fetchTableName(sSelectedTable);
         const sData = sResult.data;
-        const sSplitTableName = sSelectedTable.indexOf('.') === -1 ? sSelectedTable : sSelectedTable.split('.')[sSelectedTable.split('.').length - 1];
         setSelectedTag([
             ...sSelectedTag,
             {
                 key: getId(),
                 tagName: aValue,
-                table: sSplitTableName,
+                table: sSelectedTable,
                 calculationMode: 'avg',
                 alias: '',
                 weight: 1.0,
