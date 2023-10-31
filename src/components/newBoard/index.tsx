@@ -37,6 +37,7 @@ const NewBoard = (props: NewBoardProps) => {
             extension === 'sql' ||
             extension === 'tql' ||
             extension === 'taz' ||
+            extension === 'dsh' ||
             extension === 'json' ||
             extension === 'csv' ||
             extension === 'md' ||
@@ -50,7 +51,7 @@ const NewBoard = (props: NewBoardProps) => {
     const uploadFile = (aFileInfo: any, aFileValue: string) => {
         const sTypeOption = extractionExtension(aFileInfo.name);
 
-        if (sTypeOption === 'taz') {
+        if (sTypeOption === 'taz' || sTypeOption === 'dsh') {
             setBoardList(
                 sBoardList.map((aItem: any) => {
                     return aItem.id === sSelectedTab ? { ...JSON.parse(aFileValue), id: aItem.id } : aItem;
@@ -102,6 +103,8 @@ const NewBoard = (props: NewBoardProps) => {
             case 'taz':
                 return icons('taz', true);
                 break;
+            case 'dsh':
+                return icons('dsh', true);
             default:
                 return icons('none', true);
                 break;
@@ -121,6 +124,14 @@ const NewBoard = (props: NewBoardProps) => {
                           sheet: [],
                           savedCode: false,
                           shell: { icon: aValue.icon, theme: aValue.theme ? aValue.theme : '', id: aValue.id ? aValue.id : 'SHELL' },
+                          dashboard: {
+                              timeRange: {
+                                  start: 'now-30m',
+                                  end: 'now',
+                                  refresh: 'Off',
+                              },
+                              panels: [],
+                          },
                       }
                     : bItem;
             })
@@ -160,7 +171,7 @@ const NewBoard = (props: NewBoardProps) => {
                     onDrop={(aEvent: any) => updateFile(aEvent, 'drag')}
                     style={{ position: 'relative' }}
                 >
-                    <input onChange={(aEvent: any) => updateFile(aEvent, 'click')} accept=".wrk,.sql,.tql,.taz" className="uploader" type="file" />
+                    <input onChange={(aEvent: any) => updateFile(aEvent, 'click')} accept=".wrk,.sql,.tql,.taz,.dsh" className="uploader" type="file" />
                     <div
                         style={
                             sFileUploadStyle

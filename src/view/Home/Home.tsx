@@ -98,7 +98,7 @@ const Home = () => {
                 }
             });
 
-        setTabList(sResult.shells);
+        setTabList([...sResult.shells, { icon: 'file-document-outline', id: 'dsh', label: 'Dashboard', type: 'dsh' }]);
     };
 
     const setStatus = () => {
@@ -159,11 +159,16 @@ const Home = () => {
                                 split="horizontal"
                                 sizes={sTerminalSizes}
                                 onChange={setTerminalSizes}
-                                onDragEnd={() => setDragStat(false)}
-                                onDragStart={() => setDragStat(true)}
+                                onDragEnd={() => {
+                                    setDragStat(false);
+                                }}
+                                onDragStart={() => {
+                                    setDragStat(true);
+                                }}
                             >
                                 <Pane minSize={50}>
                                     <Body
+                                        pDragStat={sDragStat}
                                         pSetDragStat={setDragStat}
                                         pExtentionList={sTabList}
                                         pTerminalSizes={sTerminalSizes}

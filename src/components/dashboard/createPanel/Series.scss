@@ -1,0 +1,97 @@
+.chart-footer {
+    .series-title {
+        display: flex;
+        align-items: center;
+        // justify-content: center;
+        padding: 0.3rem 0.5rem;
+        border-radius: 4px;
+        position: relative;
+        font-size: 13px;
+        width: 70px;
+    }
+    .plus-wrap {
+        border: '1px solid #777777';
+        min-height: '50px';
+        border-radius: '4px';
+        padding: '8px';
+        display: 'flex';
+        justify-content: 'center';
+        flex-direction: 'column';
+        align-items: 'center';
+        cursor: pointer;
+        &:hover {
+            background-color: #262831;
+        }
+    }
+    .filter {
+        .operator {
+            display: flex;
+            align-items: center;
+            padding: 0.3rem 0.5rem;
+            border-radius: 4px;
+            position: relative;
+            font-size: 13px;
+            width: 86px;
+        }
+    }
+    .series {
+        margin-bottom: 6px;
+        .row {
+            border: 1px solid #777777;
+            min-height: 40px;
+            border-radius: 4px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            .row-header {
+                justify-content: space-between;
+                display: flex;
+                align-items: center;
+            }
+
+            .divider {
+                width: 100%;
+                height: 1px;
+                margin: auto 8px;
+                background-color: #3a3b44;
+            }
+            .row-header-left {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+            }
+            .row-header-left {
+            }
+            .row-header-right {
+                display: flex;
+                align-items: center;
+                .color-picker {
+                    z-index: 1;
+                    position: absolute;
+                    right: 0px;
+                    top: 14px;
+                    padding: 8px;
+                    border-radius: 4px;
+                }
+            }
+            .series-table {
+                display: flex;
+
+                align-items: center;
+                height: 32px;
+            }
+            .padding-4 {
+                padding: 0.3rem 0.5rem;
+            }
+        }
+        .details {
+            font-size: 14px;
+            display: flex;
+            .values {
+                align-items: center;
+                display: flex;
+                justify-content: space-between;
+            }
+        }
+    }
+}

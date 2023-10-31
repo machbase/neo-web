@@ -1,15 +1,22 @@
 .chart-form {
     width: 100%;
-    height: 100%;
+    overflow: hidden;
+    height: calc(100% - 30px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     .inner-html-form {
         width: 100%;
         height: 100%;
         .chart_container {
             display: flex;
             justify-content: center;
-            align-items: center;
             width: 100%;
             height: 100%;
+        }
+        .chart_item {
+            width: 100% !important;
+            height: 100% !important;
         }
     }
 }

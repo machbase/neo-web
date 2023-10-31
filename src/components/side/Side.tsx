@@ -165,7 +165,7 @@ any) => {
                     sTmpBoard.sheet = sTmpData;
                     sTmpBoard.savedCode = JSON.stringify(sTmpData);
                 }
-            } else if (sFileExtension === 'taz') {
+            } else if (sFileExtension === 'taz' || sFileExtension === 'dsh') {
                 const sTmpData: any = JSON.parse(sContentResult);
                 sTmpBoard = { ...sTmpData, id: sTmpBoard.id, name: sTmpBoard.name, type: sFileExtension, path: sTmpBoard.path, savedCode: JSON.stringify(sContentResult) };
             } else if (isImage(file.id)) {

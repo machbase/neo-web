@@ -11,7 +11,10 @@ export {
 
 export {
     VscChevronRight,
+    VscChevronLeft,
+    VscDiffAdded,
     VscWarning,
+    VscSync,
     VscRecord,
     VscLibrary,
     VscTrash,
@@ -47,6 +50,7 @@ export {
     MdDownload as Download,
     MdCenterFocusStrong,
     MdMonitorHeart,
+    MdDashboard,
     MdOutlineKeyboardArrowDown as ArrowDown,
     MdOutlineKeyboardArrowLeft as ArrowLeft,
     MdOutlineKeyboardArrowRight as ArrowRight,
@@ -69,7 +73,7 @@ export { RiArrowUpDoubleFill as ArrowUpDouble, RiMergeCellsVertical as HideOn, R
 
 export { FcFolder as TreeFolder, FcOpenedFolder as TreeFolderOpen } from 'react-icons/fc';
 
-export { IoLogOutOutline as Logout, IoPlayForwardSharp } from 'react-icons/io5';
+export { IoArrowBackOutline, IoLogOutOutline as Logout, IoPlayForwardSharp } from 'react-icons/io5';
 
 export { PiFileCsvThin } from 'react-icons/pi';
 
@@ -77,7 +81,7 @@ export { BiLineChart as LineChart, BiDownload, BiLink, BiPlay as Play, BiSolidDo
 
 export { FiSearch as Search, FiMonitor as Monitor } from 'react-icons/fi';
 
-export { TbParachute, TbRowInsertTop as InsertRowTop, TbFolderPlus, TbFolderDown, TbFolder, TbCloudDown, TbEyeMinus } from 'react-icons/tb';
+export { TbSquarePlus, TbParachute, TbRowInsertTop as InsertRowTop, TbFolderPlus, TbFolderDown, TbFolder, TbCloudDown, TbEyeMinus } from 'react-icons/tb';
 
 export { IoIosCopy as Copy, IoIosArrowForward } from 'react-icons/io';
 

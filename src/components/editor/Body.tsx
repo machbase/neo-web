@@ -22,7 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { ImageBox } from '@/components/imageBox/ImageBox';
 import { TextExtension } from '@/components/textExtension/TextExtension';
 
-const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat }: any) => {
+const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState<any>(gSelectedTab);
     const sFilterBoard = useRecoilValue<any>(gSelectedBoard);
@@ -36,6 +36,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
         over: undefined,
         end: false,
     });
+    const sBodyRef = useRef<any>(null);
     const sNavigate = useNavigate();
 
     const handleMouseWheel = (e: any) => {
@@ -54,9 +55,10 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
         const sIsSave = isSaveCheck();
         if (sIsSave) {
             const sIsAlreadySave = sFilterBoard.path !== '';
+
             if (sIsAlreadySave) {
                 const sFileType = extractionExtension(sFilterBoard.name);
-                const sSaveData = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'taz' ? sFilterBoard : sFilterBoard?.code;
+                const sSaveData = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'taz' || sFileType === 'dsh' ? sFilterBoard : sFilterBoard?.code;
                 try {
                     const sResult: any = await postFileList(sSaveData, sFilterBoard.path.replace('/', ''), sFilterBoard.name);
                     if (sResult.success) {
@@ -85,7 +87,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
 
     const isSaveCheck = () => {
         const sType = sFilterBoard.type;
-        const saveList = ['sql', 'tql', 'wrk', 'taz', 'json', 'md', 'csv', 'txt'];
+        const saveList = ['sql', 'tql', 'wrk', 'taz', 'json', 'md', 'csv', 'txt', 'dsh'];
         if (saveList.some((aType) => aType === sType)) {
             return true;
         } else {
@@ -142,7 +144,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
     }, [sTabDragInfo.end]);
 
     return (
-        <div style={{ width: '100%', height: '100%', background: '#262831' }}>
+        <div ref={sBodyRef} style={{ width: '100%', height: '100%', background: '#262831' }}>
             <div className="tab">
                 <div className="tab-list" onWheel={handleMouseWheel} ref={sTabRef}>
                     {sBoardList.length !== 0 &&
@@ -185,7 +187,18 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                 ></TagAnalyzer>
                             )}
                             {aItem.type === 'term' && <Shell pSelectedTab={sSelectedTab} pInfo={aItem} pId={aItem.id}></Shell>}
-                            {aItem.type === 'dsh' && <Dashboard pDraged={pDraged} pId={aItem.id} pSideSizes={pSideSizes}></Dashboard>}
+                            {aItem.type === 'dsh' && (
+                                <Dashboard
+                                    pDragStat={pDragStat}
+                                    pWidth={sBodyRef?.current?.clientWidth}
+                                    pHandleSaveModalOpen={handleSaveModalOpen}
+                                    pInfo={aItem}
+                                    setIsSaveModal={setIsSaveModal}
+                                    pDraged={pDraged}
+                                    pId={aItem.id}
+                                    pSideSizes={pSideSizes}
+                                ></Dashboard>
+                            )}
                             {aItem.type === 'wrk' && (
                                 <WorkSheet
                                     pId={aItem.id}

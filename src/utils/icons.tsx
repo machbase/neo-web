@@ -12,6 +12,7 @@ import {
     GoDatabase,
     VscVm,
     VscTerminalCmd,
+    MdDashboard,
 } from '@/assets/icons/Icon';
 import {
     MuiCsv,
@@ -55,6 +56,8 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <MuiDocument />;
         case 'csv':
             return <MuiCsv />;
+        case 'dsh':
+            return aIsHome ? <MdDashboard /> : <MdDashboard color="fc7676" />;
         case 'png':
         case 'jpg':
         case 'jpeg':
@@ -95,6 +98,7 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <MuiFolderGit />;
         case 'gitOpenDirectory':
             return <MuiFolderGitOpen />;
+
         default:
             return <GoTerminal />;
     }

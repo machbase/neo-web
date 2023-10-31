@@ -1,72 +1,145 @@
 import GridLayout from 'react-grid-layout';
-import LineChart from './panels/LineChart';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import '/node_modules/react-grid-layout/css/styles.css';
 import '/node_modules/react-resizable/css/styles.css';
 import './index.scss';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
-import { getId } from '@/utils';
-const Dashboard = ({ pId, pSideSizes, pDraged }: any) => {
+import Panel from './panels/Panel';
+import CreatePanel from './createPanel/CreatePanel';
+import { IconButton } from '../buttons/IconButton';
+import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs } from '@/assets/icons/Icon';
+import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
+import moment from 'moment';
+import { setUnitTime } from '@/utils/dashboardUtil';
+
+const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveModal }: any) => {
+    const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
     const sBoardRef: Element | any = useRef({});
-    const [sBoardSize, setBoardSize] = useState(0);
-    const [sBoard, setBoard] = useState<any>({});
-    const [sDraging, setDraging] = useState(true);
+    const [sCreateModal, setCreateModal] = useState(false);
+    const [sPanelId, setPanelId] = useState('');
+    const [sCreateOrEditType, setCreateOrEditType] = useState('create');
 
-    const changeLayout = (aItem: any) => {
-        sDraging;
-        setDrag(true);
-        const sCopyBoard = JSON.parse(JSON.stringify(sBoard));
-        sCopyBoard.panels = aItem;
-        setBoard(sCopyBoard);
-        setBoardList(sBoardList.map((bItem) => (bItem.id === sCopyBoard.id ? { ...bItem, panels: sCopyBoard.panels } : bItem)));
-    };
-    const addItem = () => {
-        const sAddItem = { i: getId(), x: 0, y: Infinity, w: 14, h: 10 };
-        setBoard({ ...sBoard, panels: [...sBoard.panels, sAddItem] });
+    const moveTimRange = (aItem: string) => {
+        let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
+        let sStartTimeBeforeEnd = pInfo.dashboard.timeRange.end;
+
+        if (String(sStartTimeBeforeStart).includes('now') || String(sStartTimeBeforeEnd).includes('now')) {
+            sStartTimeBeforeStart = setUnitTime(sStartTimeBeforeStart);
+            sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
+        }
+
+        const sCalcTime = (Number(sStartTimeBeforeEnd) - Number(sStartTimeBeforeStart)) / 2;
+        const sStartTime = aItem === 'l' ? Math.round(sStartTimeBeforeStart - sCalcTime) : Math.round(sStartTimeBeforeStart + sCalcTime);
+        const sEndTime = aItem === 'l' ? Math.round(sStartTimeBeforeEnd - sCalcTime) : Math.round(sStartTimeBeforeEnd + sCalcTime);
+
         setBoardList(
-            sBoardList.map((aItem) => {
-                return aItem.id === sBoard.id ? { ...aItem, panels: aItem.panels.concat(sAddItem) } : aItem;
+            sBoardList.map((aItem: any) => {
+                return aItem.id === pInfo.id
+                    ? {
+                          ...aItem,
+                          dashboard: { ...aItem.dashboard, timeRange: { ...aItem.dashboard.timeRange, start: sStartTime, end: sEndTime } },
+                      }
+                    : aItem;
+            })
+        );
+    };
+    const showEditPanel = (aType: string, aId?: string) => {
+        setCreateOrEditType(aType);
+        if (aId) {
+            setPanelId(aId);
+        }
+        setCreateModal(!sCreateModal);
+    };
+
+    const draging = (aValue: any, aEvent: any) => {
+        !aValue && changeLayout(aEvent);
+    };
+    const changeLayout = (aLayout: any) => {
+        setBoardList(
+            sBoardList.map((bItem: any) => {
+                return bItem.id === pInfo.id
+                    ? {
+                          ...bItem,
+                          dashboard: {
+                              ...bItem.dashboard,
+                              panels: bItem.dashboard.panels.map((cItem: any) => {
+                                  const sValue = aLayout.find((dItem: any) => dItem.i === cItem.i);
+                                  return { ...cItem, h: sValue.h, w: sValue.w, x: sValue.x, y: sValue.y };
+                              }),
+                          },
+                      }
+                    : bItem;
             })
         );
     };
 
-    const setDrag = (aStatus: boolean) => {
-        setDraging(aStatus);
-    };
-
-    useEffect(() => {
-        setBoardSize(typeof pSideSizes[1] !== 'string' ? pSideSizes[1] : sBoardRef?.current?.clientWidth);
-        setBoard(sBoardList.find((aItem: any) => aItem.id === pId));
-    }, [sBoardRef?.current?.clientWidth, pSideSizes[1]]);
-
     return (
         <div ref={sBoardRef} className="dashboard-form">
-            <button onClick={addItem}>addItem</button>
-            <GridLayout
-                className="layout"
-                useCSSTransforms={false}
-                layout={sBoard && sBoard.panels}
-                cols={36}
-                autoSize={true}
-                rowHeight={30}
-                width={sBoardSize}
-                onDragStart={() => setDrag(false)}
-                onResizeStop={changeLayout}
-            >
-                {sBoard &&
-                    sBoard.panels &&
-                    sBoard.panels.map((aItem: any) => {
-                        return (
-                            <div style={{ border: '1px solid #999999', borderRadius: '4px', width: '100%', height: '100%' }} key={aItem.i}>
-                                <LineChart pDraged={pDraged} pValue={aItem}></LineChart>
-                            </div>
-                        );
-                    })}
-            </GridLayout>
+            <div className="board-header">
+                <IconButton pWidth={24} pHeight={24} pIcon={<TbSquarePlus></TbSquarePlus>} onClick={() => showEditPanel('create')}></IconButton>
+
+                <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft></VscChevronLeft>} onClick={() => moveTimRange('l')}></IconButton>
+
+                <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
+                    <Calendar />
+                    {pInfo && pInfo.dashboard.timeRange.start ? (
+                        <span>
+                            {(typeof pInfo.dashboard.timeRange.start === 'string' && pInfo.dashboard.timeRange.start.includes('now')
+                                ? pInfo.dashboard.timeRange.start
+                                : moment(pInfo.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
+                                '~' +
+                                (typeof pInfo.dashboard.timeRange.end === 'string' && pInfo.dashboard.timeRange.end.includes('now')
+                                    ? pInfo.dashboard.timeRange.end
+                                    : moment(pInfo.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
+                        </span>
+                    ) : (
+                        <span>Time range not set</span>
+                    )}
+                    , Refresh : {pInfo.dashboard.timeRange.refresh}
+                </button>
+                <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight></VscChevronRight>} onClick={() => moveTimRange('r')}></IconButton>
+                <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
+                <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
+            </div>
+            {pWidth && (
+                <div className="board-body">
+                    <GridLayout
+                        className="layout"
+                        useCSSTransforms={false}
+                        layout={pInfo && pInfo.dashboard.panels}
+                        cols={36}
+                        autoSize={true}
+                        rowHeight={30}
+                        width={pWidth}
+                        onDragStart={(aEvent: any) => draging(true, aEvent)}
+                        onDragStop={(aEvent: any) => draging(false, aEvent)}
+                        onResizeStop={changeLayout}
+                        draggableHandle=".board-panel-header"
+                    >
+                        {pInfo.dashboard &&
+                            pInfo.dashboard.panels &&
+                            pInfo.dashboard.panels.map((aItem: any) => {
+                                return (
+                                    <div key={aItem.i}>
+                                        <Panel pDragStat={pDragStat} pShowEditPanel={showEditPanel} pBoardInfo={pInfo} pPanelInfo={aItem}></Panel>
+                                    </div>
+                                );
+                            })}
+                    </GridLayout>
+                    {pInfo.dashboard.panels.length === 0 && (
+                        <div className="non-set-panel">
+                            <IconButton pWidth={70} pHeight={70} pIcon={<TbSquarePlus size="70px"></TbSquarePlus>} onClick={() => showEditPanel('create')}></IconButton>
+                            Create New Panel
+                        </div>
+                    )}
+                </div>
+            )}
+            {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal}></ModalTimeRange>}
+            {sCreateModal && <CreatePanel pType={sCreateOrEditType} pPanelId={sPanelId} pBoardInfo={pInfo} pSetCreateModal={setCreateModal}></CreatePanel>}
         </div>
     );
 };

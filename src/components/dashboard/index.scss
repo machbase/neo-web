@@ -2,8 +2,86 @@
     border-right: 2px solid rgba(255, 255, 255, 0.4) !important;
     border-bottom: 2px solid rgba(255, 255, 255, 0.4) !important;
 }
+
 .dashboard-form {
     width: 100%;
     overflow: auto;
-    height: 100%;
+    height: calc(100%);
+    background: #1b1c21;
+    position: relative;
+    .layout {
+        width: 100%;
+        height: 100% !important;
+    }
+    .board-header {
+        gap: 8px;
+        position: relative;
+        height: 40px;
+        background-color: #262831;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        svg {
+            cursor: pointer;
+        }
+        .plus-btn {
+            border: 0.5px solid rgba(255, 255, 255, 0.5);
+            display: flex;
+            border-radius: 6px;
+            height: 24px;
+            width: 24px;
+            justify-content: center;
+            align-items: center;
+            svg {
+                height: 16px;
+                width: 16px;
+                color: rgba(255, 255, 255, 0.5);
+            }
+
+            &:hover {
+                svg {
+                    color: #f8f8f8;
+                }
+                border-color: #f8f8f8;
+            }
+        }
+        .set-global-option-btn {
+            &:hover {
+                color: #f8f8f8;
+            }
+            color: #939498;
+            display: flex;
+            align-items: center;
+            background-color: transparent;
+            border: 0.5px solid rgba(255, 255, 255, 0.5);
+            height: 26px;
+            font-size: 13px;
+            border-radius: 6px;
+            padding: 0 8px;
+
+            svg {
+                margin-right: 4px;
+                height: 16px;
+            }
+        }
+    }
+    .board-body {
+        overflow: auto;
+        height: calc(100% - 40px);
+        position: relative;
+        .non-set-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            font-size: 14px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            .icon-btn-wrapper {
+                margin-bottom: 8px;
+            }
+        }
+    }
 }
