@@ -6,11 +6,18 @@ import { TfiLayoutColumn3Alt } from 'react-icons/tfi';
 import { VscChevronRight } from 'react-icons/vsc';
 import './TableInfo.scss';
 
-const TableInfo = ({ pShowHiddenObj, pValue }: any) => {
-    const [sCollapseTree, setCollapseTree] = useState(true);
-    const TableTypeList: string[] = ['tag', 'log', 'fixed', 'volatile', 'lookup', 'keyValue'];
-    const getTableInfoData = async (aDatabaseId: string, aTableId: string) => {
-        return await getTableInfo(aDatabaseId, aTableId);
+const TableInfo = ({ pShowHiddenObj, pValue, pSetDBList, pDBList }: any) => {
+    const [sCollapseTree, setCollapseTree] = useState(false);
+
+    const getTableInfoData = async () => {
+        const sData: any = await getTableInfo(pValue.info[2]);
+
+        pSetDBList(
+            pDBList.map((aItem: any) => {
+                return aItem.info[2] === pValue.info[2] ? { ...aItem, child: sData.data.rows } : aItem;
+            })
+        );
+        setCollapseTree(!sCollapseTree);
     };
     const getColumnIndexInfoData = async (aDatabaseId: string, aTableId: string) => {
         return await getColumnIndexInfo(aDatabaseId, aTableId);
