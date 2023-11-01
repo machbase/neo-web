@@ -5,7 +5,7 @@ import '@/components/worksheet/Markdown.scss';
 import '@/assets/md/mdDark.css';
 import setMermaid from '@/plugin/mermaid';
 import { useRecoilState } from 'recoil';
-import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { gBoardList } from '@/recoil/recoil';
 
 interface MarkdownProps {
     pContents?: any;
@@ -17,7 +17,6 @@ export const Markdown = (props: MarkdownProps) => {
     const { pContents, pIdx, pType } = props;
     const [sMdxText, setMdxText] = useState<string>('');
     const [sBoardList] = useRecoilState(gBoardList);
-    const [sSelectedTab] = useRecoilState(gSelectedTab);
 
     useEffect(() => {
         init();
@@ -27,14 +26,16 @@ export const Markdown = (props: MarkdownProps) => {
         if (pContents) {
             if (pType === 'mrk') {
                 const sList = window.location.href;
-                const sSelectedBoard = sBoardList.find((aItem) => aItem.id === sSelectedTab);
-
+                const targetBoard = sBoardList.find(
+                    (aItem) => JSON.stringify(aItem.savedCode) === JSON.stringify(pContents) || JSON.stringify(aItem.code) === JSON.stringify(pContents)
+                );
                 let sReperer: any;
-                if (sSelectedBoard && sSelectedBoard.path !== '') {
-                    sReperer = sList.replace('/ui', '/api/tql') + sSelectedBoard.path + sSelectedBoard.name;
+                if (targetBoard && targetBoard.path !== '') {
+                    sReperer = sList.replace('/ui', '/api/tql') + targetBoard.path + targetBoard.name;
                 }
 
                 const sData = await postMd(pContents, true, sReperer);
+
                 setMdxText(`<article>${sData}</article>`);
             } else {
                 setMdxText(`<article>${pContents}</article>`);
