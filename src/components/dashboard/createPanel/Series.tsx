@@ -204,18 +204,6 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
             };
         });
     };
-    useEffect(() => {
-        const sTable = pTableList.find((aItem: any) => aItem[3] === pSeriesInfo.table);
-        setSelectedTableType(getTableType(sTable[4]));
-        getTagList(pSeriesInfo.table);
-        getColumnList(pSeriesInfo.table);
-    }, []);
-
-    useEffect(() => {
-        if (pType === 'create') {
-            setOption('tag', sTagList[0]);
-        }
-    }, [sTagList]);
 
     useEffect(() => {
         sSelectedTableType === 'log' && setOption('useCustom', true);
@@ -235,6 +223,22 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
                 }),
             });
     }, [sSelectedTableType]);
+
+    useEffect(() => {
+        const sTable = pTableList.find((aItem: any) => aItem[3] === pSeriesInfo.table);
+        setSelectedTableType(getTableType(sTable[4]));
+
+        getColumnList(pSeriesInfo.table);
+        if (sSelectedTableType === 'tag') {
+            getTagList(pSeriesInfo.table);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (pType === 'create') {
+            setOption('tag', sTagList[0]);
+        }
+    }, [sTagList]);
 
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
 

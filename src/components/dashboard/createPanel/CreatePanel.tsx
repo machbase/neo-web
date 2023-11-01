@@ -12,6 +12,7 @@ import { gBoardList } from '@/recoil/recoil';
 import { defaultTimeSeriesData, getTableType } from '@/utils/dashboardUtil';
 import { getTableList } from '@/api/repository/api';
 import moment from 'moment';
+import { decodeJwt } from '@/utils';
 
 const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelId: string; pType: string; pSetCreateModal: (aValue: boolean) => void; pBoardInfo: any }) => {
     const [sSideSizes, setSideSizes] = useState<any>(['75%', '25%']);
@@ -108,9 +109,12 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
             setTableList(newTable);
             if (aStatus) {
                 if (pType === 'create') {
-                    const sData = defaultTimeSeriesData(newTable[0]);
-                    setPanelOption(sData);
-                    setAppliedPanelOption(sData);
+                    const sToken = localStorage.getItem('accessToken');
+                    if (sToken) {
+                        const sData = defaultTimeSeriesData(newTable[0], decodeJwt(sToken).sub);
+                        setPanelOption(sData);
+                        setAppliedPanelOption(sData);
+                    }
                 } else {
                     setPanelOption(pBoardInfo.dashboard.panels.find((aItem: any) => aItem.i === pPanelId));
                     setAppliedPanelOption(pBoardInfo.dashboard.panels.find((aItem: any) => aItem.i === pPanelId));
@@ -197,7 +201,7 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
                                 )}
                             </Pane>
                             <Pane>
-                                {sTableList.length !== 0 && sPanelOption.i && (
+                                {sPanelOption.i && (
                                     <CreatePanelFooter
                                         pType={pType}
                                         pGetTables={getTables}
