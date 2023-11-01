@@ -39,26 +39,29 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                     Query
                     <span className="series-count">{Number(pPanelOption.series.length)}</span>
                 </div>
-                <div style={sTab === 'Time' ? { borderBottom: '2px solid #005FB8' } : { borderBottom: '2px solid transparent', opacity: 0.8 }} onClick={() => setTab('Time')}>
-                    Time
-                </div>
+                {pTableList.length !== 0 && (
+                    <div style={sTab === 'Time' ? { borderBottom: '2px solid #005FB8' } : { borderBottom: '2px solid transparent', opacity: 0.8 }} onClick={() => setTab('Time')}>
+                        Time
+                    </div>
+                )}
             </div>
             <div className="chart-footer">
                 <div style={sTab === 'Time' ? { display: 'none' } : {}} className="body">
-                    {pPanelOption.series.map((aItem: any) => {
-                        return (
-                            <Series
-                                key={aItem.id}
-                                pType={pType}
-                                pPanelOption={pPanelOption}
-                                pTableList={pTableList}
-                                pGetTables={pGetTables}
-                                pSeriesInfo={aItem}
-                                pSetPanelOption={pSetPanelOption}
-                            ></Series>
-                        );
-                    })}
-                    {pPanelOption.series.length < 10 && (
+                    {pTableList.length !== 0 &&
+                        pPanelOption.series.map((aItem: any) => {
+                            return (
+                                <Series
+                                    key={aItem.id}
+                                    pType={pType}
+                                    pPanelOption={pPanelOption}
+                                    pTableList={pTableList}
+                                    pGetTables={pGetTables}
+                                    pSeriesInfo={aItem}
+                                    pSetPanelOption={pSetPanelOption}
+                                ></Series>
+                            );
+                        })}
+                    {pTableList.length !== 0 && pPanelOption.series.length < 10 && (
                         <div
                             onClick={() =>
                                 pSetPanelOption((aPrev: any) => {
@@ -81,6 +84,18 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                             }}
                         >
                             <PlusCircle color="#FDB532"></PlusCircle>
+                        </div>
+                    )}
+                    {pTableList.length === 0 && (
+                        <div
+                            style={{
+                                height: '100%',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                            }}
+                        >
+                            Please create a table.
                         </div>
                     )}
                 </div>

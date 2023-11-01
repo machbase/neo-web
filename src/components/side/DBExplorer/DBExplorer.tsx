@@ -13,7 +13,7 @@ const DBExplorer = ({ pServer }: any) => {
     const init = async (aEvent?: any) => {
         setDBList([]);
         if (aEvent) aEvent.stopPropagation();
-        const sData = await getTableList();
+        const sData: any = await getTableList();
         setDBList(
             sData.data.rows.map((aItem: (string | number)[]) => {
                 return { info: aItem, child: [] };

@@ -143,7 +143,7 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
         });
         sFilter = sFilterList.join(' AND ');
 
-        sSubQuery = `SELECT ${sSubQTime}, ${sSubQValue} FROM ${aInfo.table} WHERE ${sWhereTime} AND ${sFilter} GROUP BY TIME`;
+        sSubQuery = `SELECT ${sSubQTime}, ${sSubQValue} FROM ${aInfo.userName}.${aInfo.table} WHERE ${sWhereTime} AND ${sFilter} GROUP BY TIME`;
 
         const sQuery = `SELECT ${sTime}, ${sValue} FROM (${sSubQuery}) GROUP BY TIME ORDER BY TIME`;
 
@@ -151,7 +151,7 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
     } else {
         let sTime = '';
         let sValue = '';
-        const sTableName = aInfo.table;
+        const sTableName = `${aInfo.userName}.${aInfo.table}`;
         let sWhereTime = '';
         let sFilter = '';
         let useGroupBy = true;
@@ -256,6 +256,7 @@ export const tagTableValue = () => {
         id: getId(),
         table: '',
         color: '#73BF69',
+        userName: '',
         tableInfo: [],
         type: 'tag',
         filter: [{ id: getId(), column: '', operator: '=', value: '', useFilter: true }],
@@ -272,20 +273,9 @@ export const tagTableValue = () => {
 
 export const tagAggregatorList = ['none', 'sum', 'count', 'min', 'max', 'avg', 'sumsq'];
 
-const logTableValue = () => {
-    return {
-        id: getId(),
-        table: '',
-        aggregator: '',
-        alias: '',
-        filter: [],
-        values: [],
-    };
-};
-
 export const refreshTimeList = ['Off', '3 seconds', '5 seconds', '10 seconds', '30 seconds', '1 minute', '5 minutes', '10 minutes', '1 hour'];
 
-export const defaultTimeSeriesData = (aTable: any) => {
+export const defaultTimeSeriesData = (aTable: any, aUser: string) => {
     const sData = {
         //default Option
         panelName: 'chart Title',
@@ -353,7 +343,7 @@ export const defaultTimeSeriesData = (aTable: any) => {
             refresh: 'Off',
         },
         // query
-        series: [getTableType(aTable[4]) === 'tag' ? { ...tagTableValue(), table: aTable[3] } : { ...logTableValue(), table: aTable[3] }],
+        series: [{ ...tagTableValue(), userName: aUser, table: aTable ? aTable[3] : '' }],
     };
     return sData;
 };

@@ -50,7 +50,7 @@ export {
     MdDownload as Download,
     MdCenterFocusStrong,
     MdMonitorHeart,
-    MdDashboard,
+    MdOutlineDashboard as MdDashboard,
     MdOutlineKeyboardArrowDown as ArrowDown,
     MdOutlineKeyboardArrowLeft as ArrowLeft,
     MdOutlineKeyboardArrowRight as ArrowRight,
