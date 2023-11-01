@@ -98,7 +98,7 @@ const Home = () => {
                 }
             });
 
-        setTabList([...sResult.shells, { icon: 'file-document-outline', id: 'dsh', label: 'Dashboard', type: 'dsh' }]);
+        setTabList(sResult.shells);
     };
 
     const setStatus = () => {
