@@ -130,6 +130,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
                                 <WorkSheetEditor
                                     key={'sheet-' + aSheetItem.id}
                                     pData={aSheetItem}
+                                    pWrkId={pId}
                                     pIdx={aIdx}
                                     pAllRunCodeTargetIdx={sRunCodeTarget}
                                     pAllRunCodeStatus={sAllRunCodeStatus}

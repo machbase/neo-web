@@ -25,6 +25,7 @@ type ShowResultType = 'brief' | 'all';
 interface WorkSheetEditorProps {
     pData: any;
     pIdx: number;
+    pWrkId: string;
     pWorkSheets: any[];
     pAllRunCodeStatus: boolean;
     pAllRunCodeList: boolean[];
@@ -35,7 +36,7 @@ interface WorkSheetEditorProps {
 }
 
 export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
-    const { pData, pIdx, pAllRunCodeStatus, pAllRunCodeTargetIdx, pAllRunCodeList, pAllRunCodeCallback, setSheet, pWorkSheets, pCallback } = props;
+    const { pData, pWrkId, pIdx, pAllRunCodeStatus, pAllRunCodeTargetIdx, pAllRunCodeList, pAllRunCodeCallback, setSheet, pWorkSheets, pCallback } = props;
     const sInitHeight = 200;
     const resizeRef = useRef<HTMLDivElement | null>(null);
     const [sText, setText] = useState<string>(pData.contents);
@@ -363,7 +364,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             <div className="result">
                 {sSelectedLang === 'TQL' ? TqlResult() : null}
                 {sSelectedLang === 'SQL' ? SqlResult() : null}
-                {sSelectedLang === 'Markdown' ? <Markdown pIdx={pIdx} pContents={sMarkdown} pType="mrk" /> : null}
+                {sSelectedLang === 'Markdown' ? <Markdown pIdx={pIdx} pContents={sMarkdown} pType="wrk-mrk" pData={pWrkId} /> : null}
             </div>
         );
     };
@@ -402,7 +403,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     )
                 ) : null}
                 {sTqlResultType === 'html' && sTqlChartData ? <ShowChart pData={sTqlChartData} pIsCenter /> : null}
-                {sTqlResultType === 'mrk' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} pType="mrk" /> : null}
+                {sTqlResultType === 'mrk' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} pType="wrk-mrk" /> : null}
                 {sTqlResultType === 'xhtml' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} /> : null}
                 {sTqlResultType === 'text' && sTqlTextResult ? (
                     isValidJSON(sTqlTextResult) ? (

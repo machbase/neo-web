@@ -11,6 +11,7 @@ interface MarkdownProps {
     pContents?: any;
     pType?: string;
     pIdx: number;
+    pData?: string;
 }
 
 export const Markdown = (props: MarkdownProps) => {
@@ -22,21 +23,29 @@ export const Markdown = (props: MarkdownProps) => {
         init();
     }, [pContents]);
 
+    const fetchMrk = async (aContents: string, aReperer: string) => {
+        const sData = await postMd(aContents, true, aReperer);
+        setMdxText(`<article>${sData}</article>`);
+    };
+
     const init = async () => {
         if (pContents) {
+            const sList = window.location.href;
+            let sReperer = sList.replace('/ui', '/api/tql');
             if (pType === 'mrk') {
-                const sList = window.location.href;
                 const targetBoard = sBoardList.find(
                     (aItem) => JSON.stringify(aItem.savedCode) === JSON.stringify(pContents) || JSON.stringify(aItem.code) === JSON.stringify(pContents)
                 );
-                let sReperer: any;
                 if (targetBoard && targetBoard.path !== '') {
-                    sReperer = sList.replace('/ui', '/api/tql') + targetBoard.path + targetBoard.name;
+                    sReperer += targetBoard.path + targetBoard.name;
                 }
-
-                const sData = await postMd(pContents, true, sReperer);
-
-                setMdxText(`<article>${sData}</article>`);
+                fetchMrk(pContents, sReperer);
+            } else if (pType === 'wrk-mrk') {
+                const targetBoard = sBoardList.find((aBoard) => aBoard.type === 'wrk' && aBoard.id === props.pData);
+                if (targetBoard && targetBoard.path !== '') {
+                    sReperer += targetBoard.path + targetBoard.name;
+                }
+                fetchMrk(pContents, sReperer);
             } else {
                 setMdxText(`<article>${pContents}</article>`);
             }
