@@ -2,40 +2,143 @@ import { getTableInfo } from '@/api/repository/api';
 import { MuiFolderLayOut, MuiFolderLayOutOpen } from '@/assets/icons/Mui';
 import { useState } from 'react';
 import { GoDotFill } from 'react-icons/go';
+import { FaDatabase } from 'react-icons/fa';
+import { TfiLayoutColumn3Alt } from 'react-icons/tfi';
+import { VscChevronRight } from 'react-icons/vsc';
+import './TableInfo.scss';
+import { getUserName } from '@/utils';
 
-const TableInfo = ({ pShowHiddenObj, pValue, pSetDBList, pDBList }: any) => {
-    const [sCollapseTree, setCollapseTree] = useState(false);
-
-    const getTableInfoData = async () => {
-        const sData: any = await getTableInfo(pValue.info[2]);
-
-        pSetDBList(
-            pDBList.map((aItem: any) => {
-                return aItem.info[2] === pValue.info[2] ? { ...aItem, child: sData.data.rows } : aItem;
-            })
+const TableInfo = ({ pShowHiddenObj, pValue }: any) => {
+    const [sCollapseTree, setCollapseTree] = useState(true);
+    const TableTypeList: string[] = ['tag', 'log', 'fixed', 'volatile', 'lookup', 'keyValue'];
+    const sUserName = getUserName().toUpperCase();
+    const getTableInfoData = async (aDatabaseId: string, aTableId: string) => {
+        return await getTableInfo(aDatabaseId, aTableId);
+    };
+    const getColumnIndexInfoData = async (aDatabaseId: string, aTableId: string) => {
+        return await getColumnIndexInfo(aDatabaseId, aTableId);
+    };
+    const DBDiv = (aIcon: React.ReactElement, aName: string, aClassName: string): JSX.Element => {
+        return (
+            <div className="db-folder-wrap">
+                <VscChevronRight className={`${aClassName}`} />
+                <span className="icons" style={{ color: '#f1c16b' }}>
+                    {aIcon}
+                </span>
+                <span className="db-folder-wrap-name">{aName}</span>
+            </div>
         );
         setCollapseTree(!sCollapseTree);
     };
+    const checkDisplay = (aValue: number): boolean => {
+        if (aValue === 0) return true;
+        if (!pShowHiddenObj) return true;
+        return false;
+    };
+    return (
+        <>
+            {pValue && pValue.dbName && (
+                <div className="db-wrap db-exp-comm" style={{ alignItems: 'baseline' }} onClick={() => setCollapseTree(!sCollapseTree)}>
+                    {DBDiv(<FaDatabase />, pValue.dbName, sCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow')}
+                </div>
+            )}
+            {pValue && pValue.tableList && sCollapseTree && (
+                <div className="table-wrap db-exp-comm">
+                    {TableTypeList.map((aTableType: string, aIdx: number) => {
+                        return (
+                            <div key={`table-${aTableType}-${aIdx}`}>
+                                {pValue.tableList[aTableType].map((aTable: any, bIdx: number) => {
+                                    return (
+                                        checkDisplay(aTable[5]) && (
+                                            <div className="table-wrap-content" key={`table-${aTableType}-${aIdx}-${bIdx}`}>
+                                                <TableDiv
+                                                    pShowHiddenObj={pShowHiddenObj}
+                                                    pUserName={sUserName}
+                                                    pTableIcon={<TfiLayoutColumn3Alt style={{ color: '#5ca3dc', rotate: '90deg' }} />}
+                                                    pTable={aTable}
+                                                    pTableType={aTableType}
+                                                    onTableInfo={getTableInfoData}
+                                                    onColumnInfo={getColumnIndexInfoData}
+                                                />
+                                            </div>
+                                        )
+                                    );
+                                })}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </>
+    );
+};
 
-    // const getTableFlag = (aFlagNumber: number) => {
-    //     switch (aFlagNumber) {
-    //         case 1:
-    //             return '(data)';
-    //         case 2:
-    //             return '(rollup)';
-    //         case 4:
-    //             return '(meta)';
-    //         case 8:
-    //             return '(stat)';
-    //         default:
-    //             return '';
-    //     }
-    // };
+interface TableDivPropsType {
+    pShowHiddenObj: boolean;
+    pTableIcon: React.ReactElement;
+    pTableType: string;
+    pUserName: string;
+    pTable: (string | number)[];
+    onTableInfo: (aDatabaseId: string, aTableId: string) => any;
+    onColumnInfo: (aDatabaseId: string, atableId: string) => any;
+}
+const TableDiv = (props: TableDivPropsType): JSX.Element => {
+    const [sIsOpen, setIsOpen] = useState<boolean>(false);
+    const [sColumnList, setColumnList] = useState<(string | number)[][]>([]);
+    const [sIndexList, setIndexList] = useState<(string | number)[][]>([]);
+    const [sRollupList, setRollupList] = useState<(string | number)[][]>([]);
 
-    const getTableType = (aTypeNumber: number) => {
-        switch (aTypeNumber) {
-            case 0:
-                return 'log';
+    const handleDataFetch = async () => {
+        if (sIsOpen) return setIsOpen(false);
+        else setIsOpen(true);
+        handleColumns();
+        fetchIndex();
+        if ((props.pTable[4] as number) === 6 && props.pTable[0] === 'MACHBASEDB') fetchRollup();
+    };
+    const handleColumns = async () => {
+        const res = await props.onTableInfo(props.pTable[6].toString(), props.pTable[2].toString());
+        setColumnList(res.data.rows);
+    };
+    const fetchIndex = async () => {
+        const res = await props.onColumnInfo(props.pTable[6].toString(), props.pTable[2].toString());
+        setIndexList(res.data.rows);
+    };
+    const fetchRollup = async () => {
+        // const res = await getRollupTable(`${props.pTable[0].toString()}.${props.pTable[1].toString()}.${props.pTable[3].toString()}`, props.pTable[1].toString());
+        const res = await getRollupTable(`${props.pTable[3].toString()}`, props.pTable[1].toString());
+        setRollupList(res.data.rows);
+    };
+    return (
+        <>
+            <div className="table-column-wrap" onClick={handleDataFetch}>
+                <div className="table-column-l">
+                    <VscChevronRight className={`${sIsOpen ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow'}`} />
+                    <span className="icons">{props.pTableIcon}</span>
+                    <span className="table-name">
+                        {(props.pTable[0] === 'MACHBASEDB' && props.pTable[1] === 'SYS') || (props.pTable[0] === 'MACHBASEDB' && props.pTable[1] === props.pUserName)
+                            ? props.pTable[3]
+                            : `${props.pTable[1]}.${props.pTable[3]}`}
+                    </span>
+                </div>
+                <span className="r-txt">{props.pTableType}</span>
+            </div>
+            {sIsOpen && sColumnList.length > 0 && (
+                <ColumnDiv pKey={props.pTable[0] as string} pShowHiddenObj={props.pShowHiddenObj} pColumnList={sColumnList} pIndexList={sIndexList} pRollupList={sRollupList} />
+            )}
+        </>
+    );
+};
+interface ColumnDivPropsType {
+    pKey: string;
+    pShowHiddenObj: boolean;
+    pColumnList: (string | number)[][];
+    pIndexList: (string | number)[][];
+    pRollupList: (string | number)[][];
+}
+const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
+    const columnNameList: string[] = ['columns', 'index', 'rollup'];
+    const getIndexType = (aType: number): string => {
+        switch (aType) {
             case 1:
                 return 'fixed';
             case 3:
@@ -108,7 +211,7 @@ const TableInfo = ({ pShowHiddenObj, pValue, pSetDBList, pDBList }: any) => {
                     <div key={`${props.pKey}-columns-${aColumn}-${aIdx}`}>
                         {aColumn === 'columns' && props.pColumnList.length > 0 && (
                             <div key={`${props.pKey}-columns-columns-${aColumn}-${aIdx}-content`}>
-                                {!props.pShowHiddenObj && <LabelDiv pTxt={aColumn} />}
+                                {!props.pShowHiddenObj && (props.pIndexList.length > 0 || props.pRollupList.length > 0) && <LabelDiv pTxt={aColumn} />}
                                 {props.pColumnList.map((bColumn, bIdx: number) => {
                                     return (
                                         checkDisplay('column', bColumn) && (
