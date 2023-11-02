@@ -192,12 +192,15 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                 return 'unknown ' + `(${columnId})`;
         }
     };
-    function startsWithUnderscore(aStr: string) {
-        if (!pShowHiddenObj) {
-            return true;
-        } else {
-            if (typeof aStr !== 'string') {
-                return false;
+    const checkDisplay = (aColumn: string, aData?: (string | number)[]): boolean => {
+        if (!props.pShowHiddenObj) return true;
+        switch (aColumn) {
+            case 'column': {
+                if (!aData) return false;
+                if (aData[3].toString() === '65534') return false;
+                if (aData[3].toString() === '0' && aData[0].toString() === '_ARRIVAL_TIME') return false;
+                if (aData[3].toString() === '0' && aData[0].toString() === '_ROWID') return false;
+                return true;
             }
 
             return aStr.charAt(0) !== '_';
