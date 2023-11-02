@@ -44,3 +44,29 @@ export const FileWrkDfltVal = {
 };
 // TAZ
 export const FileTazDfltVal = { id: getId(), type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false };
+// DSH
+export const FileDshDfltVal = {
+    id: getId(),
+    type: 'new',
+    name: 'new',
+    path: '',
+    code: '',
+    panels: [],
+    range_bgn: '',
+    range_end: '',
+    sheet: [],
+    savedCode: false,
+    shell: {
+        icon: 'file-document-outline',
+        theme: '',
+        id: 'dsh',
+    },
+    dashboard: {
+        timeRange: {
+            start: 'now-30m',
+            end: 'now',
+            refresh: 'Off',
+        },
+        panels: [],
+    },
+};

@@ -8,7 +8,7 @@ import Modal from './Modal';
 import './FileModal.scss';
 import { postFileList } from '@/api/repository/api';
 import useDebounce from '@/hooks/useDebounce';
-import { FileNameAndExtensionValidator, FileTazDfltVal, FileWrkDfltVal, PathRootValidator } from '@/utils/FileExtansion';
+import { FileNameAndExtensionValidator, FileTazDfltVal, FileDshDfltVal, FileWrkDfltVal, PathRootValidator } from '@/utils/FileExtansion';
 
 export interface FileModalProps {
     setIsOpen: any;
@@ -35,6 +35,7 @@ export const FileModal = (props: FileModalProps) => {
 
         if (parsedExtension.includes('wrk')) sPayload = FileWrkDfltVal;
         if (parsedExtension.includes('taz')) sPayload = FileTazDfltVal;
+        if (parsedExtension.includes('dsh')) sPayload = FileDshDfltVal;
 
         const sResult: any = await postFileList(sPayload, '', sFilePath);
         if (sResult && sResult.success) {
