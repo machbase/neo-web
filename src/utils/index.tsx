@@ -52,7 +52,7 @@ export const generateUUID = () => {
 
 export const isRollup = (aRollups: any, aTableName: string, aInterval: number) => {
     const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
-    if (aRollups[sCurrentUserName][aTableName] && aInterval > 0) {
+    if (!isEmpty(aRollups) && aRollups[sCurrentUserName][aTableName] && aInterval > 0) {
         const aValue = aRollups[sCurrentUserName][aTableName];
         const aResult = aValue.find((aRollupTime: any) => aInterval % aRollupTime === 0);
         return !!aResult;
@@ -87,7 +87,9 @@ export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
     const sUserIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'USER');
     const sTableIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'NAME');
 
-    let sParseTables = aTableInfo.rows.filter((aItem: any) => aItem[4] === 'Tag Table');
+    if (!aTableInfo.rows) return [];
+
+    let sParseTables = aTableInfo.rows && aTableInfo.rows.filter((aItem: any) => aItem[4] === 'Tag Table');
     if (!sIsAdmin) {
         sParseTables = sParseTables.filter((aItem: any) => aItem[sDbIdx].toLowerCase() === DEFAULT_DB_NAME);
     }
