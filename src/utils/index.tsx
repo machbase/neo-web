@@ -76,6 +76,10 @@ export const decodeJwt = (aToken: string) => {
     return JSON.parse(sJwtInfo);
 };
 
+export const getUserName = () => {
+    return decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub;
+};
+
 export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
     const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub;
     const sIsAdmin = sCurrentUserName.toLowerCase() === ADMIN_ID;

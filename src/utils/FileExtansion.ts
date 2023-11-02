@@ -1,16 +1,6 @@
 import { getId } from '.';
 
-export const FileType = [
-    'sql',
-    'tql',
-    'json',
-    'csv',
-    'md',
-    'txt',
-    'wrk',
-    'taz',
-    // 'dsh',
-];
+export const FileType = ['sql', 'tql', 'json', 'csv', 'md', 'txt', 'wrk', 'taz', 'dsh'];
 // validator file name n extension
 export const FileNameAndExtensionValidator = (aTxt: string): boolean => {
     const FileRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9_-]+\\.{1}(${FileType.join('|')}){1}$`, 'gm');
@@ -54,3 +44,29 @@ export const FileWrkDfltVal = {
 };
 // TAZ
 export const FileTazDfltVal = { id: getId(), type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false };
+// DSH
+export const FileDshDfltVal = {
+    id: getId(),
+    type: 'new',
+    name: 'new',
+    path: '',
+    code: '',
+    panels: [],
+    range_bgn: '',
+    range_end: '',
+    sheet: [],
+    savedCode: false,
+    shell: {
+        icon: 'file-document-outline',
+        theme: '',
+        id: 'dsh',
+    },
+    dashboard: {
+        timeRange: {
+            start: 'now-30m',
+            end: 'now',
+            refresh: 'Off',
+        },
+        panels: [],
+    },
+};
