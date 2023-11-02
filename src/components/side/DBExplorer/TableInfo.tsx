@@ -1,5 +1,4 @@
-import { getTableInfo } from '@/api/repository/api';
-import { MuiFolderLayOut, MuiFolderLayOutOpen } from '@/assets/icons/Mui';
+import { getTableInfo, getColumnIndexInfo, getRollupTable } from '@/api/repository/api';
 import { useState } from 'react';
 import { GoDotFill } from 'react-icons/go';
 import { FaDatabase } from 'react-icons/fa';
@@ -28,7 +27,6 @@ const TableInfo = ({ pShowHiddenObj, pValue }: any) => {
                 <span className="db-folder-wrap-name">{aName}</span>
             </div>
         );
-        setCollapseTree(!sCollapseTree);
     };
     const checkDisplay = (aValue: number): boolean => {
         if (aValue === 0) return true;
@@ -140,20 +138,23 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
     const getIndexType = (aType: number): string => {
         switch (aType) {
             case 1:
-                return 'fixed';
+                return 'BITMAP';
+            case 2:
+                return 'KEYWORD';
             case 3:
-                return 'volatile';
-            case 4:
-                return 'lookup';
-            case 5:
-                return 'kv';
+                return 'REDBLACK';
             case 6:
-                return 'tag';
+                return 'LSM';
+            case 8:
+                return 'REDBLACK';
+            case 9:
+                return 'KETWORD_LSM';
+            case 11:
+                return 'TAG';
             default:
                 return '';
         }
     };
-
     const getColumnType = (columnId: number) => {
         switch (columnId) {
             case 104:
@@ -202,11 +203,14 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                 if (aData[3].toString() === '0' && aData[0].toString() === '_ROWID') return false;
                 return true;
             }
-
-            return aStr.charAt(0) !== '_';
+            case 'index':
+                return false;
+            case 'rollup':
+                return false;
+            default:
+                return true;
         }
-    }
-
+    };
     return (
         <>
             {columnNameList.map((aColumn: string, aIdx: number) => {
@@ -277,54 +281,16 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                             </div>
                         )}
                     </div>
-                    <div style={{ fontSize: '12px', whiteSpace: 'nowrap', opacity: '0.4', paddingRight: '4px' }}>{getTableType(pValue.info[4])}</div>
-                </div>
-            )}
-            {sCollapseTree && (
-                <div>
-                    {pValue.child.map((aItem: any, aIdx: number) => {
-                        return (
-                            startsWithUnderscore(pValue.info[3]) &&
-                            startsWithUnderscore(aItem[0]) && (
-                                <div key={aIdx} className="file-wrap" style={{ alignItems: 'baseline', paddingLeft: ' 32px', cursor: 'unset' }}>
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            overflow: 'hidden',
-                                            whiteSpace: 'nowrap',
-                                            textOverflow: 'ellipsis',
-                                            wordBreak: 'break-all',
-                                        }}
-                                    >
-                                        <span className="icons" style={{ marginRight: '2px', opacity: '0.5' }}>
-                                            <GoDotFill></GoDotFill>
-                                        </span>
-                                        <span
-                                            style={{
-                                                marginLeft: 1,
-                                                fontSize: '13px',
-                                                whiteSpace: 'nowrap',
-                                                textOverflow: 'ellipsis',
-                                                overflow: 'hidden',
-                                                margin: 'auto 0 auto 1px',
-                                            }}
-                                        >
-                                            {aItem[0]}
-                                        </span>
-                                    </div>
-                                    <div style={{ fontSize: '12px', whiteSpace: 'nowrap', opacity: '0.4', paddingRight: '4px' }}>
-                                        {getColumnType(aItem[1]) + ' '}
-                                        {aItem[1] === 5 && `(${aItem[2]})`}
-                                    </div>
-                                </div>
-                            )
-                        );
-                    })}
-                </div>
-            )}
+                );
+            })}
         </>
     );
+};
+interface LabelDivPropsType {
+    pTxt: string;
+}
+const LabelDiv = (props: LabelDivPropsType): JSX.Element => {
+    return <div className="table-wrap-label-content">{props.pTxt}</div>;
 };
 
 export default TableInfo;
