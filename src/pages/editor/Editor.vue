@@ -728,7 +728,6 @@ const getSQLData = async () => {
                 }
                 sType.value = sResult.data.data.types;
                 sHeader.value = sResult.data.data.columns;
-                sData.value = [];
                 sResult.data.data.rows.forEach((aItem: any) => {
                     sData.value.push(aItem);
                 });
