@@ -4,10 +4,17 @@ import './index.scss';
  * @param pTableData
  * @returns
  */
-const TABLE = ({ pTableData, pMaxShowLen, clickEvent }: { pTableData: any; pMaxShowLen?: boolean; clickEvent: (e: any, aRowData: string) => void }) => {
+
+interface TableProps {
+    pTableData: any;
+    pMaxShowLen?: boolean;
+    clickEvent: (e: any, aRowData: string) => void;
+}
+
+const TABLE = ({ pTableData, pMaxShowLen, clickEvent }: TableProps) => {
     const MaxLenDiv = () => {
         return (
-            <tr key={'tbody-row5'} className="result-body-tr">
+            <tr key="tbody-row5" className="result-body-tr">
                 <td>
                     <span style={{ marginLeft: '20px', cursor: 'default' }}>...</span>
                 </td>
@@ -24,11 +31,11 @@ const TABLE = ({ pTableData, pMaxShowLen, clickEvent }: { pTableData: any; pMaxS
     };
     return (
         <table className="table">
-            <thead className="table-header header-fix" style={{ height: '40px' }}>
+            <thead className="table-header header-fix">
                 {pTableData && pTableData.columns ? (
                     <tr>
                         <th>
-                            <span style={{ marginLeft: '20px', cursor: 'default' }}></span>
+                            <span style={{ marginLeft: '20px', cursor: 'default' }} />
                         </th>
                         {pTableData.columns.map((aColumn: string) => {
                             return (
@@ -43,31 +50,29 @@ const TABLE = ({ pTableData, pMaxShowLen, clickEvent }: { pTableData: any; pMaxS
                 )}
             </thead>
             <tbody className="table-body">
-                {pTableData && pTableData.rows ? (
-                    pTableData.rows.map((aRowList: any, aIdx: number) => {
-                        if (!!pMaxShowLen && aIdx + 1 === 6) {
-                            return MaxLenDiv();
-                        }
-                        if (pMaxShowLen && aIdx + 1 > 6) return <></>;
-                        if (aRowList.length === 1 && aRowList[0] === '') return;
-                        return (
-                            <tr key={'tbody-row' + aIdx} className={Number(aIdx) % 2 === 0 ? 'result-body-tr' : 'result-body-tr dark-odd'}>
-                                <td>
-                                    <span style={{ marginLeft: '20px', cursor: 'default', color: '#888888' }}>{aIdx + 1}</span>
-                                </td>
-                                {aRowList.map((aRowData: any) => {
-                                    return (
-                                        <td className="result-table-item" key={generateUUID()} onContextMenu={(e) => clickEvent(e, aRowData)}>
-                                            <span>{aRowData}</span>
-                                        </td>
-                                    );
-                                })}
-                            </tr>
-                        );
-                    })
-                ) : (
-                    <></>
-                )}
+                {pTableData && pTableData.rows
+                    ? pTableData.rows.map((aRowList: any, aIdx: number) => {
+                          if (!!pMaxShowLen && aIdx + 1 === 6) {
+                              return MaxLenDiv();
+                          }
+                          if (pMaxShowLen && aIdx + 1 > 6) return <></>;
+                          if (aRowList.length === 1 && aRowList[0] === '') return;
+                          return (
+                              <tr key={'tbody-row' + aIdx} className={Number(aIdx) % 2 === 0 ? 'result-body-tr' : 'result-body-tr dark-odd'}>
+                                  <td>
+                                      <span className="row-num">{aIdx + 1}</span>
+                                  </td>
+                                  {aRowList.map((aRowData: any) => {
+                                      return (
+                                          <td className="result-table-item" key={generateUUID()} onContextMenu={(e) => clickEvent(e, aRowData)}>
+                                              <span>{aRowData}</span>
+                                          </td>
+                                      );
+                                  })}
+                              </tr>
+                          );
+                      })
+                    : null}
             </tbody>
         </table>
     );

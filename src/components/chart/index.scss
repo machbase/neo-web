@@ -1,4 +1,6 @@
 .chart-wrapper {
+    height: calc(100% - 40px);
+
     .chart-control {
         padding: 0 16px;
         display: flex;
@@ -54,6 +56,12 @@
                 background-color: rgba(255, 255, 255, 0.2);
                 border-radius: 5px;
             }
+        }
+    }
+
+    .chart_container {
+        .chart_item {
+            margin: auto;
         }
     }
 }

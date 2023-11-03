@@ -14,6 +14,7 @@
     }
 
     .table-header {
+        height: 40px;
         color: #fdb532;
 
         tr {
@@ -58,6 +59,12 @@
             .dark-odd {
                 background-color: rgb(43, 43, 43);
             }
+        }
+
+        .row-num {
+            margin-left: 20px;
+            cursor: default;
+            color: #888888;
         }
     }
 }

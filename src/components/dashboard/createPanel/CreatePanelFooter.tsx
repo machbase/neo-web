@@ -35,12 +35,12 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
     return (
         <div className="chart-footer-form">
             <div className="chart-footer-tab">
-                <div style={sTab === 'Query' ? { borderBottom: '2px solid #005FB8' } : { borderBottom: '2px solid transparent', opacity: 0.8 }} onClick={() => setTab('Query')}>
+                <div className={sTab === 'Query' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Query')}>
                     Query
                     <span className="series-count">{Number(pPanelOption.series.length)}</span>
                 </div>
                 {pTableList.length !== 0 && (
-                    <div style={sTab === 'Time' ? { borderBottom: '2px solid #005FB8' } : { borderBottom: '2px solid transparent', opacity: 0.8 }} onClick={() => setTab('Time')}>
+                    <div className={sTab === 'Time' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Time')}>
                         Time
                     </div>
                 )}
@@ -58,7 +58,7 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                     pGetTables={pGetTables}
                                     pSeriesInfo={aItem}
                                     pSetPanelOption={pSetPanelOption}
-                                ></Series>
+                                />
                             );
                         })}
                     {pTableList.length !== 0 && pPanelOption.series.length < 10 && (
@@ -72,18 +72,8 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                 })
                             }
                             className="plus-wrap"
-                            style={{
-                                border: '1px solid #777777',
-                                minHeight: '50px',
-                                borderRadius: '4px',
-                                padding: '8px',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                            }}
                         >
-                            <PlusCircle color="#FDB532"></PlusCircle>
+                            <PlusCircle color="#FDB532" />
                         </div>
                     )}
                     {pTableList.length === 0 && (
@@ -137,7 +127,7 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                             </div>
                         </div>
                     </div>
-                    <div className="time-divider"></div>
+                    <div className="time-divider" />
                     <div className="refresh-form">
                         <div className="time-header">Refresh</div>
 

@@ -81,15 +81,15 @@ export const getUserName = () => {
 };
 
 export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
+    if (!aTableInfo.rows) return [];
+
     const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub;
     const sIsAdmin = sCurrentUserName.toLowerCase() === ADMIN_ID;
     const sDbIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'DB');
     const sUserIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'USER');
     const sTableIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'NAME');
 
-    if (!aTableInfo.rows) return [];
-
-    let sParseTables = aTableInfo.rows && aTableInfo.rows.filter((aItem: any) => aItem[4] === 'Tag Table');
+    let sParseTables = aTableInfo.rows.filter((aItem: any) => aItem[4] === 'Tag Table');
     if (!sIsAdmin) {
         sParseTables = sParseTables.filter((aItem: any) => aItem[sDbIdx].toLowerCase() === DEFAULT_DB_NAME);
     }
@@ -109,4 +109,32 @@ export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
 
 export const isEmpty = (aArr: any) => {
     return Array.isArray(aArr) && aArr.length === 0;
+};
+
+export const elapsedTime = (date: number): string => {
+    if (typeof date === 'string') return '';
+    const start = date;
+    const end = new Date();
+
+    const seconds = Math.floor((end.getTime() - start) / 1000);
+    if (seconds < 60) return 'just a moment ago';
+
+    const minutes = seconds / 60;
+    if (minutes < 60) return `${Math.floor(minutes)}min ago`;
+
+    const hours = minutes / 60;
+    if (hours < 24) return `${Math.floor(hours)}hour ago`;
+
+    const days = hours / 24;
+    if (days < 30) return `${Math.floor(days)}day ago`;
+
+    const months = days / 30;
+    return `${Math.floor(months)}month ago`;
+};
+
+export const elapsedSize = (aSize: number): string => {
+    if (aSize === undefined || aSize === null) return '';
+    if (typeof aSize === 'string') return '';
+    if (aSize < 1000) return aSize + ' B';
+    return Math.floor(aSize / 1000) + ' KB';
 };

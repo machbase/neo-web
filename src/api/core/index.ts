@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 import { reLogin } from '@/api/repository/login';
 import { isImage } from '@/utils';
 
@@ -87,7 +87,7 @@ request.interceptors.request.use(
 
 // Response interceptor
 request.interceptors.response.use(
-    (response: any) => {
+    (response: AxiosResponse) => {
         if (response.config.url === '/api/tql') {
             return response;
         }

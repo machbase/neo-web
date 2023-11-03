@@ -11,4 +11,10 @@
         align-items: center;
         padding: 0 1rem;
     }
+
+    .textextension-editor-content {
+        width: 100%;
+        height: calc(100% - 40px);
+        overflow: auto;
+    }
 }

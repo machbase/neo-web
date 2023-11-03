@@ -110,7 +110,7 @@ const CHART = ({
     useDebounce([pSizes, pIsVertical], reDrawChart);
 
     return pDisplay === '' ? (
-        <div ref={chartRef} className="chart-wrapper" style={{ height: 'calc(100% - 40px)' }}>
+        <div ref={chartRef} className="chart-wrapper">
             {pChartAixsList.length > 0 && pQueryList.length > 0 && sResult ? (
                 <>
                     <div className="chart-control" style={{ height: `${sControlPanelHeight}px` }}>
@@ -144,13 +144,11 @@ const CHART = ({
                     </div>
                     {sResult && (
                         <div className="chart_container">
-                            <div className="chart_item" id={sResult.chartID} style={{ width: sStyle.width + 'px', height: sStyle.height + 'px', margin: 'auto' }}></div>
+                            <div className="chart_item" id={sResult.chartID} style={{ width: sStyle.width + 'px', height: sStyle.height + 'px' }} />
                         </div>
                     )}
                 </>
-            ) : (
-                <></>
-            )}
+            ) : null}
         </div>
     ) : (
         <></>

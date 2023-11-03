@@ -1,10 +1,37 @@
 .sql-result-wrapper {
-    width: calc(100%);
+    width: 100%;
+    overflow: auto;
+    height: calc(100% - 40px);
     .scroll-wrapper {
         position: relative;
         overflow: scroll;
         height: 100%;
         // background-color: white;
+    }
+
+    .sql-modal-title {
+        display: flex;
+        justify-content: space-between;
+
+        .sql-modal-title-content {
+            height: 40px;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .sql-modal-close {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            cursor: pointer;
+        }
+    }
+    .sql-modal-item {
+        height: 40px;
+        padding: 10px;
     }
 }
 

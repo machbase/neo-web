@@ -51,10 +51,7 @@ const ShellMenu = ({ pGetInfo, pInfo, pChangeTabOption, pSetIcon }: any) => {
 
     return (
         <div className="home_btn_box">
-            <div
-                style={{ display: 'flex', width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
-                onClick={(aEvent: any) => pChangeTabOption(aEvent, pInfo)}
-            >
+            <div className="content" onClick={(aEvent: any) => pChangeTabOption(aEvent, pInfo)}>
                 {pInfo.attributes && (
                     <div ref={MenuRef} className="menu-btn" onClick={(aEvent: any) => onContextMenu(aEvent)}>
                         <BiSolidDownArrow></BiSolidDownArrow>

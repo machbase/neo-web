@@ -7,7 +7,7 @@ export const getLogin = () => {
     });
 };
 
-export const postLogin = (params: any) => {
+export const postLogin = (params: { loginName: string, password: string }) => {
     return request({
         method: 'POST',
         url: '/api/login',

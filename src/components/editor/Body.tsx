@@ -199,15 +199,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     pSideSizes={pSideSizes}
                                 ></Dashboard>
                             )}
-                            {aItem.type === 'wrk' && (
-                                <WorkSheet
-                                    pId={aItem.id}
-                                    pSheet={aItem.sheet}
-                                    pHandleSaveModalOpen={handleSaveModalOpen}
-                                    setIsOpenModal={setIsOpenModal}
-                                    setIsSaveModal={setIsSaveModal}
-                                />
-                            )}
+                            {aItem.type === 'wrk' && <WorkSheet pId={aItem.id} pSheet={aItem.sheet} pHandleSaveModalOpen={handleSaveModalOpen} setIsSaveModal={setIsSaveModal} />}
                             {aItem.type === 'json' && <TextExtension pLang="json" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
                             {aItem.type === 'csv' && <TextExtension pLang="go" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
                             {aItem.type === 'md' && (

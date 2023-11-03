@@ -9,7 +9,14 @@ import TABLE from '@/components/table';
 import './result.scss';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 
-const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, onMoreResult }: { pDisplay: string; pSqlResponseData: any; pMaxShowLen?: boolean; onMoreResult: () => void }) => {
+interface ResultProps {
+    pDisplay: string;
+    pSqlResponseData: any;
+    pMaxShowLen?: boolean;
+    onMoreResult: () => void;
+}
+
+const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, onMoreResult }: ResultProps) => {
     const [observe, unobserve] = useObserver(0, onMoreResult);
     const sObserveRef = useRef<any>(null);
     const sRootRef = useRef<any>(null);
@@ -63,7 +70,7 @@ const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, onMoreResult }: { pDi
     }, [pSqlResponseData]);
 
     return (
-        <div ref={sRootRef} className="sql-result-wrapper" style={{ display: pDisplay, height: 'calc(100% - 40px)', overflow: 'auto' }}>
+        <div ref={sRootRef} className="sql-result-wrapper" style={{ display: pDisplay }}>
             <TABLE pTableData={pSqlResponseData} pMaxShowLen={pMaxShowLen} clickEvent={handleClick} />
             <div ref={sObserveRef} style={{ width: '100%', height: '1px' }} />
             <div ref={MenuRef} style={{ position: 'fixed', top: sMenuY, left: sMenuX, zIndex: 999 }}>
@@ -83,17 +90,15 @@ const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, onMoreResult }: { pDi
                     <Modal pIsDarkMode={true}>
                         <div ref={ModalRef}>
                             <Modal.Header>
-                                <div className="title" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <div className="title-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '40px', padding: '10px' }}>
+                                <div className="sql-modal-title">
+                                    <div className="sql-modal-title-content">
                                         <span>SHOW CONTENT</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px' }}>
-                                        <Close onClick={() => setIsModal(false)} />
-                                    </div>
+                                    <Close className="sql-modal-close" onClick={() => setIsModal(false)} />
                                 </div>
                             </Modal.Header>
                             <Modal.Body>
-                                <div style={{ height: '40px', padding: '10px' }}>{sSelectedItem}</div>
+                                <div className="sql-modal-item">{sSelectedItem}</div>
                             </Modal.Body>
                         </div>
                     </Modal>

@@ -127,6 +127,15 @@
                     }
                 }
 
+                .list-wrapper {
+                    width: 48%;
+                    min-width: 48%;
+                    max-width: 48%;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                }
+
                 span {
                     overflow: hidden;
                     text-overflow: ellipsis;
@@ -180,6 +189,24 @@
 
                 .pl {
                     padding-left: 1rem;
+
+                    .pl-icon {
+                        width: 18px;
+                        height: 18px;
+
+                        svg {
+                            width: 100%;
+                        }
+                    }
+                }
+
+                .list-wrapper {
+                    width: 48%;
+                    min-width: 48%;
+                    max-width: 48%;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
                 }
 
                 span {

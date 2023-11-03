@@ -5,7 +5,7 @@ import { gFileTree } from '@/recoil/fileTree';
 import './SaveModal.scss';
 import { gBoardList, gSelectedBoard, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { getId, extractionExtension } from '@/utils';
+import { getId, extractionExtension, elapsedTime, elapsedSize } from '@/utils';
 import { FileType, FileTreeType, fileTreeParser } from '@/utils/fileTreeParser';
 import { getFiles as getFilesTree, deleteFile as deleteContextFile } from '@/api/repository/fileTree';
 import { Menu } from '@/components/contextMenu/Menu';
@@ -287,19 +287,8 @@ export const SaveModal = (props: SaveModalProps) => {
                 setSelectedTab(sTmpId);
                 handleClose();
                 return;
-            } else if (sType === 'wrk') {
-                setBoardList([
-                    ...sBoardList,
-                    {
-                        id: sTmpId,
-                        name: file.name,
-                        type: sType,
-                        path: sPath,
-                        savedCode: JSON.stringify(sDataObj.sheet),
-                        ...sDataObj,
-                    },
-                ]);
             } else {
+                const savedCode = sType === 'wrk' ? JSON.stringify(sDataObj.sheet) : sDataObj.code;
                 setBoardList([
                     ...sBoardList,
                     {
@@ -307,7 +296,7 @@ export const SaveModal = (props: SaveModalProps) => {
                         name: file.name,
                         type: sType,
                         path: sPath,
-                        savedCode: sDataObj.code,
+                        savedCode: savedCode,
                         ...sDataObj,
                     },
                 ]);
@@ -397,34 +386,6 @@ export const SaveModal = (props: SaveModalProps) => {
         }
     };
 
-    const elapsedTime = (date: number): string => {
-        if (typeof date === 'string') return '';
-        const start = date;
-        const end = new Date();
-
-        const seconds = Math.floor((end.getTime() - start) / 1000);
-        if (seconds < 60) return 'just a moment ago';
-
-        const minutes = seconds / 60;
-        if (minutes < 60) return `${Math.floor(minutes)}min ago`;
-
-        const hours = minutes / 60;
-        if (hours < 24) return `${Math.floor(hours)}hour ago`;
-
-        const days = hours / 24;
-        if (days < 30) return `${Math.floor(days)}day ago`;
-
-        const months = days / 30;
-        return `${Math.floor(months)}month ago`;
-    };
-
-    const elapsedSize = (aSize: number): string => {
-        if (aSize === undefined || aSize === null) return '';
-        if (typeof aSize === 'string') return '';
-        if (aSize < 1000) return aSize + ' B';
-        return Math.floor(aSize / 1000) + ' KB';
-    };
-
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
 
     return (
@@ -481,8 +442,8 @@ export const SaveModal = (props: SaveModalProps) => {
                                             className={`row ${sSelectedFile && sSelectedFile.name === aItem.name ? 'selected' : ''}`}
                                             onClick={(aEvent) => handleSelectFile(aEvent, aItem)}
                                         >
-                                            <div className="pl" style={{ width: '48%', maxWidth: '48%', minWidth: '48%', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <div className="pl-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '18px' }}>
+                                            <div className="pl list-wrapper">
+                                                <div className="pl-icon">
                                                     {aItem.type === 'dir' ? (
                                                         aItem.gitClone ? (
                                                             icons('gitClosedDirectory')
