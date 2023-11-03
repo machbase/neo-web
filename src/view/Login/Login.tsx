@@ -40,8 +40,8 @@ const Login = () => {
 
     const login = async () => {
         const sParams = {
-            LoginName: sLoginId,
-            Password: sPassword,
+            loginName: sLoginId,
+            password: sPassword,
         };
 
         const sReturn: any = await postLogin(sParams);

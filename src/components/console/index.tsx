@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRecoilState } from 'recoil';
 import { gConsoleSelector } from '@/recoil/recoil';
 import { VscAdd, VscChevronDown, VscTrash, VscChevronUp } from '@/assets/icons/Icon';
-import { getId } from '@/utils';
+import { getId, isEmpty } from '@/utils';
 import Shell from '../shell/Shell';
 import Menu from '../contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
@@ -130,17 +130,15 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                 pConsoleList={sConsoleList}
                                 pHandleSelectedTab={() => handleSelectedTab(aItem.id)}
                                 pTab={aItem}
-                            ></ConsoleTab>
+                            />
                         );
                     })}
                 </div>
                 <div className="console-header-right">
                     <div ref={MenuRef} onClick={(aEvent: any) => onContextMenu(aEvent)} className="add-terminal">
-                        <VscAdd></VscAdd>
-                        <span>
-                            <VscChevronDown></VscChevronDown>
-                        </span>
-                        <div style={{ position: 'absolute', top: 30, left: -80, zIndex: 99 }}>
+                        <VscAdd />
+                        <VscChevronDown />
+                        <div className="extension-menu">
                             <Menu isOpen={sIsContextMenu}>
                                 {pExtentionList.map((aItem: any) => {
                                     return (
@@ -153,62 +151,39 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                             </Menu>
                         </div>
                     </div>
-                    {sConsoleTab && sSelectedTab === sConsoleTab[0]?.id && <VscTrash onClick={() => setConsoleList([])}></VscTrash>}
+                    {sConsoleTab && sSelectedTab === sConsoleTab[0]?.id && <VscTrash onClick={() => setConsoleList([])} />}
 
-                    {pTerminalSizes[1] === 40 && <VscChevronUp onClick={() => pSetTerminalSizes(['72%', '28%'])}></VscChevronUp>}
-                    {pTerminalSizes[1] !== 40 && <VscChevronDown onClick={() => pSetTerminalSizes(['', 40])}></VscChevronDown>}
+                    {pTerminalSizes[1] === 40 && <VscChevronUp onClick={() => pSetTerminalSizes(['72%', '28%'])} />}
+                    {pTerminalSizes[1] !== 40 && <VscChevronDown onClick={() => pSetTerminalSizes(['', 40])} />}
                 </div>
             </div>
             <div ref={consoleRef} className="console-body">
                 {sConsoleTab.map((aItem: any) => {
                     return (
-                        <div style={aItem.id === sSelectedTab ? { height: '100%', width: '100%' } : { display: 'none' }} key={aItem.id}>
-                            <div style={aItem.type === 'console' ? { overflow: 'auto' } : { display: 'none', overflow: 'auto' }}>
-                                {sConsoleList.length > 0 &&
+                        <div key={aItem.id} className={`${aItem.id === sSelectedTab ? 'active-console' : 'display-none'}`}>
+                            <div className={aItem.type === 'console' ? 'is-console' : 'display-none'}>
+                                {!isEmpty(sConsoleList) &&
                                     sConsoleList.map((bItem: any, aIdx: number) => {
                                         return (
                                             <div
-                                                onClick={() => setSelectTask(bItem.task)}
-                                                style={
-                                                    sSelectTask === bItem.task
-                                                        ? {
-                                                              lineHeight: '117%',
-                                                              background: 'rgba(12,12,12, 0.6)',
-                                                              paddingLeft: '24px',
-                                                              fontSize: '14px',
-                                                              fontFamily: 'D2coding',
-                                                              display: 'flex',
-                                                              alignItems: 'baseline',
-                                                              gap: '16px',
-                                                              color: '#f4f4f4',
-                                                          }
-                                                        : {
-                                                              lineHeight: '117%',
-                                                              paddingLeft: '24px',
-                                                              fontSize: '14px',
-                                                              fontFamily: 'D2coding',
-                                                              display: 'flex',
-                                                              alignItems: 'baseline',
-                                                              gap: '16px',
-                                                              color: '#d1d1d1',
-                                                          }
-                                                }
                                                 key={aIdx}
+                                                onClick={() => setSelectTask(bItem.task)}
+                                                className="task"
+                                                style={{
+                                                    color: sSelectTask === bItem.task ? '#f4f4f4' : '#d1d1d1',
+                                                    background: sSelectTask === bItem.task ? 'rgba(12, 12, 12, 0.6)' : '',
+                                                }}
                                             >
-                                                <span style={{ whiteSpace: 'nowrap' }}>
+                                                <span className="nowrap">
                                                     {changeUtcToText(bItem.timestamp < 10000000000000 ? Math.floor(bItem.timestamp) : Math.floor(bItem.timestamp / 1000000))}
                                                 </span>
                                                 {bItem.level && <span style={{ color: setColor(bItem.level), whiteSpace: 'nowrap', minWidth: '35px' }}>{bItem.level}</span>}
-                                                {bItem.task && <span style={{ whiteSpace: 'nowrap' }}>{bItem.task}</span>}
+                                                {bItem.task && <span className="nowrap">{bItem.task}</span>}
                                                 {bItem.repeat && (
                                                     <div
+                                                        className="repeat"
                                                         style={{
                                                             background: setColor(bItem.level),
-                                                            borderRadius: '40%',
-                                                            fontSize: '12px',
-                                                            padding: '0 5px 0 3px',
-                                                            display: 'flex',
-                                                            justifyContent: 'center',
                                                         }}
                                                     >
                                                         {bItem.repeat}
@@ -221,6 +196,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                             </div>
 
                             <div
+                                className="shell"
                                 style={
                                     aItem.type !== 'console'
                                         ? aItem && aItem?.shell?.theme === 'indigo'
@@ -229,7 +205,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                         : { display: 'none', overflow: 'auto' }
                                 }
                             >
-                                {aItem.type === 'shell' && <Shell pSelectedTab={sSelectedTab} pType="bottom" pInfo={aItem} pId={aItem.id}></Shell>}
+                                {aItem.type === 'shell' && <Shell pSelectedTab={sSelectedTab} pType="bottom" pInfo={aItem} pId={aItem.id} />}
                             </div>
                         </div>
                     );

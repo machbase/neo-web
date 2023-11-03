@@ -15,7 +15,7 @@ interface MarkdownProps {
 }
 
 export const Markdown = (props: MarkdownProps) => {
-    const { pContents, pIdx, pType } = props;
+    const { pContents, pIdx, pType, pData } = props;
     const [sMdxText, setMdxText] = useState<string>('');
     const [sBoardList] = useRecoilState(gBoardList);
 
@@ -41,7 +41,7 @@ export const Markdown = (props: MarkdownProps) => {
                 }
                 fetchMrk(pContents, sReperer);
             } else if (pType === 'wrk-mrk') {
-                const targetBoard = sBoardList.find((aBoard) => aBoard.type === 'wrk' && aBoard.id === props.pData);
+                const targetBoard = sBoardList.find((aBoard) => aBoard.type === 'wrk' && aBoard.id === pData);
                 if (targetBoard && targetBoard.path !== '') {
                     sReperer += targetBoard.path + targetBoard.name;
                 }

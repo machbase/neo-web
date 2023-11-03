@@ -7,8 +7,10 @@ import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { Markdown } from '@/components/worksheet/Markdown';
 import './TextExtension.scss';
 
+type EditorLangType = 'json' | 'go' | 'typescript' | 'markdown' | 'css' | 'html';
+
 export interface TextExtensionProps {
-    pLang: 'json' | 'go' | 'typescript' | 'markdown' | 'css' | 'html';
+    pLang: EditorLangType;
     pCode: string | object;
     pHandleSaveModalOpen: () => void;
     setIsOpenModal: Dispatch<SetStateAction<boolean>>;
@@ -48,7 +50,7 @@ export const TextExtension = (props: TextExtensionProps) => {
                 <IconButton pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
                 <IconButton pIcon={<SaveAs size={18} />} onClick={() => setIsOpenModal(true)} />
             </div>
-            <div style={{ width: '100%', height: 'calc(100% - 40px)', overflow: 'auto', padding: sIsPreview ? '0 1rem' : '', backgroundColor: sIsPreview ? '#1B1C21' : '' }}>
+            <div className="textextension-editor-content" style={{ padding: sIsPreview ? '0 1rem' : '', backgroundColor: sIsPreview ? '#1B1C21' : '' }}>
                 {!sIsPreview ? <MonacoEditor pText={sText} pLang={sCurrentLang} onSelectLine={() => null} onChange={handleChangeText} onRunCode={() => null} /> : null}
                 {pLang === 'markdown' && sIsPreview ? <Markdown pIdx={1} pContents={sText} pType="mrk" /> : null}
             </div>

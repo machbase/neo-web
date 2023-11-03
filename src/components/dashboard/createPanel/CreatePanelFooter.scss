@@ -8,6 +8,13 @@
             gap: 8px;
             padding: 2px 8px;
             font-size: 13px;
+            .active-footer-tab {
+                border-bottom: 2px solid #005fb8;
+            }
+            .inactive-footer-tab {
+                border-bottom: 2px solid transparent;
+                opacity: 0.8;
+            }
             .series-count {
                 background-color: #a4a4a46e;
                 border-radius: 50%;
@@ -178,6 +185,17 @@
                 background-color: #141518;
                 padding: 6px;
                 overflow: auto;
+
+                .plus-wrap {
+                    border: 1px solid #777777;
+                    min-height: 50px;
+                    border-radius: 4px;
+                    padding: 8px;
+                    display: flex;
+                    justify-content: center;
+                    flex-direction: column;
+                    align-items: center;
+                }
             }
         }
     }

@@ -1,0 +1,14 @@
+.console-tab-item {
+    display: flex;
+    align-items: center;
+
+    .active-tab {
+        display: flex;
+        border-bottom: 2px inset #005fb8;
+    }
+    .inactive-tab {
+        display: flex;
+        border-bottom: 2px inset transparent;
+        opacity: 0.4;
+    }
+}

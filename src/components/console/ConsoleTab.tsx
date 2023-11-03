@@ -1,7 +1,7 @@
 import { VscRecord } from '@/assets/icons/Icon';
 import icons from '@/utils/icons';
-
 import { useState } from 'react';
+import './ConsoleTab.scss';
 
 const ConsoleTab = ({ pSelectedTab, pNewLog, pDeleteConsoleTab, pHandleSelectedTab, pTab, pConsoleList }: any) => {
     const [sMouseHover, setMouseHover] = useState(false);
@@ -20,15 +20,8 @@ const ConsoleTab = ({ pSelectedTab, pNewLog, pDeleteConsoleTab, pHandleSelectedT
         }
     };
     return (
-        <div style={{ display: 'flex', alignItems: 'center' }} onMouseEnter={() => setMouseHover(true)} onMouseLeave={() => setMouseHover(false)} onClick={pHandleSelectedTab}>
-            <span
-                style={
-                    pSelectedTab === pTab.id ? { borderBottom: '2px inset  #005FB8', display: 'flex' } : { borderBottom: '2px inset  transparent', opacity: 0.4, display: 'flex' }
-                }
-                className="tabs"
-            >
-                {pTab.name}
-            </span>
+        <div className="console-tab-item" onMouseEnter={() => setMouseHover(true)} onMouseLeave={() => setMouseHover(false)} onClick={pHandleSelectedTab}>
+            <span className={`tabs ${pSelectedTab === pTab.id ? 'active-tab' : 'inactive-tab'}`}>{pTab.name}</span>
             <span>
                 {pTab.type !== 'console' && sMouseHover && (
                     <span className="tab_close" onClick={(aEvent: any) => pDeleteConsoleTab(aEvent, pTab)}>
@@ -36,9 +29,7 @@ const ConsoleTab = ({ pSelectedTab, pNewLog, pDeleteConsoleTab, pHandleSelectedT
                     </span>
                 )}
                 {(!sMouseHover || pTab.type === 'console') && (
-                    <span className="tab_close">
-                        {pNewLog && pTab.type === 'console' && <VscRecord color={setColor(pConsoleList[pConsoleList.length - 1]?.level)}></VscRecord>}
-                    </span>
+                    <span className="tab_close">{pNewLog && pTab.type === 'console' && <VscRecord color={setColor(pConsoleList[pConsoleList.length - 1]?.level)} />}</span>
                 )}
             </span>
         </div>

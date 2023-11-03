@@ -36,7 +36,6 @@ const Tql = (props: TqlProps) => {
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
     const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
-//    const setConsoleList = useSetRecoilState<any>(gConsoleList);
 
     useEffect(() => {
         setText(pCode);
@@ -185,9 +184,9 @@ const Tql = (props: TqlProps) => {
                 <Pane style={{ overflow: 'initial' }}>
                     <div className="tql-result-wrapper">
                         <div className="tql-result-header">
-                            <div className="tql-result-tab result-icon" style={{ color: '#fdb532' }}>
+                            <div className="tql-result-tab result-icon">
                                 <div className="round_right_wrap">
-                                    <div className="round_right"></div>
+                                    <div className="round_right" />
                                 </div>
                                 {sResultType === 'text' ? <AiOutlineFileDone color="#fdb532" /> : null}
                                 {sResultType === 'mrk' ? <AiOutlineFileMarkdown color="#fdb532" /> : null}
@@ -195,7 +194,7 @@ const Tql = (props: TqlProps) => {
                                 {sResultType === 'html' ? <BarChart color="#fdb532" /> : null}
                                 RESULT
                                 <div className="round_left_wrap">
-                                    <div className="round_left"></div>
+                                    <div className="round_left" />
                                 </div>
                             </div>
                             <div className="tql-result-btn-group">
@@ -205,7 +204,7 @@ const Tql = (props: TqlProps) => {
                                 {sResultType === 'csv' ? (
                                     <IconButton pIcon={sIsHeader ? <TableHeader /> : <TableNotHeader />} pIsActive={sIsHeader} onClick={() => handleChangeHeader(sCsv)} />
                                 ) : null}
-                                <div className="divider" style={{ margin: '12px 3px' }}></div>
+                                <div className="divider" />
                                 <IconButton pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />} pIsActive={isVertical} onClick={handleSplitVertical} />
                                 <IconButton pIcon={<LuFlipVertical />} pIsActive={!isVertical} onClick={handleSplitHorizontal} />
                             </div>

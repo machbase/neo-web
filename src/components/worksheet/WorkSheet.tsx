@@ -14,7 +14,6 @@ interface WorkSheetProps {
     pSheet: any;
     pHandleSaveModalOpen: () => void;
     setIsSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
-    setIsOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const WorkSheet = (props: WorkSheetProps) => {

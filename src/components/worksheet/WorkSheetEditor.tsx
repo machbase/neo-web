@@ -35,6 +35,25 @@ interface WorkSheetEditorProps {
     pCallback: (aData: { id: string; event: CallbackEventType }) => void;
 }
 
+type LocationType = {
+    position: PositionType;
+    selection: SelectionType;
+};
+
+const defaultSqlLocation = {
+    position: { column: 1, lineNumber: 1 },
+    selection: {
+        endColumn: 1,
+        endLineNumber: 1,
+        positionColumn: 1,
+        positionLineNumber: 1,
+        selectionStartColumn: 1,
+        selectionStartLineNumber: 1,
+        startColumn: 1,
+        startLineNumber: 1,
+    },
+};
+
 export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const { pData, pWrkId, pIdx, pAllRunCodeStatus, pAllRunCodeTargetIdx, pAllRunCodeList, pAllRunCodeCallback, setSheet, pWorkSheets, pCallback } = props;
     const sInitHeight = 200;
@@ -55,22 +74,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sSql, setSql] = useState<any>(null);
     const [sCollapse, setCollapse] = useState<boolean>(pData.minimal ?? false);
     const [sResultContentType, setResultContentType] = useState<ShowResultType>(pData.brief ? 'brief' : pData.brief === undefined ? 'brief' : 'all');
-    const [sSqlLocation, setSqlLocation] = useState<{
-        position: PositionType;
-        selection: SelectionType;
-    }>({
-        position: { column: 1, lineNumber: 1 },
-        selection: {
-            endColumn: 1,
-            endLineNumber: 1,
-            positionColumn: 1,
-            positionLineNumber: 1,
-            selectionStartColumn: 1,
-            selectionStartLineNumber: 1,
-            startColumn: 1,
-            startLineNumber: 1,
-        },
-    });
+    const [sSqlLocation, setSqlLocation] = useState<LocationType>(defaultSqlLocation);
     const [sSqlReason, setSqlReason] = useState<string>('');
     const dropDownRef = useRef(null);
     const ResultContentTypeRef = useRef(null);
@@ -202,13 +206,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
     };
 
-    const getSqlData = (
-        aText: string,
-        aLocation?: {
-            position: PositionType;
-            selection: SelectionType;
-        }
-    ) => {
+    const getSqlData = (aText: string, aLocation?: LocationType) => {
         setSql('');
         let parsedQuery: any = '';
         if (!aLocation) {
@@ -254,7 +252,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
         if (sQueryReslutList.at(-1).status === 200 && aParsedQuery.length === sQueryReslutList.length) {
             setSqlReason('');
-            setSql(sQueryReslutList[sQueryReslutList.length - 1].data);
+            setSql(sQueryReslutList.at(-1).data);
             if (pAllRunCodeStatus) pAllRunCodeCallback(true);
         } else {
             if (pAllRunCodeStatus) pAllRunCodeCallback(false);
@@ -473,7 +471,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         <div className="worksheet-editor-wrapper">
             <div className="worksheet-editor">
                 <div className="worksheet-content" style={{ display: !sCollapse ? 'block' : 'none' }}>
-                    <div className="worksheet-ctr" style={{ display: 'flex', height: '40px', justifyContent: 'end' }}>
+                    <div className="worksheet-ctr">
                         {DropDown()}
                         {VerticalDivision()}
                         {ResultContentType()}
@@ -500,7 +498,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                             onClick={pWorkSheets.length > 1 ? () => pCallback({ id: pData.id, event: 'Delete' }) : () => null}
                         />
                     </div>
-                    <div ref={resizeRef} className="editor" style={{ borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px' }}>
+                    <div ref={resizeRef} className="editor">
                         <MonacoEditor
                             pText={sText}
                             pLang={sMonacoLanguage}

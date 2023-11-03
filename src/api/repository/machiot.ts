@@ -25,7 +25,7 @@ const getChartData = async (aTagTables: string, option: boolean, range: number, 
     });
 };
 
-const postTerminalSize = async (aTerminalId: number, aSize: any) => {
+const postTerminalSize = async (aTerminalId: number, aSize: { cols: number; rows: number }) => {
     await request({
         method: 'POST',
         url: `/api/term/${aTerminalId}/windowsize`,
@@ -40,7 +40,7 @@ const fetchData = async (aSql: string, aFormat: string, aTimezone: any, aLimit?:
         data: sSQL,
     });
 };
-const fetchTableName = async (aTable: any) => {
+const fetchTableName = async (aTable: string) => {
     let DBName = '';
     let sTableName = aTable;
     let sUserName = ADMIN_ID;
