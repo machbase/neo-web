@@ -9,4 +9,31 @@
     article {
         width: 100%;
     }
+
+    pre {
+        position: relative;
+    }
+
+    .cp-button {
+        width: 30px;
+        height: 30px;
+        padding: 5px;
+
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+
+        background-color: transparent;
+        border-radius: 8px;
+
+        cursor: pointer;
+
+        &:hover {
+            background-color: #52535a;
+        }
+
+        svg:hover {
+            fill: #f8f8f8;
+        }
+    }
 }

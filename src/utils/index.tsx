@@ -138,3 +138,17 @@ export const elapsedSize = (aSize: number): string => {
     if (aSize < 1000) return aSize + ' B';
     return Math.floor(aSize / 1000) + ' KB';
 };
+
+export const parseCodeBlocks = (aMarkdownContents: string) => {
+    const regex = /```[\s\S]*?```/g;
+    const matches = aMarkdownContents.match(regex);
+    if (!matches) return [];
+
+    return matches.map((block) => {
+        // Remove the starting and ending backticks
+        return block
+            .replace(/```[\w]*\n?/g, '')
+            .replace(/```/g, '')
+            .trim();
+    });
+};
