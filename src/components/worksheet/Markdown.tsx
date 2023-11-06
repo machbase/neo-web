@@ -6,6 +6,9 @@ import '@/assets/md/mdDark.css';
 import setMermaid from '@/plugin/mermaid';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
+import { generateUUID, parseCodeBlocks } from '@/utils';
+import { ClipboardCopy } from '@/utils/ClipboardCopy';
+import { Success } from '@/components/toast/Toast';
 
 interface MarkdownProps {
     pContents?: any;
@@ -18,10 +21,52 @@ export const Markdown = (props: MarkdownProps) => {
     const { pContents, pIdx, pType, pData } = props;
     const [sMdxText, setMdxText] = useState<string>('');
     const [sBoardList] = useRecoilState(gBoardList);
+    const [sMarkdownId, setMarkdownId] = useState<string>('');
+    const [sCodeBlocks, setCodeBlocks] = useState<string[]>([]);
 
     useEffect(() => {
         init();
+        setMarkdownId(generateUUID());
+        setCodeBlocks(parseCodeBlocks(pContents));
     }, [pContents]);
+
+    useEffect(() => {
+        if (!sMarkdownId) return;
+        let blocks = document.querySelectorAll(`#mrk${sMarkdownId} pre`);
+        if (!blocks) return;
+        const clickHandlers: any = [];
+        blocks.forEach((block, aIndex: number) => {
+            let button = document.createElement('div');
+            button.className = 'cp-button';
+            button.innerHTML = `<svg
+                                    viewBox="0 0 24 24"
+                                    fill="rgba(255, 255, 255, 0.5)"
+                                    height="100%"
+                                    width="100%"
+                                >
+                                    <path d="M20 2H10c-1.103 0-2 .897-2 2v4H4c-1.103 0-2 .897-2 2v10c0 1.103.897 2 2 2h10c1.103 0 2-.897 2-2v-4h4c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2zM4 20V10h10l.002 10H4zm16-6h-4v-4c0-1.103-.897-2-2-2h-4V4h10v10z" />
+                                </svg>`;
+            block.appendChild(button);
+
+            const clickHandler = () => handleCopy(sCodeBlocks[aIndex]);
+            clickHandlers.push(clickHandler);
+            button.addEventListener('click', clickHandler);
+        });
+
+        return () => {
+            blocks.forEach((block, aIndex: number) => {
+                const button = block.querySelector('.cp-button');
+                if (button) {
+                    button.removeEventListener('click', clickHandlers[aIndex]);
+                }
+            });
+        };
+    }, [sMdxText]);
+
+    const handleCopy = (aText: string) => {
+        ClipboardCopy(aText);
+        Success('copied content');
+    };
 
     const fetchMrk = async (aContents: string, aReperer: string) => {
         const sData = await postMd(aContents, true, aReperer);
@@ -55,5 +100,7 @@ export const Markdown = (props: MarkdownProps) => {
         }
     };
 
-    return <div className="mrk-form markdown-body" style={{ backgroundColor: '#1B1C21', width: '100%' }} dangerouslySetInnerHTML={{ __html: sMdxText }}></div>;
+    return (
+        <div id={'mrk' + sMarkdownId} className="mrk-form markdown-body" style={{ backgroundColor: '#1B1C21', width: '100%' }} dangerouslySetInnerHTML={{ __html: sMdxText }}></div>
+    );
 };
