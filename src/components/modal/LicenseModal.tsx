@@ -26,7 +26,7 @@ export const LicenseModal = (props: LicenseModalProps) => {
     };
 
     const onUploadLicense = async (aEvent: React.ChangeEvent<HTMLInputElement>) => {
-        let sFormData = new FormData();
+        const sFormData: FormData = new FormData();
         const sInputEl = aEvent.target as HTMLInputElement;
 
         if (sInputEl.files !== null) {

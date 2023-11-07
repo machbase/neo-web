@@ -77,6 +77,10 @@ request.interceptors.request.use(
             sHeaders['Content-Type'] = 'application/json';
         }
 
+        if (config.url.includes('/api/license') && config.method === 'post') {
+            sHeaders['Content-Type'] = 'multipart/form-data';
+        }
+
         return config;
     },
     (error: AxiosError) => {
