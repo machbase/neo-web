@@ -3,7 +3,7 @@
         <div class="first-col">
             <label for="_cfg_chart_title">Chart title</label>
             <div class="cfg-input">
-                <input v-model="title" id="_cfg_chart_title" class="input" type="text" />
+                <input v-model="title" id="_cfg_chart_title" class="input" maxlength="40" type="text" />
             </div>
         </div>
         <div class="col1"></div>

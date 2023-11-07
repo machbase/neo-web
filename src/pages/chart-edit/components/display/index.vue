@@ -9,7 +9,21 @@
             </div>
             <label for="_cfg_point_radius">Point radius</label>
             <div class="cfg-input">
-                <input v-model="pointRadius" id="_cfg_point_radius" class="input point_radius_input" type="text" />
+                <input
+                    v-model="pointRadius"
+                    id="_cfg_point_radius"
+                    @input="
+                        () => {
+                            if (pointRadius > 10) {
+                                pointRadius = 10;
+                            } else if (pointRadius < 0) {
+                                pointRadius = 0;
+                            }
+                        }
+                    "
+                    class="input point_radius_input"
+                    type="number"
+                />
             </div>
             <label for="_cfg_show_bottom_legend">Legend</label>
             <div class="cfg-input input-wrapper">
@@ -24,7 +38,21 @@
             </div>
             <label for="_cfg_stroke">Line thickness</label>
             <div class="cfg-input">
-                <input v-model="lineThick" id="_cfg_stroke" class="input point_radius_input" type="text" />
+                <input
+                    v-model="lineThick"
+                    id="_cfg_stroke"
+                    @input="
+                        () => {
+                            if (lineThick > 10) {
+                                lineThick = 10;
+                            } else if (lineThick < 0) {
+                                lineThick = 0;
+                            }
+                        }
+                    "
+                    class="input point_radius_input"
+                    type="number"
+                />
             </div>
             <!-- <label for="_cfg_border_color">Border color</label>
             <div class="cfg-input">

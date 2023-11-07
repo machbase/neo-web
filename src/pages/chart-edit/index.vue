@@ -40,6 +40,7 @@ import GeneralTab from '../chart-edit/components/general/index.vue';
 import TimeRangeTab from '../chart-edit/components/time-range/index.vue';
 import { cloneDeep } from 'lodash';
 import { RouteNames } from '@/enums/routes';
+import { toast, ToastOptions } from 'vue3-toastify';
 interface PropsModalEdit {
     id: number;
     pTabIdx: number;
@@ -61,6 +62,7 @@ const onClickTab = (index: number) => {
 };
 const defaultChartData = ref<PanelInfo[]>([]);
 const gSelectedTab = computed(() => store.state.gSelectedTab);
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
 const gTabList = computed(() => store.state.gTabList);
 const gBoard = computed(() => {
@@ -75,11 +77,44 @@ const onChangeTabData = (data: Partial<PanelInfo>) => {
 const onClosePopup = () => {
     emit('eClosePopup');
 };
+const isValidDateTimeFormat = (input: any): boolean => {
+    const dateRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+    const nowRegex = /^now\s*([-+]\s*\d+[dhmsyM])?$/;
+
+    return dateRegex.test(input) || nowRegex.test(input) || input === 'now' || input === '';
+};
+
 const onSave = () => {
     const payload = {
         index: props.id,
         item: sTabData.value,
     };
+
+    if (!isValidDateTimeFormat((sTabData.value as any).range_bgn) && !isValidDateTimeFormat((sTabData.value as any).range_end)) {
+        toast('Please match the time format.', {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
+        return;
+    }
+
+    if (
+        (sTabData.value as any).custom_min > (sTabData.value as any).custom_max ||
+        (sTabData.value as any).custom_drilldown_min > (sTabData.value as any).custom_drilldown_max ||
+        (sTabData.value as any).custom_min2 > (sTabData.value as any).custom_max2 ||
+        (sTabData.value as any).custom_drilldown_min2 > (sTabData.value as any).custom_drilldown_max2
+    ) {
+        toast('Please check min and max of scale.', {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
+        return;
+    }
+
     sDataChart.value[0] = sTabData.value as PanelInfo;
 
     store.commit(MutationTypes.setChartEdit, payload);

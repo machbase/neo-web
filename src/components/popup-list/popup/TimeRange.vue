@@ -32,10 +32,12 @@ import { formatDate } from '@/utils/utils';
 import { useStore } from '@/store';
 import { ActionTypes } from '@/store/actions';
 import { TimeLineType } from '@/interface/date';
+import { toast, ToastOptions } from 'vue3-toastify';
 interface TimeRangeProps {
     pTimeRange?: TimeLineType;
 }
 const props = defineProps<TimeRangeProps>();
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
 const gSelectedTab = computed(() => store.state.gSelectedTab);
 const gTabList = computed(() => store.state.gTabList);
 const cTimeRange = computed(() => {
@@ -60,8 +62,25 @@ const OnTimeRange = (data: TimeRangeInput) => {
     dateStart.value = data.value[0];
     dateEnd.value = data.value[1];
 };
+
+function isValidDateTimeFormat(input: string): boolean {
+    const dateRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+    const nowRegex = /^now\s*([-+]\s*\d+[dhmsyM])?$/;
+
+    return dateRegex.test(input) || nowRegex.test(input) || input === 'now';
+}
+
 const onSetting = () => {
-    store.dispatch(ActionTypes.setTimeRange, { start: dateStart.value, end: dateEnd.value, refresh: refresh.value }).then(() => onClosePopup());
+    if (isValidDateTimeFormat(dateStart.value) && isValidDateTimeFormat(dateEnd.value)) {
+        store.dispatch(ActionTypes.setTimeRange, { start: dateStart.value, end: dateEnd.value, refresh: refresh.value }).then(() => onClosePopup());
+    } else {
+        toast('Please match the format.', {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
+    }
 };
 
 const onClosePopup = () => {
