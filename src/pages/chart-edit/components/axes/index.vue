@@ -13,7 +13,7 @@
             </div>
             <label for="_cfg_pixel">Pixels between tick marks</label>
             <div class="cfg-input">
-                <input v-model="pixel" id="_cfg_pixel" class="input" style="width: 240px" type="text" />
+                <input v-model="pixel" id="_cfg_pixel" class="input" step="0.01" style="width: 240px" type="number" />
             </div>
         </div>
         <div class="col1" style="width: 270px">
@@ -242,6 +242,16 @@ watch(
     () => {
         isShowTickLineY.value = true;
         isShowTickLineY2.value = true;
+    }
+);
+watch(
+    () => pixel.value,
+    () => {
+        if (pixel.value < 0) {
+            pixel.value = 1;
+        } else if (pixel.value > 100) {
+            pixel.value = 100;
+        }
     }
 );
 

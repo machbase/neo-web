@@ -23,7 +23,7 @@
             </span>
             <span
                 ><span>Alias </span>
-                <input @change="(event) => onChangeAliasName(event, aIndex)" class="taginput input" type="text" :value="aItem.alias" />
+                <input @change="(event) => onChangeAliasName(event, aIndex)" class="taginput input" maxlength="80" type="text" :value="aItem.alias" />
             </span>
             <span @click="onRemove(aIndex)"><img alt="Clear icon" :src="i_b_close" /></span>
         </div>
@@ -45,25 +45,33 @@ import i_b_close from '@/assets/image/i_b_close.png';
 import ComboboxSelect from '@/components/common/combobox/combobox-select/index.vue';
 import { CALC_MODE } from '@/components/popup-list/popup/constant';
 import { CalculationMode } from '@/interface/constants';
-import { ref, watch, defineEmits, defineProps } from 'vue';
+import { ref, watch, defineEmits, defineProps, computed } from 'vue';
 import { PopupType } from '@/enums/app';
 import PopupWrap from '@/components/popup-list/index.vue';
 import { PanelInfo, TagSet } from '@/interface/chart';
 import { cloneDeep } from 'lodash';
+import { toast, ToastOptions } from 'vue3-toastify';
+import { useStore } from '@/store';
 
 interface PropsTab {
     pChartData: PanelInfo;
 }
+const store = useStore();
+
 const props = defineProps<PropsTab>();
 const emit = defineEmits(['eOnChange']);
 const tempTagSets = ref<TagSet[]>([]);
 const sDialog = ref<boolean>(false);
+const cIsDarkMode = computed(() => store.getters.getDarkMode);
+
 const onChangeTagName = (aEvent: Event, aIndex: number) => {
     const value = (aEvent.target as HTMLInputElement).value;
+
     tempTagSets.value[aIndex].tag_names = value;
 };
 const onChangeAliasName = (aEvent: Event, aIndex: number) => {
     const value = (aEvent.target as HTMLInputElement).value;
+
     tempTagSets.value[aIndex].alias = value;
 };
 

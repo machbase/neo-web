@@ -539,6 +539,16 @@ const importFile = async () => {
         return;
     }
 
+    if (sFileName.value.length > 80) {
+        toast(`The file name must be 80 characters or less.`, {
+            autoClose: 1000,
+            theme: cIsDarkMode.value ? 'dark' : 'light',
+            position: toast.POSITION.TOP_RIGHT,
+            type: 'error',
+        } as ToastOptions);
+        return;
+    }
+
     const sDupName = sList.value.find((aItem) => aItem.name === sFileName.value);
     if (sDupName) {
         if (sFileName.value !== gBoard.value.board_name) {
