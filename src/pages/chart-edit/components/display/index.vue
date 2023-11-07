@@ -34,7 +34,7 @@
         <div class="input-col2">
             <label for="_cfg_fill">Opacity of fill area</label>
             <div class="cfg-input">
-                <input v-model="fillOpacity" id="_cfg_fill" class="input point_radius_input" type="text" />
+                <input v-model="fillOpacity" id="_cfg_fill" class="input point_radius_input" step="0.01" type="number" />
             </div>
             <label for="_cfg_stroke">Line thickness</label>
             <div class="cfg-input">
@@ -65,7 +65,7 @@
 <script setup lang="ts" name="DisplayTab">
 import ChartSelect from '@/components/common/chart-select/index.vue';
 import { ChartType } from '@/enums/app';
-import { defineEmits, ref, watchEffect, defineProps } from 'vue';
+import { defineEmits, ref, watchEffect, defineProps, watch } from 'vue';
 import { PanelInfo } from '@/interface/chart';
 
 interface PropsTab {
@@ -129,6 +129,17 @@ watchEffect(() => {
     };
     emit('eOnChange', data);
 });
+
+watch(
+    () => fillOpacity.value,
+    () => {
+        if (fillOpacity.value > 1) {
+            fillOpacity.value = 1;
+        } else if (fillOpacity.value < 0) {
+            fillOpacity.value = 0;
+        }
+    }
+);
 </script>
 
 <style lang="scss" scoped>
