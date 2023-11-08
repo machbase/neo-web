@@ -4,11 +4,37 @@ import './ChartBoard.scss';
 import { useState } from 'react';
 import ModalTimeRange from './ModalTimeRange';
 import moment from 'moment';
-import { Calendar, Save, Refresh, SaveAs } from '@/assets/icons/Icon';
+import { Calendar, Save, Refresh, SaveAs, MdOutlineStackedLineChart } from '@/assets/icons/Icon';
 import { IconButton } from '../buttons/IconButton';
+import CompareModal from './CompareModal';
 
 const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
+    const [sIsModal, setIsModal] = useState<boolean>(false);
+    const [sPanelsInfo, setPanelsInfo] = useState<any>([]);
+
+    const getChartInfo = (aStart: any, aEnd: any, aBoard: any, aIsRaw: any, aIsChanged?: string) => {
+        console.log(aIsChanged);
+        console.log(aBoard);
+        if (aIsChanged === 'delete') {
+            setPanelsInfo((aPrev: any) => aPrev.filter((aItem: any) => aItem.board.index_key !== aBoard.index_key));
+            return;
+        }
+        if (aIsChanged === 'changed') {
+            setPanelsInfo((aPrev: any) =>
+                aPrev.map((aItem: any) => {
+                    return aItem.board.index_key === aBoard.index_key ? { ...aItem, isRaw: aIsRaw, start: aStart, duration: aEnd - aStart } : aItem;
+                })
+            );
+        } else {
+            console.log(sPanelsInfo.find((aItem: any) => aItem.board.index_key === aBoard.index_key));
+            if (sPanelsInfo.find((aItem: any) => aItem.board.index_key === aBoard.index_key)) {
+                setPanelsInfo((aPrev: any) => aPrev.filter((aItem: any) => aItem.board.index_key !== aBoard.index_key));
+            } else {
+                setPanelsInfo((aPrev: any) => [...aPrev, { start: aStart, duration: aEnd - aStart, isRaw: aIsRaw, board: aBoard }]);
+            }
+        }
+    };
 
     return (
         <div className="board-list">
@@ -29,14 +55,16 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                 <div className="border"></div>
                 <IconButton pIcon={<Save />} onClick={pSetHandleSaveModalOpen} />
                 <IconButton pIcon={<SaveAs />} onClick={pHandleSaveModalOpen} />
+                <IconButton pIcon={<MdOutlineStackedLineChart />} pDisabled={sPanelsInfo.length === 0} onClick={sPanelsInfo.length === 0 ? () => {} : () => setIsModal(true)} />
             </div>
             <div className="panel-list">
                 {pInfo &&
                     pInfo.panels &&
                     pInfo.panels.map((aItem: any) => {
-                        return <Panel key={aItem.index_key} pBoardInfo={pInfo} pPanelInfo={aItem}></Panel>;
+                        return <Panel key={aItem.index_key} pPanelsInfo={sPanelsInfo} pGetChartInfo={getChartInfo} pBoardInfo={pInfo} pPanelInfo={aItem}></Panel>;
                     })}
                 <CreateChart></CreateChart>
+                {sIsModal && <CompareModal pPanelsInfo={sPanelsInfo} pSetIsModal={setIsModal}></CompareModal>}
                 {sTimeRangeModal && <ModalTimeRange pType={'tagAnalyzer'} pSetTimeRangeModal={setTimeRangeModal}></ModalTimeRange>}
             </div>
         </div>

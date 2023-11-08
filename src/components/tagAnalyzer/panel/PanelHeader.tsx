@@ -4,10 +4,23 @@ import { changeUtcToText } from '@/utils/helpers/date';
 import EditPanel from './edit/EditPanel';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { Refresh, GearFill, Delete, MdRawOn } from '@/assets/icons/Icon';
+import { Refresh, GearFill, Delete, MdRawOn, MdFlagCircle } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 
-const PanelHeader = ({ pPanelInfo, pRangeOption, pBoardInfo, pPanelRange, pSetIsRaw, pIsRaw, pFetchPanelData, pIsEdit }: any) => {
+const PanelHeader = ({
+    pPanelInfo,
+    pPanelsInfo,
+    pSelectedChart,
+    pRangeOption,
+    pSetSelectedChart,
+    pGetChartInfo,
+    pBoardInfo,
+    pPanelRange,
+    pSetIsRaw,
+    pIsRaw,
+    pFetchPanelData,
+    pIsEdit,
+}: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sPanelRange, setPanelRage] = useState<any>({ startTime: 0, endTime: 0 });
@@ -17,9 +30,16 @@ const PanelHeader = ({ pPanelInfo, pRangeOption, pBoardInfo, pPanelRange, pSetIs
         pPanelRange.startTime && setPanelRage({ startTime: changeUtcToText(pPanelRange.startTime), endTime: changeUtcToText(pPanelRange.endTime) });
     }, [pPanelRange]);
 
+    const clickHeader = () => {
+        pGetChartInfo(pPanelRange.startTime, pPanelRange.endTime, pPanelInfo, pIsRaw);
+        pSetSelectedChart(!pSelectedChart);
+    };
+
     const removePanel = () => {
+        pGetChartInfo(pPanelRange.startTime, pPanelRange.endTime, pPanelInfo, pIsRaw, 'delete');
+        pSetSelectedChart(!pSelectedChart);
         setBoardList(
-            sBoardList.map((aItem) => {
+            sBoardList.map((aItem: any) => {
                 if (aItem.id === sSelectedTab) {
                     return { ...aItem, panels: aItem.panels.filter((bItem: any) => bItem.index_key !== pPanelInfo.index_key) };
                 } else {
@@ -31,7 +51,10 @@ const PanelHeader = ({ pPanelInfo, pRangeOption, pBoardInfo, pPanelRange, pSetIs
 
     return (
         <div className="panel-header">
-            <div className="title">{pPanelInfo.chart_title}</div>
+            <div onClick={() => clickHeader()} className="title">
+                {pPanelsInfo.length > 0 && pPanelsInfo[0].board.index_key === pPanelInfo.index_key && <MdFlagCircle></MdFlagCircle>}
+                {pPanelInfo.chart_title}
+            </div>
             <div className="time">
                 {sPanelRange.startTime} ~ {sPanelRange.endTime}
                 <span> {!pIsRaw && ` ( interval : ${pRangeOption.IntervalValue}${pRangeOption.IntervalType} )`}</span>
