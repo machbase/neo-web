@@ -5,7 +5,13 @@
     font-size: 13px;
     align-items: center;
     .title {
+        display: flex;
+        align-items: center;
         color: #fdb532;
+        cursor: pointer;
+        svg {
+            margin-right: 4px;
+        }
     }
     .time {
         position: absolute;

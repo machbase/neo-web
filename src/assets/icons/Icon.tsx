@@ -41,6 +41,7 @@ export {
 } from 'react-icons/vsc';
 
 export {
+    MdOutlineStackedLineChart,
     MdVpnKey as Key,
     MdClose as Close,
     MdSave as Save,
@@ -57,6 +58,7 @@ export {
     MdRawOn,
     MdRefresh,
     MdOutlineUpgrade,
+    MdFlagCircle,
     MdOutlineCancel as Cancel,
 } from 'react-icons/md';
 
