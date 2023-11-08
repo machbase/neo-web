@@ -12,7 +12,7 @@ import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { isRollup } from '@/utils';
 import useDebounce from '@/hooks/useDebounce';
 
-const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
+const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit }: any) => {
     const sAreaChart = useRef<any>();
     const sChartRef = useRef<any>();
     const [sChartData, setChartData] = useState<any>();
@@ -23,6 +23,7 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
     const [sRangeOption, setRangeOption] = useState<any>({});
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
+    const [sSelectedChart, setSelectedChart] = useState<boolean>(false);
 
     const fetchNavigatorData = async (aTimeRange: any) => {
         const sChartWidth = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
@@ -378,11 +379,17 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
         });
     };
 
+    useEffect(() => {
+        pGetChartInfo && pGetChartInfo(sPanelRange.startTime, sPanelRange.endTime, pPanelInfo, sIsRaw, 'changed');
+    }, [sPanelRange.startTime, sPanelRange.endTime, sIsRaw]);
+
     useDebounce([], setRange, 100);
 
     return (
-        <div className="panel-form">
+        <div className="panel-form" style={sSelectedChart ? { border: '1px solid #FDB532' } : { border: '1px solid transparent' }}>
             <PanelHeader
+                pSetSelectedChart={setSelectedChart}
+                pGetChartInfo={pGetChartInfo}
                 pIsEdit={pIsEdit}
                 pPanelRange={sPanelRange}
                 pFetchPanelData={fetchPanelData}
@@ -390,6 +397,8 @@ const Panel = ({ pPanelInfo, pBoardInfo, pIsEdit }: any) => {
                 pPanelInfo={pPanelInfo}
                 pSetIsRaw={setIsRaw}
                 pIsRaw={sIsRaw}
+                pPanelsInfo={pPanelsInfo}
+                pSelectedChart={sSelectedChart}
                 pRangeOption={sRangeOption}
             ></PanelHeader>
             <div className="chart">
