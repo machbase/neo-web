@@ -9,18 +9,33 @@ import { ShowChart } from './ShowChart';
 import { Markdown } from '../worksheet/Markdown';
 import { isValidJSON } from '@/utils';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
-import { AiOutlineFileDone, AiOutlineFileMarkdown, BarChart, Save, VscJson, PiFileCsvThin, TableHeader, TableNotHeader, LuFlipVertical, Play, SaveAs } from '@/assets/icons/Icon';
+import {
+    AiOutlineFileDone,
+    AiOutlineFileMarkdown,
+    BarChart,
+    Save,
+    VscJson,
+    PiFileCsvThin,
+    TableHeader,
+    TableNotHeader,
+    LuFlipVertical,
+    Play,
+    SaveAs,
+    GoLink,
+} from '@/assets/icons/Icon';
 import { IconButton } from '../buttons/IconButton';
+import { ClipboardCopy } from '@/utils/ClipboardCopy';
 
 interface TqlProps {
     pCode: string;
+    pIsSave: any;
     setIsSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
     pHandleSaveModalOpen: any;
     pSetDragStat: any;
 }
 
 const Tql = (props: TqlProps) => {
-    const { pCode, pHandleSaveModalOpen, setIsSaveModal, pSetDragStat } = props;
+    const { pCode, pHandleSaveModalOpen, setIsSaveModal, pSetDragStat, pIsSave } = props;
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
@@ -159,6 +174,12 @@ const Tql = (props: TqlProps) => {
         return <SashContent className={`${isVertical ? 'sash-style-vertical' : 'sash-style-horizontal'}`} />;
     };
 
+    const handleCopyLink = () => {
+        const sTargetBoard = sBoardList.find((aBoard) => aBoard.id == sSelectedTab);
+        const sTargetPath = `http://${window.location.host + '/db/tql' + sTargetBoard!.path + sTargetBoard!.name}`;
+        ClipboardCopy(sTargetPath);
+    };
+
     return (
         <div style={{ width: '100%', height: '100%' }}>
             <SplitPane
@@ -173,6 +194,7 @@ const Tql = (props: TqlProps) => {
                     <div className="tql-editor-header">
                         <IconButton pIcon={<Play />} onClick={() => getTqlData(sText)} />
                         <div style={{ display: 'flex' }}>
+                            {pIsSave && <IconButton pIcon={<GoLink />} onClick={handleCopyLink} />}
                             <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
                             <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
                         </div>

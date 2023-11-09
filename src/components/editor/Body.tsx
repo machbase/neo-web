@@ -176,7 +176,13 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                 <Sql pSetDragStat={pSetDragStat} pHandleSaveModalOpen={handleSaveModalOpen} pInfo={aItem} setIsSaveModal={setIsSaveModal}></Sql>
                             )}
                             {aItem.type === 'tql' && (
-                                <Tql pCode={aItem.code} pSetDragStat={pSetDragStat} pHandleSaveModalOpen={handleSaveModalOpen} setIsSaveModal={setIsSaveModal} />
+                                <Tql
+                                    pCode={aItem.code}
+                                    pIsSave={aItem.path}
+                                    pSetDragStat={pSetDragStat}
+                                    pHandleSaveModalOpen={handleSaveModalOpen}
+                                    setIsSaveModal={setIsSaveModal}
+                                />
                             )}
                             {aItem.type === 'taz' && (
                                 <TagAnalyzer

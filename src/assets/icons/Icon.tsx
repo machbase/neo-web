@@ -85,7 +85,7 @@ export { TbSquarePlus, TbParachute, TbRowInsertTop as InsertRowTop, TbFolderPlus
 
 export { IoIosCopy as Copy, IoIosArrowForward } from 'react-icons/io';
 
-export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase } from 'react-icons/go';
+export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase, GoLink } from 'react-icons/go';
 
 export { LuFlipVertical, LuMonitorSpeaker } from 'react-icons/lu';
 
