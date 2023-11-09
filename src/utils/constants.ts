@@ -323,6 +323,7 @@ export const DEFAULT_CHART = {
     timeout: 10000,
     x_axis_type: 'scaleTime',
     chart_type: 'line',
+    time_navigator: { startTime: 0, endTime: 0 },
 };
 
 export const COLOR_SET = '5ca3f2,d06a5f,e2bb5c,86b66b,7070e0,6bcbc1,a673e8,e26daf,bac85d,87cedd';

@@ -7,10 +7,11 @@ import { useEffect, useRef, useState } from 'react';
 import { getDateRange } from '@/utils/helpers/date';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import { ArrowLeft, ArrowRight } from '@/assets/icons/Icon';
-import { useRecoilValue } from 'recoil';
-import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { gBoardList, gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { isRollup } from '@/utils';
 import useDebounce from '@/hooks/useDebounce';
+import { postFileList } from '@/api/repository/api';
 
 const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit }: any) => {
     const sAreaChart = useRef<any>();
@@ -24,6 +25,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit }: 
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sSelectedChart, setSelectedChart] = useState<boolean>(false);
+    const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
     const fetchNavigatorData = async (aTimeRange: any) => {
         const sChartWidth = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
@@ -93,8 +95,22 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit }: 
                 );
             }
             fetchPanelData({ startTime: Math.round(aEvent.min), endTime: Math.round(aEvent.max) });
-
             setPanelRange({ startTime: Math.round(aEvent.min), endTime: Math.round(aEvent.max) });
+
+            // UPDATE - time navigator
+            const tmpBoardInfo: any = JSON.parse(JSON.stringify(pBoardInfo));
+            tmpBoardInfo.panels = tmpBoardInfo.panels.map((aPanel: any) => {
+                if (aPanel.index_key === pPanelInfo.index_key) {
+                    return { ...aPanel, time_navigator: { startTime: Math.round(aEvent.min), endTime: Math.round(aEvent.max) } };
+                } else return aPanel;
+            });
+            if (pBoardInfo.path) postFileList(tmpBoardInfo, tmpBoardInfo.path, tmpBoardInfo.name);
+            setBoardList(
+                sBoardList.map((aBoard: any) => {
+                    if (aBoard.id === pBoardInfo.id) return tmpBoardInfo;
+                    else return aBoard;
+                })
+            );
         }
     };
     const setNavigatorExtremes = (aEvent: any) => {
@@ -369,10 +385,13 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit }: 
             startTime: Math.round(sData.startTime),
             endTime: Math.round(sData.endTime),
         });
-        setPanelRange({
-            startTime: Math.round(sData.startTime + (sData.endTime - sData.startTime) * 0.4),
-            endTime: Math.round(sData.startTime + (sData.endTime - sData.startTime) * 0.6),
-        });
+        if (pPanelInfo.time_navigator.startTime && pPanelInfo.time_navigator.endTime) setPanelRange({ ...pPanelInfo.time_navigator });
+        else {
+            setPanelRange({
+                startTime: Math.round(sData.startTime + (sData.endTime - sData.startTime) * 0.4),
+                endTime: Math.round(sData.startTime + (sData.endTime - sData.startTime) * 0.6),
+            });
+        }
         setNavigatorRange({
             startTime: Math.round(sData.startTime),
             endTime: Math.round(sData.endTime),
