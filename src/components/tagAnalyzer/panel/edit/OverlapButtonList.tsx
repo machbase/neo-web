@@ -8,7 +8,6 @@ import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 const OverlapButtonList = ({ pPanelInfo, pSetTime, pPanelsInfo }: any) => {
     const [sValue, setValue] = useState('0');
     const [sType, setType] = useState('ms');
-    const [sOper, setOper] = useState('+');
 
     const calcTime = () => {
         let sTime = 1;
