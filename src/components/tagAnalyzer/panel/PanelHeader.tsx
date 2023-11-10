@@ -51,7 +51,7 @@ const PanelHeader = ({
 
     return (
         <div className="panel-header">
-            <div onClick={() => clickHeader()} className="title">
+            <div onClick={() => pPanelInfo.tag_set.length === 1 && clickHeader()} className="title">
                 {pPanelsInfo && pPanelsInfo.length > 0 && pPanelsInfo[0].board.index_key === pPanelInfo.index_key && <MdFlagCircle></MdFlagCircle>}
                 {pPanelInfo.chart_title}
             </div>

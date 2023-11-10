@@ -1,23 +1,28 @@
 import { Close } from '@/assets/icons/Icon';
 import { MdOutlineStackedLineChart } from 'react-icons/md';
-import './CompareModal.scss';
+import './OverlapModal.scss';
 import { useEffect, useState, useRef } from 'react';
-import CompareChart from './CompareChart';
+import OverlapChart from './OverlapChart';
 import { isRollup } from '@/utils';
 import { useRecoilValue } from 'recoil';
-import { gRollupTableList } from '@/recoil/recoil';
+import { gConsoleSelector, gRollupTableList } from '@/recoil/recoil';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
-const CompareModal = ({ pSetIsModal, pPanelsInfo }: any) => {
+import { Select } from '../inputs/Select';
+import { Input } from '../inputs/Input';
+import { TextButton } from '../buttons/TextButton';
+import OverlapButtonList from './panel/edit/OverlapButtonList';
+const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
     const [sChartData, setChartData] = useState<any>([]);
     const sAreaChart = useRef<any>();
     const [sStartTimeList, setStartTimeList] = useState<any>([]);
+    const [sPanelsInfo, setPanelsInfo] = useState<any>([]);
 
     const sRollupTableList = useRecoilValue(gRollupTableList);
 
-    const fetchPanelData = async (aPanelInfo: any) => {
+    const fetchPanelData = async (aPanelInfo: any, sStart: string) => {
         const sChartWidth = sAreaChart.current.clientWidth === 0 ? 1 : sAreaChart.current.clientWidth;
 
-        const sLimit = aPanelInfo.board.count;
+        const sLimit = aPanelInfo?.board ? aPanelInfo.board.count : -1;
         let sCount = -1;
 
         if (sLimit < 0) {
@@ -36,10 +41,22 @@ const CompareModal = ({ pSetIsModal, pPanelsInfo }: any) => {
         }
         const sTimeRange: any = {
             startTime: aPanelInfo.start as string,
-            endTime: (aPanelInfo.start + pPanelsInfo[0].duration) as string,
+            endTime: (aPanelInfo.start + (sStart ? pPanelsInfo[0].duration : sPanelsInfo[0].duration)) as string,
         };
+        console.log(sTimeRange);
 
-        const sIntervalTime = calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, pPanelsInfo[0].board);
+        const sIntervalTime = calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, sStart ? pPanelsInfo[0].board : sPanelsInfo[0].board);
+
+        if (sStartTimeList[0]) {
+            setStartTimeList((aPrev: any) =>
+                aPrev.map((aItem: any) => {
+                    aItem;
+                    return aPanelInfo.isRaw ? aPanelInfo.start : calcTime(Math.round(sTimeRange.startTime), sIntervalTime);
+                })
+            );
+        } else {
+            setStartTimeList((aPrev: any) => [...aPrev, aPanelInfo.isRaw ? aPanelInfo.start : calcTime(Math.round(sTimeRange.startTime), sIntervalTime)]);
+        }
 
         for (let index = 0; index < sTagSet.length; index++) {
             const sTagSetElement = sTagSet[index];
@@ -70,28 +87,50 @@ const CompareModal = ({ pSetIsModal, pPanelsInfo }: any) => {
                 });
             }
 
-            setStartTimeList((aPrev: any) => [...aPrev, aPanelInfo.isRaw ? aPanelInfo.start : calcTime(Math.round(sTimeRange.startTime), sIntervalTime)]);
-            setChartData((aPrev: any) => [
-                ...aPrev,
-                {
-                    name: sTagSetElement.alias || `${sTagSetElement.tagName}(${aPanelInfo.IsRaw ? 'raw' : sTagSetElement.calculationMode.toLowerCase()})`,
-                    data:
-                        sFetchResult?.data?.rows?.length > 0
-                            ? sFetchResult.data.rows.map((aItem: any) => {
-                                  return [aPanelInfo.isRaw ? aItem[0] - aPanelInfo.start : aItem[0] - calcTime(Math.round(sTimeRange.startTime), sIntervalTime), aItem[1]];
-                              })
-                            : [],
-                    yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
-                    marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
-                },
-            ]);
+            return {
+                name: sTagSetElement.alias || `${sTagSetElement.tagName}(${aPanelInfo.IsRaw ? 'raw' : sTagSetElement.calculationMode.toLowerCase()})`,
+                data:
+                    sFetchResult?.data?.rows?.length > 0
+                        ? sFetchResult.data.rows.map((aItem: any) => {
+                              return [aPanelInfo.isRaw ? aItem[0] - aPanelInfo.start : aItem[0] - calcTime(Math.round(sTimeRange.startTime), sIntervalTime), aItem[1]];
+                          })
+                        : [],
+                yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
+                marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
+            };
+        }
+    };
+
+    const setTime = (aValue: any, aType: any, aRange: any) => {
+        setPanelsInfo((aPrev: any) =>
+            aPrev.map((aItem: any) => {
+                return aValue.board.index_key === aItem.board.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
+            })
+        );
+        setData(
+            '',
+            sPanelsInfo.map((aItem: any) => {
+                return aValue.board.index_key === aItem.board.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
+            })
+        );
+    };
+
+    const setData = async (aStart?: any, aPanelsInfo?: any) => {
+        if (aStart ? pPanelsInfo : aPanelsInfo) {
+            const sValue = [];
+            // setChartData([]);
+            for (let i = 0; i < pPanelsInfo.length; i++) {
+                const sData = await fetchPanelData(aStart ? pPanelsInfo[i] : aPanelsInfo[i], aStart);
+                sValue.push(sData);
+            }
+            setChartData(sValue);
         }
     };
 
     useEffect(() => {
-        for (let i = 0; i < pPanelsInfo.length; i++) {
-            fetchPanelData(pPanelsInfo[i]);
-        }
+        setPanelsInfo(pPanelsInfo);
+
+        setData('start');
     }, []);
 
     const getInterval = (aType: string, aValue: number) => {
@@ -212,23 +251,32 @@ const CompareModal = ({ pSetIsModal, pPanelsInfo }: any) => {
 
     return (
         <>
-            <div onClick={() => pSetIsModal(false)} className="compare-cover"></div>
+            <div onClick={() => pSetIsModal(false)} className="Overlap-cover"></div>
 
-            <div className="compare-modal">
-                <div className="compare-header">
-                    <div className="compare-title">
+            <div className="Overlap-modal">
+                <div className="Overlap-header">
+                    <div className="Overlap-title">
                         <MdOutlineStackedLineChart />
-                        Compare Chart
+                        Overlap Chart
                     </div>
                     <Close onClick={() => pSetIsModal(false)} color="#f8f8f8"></Close>
                 </div>
-                <div className="compare-body" ref={sAreaChart}>
-                    {sChartData[pPanelsInfo.length - 1] && (
-                        <CompareChart pStartTimeList={sStartTimeList} pAreaChart={sAreaChart} pChartData={sChartData} pPanelInfo={pPanelsInfo[0].board}></CompareChart>
+                <div className="Overlap-body" ref={sAreaChart}>
+                    {sPanelsInfo[0] && sChartData[sPanelsInfo.length - 1] && (
+                        <OverlapChart
+                            pStartTimeList={sStartTimeList}
+                            pAreaChart={sAreaChart}
+                            pChartData={sChartData}
+                            pAllInfo={sPanelsInfo}
+                            pPanelInfo={sPanelsInfo[0].board}
+                        ></OverlapChart>
                     )}
+                    {sPanelsInfo.map((aItem: any) => {
+                        return <OverlapButtonList pPanelsInfo={sPanelsInfo} pSetTime={setTime} pPanelInfo={aItem}></OverlapButtonList>;
+                    })}
                 </div>
             </div>
         </>
     );
 };
-export default CompareModal;
+export default OverlapModal;
