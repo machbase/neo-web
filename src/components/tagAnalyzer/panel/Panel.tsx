@@ -9,8 +9,9 @@ import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import { ArrowLeft, ArrowRight } from '@/assets/icons/Icon';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
-import { isRollup } from '@/utils';
+import { isEmpty, isRollup } from '@/utils';
 import useDebounce from '@/hooks/useDebounce';
+import { FFTModal } from '@/components/modal/FFTModal';
 
 const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveTime }: any) => {
     const sAreaChart = useRef<any>();
@@ -21,9 +22,16 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
     const [sNavigatorRange, setNavigatorRange] = useState<any>({});
     const [sIsRaw, setIsRaw] = useState<boolean>(false);
     const [sRangeOption, setRangeOption] = useState<any>({});
+    const [sIsMinMaxPopup, setIsMinMaxPopup] = useState<boolean>(false);
+    const [sIsUpdate, setIsUpdate] = useState<boolean>(false);
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sSelectedChart, setSelectedChart] = useState<boolean>(false);
+    const [sIsFFTModal, setIsFFTModal] = useState<boolean>(false);
+    const [sAxis, setAxis] = useState<any>(null);
+    const [sMinMaxList, setMinMaxList] = useState<any>([]);
+    const [sFFTMinTime, setFFTMinTime] = useState<number>(0);
+    const [sFFTMaxTime, setFFTMaxTime] = useState<number>(0);
 
     const fetchNavigatorData = async (aTimeRange: any) => {
         const sChartWidth = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
@@ -94,6 +102,49 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
             fetchPanelData({ startTime: Math.round(aEvent.min), endTime: Math.round(aEvent.max) });
             setPanelRange({ startTime: Math.round(aEvent.min), endTime: Math.round(aEvent.max) });
         }
+    };
+    const viewMinMaxAvg = (aEvent: any) => {
+        if (aEvent.xAxis && sChartData) {
+            const x = aEvent.xAxis[0];
+            x.axis.removePlotBand('selection-plot-band');
+            x.axis.addPlotBand({
+                from: x.min,
+                to: x.max,
+                color: 'rgba(68, 170, 213, 0.2)',
+                id: 'selection-plot-band',
+            });
+            setAxis(x.axis);
+
+            const calcList: any[] = [];
+            x.axis.series.forEach((aSeries: any, aIndex: number) => {
+                const filterData: number[] = [];
+                let totalValue = 0;
+                if (aSeries.data) {
+                    aSeries.data
+                        .filter((aData: any) => x.min <= aData.x && x.max >= aData.x)
+                        .forEach((aItem: any) => {
+                            totalValue += aItem.y;
+                            filterData.push(aItem.y);
+                        });
+                }
+                if (!isEmpty(filterData)) {
+                    const calc = {
+                        table: pPanelInfo.tag_set[aIndex].table,
+                        name: aSeries.name.replace(/\(.*\)/, ''),
+                        min: Math.min(...filterData).toFixed(5),
+                        max: Math.max(...filterData).toFixed(5),
+                        avg: (totalValue / filterData.length).toFixed(5),
+                    };
+                    calcList.push(calc);
+                }
+            });
+            setIsUpdate(true);
+            setMinMaxList(calcList);
+            setFFTMinTime(Math.floor(x.min));
+            setFFTMaxTime(Math.ceil(x.max));
+        }
+
+        return false;
     };
     const setNavigatorExtremes = (aEvent: any) => {
         setNavigatorRange({ startTime: Math.round(aEvent.min), endTime: Math.round(aEvent.max) });
@@ -206,6 +257,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
 
             sDatasets.push({
                 name: sTagSetElement.alias || `${sTagSetElement.tagName}(${sIsRaw ? 'raw' : sTagSetElement.calculationMode.toLowerCase()})`,
+                id: sTagSetElement.alias || `${sTagSetElement.tagName}(${sIsRaw ? 'raw' : sTagSetElement.calculationMode.toLowerCase()})`,
                 data:
                     sFetchResult?.data?.rows?.length > 0
                         ? sFetchResult.data.rows.map((aItem: any) => {
@@ -340,6 +392,13 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
     }, [sIsRaw]);
 
     useEffect(() => {
+        if (!sIsUpdate && sAxis !== null) {
+            sAxis.removePlotBand('selection-plot-band');
+            setAxis(null);
+        }
+    }, [sIsUpdate]);
+
+    useEffect(() => {
         if (pBoardInfo.id === sSelectedTab) {
             if (sPanelRange.startTime) fetchPanelData(sPanelRange);
             if (sPanelRange.startTime) fetchNavigatorData(sNavigatorRange);
@@ -426,6 +485,11 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                 pPanelsInfo={pPanelsInfo}
                 pSelectedChart={sSelectedChart}
                 pRangeOption={sRangeOption}
+                pIsMinMaxPopup={sIsMinMaxPopup}
+                pSetIsMinMaxPopup={setIsMinMaxPopup}
+                pSetIsFFTModal={setIsFFTModal}
+                pIsUpdate={sIsUpdate}
+                pSetIsUpdate={setIsUpdate}
             ></PanelHeader>
             <div className="chart">
                 <div className="left" onClick={() => moveTimRange('l')}>
@@ -443,6 +507,9 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                         pChartData={sChartData?.datasets}
                         pPanelRange={sPanelRange}
                         pNavigatorRange={sNavigatorRange}
+                        pIsMinMaxPopup={sIsMinMaxPopup}
+                        pViewMinMaxPopup={viewMinMaxAvg}
+                        pIsUpdate={sIsUpdate}
                     ></Chart>
                 </div>
                 <div className="right" onClick={() => moveTimRange('r')}>
@@ -450,6 +517,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                 </div>
             </div>
             <PanelFooter pPanelInfo={pPanelInfo} pSetButtonRange={setButtonRange}></PanelFooter>
+            {sIsFFTModal ? <FFTModal pInfo={sMinMaxList} setIsOpen={setIsFFTModal} pStartTime={sFFTMinTime} pEndTime={sFFTMaxTime} /> : null}
         </div>
     );
 };

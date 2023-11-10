@@ -3,11 +3,11 @@
     height: 100vh;
 
     background-color: rgba(0, 0, 0, 0.5);
-    
+
     position: fixed;
     top: 0;
     left: 0;
-    
+
     z-index: 999;
 }
 
@@ -58,7 +58,7 @@
     color: black;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16), inset 0 -1px 8px 0 rgba(255, 255, 255, 0.3);
     border: solid 0.5px rgba(38, 40, 49, 0.5);
-    
+
     svg {
         color: black;
     }
