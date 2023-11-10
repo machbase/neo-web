@@ -77,7 +77,7 @@ export { FcFolder as TreeFolder, FcOpenedFolder as TreeFolderOpen } from 'react-
 
 export { IoArrowBackOutline, IoLogOutOutline as Logout, IoPlayForwardSharp } from 'react-icons/io5';
 
-export { PiFileCsvThin } from 'react-icons/pi';
+export { PiFileCsvThin, PiSelectionPlusBold } from 'react-icons/pi';
 
 export { BiLineChart as LineChart, BiDownload, BiLink, BiPlay as Play, BiSolidDownArrow, BiSolidChart, BiSolidEdit } from 'react-icons/bi';
 
