@@ -1,4 +1,5 @@
 import { ArrowDown } from '@/assets/icons/Icon';
+import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
 import './Axes.scss';
 
@@ -61,6 +62,24 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                                 onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, pixels_per_tick: aEvent.target.value })}
                             />
                         </div>
+                    </div>
+                </div>
+                <div className="x-axis-pixels pt-12">
+                    <span>use Sampling</span>
+                    <div className="use-sampling">
+                        <CheckBox
+                            pDefaultChecked={pPanelInfo.use_sampling}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, use_sampling: aEvent.target.checked })}
+                        ></CheckBox>
+                        <Input
+                            pWidth={150}
+                            pHeight={24}
+                            pType="number"
+                            pIsDisabled={!pPanelInfo.use_sampling}
+                            pValue={pPanelInfo.sampling_value}
+                            pSetValue={() => null}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, sampling_value: aEvent.target.value })}
+                        />
                     </div>
                 </div>
             </div>

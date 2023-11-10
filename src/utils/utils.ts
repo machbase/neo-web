@@ -187,6 +187,8 @@ function convertChartDefault(aChartDefault: any, aTag: any): any {
     return {
         ...aChartDefault,
         index_key: getId(),
+        use_sampling: false,
+        sampling_value: 0.01,
         default_range: aTag.defaultRange,
         color_set: COLOR_SET,
         show_point: chart.show_point,
