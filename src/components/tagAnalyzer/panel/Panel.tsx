@@ -7,13 +7,12 @@ import { useEffect, useRef, useState } from 'react';
 import { getDateRange } from '@/utils/helpers/date';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import { ArrowLeft, ArrowRight } from '@/assets/icons/Icon';
-import { useRecoilState, useRecoilValue } from 'recoil';
-import { gBoardList, gRollupTableList, gSelectedTab } from '@/recoil/recoil';
+import { useRecoilValue } from 'recoil';
+import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { isRollup } from '@/utils';
 import useDebounce from '@/hooks/useDebounce';
-import { postFileList } from '@/api/repository/api';
 
-const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit }: any) => {
+const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveTime }: any) => {
     const sAreaChart = useRef<any>();
     const sChartRef = useRef<any>();
     const [sChartData, setChartData] = useState<any>();
@@ -25,7 +24,6 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit }: 
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sSelectedChart, setSelectedChart] = useState<boolean>(false);
-    const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
     const fetchNavigatorData = async (aTimeRange: any) => {
         const sChartWidth = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
@@ -87,7 +85,6 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit }: 
     const setExtremes = (aEvent: any) => {
         if (aEvent.min) {
             const sRatio = 1 - ((aEvent.max - aEvent.min) * 100) / (sNavigatorRange.endTime - sNavigatorRange.startTime);
-
             if ((sNavigatorRange.endTime - sNavigatorRange.startTime) / 100 > aEvent.max - aEvent.min) {
                 sChartRef.current.chart.navigator.xAxis.setExtremes(
                     Math.round(sNavigatorRange.startTime + (aEvent.min - sNavigatorRange.startTime) * sRatio),
@@ -96,21 +93,6 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit }: 
             }
             fetchPanelData({ startTime: Math.round(aEvent.min), endTime: Math.round(aEvent.max) });
             setPanelRange({ startTime: Math.round(aEvent.min), endTime: Math.round(aEvent.max) });
-
-            // UPDATE - time navigator
-            const tmpBoardInfo: any = JSON.parse(JSON.stringify(pBoardInfo));
-            tmpBoardInfo.panels = tmpBoardInfo.panels.map((aPanel: any) => {
-                if (aPanel.index_key === pPanelInfo.index_key) {
-                    return { ...aPanel, time_navigator: { startTime: Math.round(aEvent.min), endTime: Math.round(aEvent.max) } };
-                } else return aPanel;
-            });
-            if (pBoardInfo.path) postFileList(tmpBoardInfo, tmpBoardInfo.path, tmpBoardInfo.name);
-            setBoardList(
-                sBoardList.map((aBoard: any) => {
-                    if (aBoard.id === pBoardInfo.id) return tmpBoardInfo;
-                    else return aBoard;
-                })
-            );
         }
     };
     const setNavigatorExtremes = (aEvent: any) => {
@@ -146,7 +128,6 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit }: 
         if (aItem === 'l') {
             const sStartTime = Math.round(sPanelRange.startTime - sCalcTime);
             const sEndTime = Math.round(sPanelRange.endTime - sCalcTime);
-
             sChartRef.current.chart.xAxis[0].setExtremes(sStartTime, sEndTime);
             if (sNavigatorRange.startTime > sStartTime) {
                 sChartRef.current.chart.navigator.xAxis.setExtremes(sStartTime, sNavigatorRange.endTime - sCalcTime);
@@ -377,33 +358,59 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit }: 
 
     const setRange = () => {
         const sData: any = getDateRange(pPanelInfo, pBoardInfo);
-        fetchPanelData({
-            startTime: Math.round(sData.startTime + (sData.endTime - sData.startTime) * 0.4),
-            endTime: Math.round(sData.startTime + (sData.endTime - sData.startTime) * 0.6),
-        });
-        fetchNavigatorData({
-            startTime: Math.round(sData.startTime),
-            endTime: Math.round(sData.endTime),
-        });
-        if (pPanelInfo.time_navigator.startTime && pPanelInfo.time_navigator.endTime) setPanelRange({ ...pPanelInfo.time_navigator });
-        else {
+        if (pPanelInfo.time_keeper.startPanelTime) {
+            fetchPanelData({
+                startTime: pPanelInfo.time_keeper.startPanelTime,
+                endTime: pPanelInfo.time_keeper.endPanelTime,
+            });
+            setPanelRange({
+                startTime: pPanelInfo.time_keeper.startPanelTime,
+                endTime: pPanelInfo.time_keeper.endPanelTime,
+            });
+        } else {
+            fetchPanelData({
+                startTime: Math.round(sData.startTime + (sData.endTime - sData.startTime) * 0.4),
+                endTime: Math.round(sData.startTime + (sData.endTime - sData.startTime) * 0.6),
+            });
             setPanelRange({
                 startTime: Math.round(sData.startTime + (sData.endTime - sData.startTime) * 0.4),
                 endTime: Math.round(sData.startTime + (sData.endTime - sData.startTime) * 0.6),
             });
         }
-        setNavigatorRange({
-            startTime: Math.round(sData.startTime),
-            endTime: Math.round(sData.endTime),
-        });
+        if (pPanelInfo.time_keeper.startNaviTime) {
+            fetchNavigatorData({
+                startTime: pPanelInfo.time_keeper.startNaviTime,
+                endTime: pPanelInfo.time_keeper.endNaviTime,
+            });
+            setNavigatorRange({
+                startTime: pPanelInfo.time_keeper.startNaviTime,
+                endTime: pPanelInfo.time_keeper.endNaviTime,
+            });
+        } else {
+            fetchNavigatorData({
+                startTime: Math.round(sData.startTime),
+                endTime: Math.round(sData.endTime),
+            });
+            setNavigatorRange({
+                startTime: Math.round(sData.startTime),
+                endTime: Math.round(sData.endTime),
+            });
+        }
     };
 
     useEffect(() => {
-        pGetChartInfo && pGetChartInfo(sPanelRange.startTime, sPanelRange.endTime, pPanelInfo, sIsRaw, 'changed');
+        sPanelRange.startTime && pGetChartInfo && pGetChartInfo(sPanelRange.startTime, sPanelRange.endTime, pPanelInfo, sIsRaw, 'changed');
+        sPanelRange.startTime &&
+            sChartRef.current?.chart &&
+            pSaveTime(pPanelInfo.index_key, {
+                startPanelTime: sPanelRange.startTime,
+                endPanelTime: sPanelRange.endTime,
+                startNaviTime: sChartRef.current.chart.navigator.xAxis.getExtremes().min,
+                endNaviTime: sChartRef.current.chart.navigator.xAxis.getExtremes().max,
+            });
     }, [sPanelRange.startTime, sPanelRange.endTime, sIsRaw]);
 
     useDebounce([], setRange, 100);
-
     return (
         <div className="panel-form" style={sSelectedChart ? { border: '1px solid #FDB532' } : { border: '1px solid transparent' }}>
             <PanelHeader
