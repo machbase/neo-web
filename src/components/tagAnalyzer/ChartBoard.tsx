@@ -7,11 +7,14 @@ import moment from 'moment';
 import { Calendar, Save, Refresh, SaveAs, MdOutlineStackedLineChart } from '@/assets/icons/Icon';
 import { IconButton } from '../buttons/IconButton';
 import OverlapModal from './OverlapModal';
+import { gBoardList } from '@/recoil/recoil';
+import { useRecoilState } from 'recoil';
 
 const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sIsModal, setIsModal] = useState<boolean>(false);
     const [sPanelsInfo, setPanelsInfo] = useState<any>([]);
+    const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
     const getChartInfo = (aStart: any, aEnd: any, aBoard: any, aIsRaw: any, aIsChanged?: string) => {
         if (aIsChanged === 'delete') {
@@ -32,6 +35,27 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                 setPanelsInfo((aPrev: any) => [...aPrev, { start: aStart, duration: aEnd - aStart, isRaw: aIsRaw, board: aBoard }]);
             }
         }
+    };
+
+    const saveTime = (aTargetPanel: string, aTimeInfo: { endNaviTime: number; endPanelTime: number; startNaviTime: number; startPanelTime: number }) => {
+        // UPDATE - time (panel & navigator)
+        const tmpBoardInfo: any = JSON.parse(JSON.stringify(pInfo));
+        tmpBoardInfo.panels = tmpBoardInfo.panels.map((aPanel: any) => {
+            if (aPanel.index_key === aTargetPanel) {
+                return {
+                    ...aPanel,
+                    time_keeper: {
+                        ...aTimeInfo,
+                    },
+                };
+            } else return aPanel;
+        });
+        setBoardList(
+            sBoardList.map((aBoard: any) => {
+                if (aBoard.id === pInfo.id) return tmpBoardInfo;
+                else return aBoard;
+            })
+        );
     };
 
     return (
@@ -59,7 +83,7 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                 {pInfo &&
                     pInfo.panels &&
                     pInfo.panels.map((aItem: any) => {
-                        return <Panel key={aItem.index_key} pPanelsInfo={sPanelsInfo} pGetChartInfo={getChartInfo} pBoardInfo={pInfo} pPanelInfo={aItem}></Panel>;
+                        return <Panel key={aItem.index_key} pPanelsInfo={sPanelsInfo} pGetChartInfo={getChartInfo} pBoardInfo={pInfo} pPanelInfo={aItem} pSaveTime={saveTime} />;
                     })}
                 <CreateChart></CreateChart>
                 {sIsModal && <OverlapModal pPanelsInfo={sPanelsInfo} pSetIsModal={setIsModal}></OverlapModal>}
