@@ -71,18 +71,32 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
         for (let index = 0; index < sTagSet.length; index++) {
             const sTagSetElement = sTagSet[index];
             let sFetchResult: any = [];
-
-            sFetchResult = await fetchCalculationData({
-                Table: sTagSetElement.table,
-                TagNames: sTagSetElement.tagName,
-                Start: Math.round(sTimeRange.startTime),
-                End: Math.round(sTimeRange.endTime),
-                Rollup: isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue)),
-                CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
-                ...sIntervalTime,
-                colName: sTagSetElement.colName,
-                Count: sCount,
-            });
+            if (sIsRaw && pPanelInfo.use_sampling) {
+                sFetchResult = await fetchRawData({
+                    Table: sTagSetElement.table,
+                    TagNames: sTagSetElement.tagName,
+                    Start: Math.round(sTimeRange.startTime),
+                    End: Math.round(sTimeRange.endTime),
+                    Rollup: sTagSetElement.onRollup,
+                    CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
+                    ...sIntervalTime,
+                    colName: sTagSetElement.colName,
+                    Count: sCount,
+                    sampleValue: pPanelInfo.sampling_value,
+                });
+            } else {
+                sFetchResult = await fetchCalculationData({
+                    Table: sTagSetElement.table,
+                    TagNames: sTagSetElement.tagName,
+                    Start: Math.round(sTimeRange.startTime),
+                    End: Math.round(sTimeRange.endTime),
+                    Rollup: isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue)),
+                    CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
+                    ...sIntervalTime,
+                    colName: sTagSetElement.colName,
+                    Count: sCount,
+                });
+            }
 
             sDatasets.push({
                 name: sTagSetElement.alias || `${sTagSetElement.tagName}(${sTagSetElement.calculationMode.toLowerCase()})`,
