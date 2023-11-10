@@ -4,7 +4,7 @@ import { changeUtcToText } from '@/utils/helpers/date';
 import EditPanel from './edit/EditPanel';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { Refresh, GearFill, Delete, MdRawOn, MdFlagCircle } from '@/assets/icons/Icon';
+import { Refresh, GearFill, Delete, MdRawOn, MdFlagCircle, PiSelectionPlusBold, LineChart } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 
 const PanelHeader = ({
@@ -20,6 +20,11 @@ const PanelHeader = ({
     pIsRaw,
     pFetchPanelData,
     pIsEdit,
+    pIsMinMaxPopup,
+    pSetIsMinMaxPopup,
+    pSetIsFFTModal,
+    pIsUpdate,
+    pSetIsUpdate,
 }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
@@ -49,6 +54,13 @@ const PanelHeader = ({
         );
     };
 
+    const handleSelection = () => {
+        pSetIsMinMaxPopup(!pIsMinMaxPopup);
+        if (!pIsMinMaxPopup === false) {
+            pSetIsUpdate(false);
+        }
+    };
+
     return (
         <div className="panel-header">
             <div onClick={() => pPanelInfo.tag_set.length === 1 && clickHeader()} className="title">
@@ -63,6 +75,12 @@ const PanelHeader = ({
                 <div className="raw">
                     <IconButton pWidth={38} pHeight={32} pIcon={<MdRawOn style={{ color: pIsRaw ? '#fdb532 ' : '' }} />} onClick={() => pSetIsRaw(!pIsRaw)} />
                 </div>
+                <div className="divider" />
+                <IconButton pWidth={25} pHeight={25} pIcon={<PiSelectionPlusBold style={{ color: pIsMinMaxPopup ? '#f8f8f8' : '' }} />} onClick={() => handleSelection()} />
+                <div style={{ display: pIsMinMaxPopup && pIsUpdate ? 'initial' : 'none' }}>
+                    <IconButton pWidth={25} pHeight={25} pIcon={<LineChart />} onClick={() => pSetIsFFTModal(true)} />
+                </div>
+                <div className="divider" />
                 <IconButton pWidth={25} pIcon={<Refresh />} onClick={() => pFetchPanelData()} />
                 {!pIsEdit && <IconButton pWidth={25} pIcon={<GearFill />} onClick={() => setEditPanel(true)} />}
                 {!pIsEdit && <IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}
