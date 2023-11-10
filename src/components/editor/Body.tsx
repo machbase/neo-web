@@ -58,7 +58,13 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
 
             if (sIsAlreadySave) {
                 const sFileType = extractionExtension(sFilterBoard.name);
-                const sSaveData = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'taz' || sFileType === 'dsh' ? sFilterBoard : sFilterBoard?.code;
+                let sSaveData: any = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'taz' || sFileType === 'dsh' ? sFilterBoard : sFilterBoard?.code;
+                if (sFileType === 'taz') {
+                    const sTmpTaz = JSON.parse(JSON.stringify(sFilterBoard));
+                    sTmpTaz.savedCode = '';
+                    sTmpTaz.code = '';
+                    sSaveData = sTmpTaz;
+                }
                 try {
                     const sResult: any = await postFileList(sSaveData, sFilterBoard.path.replace('/', ''), sFilterBoard.name);
                     if (sResult.success) {
@@ -70,6 +76,9 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                         } else if (sFileType === 'json' && typeof sSaveData === 'object') {
                             sTempBoardList[sIndex].code = JSON.stringify(sSaveData, null, 4);
                             sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveData, null, 4);
+                        } else if (sFileType === 'taz') {
+                            sTempBoardList[sIndex].code = '';
+                            sTempBoardList[sIndex].savedCode = '';
                         } else {
                             sTempBoardList[sIndex].code = sSaveData;
                             sTempBoardList[sIndex].savedCode = sSaveData;
