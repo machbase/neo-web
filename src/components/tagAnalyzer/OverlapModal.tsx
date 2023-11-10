@@ -5,11 +5,8 @@ import { useEffect, useState, useRef } from 'react';
 import OverlapChart from './OverlapChart';
 import { isRollup } from '@/utils';
 import { useRecoilValue } from 'recoil';
-import { gConsoleSelector, gRollupTableList } from '@/recoil/recoil';
+import { gRollupTableList } from '@/recoil/recoil';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
-import { Select } from '../inputs/Select';
-import { Input } from '../inputs/Input';
-import { TextButton } from '../buttons/TextButton';
 import OverlapButtonList from './panel/edit/OverlapButtonList';
 const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
     const [sChartData, setChartData] = useState<any>([]);
