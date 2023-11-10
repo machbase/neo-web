@@ -6,7 +6,7 @@ import ModalTimeRange from './ModalTimeRange';
 import moment from 'moment';
 import { Calendar, Save, Refresh, SaveAs, MdOutlineStackedLineChart } from '@/assets/icons/Icon';
 import { IconButton } from '../buttons/IconButton';
-import CompareModal from './CompareModal';
+import OverlapModal from './OverlapModal';
 
 const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
@@ -14,8 +14,6 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
     const [sPanelsInfo, setPanelsInfo] = useState<any>([]);
 
     const getChartInfo = (aStart: any, aEnd: any, aBoard: any, aIsRaw: any, aIsChanged?: string) => {
-        console.log(aIsChanged);
-        console.log(aBoard);
         if (aIsChanged === 'delete') {
             setPanelsInfo((aPrev: any) => aPrev.filter((aItem: any) => aItem.board.index_key !== aBoard.index_key));
             return;
@@ -64,7 +62,7 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                         return <Panel key={aItem.index_key} pPanelsInfo={sPanelsInfo} pGetChartInfo={getChartInfo} pBoardInfo={pInfo} pPanelInfo={aItem}></Panel>;
                     })}
                 <CreateChart></CreateChart>
-                {sIsModal && <CompareModal pPanelsInfo={sPanelsInfo} pSetIsModal={setIsModal}></CompareModal>}
+                {sIsModal && <OverlapModal pPanelsInfo={sPanelsInfo} pSetIsModal={setIsModal}></OverlapModal>}
                 {sTimeRangeModal && <ModalTimeRange pType={'tagAnalyzer'} pSetTimeRangeModal={setTimeRangeModal}></ModalTimeRange>}
             </div>
         </div>
