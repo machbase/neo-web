@@ -1,9 +1,9 @@
 import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Highcharts from 'highcharts/highstock';
 import HighchartsReact from 'highcharts-react-official';
-const OverlapChart = ({ pChartData, pAllInfo, pStartTimeList, pPanelInfo, pAreaChart }: any) => {
-    const [sOptions, setOptions] = useState<any>({});
+const OverlapChart = ({ pChartData, pStartTimeList, pPanelInfo, pAreaChart }: any) => {
+    const [sOptions] = useState<any>({});
     const getMinValue = (array: number[][]) => {
         return array.reduce(
             (result: number, current: any) => {
