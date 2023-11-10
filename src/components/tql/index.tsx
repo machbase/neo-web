@@ -21,7 +21,7 @@ import {
     LuFlipVertical,
     Play,
     SaveAs,
-    GoLink,
+    MdLink,
 } from '@/assets/icons/Icon';
 import { IconButton } from '../buttons/IconButton';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
@@ -194,9 +194,9 @@ const Tql = (props: TqlProps) => {
                     <div className="tql-editor-header">
                         <IconButton pIcon={<Play />} onClick={() => getTqlData(sText)} />
                         <div style={{ display: 'flex' }}>
-                            {pIsSave && <IconButton pIcon={<GoLink />} onClick={handleCopyLink} />}
                             <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
                             <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
+                            {pIsSave && <IconButton pIcon={<MdLink />} onClick={handleCopyLink} />}
                         </div>
                     </div>
                     <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
