@@ -12,6 +12,7 @@ import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { isEmpty, isRollup } from '@/utils';
 import useDebounce from '@/hooks/useDebounce';
 import { FFTModal } from '@/components/modal/FFTModal';
+import { Error } from '@/components/toast/Toast';
 
 const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveKeepData }: any) => {
     const sAreaChart = useRef<any>();
@@ -146,10 +147,15 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                     calcList.push(calc);
                 }
             });
-            setIsUpdate(true);
-            setMinMaxList(calcList);
-            setFFTMinTime(Math.floor(x.min));
-            setFFTMaxTime(Math.ceil(x.max));
+            if (!isEmpty(calcList)) {
+                setIsUpdate(true);
+                setMinMaxList(calcList);
+                setFFTMinTime(Math.floor(x.min));
+                setFFTMaxTime(Math.ceil(x.max));
+            } else {
+                Error('There is no data in the selected area.');
+                x.axis.removePlotBand('selection-plot-band');
+            }
         }
 
         return false;
