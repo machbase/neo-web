@@ -102,6 +102,38 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                         />
                     </span>
                 </div>
+                <div className="y-axis-scale-zero pt-12 ucl-wrap">
+                    <div className="ucl-inner">
+                        <div className="ucl-form">
+                            <input defaultChecked={pPanelInfo.use_ucl === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_ucl')} type="checkbox" />
+                            <span>use UCL</span>
+                        </div>
+                        <Input
+                            pWidth={80}
+                            pHeight={24}
+                            pType="number"
+                            pValue={pPanelInfo.ucl_value}
+                            pIsDisabled={pPanelInfo.use_ucl === 'N'}
+                            pSetValue={() => null}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, ucl_value: aEvent.target.value })}
+                        />
+                    </div>
+                    <div className="ucl-inner">
+                        <div className="ucl-form">
+                            <input defaultChecked={pPanelInfo.use_lcl === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_lcl')} type="checkbox" />
+                            <span>use LCL</span>
+                        </div>
+                        <Input
+                            pWidth={80}
+                            pHeight={24}
+                            pType="number"
+                            pValue={pPanelInfo.lcl_value}
+                            pIsDisabled={pPanelInfo.use_lcl === 'N'}
+                            pSetValue={() => null}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, lcl_value: aEvent.target.value })}
+                        />
+                    </div>
+                </div>
             </div>
             <div className="additional-y-axis">
                 <div className="additional-y-axis-form">
@@ -175,7 +207,40 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                             />
                         </span>
                     </div>
+                    <div className="y-axis-scale-zero pt-12 ucl-wrap">
+                        <div className="ucl-inner">
+                            <div className="ucl-form">
+                                <input defaultChecked={pPanelInfo.use_ucl2 === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_ucl2')} type="checkbox" />
+                                <span>use UCL</span>
+                            </div>
+                            <Input
+                                pWidth={80}
+                                pHeight={24}
+                                pType="number"
+                                pValue={pPanelInfo.ucl2_value}
+                                pIsDisabled={pPanelInfo.use_ucl2 === 'N'}
+                                pSetValue={() => null}
+                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, ucl2_value: aEvent.target.value })}
+                            />
+                        </div>
+                        <div className="ucl-inner">
+                            <div className="ucl-form">
+                                <input defaultChecked={pPanelInfo.use_lcl2 === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_lcl2')} type="checkbox" />
+                                <span>use LCL</span>
+                            </div>
+                            <Input
+                                pWidth={80}
+                                pHeight={24}
+                                pType="number"
+                                pValue={pPanelInfo.lcl2_value}
+                                pIsDisabled={pPanelInfo.use_lcl2 === 'N'}
+                                pSetValue={() => null}
+                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, lcl2_value: aEvent.target.value })}
+                            />
+                        </div>
+                    </div>
                 </div>
+
                 <div className="addition-input-form">
                     <div style={pPanelInfo.use_right_y2 !== 'Y' ? { opacity: '0.6' } : {}} className="addition-select-box">
                         <select
