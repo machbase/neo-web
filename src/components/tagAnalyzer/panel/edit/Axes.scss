@@ -1,4 +1,19 @@
 .axes-form {
+    .ucl-wrap {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+    .ucl-inner {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .ucl-form {
+        display: flex;
+        align-items: center;
+    }
     display: flex;
     color: rgba(255, 255, 255, 0.5);
     padding: 4px 4px;
@@ -49,6 +64,7 @@
         .pt-12 {
             padding-top: 12px !important;
         }
+
         .y-axis-scale-zero {
             padding: 0 0 0 4px;
             display: flex;

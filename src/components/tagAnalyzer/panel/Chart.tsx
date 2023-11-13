@@ -91,6 +91,7 @@ const Chart = ({
                 },
             },
             series: pChartData,
+
             plotOptions: {
                 series: {
                     showInNavigator: false,
@@ -225,6 +226,20 @@ const Chart = ({
                         y: 3,
                     },
                     opposite: false,
+                    plotLines: [
+                        {
+                            color: pPanelInfo.use_ucl === 'Y' ? '#ec7676' : 'transparent', // Color value
+                            dashStyle: 'solid', // Style of the plot line. Default to solid
+                            value: pPanelInfo.ucl_value, // Value of where the line will appear
+                            width: 1, // Width of the line
+                        },
+                        {
+                            color: pPanelInfo.use_lcl === 'Y' ? 'orange' : 'transparent', // Color value
+                            dashStyle: 'solid', // Style of the plot line. Default to solid
+                            value: pPanelInfo.lcl_value, // Value of where the line will appear
+                            width: 1, // Width of the line
+                        },
+                    ],
                 },
                 {
                     tickAmount: updateYaxis().right[0] === updateYaxis().right[1] && 1,
@@ -268,6 +283,20 @@ const Chart = ({
                         y: 3,
                     },
                     opposite: pPanelInfo.use_right_y2 === 'Y',
+                    plotLines: [
+                        {
+                            color: pPanelInfo.use_ucl2 === 'Y' ? '#ec7676' : 'transparent', // Color value
+                            dashStyle: 'solid', // Style of the plot line. Default to solid
+                            value: pPanelInfo.ucl2_value, // Value of where the line will appear
+                            width: 1, // Width of the line
+                        },
+                        {
+                            color: pPanelInfo.use_lcl2 === 'Y' ? 'orange' : 'transparent', // Color value
+                            dashStyle: 'solid', // Style of the plot line. Default to solid
+                            value: pPanelInfo.lcl2_value, // Value of where the line will appear
+                            width: 1, // Width of the line
+                        },
+                    ],
                 },
             ],
             tooltip: {
