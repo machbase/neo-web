@@ -140,7 +140,8 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                 if (!isEmpty(filterData)) {
                     const calc = {
                         table: pPanelInfo.tag_set[aIndex].table,
-                        name: aSeries.name.replace(/\(.*\)/, ''),
+                        name: pPanelInfo.tag_set[aIndex].tagName,
+                        alias: pPanelInfo.tag_set[aIndex].alias,
                         min: Math.min(...filterData).toFixed(5),
                         max: Math.max(...filterData).toFixed(5),
                         avg: (totalValue / filterData.length).toFixed(5),
