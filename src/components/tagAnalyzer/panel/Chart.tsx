@@ -319,6 +319,7 @@ const Chart = ({
                 enabled: pPanelInfo.show_legend === 'Y',
                 align: 'left',
                 itemDistance: 15,
+                itemWidth: pAreaChart?.current?.clientWidth / 6.2,
                 squareSymbol: true,
                 symbolRadius: 1,
                 itemHoverStyle: {
