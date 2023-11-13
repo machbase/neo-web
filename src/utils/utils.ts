@@ -193,6 +193,14 @@ function convertChartDefault(aChartDefault: any, aTag: any): any {
         stroke: chart.stroke,
         fill: chart.fill,
         chart_type: aTag.chartType,
+        use_ucl: 'N',
+        ucl_value: 0,
+        use_ucl2: 'N',
+        ucl2_value: 0,
+        use_lcl: 'N',
+        lcl_value: 0,
+        use_lcl2: 'N',
+        lcl2_value: 0,
         tag_set: tagSet,
     };
 }
