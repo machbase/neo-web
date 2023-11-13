@@ -221,7 +221,6 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                 : { IntervalType: convertInterType(pPanelInfo.interval_type?.toLowerCase()), IntervalValue: 0 };
 
         setRangeOption(sIntervalTime);
-
         for (let index = 0; index < sTagSet.length; index++) {
             const sTagSetElement = sTagSet[index];
             let sFetchResult: any = [];
@@ -398,12 +397,12 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
         }
     }, [sIsUpdate]);
 
-    useEffect(() => {
-        if (pBoardInfo.id === sSelectedTab) {
-            if (sPanelRange.startTime) fetchPanelData(sPanelRange);
-            if (sPanelRange.startTime) fetchNavigatorData(sNavigatorRange);
-        }
-    }, [pPanelInfo, sSelectedTab]);
+    // useEffect(() => {
+    //     if (pBoardInfo.id === sSelectedTab) {
+    //         if (sPanelRange.startTime) fetchPanelData(sPanelRange);
+    //         if (sPanelRange.startTime) fetchNavigatorData(sNavigatorRange);
+    //     }
+    // }, [pPanelInfo, sSelectedTab]);
 
     useEffect(() => {
         if (pBoardInfo.id === sSelectedTab) {
@@ -461,6 +460,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
         sPanelRange.startTime && pGetChartInfo && pGetChartInfo(sPanelRange.startTime, sPanelRange.endTime, pPanelInfo, sIsRaw, 'changed');
         sPanelRange.startTime &&
             sChartRef.current?.chart &&
+            pSaveKeepData &&
             pSaveKeepData(
                 pPanelInfo.index_key,
                 {
