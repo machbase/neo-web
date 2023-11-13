@@ -90,7 +90,7 @@ export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase } from 'r
 
 export { LuFlipVertical, LuMonitorSpeaker } from 'react-icons/lu';
 
-export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calendar, FaFolderPlus } from 'react-icons/fa';
+export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calendar, FaFolderPlus, FaUser } from 'react-icons/fa';
 
 export { FaFolderOpen as FolderOpen, FaFolder as Folder, FaArrowRotateRight as Refresh, FaGear as GearFill, FaDatabase } from 'react-icons/fa6';
 

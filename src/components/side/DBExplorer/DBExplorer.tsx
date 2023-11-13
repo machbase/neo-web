@@ -4,6 +4,7 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { useEffect, useState } from 'react';
 import { VscChevronDown, VscChevronRight } from 'react-icons/vsc';
 import TableInfo from './TableInfo';
+import { getUserName } from '@/utils';
 
 const DBExplorer = ({ pServer }: any) => {
     const [sDBList, setDBList] = useState<any>([]);
@@ -33,21 +34,37 @@ const DBExplorer = ({ pServer }: any) => {
         setDBList([]);
         if (aEvent) aEvent.stopPropagation();
         const sData = await getTableList();
-        const DB_NAME_LIST: string[] = Array.from(new Set(sData.data.rows.map((aRow: any) => aRow[0])));
-        if (DB_NAME_LIST.length > 0 && DB_NAME_LIST.includes('MACHBASEDB')) DB_NAME_LIST.unshift(...DB_NAME_LIST.splice(DB_NAME_LIST.indexOf('MACHBASEDB'), 1));
+        const U_NAME = getUserName();
+        const DB_NAME_LIST: string[] = Array.from(
+            new Set(U_NAME === 'sys' ? ['MACHBASEDB', ...sData.data.rows.map((aRow: any) => aRow[0])] : sData.data.rows.map((aRow: any) => aRow[0]))
+        );
+        const USER_NAME_LIST: string[] = Array.from(
+            new Set(U_NAME === 'sys' ? ['SYS', ...sData.data.rows.map((aRow: any) => aRow[1])] : sData.data.rows.map((aRow: any) => aRow[1]))
+        );
+        // DB > USER > TABLE > TYPE
         let DB_LIST: any = [];
         DB_NAME_LIST
             ? (DB_LIST = DB_NAME_LIST.map((aName: string) => {
                   return {
                       dbName: aName,
-                      tableList: { log: [], fixed: [], volatile: [], lookup: [], keyValue: [], tag: [] },
+                      userList: USER_NAME_LIST.map((aUser: string) => {
+                          return { userName: aUser, total: 0, tableList: { log: [], fixed: [], volatile: [], lookup: [], keyValue: [], tag: [] } };
+                      }),
+                      tableLen: 0,
                   };
               }))
             : null;
         sData.data.rows.map((bRow: any) => {
             DB_LIST.map((aDB: any, aIdx: number) => {
-                if (aDB.dbName === bRow[0])
-                    bRow[1] === 'SYS' ? DB_LIST[aIdx].tableList[TableTypeConverter(bRow[4])].unshift(bRow) : DB_LIST[aIdx].tableList[TableTypeConverter(bRow[4])].push(bRow);
+                if (aDB.dbName === bRow[0]) {
+                    DB_LIST[aIdx].tableLen++;
+                    USER_NAME_LIST.map((aUser: string, bIdx: number) => {
+                        if (bRow[1] === aUser) {
+                            DB_LIST[aIdx]['userList'][bIdx].total++;
+                            DB_LIST[aIdx]['userList'][bIdx].tableList[TableTypeConverter(bRow[4])].push(bRow);
+                        }
+                    });
+                }
             });
         });
         setDBList(DB_LIST);

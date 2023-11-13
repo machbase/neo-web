@@ -56,6 +56,34 @@
 .db-wrap:hover {
     background-color: #242424;
 }
+.user-wrap {
+    flex-direction: column;
+    display: flex;
+    .user-column {
+        flex-direction: column;
+
+        .user-folder-wrap {
+            padding-left: 25px;
+            cursor: pointer;
+
+            display: flex;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            word-break: break-all;
+
+            &-name {
+                margin-top: 3px;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                overflow: hidden;
+            }
+        }
+        .user-folder-wrap:hover {
+            background-color: #242424;
+        }
+    }
+}
 .table-wrap {
     flex-direction: column;
 

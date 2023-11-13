@@ -42,6 +42,7 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
             enabled: false,
         },
         fontSize: 14,
+        fontFamily: 'D2Coding',
         scrollBeyondLastLine: false,
     };
 
