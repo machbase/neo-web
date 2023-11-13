@@ -40,10 +40,18 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
         let sCount = -1;
 
         if (sLimit < 0) {
-            if (pPanelInfo.pixels_per_tick > 0) {
-                sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick);
+            if (sIsRaw) {
+                if (pPanelInfo.pixels_per_tick_raw > 0) {
+                    sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick_raw);
+                } else {
+                    sCount = Math.ceil(sChartWidth);
+                }
             } else {
-                sCount = Math.ceil(sChartWidth);
+                if (pPanelInfo.pixels_per_tick > 0) {
+                    sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick);
+                } else {
+                    sCount = Math.ceil(sChartWidth);
+                }
             }
         }
         const sDatasets: any = [];
@@ -200,10 +208,18 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
         let sCount = -1;
 
         if (sLimit < 0) {
-            if (pPanelInfo.pixels_per_tick > 0) {
-                sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick);
+            if (sIsRaw) {
+                if (pPanelInfo.pixels_per_tick_raw > 0) {
+                    sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick_raw);
+                } else {
+                    sCount = Math.ceil(sChartWidth);
+                }
             } else {
-                sCount = Math.ceil(sChartWidth);
+                if (pPanelInfo.pixels_per_tick > 0) {
+                    sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick);
+                } else {
+                    sCount = Math.ceil(sChartWidth);
+                }
             }
         }
         const sDatasets: any = [];
@@ -273,7 +289,8 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
     const calcInterval = (aBgn: number, aEnd: number, aWidth: number): { IntervalType: string; IntervalValue: number } => {
         const sDiff = aEnd - aBgn;
         const sSecond = Math.floor(sDiff / 1000);
-        const sCalc = sSecond / (aWidth / pPanelInfo.pixels_per_tick);
+        console.log(sIsRaw);
+        const sCalc = sSecond / (aWidth / (sIsRaw ? pPanelInfo.pixels_per_tick_raw : pPanelInfo.pixels_per_tick));
         const sRet = { type: 'sec', value: 1 };
         if (sCalc > 60 * 60 * 12) {
             // interval > 12H
