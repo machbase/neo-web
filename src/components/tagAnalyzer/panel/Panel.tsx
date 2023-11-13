@@ -126,7 +126,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
 
             const calcList: any[] = [];
             x.axis.series.forEach((aSeries: any, aIndex: number) => {
-                const seriesData = aSeries.data || aSeries.points;
+                const seriesData = !isEmpty(aSeries.data) ? aSeries.data : aSeries.points;
                 const filterData: number[] = [];
                 let totalValue = 0;
                 if (seriesData) {
