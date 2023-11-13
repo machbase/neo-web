@@ -23,10 +23,18 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
         let sCount = -1;
 
         if (sLimit < 0) {
-            if (aPanelInfo.board.pixels_per_tick > 0) {
-                sCount = Math.ceil(sChartWidth / aPanelInfo.board.pixels_per_tick);
+            if (aPanelInfo.isRaw) {
+                if (aPanelInfo.board.pixels_per_tick_raw > 0) {
+                    sCount = Math.ceil(sChartWidth / aPanelInfo.board.pixels_per_tick_raw);
+                } else {
+                    sCount = Math.ceil(sChartWidth);
+                }
             } else {
-                sCount = Math.ceil(sChartWidth);
+                if (aPanelInfo.board.pixels_per_tick > 0) {
+                    sCount = Math.ceil(sChartWidth / aPanelInfo.board.pixels_per_tick);
+                } else {
+                    sCount = Math.ceil(sChartWidth);
+                }
             }
         }
         const sDatasets: any = [];
