@@ -54,7 +54,7 @@ export const FFTModal = (props: FFTModalProps) => {
     \nFFT({MinMaxHz})
     \nFLATTEN()
     \nPUSHKEY('fft')
-    \nCHART_LINE3D(
+    \nCHART_BAR3D(
         \nxAxis(0, 'time', 'time'),
         \nyAxis(1, 'Hz'),
         \nzAxis(2, 'Amp'),
