@@ -38,14 +38,30 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                 </div>
                 <div className="x-axis-pixels pt-12">
                     <span>Pixels between tick marks </span>
-                    <Input
-                        pWidth={150}
-                        pHeight={24}
-                        pType="number"
-                        pValue={pPanelInfo.pixels_per_tick}
-                        pSetValue={() => null}
-                        onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, pixels_per_tick: aEvent.target.value })}
-                    />
+                    <div className="x-axis-pixels-body">
+                        <div>
+                            Raw
+                            <Input
+                                pWidth={150}
+                                pHeight={24}
+                                pType="number"
+                                pValue={pPanelInfo.pixels_per_tick_raw}
+                                pSetValue={() => null}
+                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, pixels_per_tick_raw: aEvent.target.value })}
+                            />
+                        </div>
+                        <div>
+                            Calculation
+                            <Input
+                                pWidth={150}
+                                pHeight={24}
+                                pType="number"
+                                pValue={pPanelInfo.pixels_per_tick}
+                                pSetValue={() => null}
+                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, pixels_per_tick: aEvent.target.value })}
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
             <div className="y-axis">
