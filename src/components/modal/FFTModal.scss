@@ -23,12 +23,26 @@
     }
     .tool-bar {
         display: flex;
-        justify-content: space-between;
+        flex-direction: column;
         padding: 0 1.75rem;
+        gap: 10px;
 
-        .button-group {
+        .select-group {
             display: flex;
-            gap: 5px;
+            justify-content: space-between;
+            align-items: center;
+            .button-group {
+                display: flex;
+                gap: 5px;
+            }
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            font-size: 14px;
         }
     }
     .body {

@@ -2,7 +2,8 @@ import './FFTModal.scss';
 import { useState, useRef, useEffect } from 'react';
 import { Modal } from '@/components/modal/Modal';
 import { Select } from '@/components/inputs/Select';
-import { Close, LineChart } from '@/assets/icons/Icon';
+import { Input } from '@/components/inputs/Input';
+import { Close, LineChart, Play } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { getTqlChart } from '@/api/repository/machiot';
 import { ShowChart } from '@/components/tql/ShowChart';
@@ -12,6 +13,7 @@ import moment from 'moment';
 interface FFTInfo {
     table: string;
     name: string;
+    alias: string;
     min: string;
     max: string;
     avg: string;
@@ -27,43 +29,69 @@ interface FFTModalProps {
 export const FFTModal = (props: FFTModalProps) => {
     const { pInfo, pStartTime, pEndTime, setIsOpen } = props;
     const modalRef = useRef<HTMLDivElement>(null);
-    // const [sSelectedTag, setSelectedTag] = useState<string>('');
     const [sSelectedInfo, setSelectedInfo] = useState<FFTInfo | null>(null);
     const [sChartData, setChartData] = useState<any>(null);
     const [sIsChart2D, setIsChart2D] = useState<boolean>(true);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
+    const [sInterval, setInterval] = useState<string>('0');
+    const [sMinHz, setMinHz] = useState<string>('0');
+    const [sMaxHz, setMaxHz] = useState<string>('0');
     const sNewStartTime = moment(pStartTime).format('yyyy-MM-DD HH:mm:ss');
     const sNewEndTime = moment(pEndTime).format('yyyy-MM-DD HH:mm:ss');
-    const sTql2DQuery = `SQL("select * from {tableName} where name='{tagName}' AND time >= '${sNewStartTime}' AND time <= '${sNewEndTime}'")\nCHART_LINE(size('550px', '400px'))`;
-    const sTql3DQuery = `SQL("select * from {tableName} where name='{tagName}' AND time >= '${sNewStartTime}' AND time <= '${sNewEndTime}'")\nCHART_LINE3D(size('550px', '400px'), autoRotate(20))`;
+    const sTql2DQuery = `SQL("select time, value from {tableName} where name='{tagName}' AND time between to_date('${sNewStartTime}') AND to_date('${sNewEndTime}')")
+    \nMAPKEY('fft')
+    \nGROUPBYKEY()
+    \nFFT({MinMaxHz})
+    \nCHART_LINE(
+        \nsize('550px', '400px'),
+        \nxAxis(0, 'Hz'),
+        \nyAxis(1, 'Amplitude'),
+        \ndataZoom('slider', 0, 10) 
+    \n)`;
+    const sTql3DQuery = `SQL("select time, value from {tableName} where name='{tagName}' AND time between to_date('${sNewStartTime}') AND to_date('${sNewEndTime}')")
+    \nMAPKEY( roundTime(value(0), '{interval}ms') )
+    \nGROUPBYKEY()
+    \nFFT({MinMaxHz})
+    \nFLATTEN()
+    \nPUSHKEY('fft')
+    \nCHART_LINE3D(
+        \nxAxis(0, 'time', 'time'),
+        \nyAxis(1, 'Hz'),
+        \nzAxis(2, 'Amp'),
+        \nsize('550px', '400px'), 
+        \nvisualMap(0, 1.5), 
+        \ntheme('westeros'),
+        \nautoRotate(20)
+    \n)`;
 
     useEffect(() => {
-        // setSelectedTag(pInfo[0].name);
         setSelectedInfo(pInfo[0]);
-        getTqlChartData(sTql2DQuery.replace('{tableName}', pInfo[0].table).replace('{tagName}', pInfo[0].name));
+        getTqlChartData(sTql2DQuery.replace('{tableName}', pInfo[0].table).replace('{tagName}', pInfo[0].name).replace('{MinMaxHz}', ''));
     }, []);
 
     const handleSelectedTag = (aEvent: any) => {
-        // setSelectedTag(aEvent.target.value);
         const sFindIndex = pInfo.findIndex((info: FFTInfo) => info.name === aEvent.target.value);
         if (sFindIndex !== -1) {
             setSelectedInfo(pInfo[sFindIndex]);
-            if (sIsChart2D) {
-                getTqlChartData(sTql2DQuery.replace('{tableName}', pInfo[sFindIndex].table).replace('{tagName}', pInfo[sFindIndex].name));
-            } else {
-                getTqlChartData(sTql3DQuery.replace('{tableName}', pInfo[sFindIndex].table).replace('{tagName}', pInfo[sFindIndex].name));
-            }
         }
     };
 
     const handle2DChart = () => {
-        setIsChart2D(true);
-        getTqlChartData(sTql2DQuery.replace('{tableName}', sSelectedInfo!.table).replace('{tagName}', sSelectedInfo!.name));
+        setIsChart2D((prev) => !prev);
+        if (sIsChart2D) {
+            setInterval('0');
+        }
     };
 
-    const handle3DChart = () => {
-        setIsChart2D(false);
-        getTqlChartData(sTql3DQuery.replace('{tableName}', sSelectedInfo!.table).replace('{tagName}', sSelectedInfo!.name));
+    const handleRunCode = () => {
+        const sMinMaxHz = sMinHz === '0' && sMaxHz === '0' ? '' : `minHz(${sMinHz}), maxHz(${sMaxHz})`;
+        if (sIsChart2D) {
+            getTqlChartData(sTql2DQuery.replace('{tableName}', pInfo[0].table).replace('{tagName}', pInfo[0].name).replace('{MinMaxHz}', sMinMaxHz));
+        } else {
+            getTqlChartData(
+                sTql3DQuery.replace('{tableName}', pInfo[0].table).replace('{tagName}', pInfo[0].name).replace('{MinMaxHz}', sMinMaxHz).replace('{interval}', sInterval)
+            );
+        }
     };
 
     const getTqlChartData = async (aText: string) => {
@@ -109,16 +137,30 @@ export const FFTModal = (props: FFTModalProps) => {
                         <Close className="close" onClick={() => setIsOpen(false)} />
                     </div>
                     <div className="tool-bar">
-                        <Select
-                            pInitValue={pInfo[0].name}
-                            pOptions={pInfo.map((info: FFTInfo) => info.name)}
-                            pHeight={32}
-                            onChange={(aEvent) => handleSelectedTag(aEvent)}
-                            pWidth={250}
-                        />
-                        <div className="button-group">
-                            <IconButton onClick={handle2DChart} pIcon={<div>2D</div>} pIsActive={sIsChart2D} pIsActiveHover />
-                            <IconButton onClick={handle3DChart} pIcon={<div>3D</div>} pIsActive={!sIsChart2D} pIsActiveHover />
+                        <div className="select-group">
+                            <Select
+                                pInitValue={pInfo[0].alias || pInfo[0].name}
+                                pOptions={pInfo.map((info: FFTInfo) => info.alias || info.name)}
+                                pHeight={32}
+                                onChange={(aEvent) => handleSelectedTag(aEvent)}
+                                pWidth={250}
+                            />
+                            <div className="button-group">
+                                <IconButton onClick={handle2DChart} pIcon={<div>{sIsChart2D ? '2D' : '3D'}</div>} pIsActiveHover />
+                                <IconButton onClick={handleRunCode} pIcon={<Play />} pIsActiveHover />
+                            </div>
+                        </div>
+                        <div className="input-group">
+                            <span>Min Hz</span>
+                            <Input pType="number" pWidth={100} pHeight={32} pValue={sMinHz} pSetValue={setMinHz} onChange={() => null} />
+                            <span>Max Hz</span>
+                            <Input pType="number" pWidth={100} pHeight={32} pValue={sMaxHz} pSetValue={setMaxHz} onChange={() => null} />
+                            {!sIsChart2D ? (
+                                <>
+                                    <span>Interval</span>
+                                    <Input pType="number" pWidth={100} pHeight={32} pValue={sInterval} pSetValue={setInterval} onChange={() => null} />
+                                </>
+                            ) : null}
                         </div>
                     </div>
                 </Modal.Header>
