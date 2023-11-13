@@ -12,14 +12,14 @@ import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { isRollup } from '@/utils';
 import useDebounce from '@/hooks/useDebounce';
 
-const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveTime }: any) => {
+const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveKeepData }: any) => {
     const sAreaChart = useRef<any>();
     const sChartRef = useRef<any>();
     const [sChartData, setChartData] = useState<any>();
     const [sNavigatorData, setNavigatorData] = useState<any>();
     const [sPanelRange, setPanelRange] = useState<any>({});
     const [sNavigatorRange, setNavigatorRange] = useState<any>({});
-    const [sIsRaw, setIsRaw] = useState<boolean>(false);
+    const [sIsRaw, setIsRaw] = useState<boolean>(pPanelInfo.raw_keeper === undefined ? false : pPanelInfo.raw_keeper);
     const [sRangeOption, setRangeOption] = useState<any>({});
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
@@ -402,12 +402,16 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
         sPanelRange.startTime && pGetChartInfo && pGetChartInfo(sPanelRange.startTime, sPanelRange.endTime, pPanelInfo, sIsRaw, 'changed');
         sPanelRange.startTime &&
             sChartRef.current?.chart &&
-            pSaveTime(pPanelInfo.index_key, {
-                startPanelTime: sPanelRange.startTime,
-                endPanelTime: sPanelRange.endTime,
-                startNaviTime: sChartRef.current.chart.navigator.xAxis.getExtremes().min,
-                endNaviTime: sChartRef.current.chart.navigator.xAxis.getExtremes().max,
-            });
+            pSaveKeepData(
+                pPanelInfo.index_key,
+                {
+                    startPanelTime: sPanelRange.startTime,
+                    endPanelTime: sPanelRange.endTime,
+                    startNaviTime: sChartRef.current.chart.navigator.xAxis.getExtremes().min,
+                    endNaviTime: sChartRef.current.chart.navigator.xAxis.getExtremes().max,
+                },
+                sIsRaw
+            );
     }, [sPanelRange.startTime, sPanelRange.endTime, sIsRaw]);
 
     useDebounce([], setRange, 100);
