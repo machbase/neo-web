@@ -126,10 +126,11 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
 
             const calcList: any[] = [];
             x.axis.series.forEach((aSeries: any, aIndex: number) => {
+                const seriesData = aSeries.data || aSeries.points;
                 const filterData: number[] = [];
                 let totalValue = 0;
-                if (aSeries.data) {
-                    aSeries.data
+                if (seriesData) {
+                    seriesData
                         .filter((aData: any) => x.min <= aData.x && x.max >= aData.x)
                         .forEach((aItem: any) => {
                             totalValue += aItem.y;
