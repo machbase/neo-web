@@ -37,8 +37,8 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
         }
     };
 
-    const saveTime = (aTargetPanel: string, aTimeInfo: { endNaviTime: number; endPanelTime: number; startNaviTime: number; startPanelTime: number }) => {
-        // UPDATE - time (panel & navigator)
+    const savekeepData = (aTargetPanel: string, aTimeInfo: { endNaviTime: number; endPanelTime: number; startNaviTime: number; startPanelTime: number }, aRaw: boolean) => {
+        // UPDATE - time (panel & navigator) && raw
         const tmpBoardInfo: any = JSON.parse(JSON.stringify(pInfo));
         tmpBoardInfo.panels = tmpBoardInfo.panels.map((aPanel: any) => {
             if (aPanel.index_key === aTargetPanel) {
@@ -47,6 +47,7 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                     time_keeper: {
                         ...aTimeInfo,
                     },
+                    raw_keeper: aRaw,
                 };
             } else return aPanel;
         });
@@ -83,7 +84,16 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                 {pInfo &&
                     pInfo.panels &&
                     pInfo.panels.map((aItem: any) => {
-                        return <Panel key={aItem.index_key} pPanelsInfo={sPanelsInfo} pGetChartInfo={getChartInfo} pBoardInfo={pInfo} pPanelInfo={aItem} pSaveTime={saveTime} />;
+                        return (
+                            <Panel
+                                key={aItem.index_key}
+                                pPanelsInfo={sPanelsInfo}
+                                pGetChartInfo={getChartInfo}
+                                pBoardInfo={pInfo}
+                                pPanelInfo={aItem}
+                                pSaveKeepData={savekeepData}
+                            />
+                        );
                     })}
                 <CreateChart></CreateChart>
                 {sIsModal && <OverlapModal pPanelsInfo={sPanelsInfo} pSetIsModal={setIsModal}></OverlapModal>}
