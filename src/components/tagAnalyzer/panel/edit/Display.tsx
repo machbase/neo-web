@@ -64,7 +64,13 @@ const Display = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                         pValue={pPanelInfo.point_radius}
                         pSetValue={() => null}
                         pType="number"
-                        onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, point_radius: aEvent.target.value })}
+                        onChange={(aEvent: any) => {
+                            const sValue = aEvent.target.value;
+                            pSetCopyPanelInfo({
+                                ...pPanelInfo,
+                                point_radius: sValue !== '' ? Number(sValue) : sValue,
+                            });
+                        }}
                     />
                 </div>
                 <div>
