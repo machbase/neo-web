@@ -17,7 +17,7 @@
             <span class="tag-name-form"
                 ><span>Tag Names </span>
                 <span class="taginput input tag-name-input">
-                    <input @change="(event) => onChangeTagName(event, aIndex)" type="text" :value="aItem.tag_names" />
+                    <input @change="(event) => onChangeTagName(event, aIndex)" disabled type="text" :value="aItem.tag_names" />
                     <span>( {{ aItem.table }} )</span>
                 </span>
             </span>
