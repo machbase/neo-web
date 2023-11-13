@@ -296,7 +296,6 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
     const calcInterval = (aBgn: number, aEnd: number, aWidth: number): { IntervalType: string; IntervalValue: number } => {
         const sDiff = aEnd - aBgn;
         const sSecond = Math.floor(sDiff / 1000);
-        console.log(sIsRaw);
         const sCalc = sSecond / (aWidth / (sIsRaw ? pPanelInfo.pixels_per_tick_raw : pPanelInfo.pixels_per_tick));
         const sRet = { type: 'sec', value: 1 };
         if (sCalc > 60 * 60 * 12) {
@@ -421,12 +420,12 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
         }
     }, [sIsUpdate]);
 
-    // useEffect(() => {
-    //     if (pBoardInfo.id === sSelectedTab) {
-    //         if (sPanelRange.startTime) fetchPanelData(sPanelRange);
-    //         if (sPanelRange.startTime) fetchNavigatorData(sNavigatorRange);
-    //     }
-    // }, [pPanelInfo, sSelectedTab]);
+    useEffect(() => {
+        if (pBoardInfo.id === sSelectedTab) {
+            if (sPanelRange.startTime) fetchPanelData(sPanelRange);
+            if (sPanelRange.startTime) fetchNavigatorData(sNavigatorRange);
+        }
+    }, [pPanelInfo, sSelectedTab]);
 
     useEffect(() => {
         if (pBoardInfo.id === sSelectedTab) {

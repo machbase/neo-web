@@ -5,6 +5,10 @@ import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOUTFOUR from '@/assets/image/btn_zoom out x4@3x.png';
 import { MdCenterFocusStrong } from '@/assets/icons/Icon';
 const PanelFooter = ({ pSetButtonRange, pPanelInfo }: any) => {
+    const setNaviLocation = () => {
+        if (pPanelInfo.tag_set.length <= 6) return 92 + 'px';
+        else return 92 + 16 + 'px';
+    };
     return (
         <div className="footer-form">
             <div></div>
@@ -13,7 +17,7 @@ const PanelFooter = ({ pSetButtonRange, pPanelInfo }: any) => {
                 style={
                     pPanelInfo.show_legend === 'Y'
                         ? {
-                              bottom: '95px',
+                              bottom: setNaviLocation(),
                           }
                         : {
                               bottom: '60px',
