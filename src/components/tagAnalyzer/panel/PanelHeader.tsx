@@ -75,11 +75,15 @@ const PanelHeader = ({
                 <div className="raw">
                     <IconButton pWidth={38} pHeight={32} pIcon={<MdRawOn style={{ color: pIsRaw ? '#fdb532 ' : '' }} />} onClick={() => pSetIsRaw(!pIsRaw)} />
                 </div>
-                <div className="divider" />
-                <IconButton pWidth={25} pHeight={25} pIcon={<PiSelectionPlusBold style={{ color: pIsMinMaxPopup ? '#f8f8f8' : '' }} />} onClick={() => handleSelection()} />
-                <div style={{ display: pIsMinMaxPopup && pIsUpdate ? 'initial' : 'none' }}>
-                    <IconButton pWidth={25} pHeight={25} pIcon={<LineChart />} onClick={() => pSetIsFFTModal(true)} />
-                </div>
+                {!pIsEdit ? (
+                    <>
+                        <div className="divider" />
+                        <IconButton pWidth={25} pHeight={25} pIcon={<PiSelectionPlusBold style={{ color: pIsMinMaxPopup ? '#f8f8f8' : '' }} />} onClick={() => handleSelection()} />
+                        <div style={{ display: pIsMinMaxPopup && pIsUpdate ? 'initial' : 'none' }}>
+                            <IconButton pWidth={25} pHeight={25} pIcon={<LineChart />} onClick={() => pSetIsFFTModal(true)} />
+                        </div>
+                    </>
+                ) : null}
                 <div className="divider" />
                 <IconButton pWidth={25} pIcon={<Refresh />} onClick={() => pFetchPanelData()} />
                 {!pIsEdit && <IconButton pWidth={25} pIcon={<GearFill />} onClick={() => setEditPanel(true)} />}
