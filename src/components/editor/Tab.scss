@@ -20,10 +20,9 @@
             width: 15px;
             height: 15px;
             font-size: 10px;
-            padding-left: 4px !important;
-            svg {
-                padding-left: 0 !important;
-            }
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         .default-form {
             padding-left: 4px !important;
