@@ -28,7 +28,6 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                 })
             );
         } else {
-            console.log(sPanelsInfo.find((aItem: any) => aItem.board.index_key === aBoard.index_key));
             if (sPanelsInfo.find((aItem: any) => aItem.board.index_key === aBoard.index_key)) {
                 setPanelsInfo((aPrev: any) => aPrev.filter((aItem: any) => aItem.board.index_key !== aBoard.index_key));
             } else {

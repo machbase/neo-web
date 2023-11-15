@@ -48,7 +48,6 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
             startTime: aPanelInfo.start as string,
             endTime: (aPanelInfo.start + (sStart ? pPanelsInfo[0].duration : sPanelsInfo[0].duration)) as string,
         };
-        console.log(sTimeRange);
 
         const sIntervalTime = calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, sStart ? pPanelsInfo[0].board : sPanelsInfo[0].board);
 
