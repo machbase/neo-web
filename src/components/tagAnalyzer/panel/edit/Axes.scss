@@ -68,7 +68,21 @@
         }
         .use-sampling {
             display: flex;
-            align-items: center;
+
+            flex-direction: column;
+            // align-items: center;
+            .x-axis-pixels-body {
+                padding-top: 4px;
+                padding-left: 4px;
+                padding-right: 40px;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                div {
+                    display: flex;
+                    justify-content: space-between;
+                }
+            }
         }
     }
     .y-axis {
