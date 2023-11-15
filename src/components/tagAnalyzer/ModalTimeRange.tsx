@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import DatePicker from '@/components/datePicker/DatePicker';
-import 'react-datepicker/dist/react-datepicker.css';
 import moment from 'moment';
 import { TextButton } from '../buttons/TextButton';
 import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
