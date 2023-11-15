@@ -7,22 +7,57 @@
     .first-row {
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
-        .from,
-        .to {
+        .to,
+        .from {
             display: flex;
-            position: relative;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 8px;
             .span-from,
             .span-to {
                 width: 100px;
             }
             .modal-date-picker {
-                position: absolute;
-                bottom: 20px;
-                transform: translate(-50%, 0);
                 z-index: 8;
                 input {
                     filter: invert(1);
+                }
+            }
+            .date-picker {
+                display: inline-block;
+                width: 200px;
+                padding: 0 4px;
+                display: flex;
+                align-items: center;
+                height: 28px;
+                background-color: #323644;
+                border: 0.5px solid rgba(255, 255, 255, 0.5);
+                color: rgba(255, 255, 255, 0.5) !important;
+                border-radius: 4px;
+                input {
+                    background-color: transparent;
+                    border: none;
+                    height: 100%;
+                    color: #f8f8f8;
+                }
+
+                .react-datepicker {
+                    background-color: #2a2d37 !important;
+                    td,
+                    th {
+                        padding: 0 !important;
+                        width: unset;
+                        min-width: unset;
+                    }
+                    .rdtPrev:hover,
+                    .rdtNext:hover,
+                    .rdtTimeToggle:hover,
+                    .rdtBtn:hover,
+                    .rdtSwitch:hover,
+                    .rdtDay:hover {
+                        opacity: 0.5 !important;
+                        background: #464b5c !important;
+                    }
                 }
             }
         }

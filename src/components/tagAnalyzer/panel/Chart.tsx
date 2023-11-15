@@ -3,7 +3,21 @@ import Highcharts from 'highcharts/highstock';
 import HighchartsReact from 'highcharts-react-official';
 import { useEffect, useState } from 'react';
 
-const Chart = ({ pPanelInfo, pIsRaw, pChartData, pAreaChart, pNavigatorData, pSetExtremes, pSetNavigatorExtremes, pPanelRange, pNavigatorRange, pChartWrap }: any) => {
+const Chart = ({
+    pPanelInfo,
+    pIsRaw,
+    pChartData,
+    pAreaChart,
+    pNavigatorData,
+    pSetExtremes,
+    pSetNavigatorExtremes,
+    pPanelRange,
+    pNavigatorRange,
+    pChartWrap,
+    pIsMinMaxPopup,
+    pViewMinMaxPopup,
+    pIsUpdate,
+}: any) => {
     const [options, setOptions] = useState<any>({});
 
     const getMaxValue = (array: number[][]) => {
@@ -53,7 +67,7 @@ const Chart = ({ pPanelInfo, pIsRaw, pChartData, pAreaChart, pNavigatorData, pSe
     };
     useEffect(() => {}, [options]);
 
-    const setValue = async () => {
+    const setValue = () => {
         setOptions({
             accessibility: {
                 enabled: false,
@@ -67,6 +81,9 @@ const Chart = ({ pPanelInfo, pIsRaw, pChartData, pAreaChart, pNavigatorData, pSe
                 zoomType: 'x',
                 lineWidth: 1,
                 width: pAreaChart?.current?.clientWidth,
+                events: {
+                    selection: pIsMinMaxPopup ? pViewMinMaxPopup : false,
+                },
             },
             time: {
                 getTimezoneOffset: () => {
@@ -74,6 +91,7 @@ const Chart = ({ pPanelInfo, pIsRaw, pChartData, pAreaChart, pNavigatorData, pSe
                 },
             },
             series: pChartData,
+
             plotOptions: {
                 series: {
                     showInNavigator: false,
@@ -208,6 +226,22 @@ const Chart = ({ pPanelInfo, pIsRaw, pChartData, pAreaChart, pNavigatorData, pSe
                         y: 3,
                     },
                     opposite: false,
+                    plotLines: [
+                        {
+                            color: pPanelInfo.use_ucl === 'Y' ? '#ec7676' : 'transparent', // Color value
+                            dashStyle: 'solid', // Style of the plot line. Default to solid
+                            value: pPanelInfo.ucl_value, // Value of where the line will appear
+                            width: 1, // Width of the line
+                            zIndex: 7,
+                        },
+                        {
+                            color: pPanelInfo.use_lcl === 'Y' ? 'orange' : 'transparent', // Color value
+                            dashStyle: 'solid', // Style of the plot line. Default to solid
+                            value: pPanelInfo.lcl_value, // Value of where the line will appear
+                            width: 1, // Width of the line
+                            zIndex: 7,
+                        },
+                    ],
                 },
                 {
                     tickAmount: updateYaxis().right[0] === updateYaxis().right[1] && 1,
@@ -251,6 +285,22 @@ const Chart = ({ pPanelInfo, pIsRaw, pChartData, pAreaChart, pNavigatorData, pSe
                         y: 3,
                     },
                     opposite: pPanelInfo.use_right_y2 === 'Y',
+                    plotLines: [
+                        {
+                            color: pPanelInfo.use_ucl2 === 'Y' ? '#ec7676' : 'transparent', // Color value
+                            dashStyle: 'solid', // Style of the plot line. Default to solid
+                            value: pPanelInfo.ucl2_value, // Value of where the line will appear
+                            width: 1, // Width of the line
+                            zIndex: 7,
+                        },
+                        {
+                            color: pPanelInfo.use_lcl2 === 'Y' ? 'orange' : 'transparent', // Color value
+                            dashStyle: 'solid', // Style of the plot line. Default to solid
+                            value: pPanelInfo.lcl2_value, // Value of where the line will appear
+                            width: 1, // Width of the line
+                            zIndex: 7,
+                        },
+                    ],
                 },
             ],
             tooltip: {
@@ -273,6 +323,7 @@ const Chart = ({ pPanelInfo, pIsRaw, pChartData, pAreaChart, pNavigatorData, pSe
                 enabled: pPanelInfo.show_legend === 'Y',
                 align: 'left',
                 itemDistance: 15,
+                itemWidth: pAreaChart?.current?.clientWidth / 6.2,
                 squareSymbol: true,
                 symbolRadius: 1,
                 itemHoverStyle: {
@@ -310,7 +361,7 @@ const Chart = ({ pPanelInfo, pIsRaw, pChartData, pAreaChart, pNavigatorData, pSe
 
     useEffect(() => {
         setValue();
-    }, [pChartData, pNavigatorData, pPanelInfo, pIsRaw]);
+    }, [pChartData, pNavigatorData, pPanelInfo, pIsRaw, pIsMinMaxPopup, pIsUpdate]);
 
     return pNavigatorData && pNavigatorData.datasets && <HighchartsReact ref={pChartWrap} highcharts={Highcharts} constructorType={'stockChart'} options={options} />;
 };

@@ -13,6 +13,8 @@ import {
     VscVm,
     VscTerminalCmd,
     MdDashboard,
+    FaDesktop,
+    FaLaptop,
 } from '@/assets/icons/Icon';
 import {
     MuiCsv,
@@ -32,7 +34,6 @@ import {
     MuiFolder,
     MuiFolderOpen,
 } from '@/assets/icons/Mui';
-import { FaDesktop, FaLaptop } from 'react-icons/fa6';
 
 const icons = (aType: string, aIsHome?: boolean) => {
     switch (aType) {

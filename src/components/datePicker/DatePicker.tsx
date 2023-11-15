@@ -65,7 +65,7 @@ const DatePicker = ({ pTimeValue, pSetApply, onChange, pTopPixel }: any) => {
                                         if (view === 'hours') {
                                             setHours(aValue.$H);
                                         } else if (view === 'minutes') {
-                                            setMinute(aValue.$M);
+                                            setMinute(aValue.$m);
                                         } else {
                                             setSecond(aValue.$s);
                                         }

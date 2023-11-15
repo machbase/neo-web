@@ -286,6 +286,7 @@ export const DEFAULT_CHART = {
     show_point: 'N',
     point_radius: 3,
     pixels_per_tick: 3,
+    pixels_per_tick_raw: 0.1,
     zero_base: 'N',
     detail_count: 0,
     detail_rows: 10,
@@ -323,6 +324,13 @@ export const DEFAULT_CHART = {
     timeout: 10000,
     x_axis_type: 'scaleTime',
     chart_type: 'line',
+    time_keeper: {
+        startPanelTime: 0,
+        endPanelTime: 0,
+        startNaviTime: 0,
+        endNaviTime: 0,
+    },
+    raw_keeper: false,
 };
 
 export const COLOR_SET = '5ca3f2,d06a5f,e2bb5c,86b66b,7070e0,6bcbc1,a673e8,e26daf,bac85d,87cedd';

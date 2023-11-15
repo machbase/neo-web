@@ -2,7 +2,7 @@ import { getTableList } from '@/api/repository/api';
 import { TbEyeMinus, MdRefresh } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { useEffect, useState } from 'react';
-import { VscChevronDown, VscChevronRight } from 'react-icons/vsc';
+import { VscChevronDown, VscChevronRight } from '@/assets/icons/Icon';
 import TableInfo from './TableInfo';
 import { getUserName } from '@/utils';
 

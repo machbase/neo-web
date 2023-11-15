@@ -187,12 +187,22 @@ function convertChartDefault(aChartDefault: any, aTag: any): any {
     return {
         ...aChartDefault,
         index_key: getId(),
+        use_sampling: false,
+        sampling_value: 0.01,
         default_range: aTag.defaultRange,
         color_set: COLOR_SET,
         show_point: chart.show_point,
         stroke: chart.stroke,
         fill: chart.fill,
         chart_type: aTag.chartType,
+        use_ucl: 'N',
+        ucl_value: 0,
+        use_ucl2: 'N',
+        ucl2_value: 0,
+        use_lcl: 'N',
+        lcl_value: 0,
+        use_lcl2: 'N',
+        lcl2_value: 0,
         tag_set: tagSet,
     };
 }

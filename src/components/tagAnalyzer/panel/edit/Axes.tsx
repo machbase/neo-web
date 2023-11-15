@@ -1,4 +1,5 @@
 import { ArrowDown } from '@/assets/icons/Icon';
+import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
 import './Axes.scss';
 
@@ -38,14 +39,48 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                 </div>
                 <div className="x-axis-pixels pt-12">
                     <span>Pixels between tick marks </span>
-                    <Input
-                        pWidth={150}
-                        pHeight={24}
-                        pType="number"
-                        pValue={pPanelInfo.pixels_per_tick}
-                        pSetValue={() => null}
-                        onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, pixels_per_tick: aEvent.target.value })}
-                    />
+                    <div className="x-axis-pixels-body">
+                        <div>
+                            Raw
+                            <Input
+                                pWidth={150}
+                                pHeight={24}
+                                pType="number"
+                                pValue={pPanelInfo.pixels_per_tick_raw}
+                                pSetValue={() => null}
+                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, pixels_per_tick_raw: aEvent.target.value })}
+                            />
+                        </div>
+                        <div>
+                            Calculation
+                            <Input
+                                pWidth={150}
+                                pHeight={24}
+                                pType="number"
+                                pValue={pPanelInfo.pixels_per_tick}
+                                pSetValue={() => null}
+                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, pixels_per_tick: aEvent.target.value })}
+                            />
+                        </div>
+                    </div>
+                </div>
+                <div className="x-axis-pixels pt-12">
+                    <span>use Sampling</span>
+                    <div className="use-sampling">
+                        <CheckBox
+                            pDefaultChecked={pPanelInfo.use_sampling}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, use_sampling: aEvent.target.checked })}
+                        ></CheckBox>
+                        <Input
+                            pWidth={150}
+                            pHeight={24}
+                            pType="number"
+                            pIsDisabled={!pPanelInfo.use_sampling}
+                            pValue={pPanelInfo.sampling_value}
+                            pSetValue={() => null}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, sampling_value: aEvent.target.value })}
+                        />
+                    </div>
                 </div>
             </div>
             <div className="y-axis">
@@ -101,6 +136,38 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                             onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_drilldown_max: aEvent.target.value })}
                         />
                     </span>
+                </div>
+                <div className="y-axis-scale-zero pt-12 ucl-wrap">
+                    <div className="ucl-inner">
+                        <div className="ucl-form">
+                            <input defaultChecked={pPanelInfo.use_ucl === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_ucl')} type="checkbox" />
+                            <span>use UCL</span>
+                        </div>
+                        <Input
+                            pWidth={80}
+                            pHeight={24}
+                            pType="number"
+                            pValue={pPanelInfo.ucl_value}
+                            pIsDisabled={pPanelInfo.use_ucl === 'N'}
+                            pSetValue={() => null}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, ucl_value: aEvent.target.value })}
+                        />
+                    </div>
+                    <div className="ucl-inner">
+                        <div className="ucl-form">
+                            <input defaultChecked={pPanelInfo.use_lcl === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_lcl')} type="checkbox" />
+                            <span>use LCL</span>
+                        </div>
+                        <Input
+                            pWidth={80}
+                            pHeight={24}
+                            pType="number"
+                            pValue={pPanelInfo.lcl_value}
+                            pIsDisabled={pPanelInfo.use_lcl === 'N'}
+                            pSetValue={() => null}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, lcl_value: aEvent.target.value })}
+                        />
+                    </div>
                 </div>
             </div>
             <div className="additional-y-axis">
@@ -175,7 +242,40 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                             />
                         </span>
                     </div>
+                    <div className="y-axis-scale-zero pt-12 ucl-wrap">
+                        <div className="ucl-inner">
+                            <div className="ucl-form">
+                                <input defaultChecked={pPanelInfo.use_ucl2 === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_ucl2')} type="checkbox" />
+                                <span>use UCL</span>
+                            </div>
+                            <Input
+                                pWidth={80}
+                                pHeight={24}
+                                pType="number"
+                                pValue={pPanelInfo.ucl2_value}
+                                pIsDisabled={pPanelInfo.use_ucl2 === 'N'}
+                                pSetValue={() => null}
+                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, ucl2_value: aEvent.target.value })}
+                            />
+                        </div>
+                        <div className="ucl-inner">
+                            <div className="ucl-form">
+                                <input defaultChecked={pPanelInfo.use_lcl2 === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_lcl2')} type="checkbox" />
+                                <span>use LCL</span>
+                            </div>
+                            <Input
+                                pWidth={80}
+                                pHeight={24}
+                                pType="number"
+                                pValue={pPanelInfo.lcl2_value}
+                                pIsDisabled={pPanelInfo.use_lcl2 === 'N'}
+                                pSetValue={() => null}
+                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, lcl2_value: aEvent.target.value })}
+                            />
+                        </div>
+                    </div>
                 </div>
+
                 <div className="addition-input-form">
                     <div style={pPanelInfo.use_right_y2 !== 'Y' ? { opacity: '0.6' } : {}} className="addition-select-box">
                         <select

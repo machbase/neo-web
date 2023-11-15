@@ -154,10 +154,9 @@ const fetchCalculationData = async (params: any) => {
 };
 
 const fetchRawData = async (params: any) => {
-    const { Table, TagNames, Start, End, Direction, Count, colName } = params;
+    const { Table, TagNames, Start, End, Direction, Count, colName, sampleValue } = params;
 
     let sOrderBy = '';
-
     // if (Start.length < 19) {
     //     sStart = Start.substring(0, 10) + ' 00:00:00 000:000:000';
     // } else if (Start.length < 22) {
@@ -187,16 +186,22 @@ const fetchRawData = async (params: any) => {
     const sTimeQ = `(${sTimeCol}/1000000)` + ' as date';
     const sValueQ = sValueCol + ' as value';
 
-    let sQuery = `SELECT ${sTimeQ}, ${sValueQ} FROM ${Table} WHERE ${sNameCol} = '${encodeURIComponent(TagNames)}' AND ${sTimeCol} BETWEEN ${Start}000000 AND ${End}000000`;
+    let sQuery = `SELECT ${sampleValue ? '/*+ SAMPLING(' + sampleValue + ') */' : ''} ${sTimeQ}, ${sValueQ} FROM ${Table} WHERE ${sNameCol} = '${encodeURIComponent(
+        TagNames
+    )}' AND ${sTimeCol} BETWEEN ${Start}000000 AND ${End}000000`;
 
     if (sOrderBy !== '') {
         sQuery = sQuery + ' ORDER BY ' + sOrderBy;
     }
     if (Count > 0) {
-        sQuery = sQuery + ' LIMIT ' + Count;
+        if (sampleValue) {
+            sQuery = sQuery + ' LIMIT ' + 50000;
+        } else {
+            sQuery = sQuery + ' LIMIT ' + Count;
+        }
     }
 
-    const queryString = `/machbase?q=${sQuery}&timeformat=ns`;
+    const queryString = `/machbase?q=${encodeURIComponent(sQuery)}&timeformat=ns`;
 
     const sData = await request({
         method: 'GET',

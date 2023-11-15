@@ -1,0 +1,32 @@
+$spinner-width: 35px;
+$spinner-height: 35px;
+
+.spinner-wrapper {
+    width: $spinner-width;
+    height: $spinner-height;
+
+    border-radius: 50%;
+
+    display: inline-block;
+    place-content: center;
+    .spinner {
+        width: $spinner-width;
+        padding: 5px;
+        background: #c2c2c2;
+        border-radius: 50%;
+        aspect-ratio: 1;
+
+        mask: var(--_m);
+        --_m: conic-gradient(#0000, #000), linear-gradient(#000 0 0) content-box;
+        -webkit-mask: var(--_m);
+        -webkit-mask-composite: source-out;
+        mask-composite: subtract;
+        box-sizing: border-box;
+        animation: spin 1s linear infinite;
+    }
+}
+@keyframes spin {
+    to {
+        transform: rotate(1turn);
+    }
+}
