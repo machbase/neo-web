@@ -130,9 +130,14 @@ const Sql = ({
         const sQueryReslutList: any = [];
         try {
             const fetchQuery = (aQuery: string) => {
+                let sTakeLimit: number = 50;
+                if (aQuery.toLowerCase().includes('limit')) {
+                    const sLimitKeyword: any = /(?<=limit)(\s*[0-9]*)/gm.exec(aQuery.toLowerCase());
+                    if (parseInt(sLimitKeyword[0])) sTakeLimit = parseInt(sLimitKeyword[0]);
+                }
                 return new Promise((resolve, reject) => {
                     setTimeout(async () => {
-                        const sQueryResult = await getTqlChart(sqlBasicFormatter(aQuery.trim(), 1, sTimeRange, sTimeZone));
+                        const sQueryResult = await getTqlChart(sqlBasicFormatter(aQuery.trim(), 1, sTimeRange, sTimeZone, sTakeLimit));
                         sQueryReslutList.push(sQueryResult);
                         if (sQueryResult.data.success) resolve(true);
                         else reject(false);

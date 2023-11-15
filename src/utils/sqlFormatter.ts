@@ -4,8 +4,8 @@
  * @argument aFormat    string;
  * @argument aTimezone  string;
  */
-export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string, aTimezone: string) => {
-    return 'SQL(`' + aSql + '`)\n' + 'DROP(' + (aLimit * 50 - 50) + `)\nTAKE(50)\nJSON(timeformat('` + aFormat + `'), tz('` + aTimezone + `'))`;
+export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string, aTimezone: string, aTake: number | undefined = 50) => {
+    return 'SQL(`' + aSql + '`)\n' + 'DROP(' + (aLimit * 50 - 50) + `)\nTAKE(${aTake})\nJSON(timeformat('` + aFormat + `'), tz('` + aTimezone + `'))`;
 };
 
 export const sqlSheetFormatter = (aSql: string, aBrief: boolean) => {
