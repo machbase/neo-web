@@ -1,30 +1,38 @@
 import './TimeRange.scss';
 import { useEffect, useState } from 'react';
 import moment from 'moment';
-import DatePicker from 'react-datepicker';
 import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
-import { convertTimeToFullDate } from '@/utils/helpers/date';
+import { changeTextToUtc } from '@/utils/helpers/date';
+import DatePicker from '@/components/datePicker/DatePicker';
 
 const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
-    const [sStartTime, setStartTime] = useState<any>(undefined);
-    const [sEndTime, setEndTime] = useState<any>(undefined);
+    const [sStartTime, setStartTime] = useState<any>('');
+    const [sEndTime, setEndTime] = useState<any>('');
 
     useEffect(() => {
         const sBoardStartTime = pPanelInfo.range_bgn;
         const sBoardEndTime = pPanelInfo.range_end;
         setStartTime(
             sBoardStartTime === ''
-                ? new Date()
+                ? ''
                 : typeof sBoardStartTime === 'string' && sBoardStartTime.includes('now')
                 ? sBoardStartTime
-                : moment.unix(sBoardStartTime / 1000).toDate()
+                : moment.unix(sBoardStartTime / 1000).format('YYYY-MM-DD HH:mm:ss')
         );
         setEndTime(
-            sBoardEndTime === '' ? new Date() : typeof sBoardStartTime === 'string' && sBoardEndTime.includes('now') ? sBoardEndTime : moment.unix(sBoardEndTime / 1000).toDate()
+            sBoardEndTime === ''
+                ? ''
+                : typeof sBoardStartTime === 'string' && sBoardEndTime.includes('now')
+                ? sBoardEndTime
+                : moment.unix(sBoardEndTime / 1000).format('YYYY-MM-DD HH:mm:ss')
         );
     }, []);
-
-    const handleStartTime = (aEvent: any) => {
+    const handleStartTime = (aEvent: any, aIsApply: boolean) => {
+        if (aIsApply) {
+            pSetCopyPanelInfo({ ...pPanelInfo, range_bgn: (changeTextToUtc(aEvent) as number) * 1000 });
+            setStartTime(aEvent);
+            return;
+        }
         let sStart: any;
 
         if (typeof aEvent === 'string' && aEvent.includes('now')) {
@@ -37,37 +45,28 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
         setStartTime(aEvent);
     };
 
-    const handleEndTime = (aEvent: any) => {
-        let sEnd: any;
+    const handleEndTime = (aEvent: any, aIsApply: boolean) => {
+        if (aIsApply) {
+            pSetCopyPanelInfo({ ...pPanelInfo, range_end: (changeTextToUtc(aEvent) as number) * 1000 });
+            setEndTime(aEvent);
+            return;
+        }
 
+        let sEnd: any;
         if (typeof aEvent === 'string' && aEvent.includes('now')) {
             sEnd = aEvent;
         } else {
             sEnd = moment(aEvent).unix() * 1000;
         }
-        pSetCopyPanelInfo({ ...pPanelInfo, range_end: sEnd });
 
+        pSetCopyPanelInfo({ ...pPanelInfo, range_end: sEnd });
         setEndTime(aEvent);
     };
 
     const handleQuickTime = (aValue: any) => {
-        let sStart: any;
-        let sEnd: any;
-        if (typeof aValue.value[0] === 'string' && aValue.value[0].includes('now')) {
-            sStart = aValue.value[0];
-        } else {
-            sStart = moment(aValue.value[0]).unix() * 1000;
-        }
-        if (typeof aValue[1] === 'string' && aValue[1].includes('now')) {
-            sEnd = aValue[1];
-        } else {
-            sEnd = moment(aValue[1]).unix() * 1000;
-        }
-
-        pSetCopyPanelInfo({ ...pPanelInfo, range_bgn: sStart, range_end: sEnd });
-
-        setStartTime(convertTimeToFullDate(aValue.value[0]));
-        setEndTime(convertTimeToFullDate(aValue.value[1]));
+        pSetCopyPanelInfo({ ...pPanelInfo, range_bgn: aValue.value[0], range_end: aValue.value[1] });
+        setStartTime(aValue.value[0]);
+        setEndTime(aValue.value[1]);
     };
 
     return (
@@ -76,26 +75,15 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                 <div className="from">
                     <span className="span-from">From</span>
                     <DatePicker
-                        selected={sStartTime}
-                        calendarClassName="modal-date-picker"
-                        timeInputLabel="Time: "
-                        onChange={(date: any) => handleStartTime(date)}
-                        dateFormat="yyyy-MM-dd HH:mm:ss"
-                        popperPlacement="top"
-                        showTimeInput
-                    ></DatePicker>
+                        pTopPixel={-370}
+                        pTimeValue={sStartTime}
+                        onChange={(date: any) => handleStartTime(date, false)}
+                        pSetApply={(date: any) => handleStartTime(date, true)}
+                    />
                 </div>
                 <div className="to">
                     <span className="span-to">To</span>
-                    <DatePicker
-                        selected={typeof sEndTime === 'string' && sEndTime.includes('now') ? moment(sEndTime).format('yyyy-MM-DD HH:mm:ss') : sEndTime}
-                        calendarClassName="modal-date-picker"
-                        timeInputLabel="Time: "
-                        onChange={(date: any) => handleEndTime(date)}
-                        dateFormat="yyyy-MM-dd HH:mm:ss"
-                        popperPlacement="top"
-                        showTimeInput
-                    ></DatePicker>
+                    <DatePicker pTopPixel={-370} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date, false)} pSetApply={(date: any) => handleEndTime(date, true)} />
                 </div>
             </div>
             <div className="second-row">
