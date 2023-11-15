@@ -232,12 +232,14 @@ const Chart = ({
                             dashStyle: 'solid', // Style of the plot line. Default to solid
                             value: pPanelInfo.ucl_value, // Value of where the line will appear
                             width: 1, // Width of the line
+                            zIndex: 7,
                         },
                         {
                             color: pPanelInfo.use_lcl === 'Y' ? 'orange' : 'transparent', // Color value
                             dashStyle: 'solid', // Style of the plot line. Default to solid
                             value: pPanelInfo.lcl_value, // Value of where the line will appear
                             width: 1, // Width of the line
+                            zIndex: 7,
                         },
                     ],
                 },
@@ -289,12 +291,14 @@ const Chart = ({
                             dashStyle: 'solid', // Style of the plot line. Default to solid
                             value: pPanelInfo.ucl2_value, // Value of where the line will appear
                             width: 1, // Width of the line
+                            zIndex: 7,
                         },
                         {
                             color: pPanelInfo.use_lcl2 === 'Y' ? 'orange' : 'transparent', // Color value
                             dashStyle: 'solid', // Style of the plot line. Default to solid
                             value: pPanelInfo.lcl2_value, // Value of where the line will appear
                             width: 1, // Width of the line
+                            zIndex: 7,
                         },
                     ],
                 },
