@@ -1,5 +1,5 @@
 import { Close } from '@/assets/icons/Icon';
-import { MdOutlineStackedLineChart } from 'react-icons/md';
+import { MdOutlineStackedLineChart } from '@/assets/icons/Icon';
 import './OverlapModal.scss';
 import { useEffect, useState, useRef } from 'react';
 import OverlapChart from './OverlapChart';

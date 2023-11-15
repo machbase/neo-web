@@ -143,7 +143,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
                 ) : sIsSaved ? (
                     <span className="default-form"></span>
                 ) : (
-                    <span className="off-saved" style={{ padding: '0 !important' }}>
+                    <span className="off-saved">
                         <SaveCricle />
                     </span>
                 )}

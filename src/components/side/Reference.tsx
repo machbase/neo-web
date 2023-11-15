@@ -3,7 +3,7 @@ import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { binaryCodeEncodeBase64, getId, isImage } from '@/utils';
 import icons from '@/utils/icons';
 import { useState } from 'react';
-import { VscChevronDown, VscChevronRight } from 'react-icons/vsc';
+import { VscChevronDown, VscChevronRight } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import './Reference.scss';
 
