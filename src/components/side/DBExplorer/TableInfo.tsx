@@ -1,6 +1,6 @@
 import { getTableInfo, getColumnIndexInfo, getRollupTable } from '@/api/repository/api';
 import { useState } from 'react';
-import { GoDotFill, FaDatabase, TfiLayoutColumn3Alt, VscChevronRight } from '@/assets/icons/Icon';
+import { GoDotFill, FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser } from '@/assets/icons/Icon';
 import './TableInfo.scss';
 import { getUserName } from '@/utils';
 
