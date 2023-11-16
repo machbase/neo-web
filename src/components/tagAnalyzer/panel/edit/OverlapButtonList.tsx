@@ -1,7 +1,7 @@
 import { IconButton } from '@/components/buttons/IconButton';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
-import { toDateUtcChart } from '@/utils/utils';
+import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
 import { useState } from 'react';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 
@@ -19,11 +19,15 @@ const OverlapButtonList = ({ pPanelInfo, pSetTime, pPanelsInfo }: any) => {
         return sTime * Number(sValue);
     };
 
+    const setUtcTime = (sTime: number) => {
+        return sTime - getTimeZoneValue() * 1000 * 60;
+    };
+
     return (
         <div key={pPanelInfo.board.index_key} className="navi-list">
             <div className="navi-name">{pPanelInfo.board.tag_set[0].alias ? pPanelInfo.board.tag_set[0].alias : pPanelInfo.board.tag_set[0].tagName}</div>
             <div className="navi-time">
-                {toDateUtcChart(pPanelInfo.start, true)} ~ {toDateUtcChart(pPanelInfo.start + pPanelsInfo[0].duration, true)}{' '}
+                {toDateUtcChart(setUtcTime(pPanelInfo.start), true)} ~ {toDateUtcChart(setUtcTime(pPanelInfo.start + pPanelsInfo[0].duration), true)}{' '}
             </div>
             <div className="navi-button">
                 <IconButton pHeight={26} pIcon={<VscChevronLeft></VscChevronLeft>} onClick={() => pSetTime(pPanelInfo, '-', calcTime())} />

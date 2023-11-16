@@ -84,6 +84,11 @@ const Chart = ({
                 events: {
                     selection: pIsMinMaxPopup ? pViewMinMaxPopup : false,
                 },
+                zooming: {
+                    mouseWheel: {
+                        enabled: false,
+                    },
+                },
             },
             time: {
                 getTimezoneOffset: () => {
