@@ -1,6 +1,7 @@
-import { ArrowDown } from '@/assets/icons/Icon';
+import { ArrowDown, VscWarning } from '@/assets/icons/Icon';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
+import { Tooltip } from 'react-tooltip';
 import './Axes.scss';
 
 const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
@@ -64,8 +65,12 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                         </div>
                     </div>
                 </div>
-                <div className="x-axis-pixels pt-12">
-                    <span>use Sampling</span>
+                <div className="x-axis-pixels pt-12 sampling-body">
+                    <Tooltip anchorSelect={`.warning-tooltip`} content={'Resource usage can be loaded.'} />
+                    <span className={`warning-tooltip`}>
+                        <VscWarning color="#FDB532"></VscWarning>
+                        use Sampling
+                    </span>
                     <div className="use-sampling">
                         <CheckBox
                             pDefaultChecked={pPanelInfo.use_sampling}
