@@ -16,7 +16,7 @@ import { Error } from '@/components/toast/Toast';
 import Menu from '@/components/contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 
-const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveKeepData }: any) => {
+const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveKeepData, pRefreshCount }: any) => {
     const sAreaChart = useRef<any>();
     const sChartRef = useRef<any>();
     const sMenuRef = useRef<any>();
@@ -182,8 +182,12 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
         return false;
     };
     const setNavigatorExtremes = (aEvent: any) => {
-        setNavigatorRange({ startTime: Math.round(aEvent.min), endTime: Math.round(aEvent.max) });
-        fetchNavigatorData({ startTime: Math.round(aEvent.min), endTime: Math.round(aEvent.max) });
+        const sStart = Math.round(aEvent.min);
+        let sEnd = Math.round(aEvent.max);
+
+        if (sStart === sEnd) sEnd += 10;
+        setNavigatorRange({ startTime: sStart, endTime: sEnd });
+        fetchNavigatorData({ startTime: sStart, endTime: sEnd });
     };
 
     const setButtonRange = (aType: string, aZoom: number) => {
@@ -455,6 +459,10 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
             }
         }
     }, [pBoardInfo.range_bgn, pBoardInfo.range_end, pPanelInfo.range_bgn, pPanelInfo.range_end]);
+
+    useEffect(() => {
+        fetchPanelData();
+    }, [pRefreshCount]);
 
     const setRange = () => {
         const sData: any = getDateRange(pPanelInfo, pBoardInfo);

@@ -16,6 +16,8 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
     const [sPanelsInfo, setPanelsInfo] = useState<any>([]);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
+    const [sRefreshCount, setRefreshCount] = useState(0);
+
     const getChartInfo = (aStart: any, aEnd: any, aBoard: any, aIsRaw: any, aIsChanged?: string) => {
         if (aIsChanged === 'delete') {
             setPanelsInfo((aPrev: any) => aPrev.filter((aItem: any) => aItem.board.index_key !== aBoard.index_key));
@@ -73,7 +75,7 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                         <span>Time range not set</span>
                     )}
                 </button>
-                <IconButton pIcon={<Refresh />} onClick={() => null} />
+                <IconButton pIcon={<Refresh />} onClick={() => setRefreshCount((aPrev: any) => aPrev + 1)} />
                 <div className="border"></div>
                 <IconButton pIcon={<Save />} onClick={pSetHandleSaveModalOpen} />
                 <IconButton pIcon={<SaveAs />} onClick={pHandleSaveModalOpen} />
@@ -85,6 +87,7 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                     pInfo.panels.map((aItem: any) => {
                         return (
                             <Panel
+                                pRefreshCount={sRefreshCount}
                                 key={aItem.index_key}
                                 pPanelsInfo={sPanelsInfo}
                                 pGetChartInfo={getChartInfo}
