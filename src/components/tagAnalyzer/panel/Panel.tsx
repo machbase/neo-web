@@ -13,10 +13,13 @@ import { isEmpty, isRollup } from '@/utils';
 import useDebounce from '@/hooks/useDebounce';
 import { FFTModal } from '@/components/modal/FFTModal';
 import { Error } from '@/components/toast/Toast';
+import Menu from '@/components/contextMenu/Menu';
+import useOutsideClick from '@/hooks/useOutsideClick';
 
 const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveKeepData }: any) => {
     const sAreaChart = useRef<any>();
     const sChartRef = useRef<any>();
+    const sMenuRef = useRef<any>();
     const [sChartData, setChartData] = useState<any>();
     const [sNavigatorData, setNavigatorData] = useState<any>();
     const [sPanelRange, setPanelRange] = useState<any>({});
@@ -33,6 +36,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
     const [sMinMaxList, setMinMaxList] = useState<any>([]);
     const [sFFTMinTime, setFFTMinTime] = useState<number>(0);
     const [sFFTMaxTime, setFFTMaxTime] = useState<number>(0);
+    const [sIsMinMaxMenu, setIsMinMaxMenu] = useState<boolean>(false);
 
     const fetchNavigatorData = async (aTimeRange: any) => {
         const sChartWidth = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
@@ -165,6 +169,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
             });
             if (!isEmpty(calcList)) {
                 setIsUpdate(true);
+                setIsMinMaxMenu(true);
                 setMinMaxList(calcList);
                 setFFTMinTime(Math.floor(x.min));
                 setFFTMaxTime(Math.ceil(x.max));
@@ -511,6 +516,8 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
     }, [sPanelRange.startTime, sPanelRange.endTime, sIsRaw]);
 
     useDebounce([], setRange, 100);
+    useOutsideClick(sMenuRef, () => setIsMinMaxMenu(false));
+
     return (
         <div className="panel-form" style={sSelectedChart ? { border: '1px solid #FDB532' } : { border: '1px solid transparent' }}>
             <PanelHeader
@@ -551,6 +558,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                         pIsMinMaxPopup={sIsMinMaxPopup}
                         pViewMinMaxPopup={viewMinMaxAvg}
                         pIsUpdate={sIsUpdate}
+                        pMinMaxList={sMinMaxList}
                     ></Chart>
                 </div>
                 <div className="right" onClick={() => moveTimRange('r')}>
@@ -559,6 +567,32 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
             </div>
             <PanelFooter pPanelInfo={pPanelInfo} pSetButtonRange={setButtonRange}></PanelFooter>
             {sIsFFTModal ? <FFTModal pInfo={sMinMaxList} setIsOpen={setIsFFTModal} pStartTime={sFFTMinTime} pEndTime={sFFTMaxTime} /> : null}
+            <div ref={sMenuRef} className="menu-position">
+                <Menu isOpen={sIsMinMaxMenu}>
+                    <table className="table-style">
+                        <thead>
+                            <tr>
+                                <th>name</th>
+                                <th>min</th>
+                                <th>max</th>
+                                <th>avg</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sMinMaxList.map((aItem: any, aIndex: number) => {
+                                return (
+                                    <tr key={aItem.name + aIndex}>
+                                        <td>{aItem.name}</td>
+                                        <td>{aItem.min}</td>
+                                        <td>{aItem.max}</td>
+                                        <td>{aItem.avg}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </Menu>
+            </div>
         </div>
     );
 };
