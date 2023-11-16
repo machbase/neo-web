@@ -11,10 +11,10 @@ import {
     GoCommandPalette,
     GoDatabase,
     VscVm,
-    VscTerminalCmd,
     MdDashboard,
     FaDesktop,
     FaLaptop,
+    Cmd,
 } from '@/assets/icons/Icon';
 import {
     MuiCsv,
@@ -82,7 +82,7 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'console-network':
             return <VscVm />;
         case 'monitor-small':
-            return <VscTerminalCmd />;
+            return <Cmd />;
         case 'console-line':
             return <Powershell />;
         case 'powershell':
