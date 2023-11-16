@@ -186,9 +186,9 @@ const fetchRawData = async (params: any) => {
     const sTimeQ = `(${sTimeCol}/1000000)` + ' as date';
     const sValueQ = sValueCol + ' as value';
 
-    let sQuery = `SELECT  ${sampleValue ? '/*+ SAMPLING(' + sampleValue + ') */' : ''} ${sTimeQ}, ${sValueQ} FROM ${Table} WHERE ${sNameCol} = '${encodeURIComponent(
-        TagNames
-    )}' AND ${sTimeCol} BETWEEN ${Start}000000 AND ${End}000000`;
+    let sQuery = `SELECT  ${
+        sampleValue ? '/*+ SAMPLING(' + sampleValue + ') */' : ''
+    } ${sTimeQ}, ${sValueQ} FROM ${Table} WHERE ${sNameCol} = '${TagNames}' AND ${sTimeCol} BETWEEN ${Start}000000 AND ${End}000000`;
 
     if (sOrderBy !== '') {
         sQuery = sQuery + ' ORDER BY ' + sOrderBy;
