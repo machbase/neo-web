@@ -22,7 +22,7 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
         setEndTime(
             sBoardEndTime === ''
                 ? ''
-                : typeof sBoardStartTime === 'string' && sBoardEndTime.includes('now')
+                : typeof sBoardEndTime === 'string' && sBoardEndTime.includes('now')
                 ? sBoardEndTime
                 : moment.unix(sBoardEndTime / 1000).format('YYYY-MM-DD HH:mm:ss')
         );
