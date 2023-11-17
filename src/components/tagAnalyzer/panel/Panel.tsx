@@ -287,7 +287,9 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
                 });
 
                 if (sFetchResult.data.rows.length === sCount) {
-                    sChartRef.current.chart.xAxis[0].setExtremes(sFetchResult.data.rows[0][0], sFetchResult.data.rows[sFetchResult.data.rows.length - 2][0] - 1);
+                    sChartRef.current &&
+                        sChartRef.current.chart &&
+                        sChartRef.current.chart.xAxis[0].setExtremes(sFetchResult.data.rows[0][0], sFetchResult.data.rows[sFetchResult.data.rows.length - 2][0] - 1);
                 }
             } else {
                 sFetchResult = await fetchCalculationData({
