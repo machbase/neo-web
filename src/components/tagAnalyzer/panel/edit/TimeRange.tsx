@@ -22,7 +22,7 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
         setEndTime(
             sBoardEndTime === ''
                 ? ''
-                : typeof sBoardStartTime === 'string' && sBoardEndTime.includes('now')
+                : typeof sBoardEndTime === 'string' && sBoardEndTime.includes('now')
                 ? sBoardEndTime
                 : moment.unix(sBoardEndTime / 1000).format('YYYY-MM-DD HH:mm:ss')
         );
@@ -33,16 +33,17 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
             setStartTime(aEvent);
             return;
         }
-        let sStart: any;
 
-        if (typeof aEvent === 'string' && aEvent.includes('now')) {
-            sStart = aEvent;
-        } else {
-            sStart = moment(aEvent).unix() * 1000;
+        if (typeof aEvent === 'object') {
+            let sStart: any;
+            if (aEvent.target.value.toLowerCase().includes('now')) sStart = aEvent.target.value;
+            else {
+                const tmpTime = moment(aEvent.target.value).unix() * 1000;
+                sStart = tmpTime > 0 ? tmpTime : aEvent.target.value;
+            }
+            pSetCopyPanelInfo({ ...pPanelInfo, range_bgn: sStart });
+            setStartTime(aEvent.target.value);
         }
-
-        pSetCopyPanelInfo({ ...pPanelInfo, range_bgn: sStart });
-        setStartTime(aEvent);
     };
 
     const handleEndTime = (aEvent: any, aIsApply: boolean) => {
@@ -52,15 +53,16 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
             return;
         }
 
-        let sEnd: any;
-        if (typeof aEvent === 'string' && aEvent.includes('now')) {
-            sEnd = aEvent;
-        } else {
-            sEnd = moment(aEvent).unix() * 1000;
+        if (typeof aEvent === 'object') {
+            let sEnd: any;
+            if (aEvent.target.value.toLowerCase().includes('now')) sEnd = aEvent.target.value;
+            else {
+                const tmpTime = moment(aEvent.target.value).unix() * 1000;
+                sEnd = tmpTime > 0 ? tmpTime : aEvent.target.value;
+            }
+            pSetCopyPanelInfo({ ...pPanelInfo, range_end: sEnd });
+            setEndTime(aEvent.target.value);
         }
-
-        pSetCopyPanelInfo({ ...pPanelInfo, range_end: sEnd });
-        setEndTime(aEvent);
     };
 
     const handleQuickTime = (aValue: any) => {
