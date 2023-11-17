@@ -120,6 +120,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
     const setExtremes = (aEvent: any) => {
         if (aEvent.min) {
             const sRatio = 1 - ((aEvent.max - aEvent.min) * 100) / (sNavigatorRange.endTime - sNavigatorRange.startTime);
+
             if ((sNavigatorRange.endTime - sNavigatorRange.startTime) / 100 > aEvent.max - aEvent.min) {
                 sChartRef.current.chart.navigator.xAxis.setExtremes(
                     Math.round(sNavigatorRange.startTime + (aEvent.min - sNavigatorRange.startTime) * sRatio),
@@ -207,9 +208,8 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
             const sStartTime = sPanelRange.startTime;
             const sEndTime = sPanelRange.endTime;
 
-            sChartRef.current.chart.navigator.xAxis.setExtremes(sStartTime, sEndTime);
-
             sChartRef.current.chart.xAxis[0].setExtremes(Math.round(sStartTime + (sEndTime - sStartTime) * 0.4), Math.round(sStartTime + (sEndTime - sStartTime) * 0.6));
+            sChartRef.current.chart.navigator.xAxis.setExtremes(sStartTime, sEndTime);
         }
     };
 
@@ -285,7 +285,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                 });
 
                 if (sFetchResult.data.rows.length === sCount) {
-                    sChartRef.current.chart.xAxis[0].setExtremes(sFetchResult.data.rows[0][0], sFetchResult.data.rows[sFetchResult.data.rows.length - 2][0]);
+                    sChartRef.current.chart.xAxis[0].setExtremes(sFetchResult.data.rows[0][0], sFetchResult.data.rows[sFetchResult.data.rows.length - 2][0] - 1);
                 }
             } else {
                 sFetchResult = await fetchCalculationData({
@@ -459,6 +459,10 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
             }
         }
     }, [pBoardInfo.range_bgn, pBoardInfo.range_end, pPanelInfo.range_bgn, pPanelInfo.range_end]);
+
+    useEffect(() => {
+        if (sPanelRange.startTime) fetchNavigatorData(sNavigatorRange);
+    }, [pPanelInfo.use_sampling, sIsRaw]);
 
     useEffect(() => {
         fetchPanelData();
