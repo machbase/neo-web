@@ -4,7 +4,7 @@ import './ChartBoard.scss';
 import { useState } from 'react';
 import ModalTimeRange from './ModalTimeRange';
 import moment from 'moment';
-import { Calendar, Save, Refresh, SaveAs, MdOutlineStackedLineChart } from '@/assets/icons/Icon';
+import { Calendar, Save, Refresh, SaveAs, MdOutlineStackedLineChart, LuTimerReset } from '@/assets/icons/Icon';
 import { IconButton } from '../buttons/IconButton';
 import OverlapModal from './OverlapModal';
 import { gBoardList } from '@/recoil/recoil';
@@ -17,6 +17,7 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
     const [sRefreshCount, setRefreshCount] = useState(0);
+    const [sResetCount, setResetCount] = useState(0);
 
     const getChartInfo = (aStart: any, aEnd: any, aBoard: any, aIsRaw: any, aIsChanged?: string) => {
         if (aIsChanged === 'delete') {
@@ -76,6 +77,7 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                     )}
                 </button>
                 <IconButton pIcon={<Refresh />} onClick={() => setRefreshCount((aPrev: any) => aPrev + 1)} />
+                <IconButton pIcon={<LuTimerReset />} onClick={() => setResetCount((aPrev: any) => aPrev + 1)} />
                 <div className="border"></div>
                 <IconButton pIcon={<Save />} onClick={pSetHandleSaveModalOpen} />
                 <IconButton pIcon={<SaveAs />} onClick={pHandleSaveModalOpen} />
@@ -87,6 +89,7 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                     pInfo.panels.map((aItem: any) => {
                         return (
                             <Panel
+                                pResetCount={sResetCount}
                                 pRefreshCount={sRefreshCount}
                                 key={aItem.index_key}
                                 pPanelsInfo={sPanelsInfo}
