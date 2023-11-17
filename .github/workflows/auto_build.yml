@@ -2,7 +2,7 @@ name: auto Build
 
 on:
     pull_request:
-        branches: [main, dev*]
+        types: [ opened, synchronize, reopened ]
 
 jobs:
     test:
@@ -26,4 +26,9 @@ jobs:
             - run: npm run build
               env:
                   NODE_OPTIONS: --max_old_space_size=4096
-            - run: npm run test
+            - name: Upload Artifact
+              uses: actions/upload-artifact@v3
+              with:
+                  name: NeoWeb
+                  path: ./dist
+    

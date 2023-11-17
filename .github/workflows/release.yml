@@ -1,0 +1,40 @@
+name: Release
+
+on:
+    push:
+        tags:
+            - v*
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v3
+
+            - name: Setup Node
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 16.x
+
+            - run: npm install
+            - run: npm run test
+            - run: npm run build
+
+            - name: Archive
+              uses: vimtor/action-zip@v1.1
+              with:
+                files: dist/
+                recursive: true
+                dest: neo-web.zip
+            - name: Release files
+              uses: svenstaro/upload-release-action@v2
+              if: startsWith(github.ref, 'refs/tags/v')
+              with:
+                file: neo-web.zip
+                repo_name: machbase/neo-web
+                prerelease: true
+                tag: ${{ github.ref }}
+                overwrite: true
+                file_glob: false
+      
