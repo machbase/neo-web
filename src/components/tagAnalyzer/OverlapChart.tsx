@@ -77,12 +77,12 @@ const OverlapChart = ({ pChartData, pStartTimeList, pPanelInfo, pAreaChart }: an
                     plotOptions: {
                         series: {
                             showInNavigator: false,
-                            lineWidth: 1,
+                            lineWidth: 0.5,
                             fillOpacity: 0.15,
                             cursor: 'pointer',
                             marker: {
-                                enabled: true,
-                                radius: 0.1,
+                                enabled: false,
+                                radius: 0,
                             },
                             states: {
                                 hover: {
