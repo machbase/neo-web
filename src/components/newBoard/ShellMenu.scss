@@ -1,0 +1,23 @@
+@import '@/assets/scss/variables.scss';
+
+.home_btn_box > .content {
+    .home_btn {
+        svg {
+            width: $new-page-icon-size;
+            height: $new-page-icon-size;
+            fill: #c4c4c4;
+            color: #c4c4c4;
+        }
+    }
+
+    .menu-btn {
+        svg {
+            width: $new-page-option-icon-size;
+            height: $new-page-option-icon-size;
+            fill: #c4c4c4;
+        }
+        svg:hover {
+            fill: #fff;
+        }
+    }
+}

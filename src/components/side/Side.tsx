@@ -477,10 +477,10 @@ any) => {
                                     />
                                 </div> */}
                                 {/* <IconButton pWidth={20} pHeight={20} pIcon={<TbFolder size={15} />} onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} /> */}
-                                <IconButton pWidth={20} pHeight={20} pIcon={<VscNewFile size={15} />} onClick={(aEvent: any) => handleFile(aEvent)} />
-                                <IconButton pWidth={20} pHeight={20} pIcon={<TbFolderPlus size={15} />} onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
-                                <IconButton pWidth={20} pHeight={20} pIcon={<TbCloudDown size={15} />} onClick={(aEvent: any) => handleFolder(true, aEvent, true)} />
-                                <IconButton pWidth={20} pHeight={20} pIcon={<MdRefresh size={15} />} onClick={(e: any) => handleRefresh(e)} />
+                                <IconButton pWidth={20} pHeight={20} pIcon={<VscNewFile />} onClick={(aEvent: any) => handleFile(aEvent)} />
+                                <IconButton pWidth={20} pHeight={20} pIcon={<TbFolderPlus  />} onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
+                                <IconButton pWidth={20} pHeight={20} pIcon={<TbCloudDown  />} onClick={(aEvent: any) => handleFolder(true, aEvent, true)} />
+                                <IconButton pWidth={20} pHeight={20} pIcon={<MdRefresh />} onClick={(e: any) => handleRefresh(e)} />
                             </div>
                         </div>
                     </div>

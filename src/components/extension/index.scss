@@ -1,3 +1,5 @@
+@import '@/assets/scss/variables.scss';
+
 .extension-form {
     width: 48px;
     background: #242424;
@@ -10,4 +12,23 @@
         cursor: pointer;
     }
     z-index: 999;
+}
+.extension-bottom-modal-wrap {
+    svg {
+        color: #ffffff80;
+        fill: #ffffff80;
+        width: $extension-menu-bottom-icon-size;
+        height: $extension-menu-bottom-icon-size;
+    }
+    .logout-icon {
+        path {
+            stroke: #ffffff80 !important;
+        }
+        polyline {
+            stroke: #ffffff80 !important;
+        }
+        line {
+            stroke: #ffffff80 !important;
+        }
+    }
 }

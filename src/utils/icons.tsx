@@ -58,7 +58,7 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'csv':
             return <MuiCsv />;
         case 'dsh':
-            return aIsHome ? <MdDashboard /> : <MdDashboard color="fc7676" />;
+            return aIsHome ? <MdDashboard /> : <MdDashboard style={{ fill: '#fc7676' }} />;
         case 'png':
         case 'jpg':
         case 'jpeg':

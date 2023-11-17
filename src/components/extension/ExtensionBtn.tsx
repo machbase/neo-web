@@ -11,7 +11,7 @@ interface ExtensionBtnProps {
 const ExtensionBtn = ({ pLabel, pIcon, onClick }: ExtensionBtnProps) => {
     const [sSelectedExtension] = useRecoilState<string>(gSelectedExtension);
     return (
-        <div style={pLabel === sSelectedExtension ? { color: '#f8f8f8' } : { color: '#7c7c7c' }} className="icon" onClick={onClick}>
+        <div className={`icon ${pLabel === sSelectedExtension ? 'selected_extention_icon' : ''}`} onClick={onClick}>
             {pIcon}
         </div>
     );

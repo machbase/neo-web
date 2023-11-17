@@ -18,7 +18,7 @@ export const IconButton = (props: IconButtonProps) => {
 
     return (
         <div
-            className={`${sDisabledClass} ${sIsActiveHoverClass} icon-btn-wrapper`}
+            className={`icon-btn-wrapper ${sDisabledClass} ${sIsActiveHoverClass}`}
             style={{ width: pWidth + 'px', minWidth: pWidth + 'px', height: pHeight + 'px', backgroundColor: pIsActive ? '#52535A' : '' }}
             onClick={onClick}
         >

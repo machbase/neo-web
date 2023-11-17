@@ -1,8 +1,22 @@
+@import '@/assets/scss/variables.scss';
+
 .icon {
-    width: 48px;
-    height: 48px;
+    width: $extension-menu-icon-wrap-size;
+    height: $extension-menu-icon-wrap-size;
     display: flex;
     justify-content: center;
     align-items: center;
     font-size: 22px;
+
+    svg {
+        width: $extension-menu-icon-size;
+        height: $extension-menu-icon-size;
+        color: #7c7c7c;
+        fill: #7c7c7c;
+    }
+}
+
+.selected_extention_icon > svg {
+    color: #f8f8f8;
+    fill: #f8f8f8;
 }

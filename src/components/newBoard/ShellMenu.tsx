@@ -5,6 +5,7 @@ import ModalShell from './ModalShell';
 import { BiSolidDownArrow, Copy, GoPencil, Delete } from '@/assets/icons/Icon';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { Error } from '@/components/toast/Toast';
+import './ShellMenu.scss';
 
 const ShellMenu = ({ pGetInfo, pInfo, pChangeTabOption, pSetIcon }: any) => {
     const MenuRef = useRef<HTMLDivElement>(null);

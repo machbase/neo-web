@@ -117,14 +117,14 @@ const Extention = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                         }}
                     >
                         <ExtensionBtn pIcon={<Gear />} onClick={() => setIsOpen(!isOpen)} />
-                        <div style={{ position: 'absolute', bottom: 1, left: '100%' }}>
+                        <div className="extension-bottom-modal-wrap" style={{ position: 'absolute', bottom: 1, left: '100%' }}>
                             <Menu isOpen={isOpen}>
                                 <Menu.Item onClick={() => setIsLicenseModal(true)}>
                                     <Key />
                                     <span>License</span>
                                 </Menu.Item>
                                 <Menu.Item onClick={logout}>
-                                    <Logout />
+                                    <Logout className="logout-icon" />
                                     <span>Logout</span>
                                 </Menu.Item>
                             </Menu>
