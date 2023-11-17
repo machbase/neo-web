@@ -139,7 +139,7 @@ const CHART = ({
                             );
                         })}
                         <div className="chart-control-play-btn">
-                            <Play className="chart-control-play-btn-item" size="20px" color="#939498" onClick={() => getChartData(sStyle)} />
+                            <Play className="chart-control-play-btn-item" color="#939498" onClick={() => getChartData(sStyle)} />
                         </div>
                     </div>
                     {sResult && (

@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .DeleteModal {
     .modal {
         width: 30%;
@@ -22,6 +23,11 @@
             gap: 2px;
         }
 
+        svg {
+            width: $modal-folder-close-icon-size;
+            height: $modal-folder-close-icon-size;
+            fill: #fff;
+        }
         .close {
             cursor: pointer;
         }

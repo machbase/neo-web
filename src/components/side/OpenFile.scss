@@ -1,0 +1,16 @@
+@import '@/assets/scss/variables.scss';
+
+.tab_close {
+    svg {
+        width: $tab-page-rm-icon-size;
+        height: $tab-page-rm-icon-size;
+        fill: #f8f8f8;
+    }
+}
+.off-saved {
+    svg {
+        width: $tab-page-active-icon-size;
+        height: $tab-page-active-icon-size;
+        fill: #f8f8f8;
+    }
+}

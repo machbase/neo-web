@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .sql-result-wrapper {
     width: 100%;
     overflow: auto;
@@ -6,7 +7,6 @@
         position: relative;
         overflow: scroll;
         height: 100%;
-        // background-color: white;
     }
 
     .sql-modal-title {
@@ -22,7 +22,10 @@
         }
 
         .sql-modal-close {
+            width: $modal-folder-close-icon-size;
+            height: $modal-folder-close-icon-size;
             display: flex;
+            fill: #fff;
             justify-content: center;
             align-items: center;
             padding: 10px;

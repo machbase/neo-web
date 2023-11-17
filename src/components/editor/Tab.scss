@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .tab_button {
     margin-top: 4px;
     width: 200px;
@@ -17,8 +18,9 @@
         padding: 8px 10px 8px 10px !important;
         margin: 0px 5px 0px 5px !important;
         .off-saved {
-            width: 15px;
-            height: 15px;
+            width: $tab-page-active-icon-size;
+            height: $tab-page-active-icon-size;
+
             font-size: 10px;
             display: flex;
             justify-content: center;
@@ -60,12 +62,13 @@
     }
     svg {
         color: #7c7c7c;
+        fill: #7c7c7c;
     }
     .tab_close {
         padding-left: 4px !important;
 
-        width: 15px;
-        height: 15px;
+        width: $tab-page-rm-icon-size;
+        height: $tab-page-rm-icon-size;
         right: 16px;
         padding: 0;
         font-size: 16px;
@@ -73,6 +76,7 @@
         align-items: center;
         svg {
             padding: 0;
+            fill: #f8f8f8;
         }
     }
 }
@@ -88,6 +92,7 @@
     svg,
     span {
         color: #f8f8f8;
+        fill: #f8f8f8;
     }
     .round_right_wrap {
         width: 15px;

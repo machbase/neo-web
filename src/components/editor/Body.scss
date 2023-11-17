@@ -17,10 +17,14 @@
         position: relative;
     }
     .plus-icon {
+        width: $tab-page-add-icon-size;
+        height: $tab-page-add-icon-size;
         color: #c4c4c4;
+        fill: #c4c4c4;
     }
     .plus-icon:hover {
         color: #f8f8f8;
+        fill: #f8f8f8;
     }
     .gear_btn {
         display: flex;

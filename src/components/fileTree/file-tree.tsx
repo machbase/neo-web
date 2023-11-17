@@ -493,10 +493,11 @@ const handleGit = async (aFile: FileTreeType, aRefreshCallback: any, e?: React.M
 const GitIcon = (aFile: FileTreeType, aRefreshCallback: any) => {
     const GitDiv = styled.div`
         display: flex;
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
         justify-content: center;
         align-items: center;
+        fill: #ffffffde;
 
         :hover {
             cursor: pointer;

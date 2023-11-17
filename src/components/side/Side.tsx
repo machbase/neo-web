@@ -478,9 +478,9 @@ any) => {
                                 </div> */}
                                 {/* <IconButton pWidth={20} pHeight={20} pIcon={<TbFolder size={15} />} onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} /> */}
                                 <IconButton pWidth={20} pHeight={20} pIcon={<VscNewFile />} onClick={(aEvent: any) => handleFile(aEvent)} />
-                                <IconButton pWidth={20} pHeight={20} pIcon={<TbFolderPlus  />} onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
-                                <IconButton pWidth={20} pHeight={20} pIcon={<TbCloudDown  />} onClick={(aEvent: any) => handleFolder(true, aEvent, true)} />
-                                <IconButton pWidth={20} pHeight={20} pIcon={<MdRefresh />} onClick={(e: any) => handleRefresh(e)} />
+                                <IconButton pWidth={20} pHeight={20} pIcon={<TbFolderPlus />} onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
+                                <IconButton pWidth={20} pHeight={20} pIcon={<TbCloudDown />} onClick={(aEvent: any) => handleFolder(true, aEvent, true)} />
+                                <IconButton pWidth={20} pHeight={20} pIcon={<MdRefresh className="icon-btn-refresh" />} onClick={(e: any) => handleRefresh(e)} />
                             </div>
                         </div>
                     </div>
@@ -506,15 +506,15 @@ any) => {
                                         {(selectedContextFile as any)?.type === 1 && !(selectedContextFile as any)?.virtual ? (
                                             <>
                                                 <Menu.Item onClick={(aEvent: any) => handleFile(aEvent)}>
-                                                    <VscNewFile size={12} />
+                                                    <VscNewFile />
                                                     <span>New File...</span>
                                                 </Menu.Item>
                                                 <Menu.Item onClick={(aEvent: any) => handleFolder(true, aEvent, false)}>
-                                                    <TbFolderPlus size={12} />
+                                                    <TbFolderPlus />
                                                     <span>New Folder...</span>
                                                 </Menu.Item>
                                                 <Menu.Item onClick={(aEvent: any) => handleFolder(true, aEvent, true)}>
-                                                    <TbCloudDown size={12} />
+                                                    <TbCloudDown />
                                                     <span>Git Clone...</span>
                                                 </Menu.Item>
                                             </>
@@ -530,12 +530,12 @@ any) => {
                                             </Menu.Item>
                                         ) : null}
                                         <Menu.Item onClick={deleteFile}>
-                                            <Delete />
+                                            <Delete className="context-menu-icon-color-helper" />
                                             <span>Delete</span>
                                         </Menu.Item>
                                         {(selectedContextFile as any)?.content ? (
                                             <Menu.Item onClick={downloadFile}>
-                                                <Download />
+                                                <Download className="context-menu-icon-color-helper" />
                                                 <span>Saved to local</span>
                                             </Menu.Item>
                                         ) : null}

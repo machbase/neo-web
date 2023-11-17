@@ -1,3 +1,5 @@
+@import '@/assets/scss/variables.scss';
+
 .chart-wrapper {
     height: calc(100% - 40px);
 
@@ -49,6 +51,8 @@
             justify-content: center;
 
             .chart-control-play-btn-item {
+                width: $editor-chart-run-icon-size;
+                height: $editor-chart-run-icon-size;
                 fill: #fdb532;
             }
 

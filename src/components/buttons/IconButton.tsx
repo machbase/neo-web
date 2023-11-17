@@ -13,12 +13,12 @@ export interface IconButtonProps {
 export const IconButton = (props: IconButtonProps) => {
     const { pIcon, pIsActive, onClick, pWidth, pHeight, pDisabled, pIsActiveHover } = props;
 
-    const sDisabledClass = pDisabled ? 'icon-btn-disabled' : '';
-    const sIsActiveHoverClass = pIsActiveHover ? 'icon-btn-active-hover' : '';
+    const sDisabledClass = pDisabled ? ' icon-btn-disabled' : '';
+    const sIsActiveHoverClass = pIsActiveHover ? ' icon-btn-active-hover' : '';
 
     return (
         <div
-            className={`icon-btn-wrapper ${sDisabledClass} ${sIsActiveHoverClass}`}
+            className={`icon-btn-wrapper${sDisabledClass}${sIsActiveHoverClass}`}
             style={{ width: pWidth + 'px', minWidth: pWidth + 'px', height: pHeight + 'px', backgroundColor: pIsActive ? '#52535A' : '' }}
             onClick={onClick}
         >

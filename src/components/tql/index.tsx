@@ -210,10 +210,10 @@ const Tql = (props: TqlProps) => {
                                 <div className="round_right_wrap">
                                     <div className="round_right" />
                                 </div>
-                                {sResultType === 'text' ? <AiOutlineFileDone color="#fdb532" /> : null}
-                                {sResultType === 'mrk' ? <AiOutlineFileMarkdown color="#fdb532" /> : null}
-                                {sResultType === 'csv' ? <PiFileCsvThin color="#fdb532" /> : null}
-                                {sResultType === 'html' ? <BarChart color="#fdb532" /> : null}
+                                {sResultType === 'text' ? <AiOutlineFileDone /> : null}
+                                {sResultType === 'mrk' ? <AiOutlineFileMarkdown /> : null}
+                                {sResultType === 'csv' ? <PiFileCsvThin /> : null}
+                                {sResultType === 'html' ? <BarChart /> : null}
                                 RESULT
                                 <div className="round_left_wrap">
                                     <div className="round_left" />

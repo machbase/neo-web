@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .tql-editor-header {
     width: 100%;
     height: 40px;
@@ -11,12 +12,14 @@
     box-sizing: border-box;
 
     svg {
+        height: $editor-header-icon-size !important;
+        width: $editor-header-icon-size !important;
         border-radius: 5px;
         font-size: 18px;
-        color: #939498;
+        fill: #939498;
         cursor: pointer;
         &:hover {
-            color: #f8f8f8;
+            fill: #f8f8f8;
         }
     }
 }
@@ -39,22 +42,26 @@
     box-sizing: border-box;
     padding: 0.3125rem 1rem 0 1rem;
 
-    svg {
-        border-radius: 5px;
-        font-size: 18px;
-        color: #939498;
-        cursor: pointer;
-        &:hover {
-            color: #f8f8f8;
-        }
-    }
+    // svg {
+    //     width: $editor-result-header-icon-size;
+    //     height: $editor-result-header-icon-size;
+    //     border-radius: 5px;
+    //     font-size: 18px;
+    //     color: #939498;
+    //     cursor: pointer;
+    //     &:hover {
+    //         color: #f8f8f8;
+    //     }
+    // }
 
     .result-icon {
         color: #fdb532;
         svg {
+            width: $editor-result-tab-icon-size;
+            height: $editor-result-tab-icon-size;
             cursor: initial;
             font-size: 16px;
-            color: #939498;
+            fill: #fdb532;
         }
     }
     .divider {
@@ -100,6 +107,18 @@
 
     margin-left: auto;
     margin-bottom: 0.25rem;
+
+    svg {
+        width: $editor-result-header-icon-size;
+        height: $editor-result-header-icon-size;
+        border-radius: 5px;
+        font-size: 18px;
+        color: #939498;
+        cursor: pointer;
+        &:hover {
+            color: #f8f8f8;
+        }
+    }
 }
 .btn-cover {
     width: 30px;

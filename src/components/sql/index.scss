@@ -1,5 +1,5 @@
 @import '@/assets/scss/theme.scss';
-
+@import '@/assets/scss/variables.scss';
 .sql-header {
     display: flex;
     overflow-x: auto;
@@ -8,20 +8,15 @@
     padding: 0 1rem;
     background-color: #1c1c21;
 
-    .sql-header-play-btn {
-        min-width: 30px;
-        min-height: 30pxx;
-    }
-
     svg {
-        min-width: 18px;
-        min-height: 18px;
+        height: $editor-header-icon-size !important;
+        width: $editor-header-icon-size !important;
         border-radius: 5px;
         font-size: 18px;
-        color: #939498;
+        fill: #939498;
         cursor: pointer;
         &:hover {
-            color: #f8f8f8;
+            fill: #f8f8f8;
         }
     }
     .sql-option-ctr {
@@ -53,6 +48,11 @@
             align-items: center;
             gap: 3px;
             font-size: 18px;
+
+            svg {
+                width: $editor-result-header-icon-size;
+                height: $editor-result-header-icon-size;
+            }
         }
         ::-webkit-scrollbar {
             width: 5px;
@@ -81,10 +81,14 @@
                 align-items: end;
                 position: relative;
                 flex-basis: auto;
-                // flex: 1 0 20%;
                 width: 10rem;
                 text-overflow: ellipsis;
                 white-space: nowrap;
+
+                svg {
+                    width: $editor-result-tab-icon-size;
+                    height: $editor-result-tab-icon-size;
+                }
 
                 .round_right_wrap {
                     width: 15px;
@@ -148,11 +152,6 @@
                         display: flex;
                         align-items: center;
                         padding: 0px !important;
-
-                        svg {
-                            font-size: 15px;
-                            padding: 0 !important;
-                        }
                     }
                 }
                 span {
@@ -162,7 +161,7 @@
             }
 
             .sql_tab_select {
-                color: #fdb532;
+                fill: #fdb532;
                 background-color: #1c1c21;
                 border-top-left-radius: 10px;
                 border-top-right-radius: 10px;

@@ -1,6 +1,12 @@
+@import '@/assets/scss/variables.scss';
 .tql {
     svg {
         cursor: pointer;
+        fill: rgba(255, 255, 255, 0.5);
+    }
+
+    .icon-search {
+        fill: none;
     }
 
     .title {
@@ -17,6 +23,12 @@
             align-items: center;
             gap: 4px;
         }
+
+        svg {
+            width: $modal-folder-close-icon-size;
+            height: $modal-folder-close-icon-size;
+            fill: #fff;
+        }
     }
 
     .tool-bar {
@@ -27,6 +39,16 @@
 
         svg {
             color: rgba(38, 40, 49, 0.5);
+        }
+
+        .icon-18 {
+            width: $modal-save-tool-bar-icon-size-18;
+            width: $modal-save-tool-bar-icon-size-18;
+        }
+
+        .icon-20 {
+            width: $modal-save-tool-bar-icon-size-20;
+            height: $modal-save-tool-bar-icon-size-20;
         }
 
         .dark {
@@ -118,11 +140,12 @@
                     font-size: 30px;
 
                     .pl-icon {
-                        width: 18px;
-                        height: 18px;
+                        width: $modal-save-tool-bar-icon-size-18;
+                        height: $modal-save-tool-bar-icon-size-18;
 
                         svg {
-                            width: 100%;
+                            width: $modal-save-tool-bar-icon-size-18;
+                            height: $modal-save-tool-bar-icon-size-18;
                         }
                     }
                 }

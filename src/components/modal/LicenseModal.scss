@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .license-modal-wh {
     width: 480px;
     height: 420px;
@@ -14,6 +15,12 @@
             display: flex;
             align-items: center;
             gap: 4px;
+        }
+
+        svg {
+            width: $modal-folder-close-icon-size;
+            height: $modal-folder-close-icon-size;
+            fill: #fff;
         }
     }
 

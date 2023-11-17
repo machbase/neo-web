@@ -38,7 +38,7 @@ import {
 const icons = (aType: string, aIsHome?: boolean) => {
     switch (aType) {
         case 'url':
-            return <BiLink />;
+            return <BiLink style={{ fill: '#ffffffde' }} />;
         case 'sql':
             return aIsHome ? <VscFile /> : <MuiSql />;
         case 'new':

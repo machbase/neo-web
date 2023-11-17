@@ -1,3 +1,5 @@
+@import '@/assets/scss/variables.scss';
+
 .contextOption {
     position: fixed;
     z-index: 1001;
@@ -134,6 +136,9 @@
         align-items: center;
     }
     svg {
+        fill: #fff;
+        width: $modal-folder-close-icon-size;
+        height: $modal-folder-close-icon-size;
         cursor: pointer;
     }
 }

@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .menu-wrapper {
     width: auto;
     min-width: 8rem;
@@ -42,4 +43,14 @@
     }
 
     box-sizing: border-box;
+
+    svg {
+        width: $explorer-context-menu-icon-size;
+        height: $explorer-context-menu-icon-size;
+    }
+
+    .context-menu-icon-color-helper > path {
+        fill: rgba(255, 255, 255, 0.5);
+        color: rgba(255, 255, 255, 0.5);
+    }
 }

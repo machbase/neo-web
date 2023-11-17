@@ -4,6 +4,7 @@ import { getId } from '@/utils';
 import icons from '@/utils/icons';
 import { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
+import './OpenFile.scss';
 
 const OpenFile = ({ pBoard, pSetSelectedTab, pIdx }: any) => {
     const [sIsSaved, setIsSaved] = useState<boolean>(true);

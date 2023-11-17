@@ -61,7 +61,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
         return (
             <div className="user-folder-wrap">
                 <VscChevronRight className={`${aClassName}`} />
-                <span className="icons" style={{ color: '#c4c4c4' }}>
+                <span className="icons" style={{ fill: '#c4c4c4' }}>
                     {aIcon}
                 </span>
                 <span className="user-folder-wrap-name">{aName}</span>
@@ -87,7 +87,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                                 <TableDiv
                                                     pShowHiddenObj={props.pShowHiddenObj}
                                                     pUserName={sUserName}
-                                                    pTableIcon={<TfiLayoutColumn3Alt style={{ color: '#5ca3dc', rotate: '90deg' }} />}
+                                                    pTableIcon={<TfiLayoutColumn3Alt style={{ rotate: '90deg' }} />}
                                                     pTable={aTable}
                                                     pTableType={aTableType}
                                                     onTableInfo={getTableInfoData}
@@ -145,7 +145,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
             <div className="table-column-wrap" onClick={handleDataFetch}>
                 <div className="table-column-l">
                     <VscChevronRight className={`${sIsOpen ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow'}`} />
-                    <span className="icons">{props.pTableIcon}</span>
+                    <span className="icons column-icon">{props.pTableIcon}</span>
                     <span className="table-name">
                         {(props.pTable[0] === 'MACHBASEDB' && props.pTable[1] === 'SYS') || (props.pTable[0] === 'MACHBASEDB' && props.pTable[1] === props.pUserName)
                             ? props.pTable[3]
@@ -258,7 +258,7 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                                         checkDisplay('column', bColumn) && (
                                             <div className="table-column-content" key={`${props.pKey}-columns-${aColumn}-${aIdx}-${bColumn}-${bIdx}`}>
                                                 <span className="icons" style={{ marginRight: '2px', opacity: '0.5' }}>
-                                                    <GoDotFill></GoDotFill>
+                                                    <GoDotFill className="fill-dot-comm" />
                                                 </span>
                                                 <div className="table-column-content-row">
                                                     <span className="l-txt">{bColumn[0]}</span>
@@ -280,7 +280,7 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                                     return (
                                         <div className="table-column-content" key={`${props.pKey}-columns-index-${aColumn}-${aIndex}-${aIdx}`}>
                                             <span className="icons" style={{ marginRight: '2px', opacity: '0.5' }}>
-                                                <GoDotFill></GoDotFill>
+                                                <GoDotFill className="fill-dot-comm" />
                                             </span>
                                             <div className="table-column-content-row">
                                                 <span className="l-txt">{aIndex[1]}</span>
@@ -301,7 +301,7 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                                     return (
                                         <div className="table-column-content" key={`${props.pKey}-columns-rollup-${aColumn}-${aRollup}-${aIdx}`}>
                                             <span className="icons" style={{ marginRight: '2px', opacity: '0.5' }}>
-                                                <GoDotFill className={`fill-${aRollup[3] === 1 ? 'enable' : 'disable'}`}></GoDotFill>
+                                                <GoDotFill className={`fill-${aRollup[3] === 1 ? 'enable' : 'disable'}`} />
                                             </span>
                                             <div className="table-column-content-row">
                                                 <span className="l-txt">{aRollup[2]}</span>

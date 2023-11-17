@@ -90,7 +90,7 @@ const DBExplorer = ({ pServer }: any) => {
                     <span className="title-text">DB EXPLORER</span>
                     <span className="sub-title-navi">
                         <IconButton pWidth={20} pHeight={20} pIsActive={!sShowHiddenObj} pIcon={<TbEyeMinus size={15} />} onClick={setHiddenObj} />
-                        <IconButton pWidth={20} pHeight={20} pIcon={<MdRefresh size={15} />} onClick={(aEvent: any) => init(aEvent)} />
+                        <IconButton pWidth={20} pHeight={20} pIcon={<MdRefresh className="icon-btn-refresh" />} onClick={(aEvent: any) => init(aEvent)} />
                     </span>
                 </div>
             </div>

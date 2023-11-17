@@ -173,7 +173,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                         })}
                 </div>
                 <div style={{ margin: '4px 14px 0 14px', display: 'flex', alignItems: 'center' }}>
-                    <PlusCircle className="plus-icon" size="20px" onClick={addFile} style={{ cursor: 'pointer' }}></PlusCircle>
+                    <PlusCircle className="plus-icon" onClick={addFile} style={{ cursor: 'pointer' }} />
                 </div>
             </div>
             <div style={{ height: 'calc(100% - 40px)', background: '#262831' }}>

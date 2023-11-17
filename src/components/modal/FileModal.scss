@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .fileModal {
     svg {
         cursor: pointer;
@@ -16,6 +17,12 @@
             justify-content: center;
             align-items: center;
             gap: 4px;
+        }
+
+        svg {
+            width: $modal-folder-close-icon-size;
+            height: $modal-folder-close-icon-size;
+            fill: #fff;
         }
     }
 

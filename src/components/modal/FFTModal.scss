@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .fft-modal-wrapper {
     .modal-overlay {
         .modal {
@@ -19,6 +20,12 @@
         }
         .close {
             cursor: pointer;
+        }
+
+        svg {
+            width: $modal-folder-close-icon-size;
+            height: $modal-folder-close-icon-size;
+            fill: #fff;
         }
     }
     .tool-bar {

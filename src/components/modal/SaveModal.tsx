@@ -401,27 +401,27 @@ export const SaveModal = (props: SaveModalProps) => {
                     </div>
                     <div className="tool-bar">
                         <div className={`tool-bar-content ${pIsDarkMode ? 'dark dark-border' : ''} ${sSelectedDir.length > 0 ? 'active' : ''}`} onClick={() => handleBackPath()}>
-                            <ArrowLeft />
+                            <ArrowLeft className="icon-20" />
                         </div>
                         <div className={`tool-bar-content ${pIsDarkMode ? 'dark dark-border' : ''} ${sDeletePath.length > 0 ? 'active' : ''}`} style={{ marginLeft: '8px' }}>
-                            <ArrowRight onClick={() => handleForwardPath(sDeletePath[sDeletePath.length - 1])} />
+                            <ArrowRight className="icon-20" onClick={() => handleForwardPath(sDeletePath[sDeletePath.length - 1])} />
                         </div>
                         <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark dark' : ''}`} style={{ marginLeft: '1rem' }}>
                             {sIsSearchMode ? (
-                                <Search />
+                                <Search className="icon-18 icon-search" />
                             ) : (
                                 <>
-                                    <Home />
-                                    <Play />
+                                    <Home className="icon-18" />
+                                    <Play className="icon-18" />
                                 </>
                             )}
                             {sIsSearchMode ? <input onChange={changeSearchText} value={sSearchText} /> : <input readOnly value={sSelectedDir.join(' / ')} />}
                         </div>
                         <div className={`file-button ${pIsDarkMode ? 'dark' : ''}`} onClick={() => setIsSearchMode(!sIsSearchMode)}>
-                            <Search size={20} />
+                            <Search className="icon-20 icon-search" />
                         </div>
                         <div className={`file-button ${pIsDarkMode ? 'dark' : ''}`} onClick={makeFolder}>
-                            <NewFolder size={28} />
+                            <NewFolder />
                         </div>
                     </div>
                 </Modal.Header>
@@ -444,15 +444,7 @@ export const SaveModal = (props: SaveModalProps) => {
                                         >
                                             <div className="pl list-wrapper">
                                                 <div className="pl-icon">
-                                                    {aItem.type === 'dir' ? (
-                                                        aItem.gitClone ? (
-                                                            icons('gitClosedDirectory')
-                                                        ) : (
-                                                            <TreeFolder height={100} />
-                                                        )
-                                                    ) : (
-                                                        icons(aItem.type.replace('.', ''))
-                                                    )}
+                                                    {aItem.type === 'dir' ? aItem.gitClone ? icons('gitClosedDirectory') : <TreeFolder /> : icons(aItem.type.replace('.', ''))}
                                                 </div>
                                                 <span>{aItem.name}</span>
                                             </div>

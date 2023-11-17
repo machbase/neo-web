@@ -101,19 +101,21 @@ export const FolderModal = (props: FolderModalProps) => {
                 <Modal.Header>
                     <div className="title">
                         <div className="title-content">
-                            <span>{pIsGit ? 'Git Clone' : 'New Folder'}</span>
+                            <span style={{ cursor: 'default' }}>{pIsGit ? 'Git Clone' : 'New Folder'}</span>
                         </div>
                         <Close onClick={handleClose} />
                     </div>
                 </Modal.Header>
                 <Modal.Body>
                     <div className={`${pIsDarkMode ? 'folder-dark' : 'folder'}`}>
-                        <div className={`folder-${pIsDarkMode ? 'dark-' : ''}header`}>{sFolderPath}</div>
-                        <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content`}>
+                        <div className={`folder-${pIsDarkMode ? 'dark-' : ''}header`} style={{ cursor: 'default' }}>
+                            {sFolderPath}
+                        </div>
+                        <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content`} style={{ cursor: 'default' }}>
                             {pIsGit ? (
                                 <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-url`}>
-                                    <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-url-wrap`}>
-                                        <BsGit />
+                                    <div className={`folder-${pIsDarkMode ? 'dark-' : ''}content-url-wrap`} style={{ cursor: 'default' }}>
+                                        <BsGit style={{ cursor: 'default' }} />
                                         <span>Url</span>
                                     </div>
                                     <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark' : ''}`}>

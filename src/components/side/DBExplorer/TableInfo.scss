@@ -1,3 +1,5 @@
+@import '@/assets/scss/variables.scss';
+
 .db-exp-comm {
     display: -webkit-box;
     display: -webkit-flex;
@@ -11,8 +13,9 @@
         display: -webkit-box;
         display: -webkit-flex;
         display: -ms-flexbox;
-        width: 16px;
-        height: 22px;
+        display: flex;
+        width: 14px;
+        height: $extention-content-icon-wrap-size;
         margin-right: 6px;
         -webkit-box-pack: center;
         -ms-flex-pack: center;
@@ -23,13 +26,18 @@
         -ms-flex-align: center;
         align-items: center;
         svg {
-            width: 16px;
+            width: $extention-content-db-icon-size;
+            height: $extention-content-db-icon-size;
         }
         .fill-enable {
             fill: #00ff00;
+            color: #00ff00;
         }
         .fill-disable {
             fill: #ff0000;
+        }
+        .fill-dot-comm {
+            fill: #c4cae1;
         }
     }
 }
@@ -63,6 +71,8 @@
         flex-direction: column;
 
         .user-folder-wrap {
+            display: flex;
+            align-items: center;
             padding-left: 25px;
             cursor: pointer;
 
@@ -100,6 +110,8 @@
 
     &-content {
         .table-column-wrap {
+            display: flex;
+            align-items: center;
             padding-left: 36px;
             display: flex;
             flex-direction: row;
@@ -117,6 +129,12 @@
                 .table-name {
                     overflow: hidden;
                     text-overflow: ellipsis;
+                }
+
+                .column-icon > svg {
+                    path {
+                        fill: #5ca3dc;
+                    }
                 }
             }
         }

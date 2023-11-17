@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .side-form {
     height: 100%;
     background-color: #333333;
@@ -40,17 +41,23 @@
             justify-content: space-between;
             align-items: center;
             svg {
+                width: $explorer-header-icon-size;
+                height: $explorer-header-icon-size;
                 color: #c4c4c4;
-                fill: #c4c4c4;
             }
             svg:hover {
                 color: #f8f8f8;
-                fill: #f8f8f8;
             }
             .sub-title-navi {
                 height: 20px;
                 display: flex;
                 align-items: center;
+            }
+            .icon-btn-refresh {
+                fill: #c4c4c4;
+            }
+            .icon-btn-refresh:hover {
+                fill: #f8f8f8;
             }
         }
     }
