@@ -4,10 +4,11 @@ import { changeUtcToText } from '@/utils/helpers/date';
 import EditPanel from './edit/EditPanel';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { Refresh, GearFill, Delete, MdRawOn, MdFlagCircle, PiSelectionPlusBold, LineChart } from '@/assets/icons/Icon';
+import { Refresh, GearFill, Delete, MdRawOn, MdFlagCircle, PiSelectionPlusBold, LineChart, LuTimerReset } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 
 const PanelHeader = ({
+    pResetData,
     pPanelInfo,
     pPanelsInfo,
     pSelectedChart,
@@ -85,7 +86,8 @@ const PanelHeader = ({
                     </>
                 ) : null}
                 <div className="divider" />
-                <IconButton pWidth={25} pIcon={<Refresh />} onClick={() => pFetchPanelData()} />
+                <IconButton pWidth={25} pIcon={<Refresh />} onClick={() => pFetchPanelData(pPanelRange)} />
+                <IconButton pWidth={25} pIcon={<LuTimerReset />} onClick={() => pResetData()} />
                 {!pIsEdit && <IconButton pWidth={25} pIcon={<GearFill />} onClick={() => setEditPanel(true)} />}
                 {!pIsEdit && <IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}
             </div>

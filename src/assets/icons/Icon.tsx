@@ -90,7 +90,7 @@ export { IoIosCopy as Copy, IoIosArrowForward } from 'react-icons/io';
 
 export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase } from 'react-icons/go';
 
-export { LuFlipVertical, LuMonitorSpeaker } from 'react-icons/lu';
+export { LuFlipVertical, LuMonitorSpeaker, LuTimerReset } from 'react-icons/lu';
 
 export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calendar, FaFolderPlus, FaUser } from 'react-icons/fa';
 

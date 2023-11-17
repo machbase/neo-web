@@ -58,7 +58,7 @@ const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                                         <span style={{ fontSize: '10px', marginLeft: '4px', marginBottom: '2px' }}>({aItem.table})</span>
                                     </span>
                                     <Input
-                                        pWidth={120}
+                                        pWidth={240}
                                         pHeight={24}
                                         pValue={aItem.tagName}
                                         pSetValue={() => null}

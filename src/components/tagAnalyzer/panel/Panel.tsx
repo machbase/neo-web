@@ -16,7 +16,7 @@ import { Error } from '@/components/toast/Toast';
 import Menu from '@/components/contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 
-const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveKeepData, pRefreshCount }: any) => {
+const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveKeepData, pRefreshCount }: any) => {
     const sAreaChart = useRef<any>();
     const sChartRef = useRef<any>();
     const sMenuRef = useRef<any>();
@@ -37,6 +37,8 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
     const [sFFTMinTime, setFFTMinTime] = useState<number>(0);
     const [sFFTMaxTime, setFFTMaxTime] = useState<number>(0);
     const [sIsMinMaxMenu, setIsMinMaxMenu] = useState<boolean>(false);
+
+    const sStarted = useRef(false);
 
     const fetchNavigatorData = async (aTimeRange: any) => {
         const sChartWidth = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
@@ -285,7 +287,9 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                 });
 
                 if (sFetchResult.data.rows.length === sCount) {
-                    sChartRef.current.chart.xAxis[0].setExtremes(sFetchResult.data.rows[0][0], sFetchResult.data.rows[sFetchResult.data.rows.length - 2][0] - 1);
+                    sChartRef.current &&
+                        sChartRef.current.chart &&
+                        sChartRef.current.chart.xAxis[0].setExtremes(sFetchResult.data.rows[0][0], sFetchResult.data.rows[sFetchResult.data.rows.length - 2][0] - 1);
                 }
             } else {
                 sFetchResult = await fetchCalculationData({
@@ -450,7 +454,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
         }
     }, [pPanelInfo, sSelectedTab]);
 
-    useEffect(() => {
+    const resetData = () => {
         if (pBoardInfo.id === sSelectedTab) {
             if (sChartRef.current && sChartRef.current.chart) {
                 const sData: any = getDateRange(pPanelInfo, pBoardInfo);
@@ -458,6 +462,10 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                 sChartRef.current.chart.navigator.xAxis.setExtremes(sData.startTime, sData.endTime);
             }
         }
+    };
+
+    useEffect(() => {
+        resetData();
     }, [pBoardInfo.range_bgn, pBoardInfo.range_end, pPanelInfo.range_bgn, pPanelInfo.range_end]);
 
     useEffect(() => {
@@ -465,8 +473,12 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
     }, [pPanelInfo.use_sampling, sIsRaw]);
 
     useEffect(() => {
-        fetchPanelData();
+        if (sStarted.current) fetchPanelData(sPanelRange);
     }, [pRefreshCount]);
+
+    useEffect(() => {
+        if (sStarted.current) resetData();
+    }, [pResetCount]);
 
     const setRange = () => {
         const sData: any = getDateRange(pPanelInfo, pBoardInfo);
@@ -525,6 +537,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                 },
                 sIsRaw
             );
+        sStarted.current = true;
     }, [sPanelRange.startTime, sPanelRange.endTime, sIsRaw]);
 
     useDebounce([], setRange, 100);
@@ -542,6 +555,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                 pPanelInfo={pPanelInfo}
                 pSetIsRaw={setIsRaw}
                 pIsRaw={sIsRaw}
+                pResetData={resetData}
                 pPanelsInfo={pPanelsInfo}
                 pSelectedChart={sSelectedChart}
                 pRangeOption={sRangeOption}

@@ -5,6 +5,7 @@ import './Login.scss';
 import { postLogin } from '../../api/repository/login';
 import { useNavigate } from 'react-router-dom';
 import { Error } from '@/components/toast/Toast';
+import LOGIN_BG_IMG from '@/assets/image/neow_img_login_bg.webp';
 
 const Login = () => {
     const sNavigate = useNavigate();
@@ -69,7 +70,8 @@ const Login = () => {
 
     return (
         <div className="login-form">
-            <div className="login-card">
+            <img style={{ width: '100%', height: '100%', zIndex: 10, position: 'absolute' }} src={`${LOGIN_BG_IMG}`} />
+            <div className="login-card" style={{ zIndex: 100 }}>
                 <img alt="" src={LoginLogo} />
                 <div className="input-form">
                     <input ref={sIdRef} className="input-id input normal-text" placeholder="User" type="text" onKeyDown={keyDownLogin} value={sLoginId} onInput={handleLoginId} />
