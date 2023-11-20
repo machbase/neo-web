@@ -79,7 +79,13 @@ const PanelHeader = ({
                 {!pIsEdit ? (
                     <>
                         <div className="divider" />
-                        <IconButton pWidth={25} pHeight={25} pIcon={<PiSelectionPlusBold style={{ color: pIsMinMaxPopup ? '#f8f8f8' : '' }} />} onClick={() => handleSelection()} />
+                        <IconButton
+                            pWidth={25}
+                            pHeight={25}
+                            pIsActive={pIsMinMaxPopup}
+                            pIcon={<PiSelectionPlusBold style={{ color: pIsMinMaxPopup ? '#f8f8f8' : '' }} />}
+                            onClick={() => handleSelection()}
+                        />
                         <div style={{ display: pIsMinMaxPopup && pIsUpdate ? 'initial' : 'none' }}>
                             <IconButton pWidth={25} pHeight={25} pIcon={<LineChart />} onClick={() => pSetIsFFTModal(true)} />
                         </div>

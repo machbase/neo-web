@@ -16,6 +16,9 @@
         align-items: center;
         .chart-body {
             width: calc(100% - 70px);
+            .highcharts-navigator-mask-inside {
+                cursor: pointer !important;
+            }
         }
         .left,
         .right {

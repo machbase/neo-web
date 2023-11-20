@@ -65,7 +65,6 @@ const Chart = ({
         });
         return yAxis;
     };
-    useEffect(() => {}, [options]);
 
     const setValue = () => {
         setOptions({
@@ -215,7 +214,6 @@ const Chart = ({
                         ? updateYaxis().left[1]
                         : Number(pPanelInfo.custom_drilldown_max),
                     showLastLabel: pPanelInfo.use_normalize === 'N',
-                    minTickInterval: 1,
                     gridLineWidth: pPanelInfo.show_y_tickline === 'Y' ? 1 : 0,
                     startOnTick: true,
                     endOnTick: true,
@@ -273,7 +271,6 @@ const Chart = ({
                             ? 100
                             : updateYaxis().left[1]
                         : Number(pPanelInfo.custom_drilldown_max2),
-                    minTickInterval: 1,
                     showLastLabel: pPanelInfo.use_normalize === 'N',
                     gridLineWidth: 1,
                     gridLineColor: '#323333',
@@ -309,7 +306,6 @@ const Chart = ({
                 },
             ],
             tooltip: {
-                valueDecimals: 2,
                 split: false,
                 shared: true,
                 followPointer: true,
