@@ -63,6 +63,14 @@ const Chart = ({
                 }
             }
         });
+        if (yAxis.left[0]) {
+            yAxis.left[0] = Math.floor(yAxis.left[0] * 1000) / 1000;
+            yAxis.left[1] = Math.ceil(yAxis.left[1] * 1000) / 1000;
+        }
+        if (yAxis.right[0]) {
+            yAxis.right[0] = Math.floor(yAxis.right[0] * 1000) / 1000;
+            yAxis.right[1] = Math.ceil(yAxis.right[1] * 1000) / 1000;
+        }
         return yAxis;
     };
 
@@ -173,7 +181,6 @@ const Chart = ({
                 gridLineWidth: pPanelInfo.show_x_tickline === 'Y' ? 1 : 0,
                 gridLineColor: '#323333',
                 lineColor: '#323333',
-                minTickInterval: 1,
                 events: {
                     setExtremes: pSetExtremes,
                 },
@@ -200,7 +207,7 @@ const Chart = ({
                     tickAmount: updateYaxis().left[0] === updateYaxis().left[1] && 1,
                     tickPositions: updateYaxis().left[0] === updateYaxis().left[1] && [updateYaxis().left[0]],
                     min: !pIsRaw
-                        ? Number(pPanelInfo.custom_min) === 0 && Number(pPanelInfo.custom_max === 0)
+                        ? Number(pPanelInfo.custom_min) === 0 && Number(pPanelInfo.custom_max) === 0
                             ? updateYaxis().left[0]
                             : Number(pPanelInfo.custom_min)
                         : Number(pPanelInfo.custom_drilldown_min) === 0 && Number(pPanelInfo.custom_drilldown_max) === 0

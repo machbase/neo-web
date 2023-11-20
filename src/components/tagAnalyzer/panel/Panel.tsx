@@ -232,6 +232,27 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
             }
         }
     };
+    const moveNavigatorTimRange = (aItem: string) => {
+        const sCalcTime = (sNavigatorRange.endTime - sNavigatorRange.startTime) / 2;
+
+        const sMainChartCount = sPanelRange.endTime - sPanelRange.startTime;
+
+        if (aItem === 'l') {
+            const sStartTime = Math.round(sNavigatorRange.startTime - sCalcTime);
+            const sEndTime = Math.round(sNavigatorRange.endTime - sCalcTime);
+            sChartRef.current.chart.navigator.xAxis.setExtremes(sStartTime, sEndTime);
+            if (sPanelRange.endTime > sEndTime) {
+                sChartRef.current.chart.xAxis[0].setExtremes(sEndTime - sMainChartCount, sEndTime);
+            }
+        } else {
+            const sStartTime = Math.round(sNavigatorRange.startTime + sCalcTime);
+            const sEndTime = Math.round(sNavigatorRange.endTime + sCalcTime);
+            sChartRef.current.chart.navigator.xAxis.setExtremes(sStartTime, sEndTime);
+            if (sPanelRange.startTime < sStartTime) {
+                sChartRef.current.chart.xAxis[0].setExtremes(sStartTime, sStartTime + sMainChartCount);
+            }
+        }
+    };
 
     const fetchPanelData = async (aTimeRange?: any) => {
         const sChartWidth = sAreaChart.current.clientWidth === 0 ? 1 : sAreaChart.current.clientWidth;
@@ -589,7 +610,7 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
                     <ArrowRight />
                 </div>
             </div>
-            <PanelFooter pPanelInfo={pPanelInfo} pSetButtonRange={setButtonRange}></PanelFooter>
+            <PanelFooter pNavigatorRange={sNavigatorRange} pPanelInfo={pPanelInfo} pSetButtonRange={setButtonRange} pMoveNavigatorTimRange={moveNavigatorTimRange}></PanelFooter>
             {sIsFFTModal ? <FFTModal pInfo={sMinMaxList} setIsOpen={setIsFFTModal} pStartTime={sFFTMinTime} pEndTime={sFFTMaxTime} /> : null}
             <div ref={sMenuRef} className="menu-position">
                 <Menu isOpen={sIsMinMaxMenu}>
