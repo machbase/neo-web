@@ -224,7 +224,11 @@ const Tql = (props: TqlProps) => {
                                     <IconButton pIcon={<VscJson />} pIsActive={sIsPrettier} onClick={() => setIsPrettier(!sIsPrettier)} />
                                 ) : null}
                                 {sResultType === 'csv' ? (
-                                    <IconButton pIcon={sIsHeader ? <TableHeader /> : <TableNotHeader />} pIsActive={sIsHeader} onClick={() => handleChangeHeader(sCsv)} />
+                                    <IconButton
+                                        pIcon={sIsHeader ? <TableHeader className="tql-csv-table-header-icon" /> : <TableNotHeader className="tql-csv-table-no-header-icon" />}
+                                        pIsActive={sIsHeader}
+                                        onClick={() => handleChangeHeader(sCsv)}
+                                    />
                                 ) : null}
                                 <div className="divider" />
                                 <IconButton pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />} pIsActive={isVertical} onClick={handleSplitVertical} />

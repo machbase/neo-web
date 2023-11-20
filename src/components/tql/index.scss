@@ -42,18 +42,6 @@
     box-sizing: border-box;
     padding: 0.3125rem 1rem 0 1rem;
 
-    // svg {
-    //     width: $editor-result-header-icon-size;
-    //     height: $editor-result-header-icon-size;
-    //     border-radius: 5px;
-    //     font-size: 18px;
-    //     color: #939498;
-    //     cursor: pointer;
-    //     &:hover {
-    //         color: #f8f8f8;
-    //     }
-    // }
-
     .result-icon {
         color: #fdb532;
         svg {
@@ -64,6 +52,7 @@
             fill: #fdb532;
         }
     }
+
     .divider {
         width: 1px;
         background-color: rgba(255, 255, 255, 0.2);
@@ -117,6 +106,27 @@
         cursor: pointer;
         &:hover {
             color: #f8f8f8;
+        }
+    }
+
+    .tql-csv-table-header-icon {
+        path {
+            fill: #939498;
+        }
+    }
+    .tql-csv-table-header-icon:hover {
+        path {
+            fill: #f8f8f8;
+        }
+    }
+    .tql-csv-table-no-header-icon {
+        path {
+            stroke: #939498;
+        }
+    }
+    .tql-csv-table-no-header-icon:hover {
+        path {
+            stroke: #f8f8f8;
         }
     }
 }
