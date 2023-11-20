@@ -51,6 +51,13 @@
         left: 0;
         z-index: 99;
 
+        .close {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            cursor: pointer;
+        }
+
         .table-style {
             border-collapse: separate;
             border-spacing: 5px 5px;

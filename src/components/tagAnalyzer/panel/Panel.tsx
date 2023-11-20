@@ -6,7 +6,7 @@ import Chart from './Chart';
 import { useEffect, useRef, useState } from 'react';
 import { getDateRange } from '@/utils/helpers/date';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
-import { ArrowLeft, ArrowRight } from '@/assets/icons/Icon';
+import { ArrowLeft, ArrowRight, Close } from '@/assets/icons/Icon';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { isEmpty, isRollup } from '@/utils';
@@ -14,7 +14,6 @@ import useDebounce from '@/hooks/useDebounce';
 import { FFTModal } from '@/components/modal/FFTModal';
 import { Error } from '@/components/toast/Toast';
 import Menu from '@/components/contextMenu/Menu';
-import useOutsideClick from '@/hooks/useOutsideClick';
 
 const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveKeepData, pRefreshCount }: any) => {
     const sAreaChart = useRef<any>();
@@ -541,7 +540,6 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
     }, [sPanelRange.startTime, sPanelRange.endTime, sIsRaw]);
 
     useDebounce([], setRange, 100);
-    useOutsideClick(sMenuRef, () => setIsMinMaxMenu(false));
 
     return (
         <div className="panel-form" style={sSelectedChart ? { border: '1px solid #FDB532' } : { border: '1px solid transparent' }}>
@@ -617,6 +615,11 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
                             })}
                         </tbody>
                     </table>
+                    <Menu.Item onClick={() => setIsMinMaxMenu(false)}>
+                        <div className="close">
+                            <Close />
+                        </div>
+                    </Menu.Item>
                 </Menu>
             </div>
         </div>
