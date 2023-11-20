@@ -73,7 +73,12 @@ const PanelHeader = ({
             </div>
             <div className="options">
                 <div className="raw">
-                    <IconButton pWidth={38} pHeight={32} pIcon={<MdRawOn style={{ color: pIsRaw ? '#fdb532 ' : '' }} />} onClick={() => pSetIsRaw(!pIsRaw)} />
+                    <IconButton
+                        pWidth={38}
+                        pHeight={32}
+                        pIcon={<MdRawOn style={{ fill: pIsRaw ? '#fdb532 ' : '#939498a3', width: '32px', height: '32px' }} />}
+                        onClick={() => pSetIsRaw(!pIsRaw)}
+                    />
                 </div>
                 {!pIsEdit ? (
                     <>
@@ -87,7 +92,7 @@ const PanelHeader = ({
                 <div className="divider" />
                 <IconButton pWidth={25} pIcon={<Refresh />} onClick={() => pFetchPanelData()} />
                 {!pIsEdit && <IconButton pWidth={25} pIcon={<GearFill />} onClick={() => setEditPanel(true)} />}
-                {!pIsEdit && <IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}
+                {!pIsEdit && <IconButton pWidth={25} pIcon={<Delete />} onClick={() => removePanel()} />}
             </div>
             {sEditPanel && <EditPanel pBoardInfo={pBoardInfo} pPanelInfo={pPanelInfo} pSetEditPanel={setEditPanel}></EditPanel>}
         </div>

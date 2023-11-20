@@ -1,3 +1,5 @@
+@import '@/assets/scss/variables.scss';
+
 .custom-select-wrapper {
     display: flex;
     align-items: center;
@@ -27,6 +29,12 @@
             outline: none;
             border: none;
             background-color: transparent;
+        }
+
+        svg {
+            fill: #f8f8f8;
+            width: $select-combobox-arrow-icon-size;
+            height: $select-combobox-arrow-icon-size;
         }
     }
 

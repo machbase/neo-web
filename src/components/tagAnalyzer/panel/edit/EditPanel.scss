@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .edit-modal {
     display: flex;
     position: fixed;
@@ -20,10 +21,14 @@
             align-items: center;
             svg {
                 margin-right: 4px;
+                cursor: default;
             }
         }
         svg {
             cursor: pointer;
+            width: $pannel-modal-header-icon-size;
+            height: $pannel-modal-header-icon-size;
+            fill: #f8f8f8;
         }
     }
     .modal-body {

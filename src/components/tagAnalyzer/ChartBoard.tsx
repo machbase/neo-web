@@ -75,11 +75,15 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                         <span>Time range not set</span>
                     )}
                 </button>
-                <IconButton pIcon={<Refresh />} onClick={() => setRefreshCount((aPrev: any) => aPrev + 1)} />
+                <IconButton pIcon={<Refresh className="taz-editor-header-icon" />} onClick={() => setRefreshCount((aPrev: any) => aPrev + 1)} />
                 <div className="border"></div>
-                <IconButton pIcon={<Save />} onClick={pSetHandleSaveModalOpen} />
-                <IconButton pIcon={<SaveAs />} onClick={pHandleSaveModalOpen} />
-                <IconButton pIcon={<MdOutlineStackedLineChart />} pDisabled={sPanelsInfo.length === 0} onClick={sPanelsInfo.length === 0 ? () => {} : () => setIsModal(true)} />
+                <IconButton pIcon={<Save className="taz-editor-header-icon" />} onClick={pSetHandleSaveModalOpen} />
+                <IconButton pIcon={<SaveAs className="taz-editor-header-icon" />} onClick={pHandleSaveModalOpen} />
+                <IconButton
+                    pIcon={<MdOutlineStackedLineChart className="taz-editor-header-icon" />}
+                    pDisabled={sPanelsInfo.length === 0}
+                    onClick={sPanelsInfo.length === 0 ? () => {} : () => setIsModal(true)}
+                />
             </div>
             <div className="panel-list">
                 {pInfo &&

@@ -32,7 +32,7 @@ const PanelFooter = ({ pSetButtonRange, pPanelInfo }: any) => {
                     <img src={ZoomInTwo} />
                 </button>
                 <button onClick={() => pSetButtonRange()}>
-                    <MdCenterFocusStrong></MdCenterFocusStrong>
+                    <MdCenterFocusStrong />
                 </button>
                 <button onClick={() => pSetButtonRange('O', 0.2)}>
                     <img src={ZoomOutTwo} />

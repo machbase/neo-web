@@ -38,7 +38,7 @@ const DatePicker = ({ pTimeValue, pSetApply, onChange, pTopPixel }: any) => {
         <div ref={sOptionRef}>
             <div className="date-picker">
                 <input ref={sInputRef} value={pTimeValue} onChange={onChange}></input>
-                <IconButton pWidth={20} pHeight={20} pIcon={<Calendar />} onClick={() => setIsModalPicker(true)} />
+                <IconButton pWidth={20} pHeight={20} pIcon={<Calendar className="date-picker-icon" />} onClick={() => setIsModalPicker(true)} />
             </div>
             {sIsModalPicker && sInputRef && (
                 <div

@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .data-form {
     display: flex;
     flex-direction: column;
@@ -9,6 +10,11 @@
         align-items: center;
         cursor: pointer;
         justify-content: center !important;
+        svg {
+            fill: #fdb532;
+            width: $editor-taz-plus-icon-size;
+            height: $editor-taz-plus-icon-size;
+        }
     }
     .backdrop {
         position: fixed;
@@ -70,6 +76,9 @@
         .close {
             svg {
                 cursor: pointer;
+                fill: #f8f8f8;
+                width: $pannel-modal-header-icon-size;
+                height: $pannel-modal-header-icon-size;
             }
         }
     }

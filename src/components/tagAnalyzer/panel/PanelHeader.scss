@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .panel-header {
     display: flex;
     position: relative;
@@ -28,10 +29,20 @@
         display: flex;
         align-items: center;
 
+        svg {
+            fill: #52535a;
+            width: $pannel-header-icon-size;
+            height: $pannel-header-icon-size;
+        }
+
+        svg:hover {
+            fill: #f8f8f8;
+        }
+
         .raw {
             font-size: 32px;
             :hover {
-                color: #fdb532 !important;
+                fill: #fdb532 !important;
             }
         }
     }

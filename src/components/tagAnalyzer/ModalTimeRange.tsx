@@ -106,7 +106,7 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal }: any) => {
             <div className="modal-time-range">
                 <div className="time-range-header">
                     <div className="time-range-title">
-                        <Calendar></Calendar>
+                        <Calendar />
                         Time Range
                     </div>
                     <div className="time-range-close">

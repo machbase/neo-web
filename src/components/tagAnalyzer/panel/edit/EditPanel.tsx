@@ -51,10 +51,10 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel }: any) => {
         <div className="edit-modal">
             <div className="modal-header">
                 <div className="modal-title">
-                    <GearFill></GearFill>
+                    <GearFill />
                     Edit Chart
                 </div>
-                <Close onClick={() => pSetEditPanel(false)} color="#f8f8f8"></Close>
+                <Close onClick={() => pSetEditPanel(false)} fill="#f8f8f8" />
             </div>
             <div className="modal-body">
                 <div className="chart">{sPanelInfo.index_key && !sLoading && <Panel pBoardInfo={pBoardInfo} pPanelInfo={sPanelInfo} pIsEdit={true}></Panel>}</div>

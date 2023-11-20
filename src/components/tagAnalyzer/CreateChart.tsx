@@ -15,7 +15,7 @@ const CreateChart = () => {
     return (
         <div>
             <button onClick={openModal} className="tag_plus_wrap">
-                <PlusCircle color="#FDB532"></PlusCircle>
+                <PlusCircle />
             </button>
             {isModal && <div className="backdrop" onClick={closeModal}></div>}
             {isModal && <ModalCreateChart pCloseModal={closeModal} />}

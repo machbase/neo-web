@@ -68,7 +68,7 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                 <div className="x-axis-pixels pt-12 sampling-body">
                     <Tooltip anchorSelect={`.warning-tooltip`} content={'Resource usage can be loaded.'} />
                     <span className={`warning-tooltip`}>
-                        <VscWarning color="#FDB532"></VscWarning>
+                        <VscWarning />
                         use Sampling
                     </span>
                     <div className="use-sampling">

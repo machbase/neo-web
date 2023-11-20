@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .modal-form-chart {
     position: fixed;
     top: 50%;
@@ -40,11 +41,17 @@
                 display: flex;
                 align-items: center;
                 svg {
+                    width: $editor-taz-plus-modal-title-icon-size;
+                    height: $editor-taz-plus-modal-title-icon-size;
                     margin-right: 4px;
                     font-size: 16px;
+                    fill: white;
                 }
             }
             .header-close {
+                width: $editor-taz-plus-modal-title-icon-size;
+                height: $editor-taz-plus-modal-title-icon-size;
+                fill: white;
                 cursor: pointer;
             }
         }
@@ -100,6 +107,11 @@
                 color: #4199ff;
                 height: 34px;
                 font-size: 14px;
+
+                svg {
+                    width: $editor-taz-plus-modal-search-icon-size;
+                    height: $editor-taz-plus-modal-search-icon-size;
+                }
             }
         }
         .select-tag-form {
@@ -165,6 +177,10 @@
                     .pagination {
                         display: flex;
                         align-items: center;
+
+                        svg {
+                            fill: white;
+                        }
                     }
                 }
             }

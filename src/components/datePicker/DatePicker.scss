@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .date-picker-wrap {
     display: flex;
     flex-direction: column;
@@ -32,5 +33,11 @@
         .text-btn-wrapper {
             margin-bottom: 4px;
         }
+    }
+}
+
+.date-picker {
+    &-icon {
+        fill: #939498;
     }
 }

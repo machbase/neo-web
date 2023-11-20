@@ -41,6 +41,14 @@
             .button-group {
                 display: flex;
                 gap: 5px;
+
+                svg {
+                    fill: #c4c4c4;
+                }
+
+                svg:hover {
+                    fill: #fff;
+                }
             }
         }
 

@@ -81,7 +81,7 @@ const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                     );
                 })}
             <div className="add-tag tag-list" onClick={openModal}>
-                <PlusCircle size="23px" color="#FDB532"></PlusCircle>
+                <PlusCircle />
             </div>
             {isModal && <div className="backdrop" onClick={closeModal}></div>}
             {isModal && <AddTag pCloseModal={closeModal} pPanelInfo={pPanelInfo} pSetCopyPanelInfo={pSetCopyPanelInfo} />}

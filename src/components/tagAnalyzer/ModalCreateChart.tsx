@@ -254,7 +254,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                                 <div className="tag-input-form">
                                     <Input pValue={sTagInputValue} pSetValue={setTagInputValue} pIsFullWidth pHeight={36} onChange={filterTag} />
                                     <button className="search">
-                                        <Search size={18} />
+                                        <Search />
                                     </button>
                                 </div>
                             </div>

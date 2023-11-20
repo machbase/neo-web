@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .board-list {
     width: 100%;
     height: 100%;
@@ -10,13 +11,31 @@
         align-items: center;
         padding: 0 16px;
         svg {
-            border-radius: 5px;
             font-size: 18px;
-            color: #939498;
             cursor: pointer;
-            &:hover {
-                color: #f8f8f8;
+        }
+        .icon-btn-disabled {
+            cursor: auto;
+            svg,
+            div {
+                fill: rgba(255, 255, 255, 0.205) !important;
             }
+        }
+
+        .icon-btn-active-hover {
+            background-color: transparent;
+            &:hover {
+                background-color: #52535a;
+            }
+        }
+
+        .taz-editor-header-icon {
+            width: $editor-header-icon-size;
+            height: $editor-header-icon-size;
+            fill: #939498a3;
+        }
+        .taz-editor-header-icon:hover {
+            fill: #f8f8f8;
         }
         .border {
             border-left: 1px solid #939498a3;
@@ -26,8 +45,10 @@
         .set-global-option-btn {
             &:hover {
                 color: #f8f8f8;
+                fill: #f8f8f8;
             }
             color: #939498;
+            fill: #939498;
             display: flex;
             align-items: center;
             background-color: transparent;

@@ -1,4 +1,6 @@
 @import '@/assets/scss/theme.scss';
+@import '@/assets/scss/variables.scss';
+
 .backdrop {
     position: fixed;
     top: 0;
@@ -25,6 +27,12 @@
         margin-top: 10px;
     }
     position: relative;
+
+    svg {
+        fill: #fdb532;
+        width: $editor-taz-plus-icon-size;
+        height: $editor-taz-plus-icon-size;
+    }
 
     &:hover::after {
         content: '';

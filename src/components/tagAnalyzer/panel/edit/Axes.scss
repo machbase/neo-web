@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .axes-form {
     .ucl-wrap {
         display: flex;
@@ -71,6 +72,10 @@
             flex-direction: row;
             justify-content: space-between;
             padding-right: 40px;
+
+            svg {
+                fill: #fdb532;
+            }
         }
         .use-sampling {
             display: flex;
@@ -170,6 +175,11 @@
                 }
                 border-radius: 4px;
                 width: 300px;
+                svg {
+                    fill: #f8f8f8;
+                    width: $pannel-body-arrow-icon-size;
+                    height: $pannel-body-arrow-icon-size;
+                }
             }
             .selected-tag-list {
                 div {

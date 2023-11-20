@@ -1,3 +1,4 @@
+@import '@/assets/scss/variables.scss';
 .panel-form {
     background-color: #262831;
     width: 100%;
@@ -33,12 +34,18 @@
             margin-right: 8px;
             svg {
                 margin-right: 2px;
+                fill: #f8f8f8;
+                width: $pannel-body-arrow-icon-size;
+                height: $pannel-body-arrow-icon-size;
             }
         }
         .right {
             margin-left: 8px;
             svg {
                 margin-left: 2px;
+                fill: #f8f8f8;
+                width: $pannel-body-arrow-icon-size;
+                height: $pannel-body-arrow-icon-size;
             }
         }
     }
