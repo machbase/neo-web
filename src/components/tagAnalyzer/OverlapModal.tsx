@@ -51,16 +51,7 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
 
         const sIntervalTime = calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, sStart ? pPanelsInfo[0].board : sPanelsInfo[0].board);
 
-        if (sStartTimeList[0]) {
-            setStartTimeList((aPrev: any) =>
-                aPrev.map((aItem: any) => {
-                    aItem;
-                    return aPanelInfo.isRaw ? aPanelInfo.start : calcTime(Math.round(sTimeRange.startTime), sIntervalTime);
-                })
-            );
-        } else {
-            setStartTimeList((aPrev: any) => [...aPrev, aPanelInfo.isRaw ? aPanelInfo.start : calcTime(Math.round(sTimeRange.startTime), sIntervalTime)]);
-        }
+        setStartTimeList((aPrev: any) => [...aPrev, aPanelInfo.isRaw ? aPanelInfo.start : calcTime(Math.round(sTimeRange.startTime), sIntervalTime)]);
 
         for (let index = 0; index < sTagSet.length; index++) {
             const sTagSetElement = sTagSet[index];
@@ -106,6 +97,7 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
     };
 
     const setTime = (aValue: any, aType: any, aRange: any) => {
+        setStartTimeList([]);
         setPanelsInfo((aPrev: any) =>
             aPrev.map((aItem: any) => {
                 return aValue.board.index_key === aItem.board.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
