@@ -152,3 +152,16 @@ export const parseCodeBlocks = (aMarkdownContents: string) => {
             .trim();
     });
 };
+
+export const convertMsUnitTime = (aTime: string | number, aIntervalUnit: string) => {
+    let sTime = typeof aTime === 'string' ? Number(aTime) : aTime;
+    if (aIntervalUnit === 'sec') {
+        return sTime * 1000;
+    } else if (aIntervalUnit === 'min') {
+        return sTime * 1000 * 60;
+    } else if (aIntervalUnit === 'hour') {
+        return sTime * 1000 * 60 * 60;
+    }
+
+    return sTime;
+};

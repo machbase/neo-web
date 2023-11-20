@@ -8,6 +8,7 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { getTqlChart } from '@/api/repository/machiot';
 import { ShowChart } from '@/components/tql/ShowChart';
 import { Spinner } from '@/components/spinner/Spinner';
+import { convertMsUnitTime } from '@/utils/index';
 import moment from 'moment';
 
 interface FFTInfo {
@@ -26,6 +27,8 @@ interface FFTModalProps {
     setIsOpen: any;
 }
 
+const sIntervalList: string[] = ['ms', 'sec', 'min', 'hour'];
+
 export const FFTModal = (props: FFTModalProps) => {
     const { pInfo, pStartTime, pEndTime, setIsOpen } = props;
     const modalRef = useRef<HTMLDivElement>(null);
@@ -34,6 +37,7 @@ export const FFTModal = (props: FFTModalProps) => {
     const [sIsChart2D, setIsChart2D] = useState<boolean>(true);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
     const [sInterval, setInterval] = useState<string>('0');
+    const [sIntervalUnit, setIntervalUnit] = useState<string>('ms');
     const [sMinHz, setMinHz] = useState<string>('0');
     const [sMaxHz, setMaxHz] = useState<string>('0');
     const sNewStartTime = moment(pStartTime).format('yyyy-MM-DD HH:mm:ss');
@@ -60,8 +64,7 @@ export const FFTModal = (props: FFTModalProps) => {
         \nzAxis(2, 'Amp'),
         \nsize('550px', '400px'), 
         \nvisualMap(0, 1.5), 
-        \ntheme('westeros'),
-        \nautoRotate(20)
+        \ntheme('westeros')
     \n)`;
 
     useEffect(() => {
@@ -84,14 +87,24 @@ export const FFTModal = (props: FFTModalProps) => {
     };
 
     const handleRunCode = () => {
-        const sMinMaxHz = sMinHz === '0' && sMaxHz === '0' ? '' : `minHz(${sMinHz}), maxHz(${sMaxHz})`;
+        if (sMinHz === '') setMinHz('0');
+        if (sMaxHz === '') setMaxHz('0');
+        const sMinHzValue = sMinHz === '' ? '0' : sMinHz;
+        const sMaxHzValue = sMaxHz === '' ? '0' : sMaxHz;
+        const sMinMaxHz = sMinHzValue === '0' && sMaxHzValue === '0' ? '' : `minHz(${sMinHzValue}), maxHz(${sMaxHzValue})`;
         if (sIsChart2D) {
             getTqlChartData(sTql2DQuery.replace('{tableName}', pInfo[0].table).replace('{tagName}', pInfo[0].name).replace('{MinMaxHz}', sMinMaxHz));
         } else {
+            if (sInterval === '') setInterval('0');
+            const sIntervalValue = sInterval === '' ? '0' : convertMsUnitTime(sInterval, sIntervalUnit).toString();
             getTqlChartData(
-                sTql3DQuery.replace('{tableName}', pInfo[0].table).replace('{tagName}', pInfo[0].name).replace('{MinMaxHz}', sMinMaxHz).replace('{interval}', sInterval)
+                sTql3DQuery.replace('{tableName}', pInfo[0].table).replace('{tagName}', pInfo[0].name).replace('{MinMaxHz}', sMinMaxHz).replace('{interval}', sIntervalValue)
             );
         }
+    };
+
+    const handleSelectInterval = (aEvent: any) => {
+        setIntervalUnit(aEvent.target.value);
     };
 
     const getTqlChartData = async (aText: string) => {
@@ -159,6 +172,7 @@ export const FFTModal = (props: FFTModalProps) => {
                                 <>
                                     <span>Interval</span>
                                     <Input pType="number" pWidth={100} pHeight={32} pValue={sInterval} pSetValue={setInterval} onChange={() => null} />
+                                    <Select pInitValue={sIntervalList[0]} pOptions={sIntervalList} pHeight={32} onChange={(aEvent) => handleSelectInterval(aEvent)} pWidth={70} />
                                 </>
                             ) : null}
                         </div>
