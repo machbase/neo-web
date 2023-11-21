@@ -17,7 +17,7 @@ import {
 } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { FileTree } from '../fileTree/file-tree';
-import Sidebar from '../fileTree/sidebar';
+// import Sidebar from '../fileTree/sidebar';
 import { useEffect } from 'react';
 import './Side.scss';
 import { getFiles, deleteFile as deleteContextFile } from '@/api/repository/fileTree';
@@ -82,6 +82,7 @@ any) => {
     const [sDeleteFileList, setDeleteFileList] = useRecoilState(gDeleteFileList);
     const [sIsFetch, setIsFetch] = useState<boolean>(false);
     const [sIsFileModal, setIsFileModal] = useState<boolean>(false);
+    const sFileTreeRef = useRef(null);
 
     useEffect(() => {
         getFileTree();
@@ -239,8 +240,19 @@ any) => {
 
     const onContextMenu = (e: React.MouseEvent, file: FileType | FileTreeType) => {
         e.preventDefault();
-        setMenuX(e.pageX);
-        setMenuY(e.pageY);
+        // file 100px | folder 155px | git 185px
+        const sMaxMenuH = file.type === 0 ? 100 : (file as any)?.gitClone ? 185 : 155;
+        const sWindowH = window.innerHeight;
+        const sTreeH = (sFileTreeRef.current as any).clientHeight;
+        const sWindowHWithoutTree = sWindowH - sTreeH;
+        const sEventInTreeY = e.pageY - sWindowHWithoutTree;
+        if (sEventInTreeY + sMaxMenuH > sTreeH) {
+            setMenuX(e.pageX);
+            setMenuY(e.pageY - sMaxMenuH);
+        } else {
+            setMenuX(e.pageX);
+            setMenuY(e.pageY);
+        }
         setIsContextMenu(true);
         setSelectedContextFile(file);
         setRecentDirectory(`${file.path + file.name}/`);
@@ -489,7 +501,14 @@ any) => {
                             <>...</>
                         ) : (
                             <>
-                                <Sidebar>
+                                <div
+                                    ref={sFileTreeRef}
+                                    style={{
+                                        backgroundColor: '#333333',
+                                        height: `calc(100% - 22px)`,
+                                        overflow: 'auto',
+                                    }}
+                                >
                                     <FileTree
                                         rootDir={rootDir}
                                         selectedFile={selectedFile}
@@ -500,7 +519,7 @@ any) => {
                                         onSetFileTree={setFileTree}
                                         onRename={onRename}
                                     />
-                                </Sidebar>
+                                </div>
                                 <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
                                     <Menu isOpen={sIsContextMenu}>
                                         {(selectedContextFile as any)?.type === 1 && !(selectedContextFile as any)?.virtual ? (
