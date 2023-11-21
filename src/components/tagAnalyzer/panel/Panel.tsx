@@ -14,6 +14,7 @@ import useDebounce from '@/hooks/useDebounce';
 import { FFTModal } from '@/components/modal/FFTModal';
 import { Error } from '@/components/toast/Toast';
 import Menu from '@/components/contextMenu/Menu';
+import moment from 'moment';
 
 const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveKeepData, pRefreshCount }: any) => {
     const sAreaChart = useRef<any>();
@@ -614,6 +615,9 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
             {sIsFFTModal ? <FFTModal pInfo={sMinMaxList} setIsOpen={setIsFFTModal} pStartTime={sFFTMinTime} pEndTime={sFFTMaxTime} /> : null}
             <div ref={sMenuRef} className="menu-position">
                 <Menu isOpen={sIsMinMaxMenu}>
+                    <div className="time">
+                        {moment(sFFTMinTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~ {moment(sFFTMaxTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
+                    </div>
                     <table className="table-style">
                         <thead>
                             <tr>
