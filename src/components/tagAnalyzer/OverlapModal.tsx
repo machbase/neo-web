@@ -267,8 +267,8 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
                             pPanelInfo={sPanelsInfo[0].board}
                         ></OverlapChart>
                     )}
-                    {sPanelsInfo.map((aItem: any) => {
-                        return <OverlapButtonList key={aItem.board.index_key} pPanelsInfo={sPanelsInfo} pSetTime={setTime} pPanelInfo={aItem}></OverlapButtonList>;
+                    {sPanelsInfo.map((aItem: any, aIdx: number) => {
+                        return <OverlapButtonList pIdx={aIdx} key={aItem.board.index_key} pPanelsInfo={sPanelsInfo} pSetTime={setTime} pPanelInfo={aItem}></OverlapButtonList>;
                     })}
                 </div>
             </div>

@@ -5,7 +5,7 @@ import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
 import { useState } from 'react';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 
-const OverlapButtonList = ({ pPanelInfo, pSetTime, pPanelsInfo }: any) => {
+const OverlapButtonList = ({ pPanelInfo, pSetTime, pPanelsInfo, pIdx }: any) => {
     const [sValue, setValue] = useState('0');
     const [sType, setType] = useState('ms');
 
@@ -25,6 +25,10 @@ const OverlapButtonList = ({ pPanelInfo, pSetTime, pPanelsInfo }: any) => {
 
     return (
         <div key={pPanelInfo.board.index_key} className="navi-list">
+            <div
+                className="color-form"
+                style={{ background: `${['#EB5757', '#6FCF97', '#9C8FFF', '#F5AA64', '#BB6BD9', '#B4B4B4', '#FFD95F', '#2D9CDB', '#C3A080', '#B4B4B4', '#6B6B6B'][pIdx]}` }}
+            ></div>
             <div className="navi-name">{pPanelInfo.board.tag_set[0].alias ? pPanelInfo.board.tag_set[0].alias : pPanelInfo.board.tag_set[0].tagName}</div>
             <div className="navi-time">
                 {toDateUtcChart(setUtcTime(pPanelInfo.start), true)} ~ {toDateUtcChart(setUtcTime(pPanelInfo.start + pPanelsInfo[0].duration), true)}{' '}
