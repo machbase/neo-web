@@ -51,6 +51,12 @@
         left: 0;
         z-index: 99;
 
+        .time {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .close {
             width: 100%;
             display: flex;
@@ -61,6 +67,9 @@
         .table-style {
             border-collapse: separate;
             border-spacing: 5px 5px;
+            td {
+                text-align: center;
+            }
         }
     }
 }
