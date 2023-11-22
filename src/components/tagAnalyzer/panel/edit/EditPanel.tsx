@@ -11,7 +11,7 @@ import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { GearFill, Close } from '@/assets/icons/Icon';
 import { TextButton } from '@/components/buttons/TextButton';
 
-const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel }: any) => {
+const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
     const [sGlobalSelectedTab] = useRecoilState<any>(gSelectedTab);
 
@@ -43,6 +43,7 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel }: any) => {
                     : aItem;
             })
         );
+        pSetSaveEditedInfo(true);
         pSetEditPanel(false);
     };
 

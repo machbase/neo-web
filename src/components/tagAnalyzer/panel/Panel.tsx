@@ -37,6 +37,7 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
     const [sFFTMinTime, setFFTMinTime] = useState<number>(0);
     const [sFFTMaxTime, setFFTMaxTime] = useState<number>(0);
     const [sIsMinMaxMenu, setIsMinMaxMenu] = useState<boolean>(false);
+    const [sSaveEditedInfo, setSaveEditedInfo] = useState<boolean>(false);
 
     const sStarted = useRef(false);
 
@@ -469,11 +470,12 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
     }, [sIsUpdate]);
 
     useEffect(() => {
-        if (pBoardInfo.id === sSelectedTab && pIsEdit) {
+        if ((pBoardInfo.id === sSelectedTab && sSaveEditedInfo) || pIsEdit) {
             if (sPanelRange.startTime) fetchPanelData(sPanelRange);
             if (sPanelRange.startTime) fetchNavigatorData(sNavigatorRange);
+            setSaveEditedInfo(false);
         }
-    }, [pPanelInfo, sSelectedTab]);
+    }, [pPanelInfo, sSelectedTab, sSaveEditedInfo]);
 
     const resetData = () => {
         if (pBoardInfo.id === sSelectedTab) {
@@ -584,6 +586,7 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
                 pSetIsFFTModal={setIsFFTModal}
                 pIsUpdate={sIsUpdate}
                 pSetIsUpdate={setIsUpdate}
+                pSetSaveEditedInfo={setSaveEditedInfo}
             ></PanelHeader>
             <div className="chart">
                 <div className="left" onClick={() => moveTimRange('l')}>
