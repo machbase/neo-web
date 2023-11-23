@@ -5,8 +5,8 @@
                 <img alt="" src="@/assets/image/logo_machbaseNeo_general_a.png" />
             </div>
             <div class="input-form">
-                <input v-model="sLoginName" @keydown.enter="login" class="input normal-text" placeholder="ID" type="text" maxlength="40" />
-                <input v-model="sPassword" @keydown.enter="login" autocomplete="off" class="input normal-text" placeholder="Password" type="password" maxlength="40" />
+                <input v-model="sLoginName" @keydown.enter="login" class="input normal-text" placeholder="ID" type="text" maxlength="256" />
+                <input v-model="sPassword" @keydown.enter="login" autocomplete="off" class="input normal-text" placeholder="Password" type="password" maxlength="256" />
             </div>
             <div class="button-form">
                 <button :class="sLoginName !== '' && sPassword !== '' ? 'no-input' : 'login-button'" type="submit">LOGIN</button>
