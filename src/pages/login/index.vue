@@ -5,8 +5,8 @@
                 <img alt="" src="@/assets/image/logo_machbaseNeo_general_a.png" />
             </div>
             <div class="input-form">
-                <input v-model="sLoginName" @keydown.enter="login" class="input normal-text" placeholder="ID" type="text" />
-                <input v-model="sPassword" @keydown.enter="login" autocomplete="off" class="input normal-text" placeholder="Password" type="password" />
+                <input v-model="sLoginName" @keydown.enter="login" class="input normal-text" placeholder="ID" type="text" maxlength="40" />
+                <input v-model="sPassword" @keydown.enter="login" autocomplete="off" class="input normal-text" placeholder="Password" type="password" maxlength="40" />
             </div>
             <div class="button-form">
                 <button :class="sLoginName !== '' && sPassword !== '' ? 'no-input' : 'login-button'" type="submit">LOGIN</button>
@@ -26,12 +26,13 @@ const sLoginName = ref<string>('');
 const sPassword = ref<string>('');
 const cIsDarkMode = computed(() => store.getters.getDarkMode);
 
-const login = async (e) => {
+const login = async (e: any) => {
     e.preventDefault();
     const sParams = {
         LoginName: sLoginName.value,
         Password: sPassword.value,
     };
+
     if (sParams.LoginName === '' || sParams.Password === '') {
         toast('typed ID or Password', {
             autoClose: 1000,
@@ -41,6 +42,7 @@ const login = async (e) => {
         } as ToastOptions);
         return;
     }
+
     const sReturn: any = await postLogin(sParams);
     if (sReturn && sReturn.success) {
         localStorage.setItem('accessToken', sReturn.accessToken);
