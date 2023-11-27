@@ -1,7 +1,10 @@
 import { formatColors, getTimeZoneValue } from '@/utils/utils';
 import Highcharts from 'highcharts/highstock';
+import HighchartsBoost from "highcharts/modules/boost";
 import HighchartsReact from 'highcharts-react-official';
 import { useEffect, useState } from 'react';
+
+HighchartsBoost(Highcharts)
 
 const Chart = ({
     pPanelInfo,
@@ -84,7 +87,7 @@ const Chart = ({
                 spacing: pPanelInfo.show_legend === 'Y' ? [10, 10, 15, 10] : [10, 10, 30, 10],
                 height: 300,
                 backgroundColor: '#262831',
-                type: 'area',
+                type: pPanelInfo.fill > 0 ? 'area' : 'line',
                 zoomType: 'x',
                 lineWidth: 1,
                 width: pAreaChart?.current?.clientWidth,
@@ -105,6 +108,10 @@ const Chart = ({
             series: pChartData,
 
             plotOptions: {
+                boost: {
+                    useGPUTranslations: true,
+                    seriesThreshold: 5,
+                },
                 series: {
                     showInNavigator: false,
                     lineWidth: pPanelInfo.stroke,
@@ -120,6 +127,9 @@ const Chart = ({
                             lineWidthPlus: 0,
                             lineWidth: 0,
                         },
+                    },
+                    dataGrouping: {
+                        enabled: false,
                     },
                     point: {},
                 },
@@ -144,12 +154,11 @@ const Chart = ({
                 },
                 height: 24,
                 maskFill: 'rgba(119, 119, 119, .3)',
-                series:
-                    pNavigatorData && pNavigatorData.datasets
-                        ? pNavigatorData.datasets.map((i: any) => {
-                              return { data: i.data, marker: i.marker, animation: false };
-                          })
-                        : [],
+                series: pNavigatorData && pNavigatorData.datasets
+                    ? pNavigatorData.datasets.map((i: any) => {
+                        return { data: i.data, marker: i.marker, animation: false };
+                      })
+                    : [],
                 outlineWidth: 1,
                 outlineColor: '#323333',
                 xAxis: {
