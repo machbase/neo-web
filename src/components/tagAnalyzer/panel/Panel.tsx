@@ -148,7 +148,12 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
 
             const calcList: any[] = [];
             x.axis.series.forEach((aSeries: any, aIndex: number) => {
-                const seriesData = !isEmpty(aSeries.data) ? aSeries.data : aSeries.points;
+                const seriesData = !isEmpty(aSeries.data) ? aSeries.data : aSeries.xData.map((x: number, index: number) => { 
+                    return {
+                        x: x,
+                        y: aSeries.yData[index]
+                    }
+                });
                 const filterData: number[] = [];
                 let totalValue = 0;
                 if (seriesData) {
