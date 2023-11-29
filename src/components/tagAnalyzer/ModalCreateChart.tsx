@@ -26,7 +26,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
     const [sTagPagination, setTagPagination] = useState(1);
     const [sCalcTagList, setCalcTagList] = useState<string[]>([]);
     const [sSelectedTag, setSelectedTag] = useState<any[]>([]);
-    const [sSelectedChartType, setSelectedChartType] = useState<string>('Zone');
+    const [sSelectedChartType, setSelectedChartType] = useState<string>('Line');
     const [sTagInputValue, setTagInputValue] = useState<string>('');
 
     const avgMode = [

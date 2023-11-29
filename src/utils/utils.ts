@@ -143,27 +143,32 @@ function convertChartType(aType: string) {
     let show_point = 'Y';
     let stroke = 0;
     let fill = 0;
+    let point_radius = 0;
     switch (aType) {
         case 'Zone':
             show_point = 'N';
             stroke = 1;
             fill = 0.15;
+            point_radius = 0;
             break;
         case 'Dot':
             show_point = 'Y';
             stroke = 0;
             fill = 0;
+            point_radius = 2;
             break;
         case 'Line':
             show_point = 'Y';
             stroke = 1;
             fill = 0;
+            point_radius = 0;
             break;
     }
     return {
         show_point,
         stroke,
         fill,
+        point_radius,
     };
 }
 function convertTagChartType(aTags: any) {
@@ -192,6 +197,7 @@ function convertChartDefault(aChartDefault: any, aTag: any): any {
         default_range: aTag.defaultRange,
         color_set: COLOR_SET,
         show_point: chart.show_point,
+        point_radius: chart.point_radius,
         stroke: chart.stroke,
         fill: chart.fill,
         chart_type: aTag.chartType,
