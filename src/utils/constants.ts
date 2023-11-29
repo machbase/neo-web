@@ -284,7 +284,7 @@ export const DEFAULT_CHART = {
     fill: 0.15,
     stroke: 1.5,
     show_point: 'N',
-    point_radius: 3,
+    point_radius: 0,
     pixels_per_tick: 3,
     pixels_per_tick_raw: 0.1,
     zero_base: 'N',

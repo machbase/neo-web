@@ -2,7 +2,8 @@ import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
 import { useState } from 'react';
 import Highcharts from 'highcharts/highstock';
 import HighchartsReact from 'highcharts-react-official';
-const OverlapChart = ({ pChartData, pStartTimeList, pPanelInfo, pAreaChart }: any) => {
+
+const OverlapChart = ({ pChartData, pStartTimeList, pPanelInfo, pAreaChart, pChartRef }: any) => {
     const [sOptions] = useState<any>({});
     const getMinValue = (array: number[][]) => {
         return array.reduce(
@@ -54,6 +55,7 @@ const OverlapChart = ({ pChartData, pStartTimeList, pPanelInfo, pAreaChart }: an
     return (
         sOptions && (
             <HighchartsReact
+                ref={pChartRef}
                 highcharts={Highcharts}
                 options={{
                     accessibility: {
@@ -67,7 +69,7 @@ const OverlapChart = ({ pChartData, pStartTimeList, pPanelInfo, pAreaChart }: an
                         spacing: [50, 10, 15, 10],
                         height: pAreaChart.current.clientHeight - 10 - pChartData.length * 43,
                         backgroundColor: '#262831',
-                        type: 'area',
+                        type: 'line',
                         zoomType: 'x',
                         lineWidth: 1,
                         width: pAreaChart.current.clientWidth - 10,
@@ -78,7 +80,6 @@ const OverlapChart = ({ pChartData, pStartTimeList, pPanelInfo, pAreaChart }: an
                         series: {
                             showInNavigator: false,
                             lineWidth: 0.5,
-                            fillOpacity: 0.15,
                             cursor: 'pointer',
                             marker: {
                                 enabled: false,

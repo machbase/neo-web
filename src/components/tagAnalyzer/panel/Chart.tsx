@@ -1,10 +1,10 @@
 import { formatColors, getTimeZoneValue } from '@/utils/utils';
 import Highcharts from 'highcharts/highstock';
-import HighchartsBoost from "highcharts/modules/boost";
+import HighchartsBoost from 'highcharts/modules/boost';
 import HighchartsReact from 'highcharts-react-official';
 import { useEffect, useState } from 'react';
 
-HighchartsBoost(Highcharts)
+HighchartsBoost(Highcharts);
 
 const Chart = ({
     pPanelInfo,
@@ -154,11 +154,12 @@ const Chart = ({
                 },
                 height: 24,
                 maskFill: 'rgba(119, 119, 119, .3)',
-                series: pNavigatorData && pNavigatorData.datasets
-                    ? pNavigatorData.datasets.map((i: any) => {
-                        return { data: i.data, marker: i.marker, animation: false };
-                      })
-                    : [],
+                series:
+                    pNavigatorData && pNavigatorData.datasets
+                        ? pNavigatorData.datasets.map((i: any) => {
+                              return { data: i.data, marker: i.marker, type: 'line', fillOpacity: 1, lineWidth: 1, dataGrouping: { enabled: false }, animation: false };
+                          })
+                        : [],
                 outlineWidth: 1,
                 outlineColor: '#323333',
                 xAxis: {

@@ -43,12 +43,13 @@ export const FFTModal = (props: FFTModalProps) => {
     const [sMaxHz, setMaxHz] = useState<string>('0');
     const sNewStartTime = moment(pStartTime).format('yyyy-MM-DD HH:mm:ss');
     const sNewEndTime = moment(pEndTime).format('yyyy-MM-DD HH:mm:ss');
+    const sWindowWidth = window.innerWidth;
     const sTql2DQuery = `SQL("select time, value from {tableName} where NAME in ('{tagName}') AND time between to_date('${sNewStartTime}') AND to_date('${sNewEndTime}')")
     \nMAPKEY('fft')
     \nGROUPBYKEY()
     \nFFT({MinMaxHz})
     \nCHART_LINE(
-        \nsize('550px', '400px'),
+        \nsize('${sWindowWidth * 0.55}px', '600px'),
         \nxAxis(0, 'Hz'),
         \nyAxis(1, 'Amplitude'),
         \ndataZoom('slider', 0, 10) 
@@ -63,7 +64,7 @@ export const FFTModal = (props: FFTModalProps) => {
         \nxAxis(0, 'time', 'time'),
         \nyAxis(1, 'Hz'),
         \nzAxis(2, 'Amp'),
-        \nsize('550px', '400px'),
+        \nsize('${sWindowWidth * 0.55}px', '600px'),
         \nvisualMap(0, 1.5)
     \n)`;
 

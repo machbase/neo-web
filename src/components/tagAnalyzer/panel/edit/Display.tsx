@@ -7,11 +7,11 @@ import { Input } from '@/components/inputs/Input';
 const Display = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const changeChartType = (aValue: string) => {
         if (aValue === 'Zone') {
-            pSetCopyPanelInfo({ ...pPanelInfo, chart_type: aValue, show_point: 'N', fill: 0.15, stroke: 1 });
+            pSetCopyPanelInfo({ ...pPanelInfo, chart_type: aValue, show_point: 'N', point_radius: 0, fill: 0.15, stroke: 1 });
         } else if (aValue === 'Dot') {
-            pSetCopyPanelInfo({ ...pPanelInfo, chart_type: aValue, show_point: 'Y', fill: 0, stroke: 0 });
+            pSetCopyPanelInfo({ ...pPanelInfo, chart_type: aValue, show_point: 'Y', point_radius: 2, fill: 0, stroke: 0 });
         } else {
-            pSetCopyPanelInfo({ ...pPanelInfo, chart_type: aValue, show_point: 'Y', fill: 0, stroke: 1 });
+            pSetCopyPanelInfo({ ...pPanelInfo, chart_type: aValue, show_point: 'Y', point_radius: 0, fill: 0, stroke: 1 });
         }
     };
 
