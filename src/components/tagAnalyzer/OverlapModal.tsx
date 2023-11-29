@@ -1,4 +1,4 @@
-import { MdOutlineStackedLineChart, Close } from '@/assets/icons/Icon';
+import { MdOutlineStackedLineChart, Close, Refresh } from '@/assets/icons/Icon';
 import './OverlapModal.scss';
 import { useEffect, useState, useRef } from 'react';
 import OverlapChart from './OverlapChart';
@@ -7,9 +7,14 @@ import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import OverlapButtonList from './panel/edit/OverlapButtonList';
+import HighchartsReact from 'highcharts-react-official';
+import { IconButton } from '@/components/buttons/IconButton';
+import { Tooltip } from 'react-tooltip';
+
 const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
     const [sChartData, setChartData] = useState<any>([]);
     const sAreaChart = useRef<any>();
+    const sChartRef = useRef<HighchartsReact.RefObject>(null);
     const [sStartTimeList, setStartTimeList] = useState<any>([]);
     const [sPanelsInfo, setPanelsInfo] = useState<any>([]);
 
@@ -244,6 +249,13 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
         };
     };
 
+    const handleRefresh = () => {
+        if (sChartRef.current) {
+            const sChart = sChartRef.current.chart;
+            sChart.xAxis[0].setExtremes(undefined, undefined);
+        }
+    };
+
     return (
         <>
             <div onClick={() => pSetIsModal(false)} className="Overlap-cover"></div>
@@ -254,7 +266,13 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
                         <MdOutlineStackedLineChart />
                         Overlap Chart
                     </div>
-                    <Close onClick={() => pSetIsModal(false)} color="#f8f8f8"></Close>
+                    <div style={{ display: 'flex' }}>
+                        <div className="zoom-tooltip">
+                            <Tooltip anchorSelect=".zoom-tooltip" content="unzoom" />
+                            <IconButton pIcon={<Refresh size={13} />} onClick={() => handleRefresh()} />
+                        </div>
+                        <IconButton pIcon={<Close size={17} />} onClick={() => pSetIsModal(false)} />
+                    </div>
                 </div>
                 <div className="Overlap-body" ref={sAreaChart}>
                     {sPanelsInfo[0] && sChartData[sPanelsInfo.length - 1] && (
@@ -264,6 +282,7 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
                             pChartData={sChartData}
                             pAllInfo={sPanelsInfo}
                             pPanelInfo={sPanelsInfo[0].board}
+                            pChartRef={sChartRef}
                         ></OverlapChart>
                     )}
                     {sPanelsInfo.map((aItem: any, aIdx: number) => {
