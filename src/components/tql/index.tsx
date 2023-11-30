@@ -25,7 +25,7 @@ import {
 } from '@/assets/icons/Icon';
 import { IconButton } from '../buttons/IconButton';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
-
+import { TqlCsvParser } from '@/utils/tqlCsvParser';
 interface TqlProps {
     pCode: string;
     pIsSave: any;
@@ -89,22 +89,10 @@ const Tql = (props: TqlProps) => {
             setMarkdown(sResult.data);
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
             setResultType('csv');
-
-            const sTempCsv: string[][] = [];
-
-            sResult.data.split('\n').map((aItem: string) => {
-                if (aItem) sTempCsv.push(aItem.split(','));
-            });
-
-            const tempHeaders: string[] = [];
-            sTempCsv[0] &&
-                sTempCsv[0].map((_, aIdx) => {
-                    tempHeaders.push('column' + aIdx);
-                });
-            setCsvHeader(tempHeaders);
+            const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(sResult.data);
+            setCsv(sParsedCsvBody);
+            setCsvHeader(sParsedCsvHeader);
             setHeader(true);
-
-            setCsv(sTempCsv);
             return;
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/xhtml+xml') {
             setResultType('xhtml');
