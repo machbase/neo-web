@@ -16,7 +16,7 @@ import { Error } from '@/components/toast/Toast';
 import Menu from '@/components/contextMenu/Menu';
 import moment from 'moment';
 
-const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveKeepData, pRefreshCount }: any) => {
+const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveKeepData, pRefreshCount, pFooterRange }: any) => {
     const sAreaChart = useRef<any>();
     const sChartRef = useRef<any>();
     const sMenuRef = useRef<any>();
@@ -601,6 +601,7 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
                 pIsUpdate={sIsUpdate}
                 pSetIsUpdate={setIsUpdate}
                 pSetSaveEditedInfo={setSaveEditedInfo}
+                pNavigatorRange={sNavigatorRange}
             ></PanelHeader>
             <div className="chart">
                 <div className="left" onClick={() => moveTimRange('l')}>
@@ -628,7 +629,12 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
                     <ArrowRight />
                 </div>
             </div>
-            <PanelFooter pNavigatorRange={sNavigatorRange} pPanelInfo={pPanelInfo} pSetButtonRange={setButtonRange} pMoveNavigatorTimRange={moveNavigatorTimRange}></PanelFooter>
+            <PanelFooter
+                pNavigatorRange={pFooterRange ?? sNavigatorRange}
+                pPanelInfo={pPanelInfo}
+                pSetButtonRange={setButtonRange}
+                pMoveNavigatorTimRange={moveNavigatorTimRange}
+            ></PanelFooter>
             {sIsFFTModal ? <FFTModal pInfo={sMinMaxList} setIsOpen={setIsFFTModal} pStartTime={sFFTMinTime} pEndTime={sFFTMaxTime} /> : null}
             <div ref={sMenuRef} className="menu-position">
                 <Menu isOpen={sIsMinMaxMenu}>
