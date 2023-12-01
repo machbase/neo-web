@@ -148,12 +148,14 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
 
             const calcList: any[] = [];
             x.axis.series.forEach((aSeries: any, aIndex: number) => {
-                const seriesData = !isEmpty(aSeries.data) ? aSeries.data : aSeries.xData.map((x: number, index: number) => { 
-                    return {
-                        x: x,
-                        y: aSeries.yData[index]
-                    }
-                });
+                const seriesData = !isEmpty(aSeries.data)
+                    ? aSeries.data
+                    : aSeries.xData.map((x: number, index: number) => {
+                          return {
+                              x: x,
+                              y: aSeries.yData[index],
+                          };
+                      });
                 const filterData: number[] = [];
                 let totalValue = 0;
                 if (seriesData) {
@@ -204,8 +206,15 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
         if (aType === 'I') {
             sChartRef.current.chart.xAxis[0].setExtremes(Math.round(sPanelRange.startTime + sCalcTime), Math.round(sPanelRange.endTime - sCalcTime));
         } else if (aType === 'O') {
-            const sStartTime = Math.round(sPanelRange.startTime - sCalcTime);
-            const sEndTime = Math.round(sPanelRange.endTime + sCalcTime);
+            let sStartTime = Math.round(sPanelRange.startTime - sCalcTime);
+            let sEndTime = Math.round(sPanelRange.endTime + sCalcTime);
+            const sLastTime = 9999999999999;
+            if (sStartTime <= 0) {
+                sStartTime = sNavigatorRange.startTime;
+            }
+            if (sEndTime > sLastTime) {
+                sEndTime = sLastTime;
+            }
 
             if (sEndTime > sNavigatorRange.endTime || sStartTime < sNavigatorRange.startTime) {
                 sChartRef.current.chart.navigator.xAxis.setExtremes(sStartTime, sEndTime);
