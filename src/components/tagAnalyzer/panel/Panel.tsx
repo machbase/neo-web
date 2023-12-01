@@ -472,6 +472,11 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
         }
     };
 
+    const handleMenuClose = () => {
+        setIsMinMaxMenu(false);
+        setIsUpdate(false);
+    };
+
     useEffect(() => {
         if (sPanelRange.startTime) fetchPanelData(sPanelRange);
     }, [sIsRaw]);
@@ -663,7 +668,7 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
                             })}
                         </tbody>
                     </table>
-                    <Menu.Item onClick={() => setIsMinMaxMenu(false)}>
+                    <Menu.Item onClick={() => handleMenuClose()}>
                         <div className="close">
                             <Close />
                         </div>
