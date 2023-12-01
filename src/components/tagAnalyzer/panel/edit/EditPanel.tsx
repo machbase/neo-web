@@ -10,14 +10,18 @@ import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { GearFill, Close } from '@/assets/icons/Icon';
 import { TextButton } from '@/components/buttons/TextButton';
+import { deepEqual } from '@/utils/index';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
 
-const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo }: any) => {
+const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, pNavigatorRange }: any) => {
+    console.log('edit panel navi range', pNavigatorRange);
     const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
     const [sGlobalSelectedTab] = useRecoilState<any>(gSelectedTab);
 
     const [sSelectedTab, setSelectedTab] = useState('General');
     const [sPanelInfo, setPanelInfo] = useState<any>({});
     const [sCopyPanelInfo, setCopyPanelInfo] = useState<any>({});
+    const [sIsConfirmModal, setIsConfirmModal] = useState<boolean>(false);
 
     const [sLoading] = useState<boolean>(false);
 
@@ -47,6 +51,17 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo }
         pSetEditPanel(false);
     };
 
+    const checkSameWithConfirmModal = () => {
+        const sIsSame = deepEqual(sPanelInfo, sCopyPanelInfo);
+        if (!sIsSame) {
+            setIsConfirmModal(true);
+            return;
+        } else {
+            save();
+            return;
+        }
+    };
+
     const [sData] = useState<any>(['General', 'Data', 'Axes', 'Display', 'TimeRange']);
     return (
         <div className="edit-modal">
@@ -58,7 +73,9 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo }
                 <Close onClick={() => pSetEditPanel(false)} color="#f8f8f8"></Close>
             </div>
             <div className="modal-body">
-                <div className="chart">{sPanelInfo.index_key && !sLoading && <Panel pBoardInfo={pBoardInfo} pPanelInfo={sPanelInfo} pIsEdit={true}></Panel>}</div>
+                <div className="chart">
+                    {sPanelInfo.index_key && !sLoading && <Panel pFooterRange={pNavigatorRange} pBoardInfo={pBoardInfo} pPanelInfo={sPanelInfo} pIsEdit={true}></Panel>}
+                </div>
                 <div className="edit-form">
                     <div className="edit-form-tabs">
                         {sData.map((aItem: string) => {
@@ -99,9 +116,10 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo }
             </div>
             <div className="modal-footer">
                 <TextButton pWidth={100} pHeight={30} pText="Apply" pBackgroundColor="#fdb532" onClick={apply} />
-                <TextButton pWidth={100} pHeight={30} pText="OK" pBackgroundColor="#4199ff" onClick={save} />
+                <TextButton pWidth={100} pHeight={30} pText="OK" pBackgroundColor="#4199ff" onClick={checkSameWithConfirmModal} />
                 <TextButton pWidth={100} pHeight={30} pText="Cancel" pBackgroundColor="#666979" onClick={() => pSetEditPanel(false)} />
             </div>
+            {sIsConfirmModal ? <ConfirmModal pIsDarkMode setIsOpen={setIsConfirmModal} pCallback={save} /> : null}
         </div>
     );
 };
