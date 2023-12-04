@@ -14,7 +14,6 @@ import { deepEqual } from '@/utils/index';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 
 const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, pNavigatorRange }: any) => {
-    console.log('edit panel navi range', pNavigatorRange);
     const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
     const [sGlobalSelectedTab] = useRecoilState<any>(gSelectedTab);
 

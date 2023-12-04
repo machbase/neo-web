@@ -166,9 +166,12 @@ any) => {
                     sTmpBoard.sheet = sTmpData;
                     sTmpBoard.savedCode = JSON.stringify(sTmpData);
                 }
-            } else if (sFileExtension === 'taz' || sFileExtension === 'dsh') {
+            } else if (sFileExtension === 'dsh') {
                 const sTmpData: any = JSON.parse(sContentResult);
                 sTmpBoard = { ...sTmpData, id: sTmpBoard.id, name: sTmpBoard.name, type: sFileExtension, path: sTmpBoard.path, savedCode: JSON.stringify(sContentResult) };
+            } else if (sFileExtension === 'taz') {
+                const sTmpData: any = JSON.parse(sContentResult);
+                sTmpBoard = { ...sTmpData, id: sTmpBoard.id, name: sTmpBoard.name, type: sFileExtension, path: sTmpBoard.path, savedCode: JSON.stringify(sTmpData.panels) };
             } else if (isImage(file.id)) {
                 const base64 = binaryCodeEncodeBase64(sContentResult);
                 const updateBoard = {
