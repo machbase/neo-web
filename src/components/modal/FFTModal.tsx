@@ -65,7 +65,7 @@ export const FFTModal = (props: FFTModalProps) => {
         \nyAxis(1, 'Hz'),
         \nzAxis(2, 'Amp'),
         \nsize('${sWindowWidth * 0.55}px', '600px'),
-        \nvisualMap(0, 1.5)
+        \nvisualMap(0, {visualMax})
     \n)`;
 
     useEffect(() => {
@@ -101,8 +101,14 @@ export const FFTModal = (props: FFTModalProps) => {
                 return;
             }
             const sIntervalValue = convertMsUnitTime(sInterval, sIntervalUnit).toString();
+            const sVisualMax = Math.round(Number(sSelectedInfo?.max)).toFixed(1);
             getTqlChartData(
-                sTql3DQuery.replace('{tableName}', pInfo[0].table).replace('{tagName}', pInfo[0].name).replace('{MinMaxHz}', sMinMaxHz).replace('{interval}', sIntervalValue)
+                sTql3DQuery
+                    .replace('{tableName}', pInfo[0].table)
+                    .replace('{tagName}', pInfo[0].name)
+                    .replace('{MinMaxHz}', sMinMaxHz)
+                    .replace('{interval}', sIntervalValue)
+                    .replace('{visualMax}', sVisualMax || '1.5')
             );
         }
     };
