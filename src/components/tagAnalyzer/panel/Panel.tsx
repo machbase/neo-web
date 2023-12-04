@@ -524,7 +524,7 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
 
     const setRange = () => {
         const sData: any = getDateRange(pPanelInfo, pBoardInfo);
-        if (pPanelInfo.time_keeper.startPanelTime) {
+        if (pPanelInfo.use_time_keeper === 'Y' && pPanelInfo.time_keeper.startPanelTime) {
             fetchPanelData({
                 startTime: pPanelInfo.time_keeper.startPanelTime,
                 endTime: pPanelInfo.time_keeper.endPanelTime,
@@ -543,7 +543,7 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
                 endTime: Math.round(sData.startTime + (sData.endTime - sData.startTime) * 0.6),
             });
         }
-        if (pPanelInfo.time_keeper.startNaviTime) {
+        if (pPanelInfo.use_time_keeper === 'Y' && pPanelInfo.time_keeper.startNaviTime) {
             fetchNavigatorData({
                 startTime: pPanelInfo.time_keeper.startNaviTime,
                 endTime: pPanelInfo.time_keeper.endNaviTime,
@@ -568,6 +568,7 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
         sPanelRange.startTime && pGetChartInfo && pGetChartInfo(sPanelRange.startTime, sPanelRange.endTime, pPanelInfo, sIsRaw, 'changed');
         sPanelRange.startTime &&
             sChartRef.current?.chart &&
+            pPanelInfo.use_time_keeper === 'Y' &&
             pSaveKeepData &&
             pSaveKeepData(
                 pPanelInfo.index_key,
