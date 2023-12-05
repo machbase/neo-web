@@ -32,7 +32,7 @@ export const Markdown = (props: MarkdownProps) => {
 
     useEffect(() => {
         if (!sMarkdownId) return;
-        let blocks = document.querySelectorAll(`#mrk${sMarkdownId} pre`);
+        let blocks = document.querySelectorAll(`div.mrk${sMarkdownId} pre:not(.mermaid)`);
         if (!blocks) return;
         const clickHandlers: any = [];
         blocks.forEach((block, aIndex: number) => {
@@ -52,6 +52,7 @@ export const Markdown = (props: MarkdownProps) => {
             clickHandlers.push(clickHandler);
             button.addEventListener('click', clickHandler);
         });
+        setMermaid();
 
         return () => {
             blocks.forEach((block, aIndex: number) => {
@@ -100,7 +101,5 @@ export const Markdown = (props: MarkdownProps) => {
         }
     };
 
-    return (
-        <div id={'mrk' + sMarkdownId} className="mrk-form markdown-body" style={{ backgroundColor: '#1B1C21', width: '100%' }} dangerouslySetInnerHTML={{ __html: sMdxText }}></div>
-    );
+    return <div className={`mrk-form markdown-body mrk${sMarkdownId}`} style={{ backgroundColor: '#1B1C21', width: '100%' }} dangerouslySetInnerHTML={{ __html: sMdxText }}></div>;
 };
