@@ -139,22 +139,8 @@ export const elapsedSize = (aSize: number): string => {
     return Math.floor(aSize / 1000) + ' KB';
 };
 
-export const parseCodeBlocks = (aMarkdownContents: string) => {
-    const regex = /```[\s\S]*?```/g;
-    const matches = aMarkdownContents.match(regex);
-    if (!matches) return [];
-
-    return matches.map((block) => {
-        // Remove the starting and ending backticks
-        return block
-            .replace(/```[\w]*\n?/g, '')
-            .replace(/```/g, '')
-            .trim();
-    });
-};
-
 export const convertMsUnitTime = (aTime: string | number, aIntervalUnit: string) => {
-    let sTime = typeof aTime === 'string' ? Number(aTime) : aTime;
+    const sTime = typeof aTime === 'string' ? Number(aTime) : aTime;
     if (aIntervalUnit === 'sec') {
         return sTime * 1000;
     } else if (aIntervalUnit === 'min') {
@@ -174,7 +160,7 @@ export const deepEqual = (object1: any, object2: any) => {
         return false;
     }
 
-    for (let key of keys1) {
+    for (const key of keys1) {
         const val1 = object1[key];
         const val2 = object2[key];
         const areObjects = isObject(val1) && isObject(val2);
