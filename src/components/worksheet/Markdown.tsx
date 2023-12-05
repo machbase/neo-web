@@ -6,7 +6,7 @@ import '@/assets/md/mdDark.css';
 import setMermaid from '@/plugin/mermaid';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
-import { generateUUID, parseCodeBlocks } from '@/utils';
+import { generateUUID } from '@/utils';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Success } from '@/components/toast/Toast';
 
@@ -18,25 +18,30 @@ interface MarkdownProps {
 }
 
 export const Markdown = (props: MarkdownProps) => {
-    const { pContents, pIdx, pType, pData } = props;
+    const {
+        pContents,
+        // pIdx,
+        pType,
+        pData,
+    } = props;
     const [sMdxText, setMdxText] = useState<string>('');
     const [sBoardList] = useRecoilState(gBoardList);
     const [sMarkdownId, setMarkdownId] = useState<string>('');
-    const [sCodeBlocks, setCodeBlocks] = useState<string[]>([]);
+    const sCheckMermaid: RegExp = new RegExp('([```mermaid]*```mermaid[^```]*```)', 'igm');
 
     useEffect(() => {
         init();
         setMarkdownId(generateUUID());
-        setCodeBlocks(parseCodeBlocks(pContents));
     }, [pContents]);
 
     useEffect(() => {
+        if (sMdxText && pContents && pContents.match(sCheckMermaid)) setMermaid();
         if (!sMarkdownId) return;
-        let blocks = document.querySelectorAll(`#mrk${sMarkdownId} pre`);
+        const blocks = document.querySelectorAll(`div.mrk${sMarkdownId} pre:not(.mermaid)`);
         if (!blocks) return;
         const clickHandlers: any = [];
-        blocks.forEach((block, aIndex: number) => {
-            let button = document.createElement('div');
+        blocks.forEach((block: any) => {
+            const button = document.createElement('div');
             button.className = 'cp-button';
             button.innerHTML = `<svg
                                     viewBox="0 0 24 24"
@@ -48,11 +53,10 @@ export const Markdown = (props: MarkdownProps) => {
                                 </svg>`;
             block.appendChild(button);
 
-            const clickHandler = () => handleCopy(sCodeBlocks[aIndex]);
+            const clickHandler = () => handleCopy(block?.innerText);
             clickHandlers.push(clickHandler);
             button.addEventListener('click', clickHandler);
         });
-
         return () => {
             blocks.forEach((block, aIndex: number) => {
                 const button = block.querySelector('.cp-button');
@@ -94,13 +98,8 @@ export const Markdown = (props: MarkdownProps) => {
             } else {
                 setMdxText(`<article>${pContents}</article>`);
             }
-            setTimeout(() => {
-                setMermaid();
-            }, pIdx * 10);
         }
     };
 
-    return (
-        <div id={'mrk' + sMarkdownId} className="mrk-form markdown-body" style={{ backgroundColor: '#1B1C21', width: '100%' }} dangerouslySetInnerHTML={{ __html: sMdxText }}></div>
-    );
+    return <div className={`mrk-form markdown-body mrk${sMarkdownId}`} style={{ backgroundColor: '#1B1C21', width: '100%' }} dangerouslySetInnerHTML={{ __html: sMdxText }}></div>;
 };
