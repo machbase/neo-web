@@ -2,6 +2,7 @@ import request from '@/api/core';
 import { Error } from '@/components/toast/Toast';
 import { decodeJwt } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
+import { TagzCsvParser } from '@/utils/tqlCsvParser';
 // import { getTimeZoneValue } from '@/utils/utils';
 
 const getTqlChart = (aData: string) => {
@@ -136,21 +137,37 @@ const fetchCalculationData = async (params: any) => {
 
     // UTC+${-1 * (getTimeZoneValue() / 60)}
     // const sTimezone = String(-1 * (getTimeZoneValue() / 60));
-    // sTimezone
-    const queryString = `/machbase?q=${encodeURIComponent(sMainQuery)}`;
 
+    const sLastQuery = `SQL("${sMainQuery}")\nCSV()`;
     const sData = await request({
-        method: 'GET',
-        url: queryString,
+        method: 'POST',
+        url: '/api/tql',
+        data: sLastQuery,
     });
+
+    // const queryString = `/machbase?q=${encodeURIComponent(sMainQuery)}`;
+    // const sData = await request({
+    //     method: 'GET',
+    //     url: queryString,
+    // });
+
+    let sConvertData;
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
             Error(sData.data.reason);
         } else {
             Error(sData.data);
         }
+    } else {
+        sConvertData = {
+            ...sData,
+            data: {
+                column: ['TIME', 'VALUE'],
+                rows: TagzCsvParser(sData.data),
+            },
+        };
     }
-    return sData;
+    return sConvertData;
 };
 
 const fetchRawData = async (params: any) => {

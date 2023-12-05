@@ -27,3 +27,8 @@ export const TqlCsvParser = (raw: any) => {
     const sParsedCsvHeader: any = HeaderParser(sParsedCsvBody.data[0].length);
     return [sParsedCsvBody.data, sParsedCsvHeader];
 };
+
+export const TagzCsvParser = (raw: any) => {
+    const sParsedCsvBody: any = BodyParser(raw);
+    return sParsedCsvBody.data;
+};

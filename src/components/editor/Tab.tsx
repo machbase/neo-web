@@ -1,5 +1,5 @@
 import { gBoardList } from '@/recoil/recoil';
-import { getId } from '@/utils';
+import { deepEqual, getId, isValidJSON } from '@/utils';
 import icons from '@/utils/icons';
 import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -68,6 +68,16 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
                 }
                 break;
             case 'taz':
+                if (aBoard.savedCode && typeof aBoard.savedCode === 'string' && isValidJSON(aBoard.savedCode)) {
+                    if (deepEqual(pBoard.panels, JSON.parse(aBoard.savedCode))) {
+                        setIsSaved(true);
+                    } else {
+                        setIsSaved(false);
+                    }
+                } else {
+                    setIsSaved(false);
+                }
+                break;
             case 'dsh':
             case 'new':
             case 'term':

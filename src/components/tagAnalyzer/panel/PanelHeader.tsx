@@ -27,6 +27,7 @@ const PanelHeader = ({
     pIsUpdate,
     pSetIsUpdate,
     pSetSaveEditedInfo,
+    pNavigatorRange,
 }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
@@ -98,7 +99,15 @@ const PanelHeader = ({
                 {!pIsEdit && <IconButton pWidth={25} pIcon={<GearFill />} onClick={() => setEditPanel(true)} />}
                 {!pIsEdit && <IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}
             </div>
-            {sEditPanel && <EditPanel pBoardInfo={pBoardInfo} pPanelInfo={pPanelInfo} pSetEditPanel={setEditPanel} pSetSaveEditedInfo={pSetSaveEditedInfo}></EditPanel>}
+            {sEditPanel && (
+                <EditPanel
+                    pBoardInfo={pBoardInfo}
+                    pPanelInfo={pPanelInfo}
+                    pSetEditPanel={setEditPanel}
+                    pNavigatorRange={pNavigatorRange}
+                    pSetSaveEditedInfo={pSetSaveEditedInfo}
+                ></EditPanel>
+            )}
         </div>
     );
 };

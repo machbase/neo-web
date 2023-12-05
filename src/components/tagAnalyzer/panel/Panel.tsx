@@ -16,7 +16,7 @@ import { Error } from '@/components/toast/Toast';
 import Menu from '@/components/contextMenu/Menu';
 import moment from 'moment';
 
-const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveKeepData, pRefreshCount }: any) => {
+const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveKeepData, pRefreshCount, pFooterRange }: any) => {
     const sAreaChart = useRef<any>();
     const sChartRef = useRef<any>();
     const sMenuRef = useRef<any>();
@@ -472,6 +472,11 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
         }
     };
 
+    const handleMenuClose = () => {
+        setIsMinMaxMenu(false);
+        setIsUpdate(false);
+    };
+
     useEffect(() => {
         if (sPanelRange.startTime) fetchPanelData(sPanelRange);
     }, [sIsRaw]);
@@ -519,7 +524,7 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
 
     const setRange = () => {
         const sData: any = getDateRange(pPanelInfo, pBoardInfo);
-        if (pPanelInfo.time_keeper.startPanelTime) {
+        if (pPanelInfo.use_time_keeper === 'Y' && pPanelInfo.time_keeper.startPanelTime) {
             fetchPanelData({
                 startTime: pPanelInfo.time_keeper.startPanelTime,
                 endTime: pPanelInfo.time_keeper.endPanelTime,
@@ -538,7 +543,7 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
                 endTime: Math.round(sData.startTime + (sData.endTime - sData.startTime) * 0.6),
             });
         }
-        if (pPanelInfo.time_keeper.startNaviTime) {
+        if (pPanelInfo.use_time_keeper === 'Y' && pPanelInfo.time_keeper.startNaviTime) {
             fetchNavigatorData({
                 startTime: pPanelInfo.time_keeper.startNaviTime,
                 endTime: pPanelInfo.time_keeper.endNaviTime,
@@ -563,6 +568,7 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
         sPanelRange.startTime && pGetChartInfo && pGetChartInfo(sPanelRange.startTime, sPanelRange.endTime, pPanelInfo, sIsRaw, 'changed');
         sPanelRange.startTime &&
             sChartRef.current?.chart &&
+            pPanelInfo.use_time_keeper === 'Y' &&
             pSaveKeepData &&
             pSaveKeepData(
                 pPanelInfo.index_key,
@@ -601,6 +607,7 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
                 pIsUpdate={sIsUpdate}
                 pSetIsUpdate={setIsUpdate}
                 pSetSaveEditedInfo={setSaveEditedInfo}
+                pNavigatorRange={sNavigatorRange}
             ></PanelHeader>
             <div className="chart">
                 <div className="left" onClick={() => moveTimRange('l')}>
@@ -628,7 +635,12 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
                     <ArrowRight />
                 </div>
             </div>
-            <PanelFooter pNavigatorRange={sNavigatorRange} pPanelInfo={pPanelInfo} pSetButtonRange={setButtonRange} pMoveNavigatorTimRange={moveNavigatorTimRange}></PanelFooter>
+            <PanelFooter
+                pNavigatorRange={pFooterRange ?? sNavigatorRange}
+                pPanelInfo={pPanelInfo}
+                pSetButtonRange={setButtonRange}
+                pMoveNavigatorTimRange={moveNavigatorTimRange}
+            ></PanelFooter>
             {sIsFFTModal ? <FFTModal pInfo={sMinMaxList} setIsOpen={setIsFFTModal} pStartTime={sFFTMinTime} pEndTime={sFFTMaxTime} /> : null}
             <div ref={sMenuRef} className="menu-position">
                 <Menu isOpen={sIsMinMaxMenu}>
@@ -657,7 +669,7 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
                             })}
                         </tbody>
                     </table>
-                    <Menu.Item onClick={() => setIsMinMaxMenu(false)}>
+                    <Menu.Item onClick={() => handleMenuClose()}>
                         <div className="close">
                             <Close />
                         </div>

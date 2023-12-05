@@ -162,7 +162,7 @@ export const SaveModal = (props: SaveModalProps) => {
                                         const sSaveData = {
                                             ...aItem,
                                             name: sFileName,
-                                            savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : aItem.code,
+                                            savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : sFileType === 'taz' ? JSON.stringify(aItem.panels) : aItem.code,
                                             path: sPath,
                                         };
                                         return sSaveData;
@@ -178,7 +178,7 @@ export const SaveModal = (props: SaveModalProps) => {
                                     const sSaveData = {
                                         ...aItem,
                                         name: sFileName,
-                                        savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : aItem.code,
+                                        savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : sFileType === 'taz' ? JSON.stringify(aItem.panels) : aItem.code,
                                         path: sPath,
                                     };
                                     return sSaveData;
@@ -210,7 +210,7 @@ export const SaveModal = (props: SaveModalProps) => {
                         const sSaveData = {
                             ...aItem,
                             name: sFileName,
-                            savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : aItem.code,
+                            savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : sFileType === 'taz' ? JSON.stringify(aItem.panels) : aItem.code,
                             path: sPath,
                         };
                         return sSaveData;

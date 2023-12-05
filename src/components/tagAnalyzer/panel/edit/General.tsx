@@ -1,11 +1,18 @@
 import { Input } from '@/components/inputs/Input';
 import './General.scss';
+
+const GeneralOptions = ['use_zoom', 'use_time_keeper'];
+
 const General = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const getCheckboxValue = (aEvent: any, aType: string) => {
         if (aEvent.target.checked === true) {
             pSetCopyPanelInfo({ ...pPanelInfo, [aType]: 'Y' });
         } else {
-            pSetCopyPanelInfo({ ...pPanelInfo, [aType]: 'N' });
+            if (aType === GeneralOptions[1]) {
+                pSetCopyPanelInfo({ ...pPanelInfo, [aType]: 'N', time_keeper: {} });
+            } else {
+                pSetCopyPanelInfo({ ...pPanelInfo, [aType]: 'N' });
+            }
         }
     };
 
@@ -24,9 +31,13 @@ const General = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                 </div>
             </div>
             <div className="second-row">
-                <div className="zoom-dragging">
-                    <input checked={pPanelInfo.use_zoom === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_zoom')} type="checkbox" />
+                <div className="row-options">
+                    <input checked={pPanelInfo.use_zoom === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, GeneralOptions[0])} type="checkbox" />
                     <span>Use Zoom when dragging</span>
+                </div>
+                <div className="row-options">
+                    <input checked={pPanelInfo.use_time_keeper === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, GeneralOptions[1])} type="checkbox" />
+                    <span>Keep Navigator Posistion</span>
                 </div>
             </div>
         </div>
