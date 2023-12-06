@@ -26,6 +26,7 @@ import {
 import { IconButton } from '../buttons/IconButton';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
+import { isJsonString } from '@/utils/utils';
 interface TqlProps {
     pCode: string;
     pIsSave: any;
@@ -72,17 +73,31 @@ const Tql = (props: TqlProps) => {
                 setResultType('html');
                 setChartData(sResult.data);
             } else {
-                setResultType('text');
-                setTextField('');
-                setConsoleList((prev: any) => [
-                    ...prev,
-                    {
-                        timestamp: new Date().getTime(),
-                        level: 'ERROR',
-                        task: '',
-                        message: sResult.statusText,
-                    },
-                ]);
+                if (isJsonString(sResult.data)) {
+                    setResultType('text');
+                    setTextField('');
+                    setConsoleList((prev: any) => [
+                        ...prev,
+                        {
+                            timestamp: new Date().getTime(),
+                            level: 'ERROR',
+                            task: '',
+                            message: sResult.statusText,
+                        },
+                    ]);
+                } else {
+                    setResultType('text');
+                    setTextField('');
+                    setConsoleList((prev: any) => [
+                        ...prev,
+                        {
+                            timestamp: new Date().getTime(),
+                            level: 'ERROR',
+                            task: '',
+                            message: 'SyntaxError: chartOption',
+                        },
+                    ]);
+                }
             }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/markdown') {
             setResultType('mrk');
