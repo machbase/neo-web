@@ -26,6 +26,7 @@ const CHART = ({
     const [sChartDiv, setChartDiv] = useState<any>(null);
     const [sSelectedXAxis, setSelectedXAxis] = useState<string>('');
     const [sSelectedYAxis, setSelectedYAxis] = useState<string>('');
+    const [sTheme, setTheme] = useState<string>('dark');
     const chartRef = useRef<any>(null);
     const sControlPanelHeight: number = 40;
     const sControlList: string[] = ['X Axis', 'Y Axis'];
@@ -45,7 +46,8 @@ const CHART = ({
         else sTmpResult = await getTqlChart(sqlBasicChartFormatter(pSqlQueryTxt(), aSize.width, aSize.height));
         const sIsData = !!sTmpResult.data.chartOption.series;
         if (sIsData) {
-            const sTheme = sTmpResult.data.theme === '-' ? 'vintage' : sTmpResult.data.theme;
+            const sTheme = sTmpResult.data.theme && sTmpResult.data.theme !== '-' ? sTmpResult.data.theme : 'white';
+            setTheme(sTheme);
             const sDataLength = sTmpResult.data.chartOption.series.length > 0 ? sTmpResult.data.chartOption.series[0].data.length : 0;
             sTmpResult.data.chartOption.dataZoom[0].start = 100 - (5 * aSize.width) / sDataLength;
             sTmpResult.data.chartOption.dataZoom[0].end = 100;
@@ -144,7 +146,11 @@ const CHART = ({
                     </div>
                     {sResult && (
                         <div className="chart_container">
-                            <div className="chart_item" id={sResult.chartID} style={{ width: sStyle.width + 'px', height: sStyle.height + 'px' }} />
+                            <div
+                                className="chart_item"
+                                id={sResult.chartID}
+                                style={{ backgroundColor: sTheme === 'dark' ? '' : '#FFF', width: sStyle.width + 'px', height: sStyle.height + 'px' }}
+                            />
                         </div>
                     )}
                 </>
