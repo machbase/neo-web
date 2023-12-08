@@ -176,3 +176,22 @@ export const deepEqual = (object1: any, object2: any) => {
 export const isObject = (object: any) => {
     return object != null && typeof object === 'object';
 };
+
+export const parseCodeBlocks = (aMarkdownContents: string) => {
+    const regex = /```[\s\S]*?```/g;
+    const matches = aMarkdownContents.match(regex);
+    const startPikchr = '```pikchr';
+    const startMermaid = '```mermaid';
+    if (!matches) return [];
+
+    return matches.filter((block) => {
+        return !block.startsWith(startMermaid);
+    }).filter((block) => {
+        return !block.startsWith(startPikchr);
+    }).map((block) => {
+        return block
+            .replace(/```[\w]*\n?/g, '')
+            .replace(/```/g, '')
+            .trim();
+    });
+};

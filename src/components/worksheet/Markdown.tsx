@@ -6,7 +6,7 @@ import '@/assets/md/mdDark.css';
 import setMermaid from '@/plugin/mermaid';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
-import { generateUUID } from '@/utils';
+import { generateUUID, parseCodeBlocks } from '@/utils';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Success } from '@/components/toast/Toast';
 
@@ -20,27 +20,33 @@ interface MarkdownProps {
 export const Markdown = (props: MarkdownProps) => {
     const {
         pContents,
-        // pIdx,
+        pIdx,
         pType,
         pData,
     } = props;
     const [sMdxText, setMdxText] = useState<string>('');
     const [sBoardList] = useRecoilState(gBoardList);
     const [sMarkdownId, setMarkdownId] = useState<string>('');
+    const [sCodeBlocks, setCodeBlocks] = useState<string[]>([]);
     const sCheckMermaid: RegExp = new RegExp('([```mermaid]*```mermaid[^```]*```)', 'igm');
 
     useEffect(() => {
         init();
         setMarkdownId(generateUUID());
+        setCodeBlocks(parseCodeBlocks(pContents));
     }, [pContents]);
 
     useEffect(() => {
-        if (sMdxText && pContents && pContents.match(sCheckMermaid)) setMermaid();
+        if (sMdxText && pContents && pContents.match(sCheckMermaid)) {
+            setTimeout(() => {
+                setMermaid();
+            }, pIdx * 10);
+        };
         if (!sMarkdownId) return;
         const blocks = document.querySelectorAll(`div.mrk${sMarkdownId} pre:not(.mermaid)`);
         if (!blocks) return;
         const clickHandlers: any = [];
-        blocks.forEach((block: any) => {
+        blocks.forEach((block: any, aIndex: number) => {
             const button = document.createElement('div');
             button.className = 'cp-button';
             button.innerHTML = `<svg
@@ -53,7 +59,7 @@ export const Markdown = (props: MarkdownProps) => {
                                 </svg>`;
             block.appendChild(button);
 
-            const clickHandler = () => handleCopy(block?.innerText);
+            const clickHandler = () => handleCopy(sCodeBlocks[aIndex]);
             clickHandlers.push(clickHandler);
             button.addEventListener('click', clickHandler);
         });
