@@ -71,7 +71,6 @@ const fetchTableName = async (aTable: string) => {
 
 const fetchCalculationData = async (params: any) => {
     const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue, Rollup, colName } = params;
-
     const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
     const sTableName = sCurrentUserName === ADMIN_ID ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
     const sName = colName.name;
@@ -84,7 +83,7 @@ const fetchCalculationData = async (params: any) => {
     let sOnedayOversize = '';
     let sRollupValue = 0;
 
-    if (Rollup && IntervalType == 'day' && IntervalValue > 1) {
+    if (Rollup && IntervalType === 'day' && IntervalValue > 1) {
         sTimeCalc = '1hour';
         sOnedayOversize = `to_char(mTime / ${IntervalValue * 60 * 60 * 24 * 1000000000}  * ${IntervalValue * 60 * 60 * 24 * 1000000000})`;
     } else if (!Rollup) {
@@ -159,13 +158,15 @@ const fetchCalculationData = async (params: any) => {
             Error(sData.data);
         }
     } else {
-        sConvertData = {
-            ...sData,
-            data: {
-                column: ['TIME', 'VALUE'],
-                rows: TagzCsvParser(sData.data),
-            },
-        };
+        if (typeof sData.data === 'string') {
+            sConvertData = {
+                ...sData,
+                data: {
+                    column: ['TIME', 'VALUE'],
+                    rows: TagzCsvParser(sData.data),
+                },
+            };
+        }
     }
     return sConvertData;
 };
