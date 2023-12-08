@@ -197,7 +197,7 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                             onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_y_tickline2')}
                             type="checkbox"
                         />
-                        <span>Displays the X-Axis tick line</span>
+                        <span>Displays the Y-Axis tick line</span>
                     </div>
                     <div className="aditional-custom pt-12">
                         <span>Custom scale</span>
