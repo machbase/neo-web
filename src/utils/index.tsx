@@ -1,4 +1,4 @@
-import { ADMIN_ID, DEFAULT_DB_NAME, IMAGE_EXTENSION_LIST } from '@/utils/constants';
+import { ADMIN_ID, DEFAULT_DB_NAME, IMAGE_EXTENSION_LIST, MIN_MAX_BASE_QUERY, MIN_MAX_MOUNT_QUERY } from '@/utils/constants';
 
 export const getId = () => {
     return new Date().getTime() + (Math.random() * 1000).toFixed();
@@ -184,14 +184,92 @@ export const parseCodeBlocks = (aMarkdownContents: string) => {
     const startMermaid = '```mermaid';
     if (!matches) return [];
 
-    return matches.filter((block) => {
-        return !block.startsWith(startMermaid);
-    }).filter((block) => {
-        return !block.startsWith(startPikchr);
-    }).map((block) => {
-        return block
-            .replace(/```[\w]*\n?/g, '')
-            .replace(/```/g, '')
-            .trim();
+    return matches
+        .filter((block) => {
+            return !block.startsWith(startMermaid);
+        })
+        .filter((block) => {
+            return !block.startsWith(startPikchr);
+        })
+        .map((block) => {
+            return block
+                .replace(/```[\w]*\n?/g, '')
+                .replace(/```/g, '')
+                .trim();
+        });
+};
+
+type TableTagInfo = {
+    key: string;
+    alias: string;
+    calculationMode: string;
+    table: string;
+    tagName: string;
+    weight: number;
+    colName: {
+        name: string;
+        time: string;
+        value: string;
+    };
+};
+export const createTableTagMap = (tableTagInfo: TableTagInfo[]) => {
+    const sMap: any = {};
+
+    tableTagInfo.forEach((aInfo: any) => {
+        const tableKey = aInfo.table;
+        const tagName = aInfo.tagName;
+
+        if (sMap[tableKey]) {
+            sMap[tableKey].push(tagName);
+        } else {
+            sMap[tableKey] = [tagName];
+        }
     });
+
+    const sResult = Object.keys(sMap).map((table: string) => {
+        return {
+            table,
+            tags: sMap[table],
+        };
+    });
+
+    return sResult;
+};
+
+type TableTagMap = {
+    table: string;
+    tags: string[];
+};
+export const createMinMaxQuery = (tableTagMap: TableTagMap[], currentUserName: string) => {
+    let query = '';
+    tableTagMap.forEach((aInfo: any, aIndex: number) => {
+        if (aIndex !== 0) query += ` UNION ALL `;
+
+        let tableName = '';
+        let tags = '';
+        let userName = currentUserName;
+        const tableInfo = aInfo.table.split('.');
+
+        if (tableInfo.length === 3) {
+            tags = aInfo.tags[0];
+            tableName = aInfo.table;
+            query += MIN_MAX_MOUNT_QUERY.replace('[table]', tableName).replace('[tag]', tags);
+        } else {
+            if (tableInfo.length === 2) {
+                tableName = tableInfo[1];
+                userName = tableInfo[0];
+            } else {
+                tableName = aInfo.table;
+            }
+            aInfo.tags.forEach((tag: string, aIndex: number) => {
+                if (aIndex === aInfo.tags.length - 1) {
+                    tags += `'${tag}'`;
+                } else {
+                    tags += `'${tag}',`;
+                }
+            });
+            query += MIN_MAX_BASE_QUERY.replace('[tags]', tags).replace('[table]', tableName).replace('[userName]', userName);
+        }
+    });
+    return query;
 };

@@ -1,6 +1,6 @@
 import request from '@/api/core';
 import { Error } from '@/components/toast/Toast';
-import { decodeJwt } from '@/utils';
+import { createMinMaxQuery, createTableTagMap, decodeJwt } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
 // import { getTimeZoneValue } from '@/utils/utils';
@@ -239,27 +239,29 @@ const fetchRawData = async (params: any) => {
     return sData;
 };
 
-const fetchRangeData = async (Table: string, TagNames: string, time: string) => {
-    const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
-    const sTableName = sCurrentUserName === ADMIN_ID ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
-    const sData = await request({
-        method: 'GET',
-        url: `/machbase?q=` + encodeURIComponent(`SELECT (min(${time})) as MIN, (max(${time})) as MAX FROM ${sTableName} WHERE name = '${TagNames}'`),
-    });
-    if (sData.status >= 400) {
-        if (typeof sData.data === 'object') {
-            Error(sData.data.reason);
-        } else {
-            Error(sData.data);
-        }
-    }
-    return sData;
-};
+// const fetchRangeData = async (Table: string, TagNames: string, time: string) => {
+//     const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
+//     const sTableName = sCurrentUserName === ADMIN_ID ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
+//     const sData = await request({
+//         method: 'GET',
+//         url: `/machbase?q=` + encodeURIComponent(`SELECT (min(${time})) as MIN, (max(${time})) as MAX FROM ${sTableName} WHERE name = '${TagNames}'`),
+//     });
+//     if (sData.status >= 400) {
+//         if (typeof sData.data === 'object') {
+//             Error(sData.data.reason);
+//         } else {
+//             Error(sData.data);
+//         }
+//     }
+//     return sData;
+// };
 
-const fetchOnMinMaxTable = async (table: string, userName: string) => {
+const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
+    const convert = createTableTagMap(tableTagInfo);
+    const query = createMinMaxQuery(convert, userName);
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=` + encodeURIComponent(`select MIN(min_time), MAX(max_time) from ${userName}.v$${table}_stat`),
+        url: `/machbase?q=` + encodeURIComponent(`select MIN(min_tm), MAX(max_tm) from (${query})`),
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -384,7 +386,6 @@ export {
     fetchRawData,
     fetchTablesData,
     fetchRollupData,
-    fetchRangeData,
     fetchTableName,
     fetchTags,
     fetchRollUp,
