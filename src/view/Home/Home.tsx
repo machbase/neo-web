@@ -60,7 +60,7 @@ const Home = () => {
                     setConsoleList((aData: any) => [...aData, { timestamp: new Date().getTime(), level: '', task: '', message: 'Connection lost' }]);
 
                     timer.current = setInterval(() => {
-                        if (count > 2) {
+                        if (count > 60) {
                             clearInterval(timer.current);
                             localStorage.removeItem('accessToken');
                             localStorage.removeItem('refreshToken');
