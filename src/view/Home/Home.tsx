@@ -33,6 +33,10 @@ const Home = () => {
 
     let count = 0;
     const init = async () => {
+        if (sSelectedExtension === '') {
+            setIsSidebar(false);
+            setSideSizes(['0%', '100%']);
+        }
         const sResult: any = await getLogin();
         if (sResult.reason === 'success') {
             const sId = getId();
@@ -56,7 +60,7 @@ const Home = () => {
                     setConsoleList((aData: any) => [...aData, { timestamp: new Date().getTime(), level: '', task: '', message: 'Connection lost' }]);
 
                     timer.current = setInterval(() => {
-                        if (count > 60) {
+                        if (count > 2) {
                             clearInterval(timer.current);
                             localStorage.removeItem('accessToken');
                             localStorage.removeItem('refreshToken');
@@ -132,7 +136,15 @@ const Home = () => {
         <div className={sDragStat ? 'check-draged home-form' : 'home-form'}>
             <Extension pSetSideSizes={setSideSizes} pIsSidebar={sIsSidebar} pHandleSideBar={setIsSidebar}></Extension>
             <div className="body-form">
-                <SplitPane sashRender={() => <></>} split="vertical" sizes={sSideSizes} onChange={setSideSizes} onDragEnd={changeDraged} onDragStart={setStatus}>
+                <SplitPane
+                    sashRender={() => <></>}
+                    split="vertical"
+                    allowResize={sIsSidebar}
+                    sizes={sSideSizes}
+                    onChange={setSideSizes}
+                    onDragEnd={changeDraged}
+                    onDragStart={setStatus}
+                >
                     <Pane minSize={0} maxSize="50%">
                         {sExtentionList &&
                             sExtentionList.length !== 0 &&
