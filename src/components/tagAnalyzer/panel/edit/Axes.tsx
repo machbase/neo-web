@@ -285,7 +285,6 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                     <div style={pPanelInfo.use_right_y2 !== 'Y' ? { opacity: '0.6' } : {}} className="addition-select-box">
                         <select
                             style={pPanelInfo.use_right_y2 !== 'Y' ? { opacity: '0.6' } : {}}
-                            placeholder="Select a tag for the additional Y-axis"
                             onChange={setY2TagList}
                             disabled={pPanelInfo.use_right_y2 !== 'Y'}
                         >
