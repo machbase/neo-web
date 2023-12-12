@@ -76,12 +76,23 @@ const fetchCalculationData = async (params: any) => {
     const sName = colName.name;
     const sTime = colName.time;
     const sValue = colName.value;
+    const sNanoSec = 1000000;
+    let sStartTime = Start,
+        sEndTime = End;
+    const sCheckStartTime = Start.toString().includes('.');
+    const sCheckEndTime = End.toString().includes('.');
+    const sTimeRange = (End - Start) / 2;
+
+    if (sCheckStartTime) sStartTime = Start * sNanoSec;
+    if (sCheckEndTime) sEndTime = End * sNanoSec;
+    if (Start.toString().length === 13) sStartTime = Start * sNanoSec - sTimeRange;
+    if (End.toString().length === 13) sEndTime = End * sNanoSec + sTimeRange;
 
     let sSubQuery = '';
     let sMainQuery = '';
     let sTimeCalc = '';
     let sOnedayOversize = '';
-    let sRollupValue = 0;
+    let sRollupValue = 1;
 
     if (Rollup && IntervalType === 'day' && IntervalValue > 1) {
         sTimeCalc = '1hour';
@@ -95,10 +106,10 @@ const fetchCalculationData = async (params: any) => {
             sRollupValue = 3600;
         }
         sTimeCalc = IntervalValue + IntervalType;
-        sOnedayOversize = '(mTime)';
+        sOnedayOversize = 'mTime';
     } else {
         sTimeCalc = IntervalValue + IntervalType;
-        sOnedayOversize = '(mTime)';
+        sOnedayOversize = 'mTime';
     }
 
     if (CalculationMode === 'sum' || CalculationMode === 'min' || CalculationMode === 'max') {
@@ -108,18 +119,18 @@ const fetchCalculationData = async (params: any) => {
             sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
         }
 
-        sSubQuery = `select ${sCol} as mTime, ${CalculationMode}(${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
-        sMainQuery = `select to_timestamp(${sOnedayOversize}/1000000) as time, ${CalculationMode}(mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${
+        sSubQuery = `select ${sCol} as mTime, ${CalculationMode}(${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
+        sMainQuery = `select to_timestamp(${sOnedayOversize}) / 1000000.0 as time, ${CalculationMode}(mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${
             Count * 1
         }`;
     }
     if (CalculationMode === 'avg') {
         let sCol = `${sTime} rollup ${sTimeCalc}`;
         if (!Rollup) {
-            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
+            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000) * (${IntervalValue} * ${sRollupValue} * 1000000)`;
         }
-        sSubQuery = `select ${sCol} as mTime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
-        sMainQuery = `SELECT to_timestamp(${sOnedayOversize})/1000000 AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${
+        sSubQuery = `select ${sCol} as mTime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
+        sMainQuery = `SELECT to_timestamp(${sOnedayOversize}) / 1000000.0 AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${
             Count * 1
         }`;
     }
@@ -127,11 +138,11 @@ const fetchCalculationData = async (params: any) => {
     if (CalculationMode === 'cnt') {
         let sCol = `${sTime} rollup ${sTimeCalc}`;
         if (!Rollup) {
-            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
+            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000) * (${IntervalValue} * ${sRollupValue} * 1000000)`;
         }
 
-        sSubQuery = `select ${sCol} as mTime, count(${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${Start}000000 and ${End}000000 group by mTime`;
-        sMainQuery = `SELECT to_timestamp(${sOnedayOversize}/1000000) AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${Count * 1}`;
+        sSubQuery = `select ${sCol} as mTime, count(${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
+        sMainQuery = `SELECT to_timestamp(${sOnedayOversize}) / 1000000.0 AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${Count * 1}`;
     }
 
     // UTC+${-1 * (getTimeZoneValue() / 60)}
@@ -172,9 +183,17 @@ const fetchCalculationData = async (params: any) => {
 };
 
 const fetchRawData = async (params: any) => {
-    const { Table, TagNames, Start, End, Direction, Count, colName, sampleValue } = params;
-
+    const { Table, TagNames, Start, End, Direction, Count, colName, sampleValue, UseSampling } = params;
     let sOrderBy = '';
+    const sNanoSec = 1000000;
+    let sStartTime = Start,
+        sEndTime = End;
+    const sCheckStartTime = Start.toString().includes('.');
+    const sCheckEndTime = End.toString().includes('.');
+
+    if (sCheckStartTime) sStartTime = Start * sNanoSec;
+    if (sCheckEndTime) sEndTime = End * sNanoSec;
+
     // if (Start.length < 19) {
     //     sStart = Start.substring(0, 10) + ' 00:00:00 000:000:000';
     // } else if (Start.length < 22) {
@@ -201,12 +220,13 @@ const fetchRawData = async (params: any) => {
     const sTimeCol = colName.time;
     const sValueCol = colName.value;
 
-    const sTimeQ = `(${sTimeCol}/1000000)` + ' as date';
+    // const sTimeQ = `(${sTimeCol}/1000000)` + ' as date';
+    const sTimeQ = `to_timestamp(${sTimeCol}) / 1000000.0` + ' as date';
     const sValueQ = sValueCol + ' as value';
 
-    let sQuery = `SELECT  ${
-        sampleValue ? '/*+ SAMPLING(' + sampleValue + ') */' : ''
-    } ${sTimeQ}, ${sValueQ} FROM ${Table} WHERE ${sNameCol} = '${TagNames}' AND ${sTimeCol} BETWEEN ${Start}000000 AND ${End}000000`;
+    let sQuery = `SELECT${
+        UseSampling ? '/*+ SAMPLING(' + sampleValue + ') */' : ''
+    } ${sTimeQ}, ${sValueQ} FROM ${Table} WHERE ${sNameCol} = '${TagNames}' AND ${sTimeCol} BETWEEN ${sStartTime} AND ${sEndTime}`;
 
     if (sOrderBy !== '') {
         sQuery = sQuery + ' ORDER BY ' + sOrderBy;
@@ -222,21 +242,34 @@ const fetchRawData = async (params: any) => {
         }
     }
 
-    const queryString = `/machbase?q=${encodeURIComponent(sQuery)}&timeformat=ns`;
+    // const queryString = `/machbase?q=${encodeURIComponent(sQuery)}&timeformat=ns`;
+    const sLastQuery = `SQL("${sQuery}")\nCSV()`;
 
     const sData = await request({
-        method: 'GET',
-        url: queryString,
+        method: 'POST',
+        url: '/api/tql',
+        data: sLastQuery,
     });
+
+    let sConvertData;
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
             Error(sData.data.reason);
         } else {
             Error(sData.data);
         }
+    } else {
+        if (typeof sData.data === 'string') {
+            sConvertData = {
+                ...sData,
+                data: {
+                    column: ['TIME', 'VALUE'],
+                    rows: TagzCsvParser(sData.data),
+                },
+            };
+        }
     }
-
-    return sData;
+    return sConvertData;
 };
 
 // const fetchRangeData = async (Table: string, TagNames: string, time: string) => {
