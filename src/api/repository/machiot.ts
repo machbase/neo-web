@@ -127,7 +127,7 @@ const fetchCalculationData = async (params: any) => {
     if (CalculationMode === 'avg') {
         let sCol = `${sTime} rollup ${sTimeCalc}`;
         if (!Rollup) {
-            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000) * (${IntervalValue} * ${sRollupValue} * 1000000)`;
+            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
         }
         sSubQuery = `select ${sCol} as mTime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
         sMainQuery = `SELECT to_timestamp(${sOnedayOversize}) / 1000000.0 AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${
@@ -138,7 +138,7 @@ const fetchCalculationData = async (params: any) => {
     if (CalculationMode === 'cnt') {
         let sCol = `${sTime} rollup ${sTimeCalc}`;
         if (!Rollup) {
-            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000) * (${IntervalValue} * ${sRollupValue} * 1000000)`;
+            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
         }
 
         sSubQuery = `select ${sCol} as mTime, count(${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
@@ -190,9 +190,12 @@ const fetchRawData = async (params: any) => {
         sEndTime = End;
     const sCheckStartTime = Start.toString().includes('.');
     const sCheckEndTime = End.toString().includes('.');
+    const sTimeRange = (End - Start) / 2;
 
     if (sCheckStartTime) sStartTime = Start * sNanoSec;
     if (sCheckEndTime) sEndTime = End * sNanoSec;
+    if (Start.toString().length === 13) sStartTime = Start * sNanoSec - sTimeRange;
+    if (End.toString().length === 13) sEndTime = End * sNanoSec + sTimeRange;
 
     // if (Start.length < 19) {
     //     sStart = Start.substring(0, 10) + ' 00:00:00 000:000:000';
