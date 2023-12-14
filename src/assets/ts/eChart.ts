@@ -18,8 +18,18 @@
 //     '/web/echarts/themes/shine.js',
 //     '/web/echarts/themes/roma.js',
 // ];
+const JS_ASSETS_LIST: string[] = [];
+const ECHART_PATH_REGEX = new RegExp('^/web/echarts', 'm');
+
+const CheckAssets = (assets: string) => {
+    if (!JS_ASSETS_LIST.includes(assets) && !assets.includes('-.') && ECHART_PATH_REGEX.test(assets.toString())) {
+        JS_ASSETS_LIST.push(assets);
+        return true;
+    } else return false;
+};
 
 const loadScript = (url: string) => {
+    if (!CheckAssets(url)) return;
     return new Promise((resolve, reject) => {
         const sScript = document.createElement('script');
         sScript.src = url;
