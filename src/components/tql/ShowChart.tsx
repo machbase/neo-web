@@ -42,12 +42,7 @@ export const ShowChart = (props: ShowChartProps) => {
     useEffect(() => {
         return () => {
             const chartElement = document.getElementById(pData.chartID);
-            if (!chartElement && sInstance) {
-                sInstance.forEach((aInstance) => {
-                    aInstance.dispose();
-                });
-                setInstance([]);
-            }
+            if (!chartElement && sInstance) setInstance([]);
         };
     }, [pData, sInstance]);
 
