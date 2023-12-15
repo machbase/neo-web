@@ -1,4 +1,4 @@
-import { loadScriptsSequentially } from '@/assets/ts/eChart';
+import { loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
 
 const showChart = (aData: any, sTheme: string) => {
     // @ts-ignore
