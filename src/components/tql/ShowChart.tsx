@@ -48,7 +48,7 @@ export const ShowChart = (props: ShowChartProps) => {
 
     return (
         <div className="tql-form">
-            <div dangerouslySetInnerHTML={{ __html: sText }} style={{ display: 'flex' }} className="tql-chart-form"></div>
+            <div dangerouslySetInnerHTML={{ __html: sText }} style={{ display: 'flex' }} className="tql-chart-form" />
         </div>
     );
 };

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import SplitPane, { Pane, SashContent } from 'split-pane-react';
 import { getTqlChart } from '@/api/repository/machiot';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
@@ -6,6 +6,7 @@ import { gBoardList, gConsoleSelector, gSelectedTab } from '@/recoil/recoil';
 import { Table } from './Table';
 import './index.scss';
 import { ShowChart } from './ShowChart';
+import { ShowMap } from './ShowMap';
 import { Markdown } from '../worksheet/Markdown';
 import { isValidJSON } from '@/utils';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
@@ -51,7 +52,9 @@ const Tql = (props: TqlProps) => {
     const [sIsPrettier, setIsPrettier] = useState<boolean>(false);
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
+    const [sMapData, setMapData] = useState<any>(undefined);
     const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
+    const tqlResultBodyRef = useRef(null);
 
     useEffect(() => {
         setText(pCode);
@@ -98,6 +101,23 @@ const Tql = (props: TqlProps) => {
                         },
                     ]);
                 }
+            }
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['x-chart-type'] === 'geomap') {
+            if (sResult.data && sResult.data.ID) {
+                setResultType('map');
+                setMapData(sResult.data);
+            } else {
+                setTextField('');
+                setResultType('text');
+                setConsoleList((prev: any) => [
+                    ...prev,
+                    {
+                        timestamp: new Date().getTime(),
+                        level: 'ERROR',
+                        task: '',
+                        message: 'SyntaxError: GEOMAP',
+                    },
+                ]);
             }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/markdown') {
             setResultType('mrk');
@@ -234,7 +254,7 @@ const Tql = (props: TqlProps) => {
                                 <IconButton pIcon={<LuFlipVertical />} pIsActive={!isVertical} onClick={handleSplitHorizontal} />
                             </div>
                         </div>
-                        <div className="tql-result-body" style={{ backgroundColor: '#1B1C21' }}>
+                        <div ref={tqlResultBodyRef} className="tql-result-body" style={{ backgroundColor: '#1B1C21' }}>
                             {sResultType === 'csv' ? <Table headers={sCsvHeader} items={sIsHeader ? sCsv : sCsv.filter((_, aIdx) => aIdx !== 0)} /> : null}
                             {sResultType === 'text' && sTextField ? (
                                 sIsPrettier && isValidJSON(sTextField) ? (
@@ -244,6 +264,7 @@ const Tql = (props: TqlProps) => {
                                 )
                             ) : null}
                             {sResultType === 'html' ? <ShowChart pData={sChartData} /> : null}
+                            {sResultType === 'map' ? <ShowMap pData={sMapData} pBodyRef={tqlResultBodyRef} /> : null}
                             {sResultType === 'mrk' ? <Markdown pIdx={1} pContents={sMarkdown} pType="mrk" /> : null}
                             {sResultType === 'xhtml' ? <Markdown pIdx={1} pContents={sMarkdown} /> : null}
                         </div>
