@@ -12,22 +12,34 @@ export const sqlSheetFormatter = (aSql: string, aBrief: boolean) => {
     return 'SQL(`' + aSql + '`)\n' + `MARKDOWN(html(true), rownum(true), heading(true), brief(${aBrief}))`;
 };
 
-export const sqlBasicChartFormatter = (aSql: string, aWidth: number, aHeight: number, aAxis?: { x: string; y: string; xIndex: number; yIndex: number }) => {
-    if (aAxis)
-        return (
-            'SQL(`' +
-            aSql +
-            '`)\n' +
-            'TAKE(5000)\n' +
-            'CHART_LINE(' +
-            `xAxis(${aAxis.xIndex},'` +
-            aAxis.x +
-            `'), yAxis(${aAxis.yIndex}, '` +
-            aAxis.y +
-            `'),` +
-            `dataZoom('slider', 0, 100),` +
-            'size(' +
-            `'${aWidth}px','${aHeight}px'))`
-        );
-    else return 'SQL(`' + aSql + '`)\n' + 'TAKE(5000)\n' + 'CHART_LINE(size(' + `'${aWidth}px','${aHeight}px'))`;
+const Animation = `"animation": false`;
+const DataZoom = `"dataZoom": [{"type": "slider","end": 100}]`;
+const Color = `"color": ["#5470c6","#91cc75","#fac858","#ee6666","#73c0de","#3ba272","#fc8452","#9a60b4","#ea7ccc"]`;
+const Legend = `"legend": {"show": true,"type": ""}`;
+const Title = `"title": {}`;
+const Tooltip = `"tooltip": {"show": true,"trigger": "axis","axisPointer": {"type": "cross","show": false}}`;
+
+export const sqlBasicChartFormatter = (aSql: string, aAxis?: { x: string; y: string; xIndex: number; yIndex: number; list: string[] }) => {
+    return (
+        'SQL(`' +
+        aSql +
+        '`)\n' +
+        'TAKE(5000)\n' +
+        `CHART(
+            theme("dark"),
+            chartOption({
+                ${Animation},
+                ${DataZoom},
+                ${Color},
+                ${Legend},
+                ${Title},
+                ${Tooltip},
+                "xAxis": {"name": "${aAxis?.x}", "type": "category", "data": column(${aAxis?.xIndex})}, 
+                "yAxis": {"name": "${aAxis?.y}", "type": "value"},
+                "series": [${aAxis?.list.map((colName: string, aIdx: number) => {
+                    if (colName !== aAxis?.x) return `{"name": "${colName}", "type": "line", "data": column(${aIdx})}`;
+                })}],
+            })
+        )`
+    );
 };
