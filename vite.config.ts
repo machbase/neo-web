@@ -17,6 +17,17 @@ export default defineConfig({
     base: '/web/ui',
     server: {
         proxy: {
+            'https://machbase.com/assets/example/*': {
+                target: `http://${TestTarget}`,
+                changeOrigin: true,
+                secure: false,
+            },
+            '/web/geomap': {
+                target: `http://${TestTarget}`,
+                changeOrigin: true,
+                secure: false,
+                ws: false,
+            },
             '/web/echarts': {
                 target: `http://${TestTarget}`,
                 changeOrigin: true,

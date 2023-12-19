@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
 
 const showChart = (aData: any, sTheme: string) => {
@@ -9,19 +10,28 @@ const showChart = (aData: any, sTheme: string) => {
 };
 
 export const drawChart = async (aData: any, sTheme: string) => {
-    let goecharts_aibQDdRJHYEs = undefined;
+    let DynamicChartInfo: any = undefined;
+    // let goecharts_aibQDdRJHYEs = undefined;
     if (aData && aData.jsAssets) {
         await loadScriptsSequentially(aData.jsAssets);
+        if (aData && aData.jsCodeAssets) {
+            // @ts-ignore
+            await loadScriptsSequentially(aData.jsCodeAssets);
+            // aData.jsCodeAssets.map(async (aCode: string, aIdx: number) => {
+            //     // @ts-ignore
+            //     await loadScriptsSequentially([aCode], () => window[`${aData.chartID}`][`customfunc${aIdx}`](echarts.init(document.getElementById(aData.chartID))));
+            //     // await window[`${aData.chartID}`][`customfunc${aIdx}`](echarts.init(document.getElementById(aData.chartID)));
+            // });
+        }
         // @ts-ignore
-        goecharts_aibQDdRJHYEs = await echarts.init(document.getElementById(aData.chartID), sTheme);
+        DynamicChartInfo = echarts.init(document.getElementById(aData.chartID), sTheme);
     } else {
         // @ts-ignore
-        goecharts_aibQDdRJHYEs = await echarts.init(document.getElementById(aData.chartID), sTheme);
+        DynamicChartInfo = echarts.init(document.getElementById(aData.chartID), sTheme);
     }
-
-    await goecharts_aibQDdRJHYEs.setOption(aData.chartOption);
-    aData.chartAction && (await goecharts_aibQDdRJHYEs.dispatchAction(aData.chartAction));
-    return goecharts_aibQDdRJHYEs;
+    // await DynamicChartInfo.setOption(aData.chartOption);
+    // aData.chartAction && (await DynamicChartInfo.dispatchAction(aData.chartAction));
+    return DynamicChartInfo;
 };
 
 export const reSizeChart = (aTargetDiv: any, aSizes: any) => {

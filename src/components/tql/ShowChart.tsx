@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { drawChart } from '@/plugin/eCharts';
+import { useEffect } from 'react';
+import { loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
 
 interface ShowChartProps {
     pData: any;
@@ -8,47 +8,29 @@ interface ShowChartProps {
 
 export const ShowChart = (props: ShowChartProps) => {
     const { pData, pIsCenter } = props;
-    const [sText, setText] = useState<string>('');
     const sTheme = pData.theme ? pData.theme : 'dark';
 
-    const [sInstance, setInstance] = useState<any[]>([]);
+    const LoadScript = async () => {
+        if (pData && pData.jsAssets) await loadScriptsSequentially(pData.jsAssets);
+        if (pData && pData.jsCodeAssets) await loadScriptsSequentially(pData.jsCodeAssets);
+    };
 
     useEffect(() => {
-        const init = () => {
-            const sValue = ` <div className="chart_container">
-                    <div className="chart_item" id="${pData.chartID}" style="background-color:${sTheme === 'dark' ? '' : '#FFF'}; width:${pData.style.width};height:${
-                pData.style.height
-            };margin:${pIsCenter ? 'auto' : 'initial'}"></div>
-                </div>`;
-            setText(sValue);
-
-            setTimeout(() => {
-                setInstance([...sInstance, drawChart(pData, sTheme)]);
-            }, 100);
-        };
-
-        init();
-
-        return () => {
-            const chartElement = document.getElementById(pData.chartID);
-            // @ts-ignore
-            if (chartElement && echarts.getInstanceByDom(chartElement)) {
-                // @ts-ignore
-                echarts.dispose(chartElement);
-            }
-        };
+        if (pData) LoadScript();
     }, [pData]);
-
-    useEffect(() => {
-        return () => {
-            const chartElement = document.getElementById(pData.chartID);
-            if (!chartElement && sInstance) setInstance([]);
-        };
-    }, [pData, sInstance]);
 
     return (
         <div className="tql-form">
-            <div dangerouslySetInnerHTML={{ __html: sText }} style={{ display: 'flex' }} className="tql-chart-form" />
+            {pData && pData.cssAssets && <link rel="stylesheet" href={pData.cssAssets[0]} />}
+            {pData && pData.style && (
+                <div className="chart_container">
+                    <div
+                        className="chart_item"
+                        id={pData.chartID}
+                        style={{ backgroundColor: sTheme === 'dark' ? '' : '#FFF', width: pData.style.width, height: pData.style.height, margin: pIsCenter ? 'auto' : 'initial' }}
+                    />
+                </div>
+            )}
         </div>
     );
 };
