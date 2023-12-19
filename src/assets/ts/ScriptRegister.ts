@@ -8,10 +8,13 @@ const CheckScriptAssets = (assets: string) => {
 };
 
 const loadScript = (url: string) => {
-    if (!CheckScriptAssets(url)) return;
+    if (!CheckScriptAssets(url)) {
+        if (document.getElementById(url)) document?.getElementById(url)?.remove();
+    }
     return new Promise((resolve, reject) => {
         const sScript = document.createElement('script');
         sScript.src = url;
+        sScript.id = url;
         sScript.type = 'text/javascript';
         sScript.onload = resolve;
         sScript.onerror = reject;
