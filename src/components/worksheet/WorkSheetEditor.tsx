@@ -14,6 +14,7 @@ import { IconButton } from '../buttons/IconButton';
 import { useSetRecoilState } from 'recoil';
 import { gConsoleSelector } from '@/recoil/recoil';
 import { sqlMultiQueryParser } from '@/utils/sqlMultiQueryParser';
+import { ShowMap } from '../tql/ShowMap';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown';
 type MonacoLang = 'sql' | 'markdown' | 'go';
@@ -63,9 +64,10 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [initialSize, setInitialSize] = useState<number>(pData.height ?? sInitHeight);
     const [sSelectedLang, setSelectedLang] = useState<Lang>('Markdown');
     const [sShowLang, setShowLang] = useState<boolean>(false);
-    const [sTqlResultType, setTqlResultType] = useState<'html' | 'csv' | 'mrk' | 'text' | 'xhtml'>(pData.tqlType ?? 'text');
+    const [sTqlResultType, setTqlResultType] = useState<'html' | 'csv' | 'mrk' | 'text' | 'xhtml' | 'map'>(pData.tqlType ?? 'text');
     const [sTqlTextResult, setTqlTextResult] = useState<string>('');
     const [sTqlChartData, setTqlChartData] = useState<string>('');
+    const [sTqlMapData, setTqlMapData] = useState<string>('');
     const [sTqlMarkdown, setTqlMarkdown] = useState<any>('');
     const [sTqlCsv, setTqlCsv] = useState<string[][]>([]);
     const [sTqlCsvHeader, setTqlCsvHeader] = useState<string[]>([]);
@@ -81,6 +83,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sShowResultContentType, setShowResultContentType] = useState<boolean>(false);
     const [sMonacoLineHeight, setMonacoLineHeight] = useState<number>(pData.lineHeight ?? 19);
     const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
+    const wrkEditorRef = useRef(null);
 
     useEffect(() => {
         if (pAllRunCodeList.length > 0 && pAllRunCodeStatus && typeof pAllRunCodeTargetIdx === 'number' && pAllRunCodeList[pIdx] && pIdx === pAllRunCodeTargetIdx) {
@@ -272,6 +275,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setTqlResultType('html');
             setTqlChartData(sResult.data);
             return;
+        } else if (sResult.status === 200 && sResult.headers && sResult.data && sResult.headers['x-chart-type'] === 'geomap') {
+            setTqlResultType('map');
+            setTqlMapData(sResult.data);
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/markdown') {
             setTqlResultType('mrk');
             setTqlMarkdown(sResult.data);
@@ -400,6 +406,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         </div>
                     )
                 ) : null}
+                {sTqlResultType === 'map' && sTqlMapData && (
+                    <ShowMap pData={sTqlMapData} pBodyRef={{ current: { clientWidth: wrkEditorRef.current?.clientWidth, clientHeight: 500 } }} />
+                )}
                 {sTqlResultType === 'html' && sTqlChartData ? <ShowChart pData={sTqlChartData} pIsCenter /> : null}
                 {sTqlResultType === 'mrk' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} pType="wrk-mrk" /> : null}
                 {sTqlResultType === 'xhtml' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} /> : null}
@@ -469,7 +478,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
 
     return (
         <div className="worksheet-editor-wrapper">
-            <div className="worksheet-editor">
+            <div ref={wrkEditorRef} className="worksheet-editor">
                 <div className="worksheet-content" style={{ display: !sCollapse ? 'block' : 'none' }}>
                     <div className="worksheet-ctr">
                         {DropDown()}
