@@ -83,7 +83,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sShowResultContentType, setShowResultContentType] = useState<boolean>(false);
     const [sMonacoLineHeight, setMonacoLineHeight] = useState<number>(pData.lineHeight ?? 19);
     const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
-    const wrkEditorRef = useRef(null);
+    const wrkEditorRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (pAllRunCodeList.length > 0 && pAllRunCodeStatus && typeof pAllRunCodeTargetIdx === 'number' && pAllRunCodeList[pIdx] && pIdx === pAllRunCodeTargetIdx) {
@@ -407,7 +407,15 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     )
                 ) : null}
                 {sTqlResultType === 'map' && sTqlMapData && (
-                    <ShowMap pData={sTqlMapData} pBodyRef={{ current: { clientWidth: wrkEditorRef.current?.clientWidth, clientHeight: 500 } }} />
+                    <ShowMap
+                        pData={sTqlMapData}
+                        pBodyRef={{
+                            current: {
+                                clientWidth: wrkEditorRef && wrkEditorRef.current && wrkEditorRef.current.clientWidth ? wrkEditorRef.current.clientWidth : 500,
+                                clientHeight: 500,
+                            },
+                        }}
+                    />
                 )}
                 {sTqlResultType === 'html' && sTqlChartData ? <ShowChart pData={sTqlChartData} pIsCenter /> : null}
                 {sTqlResultType === 'mrk' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} pType="wrk-mrk" /> : null}
