@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
 
 interface ShowMapProps {
@@ -9,15 +8,24 @@ interface ShowMapProps {
 
 export const ShowMap = (props: ShowMapProps) => {
     const { pData, pBodyRef } = props;
+    const [sSize, setSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
     const [sIsLoad, setIsLoad] = useState<boolean>(false);
+    const mapRef = useRef<HTMLDivElement>(null);
 
     const CreateMap = async () => {
-        pData && pData.jsAssets && (await loadScriptsSequentially(pData.jsAssets));
+        console.log(mapRef);
+        pData && pData.jsAssets && (await loadScriptsSequentially({ jsAssets: pData.jsAssets, jsCodeAssets: [] }));
         setIsLoad(() => false);
-        pData && pData.jsCodeAssets && (await loadScriptsSequentially(pData.jsCodeAssets));
+        // pData && pData.jsCodeAssets && (await loadScriptsSequentially({ jsAssets: [], jsCodeAssets: pData.jsCodeAssets }));
     };
 
     useEffect(() => {
+        if (!sIsLoad) pData && pData.jsCodeAssets && loadScriptsSequentially({ jsAssets: [], jsCodeAssets: pData.jsCodeAssets });
+    }, [sIsLoad]);
+
+    useEffect(() => {
+        console.log(pData.ID);
+        setSize({ width: pBodyRef.current.clientWidth, height: pBodyRef.current.clientHeight });
         setIsLoad(() => true);
         CreateMap();
     }, [pData]);
@@ -28,11 +36,12 @@ export const ShowMap = (props: ShowMapProps) => {
             <style>.leaflet-tile-pane{`{-webkit-filter: grayscale(${pData.style.grayscale}%); filter: grayscale(${pData.style.grayscale}%);}`}</style>
             {pData && !sIsLoad && (
                 <div
+                    ref={mapRef}
                     id={pData.ID}
                     style={{
                         display: 'flex',
-                        width: pBodyRef.current.clientWidth + 'px',
-                        height: pBodyRef.current.clientHeight + 'px',
+                        width: sSize.width + 'px',
+                        height: sSize.height + 'px',
                     }}
                 />
             )}
