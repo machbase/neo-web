@@ -1,16 +1,42 @@
 import { VscChevronDown, VscChevronRight } from '@/assets/icons/Icon';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
-import { useState } from 'react';
+import { ChangeEvent, useState } from 'react';
 import './CreatePanelRight.scss';
 import Line from './option/Line';
+import { ChartTypeList } from '@/utils/constants';
 
 const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
-    const [sPanelOptionCollapse, setPanelOptionCollapse] = useState(true);
-    const [sChartOptionCollapse, setChartOpitonCollapse] = useState(true);
+    const [sPanelOptionCollapse, setPanelOptionCollapse] = useState<boolean>(true);
+    const [sChartOptionCollapse, setChartOpitonCollapse] = useState<boolean>(true);
 
-    const changedOption = (aEvent: any, aKey: string) => {
-        pSetPanelOption({ ...pPanelOption, [aKey]: Object.keys(aEvent.target).includes('checked') ? aEvent.target.checked : aEvent.target.value });
+    const handleDefaultOption = (aEvent: ChangeEvent<HTMLInputElement>, aKey: string) => {
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                [aKey]: aEvent.target.value,
+            };
+        });
+    };
+
+    const changeTypeOfSeriesOption = (aEvent: ChangeEvent<HTMLInputElement>) => {
+        const sSeries = pPanelOption.chartInfo.series;
+        const sChangeSeries = sSeries.map((aSeries: any, aIndex: number) => {
+            return {
+                ...aSeries[aIndex],
+                type: aEvent.target.value,
+            };
+        });
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                type: aEvent.target.value,
+                chartInfo: {
+                    ...aPrev.chartInfo,
+                    series: sChangeSeries,
+                },
+            };
+        });
     };
 
     return (
@@ -22,17 +48,17 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                         pFontSize={14}
                         pWidth={'100%'}
                         pBorderRadius={4}
-                        pInitValue={pPanelOption.chartType}
+                        pInitValue={pPanelOption.type}
                         pHeight={30}
-                        onChange={(aEvent: any) => changedOption(aEvent, 'chartType')}
-                        pOptions={['line', 'bar', 'scatter']}
+                        onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
+                        pOptions={ChartTypeList}
                     />
                 </div>
 
                 <div className="normal">
                     <div className="divider" style={{ margin: '12px 3px' }}></div>
                     <div className="panel-option-header" onClick={() => setPanelOptionCollapse(!sPanelOptionCollapse)}>
-                        <div className="collapse-icon">{sPanelOptionCollapse ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
+                        <div className="collapse-icon">{sPanelOptionCollapse ? <VscChevronDown /> : <VscChevronRight />}</div>
                         Panel Option
                     </div>
 
@@ -43,10 +69,10 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                                 pType="text"
                                 pWidth={'100%'}
                                 pHeight={28}
-                                pValue={pPanelOption.panelName}
+                                pValue={pPanelOption.name}
                                 pSetValue={() => null}
                                 pBorderRadius={4}
-                                onChange={(aEvent: any) => changedOption(aEvent, 'panelName')}
+                                onChange={(aEvent: any) => handleDefaultOption(aEvent, 'name')}
                             />
                         </div>
                     </div>
@@ -54,13 +80,13 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                 </div>
                 <div className="normal">
                     <div className="panel-option-header" onClick={() => setChartOpitonCollapse(!sChartOptionCollapse)}>
-                        <div className="collapse-icon">{sChartOptionCollapse ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
+                        <div className="collapse-icon">{sChartOptionCollapse ? <VscChevronDown /> : <VscChevronRight />}</div>
                         Chart Option
                     </div>
 
                     <div style={sChartOptionCollapse ? { marginLeft: '18px' } : { display: 'none' }}>
-                        {(pPanelOption.chartType === 'line' || pPanelOption.chartType === 'bar' || pPanelOption.chartType === 'scatter') && (
-                            <Line pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pChangedOption={changedOption}></Line>
+                        {(pPanelOption.type === 'line' || pPanelOption.type === 'bar' || pPanelOption.type === 'scatter') && (
+                            <Line pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pHandleDefaultOption={handleDefaultOption}></Line>
                         )}
                     </div>
                     <div className="divider" style={{ margin: '12px 3px' }}></div>

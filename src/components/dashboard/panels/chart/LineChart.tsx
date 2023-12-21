@@ -1,60 +1,26 @@
 import { getTqlChart } from '@/api/repository/machiot';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
-import { drawChart } from '@/plugin/eCharts';
-import { calcInterval, calcRefreshTime, createQuery, setUnitTime } from '@/utils/dashboardUtil';
+import { calcInterval, calcRefreshTime, createSeriesOption, createQuery, removeColumnQuotes, setUnitTime, createMapValueForTag } from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
 import './LineChart.scss';
+import { ShowChart } from '@/components/tql/ShowChart';
+import { isObjectEmpty } from '@/utils';
 
-const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pRefreshCount }: any) => {
-    const [sText, setText] = useState('');
+const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: any) => {
     const ChartRef = useRef<any>();
-    const [sChart, setChart] = useState<any>({});
     const [sChartData, setChartData] = useState<any>({});
-    const [sDataReturn, setDataReturn] = useState<any>('Please set up a Query.');
-    const [sDataReturnStatus, setDataReturnStatus] = useState<boolean>(false);
+    const [sIsMessage, setIsMessage] = useState<any>('Please set up a Query.');
+    const [sIsError, setIsError] = useState<boolean>(false);
+    const [sIsLoading, setIsLoading] = useState<boolean>(false);
     const sChangedValue = useRef<boolean>(false);
     const sTimerRef = useRef<boolean>(false);
     const didMount = useRef(false);
-    const sIsReload = useRef(false);
     const sRefClientWidth = useRef<number>(0);
     const sRefClientHeight = useRef<number>(0);
 
-    useEffect(() => {
-        if (pType === 'create' || pType === 'edit' || sIsReload.current) {
-            sChartData.chartID && getLineChart();
-            sIsReload.current = false;
-            return;
-        }
-
-        if (sChangedValue.current) {
-            sChartData.chartID && getLineChart();
-            sChangedValue.current = false;
-            return;
-        }
-
-        if (sChart.id) {
-            sChart.setOption({ series: sChartData.chartOption.series, xAxis: sChartData.chartOption.xAxis, yAxis: sChartData.chartOption.yAxis });
-            // sChart.resize({
-            //     width: ChartRef.current.clientWidth + 'px',
-            //     height: ChartRef.current.clientHeight + 'px',
-            // });
-        } else {
-            sChartData.chartID && getLineChart();
-        }
-    }, [sChartData]);
-
-    const getLineChart = () => {
-        const sValue = ` <div class="chart_container">
-        <div class="chart_item" id="${sChartData.chartID}" style="width:${ChartRef.current.clientWidth}px;height:${ChartRef.current.clientHeight}px;"></div>
-    </div>`;
-
-        setText(sValue);
-        setTimeout(() => {
-            setChart(drawChart(sChartData, pPanelInfo.theme));
-        }, 10);
-    };
-
     const setForm = async () => {
+        setIsLoading(true);
+        setChartData({});
         if (ChartRef.current.clientWidth !== 0) {
             sRefClientWidth.current = ChartRef.current.clientWidth;
         }
@@ -62,9 +28,8 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
             sRefClientHeight.current = ChartRef.current.clientHeight;
         }
         sTimerRef.current = true;
-        let sData: any = {};
+        let lastQuery: string = '';
 
-        let sAPIStatus = true;
         const sPanelTimeRange = pPanelInfo.timeRange;
         const sBoardTimeRange = pBoardInfo.dashboard.timeRange;
 
@@ -72,83 +37,58 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
         const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.end) : setUnitTime(sBoardTimeRange.end);
 
         const sIntervalInfo = calcInterval(sStartTime, sEndTime, sRefClientWidth.current);
+        let sTagList = [] as string[];
 
-        for (let i = 0; i < pPanelInfo.series.length; i++) {
-            const sQuery: string = createQuery(
-                pPanelInfo.series[i],
-                sIntervalInfo,
-                pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.start) : setUnitTime(sBoardTimeRange.start),
-                pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.end) : setUnitTime(sBoardTimeRange.end)
-            );
-
-            const sTheme = `, theme('${pPanelInfo.theme ? pPanelInfo.theme : 'westeros'}')`;
-            const sSlider = pPanelInfo.useDataZoom ? `, dataZoom('${pPanelInfo.dataZoomType}',${pPanelInfo.dataZoomMin},${pPanelInfo.dataZoomMax})` : '';
-
-            const sName = pPanelInfo.series[i].useCustom
-                ? pPanelInfo.series[i].values[0].alias
-                    ? pPanelInfo.series[i].values[0].alias
-                    : `${pPanelInfo.series[i].values[0].aggregator}(${pPanelInfo.series[i].filter[0].value})`
-                : `${pPanelInfo.series[i].aggregator}(${pPanelInfo.series[i].tag})`;
-
-            let sMarkArea;
-            if (pPanelInfo.useMarkArea) {
-                const sMarkAreaQueryList = pPanelInfo.markArea.map((aItem: any) => {
-                    return `, markArea(${isNaN(Number(aItem.coord0)) ? "time('" + aItem.coord0 + "')" : aItem.coord0}, ${
-                        isNaN(Number(aItem.coord1)) ? "time('" + aItem.coord1 + "')" : aItem.coord1
-                    }, '${aItem.label}', '${aItem.color}', ${aItem.opacity})`;
+        pPanelInfo.tagTableInfo.forEach((aInfo: any) => {
+            if (aInfo.useCustom) {
+                aInfo.filter.forEach((aItem: any) => {
+                    aItem.value
+                        .replace(/['"]/g, '')
+                        .replace(/\s+/g, '')
+                        .split(',')
+                        .map((aTag: string) => {
+                            sTagList.push(aTag);
+                        });
                 });
-                sMarkArea = sMarkAreaQueryList.join('');
             } else {
-                sMarkArea = '';
+                sTagList.push(aInfo.tag);
             }
-            const sChartType =
-                pPanelInfo.chartType === 'line' ? 'CHART_LINE' : pPanelInfo.chartType === 'bar' ? 'CHART_BAR' : pPanelInfo.chartType === 'scatter' ? 'CHART_SCATTER' : '';
-            const sResult: any = await getTqlChart(
-                'SQL(`' +
-                    sQuery +
-                    '`)\n' +
-                    `TAKE(${(sRefClientWidth.current / 3).toFixed()})\n` +
-                    `${sChartType}(size('${sRefClientWidth.current}px','${sRefClientHeight.current}px')${sTheme}${sSlider}${sMarkArea}, ` +
-                    'seriesOptions(`{' +
-                    `"name":"${sName}",` +
-                    `"label" : {"show" : false}, ` +
-                    `"itemStyle" : {"color":"${pPanelInfo.series[i].color}"}, ` +
-                    `"lineStyle" : {"width" : 1}` +
-                    '}`), ' +
-                    'globalOptions(`{' +
-                    `"xAxis": [ {"splitLine" : {show: false,"lineStyle" : { width: 0.8, opacity: 0.3 }}}]` +
-                    `"yAxis": [ {"splitLine" : {show: false, "lineStyle" : { width: 0.8, opacity: 0.3 }}}]` +
-                    '`))'
-            );
+        });
 
-            if (!sResult.data.chartID) {
-                setDataReturn(sResult.data.reason);
-                sAPIStatus = false;
-                break;
-            }
+        for (let i = 0; i < pPanelInfo.tagTableInfo.length; i++) {
+            const sQuery: string = createQuery(pPanelInfo.tagTableInfo[i], sIntervalInfo, sStartTime, sEndTime);
 
-            if (sData.chartID) {
-                if (sResult.data.chartOption.series) {
-                    sData.chartOption.series.push(sResult.data.chartOption.series[0]);
-                } else {
-                    sIsReload.current = true;
-                    sData = sResult.data;
-                }
+            if (i === 0) {
+                lastQuery += sQuery;
             } else {
-                if (!sResult.data.chartOption.series || (sChartData.chartOption && !sChartData.chartOption.series)) {
-                    sIsReload.current = true;
-                }
-                sData = sResult.data;
+                lastQuery += '\nUNION ALL\n' + sQuery;
             }
         }
 
-        if (sAPIStatus) {
-            setDataReturnStatus(true);
-            setChartData(sData);
+        const sResult: any = await getTqlChart(
+            'SQL(`' +
+                lastQuery +
+                '`)\n' +
+                `TAKE(${(sRefClientWidth.current / 3).toFixed()})\n` +
+                createMapValueForTag(sTagList, sTagList.length) +
+                'CHART(' +
+                `theme('${pPanelInfo.theme}'),` +
+                `size('${sRefClientWidth.current}px','${sRefClientHeight.current}px'), ` +
+                `chartOption(
+                        ${removeColumnQuotes(JSON.stringify(createSeriesOption(pPanelInfo, sTagList)))}
+                    )` +
+                ')'
+        );
+
+        if (!sResult.data.reason) {
+            setChartData(sResult.data);
+            setIsError(false);
         } else {
-            setDataReturnStatus(false);
+            setIsMessage(sResult.data.reason);
+            setIsError(true);
         }
         sTimerRef.current = false;
+        setIsLoading(false);
     };
 
     const sSetIntervalTime = () => {
@@ -173,69 +113,18 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
         } else {
             setForm();
         }
-    }, [
-        pPanelInfo.chartType,
-        pPanelInfo.dataType,
-        pPanelInfo.dataZoomMax,
-        pPanelInfo.dataZoomMin,
-        pPanelInfo.dataZoomType,
-        pPanelInfo.gridSizeDepth,
-        pPanelInfo.gridSizeHeight,
-        pPanelInfo.gridSizeWidth,
-        pPanelInfo.markArea,
-        pPanelInfo.panelName,
-        pPanelInfo.opacity,
-        pPanelInfo.theme,
-        pPanelInfo.useAutoRotate,
-        pPanelInfo.useCustomTime,
-        pPanelInfo.useDataZoom,
-        pPanelInfo.useGridSize,
-        pPanelInfo.useMarkArea,
-        pPanelInfo.useOpacity,
-        pPanelInfo.useVisualMap,
-        pPanelInfo.visualMapMax,
-        pPanelInfo.visualMapMin,
-        pPanelInfo.series,
-    ]);
+    }, [pPanelInfo]);
 
     useEffect(() => {
         if (pType === 'create') {
-            if (didMount.current) setForm();
-        } else {
-            setForm();
-        }
-    }, [pRefreshCount]);
-
-    useEffect(() => {
-        if (sChart.id) {
-            setTimeout(() => {
-                sChart.resize({
-                    width: ChartRef.current.clientWidth + 'px',
-                    height: ChartRef.current.clientHeight + 'px',
-                });
-            }, 300);
-            setTimeout(() => {
+            if (didMount.current) {
                 setForm();
-            }, 200);
-        }
-    }, [pPanelInfo.x, pPanelInfo.y, pPanelInfo.w, pPanelInfo.h]);
-
-    useEffect(() => {
-        if (pType === 'create') {
-            if (didMount.current) setForm();
+            }
         } else {
             if (!pPanelInfo.useCustomTime) {
                 setForm();
             }
         }
-        return () => {
-            const chartElement = document.getElementById(sChart.id);
-            // @ts-ignore
-            if (chartElement && echarts.getInstanceByDom(chartElement)) {
-                // @ts-ignore
-                echarts.dispose(chartElement);
-            }
-        };
     }, [pBoardInfo.dashboard.timeRange.start, pBoardInfo.dashboard.timeRange.end]);
 
     useOverlapTimeout(() => {
@@ -249,6 +138,7 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
             }
         }
     }, [pInsetDraging]);
+
     useEffect(() => {
         if (didMount.current) {
             if (!pDragStat) {
@@ -258,23 +148,11 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat, pR
     }, [pDragStat]);
 
     return (
-        <div
-            ref={ChartRef}
-            style={!sDataReturnStatus ? (sDataReturn === 'Please set up a Query.' ? { color: 'rgb(65, 153, 255)' } : { color: 'rgb(231, 65, 131)' }) : {}}
-            className="chart-form"
-        >
-            {!sDataReturnStatus
-                ? pType === 'create'
-                    ? sDataReturn === 'Please set up a Query.'
-                        ? 'Please set up a Query.'
-                        : sDataReturn
-                    : pType === 'edit'
-                    ? sDataReturn === 'Please set up a Query.'
-                        ? 'Loading...'
-                        : sDataReturn
-                    : 'Loading...'
-                : ''}
-            <div style={!sDataReturnStatus ? { display: 'none' } : {}} className="inner-html-form" dangerouslySetInnerHTML={{ __html: sText }}></div>
+        <div ref={ChartRef} style={{ color: sIsError ? 'rgb(231, 65, 131)' : 'rgb(65, 153, 255)' }} className="chart-form">
+            {sIsLoading ? <div>Loading...</div> : null}
+            {!sIsLoading && sIsError && sIsMessage ? <div>{sIsMessage}</div> : null}
+            {!sIsLoading && !sIsError && isObjectEmpty(sChartData) ? <div>{sIsMessage}</div> : null}
+            {!isObjectEmpty(sChartData) ? <ShowChart pData={sChartData} /> : null}
         </div>
     );
 };

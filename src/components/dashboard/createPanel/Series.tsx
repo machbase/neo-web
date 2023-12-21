@@ -4,7 +4,7 @@ import { Close, Refresh, VscSync } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Select } from '@/components/inputs/Select';
-import { getId } from '@/utils';
+import { generateUUID } from '@/utils';
 import { getTableType, tagAggregatorList } from '@/utils/dashboardUtil';
 import { useEffect, useState } from 'react';
 import Filter from './Filter';
@@ -15,10 +15,10 @@ import Value from './Value';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { useRef } from 'react';
 
-const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption }: any) => {
+const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption }: any) => {
     const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
-    const [sSelectedTableType, setSelectedTableType] = useState<any>(pSeriesInfo.table[4]);
+    const [sSelectedTableType, setSelectedTableType] = useState<any>('');
     // const [sTableInfo, setTableInfo] = useState<any>([]);
 
     const [sColumnList, setColumnList] = useState<any>([]);
@@ -29,8 +29,8 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                series: aPrev.series.map((aItem: any) => {
-                    return aItem.id === pSeriesInfo.id ? { ...aItem, [aKey]: aData } : aItem;
+                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
+                    return aItem.id === pTagTableInfo.id ? { ...aItem, [aKey]: aData } : aItem;
                 }),
             };
         });
@@ -40,8 +40,8 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                series: aPrev.series.map((aItem: any) => {
-                    return aItem.id === pSeriesInfo.id ? { ...aItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value } : aItem;
+                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
+                    return aItem.id === pTagTableInfo.id ? { ...aItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value } : aItem;
                 }),
             };
         });
@@ -53,8 +53,8 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
             pSetPanelOption((aPrev: any) => {
                 return {
                     ...aPrev,
-                    series: aPrev.series.map((aItem: any) => {
-                        return aItem.id === pSeriesInfo.id ? { ...aItem, type: getTableType(sTable[4]) } : aItem;
+                    tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
+                        return aItem.id === pTagTableInfo.id ? { ...aItem, type: getTableType(sTable[4]) } : aItem;
                     }),
                 };
             });
@@ -70,8 +70,8 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                series: aPrev.series.map((aItem: any) => {
-                    return aItem.id === pSeriesInfo.id ? { ...aItem, type: getTableType(sTable[4]), tableInfo: sData.data.rows } : aItem;
+                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
+                    return aItem.id === pTagTableInfo.id ? { ...aItem, type: getTableType(sTable[4]), tableInfo: sData.data.rows } : aItem;
                 }),
             };
         });
@@ -81,8 +81,8 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
             pSetPanelOption((aPrev: any) => {
                 return {
                     ...aPrev,
-                    series: aPrev.series.map((aItem: any) => {
-                        return aItem.id === pSeriesInfo.id
+                    tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
+                        return aItem.id === pTagTableInfo.id
                             ? {
                                   ...aItem,
                                   time: sData.data.rows.filter((aItem: any) => {
@@ -140,8 +140,8 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                series: aPrev.series.map((aItem: any) => {
-                    return aItem.id === pSeriesInfo.id
+                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
+                    return aItem.id === pTagTableInfo.id
                         ? {
                               ...aItem,
                               [aChangedKey]: aItem?.[aChangedKey].map((bItem: any) => {
@@ -158,8 +158,8 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                series: aPrev.series.map((aItem: any) => {
-                    return aItem.id === pSeriesInfo.id ? { ...aItem, values: [...aItem.values, { id: getId(), column: '', operator: '=', value: '' }] } : aItem;
+                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
+                    return aItem.id === pTagTableInfo.id ? { ...aItem, values: [...aItem.values, { id: generateUUID(), column: '', operator: '=', value: '' }] } : aItem;
                 }),
             };
         });
@@ -168,8 +168,8 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                series: aPrev.series.map((aItem: any) => {
-                    return aItem.id === pSeriesInfo.id ? { ...aItem, filter: [...aItem.filter, { id: getId(), alias: '', value: '', aggregator: 'avg', useFilter: true }] } : aItem;
+                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
+                    return aItem.id === pTagTableInfo.id ? { ...aItem, filter: [...aItem.filter, { id: generateUUID(), value: '', operator: '=', useFilter: true }] } : aItem;
                 }),
             };
         });
@@ -179,7 +179,7 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                series: aPrev.series.filter((aItem: any) => aItem.id !== pSeriesInfo.id),
+                tagTableInfo: aPrev.tagTableInfo.filter((aItem: any) => aItem.id !== pTagTableInfo.id),
             };
         });
     };
@@ -187,8 +187,8 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                series: aPrev.series.map((aItem: any) => {
-                    return aItem.id === pSeriesInfo.id ? { ...aItem, values: aItem.values.filter((aItem: any) => aItem.id !== aId) } : aItem;
+                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
+                    return aItem.id === pTagTableInfo.id ? { ...aItem, values: aItem.values.filter((aItem: any) => aItem.id !== aId) } : aItem;
                 }),
             };
         });
@@ -198,8 +198,8 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                series: aPrev.series.map((aItem: any) => {
-                    return aItem.id === pSeriesInfo.id ? { ...aItem, filter: aItem.filter.filter((aItem: any) => aItem.id !== aId) } : aItem;
+                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
+                    return aItem.id === pTagTableInfo.id ? { ...aItem, filter: aItem.filter.filter((aItem: any) => aItem.id !== aId) } : aItem;
                 }),
             };
         });
@@ -210,8 +210,8 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
         sSelectedTableType === 'tag' &&
             pSetPanelOption({
                 ...pPanelOption,
-                series: pPanelOption.series.map((aItem: any) => {
-                    return aItem.id === pSeriesInfo.id
+                tagTableInfo: pPanelOption.tagTableInfo.map((aItem: any) => {
+                    return aItem.id === pTagTableInfo.id
                         ? {
                               ...aItem,
                               values: aItem.values.filter((aItem: any, aIdx: number) => {
@@ -225,12 +225,13 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
     }, [sSelectedTableType]);
 
     useEffect(() => {
-        const sTable = pTableList.find((aItem: any) => aItem[3] === pSeriesInfo.table);
-        setSelectedTableType(getTableType(sTable[4]));
+        const sTable = pTableList.find((aItem: any) => aItem[3] === pTagTableInfo.table);
+        const sTableType = getTableType(sTable[4]);
+        setSelectedTableType(sTableType);
 
-        getColumnList(pSeriesInfo.table);
-        if (sSelectedTableType === 'tag') {
-            getTagList(pSeriesInfo.table);
+        getColumnList(pTagTableInfo.table);
+        if (sTableType === 'tag') {
+            getTagList(pTagTableInfo.table);
         }
     }, []);
 
@@ -246,18 +247,18 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
         <div className="series">
             <div className="row">
                 <div className="row-header">
-                    {pSeriesInfo.useCustom && (
-                        <div style={!pSeriesInfo.useCustom ? { display: 'none' } : {}} className="row-header-left">
+                    {pTagTableInfo.useCustom && (
+                        <div style={{ display: !pTagTableInfo.useCustom ? 'none' : '' }} className="row-header-left">
                             <div className="series-table">
                                 <span className="series-title">
                                     Table
-                                    <IconButton pWidth={25} pHeight={26} pIcon={<Refresh></Refresh>} onClick={() => pGetTables()}></IconButton>
+                                    <IconButton pWidth={25} pHeight={26} pIcon={<Refresh />} onClick={() => pGetTables()}></IconButton>
                                 </span>
                                 <Select
                                     pFontSize={12}
                                     pWidth={175}
                                     pBorderRadius={4}
-                                    pInitValue={pSeriesInfo.table}
+                                    pInitValue={pTagTableInfo.table}
                                     pHeight={26}
                                     onChange={(aEvent: any) => changedOption('table', aEvent)}
                                     pOptions={pTableList.map((aItem: any) => aItem[3])}
@@ -293,7 +294,7 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
                             </div>
                         </div>
                     )}
-                    {!pSeriesInfo.useCustom && (
+                    {!pTagTableInfo.useCustom && (
                         <div className="row-header-left">
                             <div className="series-table">
                                 <span className="series-title"> Table </span>
@@ -301,7 +302,7 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
                                     pFontSize={12}
                                     pWidth={175}
                                     pBorderRadius={4}
-                                    pInitValue={pSeriesInfo.table}
+                                    pInitValue={pTagTableInfo.table}
                                     pHeight={26}
                                     onChange={(aEvent: any) => changedOption('table', aEvent)}
                                     pOptions={pTableList.map((aItem: any) => {
@@ -318,7 +319,7 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
                                         pWidth={200}
                                         pAutoChanged={true}
                                         pBorderRadius={4}
-                                        pInitValue={pSeriesInfo.tag ? pSeriesInfo.tag : sTagList[0]}
+                                        pInitValue={pTagTableInfo.tag ? pTagTableInfo.tag : sTagList[0]}
                                         pHeight={26}
                                         onChange={(aEvent: any) => changedOption('tag', aEvent)}
                                         pOptions={sTagList}
@@ -327,13 +328,13 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
                             </div>
                             <div className="series-table">
                                 <span className="series-title"> Aggregator </span>
-                                {pSeriesInfo.aggregator && (
+                                {pTagTableInfo.aggregator && (
                                     <Select
                                         pFontSize={12}
                                         pAutoChanged={true}
                                         pWidth={200}
                                         pBorderRadius={4}
-                                        pInitValue={pSeriesInfo.aggregator}
+                                        pInitValue={pTagTableInfo.aggregator}
                                         pHeight={26}
                                         onChange={(aEvent: any) => changedOption('aggregator', aEvent)}
                                         pOptions={tagAggregatorList}
@@ -349,7 +350,7 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
                                 pHeight={20}
                                 pIcon={
                                     <div
-                                        style={{ width: '14px', cursor: 'pointer', height: '14px', marginRight: '4px', borderRadius: '50%', backgroundColor: pSeriesInfo.color }}
+                                        style={{ width: '14px', cursor: 'pointer', height: '14px', marginRight: '4px', borderRadius: '50%', backgroundColor: pTagTableInfo.color }}
                                     ></div>
                                 }
                                 onClick={() => setIsColorPicker(!sIsColorPicker)}
@@ -358,7 +359,7 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
                             {sIsColorPicker && (
                                 <div className="color-picker">
                                     <CompactPicker
-                                        color={pSeriesInfo.color}
+                                        color={pTagTableInfo.color}
                                         onChangeComplete={(aInfo: any) => {
                                             setOption('color', aInfo.hex);
                                         }}
@@ -369,25 +370,25 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
                         <IconButton
                             pWidth={20}
                             pHeight={20}
-                            pIsActive={pSeriesInfo.useCustom}
+                            pIsActive={pTagTableInfo.useCustom}
                             pDisabled={sSelectedTableType !== 'tag'}
-                            pIcon={pSeriesInfo.useCustom ? <VscSync color="#FDB532"></VscSync> : <VscSync></VscSync>}
-                            onClick={sSelectedTableType !== 'tag' ? () => {} : () => setOption('useCustom', !pSeriesInfo.useCustom)}
+                            pIcon={<VscSync />}
+                            onClick={sSelectedTableType !== 'tag' ? () => {} : () => setOption('useCustom', !pTagTableInfo.useCustom)}
                         ></IconButton>
                         <IconButton
-                            pDisabled={pPanelOption.series.length === 1}
+                            pDisabled={pPanelOption.tagTableInfo.length === 1}
                             pWidth={20}
                             pHeight={20}
                             pIcon={<Close></Close>}
-                            onClick={pPanelOption.series.length !== 1 ? () => deleteSeries() : () => {}}
+                            onClick={pPanelOption.tagTableInfo.length !== 1 ? () => deleteSeries() : () => {}}
                         ></IconButton>
                     </div>
                 </div>
-                {pSeriesInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
+                {pTagTableInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
 
-                <div style={!pSeriesInfo.useCustom ? { display: 'none' } : {}} className="details">
+                <div style={{ display: !pTagTableInfo.useCustom ? 'none' : '' }} className="details">
                     <div>
-                        {pSeriesInfo.values.map((aItem: any, aIdx: number) => {
+                        {pTagTableInfo.values.map((aItem: any, aIdx: number) => {
                             return (
                                 <Value
                                     key={aItem.id}
@@ -395,25 +396,25 @@ const Series = ({ pSeriesInfo, pPanelOption, pTableList, pType, pGetTables, pSet
                                     pChangeValueOption={changeValueOption}
                                     pAddValue={addValue}
                                     pRemoveValue={removeValue}
-                                    pSeriesInfo={pSeriesInfo}
+                                    pTagTableInfo={pTagTableInfo}
                                     pValue={aItem}
                                     pIdx={aIdx}
-                                    pCloumnList={sColumnList}
+                                    pColumnList={sColumnList}
                                 ></Value>
                             );
                         })}
                     </div>
                 </div>
-                {pSeriesInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
+                {pTagTableInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
 
-                <div style={!pSeriesInfo.useCustom ? { display: 'none' } : {}} className="details">
+                <div style={{ display: !pTagTableInfo.useCustom ? 'none' : '' }} className="details">
                     <div>
-                        {pSeriesInfo.filter.map((aItem: any, aIdx: number) => {
+                        {pTagTableInfo.filter.map((aItem: any, aIdx: number) => {
                             return (
                                 <Filter
                                     key={aItem.id}
-                                    pCloumnList={sColumnList}
-                                    pSeriesInfo={pSeriesInfo}
+                                    pColumnList={sColumnList}
+                                    pTagTableInfo={pTagTableInfo}
                                     pFilterInfo={aItem}
                                     pChangeValueOption={changeValueOption}
                                     pIdx={aIdx}

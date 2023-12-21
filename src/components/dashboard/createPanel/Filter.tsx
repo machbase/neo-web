@@ -4,14 +4,14 @@ import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 
-const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pSeriesInfo, pCloumnList }: any) => {
+const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pTagTableInfo, pColumnList }: any) => {
     const sFliterList = ['=', '<>', '>', '>=', '<', '<=', 'in'];
     return (
         <div className="values filter">
             <div className="series-table">
                 <span className="series-title">
                     Filter
-                    {pIdx === pSeriesInfo.filter.length - 1 ? (
+                    {pIdx === pTagTableInfo.filter.length - 1 ? (
                         <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle></PlusCircle>} onClick={() => pAddFilter()}></IconButton>
                     ) : (
                         <IconButton pWidth={25} pHeight={26} pIcon={<Close></Close>} onClick={() => pRemoveFilter(pFilterInfo.id)}></IconButton>
@@ -20,14 +20,15 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
             </div>
 
             <div className="series-table">
-                {pCloumnList[0] && (
+                {pColumnList[0] && (
                     <Select
                         pFontSize={12}
                         pWidth={175}
                         pBorderRadius={4}
                         pHeight={26}
+                        pInitValue={pFilterInfo.column}
                         onChange={(aEvent: any) => pChangeValueOption('column', aEvent, pFilterInfo.id, 'filter')}
-                        pOptions={pCloumnList.map((aItem: any) => {
+                        pOptions={pColumnList.map((aItem: any) => {
                             return aItem[0];
                         })}
                     />
@@ -38,7 +39,7 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                     pFontSize={12}
                     pWidth={70}
                     pBorderRadius={4}
-                    pInitValue={sFliterList[0]}
+                    pInitValue={pFilterInfo.operator ?? sFliterList[0]}
                     pHeight={26}
                     onChange={(aEvent: any) => pChangeValueOption('operator', aEvent, pFilterInfo.id, 'filter')}
                     pOptions={sFliterList}
