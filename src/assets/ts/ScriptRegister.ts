@@ -3,7 +3,7 @@ const loadScript = (url: string) => {
     return new Promise((resolve, reject) => {
         const sScript = document.createElement('script');
         sScript.src = url;
-        sScript.id = LOADED_COMMON_SCRIPTS.includes(url) ? 'common-script' : 'tmp-script';
+        sScript.id = 'tmp-script';
         sScript.type = 'text/javascript';
         sScript.onload = resolve;
         sScript.onerror = reject;
