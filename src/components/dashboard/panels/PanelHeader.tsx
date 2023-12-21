@@ -45,7 +45,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pSetRefreshCount }: an
                 }
                 className="board-panel-header"
             >
-                <div>{pPanelInfo.panelName}</div>
+                <div>{pPanelInfo.name}</div>
                 <div className="panel-header-navigator">
                     <a data-tooltip-place="bottom" id="my-anchor-element">
                         {pPanelInfo.useCustomTime && <VscRecord color="#339900"></VscRecord>}
