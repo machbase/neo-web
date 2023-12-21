@@ -40,8 +40,11 @@ const CHART = ({
             })
         );
         setResult(sTmpResult.data);
-        if (sTmpResult.data && sTmpResult.data.jsAssets) await loadScriptsSequentially(sTmpResult.data.jsAssets);
-        if (sTmpResult.data && sTmpResult.data.jsCodeAssets) await loadScriptsSequentially(sTmpResult.data.jsCodeAssets);
+        sTmpResult.data &&
+            (await loadScriptsSequentially({
+                jsAssets: sTmpResult.data.jsAssets ? sTmpResult.data.jsAssets : [],
+                jsCodeAssets: sTmpResult.data.jsCodeAssets ? sTmpResult.data.jsCodeAssets : [],
+            }));
     };
 
     useEffect(() => {

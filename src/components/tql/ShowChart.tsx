@@ -11,8 +11,7 @@ export const ShowChart = (props: ShowChartProps) => {
     const sTheme = pData.theme ? pData.theme : 'dark';
 
     const LoadScript = async () => {
-        if (pData && pData.jsAssets) await loadScriptsSequentially(pData.jsAssets);
-        if (pData && pData.jsCodeAssets) await loadScriptsSequentially(pData.jsCodeAssets);
+        pData && (await loadScriptsSequentially({ jsAssets: pData.jsAssets ? pData.jsAssets : [], jsCodeAssets: pData.jsCodeAssets ? pData.jsCodeAssets : [] }));
     };
 
     useEffect(() => {

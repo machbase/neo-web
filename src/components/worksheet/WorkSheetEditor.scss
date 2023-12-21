@@ -2,6 +2,7 @@
     display: flex;
 
     .worksheet-editor {
+        overflow: hidden;
         width: 100%;
 
         .worksheet-content {
@@ -94,13 +95,12 @@
         }
 
         .result {
+            overflow-x: scroll;
             width: 100%;
             height: auto;
             margin: 1rem 0;
 
             .result-worksheet {
-                overflow: hidden;
-
                 .result-wrapper {
                     border-radius: 10px !important;
                 }
@@ -183,6 +183,23 @@
                     margin-left: 8px;
                 }
             }
+        }
+
+        .result::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        .result::-webkit-scrollbar-thumb {
+            background-color: #464646 !important;
+            border-radius: 10px;
+            background-clip: padding-box;
+        }
+        .result::-webkit-scrollbar-track {
+            background-color: transparent;
+            border-radius: 10px;
+        }
+        .result::-webkit-scrollbar-corner {
+            background: transparent !important;
         }
     }
 }
