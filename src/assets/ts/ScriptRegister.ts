@@ -11,17 +11,20 @@ const loadScript = (url: string) => {
     });
 };
 
-const LOADED_COMMON_SCRIPTS: string[] = [];
+const LOADED_COMMON_SCRIPTS = new Set();
+
+export const ExistCommonScript = (aScripts?: string[]) => {
+    const COMMON_SCRIPTS = Array.from(LOADED_COMMON_SCRIPTS);
+    const sResult = aScripts?.filter((bScript: any) => {
+        if (!COMMON_SCRIPTS.includes(bScript)) return bScript;
+    });
+    return sResult;
+};
 
 export const loadScriptsSequentially = async (scripts: { jsAssets: string[]; jsCodeAssets: string[] }) => {
-    const sAddScripts: string[] = [];
-    scripts.jsAssets.map((aAsset: string) => {
-        if (!LOADED_COMMON_SCRIPTS.includes(aAsset)) {
-            LOADED_COMMON_SCRIPTS.push(aAsset);
-            sAddScripts.push(aAsset);
-        }
-    });
-    for (const url of sAddScripts.concat(scripts.jsCodeAssets)) {
-        await loadScript(url);
+    const sAddScript: string[] = scripts.jsAssets;
+    for (const url of sAddScript.concat(scripts.jsCodeAssets)) {
+        const sLoadResult: any = await loadScript(url);
+        if (sLoadResult && sLoadResult.type === 'load' && sAddScript.includes(url)) LOADED_COMMON_SCRIPTS.add(url);
     }
 };

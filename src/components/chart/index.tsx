@@ -3,7 +3,7 @@ import { useRef, useState, useEffect } from 'react';
 import { sqlBasicChartFormatter } from '@/utils/sqlFormatter';
 import { Play } from '@/assets/icons/Icon';
 import './index.scss';
-import { loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
+import { ExistCommonScript, loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
 
 const CHART = ({
     pQueryList,
@@ -42,7 +42,7 @@ const CHART = ({
         setResult(sTmpResult.data);
         sTmpResult.data &&
             (await loadScriptsSequentially({
-                jsAssets: sTmpResult.data.jsAssets ? sTmpResult.data.jsAssets : [],
+                jsAssets: ExistCommonScript(sTmpResult.data.jsAssets) as string[],
                 jsCodeAssets: sTmpResult.data.jsCodeAssets ? sTmpResult.data.jsCodeAssets : [],
             }));
     };
