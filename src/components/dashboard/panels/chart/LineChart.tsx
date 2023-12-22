@@ -113,7 +113,7 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
         } else {
             setForm();
         }
-    }, [pPanelInfo.h, pPanelInfo.w]);
+    }, [pPanelInfo.h, pPanelInfo.w, pPanelInfo.theme, pPanelInfo.type, pPanelInfo.chartInfo, pPanelInfo.tagTableInfo]);
 
     useEffect(() => {
         if (pType === 'create') {
