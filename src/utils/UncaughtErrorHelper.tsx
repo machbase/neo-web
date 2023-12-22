@@ -1,5 +1,5 @@
 export const UncaughtErrorObserver = (setConsoleList: any) => {
-    window.onerror = function (message, source, lineno, colno, error) {
+    window.onerror = function (message) {
         setConsoleList((preData: any) => [
             ...preData,
             {
