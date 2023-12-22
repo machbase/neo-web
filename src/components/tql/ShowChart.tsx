@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
+import { ExistCommonScript, loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
 
 interface ShowChartProps {
     pData: any;
@@ -11,7 +11,11 @@ export const ShowChart = (props: ShowChartProps) => {
     const sTheme = pData.theme ? pData.theme : 'dark';
 
     const LoadScript = async () => {
-        pData && (await loadScriptsSequentially({ jsAssets: pData.jsAssets ? pData.jsAssets : [], jsCodeAssets: pData.jsCodeAssets ? pData.jsCodeAssets : [] }));
+        pData &&
+            (await loadScriptsSequentially({
+                jsAssets: pData.jsAssets ? (ExistCommonScript(pData.jsAssets) as string[]) : [],
+                jsCodeAssets: pData.jsCodeAssets ? pData.jsCodeAssets : [],
+            }));
     };
 
     useEffect(() => {

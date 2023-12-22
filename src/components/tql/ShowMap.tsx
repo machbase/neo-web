@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
+import { ExistCommonScript, loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
 interface ShowMapProps {
     pData: any;
     pBodyRef: any;
@@ -11,7 +11,7 @@ export const ShowMap = (props: ShowMapProps) => {
 
     const CreateMap = async () => {
         if (pData && pData.jsAssets && wrapRef && wrapRef.current && wrapRef.current.childNodes.length === 0)
-            await loadScriptsSequentially({ jsAssets: pData.jsAssets, jsCodeAssets: [] });
+            await loadScriptsSequentially({ jsAssets: pData.jsAssets ? (ExistCommonScript(pData.jsAssets) as string[]) : [], jsCodeAssets: [] });
 
         const MapDiv = document.createElement('div');
         MapDiv.id = pData.ID;
