@@ -13,6 +13,7 @@ import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gConsoleSelector, gExtensionList, gSelectedExtension } from '@/recoil/recoil';
 import ReferenceList from '@/components/side/ReferenceList';
 import DBExplorer from '@/components/side/DBExplorer/DBExplorer';
+import { UncaughtErrorObserver } from '@/utils/UncaughtErrorHelper';
 
 const Home = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['20%', '80%']);
@@ -72,6 +73,7 @@ const Home = () => {
                     }, 1000);
                 };
             }
+            UncaughtErrorObserver(setConsoleList);
         }
     };
 
