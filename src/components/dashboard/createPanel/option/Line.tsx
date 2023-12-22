@@ -1,33 +1,16 @@
-import { Delete, PlusCircle } from '@/assets/icons/Icon';
-import { IconButton } from '@/components/buttons/IconButton';
-import CheckBox from '@/components/inputs/CheckBox';
-import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
-import { getId } from '@/utils';
 import './Line.scss';
+import { ChartThemeList, ChartXAxisTypeList } from '@/utils/constants';
+import { ChangeEvent } from 'react';
+import { changeXAxisType } from '@/utils/dashboardUtil';
 
-const Line = ({ pPanelOption, pChangedOption, pSetPanelOption }: any) => {
-    const changeValueOption = (aKey: string, aData: any, aId: string) => {
+const Line = ({ pPanelOption, pSetPanelOption, pHandleDefaultOption }: any) => {
+    const handleXAxisType = (aEvent: ChangeEvent<HTMLInputElement>, aSeries: any) => {
+        const sSeries = changeXAxisType(aSeries, aEvent.target.value as 'category' | 'time');
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                markArea: aPrev.markArea.map((aItem: any) => {
-                    return aItem.id === aId
-                        ? {
-                              ...aItem,
-                              [aKey]: aData,
-                          }
-                        : aItem;
-                }),
-            };
-        });
-    };
-
-    const deleteMarkArea = (aId: string) => {
-        pSetPanelOption((aPrev: any) => {
-            return {
-                ...aPrev,
-                markArea: aPrev.markArea.filter((aItem: any) => aItem.id !== aId),
+                chartInfo: sSeries,
             };
         });
     };
@@ -42,16 +25,28 @@ const Line = ({ pPanelOption, pChangedOption, pSetPanelOption }: any) => {
                     pBorderRadius={4}
                     pInitValue={pPanelOption.theme}
                     pHeight={30}
-                    onChange={(aEvent: any) => pChangedOption(aEvent, 'theme')}
-                    pOptions={['chalk', 'essos', 'infographic', 'macarons', 'purple-passion', 'roma', 'romantic', 'shine', 'vintage', 'walden', 'westeros', 'wonderland']}
+                    onChange={(aEvent: any) => pHandleDefaultOption(aEvent, 'theme')}
+                    pOptions={ChartThemeList}
                 />
             </div>
-            <div className="row title">Data Zoom</div>
+            <div className="row title">XAxis Type</div>
+            <div className="row">
+                <Select
+                    pFontSize={13}
+                    pWidth={'100%'}
+                    pBorderRadius={4}
+                    pInitValue={pPanelOption.chartInfo.xAxis.type}
+                    pHeight={30}
+                    onChange={(aEvent: any) => handleXAxisType(aEvent, pPanelOption.chartInfo)}
+                    pOptions={ChartXAxisTypeList}
+                />
+            </div>
+            {/* <div className="row title">Data Zoom</div>
             <div className="row">
                 <CheckBox onChange={(aEvent: any) => pChangedOption(aEvent, 'useDataZoom')} pDefaultChecked={pPanelOption.useDataZoom} pText={'use Data Zoom'}></CheckBox>
-            </div>
+            </div> */}
 
-            <div className="row">
+            {/* <div className="row">
                 Type
                 <Select
                     pIsDisabled={!pPanelOption.useDataZoom}
@@ -63,8 +58,8 @@ const Line = ({ pPanelOption, pChangedOption, pSetPanelOption }: any) => {
                     onChange={(aEvent: any) => pChangedOption(aEvent, 'dataZoomType')}
                     pOptions={['slider', 'inside']}
                 />
-            </div>
-            <div className="row">
+            </div> */}
+            {/* <div className="row">
                 Min
                 <Input
                     pIsDisabled={!pPanelOption.useDataZoom}
@@ -76,8 +71,8 @@ const Line = ({ pPanelOption, pChangedOption, pSetPanelOption }: any) => {
                     pBorderRadius={4}
                     onChange={(aEvent: any) => pChangedOption(aEvent, 'dataZoomMin')}
                 />
-            </div>
-            <div className="row">
+            </div> */}
+            {/* <div className="row">
                 Max
                 <Input
                     pIsDisabled={!pPanelOption.useDataZoom}
@@ -89,9 +84,9 @@ const Line = ({ pPanelOption, pChangedOption, pSetPanelOption }: any) => {
                     pBorderRadius={4}
                     onChange={(aEvent: any) => pChangedOption(aEvent, 'dataZoomMax')}
                 />
-            </div>
+            </div> */}
 
-            <div className="row title">
+            {/* <div className="row title">
                 Mark Area
                 <IconButton
                     pWidth={25}
@@ -103,12 +98,12 @@ const Line = ({ pPanelOption, pChangedOption, pSetPanelOption }: any) => {
                         });
                     }}
                 ></IconButton>
-            </div>
-            <div className="row">
+            </div> */}
+            {/* <div className="row">
                 <CheckBox onChange={(aEvent: any) => pChangedOption(aEvent, 'useMarkArea')} pDefaultChecked={pPanelOption.useMarkArea} pText={'use Mark Area'}></CheckBox>
-            </div>
+            </div> */}
             <div className="row">
-                {pPanelOption.markArea.map((aItem: any) => {
+                {/* {pPanelOption.markArea.map((aItem: any) => {
                     return (
                         <div key={aItem.id} className="mark-area-option">
                             <div className="row">
@@ -181,10 +176,10 @@ const Line = ({ pPanelOption, pChangedOption, pSetPanelOption }: any) => {
                                 pBorderRadius={4}
                                 onChange={(aEvent: any) => changeValueOption('opacity', aEvent.target.value, aItem.id)}
                             />
-                            <div className="divider" style={{ margin: '12px 3px' }}></div>
+                            <div className="divider" style={{ margin: '12px 3px' }}/>
                         </div>
                     );
-                })}
+                })} */}
             </div>
             {/* <div className="row title">X-axis</div>
             <div className="row">

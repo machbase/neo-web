@@ -168,7 +168,14 @@ any) => {
                 }
             } else if (sFileExtension === 'dsh') {
                 const sTmpData: any = JSON.parse(sContentResult);
-                sTmpBoard = { ...sTmpData, id: sTmpBoard.id, name: sTmpBoard.name, type: sFileExtension, path: sTmpBoard.path, savedCode: JSON.stringify(sContentResult) };
+                sTmpBoard = {
+                    ...sTmpData,
+                    id: sTmpBoard.id,
+                    name: sTmpBoard.name,
+                    type: sFileExtension,
+                    path: sTmpBoard.path,
+                    savedCode: JSON.stringify(sContentResult.dashboard),
+                };
             } else if (sFileExtension === 'taz') {
                 const sTmpData: any = JSON.parse(sContentResult);
                 sTmpBoard = { ...sTmpData, id: sTmpBoard.id, name: sTmpBoard.name, type: sFileExtension, path: sTmpBoard.path, savedCode: JSON.stringify(sTmpData.panels) };

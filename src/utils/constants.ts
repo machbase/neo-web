@@ -345,3 +345,29 @@ export const DEFAULT_DB_NAME = 'machbasedb';
 
 export const MIN_MAX_BASE_QUERY = `select min(min_time) as min_tm, max(max_time) as max_tm from [userName].v$[table]_stat where name in ([tags])`;
 export const MIN_MAX_MOUNT_QUERY = `select min(TIME) as min_tm, max(TIME) as max_tm from [table] where name = '[tag]'`;
+
+export const TABLE_COLUMN_TYPE = [
+    { key: 4, value: 'SHORT' },
+    { key: 5, value: 'VARCHAR' },
+    { key: 6, value: 'DATETIME' },
+    { key: 8, value: 'INTEGER' },
+    { key: 12, value: 'LONG' },
+    { key: 16, value: 'FLOAT' },
+    { key: 20, value: 'DOUBLE' },
+    { key: 32, value: 'IPV4' },
+    { key: 36, value: 'IPV6' },
+    { key: 49, value: 'TEXT' },
+    { key: 53, value: 'CLOB' },
+    { key: 57, value: 'BLOB' },
+    { key: 97, value: 'BINARY' },
+    { key: 104, value: 'USHORT' },
+    { key: 108, value: 'UINTEGER' },
+    { key: 112, value: 'ULONG' },
+];
+export const DB_NUMBER_TYPE = ['SHORT', 'INTEGER', 'LONG', 'FLOAT', 'DOUBLE', 'USHORT', 'UINTEGER', 'ULONG'];
+
+// dashboard e-chart setting value
+// export type SeriesType = 'line' | 'bar' | 'scatter' | 'pie' | 'radar' | 'candlestick' | 'heatmap' | 'sankey' | 'gauge' | 'liquidFill' | 'wordCloud';
+export const ChartTypeList = ['line', 'bar', 'scatter'];
+export const ChartThemeList = ['dark', 'white'];
+export const ChartXAxisTypeList = ['category', 'time'];

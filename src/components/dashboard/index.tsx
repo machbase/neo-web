@@ -59,22 +59,21 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
         !aValue && changeLayout(aEvent);
     };
     const changeLayout = (aLayout: any) => {
-        setBoardList(
-            sBoardList.map((bItem: any) => {
-                return bItem.id === pInfo.id
-                    ? {
-                          ...bItem,
-                          dashboard: {
-                              ...bItem.dashboard,
-                              panels: bItem.dashboard.panels.map((cItem: any) => {
-                                  const sValue = aLayout.find((dItem: any) => dItem.i === cItem.i);
-                                  return { ...cItem, h: sValue.h, w: sValue.w, x: sValue.x, y: sValue.y };
-                              }),
-                          },
-                      }
-                    : bItem;
-            })
-        );
+        const sTempBoardList = sBoardList.map((aItem: any) => {
+            return aItem.id === pInfo.id
+                ? {
+                      ...aItem,
+                      dashboard: {
+                          ...aItem.dashboard,
+                          panels: aItem.dashboard.panels.map((bItem: any) => {
+                              const sValue = aLayout.find((cItem: any) => cItem.i === bItem.id);
+                              return { ...bItem, h: sValue.h, w: sValue.w, x: sValue.x, y: sValue.y };
+                          }),
+                      },
+                  }
+                : aItem;
+        });
+        setBoardList(sTempBoardList);
     };
 
     return (
@@ -124,7 +123,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                             pInfo.dashboard.panels &&
                             pInfo.dashboard.panels.map((aItem: any) => {
                                 return (
-                                    <div key={aItem.i}>
+                                    <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
                                         <Panel pDragStat={pDragStat} pShowEditPanel={showEditPanel} pBoardInfo={pInfo} pPanelInfo={aItem}></Panel>
                                     </div>
                                 );

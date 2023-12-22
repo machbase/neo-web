@@ -111,6 +111,10 @@ export const isEmpty = (aArr: any) => {
     return Array.isArray(aArr) && aArr.length === 0;
 };
 
+export const isObjectEmpty = (aObj: Object) => {
+    return Object.keys(aObj).length === 0;
+};
+
 export const elapsedTime = (date: number): string => {
     if (typeof date === 'string') return '';
     const start = date;

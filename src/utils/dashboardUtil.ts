@@ -1,4 +1,6 @@
 import { getId } from '.';
+import { DefaultTagTableOption } from '@/utils/eChartHelper';
+import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE } from '@/utils/constants';
 
 export const convertToMachbaseIntervalMs = (intervalMs: number) => {
     let ms = '';
@@ -121,20 +123,21 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
                     return bItem[0] === aItem.column;
                 });
 
-                if (
-                    sTableInfo &&
-                    (sTableInfo[1] === 4 ||
-                        sTableInfo[1] === 8 ||
-                        sTableInfo[1] === 12 ||
-                        sTableInfo[1] === 16 ||
-                        sTableInfo[1] === 20 ||
-                        sTableInfo[1] === 104 ||
-                        sTableInfo[1] === 108 ||
-                        sTableInfo[1] === 112)
-                ) {
+                if (sTableInfo && isNumberTypeColumn(sTableInfo[1])) {
                     sValue = `${aItem.value}`;
                 } else {
-                    sValue = `'${aItem.value}'`;
+                    if (aItem.operator === 'in') {
+                        sValue = aItem.value
+                            .split(',')
+                            .map((val: string) => {
+                                const trimVal = val.trim();
+                                return trimVal.startsWith("'") ? trimVal : "'" + trimVal + "'";
+                            })
+                            .join(',');
+                        sValue = `(${sValue})`;
+                    } else {
+                        sValue = `'${aItem.value}'`;
+                    }
                 }
                 return `${aItem.column} ${aItem.operator} ${sValue}`;
             } else {
@@ -156,20 +159,16 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
         let sFilter = '';
         let useGroupBy = true;
 
-        if (aInfo.useRollup) {
-            sTime = `${aInfo.time} ROLLUP ${aTime.IntervalValue} ${aTime.IntervalType} AS TIME`;
-        } else {
-            let sRollupValue = 1;
-            if (aTime.IntervalType === 'sec') {
-                sRollupValue = 1;
-            } else if (aTime.IntervalType === 'min') {
-                sRollupValue = 60;
-            } else if (aTime.IntervalType === 'hour') {
-                sRollupValue = 3600;
-            }
-            const sTimeValue = sRollupValue * 1000000000;
-            sTime = `${aInfo.time} / ${sTimeValue} * ${sTimeValue} AS TIME`;
+        let sRollupValue = 1;
+        if (aTime.IntervalType === 'sec') {
+            sRollupValue = 1;
+        } else if (aTime.IntervalType === 'min') {
+            sRollupValue = 60;
+        } else if (aTime.IntervalType === 'hour') {
+            sRollupValue = 3600;
         }
+        const sTimeValue = sRollupValue * 1000000000;
+        sTime = `${aInfo.time} / ${sTimeValue} * ${sTimeValue} AS TIME`;
 
         if (aInfo.type === 'tag') {
             if (aInfo.useCustom) {
@@ -218,21 +217,21 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
                 const sTableInfo = aInfo.tableInfo.find((bItem: any) => {
                     return bItem[0] === aItem.column;
                 });
-
-                if (
-                    sTableInfo &&
-                    (sTableInfo[1] === 4 ||
-                        sTableInfo[1] === 8 ||
-                        sTableInfo[1] === 12 ||
-                        sTableInfo[1] === 16 ||
-                        sTableInfo[1] === 20 ||
-                        sTableInfo[1] === 104 ||
-                        sTableInfo[1] === 108 ||
-                        sTableInfo[1] === 112)
-                ) {
+                if (sTableInfo && isNumberTypeColumn(sTableInfo[1])) {
                     sValue = `${aItem.value}`;
                 } else {
-                    sValue = `'${aItem.value}'`;
+                    if (aItem.operator === 'in') {
+                        sValue = aItem.value
+                            .split(',')
+                            .map((val: string) => {
+                                const trimVal = val.trim();
+                                return trimVal.startsWith("'") ? trimVal : "'" + trimVal + "'";
+                            })
+                            .join(',');
+                        sValue = `(${sValue})`;
+                    } else {
+                        sValue = `'${aItem.value}'`;
+                    }
                 }
                 return `${aItem.column} ${aItem.operator} ${sValue}`;
             } else {
@@ -240,12 +239,12 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
             }
         });
         sFilter = sFilterList.join(' AND ');
+        const sGroupByQuery = useGroupBy ? 'GROUP BY NAME, TIME' : '';
+        const sOrderByQuery = 'ORDER BY NAME, TIME';
 
-        const sQuery = `SELECT ${sTime}, ${sValue} FROM ${sTableName} WHERE ${sWhereTime} ${aInfo.useCustom ? '' : `AND NAME = ` + `'` + aInfo.tag + `'`} ${
+        const sQuery = `SELECT NAME, ${sTime}, ${sValue} FROM ${sTableName} WHERE ${sWhereTime} ${aInfo.useCustom ? '' : `AND NAME = ` + `'` + aInfo.tag + `'`} ${
             aInfo.useCustom ? (sFilter ? 'AND ' + sFilter : '') : ``
-        } ${!useGroupBy ? '' : 'GROUP BY TIME'} ORDER BY TIME`;
-
-        sQuery.replace('CHART_LINE', 'CHART_LINE');
+        } ${sGroupByQuery} ${sOrderByQuery}`;
 
         return sQuery;
     }
@@ -346,6 +345,70 @@ export const defaultTimeSeriesData = (aTable: any, aUser: string) => {
         series: [{ ...tagTableValue(), userName: aUser, table: aTable ? aTable[3] : '' }],
     };
     return sData;
+};
+
+export const createDefaultTagTableOption = (aUser: string, aTable: string) => {
+    const sOption = [{ ...DefaultTagTableOption, userName: aUser, table: aTable ? aTable[3] : '' }];
+    return sOption;
+};
+
+export const createSeriesOption = (aOptionInfo: any, aTagList: any) => {
+    const sOption = {
+        ...aOptionInfo.chartInfo,
+        xAxis: {
+            ...aOptionInfo.chartInfo.xAxis,
+            // data: 'column(0)',
+        },
+        series: setSeries(aOptionInfo, aTagList),
+        legend: { show: aOptionInfo.isLegend ? true : false },
+    };
+    return sOption;
+};
+
+export const setSeries = (aOptionInfo: any, aTagList: any) => {
+    let sSeries = [] as any[];
+    for (let i = 0; i < aTagList.length; i++) {
+        const sTempObject = {
+            ...aOptionInfo.chartInfo.series[i],
+            type: aOptionInfo.type,
+            data: 'column(' + i + ')',
+            name: aTagList[i],
+        };
+        sSeries.push(sTempObject);
+    }
+    return sSeries;
+};
+
+export const changeXAxisType = (aSeries: any, aType: 'category' | 'time') => {
+    return {
+        ...aSeries,
+        xAxis: {
+            ...aSeries.xAxis,
+            type: aType,
+        },
+    };
+};
+
+export const removeColumnQuotes = (aStr: string) => {
+    return aStr.replace(/"column\((\d+)\)"/g, 'column($1)');
+};
+
+export const createMapValueForTag = (aTags: any, aTagNum: number) => {
+    let sResultString = '';
+    let sMapValueString = '';
+    let sPopValueString = '0';
+    for (let i = 0; i < aTagNum; i++) {
+        // when select name, time, value
+        sMapValueString += `MAPVALUE(${i + 3}, value(0) == '${aTags[i]}' ? value(2) : NULL)\n`;
+    }
+    sResultString = sMapValueString + `POPVALUE(0, 2)\n`;
+    sMapValueString = '';
+    for (let i = 0; i < aTagNum; i++) {
+        sMapValueString += `MAPVALUE(${aTagNum + (i + 1)}, list(value(0), value(${i + 1}) == NULL ? NULL : value(${i + 1})))\n`;
+        sPopValueString += ', ' + (i + 1);
+    }
+    sResultString += sMapValueString + `POPVALUE(${sPopValueString})\n`;
+    return sResultString;
 };
 
 export const calcRefreshTime = (aTime: string) => {
@@ -497,5 +560,14 @@ export const getColumnType = (columnId: number) => {
             return 'json';
         default:
             return 'unknown ' + `(${columnId})`;
+    }
+};
+
+export const isNumberTypeColumn = (aType: number) => {
+    const colType = TABLE_COLUMN_TYPE.find((item) => item.key === aType);
+    if (colType && DB_NUMBER_TYPE.some((item) => item === colType.value)) {
+        return true;
+    } else {
+        return false;
     }
 };

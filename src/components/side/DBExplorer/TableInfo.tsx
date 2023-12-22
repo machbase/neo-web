@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { GoDotFill, FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser } from '@/assets/icons/Icon';
 import './TableInfo.scss';
 import { getUserName } from '@/utils';
+import { getColumnType } from '@/utils/dashboardUtil';
 
 const TableInfo = ({ pShowHiddenObj, pValue }: any) => {
     const [sCollapseTree, setCollapseTree] = useState(true);
@@ -187,44 +188,6 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                 return 'TAG';
             default:
                 return '';
-        }
-    };
-    const getColumnType = (columnId: number) => {
-        switch (columnId) {
-            case 104:
-                return 'ushort';
-            case 8:
-                return 'integer';
-            case 108:
-                return 'uinteger';
-            case 12:
-                return 'long';
-            case 112:
-                return 'ulong';
-            case 16:
-                return 'float';
-            case 20:
-                return 'double';
-            case 5:
-                return 'varchar';
-            case 49:
-                return 'text';
-            case 53:
-                return 'clob';
-            case 57:
-                return 'blob';
-            case 97:
-                return 'binary';
-            case 6:
-                return 'datetime';
-            case 32:
-                return 'ipv4';
-            case 36:
-                return 'ipv6';
-            case 61:
-                return 'json';
-            default:
-                return 'unknown ' + `(${columnId})`;
         }
     };
     const checkDisplay = (aColumn: string, aData?: (string | number)[]): boolean => {

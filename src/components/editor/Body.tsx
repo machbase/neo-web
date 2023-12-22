@@ -79,6 +79,9 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                         } else if (sFileType === 'taz') {
                             sTempBoardList[sIndex].code = '';
                             sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveData.panels);
+                        } else if (sFileType === 'dsh') {
+                            sTempBoardList[sIndex].code = '';
+                            sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveData.dashboard);
                         } else {
                             sTempBoardList[sIndex].code = sSaveData;
                             sTempBoardList[sIndex].savedCode = sSaveData;

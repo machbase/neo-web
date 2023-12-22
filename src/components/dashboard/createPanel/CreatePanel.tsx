@@ -9,10 +9,11 @@ import CreatePanelFooter from './CreatePanelFooter';
 import CreatePanelRight from './CreatePanelRight';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
-import { defaultTimeSeriesData, getTableType } from '@/utils/dashboardUtil';
+import { createDefaultTagTableOption, getTableType } from '@/utils/dashboardUtil';
 import { getTableList } from '@/api/repository/api';
 import moment from 'moment';
-import { decodeJwt } from '@/utils';
+import { decodeJwt, generateUUID, isValidJSON } from '@/utils';
+import { DefaultChartOption, ChartSeriesOption } from '@/utils/eChartHelper';
 
 const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelId: string; pType: string; pSetCreateModal: (aValue: boolean) => void; pBoardInfo: any }) => {
     const [sSideSizes, setSideSizes] = useState<any>(['75%', '25%']);
@@ -64,7 +65,7 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
                           dashboard: {
                               ...aItem.dashboard,
                               panels: aItem.dashboard.panels.map((bItem: any) => {
-                                  return bItem.i === pPanelId ? sPanelOption : bItem;
+                                  return bItem.id === pPanelId ? sPanelOption : bItem;
                               }),
                           },
                       }
@@ -96,28 +97,40 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
                     return;
                 }
             }
-            setAppliedPanelOption({ ...sPanelOption, timeRange: { ...sPanelOption.timeRange, start: sStart, end: sEnd } });
+            if (isValidJSON(JSON.stringify(sPanelOption))) {
+                const sTempOption = JSON.parse(JSON.stringify({ ...sPanelOption, timeRange: { ...sPanelOption.timeRange, start: sStart, end: sEnd } }));
+                setAppliedPanelOption(sTempOption);
+            }
         } else {
-            setAppliedPanelOption(sPanelOption);
+            if (isValidJSON(JSON.stringify(sPanelOption))) {
+                setAppliedPanelOption(JSON.parse(JSON.stringify(sPanelOption)));
+            }
         }
     };
 
     const getTables = async (aStatus: boolean) => {
         const sResult: any = await getTableList();
         if (sResult.success) {
+            // TODO 만약 나중에 다른 테이블 추가하면 설정해줘야함
             const newTable = sResult.data.rows.filter((aItem: any) => getTableType(aItem[4]) === 'log' || getTableType(aItem[4]) === 'tag');
             setTableList(newTable);
             if (aStatus) {
                 if (pType === 'create') {
                     const sToken = localStorage.getItem('accessToken');
                     if (sToken) {
-                        const sData = defaultTimeSeriesData(newTable[0], decodeJwt(sToken).sub);
-                        setPanelOption(sData);
-                        setAppliedPanelOption(sData);
+                        let sOption = DefaultChartOption;
+                        sOption = {
+                            ...sOption,
+                            id: generateUUID(),
+                            tagTableInfo: createDefaultTagTableOption(decodeJwt(sToken).sub, newTable[0]),
+                            chartInfo: ChartSeriesOption,
+                        };
+                        setPanelOption(sOption);
+                        setAppliedPanelOption(JSON.parse(JSON.stringify(sOption)));
                     }
                 } else {
-                    setPanelOption(pBoardInfo.dashboard.panels.find((aItem: any) => aItem.i === pPanelId));
-                    setAppliedPanelOption(pBoardInfo.dashboard.panels.find((aItem: any) => aItem.i === pPanelId));
+                    setPanelOption(pBoardInfo.dashboard.panels.find((aItem: any) => aItem.id === pPanelId));
+                    setAppliedPanelOption(JSON.parse(JSON.stringify(pBoardInfo.dashboard.panels.find((aItem: any) => aItem.id === pPanelId))));
                 }
             }
         }
@@ -196,12 +209,10 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
                             onChange={setBottomSizes}
                         >
                             <Pane maxSize="90%">
-                                {sAppliedPanelOption.i && (
-                                    <CreatePanelBody pBoardInfo={pBoardInfo} pType={pType} pInsetDraging={sInsetDraging} pPanelInfo={sAppliedPanelOption}></CreatePanelBody>
-                                )}
+                                {sAppliedPanelOption.id && <CreatePanelBody pBoardInfo={pBoardInfo} pType={pType} pInsetDraging={sInsetDraging} pPanelInfo={sAppliedPanelOption} />}
                             </Pane>
                             <Pane>
-                                {sPanelOption.i && (
+                                {sPanelOption.id && (
                                     <CreatePanelFooter
                                         pType={pType}
                                         pGetTables={getTables}
@@ -213,7 +224,7 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
                             </Pane>
                         </SplitPane>
                     </Pane>
-                    <Pane>{sPanelOption.i && <CreatePanelRight pPanelOption={sPanelOption} pSetPanelOption={setPanelOption}></CreatePanelRight>}</Pane>
+                    <Pane>{sPanelOption.id && <CreatePanelRight pPanelOption={sPanelOption} pSetPanelOption={setPanelOption}></CreatePanelRight>}</Pane>
                 </SplitPane>
             </div>
         </div>

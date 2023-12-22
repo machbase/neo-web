@@ -8,7 +8,7 @@ import DatePicker from '@/components/datePicker/DatePicker';
 import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Select } from '@/components/inputs/Select';
-import { getId } from '@/utils';
+import { generateUUID } from '@/utils';
 
 const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
     const sColorList = ['#73BF69', '#F2CC0C', '#8AB8FF', '#FF780A', '#F2495C', '#5794F2', '#B877D9', '#705DA0', '#37872D', '#FADE2A'];
@@ -37,7 +37,7 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
             <div className="chart-footer-tab">
                 <div className={sTab === 'Query' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Query')}>
                     Query
-                    <span className="series-count">{Number(pPanelOption.series.length)}</span>
+                    <span className="series-count">{Number(pPanelOption.tagTableInfo.length)}</span>
                 </div>
                 {pTableList.length !== 0 && (
                     <div className={sTab === 'Time' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Time')}>
@@ -46,9 +46,9 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                 )}
             </div>
             <div className="chart-footer">
-                <div style={sTab === 'Time' ? { display: 'none' } : {}} className="body">
+                <div style={{ display: sTab === 'Time' ? 'none' : '' }} className="body">
                     {pTableList.length !== 0 &&
-                        pPanelOption.series.map((aItem: any) => {
+                        pPanelOption.tagTableInfo.map((aItem: any) => {
                             return (
                                 <Series
                                     key={aItem.id}
@@ -56,18 +56,21 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                     pPanelOption={pPanelOption}
                                     pTableList={pTableList}
                                     pGetTables={pGetTables}
-                                    pSeriesInfo={aItem}
+                                    pTagTableInfo={aItem}
                                     pSetPanelOption={pSetPanelOption}
                                 />
                             );
                         })}
-                    {pTableList.length !== 0 && pPanelOption.series.length < 10 && (
+                    {pTableList.length !== 0 && pPanelOption.tagTableInfo.length < 10 && (
                         <div
                             onClick={() =>
                                 pSetPanelOption((aPrev: any) => {
                                     return {
                                         ...aPrev,
-                                        series: [...aPrev.series, { ...aPrev.series[aPrev.series.length - 1], id: getId(), color: sColorList[aPrev.series.length + 1] }],
+                                        tagTableInfo: [
+                                            ...aPrev.tagTableInfo,
+                                            { ...aPrev.tagTableInfo[aPrev.tagTableInfo.length - 1], id: generateUUID(), color: sColorList[aPrev.tagTableInfo.length + 1] },
+                                        ],
                                     };
                                 })
                             }

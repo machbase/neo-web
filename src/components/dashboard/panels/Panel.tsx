@@ -1,13 +1,14 @@
 import LineChart from './chart/LineChart';
 import PanelHeader from './PanelHeader';
 import './Panel.scss';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 const Panel = ({ pBoardInfo, pShowEditPanel, pType, pPanelInfo, pInsetDraging, pDragStat }: any) => {
     const [sRefreshCount, setRefreshCount] = useState<number>(0);
+    const sRef = useRef<HTMLDivElement>(null);
 
     return (
-        <div className="panel-wrap">
+        <div ref={sRef} className="panel-wrap">
             <PanelHeader
                 pRefreshCount={sRefreshCount}
                 pSetRefreshCount={setRefreshCount}
@@ -18,7 +19,7 @@ const Panel = ({ pBoardInfo, pShowEditPanel, pType, pPanelInfo, pInsetDraging, p
             ></PanelHeader>
             {pPanelInfo && (
                 <LineChart
-                    pRefreshCount={sRefreshCount}
+                    // pRefreshCount={sRefreshCount}
                     pDragStat={pDragStat}
                     pInsetDraging={pInsetDraging}
                     pBoardInfo={pBoardInfo}
