@@ -1,5 +1,5 @@
 import { getId } from '.';
-import { DefaultChartOption, DefaultLineSeriesObject, DefaultTagTableOption, ChartSeriesOption } from '@/utils/eChartHelper';
+import { DefaultTagTableOption } from '@/utils/eChartHelper';
 import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE } from '@/utils/constants';
 
 export const convertToMachbaseIntervalMs = (intervalMs: number) => {

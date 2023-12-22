@@ -1,9 +1,4 @@
-import { Delete, PlusCircle } from '@/assets/icons/Icon';
-import { IconButton } from '@/components/buttons/IconButton';
-import CheckBox from '@/components/inputs/CheckBox';
-import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
-import { getId } from '@/utils';
 import './Line.scss';
 import { ChartThemeList, ChartXAxisTypeList } from '@/utils/constants';
 import { ChangeEvent } from 'react';
