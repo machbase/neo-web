@@ -400,7 +400,7 @@ export const createYAxisOption = (aOptionInfo: any) => {
 };
 
 export const setSeries = (aOptionInfo: any, aTagList: any) => {
-    let sSeries = [] as any[];
+    const sSeries = [] as any[];
     const sIsGauge = aOptionInfo.type === 'gauge';
     const sIsPie = aOptionInfo.type === 'pie';
     if (sIsPie) {

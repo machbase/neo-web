@@ -3,8 +3,11 @@ import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 import { ChangeEvent, useState } from 'react';
 import './CreatePanelRight.scss';
-import Line from './option/Line';
+// import Line from './option/Line';
 import { ChartTypeList } from '@/utils/constants';
+import { ChartOptions } from './option/ChartOptions';
+import { ChartCommonOptions } from './option/ChartCommonOptions';
+import { GetDefaultSeriesOption } from '@/utils/eChartHelper';
 
 const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
     const [sPanelOptionCollapse, setPanelOptionCollapse] = useState<boolean>(true);
@@ -20,20 +23,30 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
     };
 
     const changeTypeOfSeriesOption = (aEvent: ChangeEvent<HTMLInputElement>) => {
-        const sSeries = pPanelOption.chartInfo.series;
-        const sChangeSeries = sSeries.map((aSeries: any, aIndex: number) => {
-            return {
-                ...aSeries[aIndex],
-                type: aEvent.target.value,
-            };
-        });
+        // const sSeries = pPanelOption.chartInfo.series;
+        // const sChangeSeries = sSeries.map((aSeries: any, aIndex: number) => {
+        //     return {
+        //         ...aSeries[aIndex],
+        //         type: aEvent.target.value,
+        //     };
+        // });
+        // pSetPanelOption((aPrev: any) => {
+        //     return {
+        //         ...aPrev,
+        //         type: aEvent.target.value,
+        //         chartInfo: {
+        //             ...aPrev.chartInfo,
+        //             series: sChangeSeries,
+        //         },
+        //     };
+        // });
+        const sChangeCahrtOption = GetDefaultSeriesOption(aEvent.target.value);
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
                 type: aEvent.target.value,
                 chartInfo: {
-                    ...aPrev.chartInfo,
-                    series: sChangeSeries,
+                    ...sChangeCahrtOption,
                 },
             };
         });
@@ -85,7 +98,13 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                     </div>
 
                     <div style={sChartOptionCollapse ? { marginLeft: '18px' } : { display: 'none' }}>
-                        <Line pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pHandleDefaultOption={handleDefaultOption}></Line>
+                        {/* <Line pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pHandleDefaultOption={handleDefaultOption}></Line> */}
+                        {/* COMMON */}
+                        {/* {(pPanelOption.type === 'line' || pPanelOption.type === 'bar' || pPanelOption.type === 'scatter') && (
+                            <Line pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pHandleDefaultOption={handleDefaultOption}></Line>
+                        )} */}
+                        <ChartCommonOptions pSetPanelOption={pSetPanelOption} pTheme={pPanelOption.theme} />
+                        <ChartOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
                     </div>
                     <div className="divider" style={{ margin: '12px 3px' }}></div>
                 </div>

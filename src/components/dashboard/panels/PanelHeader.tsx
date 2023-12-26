@@ -8,7 +8,6 @@ import { Tooltip } from 'react-tooltip';
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pSetRefreshCount }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sMouseDown, setMouseDown] = useState(false);
-
     const [sSelectedTab] = useRecoilState(gSelectedTab);
 
     const removePanel = () => {
@@ -70,21 +69,21 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pSetRefreshCount }: an
                         }
                     </span>
                     {pType !== 'create' && pType !== 'edit' && (
-                        <span className="delete">
-                            {
-                                <IconButton
-                                    pWidth={25}
-                                    pIcon={<GearFill size={14} />}
-                                    onClick={(aEvent: any) => {
-                                        aEvent.stopPropagation();
-                                        pShowEditPanel('edit', pPanelInfo.id);
-                                    }}
-                                />
-                            }
-                        </span>
-                    )}
-                    {pType !== 'create' && pType !== 'edit' && (
-                        <span className="delete">{<IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}</span>
+                        <>
+                            <span className="delete">
+                                {
+                                    <IconButton
+                                        pWidth={25}
+                                        pIcon={<GearFill size={14} />}
+                                        onClick={(aEvent: any) => {
+                                            aEvent.stopPropagation();
+                                            pShowEditPanel('edit', pPanelInfo.id);
+                                        }}
+                                    />
+                                }
+                            </span>
+                            <span className="delete">{<IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}</span>
+                        </>
                     )}
                 </div>
             </div>

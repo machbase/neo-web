@@ -63,6 +63,52 @@ export const DefaultLineSeriesObject = {
     type: 'line',
     data: [] as any,
 };
+
+const DefaultLineSeriesOption = {
+    xAxis: { type: 'category' },
+    yAxis: {},
+    series: [{ type: 'line' }],
+};
+const DefaultBarSeriesOption = {
+    xAxis: { type: 'category' },
+    yAxis: {},
+    series: [{ type: 'bar' }],
+};
+const DefaultScatterSeriesOption = {
+    xAxis: { type: 'category' },
+    yAxis: {},
+    series: [{ type: 'scatter' }],
+};
+const DefaultLiquidSeriesOption = {
+    series: [{ type: 'liquidFill', shape: 'circle' }],
+};
+const DefaultGaugeSeriesOption = {
+    series: [
+        {
+            type: 'gauge',
+            progress: {
+                show: true,
+            },
+            axisTick: { show: true },
+        },
+    ],
+};
+
+export const GetDefaultSeriesOption = (aChartType: string) => {
+    switch (aChartType.toLocaleLowerCase()) {
+        case 'liquidfill':
+            return DefaultLiquidSeriesOption;
+        case 'line':
+            return DefaultLineSeriesOption;
+        case 'scatter':
+            return DefaultScatterSeriesOption;
+        case 'gauge':
+            return DefaultGaugeSeriesOption;
+        default:
+            return DefaultBarSeriesOption;
+    }
+};
+
 // export const BarChartOption = {
 //     xAxis: {
 //         type: 'category',

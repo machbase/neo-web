@@ -49,7 +49,7 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
         const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.end) : setUnitTime(sBoardTimeRange.end);
 
         const sIntervalInfo = calcInterval(sStartTime, sEndTime, sRefClientWidth.current);
-        let sTagList = [] as string[];
+        const sTagList = [] as string[];
 
         pPanelInfo.tagTableInfo.forEach((aInfo: any) => {
             if (aInfo.useCustom) {
