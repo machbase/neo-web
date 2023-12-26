@@ -1,5 +1,5 @@
 import { generateUUID } from '@/utils';
-import { ChartTheme, ChartType } from '@/type/eChart';
+import { ChartTheme, ChartType, SeriesLineStep } from '@/type/eChart';
 
 export const DefaultChartOption = {
     id: undefined as string | undefined,
@@ -7,6 +7,7 @@ export const DefaultChartOption = {
     type: 'line' as ChartType,
     theme: 'dark' as ChartTheme,
     isLegend: true as boolean,
+    isStepInLine: false as SeriesLineStep, // step option in line
     timeRange: {
         start: undefined as string | undefined,
         end: undefined as string | undefined,
@@ -15,6 +16,10 @@ export const DefaultChartOption = {
     chartInfo: undefined as any,
     tagTableInfo: undefined as any,
     useCustomTime: true as boolean,
+
+    // gauge chart option
+    gaugeMin: 0 as number,
+    gaugeMax: 100 as number,
 
     // react-grid-layout value
     x: 0 as number, // x-position

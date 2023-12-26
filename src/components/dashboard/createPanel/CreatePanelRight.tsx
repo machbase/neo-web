@@ -85,9 +85,7 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                     </div>
 
                     <div style={sChartOptionCollapse ? { marginLeft: '18px' } : { display: 'none' }}>
-                        {(pPanelOption.type === 'line' || pPanelOption.type === 'bar' || pPanelOption.type === 'scatter') && (
-                            <Line pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pHandleDefaultOption={handleDefaultOption}></Line>
-                        )}
+                        <Line pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pHandleDefaultOption={handleDefaultOption}></Line>
                     </div>
                     <div className="divider" style={{ margin: '12px 3px' }}></div>
                 </div>

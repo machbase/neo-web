@@ -353,30 +353,95 @@ export const createDefaultTagTableOption = (aUser: string, aTable: string) => {
 };
 
 export const createSeriesOption = (aOptionInfo: any, aTagList: any) => {
-    const sOption = {
+    // common setting
+    let sOption = {
         ...aOptionInfo.chartInfo,
-        xAxis: {
-            ...aOptionInfo.chartInfo.xAxis,
-            // data: 'column(0)',
-        },
         series: setSeries(aOptionInfo, aTagList),
         legend: { show: aOptionInfo.isLegend ? true : false },
     };
+
+    // xAxis, yAxis setting
+    if (aOptionInfo.type === 'gauge') {
+        const { xAxis, yAxis, ...restOption } = sOption;
+        sOption = {
+            ...restOption,
+        };
+    } else {
+        sOption.xAxis = createXAxisOption(aOptionInfo);
+        sOption.yAxis = createYAxisOption(aOptionInfo);
+    }
+
     return sOption;
+};
+
+export const createXAxisOption = (aOptionInfo: any) => {
+    const sXAxisOption = {
+        ...aOptionInfo.chartInfo.xAxis,
+        // data: 'column(0)',
+    };
+
+    return sXAxisOption;
+};
+
+export const createYAxisOption = (aOptionInfo: any) => {
+    const sYAxisOption = {
+        ...aOptionInfo.chartInfo.yAxis,
+    };
+
+    return sYAxisOption;
 };
 
 export const setSeries = (aOptionInfo: any, aTagList: any) => {
     let sSeries = [] as any[];
+    const sIsGauge = aOptionInfo.type === 'gauge';
     for (let i = 0; i < aTagList.length; i++) {
-        const sTempObject = {
+        let sTempObject = {
             ...aOptionInfo.chartInfo.series[i],
             type: aOptionInfo.type,
             data: 'column(' + i + ')',
             name: aTagList[i],
         };
+        if (sIsGauge) {
+            sTempObject = {
+                ...sTempObject,
+                ...createGaugeSeriesOption(),
+            };
+        }
         sSeries.push(sTempObject);
     }
     return sSeries;
+};
+
+export const createGaugeSeriesOption = () => {
+    const sGaugeOption = {
+        progress: {
+            show: true,
+        },
+        axisTick: {
+            show: false,
+        },
+        axisLabel: {
+            distance: 25,
+            color: '#999',
+            fontSize: 16,
+        },
+        splitLine: {
+            length: 10,
+            distance: -10,
+            lineStyle: {
+                width: 2,
+                color: '#fff',
+            },
+        },
+        detail: {
+            fontSize: 22,
+            valueAnimation: false,
+            formatter: '{value}',
+            offsetCenter: [0, '30%'],
+        },
+    };
+
+    return sGaugeOption;
 };
 
 export const changeXAxisType = (aSeries: any, aType: 'category' | 'time') => {
@@ -570,4 +635,13 @@ export const isNumberTypeColumn = (aType: number) => {
     } else {
         return false;
     }
+};
+
+export const createGaugeQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number) => {
+    const selectQuery = 'SELECT trunc(' + aInfo.aggregator + '(VALUE), 2)';
+    const fromQuery = 'FROM ' + aInfo.userName + '.' + aInfo.table;
+    const whereTimeQuery = 'WHERE TIME between ' + aStart + '000000' + ' and ' + aEnd + '000000';
+    const andNameQuery = `AND NAME = '${aInfo.tag}'`;
+
+    return selectQuery + ' ' + fromQuery + ' ' + whereTimeQuery + ' ' + andNameQuery;
 };

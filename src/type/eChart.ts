@@ -14,6 +14,7 @@ export type ChartTheme =
     | 'walden'
     | 'westeros'
     | 'wonderland';
+export type SeriesLineStep = 'start' | 'middle' | 'end' | boolean;
 // export type SeriesLineStack = 'total' | string;
 // export type SeriesLineStep = 'start' | 'middle' | 'end';
 // export type SereisLineCoordinateSystem = 'cartesian2d' | 'polar';

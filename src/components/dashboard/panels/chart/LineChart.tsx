@@ -1,6 +1,6 @@
 import { getTqlChart } from '@/api/repository/machiot';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
-import { calcInterval, calcRefreshTime, createSeriesOption, createQuery, removeColumnQuotes, setUnitTime, createMapValueForTag } from '@/utils/dashboardUtil';
+import { calcInterval, calcRefreshTime, createSeriesOption, createQuery, removeColumnQuotes, setUnitTime, createMapValueForTag, createGaugeQuery } from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
 import './LineChart.scss';
 import { ShowChart } from '@/components/tql/ShowChart';
@@ -29,6 +29,7 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
         }
         sTimerRef.current = true;
         let lastQuery: string = '';
+        let sMapValueQuery: string = '';
 
         const sPanelTimeRange = pPanelInfo.timeRange;
         const sBoardTimeRange = pBoardInfo.dashboard.timeRange;
@@ -55,14 +56,20 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
             }
         });
 
-        for (let i = 0; i < pPanelInfo.tagTableInfo.length; i++) {
-            const sQuery: string = createQuery(pPanelInfo.tagTableInfo[i], sIntervalInfo, sStartTime, sEndTime);
+        if (pPanelInfo.type === 'gauge') {
+            // only one tag
+            lastQuery = createGaugeQuery(pPanelInfo.tagTableInfo[0], sIntervalInfo, sStartTime, sEndTime);
+        } else {
+            for (let i = 0; i < pPanelInfo.tagTableInfo.length; i++) {
+                const sQuery: string = createQuery(pPanelInfo.tagTableInfo[i], sIntervalInfo, sStartTime, sEndTime);
 
-            if (i === 0) {
-                lastQuery += sQuery;
-            } else {
-                lastQuery += '\nUNION ALL\n' + sQuery;
+                if (i === 0) {
+                    lastQuery += sQuery;
+                } else {
+                    lastQuery += '\nUNION ALL\n' + sQuery;
+                }
             }
+            sMapValueQuery = createMapValueForTag(sTagList, sTagList.length);
         }
 
         const sResult: any = await getTqlChart(
@@ -70,7 +77,7 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
                 lastQuery +
                 '`)\n' +
                 `TAKE(${(sRefClientWidth.current / 3).toFixed()})\n` +
-                createMapValueForTag(sTagList, sTagList.length) +
+                sMapValueQuery +
                 'CHART(' +
                 `theme('${pPanelInfo.theme}'),` +
                 `size('${sRefClientWidth.current}px','${sRefClientHeight.current}px'), ` +
