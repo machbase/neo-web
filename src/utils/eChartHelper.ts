@@ -1,6 +1,5 @@
 import { generateUUID } from '@/utils';
 import { ChartTheme, ChartType } from '@/type/eChart';
-import type { EChartOption } from 'echarts';
 
 export const DefaultChartOption = {
     id: undefined as string | undefined,
@@ -46,8 +45,8 @@ export const ChartSeriesOption = {
     xAxis: {
         type: 'category',
         // data: [] as any,
-    } as EChartOption.XAxis,
-    yAxis: {} as EChartOption.YAxis,
+    } as any,
+    yAxis: {} as any,
     series: [
         {
             type: 'line',
