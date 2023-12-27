@@ -12,8 +12,7 @@ export const ShowChart = (props: ShowChartProps) => {
     const wrapRef = useRef<HTMLDivElement>(null);
 
     const LoadScript = async () => {
-        if (pData && pData.jsAssets && wrapRef && wrapRef.current && wrapRef.current.childNodes.length === 0)
-            await loadScriptsSequentially({ jsAssets: pData.jsAssets ? (ExistCommonScript(pData.jsAssets) as string[]) : [], jsCodeAssets: [] });
+        if (pData && pData.jsAssets) await loadScriptsSequentially({ jsAssets: pData.jsAssets ? (ExistCommonScript(pData.jsAssets) as string[]) : [], jsCodeAssets: [] });
 
         const ChartDiv = document.createElement('div');
         ChartDiv.id = pData.chartID;
