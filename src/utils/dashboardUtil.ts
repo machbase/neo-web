@@ -366,6 +366,14 @@ export const createSeriesOption = (aOptionInfo: any, aTagList: any) => {
         sOption = {
             ...restOption,
         };
+    } else if (aOptionInfo.type === 'pie') {
+        const { xAxis, yAxis, ...restOption } = sOption;
+        sOption = {
+            ...restOption,
+            dataset: {
+                source: 'column(0)',
+            },
+        };
     } else {
         sOption.xAxis = createXAxisOption(aOptionInfo);
         sOption.yAxis = createYAxisOption(aOptionInfo);
@@ -394,20 +402,31 @@ export const createYAxisOption = (aOptionInfo: any) => {
 export const setSeries = (aOptionInfo: any, aTagList: any) => {
     let sSeries = [] as any[];
     const sIsGauge = aOptionInfo.type === 'gauge';
-    for (let i = 0; i < aTagList.length; i++) {
-        let sTempObject = {
-            ...aOptionInfo.chartInfo.series[i],
+    const sIsPie = aOptionInfo.type === 'pie';
+    if (sIsPie) {
+        const { data, ...restOption } = aOptionInfo.chartInfo.series[0];
+        const sTempObject = {
+            ...restOption,
+            ...createPieSeriesOption(),
             type: aOptionInfo.type,
-            data: 'column(' + i + ')',
-            name: aTagList[i],
         };
-        if (sIsGauge) {
-            sTempObject = {
-                ...sTempObject,
-                ...createGaugeSeriesOption(),
-            };
-        }
         sSeries.push(sTempObject);
+    } else {
+        for (let i = 0; i < aTagList.length; i++) {
+            let sTempObject = {
+                ...aOptionInfo.chartInfo.series[i],
+                type: aOptionInfo.type,
+                data: 'column(' + i + ')',
+                name: aTagList[i],
+            };
+            if (sIsGauge) {
+                sTempObject = {
+                    ...sTempObject,
+                    ...createGaugeSeriesOption(),
+                };
+            }
+            sSeries.push(sTempObject);
+        }
     }
     return sSeries;
 };
@@ -444,6 +463,22 @@ export const createGaugeSeriesOption = () => {
     return sGaugeOption;
 };
 
+export const createPieSeriesOption = () => {
+    const sPieOption = {
+        datasetIndex: 0,
+        radius: '70%',
+        emphasis: {
+            itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)',
+            },
+        },
+    };
+
+    return sPieOption;
+};
+
 export const changeXAxisType = (aSeries: any, aType: 'category' | 'time') => {
     return {
         ...aSeries,
@@ -474,6 +509,10 @@ export const createMapValueForTag = (aTags: any, aTagNum: number) => {
     }
     sResultString += sMapValueString + `POPVALUE(${sPopValueString})\n`;
     return sResultString;
+};
+
+export const createMapValueForPie = () => {
+    return 'MAPVALUE(0, list(value(0), value(1)))\n';
 };
 
 export const calcRefreshTime = (aTime: string) => {
@@ -644,4 +683,45 @@ export const createGaugeQuery = (aInfo: any, aTime: any, aStart: number, aEnd: n
     const andNameQuery = `AND NAME = '${aInfo.tag}'`;
 
     return selectQuery + ' ' + fromQuery + ' ' + whereTimeQuery + ' ' + andNameQuery;
+};
+
+export const createPieQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number) => {
+    const selectQuery = 'SELECT NAME, ' + aInfo.aggregator + '(VALUE)';
+    const fromQuery = 'FROM ' + aInfo.userName + '.' + aInfo.table;
+    const whereTimeQuery = 'WHERE TIME between ' + aStart + '000000' + ' and ' + aEnd + '000000';
+    let andNameQuery = `AND NAME = '${aInfo.tag}'`;
+    const groupByQuery = 'GROUP BY NAME';
+
+    if (aInfo.useCustom) {
+        const sFilterList = aInfo.filter.map((aItem: any) => {
+            let sValue = '';
+            if (aItem.useFilter) {
+                const sTableInfo = aInfo.tableInfo.find((bItem: any) => {
+                    return bItem[0] === aItem.column;
+                });
+                if (sTableInfo && isNumberTypeColumn(sTableInfo[1])) {
+                    sValue = `${aItem.value}`;
+                } else {
+                    if (aItem.operator === 'in') {
+                        sValue = aItem.value
+                            .split(',')
+                            .map((val: string) => {
+                                const trimVal = val.trim();
+                                return trimVal.startsWith("'") ? trimVal : "'" + trimVal + "'";
+                            })
+                            .join(',');
+                        sValue = `(${sValue})`;
+                    } else {
+                        sValue = `'${aItem.value}'`;
+                    }
+                }
+                return `${aItem.column} ${aItem.operator} ${sValue}`;
+            } else {
+                return '';
+            }
+        });
+        andNameQuery = ' AND ' + sFilterList.join(' AND ');
+    }
+
+    return selectQuery + ' ' + fromQuery + ' ' + whereTimeQuery + ' ' + andNameQuery + ' ' + groupByQuery;
 };

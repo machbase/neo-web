@@ -368,6 +368,6 @@ export const DB_NUMBER_TYPE = ['SHORT', 'INTEGER', 'LONG', 'FLOAT', 'DOUBLE', 'U
 
 // dashboard e-chart setting value
 // export type SeriesType = 'line' | 'bar' | 'scatter' | 'pie' | 'radar' | 'candlestick' | 'heatmap' | 'sankey' | 'gauge' | 'liquidFill' | 'wordCloud';
-export const ChartTypeList = ['line', 'bar', 'scatter', 'gauge'];
+export const ChartTypeList = ['line', 'bar', 'scatter', 'gauge', 'pie'];
 export const ChartThemeList = ['dark', 'white'];
 export const ChartXAxisTypeList = ['category', 'time'];

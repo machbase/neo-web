@@ -1,6 +1,17 @@
 import { getTqlChart } from '@/api/repository/machiot';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
-import { calcInterval, calcRefreshTime, createSeriesOption, createQuery, removeColumnQuotes, setUnitTime, createMapValueForTag, createGaugeQuery } from '@/utils/dashboardUtil';
+import {
+    calcInterval,
+    calcRefreshTime,
+    createSeriesOption,
+    createQuery,
+    removeColumnQuotes,
+    setUnitTime,
+    createMapValueForTag,
+    createGaugeQuery,
+    createPieQuery,
+    createMapValueForPie,
+} from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
 import './LineChart.scss';
 import { ShowChart } from '@/components/tql/ShowChart';
@@ -59,6 +70,9 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
         if (pPanelInfo.type === 'gauge') {
             // only one tag
             lastQuery = createGaugeQuery(pPanelInfo.tagTableInfo[0], sIntervalInfo, sStartTime, sEndTime);
+        } else if (pPanelInfo.type === 'pie') {
+            lastQuery = createPieQuery(pPanelInfo.tagTableInfo[0], sIntervalInfo, sStartTime, sEndTime);
+            sMapValueQuery = createMapValueForPie();
         } else {
             for (let i = 0; i < pPanelInfo.tagTableInfo.length; i++) {
                 const sQuery: string = createQuery(pPanelInfo.tagTableInfo[i], sIntervalInfo, sStartTime, sEndTime);
