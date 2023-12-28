@@ -5,7 +5,7 @@ import { IconButton } from '@/components/buttons/IconButton';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
-import { getTableType, tagAggregatorList } from '@/utils/dashboardUtil';
+import { getTableType, isNumberTypeColumn, tagAggregatorList } from '@/utils/dashboardUtil';
 import { useEffect, useState } from 'react';
 import Filter from './Filter';
 import './Series.scss';
@@ -89,16 +89,7 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
                                       return aItem[1] === 6;
                                   })[0][0],
                                   value: sData.data.rows.filter((aItem: any) => {
-                                      return (
-                                          aItem[1] === 4 ||
-                                          aItem[1] === 8 ||
-                                          aItem[1] === 12 ||
-                                          aItem[1] === 16 ||
-                                          aItem[1] === 20 ||
-                                          aItem[1] === 104 ||
-                                          aItem[1] === 108 ||
-                                          aItem[1] === 112
-                                      );
+                                      return isNumberTypeColumn(aItem[1]);
                                   })[0][0],
                                   name: sData.data.rows.filter((aItem: any) => {
                                       return aItem[1] === 5;
@@ -107,16 +98,7 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
                                       return {
                                           ...aItem,
                                           value: sData.data.rows.filter((aItem: any) => {
-                                              return (
-                                                  aItem[1] === 4 ||
-                                                  aItem[1] === 8 ||
-                                                  aItem[1] === 12 ||
-                                                  aItem[1] === 16 ||
-                                                  aItem[1] === 20 ||
-                                                  aItem[1] === 104 ||
-                                                  aItem[1] === 108 ||
-                                                  aItem[1] === 112
-                                              );
+                                              return isNumberTypeColumn(aItem[1]);
                                           })[0][0],
                                       };
                                   }),
@@ -399,7 +381,7 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
                                     pTagTableInfo={pTagTableInfo}
                                     pValue={aItem}
                                     pIdx={aIdx}
-                                    pColumnList={sColumnList}
+                                    pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
                                 ></Value>
                             );
                         })}
