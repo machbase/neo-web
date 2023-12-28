@@ -1,18 +1,15 @@
-import { VscChevronDown, VscChevronRight } from '@/assets/icons/Icon';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent } from 'react';
 import './CreatePanelRight.scss';
 // import Line from './option/Line';
 import { ChartTypeList } from '@/utils/constants';
 import { ChartOptions } from './option/ChartOptions';
 import { ChartCommonOptions } from './option/ChartCommonOptions';
 import { GetDefaultSeriesOption } from '@/utils/eChartHelper';
+import { Collapse } from '@/components/collapse/Collapse';
 
 const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
-    const [sPanelOptionCollapse, setPanelOptionCollapse] = useState<boolean>(true);
-    const [sChartOptionCollapse, setChartOpitonCollapse] = useState<boolean>(true);
-
     const handleDefaultOption = (aEvent: ChangeEvent<HTMLInputElement>, aKey: string) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -68,46 +65,27 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                     />
                 </div>
 
-                <div className="normal">
-                    <div className="divider" style={{ margin: '12px 3px' }}></div>
-                    <div className="panel-option-header" onClick={() => setPanelOptionCollapse(!sPanelOptionCollapse)}>
-                        <div className="collapse-icon">{sPanelOptionCollapse ? <VscChevronDown /> : <VscChevronRight />}</div>
-                        Panel Option
+                <div className="divider"></div>
+                <Collapse title="Panel Option">
+                    <div className="panel-name-form">
+                        <div className="panel-name-wrap">Title</div>
+                        <Input
+                            pType="text"
+                            pIsFullWidth
+                            pHeight={28}
+                            pValue={pPanelOption.name}
+                            pSetValue={() => null}
+                            pBorderRadius={4}
+                            onChange={(aEvent: any) => handleDefaultOption(aEvent, 'name')}
+                        />
                     </div>
-
-                    <div style={sPanelOptionCollapse ? { marginLeft: '18px' } : { display: 'none' }}>
-                        <div className="panel-name-form">
-                            <div className="panel-name-wrap">Title</div>
-                            <Input
-                                pType="text"
-                                pWidth={'100%'}
-                                pHeight={28}
-                                pValue={pPanelOption.name}
-                                pSetValue={() => null}
-                                pBorderRadius={4}
-                                onChange={(aEvent: any) => handleDefaultOption(aEvent, 'name')}
-                            />
-                        </div>
-                    </div>
-                    <div className="divider" style={{ margin: '12px 3px' }}></div>
-                </div>
-                <div className="normal">
-                    <div className="panel-option-header" onClick={() => setChartOpitonCollapse(!sChartOptionCollapse)}>
-                        <div className="collapse-icon">{sChartOptionCollapse ? <VscChevronDown /> : <VscChevronRight />}</div>
-                        Chart Option
-                    </div>
-
-                    <div style={sChartOptionCollapse ? { marginLeft: '18px' } : { display: 'none' }}>
-                        {/* <Line pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pHandleDefaultOption={handleDefaultOption}></Line> */}
-                        {/* COMMON */}
-                        {/* {(pPanelOption.type === 'line' || pPanelOption.type === 'bar' || pPanelOption.type === 'scatter') && (
-                            <Line pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pHandleDefaultOption={handleDefaultOption}></Line>
-                        )} */}
-                        <ChartCommonOptions pSetPanelOption={pSetPanelOption} pTheme={pPanelOption.theme} />
-                        <ChartOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
-                    </div>
-                    <div className="divider" style={{ margin: '12px 3px' }}></div>
-                </div>
+                </Collapse>
+                <div className="divider"></div>
+                <Collapse title="Chart Option">
+                    <ChartCommonOptions pSetPanelOption={pSetPanelOption} pTheme={pPanelOption.theme} />
+                    <ChartOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                </Collapse>
+                <div className="divider"></div>
             </div>
         </div>
     );
