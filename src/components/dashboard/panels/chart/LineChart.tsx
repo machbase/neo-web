@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from 'react';
 import './LineChart.scss';
 import { ShowChart } from '@/components/tql/ShowChart';
 import { isObjectEmpty } from '@/utils';
+import { DashboardQueryParser } from '@/utils/DashboardQueryParser';
 
 const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: any) => {
     const ChartRef = useRef<any>();
