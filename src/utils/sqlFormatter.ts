@@ -20,6 +20,7 @@ const Title = `"title": {}`;
 const Tooltip = `"tooltip": {"show": true,"trigger": "axis","axisPointer": {"type": "cross","show": false}}`;
 
 export const sqlBasicChartFormatter = (aSql: string, aAxis?: { x: string; y: string; xIndex: number; yIndex: number; list: string[] }) => {
+    const sTmpSeries = aAxis?.list ? aAxis?.list.filter((aItem: any) => aItem !== aAxis?.x) : [];
     return (
         'SQL(`' +
         aSql +
@@ -36,8 +37,8 @@ export const sqlBasicChartFormatter = (aSql: string, aAxis?: { x: string; y: str
                 ${Tooltip},
                 "xAxis": {"name": "${aAxis?.x}", "type": "category", "data": column(${aAxis?.xIndex})}, 
                 "yAxis": {"name": "${aAxis?.y}", "type": "value"},
-                "series": [${aAxis?.list.map((colName: string, aIdx: number) => {
-                    if (colName !== aAxis?.x) return `{"name": "${colName}", "type": "line", "data": column(${aIdx})}`;
+                "series": [${sTmpSeries.map((colName: string, aIdx: number) => {
+                    return `{"name": "${colName}", "type": "line", "data": column(${aIdx})}`;
                 })}],
             })
         )`
