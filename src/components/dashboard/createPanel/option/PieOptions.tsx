@@ -1,0 +1,40 @@
+import CheckBox from '@/components/inputs/CheckBox';
+import { Input } from '@/components/inputs/Input';
+
+interface PieOptionProps {
+    pPanelOption: any;
+    pSetPanelOption: any;
+}
+
+export const PieOptions = (props: PieOptionProps) => {
+    const { pPanelOption, pSetPanelOption } = props;
+
+    const handlePieOption = (aEvent: any, aKey: any, aIsCheckbox: boolean) => {
+        pSetPanelOption((prev: any) => {
+            return {
+                ...prev,
+                pieChartOptions: {
+                    ...prev.pieChartOptions,
+                    [aKey]: aIsCheckbox ? aEvent.target.checked : aEvent.target.value,
+                },
+            };
+        });
+    };
+
+    return (
+        <div>
+            <span>Doughnut Ratio</span>
+            <Input
+                pType="number"
+                pIsFullWidth
+                pHeight={30}
+                pBorderRadius={4}
+                pValue={pPanelOption.pieChartOptions.doughnutRatio}
+                pSetValue={() => null}
+                onChange={(aEvent: any) => handlePieOption(aEvent, 'doughnutRatio', false)}
+            />
+            <div style={{ height: '10px' }} />
+            <CheckBox pText="Nightingale Mode" pDefaultChecked={pPanelOption.pieChartOptions.roseType} onChange={(aEvent: any) => handlePieOption(aEvent, 'roseType', true)} />
+        </div>
+    );
+};

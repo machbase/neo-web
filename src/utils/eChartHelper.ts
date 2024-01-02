@@ -7,6 +7,7 @@ export const DefaultChartOption = {
     type: 'line' as ChartType,
     theme: 'dark' as ChartTheme,
     isLegend: true as boolean,
+    isTooltip: true as boolean,
     isStepInLine: false as SeriesLineStep, // step option in line
     timeRange: {
         start: undefined as string | undefined,
@@ -16,6 +17,12 @@ export const DefaultChartOption = {
     chartInfo: undefined as any,
     tagTableInfo: undefined as any,
     useCustomTime: true as boolean,
+
+    // pie chart option
+    pieChartOptions: {
+        roseType: false as boolean,
+        doughnutRatio: 0 as number,
+    },
 
     // gauge chart option
     gaugeMin: 0 as number,
