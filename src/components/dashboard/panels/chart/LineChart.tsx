@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import './LineChart.scss';
 import { ShowChart } from '@/components/tql/ShowChart';
 import { isObjectEmpty } from '@/utils';
+import { DashboardQueryParser } from '@/utils/DashboardQueryParser';
 
 const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: any) => {
     const ChartRef = useRef<any>();
@@ -37,7 +38,7 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
         const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.end) : setUnitTime(sBoardTimeRange.end);
 
         const sIntervalInfo = calcInterval(sStartTime, sEndTime, sRefClientWidth.current);
-        let sTagList = [] as string[];
+        const sTagList = [] as string[];
 
         pPanelInfo.tagTableInfo.forEach((aInfo: any) => {
             if (aInfo.useCustom) {
@@ -55,9 +56,11 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
             }
         });
 
+        DashboardQueryParser(pPanelInfo.tagTableInfo, { interval: sIntervalInfo, start: sStartTime, end: sEndTime });
+
         for (let i = 0; i < pPanelInfo.tagTableInfo.length; i++) {
             const sQuery: string = createQuery(pPanelInfo.tagTableInfo[i], sIntervalInfo, sStartTime, sEndTime);
-
+            console.log('sQuery', sQuery);
             if (i === 0) {
                 lastQuery += sQuery;
             } else {
