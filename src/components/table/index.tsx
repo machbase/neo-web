@@ -65,7 +65,7 @@ const TABLE = ({ pTableData, pMaxShowLen, clickEvent }: TableProps) => {
                                   {aRowList.map((aRowData: any) => {
                                       return (
                                           <td className="result-table-item" key={generateUUID()} onContextMenu={(e) => clickEvent(e, aRowData)}>
-                                              <span>{aRowData}</span>
+                                              <span>{'' + aRowData}</span>
                                           </td>
                                       );
                                   })}
