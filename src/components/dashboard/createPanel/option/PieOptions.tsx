@@ -29,12 +29,16 @@ export const PieOptions = (props: PieOptionProps) => {
                 pIsFullWidth
                 pHeight={30}
                 pBorderRadius={4}
-                pValue={pPanelOption.pieChartOptions.doughnutRatio}
+                pValue={pPanelOption.pieChartOptions?.doughnutRatio ?? 0}
                 pSetValue={() => null}
                 onChange={(aEvent: any) => handlePieOption(aEvent, 'doughnutRatio', false)}
             />
             <div style={{ height: '10px' }} />
-            <CheckBox pText="Nightingale Mode" pDefaultChecked={pPanelOption.pieChartOptions.roseType} onChange={(aEvent: any) => handlePieOption(aEvent, 'roseType', true)} />
+            <CheckBox
+                pText="Nightingale Mode"
+                pDefaultChecked={pPanelOption.pieChartOptions?.roseType ?? false}
+                onChange={(aEvent: any) => handlePieOption(aEvent, 'roseType', true)}
+            />
         </div>
     );
 };
