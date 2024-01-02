@@ -141,7 +141,7 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
             return {
                 ...aPrev,
                 tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
-                    return aItem.id === pTagTableInfo.id ? { ...aItem, values: [...aItem.values, { id: generateUUID(), column: '', operator: '=', value: '' }] } : aItem;
+                    return aItem.id === pTagTableInfo.id ? { ...aItem, values: [...aItem.values, { id: generateUUID(), alias: '', value: '', aggregator: 'avg' }] } : aItem;
                 }),
             };
         });
