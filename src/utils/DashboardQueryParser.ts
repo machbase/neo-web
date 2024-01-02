@@ -1,18 +1,24 @@
 /** Dashboard QUERY PARSER */
 export const DashboardQueryParser = (aTableList: any, aTime: { interval: any; start: any; end: any }) => {
     console.log('--------------------------------DashboardQueryParser------------------------------------');
-    // console.log('origin', aTableList);
-    // console.log('time', aTime);
 
-    const sTableGroupList = GetTableGroup(aTableList);
-    // console.log('sTableList', sTableGroupList);
+    // *   TABLE   | TAG   | VALUE | FILTER
+    // *   --------------------------------
+    // *    O      |   N   |   N   |   O
+    // * 의 경우만 같은 쿼리, 나머지는 다른 쿼리
+
+    const sTmpTableList = JSON.parse(JSON.stringify(aTableList)).map((aTable: any) => {
+        return { ...aTable, filter: UseFilter(aTable.filter) };
+    });
+
+    const sTableGroupList = GetTableGroup(sTmpTableList);
     const sQueryGroup = sTableGroupList.map((aTableGroup: any) => {
         return aTableGroup.map((aTable: any) => {
             return {
                 type: aTable.type,
                 userName: aTable.userName,
                 tableName: aTable.table,
-                filter: aTable.useCustom ? UseFilter(aTable.filter) : GetFilter(aTable.filter, aTable.tag),
+                filter: aTable.useCustom ? aTable.filter : GetFilter(aTable.filter, aTable.tag),
                 values: aTable.useCustom ? aTable.values : GetValues(aTable),
             };
         });
@@ -21,20 +27,31 @@ export const DashboardQueryParser = (aTableList: any, aTime: { interval: any; st
     const sResultSql = `SELECT * FROM(
         ${GetParsedQuery(sQueryGroup, aTime)}
     ) ORDER BY TIME`;
-    // console.log('sResultSql', sResultSql);
 };
 
-/** 동일한 Table명 + 동일한 userName 을 갖는 Item group 반환 */
+/** 동일한 Table명 + 동일한 userName + 동일한 filter 갖는 Item group 반환 */
 const GetTableGroup = (aTableList: any) => {
     const sResultTable: any = {};
     aTableList.map((aTable: any) => {
-        if (sResultTable[aTable.table + '-' + aTable.userName])
-            sResultTable[aTable.table + '-' + aTable.userName] = [...sResultTable[aTable.table + '-' + aTable.userName], aTable];
-        else sResultTable[aTable.table + '-' + aTable.userName] = [aTable];
+        if (sResultTable[aTable.table + '-' + aTable.userName + GetFilterId(aTable.filter)]) {
+            sResultTable[aTable.table + '-' + aTable.userName + GetFilterId(aTable.filter)] = [
+                ...sResultTable[aTable.table + '-' + aTable.userName + GetFilterId(aTable.filter)],
+                aTable,
+            ];
+        } else sResultTable[aTable.table + '-' + aTable.userName + GetFilterId(aTable.filter)] = [aTable];
     });
     return Object.keys(sResultTable).map((aKey: string) => {
         return sResultTable[aKey];
     });
+};
+/** 동일한 filter 사용 검사를 위한 method */
+const GetFilterId = (aFilterList: any) => {
+    return aFilterList
+        .map((aFilter: any) => {
+            return '' + aFilter.column + aFilter.operator + aFilter.value;
+        })
+        .sort()
+        .join();
 };
 /** 사용하는 filter만 반환 */
 const UseFilter = (aFilterList: any) => {
@@ -57,49 +74,61 @@ const GetFilter = (aFilter: any, aTag: string) => {
 };
 /** tag | log 에 맞는 time column 반환 */
 const GetTimeColumn = (aType: string): string => {
-    if (aType === 'tag') return 'TIME / 1000000000 * 1000000000';
+    if (aType === 'tag') return 'TIME';
     else return '_ARRIVAL_TIME';
 };
-const GetParsedQuery = (sQueryGroup: any, aTime: { interval: any; start: any; end: any }) => {
-    console.log('aTime', aTime);
-    // console.log('sQueryGroup', sQueryGroup);
-
-    const test = sQueryGroup.map((aQueryList: any) => {
-        // column
-        let sColumns: any = '';
-        // time
-        let sTime: any = '';
-        // user.table
-        let sTable: string = '';
-
-        if (aQueryList && aQueryList.length > 0) {
-            sTime = GetTimeColumn(aQueryList[0].type);
-            sTable = aQueryList[0].userName + '.' + aQueryList[0].tableName;
-            aQueryList.map((aQuery: any) => {
-                sColumns = aQuery.values.map((aValue: any) => {
-                    if (aValue.alias && aValue.alias !== '') return `${aValue.aggregator}(${aValue.value}) AS "${aValue.aggregator}(${aValue.value})"`;
-                    else return `${aValue.aggregator}(${aValue.value}) AS "${aValue.alias}"`;
-                });
-
-                // tag table
-                if (aQuery.type === 'tag') {
-                    console.log('TAG');
-                }
-                // log table
-                else {
-                    console.log('LOG');
-                }
-                console.log('aQuery', aQuery);
-            });
-        }
-
-        console.log('sColumns', sColumns);
-
-        return `SELECT ${sTime} AS TIME, ${sColumns} FROM ${sTable}`;
+const GetColumns = (aQueryList: any) => {
+    return aQueryList.map((aQuery: any) => {
+        return aQuery.values.map((aValue: any) => {
+            if (aValue.alias && aValue.alias !== '') return `${aValue.aggregator}(${aValue.value}) AS '${aValue.alias}'`;
+            else return `${aValue.aggregator}(${aValue.value}) AS '${aValue.aggregator}(${aValue.value})'`;
+        });
+    });
+};
+const GetWhere = (aQueryList: any) => {
+    console.log('getWhere', aQueryList);
+    // let sValueList: any = [];
+    let sWhere: string[] = [];
+    // const sNameList: string[] = [];
+    aQueryList.map((aQuery: any) => {
+        aQuery.filter.map((aFilter: any) => {
+            console.log('aFilter', aFilter);
+        });
     });
 
-    console.log('test', test);
+    sWhere = [''];
+    return sWhere;
+};
+const GetParsedQuery = (sQueryGroup: any, aTime: { interval: any; start: any; end: any }) => {
+    // TABLE | TAG | VALUE | FILTER
+    // TABLE(FILTER)이 다르면 다른 쿼리
 
+    const sResultQuery = sQueryGroup.map((aQueryList: any) => {
+        // sub query (where)
+        let sWhere: any = '';
+        // column
+        let sColumns: string[] = [];
+        // time
+        let sTime: string = '';
+        // user.table
+        let sTable: string = '';
+        // table type (tag | log)
+        let sTableType: string = '';
+
+        if (aQueryList && aQueryList.length > 0) {
+            sTableType = aQueryList[0].type;
+            sTime = GetTimeColumn(aQueryList[0].type);
+            sTable = aQueryList[0].userName + '.' + aQueryList[0].tableName;
+            sColumns = GetColumns(aQueryList);
+            sWhere = GetWhere(aQueryList);
+        }
+
+        return `SELECT ${sTime}${sTableType === 'tag' ? ' / 1000000000 * 1000000000' : ''} AS TIME, ${sColumns} FROM ${sTable} WHERE ${sTime} BETWEEN ${aTime.start} AND ${
+            aTime.end
+        }${sWhere ? sWhere : ''}`;
+    });
+
+    console.log('res', sResultQuery);
     // COMMON
     // SELECT (TIME) AS TIME, (COLUMN) FROM (USER.TABLE) WHERE (TIME) BETWEEN (START_TIME) AND (END_TIME) AND (AGGREGATOR) GROUP BY (TIME), (COLUMN)
 
