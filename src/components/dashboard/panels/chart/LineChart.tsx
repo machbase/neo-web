@@ -40,8 +40,7 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
             sRefClientHeight.current = ChartRef.current.clientHeight;
         }
         sTimerRef.current = true;
-        let lastQuery: string = '';
-        let sMapValueQuery: string = '';
+        // let lastQuery: string = '';
 
         const sPanelTimeRange = pPanelInfo.timeRange;
         const sBoardTimeRange = pBoardInfo.dashboard.timeRange;
@@ -68,28 +67,20 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
             }
         });
 
-        if (pPanelInfo.type === 'gauge') {
-            // only one tag
-            lastQuery = createGaugeQuery(pPanelInfo.tagTableInfo[0], sIntervalInfo, sStartTime, sEndTime);
-        } else if (pPanelInfo.type === 'pie') {
-            lastQuery = createPieQuery(pPanelInfo.tagTableInfo[0], sIntervalInfo, sStartTime, sEndTime);
-            sMapValueQuery = createMapValueForPie();
-        } else {
-            for (let i = 0; i < pPanelInfo.tagTableInfo.length; i++) {
-                const sQuery: string = createQuery(pPanelInfo.tagTableInfo[i], sIntervalInfo, sStartTime, sEndTime);
+        const sParsedQuery = await DashboardQueryParser(pPanelInfo.tagTableInfo, { interval: sIntervalInfo, start: sStartTime, end: sEndTime });
 
-                if (i === 0) {
-                    lastQuery += sQuery;
-                } else {
-                    lastQuery += '\nUNION ALL\n' + sQuery;
-                }
-            }
-            sMapValueQuery = createMapValueForTag(sTagList, sTagList.length);
-        }
+        // for (let i = 0; i < pPanelInfo.tagTableInfo.length; i++) {
+        //     const sQuery: string = createQuery(pPanelInfo.tagTableInfo[i], sIntervalInfo, sStartTime, sEndTime);
+        //     if (i === 0) {
+        //         lastQuery += sQuery;
+        //     } else {
+        //         lastQuery += '\nUNION ALL\n' + sQuery;
+        //     }
+        // }
 
         const sResult: any = await getTqlChart(
             'SQL(`' +
-                lastQuery +
+                sParsedQuery +
                 '`)\n' +
                 `TAKE(${(sRefClientWidth.current / 3).toFixed()})\n` +
                 sMapValueQuery +
