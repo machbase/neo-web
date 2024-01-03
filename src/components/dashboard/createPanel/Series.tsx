@@ -15,7 +15,7 @@ import Value from './Value';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { useRef } from 'react';
 
-const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption }: any) => {
+const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
     const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
@@ -400,6 +400,7 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
                                     pValue={aItem}
                                     pIdx={aIdx}
                                     pColumnList={sColumnList}
+                                    pValueLimit={pValueLimit}
                                 ></Value>
                             );
                         })}
