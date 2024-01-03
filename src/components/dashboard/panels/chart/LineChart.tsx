@@ -68,18 +68,16 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
             }
         });
 
-        DashboardQueryParser(pPanelInfo.tagTableInfo, { interval: sIntervalInfo, start: sStartTime, end: sEndTime });
-
-        for (let i = 0; i < pPanelInfo.tagTableInfo.length; i++) {
-            const sQuery: string = createQuery(pPanelInfo.tagTableInfo[i], sIntervalInfo, sStartTime, sEndTime);
-            console.log('sQuery', sQuery);
-            if (i === 0) {
-                lastQuery += sQuery;
-            } else {
-                lastQuery += '\nUNION ALL\n' + sQuery;
-            }
-        }
         const sParsedQuery = await DashboardQueryParser(pPanelInfo.tagTableInfo, { interval: sIntervalInfo, start: sStartTime, end: sEndTime });
+
+        // for (let i = 0; i < pPanelInfo.tagTableInfo.length; i++) {
+        //     const sQuery: string = createQuery(pPanelInfo.tagTableInfo[i], sIntervalInfo, sStartTime, sEndTime);
+        //     if (i === 0) {
+        //         lastQuery += sQuery;
+        //     } else {
+        //         lastQuery += '\nUNION ALL\n' + sQuery;
+        //     }
+        // }
 
         const sTake = Number((sRefClientWidth.current / 3).toFixed());
         // The variable below is used to adjust its value to a multiple of the number of tags.
