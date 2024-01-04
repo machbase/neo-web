@@ -18,12 +18,7 @@ interface MarkdownProps {
 }
 
 export const Markdown = (props: MarkdownProps) => {
-    const {
-        pContents,
-        pIdx,
-        pType,
-        pData,
-    } = props;
+    const { pContents, pIdx, pType, pData } = props;
     const [sMdxText, setMdxText] = useState<string>('');
     const [sBoardList] = useRecoilState(gBoardList);
     const [sMarkdownId, setMarkdownId] = useState<string>('');
@@ -33,15 +28,16 @@ export const Markdown = (props: MarkdownProps) => {
     useEffect(() => {
         init();
         setMarkdownId(generateUUID());
-        setCodeBlocks(parseCodeBlocks(pContents));
+        if (typeof pContents === 'string') setCodeBlocks(parseCodeBlocks(pContents));
     }, [pContents]);
 
     useEffect(() => {
+        if (typeof pContents !== 'string') return;
         if (sMdxText && pContents && pContents.match(sCheckMermaid)) {
             setTimeout(() => {
                 setMermaid();
             }, pIdx * 10);
-        };
+        }
         if (!sMarkdownId) return;
         const blocks = document.querySelectorAll(`div.mrk${sMarkdownId} pre:not(.mermaid)`);
         if (!blocks) return;
