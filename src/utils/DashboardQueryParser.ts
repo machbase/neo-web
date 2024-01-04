@@ -1,14 +1,13 @@
 /** Dashboard QUERY PARSER */
 export const DashboardQueryParser = async (aTableList: any, aTime: { interval: any; start: any; end: any }) => {
-    console.log('--------------------------------DashboardQueryParser------------------------------------');
     const sTmpTableList = JSON.parse(JSON.stringify(aTableList)).map((aTable: any) => {
         return { ...aTable, filter: UseFilter(aTable.filter) };
     });
-
     const sTableGroupList = GetTableGroup(sTmpTableList);
     const sQueryGroup = sTableGroupList.map((aTableGroup: any) => {
         return aTableGroup.map((aTable: any) => {
             return {
+                time: aTable.time,
                 type: aTable.type,
                 userName: aTable.userName,
                 tableName: aTable.table,
@@ -17,16 +16,9 @@ export const DashboardQueryParser = async (aTableList: any, aTime: { interval: a
             };
         });
     });
-
     const sParsedQueryList = GetParsedQuery(sQueryGroup, aTime);
-
-    const test = `SELECT * FROM (\n` + `${sParsedQueryList.join(' UNION ALL ')}\n` + `) ORDER BY TIME, NAME`;
-
-    return test;
-
-    // const sResultSql = `SELECT * FROM (
-    //     ${GetParsedQuery(sQueryGroup, aTime)}
-    // ) ORDER BY TIME`;
+    const sResultQuery = `SELECT * FROM (\n` + `${sParsedQueryList.join(' UNION ALL ')}\n` + `) ORDER BY TIME, NAME`;
+    return sResultQuery;
 };
 
 /** 동일한 table, value, filter 반환 */
@@ -84,9 +76,9 @@ const GetFilter = (aFilter: any, aTag: string) => {
     return [{ ...aFilter[0], column: 'NAME', operator: 'in', value: aTag }];
 };
 /** tag | log 에 맞는 time column 반환 */
-const GetTimeColumn = (aType: string): string => {
-    if (aType === 'tag') return 'TIME';
-    else return '_ARRIVAL_TIME';
+const GetTimeColumn = (aTable: any): string => {
+    if (aTable.type === 'tag') return 'TIME';
+    else return aTable.time;
 };
 const GetColumns = (aQueryList: any) => {
     return aQueryList[0].values.map((aValue: any) => {
@@ -133,7 +125,7 @@ const GetParsedQuery = (sQueryGroup: any, aTime: { interval: any; start: any; en
         let sTableType: string = '';
         if (aQueryList && aQueryList.length > 0) {
             sTableType = aQueryList[0].type;
-            sTime = GetTimeColumn(aQueryList[0].type);
+            sTime = GetTimeColumn(aQueryList[0]);
             sTable = aQueryList[0].userName + '.' + aQueryList[0].tableName;
             sColumns = GetColumns(aQueryList);
             sWhere = GetWhere(aQueryList);
