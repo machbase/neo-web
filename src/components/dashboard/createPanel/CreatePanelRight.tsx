@@ -1,13 +1,14 @@
-import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 import { ChangeEvent } from 'react';
 import './CreatePanelRight.scss';
 // import Line from './option/Line';
 import { ChartTypeList } from '@/utils/constants';
-import { ChartOptions } from './option/ChartOptions';
 import { ChartCommonOptions } from './option/ChartCommonOptions';
 import { GetDefaultSeriesOption } from '@/utils/eChartHelper';
 import { Collapse } from '@/components/collapse/Collapse';
+import { PieOptions } from './option/PieOptions';
+import CheckBox from '@/components/inputs/CheckBox';
+import { LineOptions } from './option/LineOptions';
 
 const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
     const handleDefaultOption = (aEvent: ChangeEvent<HTMLInputElement>, aKey: string) => {
@@ -15,6 +16,15 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
             return {
                 ...aPrev,
                 [aKey]: aEvent.target.value,
+            };
+        });
+    };
+
+    const handleCheckboxOption = (aEvent: ChangeEvent<HTMLInputElement>, aKey: string) => {
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                [aKey]: aEvent.target.checked,
             };
         });
     };
@@ -65,27 +75,29 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                     />
                 </div>
 
-                <div className="divider"></div>
+                <div className="divider" />
                 <Collapse title="Panel Option">
-                    <div className="panel-name-form">
-                        <div className="panel-name-wrap">Title</div>
-                        <Input
-                            pType="text"
-                            pIsFullWidth
-                            pHeight={28}
-                            pValue={pPanelOption.name}
-                            pSetValue={() => null}
-                            pBorderRadius={4}
-                            onChange={(aEvent: any) => handleDefaultOption(aEvent, 'name')}
-                        />
-                    </div>
+                    <ChartCommonOptions pPanelOption={pPanelOption} pHandleOption={handleDefaultOption} />
                 </Collapse>
-                <div className="divider"></div>
+                <div className="divider" />
+                <Collapse title="Legend">
+                    <CheckBox pText="Show Legend" pDefaultChecked={pPanelOption.isLegend} onChange={(aEvent: any) => handleCheckboxOption(aEvent, 'isLegend')} />
+                </Collapse>
+                <div className="divider" />
+                <Collapse title="Tooltip">
+                    <CheckBox pText="Show Tooltip" pDefaultChecked={pPanelOption.isTooltip} onChange={(aEvent: any) => handleCheckboxOption(aEvent, 'isTooltip')} />
+                </Collapse>
+                <div className="divider" />
+                <Collapse title="Data Zoom">
+                    <CheckBox pText="Use Zoom" pDefaultChecked={pPanelOption.isDataZoom} onChange={(aEvent: any) => handleCheckboxOption(aEvent, 'isDataZoom')} />
+                </Collapse>
+                <div className="divider" />
                 <Collapse title="Chart Option">
-                    <ChartCommonOptions pSetPanelOption={pSetPanelOption} pTheme={pPanelOption.theme} />
-                    <ChartOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                    {/* <ChartOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> */}
+                    {pPanelOption.type === 'line' ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                    {pPanelOption.type === 'pie' ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                 </Collapse>
-                <div className="divider"></div>
+                <div className="divider" />
             </div>
         </div>
     );

@@ -1,5 +1,33 @@
 import { generateUUID } from '@/utils';
-import { ChartTheme, ChartType, SeriesLineStep } from '@/type/eChart';
+import { ChartTheme, ChartType } from '@/type/eChart';
+
+export const DefaultPieChartOption = {
+    roseType: false as boolean,
+    doughnutRatio: 0 as number,
+};
+
+// for marking option
+export const DefaultLineVisualMapOption = {
+    type: 'piecewise' as 'continuous' | 'piecewise',
+    show: false as boolean,
+    dimension: 0 as string | number,
+    seriesIndex: 0 as number | number[],
+    pieces: [] as any,
+};
+
+export const DefaultLineChartOption = {
+    areaStyle: false as boolean,
+    smooth: false as boolean,
+    isStep: false as boolean,
+    markLine: {
+        symbol: ['none', 'none'],
+        label: {
+            show: false as boolean,
+        },
+        data: [] as any[],
+    },
+    visualMap: DefaultLineVisualMapOption,
+};
 
 export const DefaultChartOption = {
     id: undefined as string | undefined,
@@ -8,7 +36,7 @@ export const DefaultChartOption = {
     theme: 'dark' as ChartTheme,
     isLegend: true as boolean,
     isTooltip: true as boolean,
-    isStepInLine: false as SeriesLineStep, // step option in line
+    isDataZoom: false as boolean,
     timeRange: {
         start: undefined as string | undefined,
         end: undefined as string | undefined,
@@ -18,11 +46,11 @@ export const DefaultChartOption = {
     tagTableInfo: undefined as any,
     useCustomTime: true as boolean,
 
+    // line chart option
+    lineChartOptions: DefaultLineChartOption,
+
     // pie chart option
-    pieChartOptions: {
-        roseType: false as boolean,
-        doughnutRatio: 0 as number,
-    },
+    pieChartOptions: DefaultPieChartOption,
 
     // gauge chart option
     gaugeMin: 0 as number,
@@ -115,38 +143,3 @@ export const GetDefaultSeriesOption = (aChartType: string) => {
             return DefaultBarSeriesOption;
     }
 };
-
-// export const BarChartOption = {
-//     xAxis: {
-//         type: 'category',
-//         data: [] as any,
-//     } as EChartOption.XAxis,
-//     yAxis: {} as EChartOption.YAxis,
-//     series: [
-//         {
-//             type: 'bar',
-//             data: [] as any,
-//         },
-//     ] as EChartOption.SeriesBar[],
-// };
-// export const DefaultBarSeriesObject = {
-//     type: 'bar',
-//     data: [] as any,
-// };
-// export const ScatterChartOption = {
-//     xAxis: {
-//         type: 'category',
-//         data: [] as any,
-//     } as EChartOption.XAxis,
-//     yAxis: {} as EChartOption.YAxis,
-//     series: [
-//         {
-//             type: 'scatter',
-//             data: [] as any,
-//         },
-//     ] as EChartOption.SeriesScatter[],
-// };
-// export const DefaultScatterSeriesObject = {
-//     type: 'scatter',
-//     data: [] as any,
-// };

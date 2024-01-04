@@ -1,6 +1,6 @@
 import { getId } from '.';
-import { DefaultTagTableOption } from '@/utils/eChartHelper';
-import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE } from '@/utils/constants';
+import { DefaultLineChartOption, DefaultPieChartOption, DefaultTagTableOption } from '@/utils/eChartHelper';
+import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList } from '@/utils/constants';
 
 export const convertToMachbaseIntervalMs = (intervalMs: number) => {
     let ms = '';
@@ -357,9 +357,24 @@ export const createSeriesOption = (aOptionInfo: any, aTagList: any) => {
     let sOption = {
         ...aOptionInfo.chartInfo,
         series: setSeries(aOptionInfo, aTagList),
-        legend: { show: aOptionInfo.isLegend ? true : false },
+        legend: { show: aOptionInfo.isLegend },
+        tooltip: { show: aOptionInfo.isTooltip, trigger: 'item' },
+        dataZoom: aOptionInfo.isDataZoom ? [{ type: 'slider' }] : false,
     };
 
+    if (aOptionInfo.type === 'line') {
+        sOption = {
+            ...sOption,
+        };
+        if (aOptionInfo.lineChartOptions?.markLine.data.length > 0) {
+            sOption = {
+                ...sOption,
+                visualMap: {
+                    ...createLineVisualMapOption(aOptionInfo.lineChartOptions, aTagList),
+                },
+            };
+        }
+    }
     // xAxis, yAxis setting
     if (aOptionInfo.type === 'gauge') {
         const { xAxis, yAxis, ...restOption } = sOption;
@@ -399,15 +414,34 @@ export const createYAxisOption = (aOptionInfo: any) => {
     return sYAxisOption;
 };
 
+export const createLineVisualMapOption = (aOptionInfo: any, aTagList: any) => {
+    const sSeriesIndexArray = Array.from(aTagList, (_, aIndex) => aIndex);
+    const sPieces = aOptionInfo.markLine.data.reduce((aAcc: any, aCurrent: any, aIndex: number, aArr: any) => {
+        if (aIndex % 2 === 0 && aIndex < aArr.length - 1) {
+            aAcc.push({ min: aCurrent.xAxis, max: aArr[aIndex + 1].xAxis, color: ChartSeriesColorList[0] });
+        }
+        return aAcc;
+    }, []);
+
+    const sVisualMapOption = {
+        ...aOptionInfo.visualMap,
+        seriesIndex: sSeriesIndexArray,
+        pieces: sPieces,
+    };
+
+    return sVisualMapOption;
+};
+
 export const setSeries = (aOptionInfo: any, aTagList: any) => {
     const sSeries = [] as any[];
     const sIsGauge = aOptionInfo.type === 'gauge';
     const sIsPie = aOptionInfo.type === 'pie';
+    const sIsLine = aOptionInfo.type === 'line';
     if (sIsPie) {
         const { data, ...restOption } = aOptionInfo.chartInfo.series[0];
         const sTempObject = {
             ...restOption,
-            ...createPieSeriesOption(),
+            ...createPieSeriesOption(aOptionInfo.pieChartOptions ?? DefaultPieChartOption),
             type: aOptionInfo.type,
         };
         sSeries.push(sTempObject);
@@ -419,6 +453,12 @@ export const setSeries = (aOptionInfo: any, aTagList: any) => {
                 data: 'column(' + i + ')',
                 name: aTagList[i],
             };
+            if (sIsLine) {
+                sTempObject = {
+                    ...sTempObject,
+                    ...createLineSeriesOption(aOptionInfo.lineChartOptions ?? DefaultLineChartOption, i),
+                };
+            }
             if (sIsGauge) {
                 sTempObject = {
                     ...sTempObject,
@@ -429,6 +469,17 @@ export const setSeries = (aOptionInfo: any, aTagList: any) => {
         }
     }
     return sSeries;
+};
+
+export const createLineSeriesOption = (aLineOption: any, aIndex: number) => {
+    const sLineOption = {
+        areaStyle: aLineOption.areaStyle ? { opacity: 0.2 } : null,
+        smooth: aLineOption.smooth,
+        step: aLineOption.isStep ? 'start' : false,
+        lineStyle: aLineOption.markLine ? { color: ChartSeriesColorList[aIndex], width: 2 } : null,
+        markLine: aIndex === 0 ? aLineOption.markLine : {},
+    };
+    return sLineOption;
 };
 
 export const createGaugeSeriesOption = () => {
@@ -463,10 +514,11 @@ export const createGaugeSeriesOption = () => {
     return sGaugeOption;
 };
 
-export const createPieSeriesOption = () => {
+export const createPieSeriesOption = (aPieOption: any) => {
     const sPieOption = {
         datasetIndex: 0,
-        radius: '70%',
+        radius: [aPieOption.doughnutRatio, '70%'],
+        roseType: aPieOption.roseType ? 'area' : false,
         emphasis: {
             itemStyle: {
                 shadowBlur: 10,
