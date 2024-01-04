@@ -2,7 +2,7 @@ import { generateUUID } from '@/utils';
 import './CheckBox.scss';
 
 interface CheckboxProps {
-    pText: string;
+    pText?: string;
     onChange: any;
     pDefaultChecked: boolean;
     pIsDisabled?: boolean;

@@ -267,7 +267,6 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
                             </div>
                             <div className="details padding-4">
                                 <CheckBox
-                                    pSize={12}
                                     pIsDisabled={sSelectedTableType !== 'tag'}
                                     onChange={(aEvent: any) => changedOption('useRollup', aEvent)}
                                     pDefaultChecked={pPanelOption.useRollup}

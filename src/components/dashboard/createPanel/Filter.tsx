@@ -58,7 +58,6 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
             </div>
             <div className="series-table padding-4">
                 <CheckBox
-                    pSize={12}
                     onChange={(aEvent: any) => pChangeValueOption('useFilter', aEvent, pFilterInfo.id, 'filter')}
                     pDefaultChecked={pFilterInfo.useFilter}
                     pText={'use'}
