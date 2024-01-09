@@ -88,7 +88,13 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                         ...aPrev,
                                         tagTableInfo: [
                                             ...aPrev.tagTableInfo,
-                                            { ...aPrev.tagTableInfo[aPrev.tagTableInfo.length - 1], id: generateUUID(), color: sColorList[aPrev.tagTableInfo.length + 1] },
+                                            {
+                                                ...aPrev.tagTableInfo[aPrev.tagTableInfo.length - 1],
+                                                values: [{ id: generateUUID(), alias: '', value: '', aggregator: 'avg' }],
+                                                filter: [{ id: generateUUID(), column: '', value: '', operator: '=', useFilter: true }],
+                                                id: generateUUID(),
+                                                color: sColorList[aPrev.tagTableInfo.length + 1],
+                                            },
                                         ],
                                     };
                                 })

@@ -28,7 +28,7 @@ const Value = ({ pTagTableInfo, pValue, pColumnList, pSelectedTableType, pIdx, p
                         pWidth={175}
                         pBorderRadius={4}
                         pAutoChanged={true}
-                        pInitValue={pColumnList.filter((aItem: any) => aItem[0] === 'VALUE')[0] ? 'VALUE' : pColumnList[0] && pColumnList[0][0]}
+                        pInitValue={pValue.value && ''}
                         pHeight={26}
                         onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
                         pOptions={pColumnList.map((aItem: any) => aItem[0])}

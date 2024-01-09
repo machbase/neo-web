@@ -398,7 +398,6 @@ export const createMapValueForTag = (aTags: any, aTagNum: number) => {
     let sMapValueString = '';
     let sPopValueString = '0';
     for (let i = 0; i < aTagNum; i++) {
-        // when select name, time, value
         // time, name , value
         sMapValueString += `MAPVALUE(${i + 3}, value(1) == '${aTags[i]}' ? value(2) : NULL)\n`;
     }

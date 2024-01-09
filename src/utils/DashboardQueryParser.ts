@@ -1,7 +1,11 @@
 /** Dashboard QUERY PARSER */
 export const DashboardQueryParser = async (aTableList: any, aTime: { interval: any; start: any; end: any }) => {
     const sTmpTableList = JSON.parse(JSON.stringify(aTableList)).map((aTable: any) => {
-        return { ...aTable, filter: UseFilter(aTable.filter) };
+        return {
+            ...aTable,
+            filter: aTable.useCustom ? UseFilter(aTable.filter) : GetFilter(aTable),
+            values: aTable.useCustom ? aTable.values : GetValues(aTable),
+        };
     });
     const sTableGroupList = GetTableGroup(sTmpTableList);
     const sQueryGroup = sTableGroupList.map((aTableGroup: any) => {
@@ -11,32 +15,57 @@ export const DashboardQueryParser = async (aTableList: any, aTime: { interval: a
                 type: aTable.type,
                 userName: aTable.userName,
                 tableName: aTable.table,
-                filter: aTable.useCustom ? aTable.filter : GetFilter(aTable.filter, aTable.tag),
-                values: aTable.useCustom ? aTable.values : GetValues(aTable),
+                filterList: aTable.filter,
+                valueList: aTable.values,
+                useRollup: aTable.useRollup,
+                useCustom: aTable.useCustom,
+                color: aTable.color,
+                blockIdx: aTable.blockIdx,
             };
         });
     });
+    const sTagList = GetColumnList(sQueryGroup);
     const sParsedQueryList = GetParsedQuery(sQueryGroup, aTime);
+    console.log('sTagList', sTagList);
+    console.log('sParsedQueryList', sParsedQueryList);
     const sResultQuery = `SELECT * FROM (\n` + `${sParsedQueryList.join(' UNION ALL ')}\n` + `) ORDER BY TIME, NAME`;
-    return sResultQuery;
+    return [sResultQuery, sTagList];
 };
-
-/** 동일한 table, value, filter 반환 */
+/** Return Column list */
+const GetColumnList = (aTableGroup: any) => {
+    const sTagList = [] as string[];
+    aTableGroup.map((aGroup: any) => {
+        aGroup.map((aQuery: any) => {
+            if (!aQuery.useCustom) sTagList.push('' + aQuery.tableName + '-' + aQuery.filterList[0].value + '(' + aQuery.valueList[0].aggregator + ')');
+            if (aQuery.useCustom)
+                aQuery.valueList.forEach((aValue: any) => {
+                    if (aValue.alias !== '') sTagList.push(aValue.alias);
+                    else sTagList.push('' + aQuery.tableName + '-' + aValue.value + '(' + aValue.aggregator + ')' + '-B' + aQuery.blockIdx);
+                });
+        });
+    });
+    return sTagList;
+};
+/** Table group
+ * tag === filter {column: name, operator: in, name: "tag"}
+ * aggregator === value { value: value, alias: '', aggregator: "aggregator"}
+ * @return same group (table && value && filter)
+ */
 const GetTableGroup = (aTableList: any) => {
     const sResultTable: any = {};
-    aTableList.map((aTable: any) => {
+    aTableList.map((aTable: any, aIdx: number) => {
         if (sResultTable[aTable.table + '-' + aTable.userName + GetFilterId(aTable.filter) + GetValueId(aTable.values)]) {
             sResultTable[aTable.table + '-' + aTable.userName + GetFilterId(aTable.filter) + GetValueId(aTable.values)] = [
                 ...sResultTable[aTable.table + '-' + aTable.userName + GetFilterId(aTable.filter) + GetValueId(aTable.values)],
-                aTable,
+                { ...aTable, blockIdx: aIdx + 1 },
             ];
-        } else sResultTable[aTable.table + '-' + aTable.userName + GetFilterId(aTable.filter) + GetValueId(aTable.values)] = [aTable];
+        } else sResultTable[aTable.table + '-' + aTable.userName + GetFilterId(aTable.filter) + GetValueId(aTable.values)] = [{ ...aTable, blockIdx: aIdx + 1 }];
     });
     return Object.keys(sResultTable).map((aKey: string) => {
         return sResultTable[aKey];
     });
 };
-/** 동일한 value 사용 검사를 위한 method */
+/** @return valueId */
 const GetValueId = (aValueList: any) => {
     return aValueList
         .map((aValue: any) => {
@@ -45,9 +74,8 @@ const GetValueId = (aValueList: any) => {
         .sort()
         .join();
 };
-/** 동일한 filter 사용 검사를 위한 method */
+/** @return filterId */
 const GetFilterId = (aFilterList: any) => {
-    // name in 인 경우만 aFilter.value 제외해서 사용.
     return aFilterList
         .map((aFilter: any) => {
             if (aFilter.operator === 'in' && aFilter.column === 'NAME') return '' + aFilter.column + aFilter.operator;
@@ -56,32 +84,36 @@ const GetFilterId = (aFilterList: any) => {
         .sort()
         .join();
 };
-/** 사용하는 filter만 반환 */
+/** @return use filterList */
 const UseFilter = (aFilterList: any) => {
     return aFilterList.filter((aFilter: any) => aFilter.useFilter);
 };
-/** 동일한 format을 위해, Custom 하지 않은 tag Table의 values 생성 */
+/** Create value list for collapsed block
+ * @return ({ value: value, alias: '', aggregator: "aggregator"})
+ */
 const GetValues = (aTable: any) => {
     return [
         {
             id: aTable.id,
-            alias: aTable.value,
+            alias: '',
             value: aTable.value,
             aggregator: aTable.aggregator,
         },
     ];
 };
-/** 동일한 format을 위해, filter 생성 */
-const GetFilter = (aFilter: any, aTag: string) => {
-    return [{ ...aFilter[0], column: 'NAME', operator: 'in', value: aTag }];
+/** Create filter list for collapsed block
+ * @return (filter {column: name, operator: in, name: "tag"})
+ */
+const GetFilter = (aTableInfo: any) => {
+    return [{ ...aTableInfo.filter[0], column: 'NAME', operator: 'in', value: aTableInfo.tag }];
 };
-/** tag | log 에 맞는 time column 반환 */
+/** @return Time */
 const GetTimeColumn = (aTable: any): string => {
     if (aTable.type === 'tag') return 'TIME';
     else return aTable.time;
 };
 const GetColumns = (aQueryList: any) => {
-    return aQueryList[0].values.map((aValue: any) => {
+    return aQueryList[0].valueList.map((aValue: any) => {
         if (aValue.alias && aValue.alias !== '') return ` ${aValue.aggregator}(${aValue.value}) * 1.0 AS '${aValue.alias}'`;
         else return ` ${aValue.aggregator}(${aValue.value}) * 1.0 AS '${aValue.aggregator}(${aValue.value})'`;
     });
@@ -89,7 +121,7 @@ const GetColumns = (aQueryList: any) => {
 const GetWhere = (aFilterList: any) => {
     const sFlatFilter = aFilterList
         .map((aFilter: any) => {
-            return [...aFilter.filter];
+            return [...aFilter.filterList];
         })
         .flat(2);
     const sParsedFilter: any = {};
@@ -132,7 +164,7 @@ const GetParsedQuery = (sQueryGroup: any, aTime: { interval: any; start: any; en
         }
         return `SELECT ${sTime}${sTableType === 'tag' ? ' / 1000000000 * 1000000000' : ''} AS TIME, NAME,${sColumns} FROM ${sTable} WHERE ${sTime} BETWEEN ${
             aTime.start
-        }000000 AND ${aTime.end}000000${sWhere ? ' AND' + sWhere : ''} GROUP BY ${sTime}, NAME`;
+        }000000 AND ${aTime.end}000000${sWhere ? ' AND' + sWhere : ''} GROUP BY NAME, ${sTime} `;
     });
 
     return sResultQuery;
