@@ -27,7 +27,6 @@ import {
 import { IconButton } from '../buttons/IconButton';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
-import { isJsonString } from '@/utils/utils';
 interface TqlProps {
     pCode: string;
     pIsSave: any;
@@ -67,6 +66,22 @@ const Tql = (props: TqlProps) => {
     const handleSplitHorizontal = () => {
         setIsVertical(false);
     };
+    const ErrorConsole = (aMessage: string) => {
+        setConsoleList((prev: any) => [
+            ...prev,
+            {
+                timestamp: new Date().getTime(),
+                level: 'ERROR',
+                task: '',
+                message: aMessage,
+            },
+        ]);
+    };
+    const HandleResutTypeAndTxt = (aText: string, aUseErrorConsole: boolean) => {
+        setResultType('text');
+        setTextField(aText);
+        aUseErrorConsole && ErrorConsole(aText);
+    };
 
     const getTqlData = async (aText: string) => {
         const sResult: any = await getTqlChart(aText);
@@ -76,97 +91,51 @@ const Tql = (props: TqlProps) => {
                 setResultType('html');
                 setChartData(sResult.data);
             } else {
-                if (isJsonString(sResult.data)) {
-                    setResultType('text');
-                    setTextField('');
-                    setConsoleList((prev: any) => [
-                        ...prev,
-                        {
-                            timestamp: new Date().getTime(),
-                            level: 'ERROR',
-                            task: '',
-                            message: sResult.statusText,
-                        },
-                    ]);
-                } else {
-                    setResultType('text');
-                    setTextField('');
-                    setConsoleList((prev: any) => [
-                        ...prev,
-                        {
-                            timestamp: new Date().getTime(),
-                            level: 'ERROR',
-                            task: '',
-                            message: 'SyntaxError: chartOption',
-                        },
-                    ]);
-                }
+                setChartData('');
+                // SyntaxError: CHART
+                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['x-chart-type'] === 'geomap') {
             if (sResult.data && sResult.data.ID) {
                 setResultType('map');
                 setMapData(sResult.data);
             } else {
-                setTextField('');
-                setResultType('text');
-                setConsoleList((prev: any) => [
-                    ...prev,
-                    {
-                        timestamp: new Date().getTime(),
-                        level: 'ERROR',
-                        task: '',
-                        message: 'SyntaxError: GEOMAP',
-                    },
-                ]);
+                setMapData(undefined);
+                // SyntaxError: GEOMAP
+                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/markdown') {
-            setResultType('mrk');
-            setMarkdown(sResult.data);
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
-            setResultType('csv');
-            const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(sResult.data);
-            setCsv(sParsedCsvBody);
-            setCsvHeader(sParsedCsvHeader);
-            setHeader(true);
-            return;
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/xhtml+xml') {
-            setResultType('xhtml');
-            setMarkdown(sResult.data);
-        } else {
-            setResultType('text');
-            if (sResult.status === 200) {
-                if (sResult.data && typeof sResult.data === 'object') {
-                    setTextField(JSON.stringify(sResult.data));
-                } else {
-                    setTextField('');
-                    setConsoleList((prev: any) => [
-                        ...prev,
-                        {
-                            timestamp: new Date().getTime(),
-                            level: 'ERROR',
-                            task: '',
-                            message: sResult.statusText,
-                        },
-                    ]);
-                }
-                return;
+            if (sResult.data && typeof sResult.data === 'string') {
+                setResultType('mrk');
+                setMarkdown(sResult.data);
             } else {
-                if (sResult.data && sResult.data.reason) {
-                    setTextField(sResult.data.reason);
-                } else {
-                    setTextField('');
-                    setConsoleList((prev: any) => [
-                        ...prev,
-                        {
-                            timestamp: new Date().getTime(),
-                            level: 'ERROR',
-                            task: '',
-                            message: sResult.statusText,
-                        },
-                    ]);
-                }
-                return;
+                setMarkdown('');
+                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             }
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
+            if (sResult.data && typeof sResult.data === 'string') {
+                setResultType('csv');
+                const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(sResult.data);
+                setHeader(true);
+                setCsv(sParsedCsvBody);
+                setCsvHeader(sParsedCsvHeader);
+            } else {
+                setHeader(false);
+                setCsv([]);
+                setCsvHeader([]);
+                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
+            }
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/xhtml+xml') {
+            if (sResult.data && typeof sResult.data === 'string') {
+                setResultType('xhtml');
+                setMarkdown(sResult.data);
+            } else {
+                setMarkdown('');
+                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
+            }
+        } else {
+            if (sResult.status === 200) HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.statusText, true);
+            else HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
         }
     };
 
