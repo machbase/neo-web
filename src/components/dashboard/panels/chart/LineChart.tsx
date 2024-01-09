@@ -50,25 +50,23 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
         const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.end) : setUnitTime(sBoardTimeRange.end);
 
         const sIntervalInfo = calcInterval(sStartTime, sEndTime, sRefClientWidth.current);
-        const sTagList = [] as string[];
+        // const sTagList = [] as string[];
 
-        pPanelInfo.tagTableInfo.forEach((aInfo: any) => {
-            if (aInfo.useCustom) {
-                aInfo.filter.forEach((aItem: any) => {
-                    aItem.value
-                        .replace(/['"]/g, '')
-                        .replace(/\s+/g, '')
-                        .split(',')
-                        .map((aTag: string) => {
-                            sTagList.push(aTag);
-                        });
-                });
-            } else {
-                sTagList.push(aInfo.tag);
-            }
-        });
-
-        const sParsedQuery = await DashboardQueryParser(pPanelInfo.tagTableInfo, { interval: sIntervalInfo, start: sStartTime, end: sEndTime });
+        // pPanelInfo.tagTableInfo.forEach((aInfo: any) => {
+        //     if (aInfo.useCustom) {
+        //         aInfo.filter.forEach((aItem: any) => {
+        //             aItem.value
+        //                 .replace(/['"]/g, '')
+        //                 .replace(/\s+/g, '')
+        //                 .split(',')
+        //                 .map((aTag: string) => {
+        //                     sTagList.push(aTag);
+        //                 });
+        //         });
+        //     } else {
+        //         sTagList.push(aInfo.tag);
+        //     }
+        // });
 
         // for (let i = 0; i < pPanelInfo.tagTableInfo.length; i++) {
         //     const sQuery: string = createQuery(pPanelInfo.tagTableInfo[i], sIntervalInfo, sStartTime, sEndTime);
@@ -79,9 +77,8 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
         //     }
         // }
 
-        const sTake = Number((sRefClientWidth.current / 3).toFixed());
-        // The variable below is used to adjust its value to a multiple of the number of tags.
-        const sTakeCount = sTake % sTagList.length === 0 ? sTake : sTake + (sTagList.length - (sTake % sTagList.length));
+        const [sParsedQuery, sTagList] = await DashboardQueryParser(pPanelInfo.tagTableInfo, { interval: sIntervalInfo, start: sStartTime, end: sEndTime });
+
         const sResult: any = await getTqlChart(
             'SQL(`' +
                 sParsedQuery +
