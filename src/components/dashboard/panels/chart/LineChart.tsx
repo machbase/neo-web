@@ -18,6 +18,8 @@ import './LineChart.scss';
 import { ShowChart } from '@/components/tql/ShowChart';
 import { isObjectEmpty } from '@/utils';
 import { DashboardQueryParser } from '@/utils/DashboardQueryParser';
+import { useRecoilValue } from 'recoil';
+import { gRollupTableList } from '@/recoil/recoil';
 
 const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: any) => {
     const ChartRef = useRef<any>();
@@ -25,6 +27,7 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
     const [sIsMessage, setIsMessage] = useState<any>('Please set up a Query.');
     const [sIsError, setIsError] = useState<boolean>(false);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
+    const sRollupTableList = useRecoilValue(gRollupTableList);
     const sChangedValue = useRef<boolean>(false);
     const sTimerRef = useRef<boolean>(false);
     const didMount = useRef(false);
@@ -77,7 +80,7 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
         //     }
         // }
 
-        const [sParsedQuery, sTagList] = await DashboardQueryParser(pPanelInfo.tagTableInfo, { interval: sIntervalInfo, start: sStartTime, end: sEndTime });
+        const [sParsedQuery, sTagList] = await DashboardQueryParser(pPanelInfo.tagTableInfo, sRollupTableList, { interval: sIntervalInfo, start: sStartTime, end: sEndTime });
 
         const sResult: any = await getTqlChart(
             'SQL(`' +
