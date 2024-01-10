@@ -1,35 +1,63 @@
+import { isRollup } from '.';
+
+interface BlockTimeType {
+    interval: {
+        IntervalType: string;
+        IntervalValue: number;
+    };
+    start: any;
+    end: any;
+}
+
 /** Dashboard QUERY PARSER */
-export const DashboardQueryParser = async (aTableList: any, aTime: { interval: any; start: any; end: any }) => {
-    const sTmpTableList = JSON.parse(JSON.stringify(aTableList)).map((aTable: any) => {
+export const DashboardQueryParser = async (aBlockList: any, aRollupList: any, aTime: BlockTimeType) => {
+    const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
+    const sTagList = GetColumnList(sQueryBlock);
+    const sParsedQueryList = GetParsedQuery(sQueryBlock, aTime);
+    const sResultQuery = `SELECT * FROM (\n` + `${sParsedQueryList.join(' UNION ALL ')}\n` + `) ORDER BY TIME, NAME`;
+    return [sResultQuery, sTagList];
+};
+/** Block Parser */
+const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) => {
+    const sParsedBlockList = JSON.parse(JSON.stringify(aBlockList)).map((aBlock: any) => {
         return {
-            ...aTable,
-            filter: aTable.useCustom ? UseFilter(aTable.filter) : GetFilter(aTable),
-            values: aTable.useCustom ? aTable.values : GetValues(aTable),
+            ...aBlock,
+            filter: aBlock.useCustom ? UseFilter(aBlock.filter) : GetFilter(aBlock),
+            values: aBlock.useCustom ? aBlock.values : GetValues(aBlock),
         };
     });
-    const sTableGroupList = GetTableGroup(sTmpTableList);
-    const sQueryGroup = sTableGroupList.map((aTableGroup: any) => {
-        return aTableGroup.map((aTable: any) => {
+    const sBlockGroupList = GetTableGroup(sParsedBlockList);
+    const sQueryBlock = sBlockGroupList.map((aBlockGroup: any) => {
+        return aBlockGroup.map((bBlock: any) => {
             return {
-                time: aTable.time,
-                type: aTable.type,
-                userName: aTable.userName,
-                tableName: aTable.table,
-                filterList: aTable.filter,
-                valueList: aTable.values,
-                useRollup: aTable.useRollup,
-                useCustom: aTable.useCustom,
-                color: aTable.color,
-                blockIdx: aTable.blockIdx,
+                time: bBlock.time,
+                type: bBlock.type,
+                userName: bBlock.userName,
+                tableName: bBlock.table,
+                filterList: bBlock.filter,
+                valueList: bBlock.values,
+                useRollup: isRollup(aRollupList, bBlock.table, getInterval(aTime.interval.IntervalType, aTime.interval.IntervalValue)),
+                useCustom: bBlock.useCustom,
+                color: bBlock.color,
+                blockIdx: bBlock.blockIdx,
             };
         });
     });
-    const sTagList = GetColumnList(sQueryGroup);
-    const sParsedQueryList = GetParsedQuery(sQueryGroup, aTime);
-    console.log('sTagList', sTagList);
-    console.log('sParsedQueryList', sParsedQueryList);
-    const sResultQuery = `SELECT * FROM (\n` + `${sParsedQueryList.join(' UNION ALL ')}\n` + `) ORDER BY TIME, NAME`;
-    return [sResultQuery, sTagList];
+    return sQueryBlock;
+};
+const getInterval = (aType: string, aValue: number) => {
+    switch (aType) {
+        case 'sec':
+            return aValue * 1000;
+        case 'min':
+            return aValue * 60 * 1000;
+        case 'hour':
+            return aValue * 60 * 60 * 1000;
+        case 'day':
+            return aValue * 24 * 60 * 60 * 1000;
+        default:
+            return 0;
+    }
 };
 /** Return Column list */
 const GetColumnList = (aTableGroup: any) => {

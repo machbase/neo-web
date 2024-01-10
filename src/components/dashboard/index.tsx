@@ -1,11 +1,11 @@
 import GridLayout from 'react-grid-layout';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 import '/node_modules/react-grid-layout/css/styles.css';
 import '/node_modules/react-resizable/css/styles.css';
 import './index.scss';
-import { useRecoilState } from 'recoil';
-import { gBoardList } from '@/recoil/recoil';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import { gBoardList, gRollupTableList } from '@/recoil/recoil';
 import Panel from './panels/Panel';
 import CreatePanel from './createPanel/CreatePanel';
 import { IconButton } from '../buttons/IconButton';
@@ -13,10 +13,13 @@ import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs }
 import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
 import moment from 'moment';
 import { setUnitTime } from '@/utils/dashboardUtil';
+import { getRollupTableList } from '@/api/repository/machiot';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveModal }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
+    const setRollupTabls = useSetRecoilState(gRollupTableList);
+    const [sLoadedRollupTable, setLoadedRollupTable] = useState<boolean>(false);
 
     const sBoardRef: Element | any = useRef({});
     const [sCreateModal, setCreateModal] = useState(false);
@@ -76,70 +79,83 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
         setBoardList(sTempBoardList);
     };
 
+    const GetRollupTables = async () => {
+        const sResult: any = await getRollupTableList();
+        setRollupTabls(sResult);
+        setLoadedRollupTable(true);
+    };
+
+    useEffect(() => {
+        GetRollupTables();
+    }, []);
+
     return (
-        <div ref={sBoardRef} className="dashboard-form">
-            <div className="board-header">
-                <IconButton pWidth={24} pHeight={24} pIcon={<TbSquarePlus></TbSquarePlus>} onClick={() => showEditPanel('create')}></IconButton>
+        // Render after rollup info load
+        sLoadedRollupTable && (
+            <div ref={sBoardRef} className="dashboard-form">
+                <div className="board-header">
+                    <IconButton pWidth={24} pHeight={24} pIcon={<TbSquarePlus></TbSquarePlus>} onClick={() => showEditPanel('create')}></IconButton>
 
-                <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft></VscChevronLeft>} onClick={() => moveTimRange('l')}></IconButton>
+                    <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft></VscChevronLeft>} onClick={() => moveTimRange('l')}></IconButton>
 
-                <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
-                    <Calendar />
-                    {pInfo && pInfo.dashboard.timeRange.start ? (
-                        <span>
-                            {(typeof pInfo.dashboard.timeRange.start === 'string' && pInfo.dashboard.timeRange.start.includes('now')
-                                ? pInfo.dashboard.timeRange.start
-                                : moment(pInfo.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
-                                '~' +
-                                (typeof pInfo.dashboard.timeRange.end === 'string' && pInfo.dashboard.timeRange.end.includes('now')
-                                    ? pInfo.dashboard.timeRange.end
-                                    : moment(pInfo.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
-                        </span>
-                    ) : (
-                        <span>Time range not set</span>
-                    )}
-                    , Refresh : {pInfo.dashboard.timeRange.refresh}
-                </button>
-                <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight></VscChevronRight>} onClick={() => moveTimRange('r')}></IconButton>
-                <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
-                <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
-            </div>
-            {pWidth && (
-                <div className="board-body">
-                    <GridLayout
-                        className="layout"
-                        useCSSTransforms={false}
-                        layout={pInfo && pInfo.dashboard.panels}
-                        cols={36}
-                        autoSize={true}
-                        rowHeight={30}
-                        width={pWidth}
-                        onDragStart={(aEvent: any) => draging(true, aEvent)}
-                        onDragStop={(aEvent: any) => draging(false, aEvent)}
-                        onResizeStop={changeLayout}
-                        draggableHandle=".board-panel-header"
-                    >
-                        {pInfo.dashboard &&
-                            pInfo.dashboard.panels &&
-                            pInfo.dashboard.panels.map((aItem: any) => {
-                                return (
-                                    <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
-                                        <Panel pDragStat={pDragStat} pShowEditPanel={showEditPanel} pBoardInfo={pInfo} pPanelInfo={aItem}></Panel>
-                                    </div>
-                                );
-                            })}
-                    </GridLayout>
-                    {pInfo.dashboard.panels.length === 0 && (
-                        <div className="non-set-panel">
-                            <IconButton pWidth={70} pHeight={70} pIcon={<TbSquarePlus size="70px"></TbSquarePlus>} onClick={() => showEditPanel('create')}></IconButton>
-                            Create New Panel
-                        </div>
-                    )}
+                    <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
+                        <Calendar />
+                        {pInfo && pInfo.dashboard.timeRange.start ? (
+                            <span>
+                                {(typeof pInfo.dashboard.timeRange.start === 'string' && pInfo.dashboard.timeRange.start.includes('now')
+                                    ? pInfo.dashboard.timeRange.start
+                                    : moment(pInfo.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
+                                    '~' +
+                                    (typeof pInfo.dashboard.timeRange.end === 'string' && pInfo.dashboard.timeRange.end.includes('now')
+                                        ? pInfo.dashboard.timeRange.end
+                                        : moment(pInfo.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
+                            </span>
+                        ) : (
+                            <span>Time range not set</span>
+                        )}
+                        , Refresh : {pInfo.dashboard.timeRange.refresh}
+                    </button>
+                    <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight></VscChevronRight>} onClick={() => moveTimRange('r')}></IconButton>
+                    <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
+                    <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
                 </div>
-            )}
-            {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal}></ModalTimeRange>}
-            {sCreateModal && <CreatePanel pType={sCreateOrEditType} pPanelId={sPanelId} pBoardInfo={pInfo} pSetCreateModal={setCreateModal}></CreatePanel>}
-        </div>
+                {pWidth && (
+                    <div className="board-body">
+                        <GridLayout
+                            className="layout"
+                            useCSSTransforms={false}
+                            layout={pInfo && pInfo.dashboard.panels}
+                            cols={36}
+                            autoSize={true}
+                            rowHeight={30}
+                            width={pWidth}
+                            onDragStart={(aEvent: any) => draging(true, aEvent)}
+                            onDragStop={(aEvent: any) => draging(false, aEvent)}
+                            onResizeStop={changeLayout}
+                            draggableHandle=".board-panel-header"
+                        >
+                            {pInfo.dashboard &&
+                                pInfo.dashboard.panels &&
+                                pInfo.dashboard.panels.map((aItem: any) => {
+                                    return (
+                                        <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
+                                            <Panel pDragStat={pDragStat} pShowEditPanel={showEditPanel} pBoardInfo={pInfo} pPanelInfo={aItem}></Panel>
+                                        </div>
+                                    );
+                                })}
+                        </GridLayout>
+                        {pInfo.dashboard.panels.length === 0 && (
+                            <div className="non-set-panel">
+                                <IconButton pWidth={70} pHeight={70} pIcon={<TbSquarePlus size="70px"></TbSquarePlus>} onClick={() => showEditPanel('create')}></IconButton>
+                                Create New Panel
+                            </div>
+                        )}
+                    </div>
+                )}
+                {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal}></ModalTimeRange>}
+                {sCreateModal && <CreatePanel pType={sCreateOrEditType} pPanelId={sPanelId} pBoardInfo={pInfo} pSetCreateModal={setCreateModal}></CreatePanel>}
+            </div>
+        )
     );
 };
 export default Dashboard;
