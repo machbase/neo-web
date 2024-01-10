@@ -113,17 +113,17 @@ const Tql = (props: TqlProps) => {
                 HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
-            if (sResult.data && typeof sResult.data === 'string') {
-                setResultType('csv');
-                const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(sResult.data);
-                setHeader(true);
-                setCsv(sParsedCsvBody);
-                setCsvHeader(sParsedCsvHeader);
-            } else {
+            if (typeof sResult.data === 'object') {
                 setHeader(false);
                 setCsv([]);
                 setCsvHeader([]);
                 HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
+            } else {
+                setResultType('csv');
+                const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(typeof sResult.data === 'string' ? sResult.data : JSON.stringify(sResult.data));
+                setHeader(true);
+                setCsv(sParsedCsvBody);
+                setCsvHeader(sParsedCsvHeader);
             }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/xhtml+xml') {
             if (sResult.data && typeof sResult.data === 'string') {
@@ -134,7 +134,7 @@ const Tql = (props: TqlProps) => {
                 HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             }
         } else {
-            if (sResult.status === 200) HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.statusText, true);
+            if (sResult.status === 200) HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, true);
             else HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
         }
     };
