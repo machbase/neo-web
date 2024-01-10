@@ -15,6 +15,7 @@ import { useSetRecoilState } from 'recoil';
 import { gConsoleSelector } from '@/recoil/recoil';
 import { sqlMultiQueryParser } from '@/utils/sqlMultiQueryParser';
 import { ShowMap } from '../tql/ShowMap';
+import { TqlCsvParser } from '@/utils/tqlCsvParser';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown';
 type MonacoLang = 'sql' | 'markdown' | 'go';
@@ -262,7 +263,25 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
     };
 
+    const ErrorConsole = (aMessage: string) => {
+        setConsoleList((prev: any) => [
+            ...prev,
+            {
+                timestamp: new Date().getTime(),
+                level: 'ERROR',
+                task: '',
+                message: aMessage,
+            },
+        ]);
+    };
+    const HandleResutTypeAndTxt = (aText: string, aUseErrorConsole: boolean) => {
+        setTqlResultType('text');
+        setTqlTextResult(aText);
+        aUseErrorConsole && ErrorConsole(aText);
+    };
+
     const getTqlData = async (aText: string) => {
+        // TODO C:\Users\MACH-NOT-23\Documents\GitHub\neo-web\src\components\tql\index.tsx - getTqlData
         const sResult: any = await getTqlChart(aText);
 
         if (sResult.status === 200) {
@@ -272,39 +291,51 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
 
         if (sResult.status === 200 && sResult.headers && sResult.data && sResult.headers['x-chart-type'] === 'echarts') {
-            setTqlResultType('html');
-            setTqlChartData(sResult.data);
-            return;
+            if (sResult.data && sResult.data.chartID) {
+                setTqlResultType('html');
+                setTqlChartData(sResult.data);
+            } else {
+                setTqlChartData('');
+                // SyntaxError: CHART
+                HandleResutTypeAndTxt(sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data), false);
+            }
         } else if (sResult.status === 200 && sResult.headers && sResult.data && sResult.headers['x-chart-type'] === 'geomap') {
-            setTqlResultType('map');
-            setTqlMapData(sResult.data);
+            if (sResult.data && sResult.data.ID) {
+                setTqlResultType('map');
+                setTqlMapData(sResult.data);
+            } else {
+                setTqlMapData('');
+                // SyntaxError: GEOMAP
+                HandleResutTypeAndTxt(sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data), false);
+            }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/markdown') {
-            setTqlResultType('mrk');
-            setTqlMarkdown(sResult.data);
-            return;
+            if (sResult.data && typeof sResult.data === 'string') {
+                setTqlResultType('mrk');
+                setTqlMarkdown(sResult.data);
+            } else {
+                setTqlMarkdown('');
+                HandleResutTypeAndTxt(sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data), false);
+            }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/xhtml+xml') {
-            setTqlResultType('xhtml');
-            setTqlMarkdown(sResult.data);
+            if (sResult.data && typeof sResult.data === 'string') {
+                setTqlResultType('xhtml');
+                setTqlMarkdown(sResult.data);
+            } else {
+                setTqlMarkdown('');
+                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
+            }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
-            setTqlResultType('csv');
-
-            const sTempCsv: string[][] = [];
-
-            sResult.data.split('\n').forEach((aItem: string) => {
-                if (aItem) sTempCsv.push(aItem.split(','));
-            });
-
-            const tempHeaders: string[] = [];
-            sTempCsv[0] &&
-                sTempCsv[0].map((_, aIdx) => {
-                    tempHeaders.push('COLUMN' + aIdx);
-                });
-
-            setTqlCsv(sTempCsv);
-            setTqlCsvHeader(tempHeaders);
-            return;
+            if (typeof sResult.data === 'object') {
+                setTqlCsv([]);
+                setTqlCsvHeader([]);
+                HandleResutTypeAndTxt(sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data), false);
+            } else {
+                setTqlResultType('csv');
+                const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(typeof sResult.data === 'string' ? sResult.data : JSON.stringify(sResult.data));
+                setTqlCsv(sParsedCsvBody);
+                setTqlCsvHeader(sParsedCsvHeader);
+            }
         } else {
-            setTqlResultType('text');
             if (sResult.status === 200) {
                 if (sResult.data && typeof sResult.data === 'object') {
                     if (sResult.data.data.rows && sResult.data.data.rows.length > 10) {
@@ -321,41 +352,13 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         });
                         sResult.data.data.cols = sTempList;
                     } else if (sResult.data.data.message) {
-                        setTqlTextResult(sResult.data.data.message);
+                        HandleResutTypeAndTxt(sResult.data.data.message, false);
                         return;
                     }
-                    setTqlTextResult(JSON.stringify(sResult.data));
+                    HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
                     return;
-                } else {
-                    setTqlTextResult('');
-                    setConsoleList((prev: any) => [
-                        ...prev,
-                        {
-                            timestamp: new Date().getTime(),
-                            level: 'ERROR',
-                            task: '',
-                            message: sResult.statusText,
-                        },
-                    ]);
-                    return;
-                }
-            } else {
-                if (sResult.data.reason) {
-                    setTqlTextResult(sResult.data.reason);
-                } else {
-                    setTqlTextResult('');
-                    setConsoleList((prev: any) => [
-                        ...prev,
-                        {
-                            timestamp: new Date().getTime(),
-                            level: 'ERROR',
-                            task: '',
-                            message: sResult.statusText,
-                        },
-                    ]);
-                }
-                return;
-            }
+                } else HandleResutTypeAndTxt(sResult.statusText, true);
+            } else HandleResutTypeAndTxt(typeof sResult.data === 'object' ? (sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data)) : sResult.data, false);
         }
     };
 
