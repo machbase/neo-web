@@ -3,8 +3,8 @@ import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import {
     calcInterval,
     calcRefreshTime,
-    createSeriesOption,
-    createQuery,
+    createOption,
+    // createQuery,
     removeColumnQuotes,
     setUnitTime,
     createMapValueForTag,
@@ -67,28 +67,38 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
             }
         });
 
+        if (pPanelInfo.type === 'gauge') {
+            // only one tag
+            // lastQuery = createGaugeQuery(pPanelInfo.tagTableInfo[0], sStartTime, sEndTime);
+        } else if (pPanelInfo.type === 'pie') {
+            // lastQuery = createPieQuery(pPanelInfo.tagTableInfo[0], sStartTime, sEndTime);
+            sMapValueQuery = createMapValueForPie();
+        } else {
+            //     for (let i = 0; i < pPanelInfo.tagTableInfo.length; i++) {
+            //         const sQuery: string = createQuery(pPanelInfo.tagTableInfo[i], sIntervalInfo, sStartTime, sEndTime);
+
+            //         if (i === 0) {
+            //             lastQuery += sQuery;
+            //         } else {
+            //             lastQuery += '\nUNION ALL\n' + sQuery;
+            //         }
+            //     }
+            sMapValueQuery = createMapValueForTag(sTagList, pPanelInfo.chartOptions?.isStack);
+        }
         const sParsedQuery = await DashboardQueryParser(pPanelInfo.tagTableInfo, { interval: sIntervalInfo, start: sStartTime, end: sEndTime });
 
-        // for (let i = 0; i < pPanelInfo.tagTableInfo.length; i++) {
-        //     const sQuery: string = createQuery(pPanelInfo.tagTableInfo[i], sIntervalInfo, sStartTime, sEndTime);
-        //     if (i === 0) {
-        //         lastQuery += sQuery;
-        //     } else {
-        //         lastQuery += '\nUNION ALL\n' + sQuery;
-        //     }
-        // }
-
+        const sTake = Number((sRefClientWidth.current / 3).toFixed());
         const sResult: any = await getTqlChart(
             'SQL(`' +
                 sParsedQuery +
                 '`)\n' +
-                `TAKE(${(sRefClientWidth.current / 3).toFixed()})\n` +
+                `TAKE(${sTake % 2 === 0 ? sTake : sTake + 1})\n` +
                 sMapValueQuery +
                 'CHART(' +
                 `theme('${pPanelInfo.theme}'),` +
                 `size('${sRefClientWidth.current}px','${sRefClientHeight.current}px'), ` +
                 `chartOption(
-                        ${removeColumnQuotes(JSON.stringify(createSeriesOption(pPanelInfo, sTagList)))}
+                        ${removeColumnQuotes(JSON.stringify(createOption(pPanelInfo, sTagList)))}
                     )` +
                 ')'
         );
