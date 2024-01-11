@@ -11,15 +11,15 @@ interface LineOptionProps {
 
 export const LineOptions = (props: LineOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
-    const [sIsMarkLine, setIsMarkLine] = useState<boolean>(pPanelOption.lineChartOptions?.markLine.data.length > 0 ?? false);
-    const [sMarkLineList, setMarkLineList] = useState<{ xAxis: number }[]>(pPanelOption.lineChartOptions?.markLine.data ?? []);
+    const [sIsMarkLine, setIsMarkLine] = useState<boolean>(pPanelOption.chartOptions?.markLine.data.length > 0 ?? false);
+    const [sMarkLineList, setMarkLineList] = useState<{ xAxis: number }[]>(pPanelOption.chartOptions?.markLine.data ?? []);
 
     const handleLineOption = (aEvent: any, aKey: any, aIsCheckbox: boolean) => {
         pSetPanelOption((prev: any) => {
             return {
                 ...prev,
-                lineChartOptions: {
-                    ...prev.lineChartOptions,
+                chartOptions: {
+                    ...prev.chartOptions,
                     [aKey]: aIsCheckbox ? aEvent.target.checked : aEvent.target.value,
                 },
             };
@@ -44,10 +44,10 @@ export const LineOptions = (props: LineOptionProps) => {
         pSetPanelOption((prev: any) => {
             return {
                 ...prev,
-                lineChartOptions: {
-                    ...prev.lineChartOptions,
+                chartOptions: {
+                    ...prev.chartOptions,
                     markLine: {
-                        ...prev.lineChartOptions?.markLine,
+                        ...prev.chartOptions?.markLine,
                         data: aData,
                     },
                 },
@@ -58,7 +58,7 @@ export const LineOptions = (props: LineOptionProps) => {
     const showMarkLine = () => {
         setIsMarkLine(!sIsMarkLine);
         if (!sIsMarkLine) {
-            const sInitValue = isEmpty(pPanelOption.lineChartOptions?.markLine.data) ? [{ xAxis: 0 }, { xAxis: 0 }] : pPanelOption.lineChartOptions?.markLine.data;
+            const sInitValue = isEmpty(pPanelOption.chartOptions?.markLine.data) ? [{ xAxis: 0 }, { xAxis: 0 }] : pPanelOption.chartOptions?.markLine.data;
             setMarkLineList(sInitValue);
         } else {
             setMarkLineList([]);
@@ -71,11 +71,13 @@ export const LineOptions = (props: LineOptionProps) => {
 
     return (
         <div>
-            <CheckBox pText="Area" pDefaultChecked={pPanelOption.lineChartOptions?.areaStyle ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'areaStyle', true)} />
+            <CheckBox pText="Area" pDefaultChecked={pPanelOption.chartOptions?.areaStyle ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'areaStyle', true)} />
             <div style={{ height: '10px' }} />
-            <CheckBox pText="Smooth" pDefaultChecked={pPanelOption.lineChartOptions?.smooth ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'smooth', true)} />
+            <CheckBox pText="Smooth" pDefaultChecked={pPanelOption.chartOptions?.smooth ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'smooth', true)} />
             <div style={{ height: '10px' }} />
-            <CheckBox pText="Step" pDefaultChecked={pPanelOption.lineChartOptions?.isStep ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStep', true)} />
+            <CheckBox pText="Step" pDefaultChecked={pPanelOption.chartOptions?.isStep ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStep', true)} />
+            <div style={{ height: '10px' }} />
+            <CheckBox pText="Stack Mode" pDefaultChecked={pPanelOption.chartOptions?.isStack ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStack', true)} />
             <div className="divider" />
             <Collapse title="marking option">
                 <CheckBox pText="MarkLine" pDefaultChecked={sIsMarkLine} onChange={showMarkLine} />
@@ -83,13 +85,14 @@ export const LineOptions = (props: LineOptionProps) => {
                     sMarkLineList
                         .filter((_, aIndex) => aIndex % 2 === 0)
                         .map((_, aIndex) => (
-                            <MarkLineOption
-                                pKey={aIndex}
-                                pIndex={aIndex}
-                                pMarkList={sMarkLineList}
-                                pSetMarkList={setMarkLineList}
-                                pHandleFunction={aIndex === 0 ? addMarkLine : () => removeMarkLine(aIndex)}
-                            />
+                            <div key={aIndex}>
+                                <MarkLineOption
+                                    pIndex={aIndex}
+                                    pMarkList={sMarkLineList}
+                                    pSetMarkList={setMarkLineList}
+                                    pHandleFunction={aIndex === 0 ? addMarkLine : () => removeMarkLine(aIndex)}
+                                />
+                            </div>
                         ))}
             </Collapse>
         </div>
