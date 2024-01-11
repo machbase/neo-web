@@ -6,6 +6,7 @@ import {
     DefaultGaugeChartOption,
     DefaultLineChartOption,
     DefaultPieChartOption,
+    DefaultScatterOption,
     DefaultTagTableOption,
 } from '@/utils/eChartHelper';
 import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList } from '@/utils/constants';
@@ -309,6 +310,12 @@ export const createOption = (aOptionInfo: any, aTagList: any) => {
             series: setBarSeries(aOptionInfo, aTagList),
         };
     }
+    if (aOptionInfo.type === 'scatter') {
+        sOption = {
+            ...sOption,
+            series: setScatterSeries(aOptionInfo, aTagList),
+        };
+    }
     if (aOptionInfo.type === 'gauge') {
         sOption = {
             ...sOption,
@@ -417,7 +424,7 @@ export const createLineSeriesOption = (aLineOption: any, aXAxis: any[], aYAxis: 
     return sLineOption;
 };
 
-export const createBarSeriesOption = (aBarOption: any, aIndex: number) => {
+export const createBarSeriesOption = (aBarOption: any) => {
     const sBarOption = {
         coordinateSystem: aBarOption.isPolar ? 'polar' : 'cartesian2d',
         large: aBarOption.isLarge,
@@ -432,6 +439,15 @@ export const createBarPolarOption = (aBarOption: any) => {
     sBarPolarOption.angleAxis.max = aBarOption.maxValue;
     sBarPolarOption.angleAxis.startAngle = aBarOption.startAngle;
     return sBarPolarOption;
+};
+
+export const createScatterSeriesOption = (aBarOption: any) => {
+    const sBarOption = {
+        large: aBarOption.isLarge,
+        symbolSize: aBarOption.symbolSize,
+    };
+
+    return sBarOption;
 };
 
 export const createGaugeSeriesOption = () => {
@@ -471,9 +487,23 @@ export const setBarSeries = (aOptionInfo: any, aTagList: any) => {
     for (let i = 0; i < aTagList.length; i++) {
         const sColumnIndex = sIsStack ? i + 1 : i;
         const sTempObject = {
-            ...createBarSeriesOption(aOptionInfo.chartOptions ?? DefaultBarChartOption, i),
+            ...createBarSeriesOption(aOptionInfo.chartOptions ?? DefaultBarChartOption),
             type: aOptionInfo.type,
             data: 'column(' + sColumnIndex + ')',
+            name: aTagList[i],
+        };
+        sSeries.push(sTempObject);
+    }
+    return sSeries;
+};
+
+export const setScatterSeries = (aOptionInfo: any, aTagList: any) => {
+    const sSeries = [];
+    for (let i = 0; i < aTagList.length; i++) {
+        const sTempObject = {
+            ...createScatterSeriesOption(aOptionInfo.chartOptions ?? DefaultScatterOption),
+            type: aOptionInfo.type,
+            data: 'column(' + i + ')',
             name: aTagList[i],
         };
         sSeries.push(sTempObject);

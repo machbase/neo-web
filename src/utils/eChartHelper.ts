@@ -85,6 +85,11 @@ export const DefaultBarPolarOption = {
     },
 };
 
+export const DefaultScatterOption = {
+    isLarge: false as boolean,
+    symbolSize: 10 as number,
+};
+
 export const DefaultPieChartOption = {
     doughnutRatio: 0 as number,
     datasetIndex: 0 as number,
@@ -206,11 +211,11 @@ const DefaultBarSeriesOption = {
     yAxis: {},
     series: [{ type: 'bar' }],
 };
-const DefaultScatterSeriesOption = {
-    xAxis: { type: 'category' },
-    yAxis: {},
-    series: [{ type: 'scatter' }],
-};
+// const DefaultScatterSeriesOption = {
+//     xAxis: { type: 'category' },
+//     yAxis: {},
+//     series: [{ type: 'scatter' }],
+// };
 const DefaultLiquidSeriesOption = {
     series: [{ type: 'liquidFill', shape: 'circle' }],
 };
@@ -235,7 +240,7 @@ export const getDefaultSeriesOption = (aChartType: string) => {
         case 'bar':
             return DefaultBarChartOption;
         case 'scatter':
-            return DefaultScatterSeriesOption;
+            return DefaultScatterOption;
         case 'gauge':
             return DefaultGaugeChartOption;
         case 'pie':

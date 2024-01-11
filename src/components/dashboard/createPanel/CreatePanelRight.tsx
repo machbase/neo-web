@@ -11,6 +11,7 @@ import { XAxisOptions } from './option/XAxisOptions';
 import { isTimeSeriesChart } from '@/utils/dashboardUtil';
 import { YAxisOptions } from './option/YAxisOptions';
 import { BarOptions } from './option/BarOptions';
+import { ScatterOptions } from './option/ScatterOptions';
 
 const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
     const handleDefaultOption = (aEvent: ChangeEvent<HTMLInputElement>, aKey: string) => {
@@ -75,6 +76,7 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                     <Collapse title="Chart Option">
                         {pPanelOption.type === 'line' ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                         {pPanelOption.type === 'bar' ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {pPanelOption.type === 'scatter' ? <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                         {pPanelOption.type === 'pie' ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                     </Collapse>
                     <div className="divider" />
