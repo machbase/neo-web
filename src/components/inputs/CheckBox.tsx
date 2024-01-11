@@ -4,7 +4,7 @@ import './CheckBox.scss';
 interface CheckboxProps {
     pText?: string;
     onChange: any;
-    pDefaultChecked: boolean;
+    pDefaultChecked?: boolean;
     pIsDisabled?: boolean;
 }
 
