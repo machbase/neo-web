@@ -46,39 +46,39 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
     return (
         <div className="chart-set-wrap">
             <div className="body">
-                <div className="select">
-                    {/* add '3DLine', '3DBar', '3DScatter' */}
-                    <Select
-                        pFontSize={14}
-                        pWidth={'100%'}
-                        pBorderRadius={4}
-                        pInitValue={pPanelOption.type}
-                        pHeight={30}
-                        onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
-                        pOptions={ChartTypeList}
-                    />
+                {/* add '3DLine', '3DBar', '3DScatter' */}
+                <Select
+                    pFontSize={14}
+                    pWidth={'100%'}
+                    pBorderRadius={4}
+                    pInitValue={pPanelOption.type}
+                    pHeight={30}
+                    onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
+                    pOptions={ChartTypeList}
+                />
+                <div className="divider" />
+                <div className="content">
+                    <ChartCommonOptions pPanelOption={pPanelOption} pHandleDefaultOption={handleDefaultOption} pHandleCheckboxOption={handleCheckboxOption} />
+                    {isTimeSeriesChart(pPanelOption.type) && pPanelOption.xAxisOptions && (
+                        <>
+                            <div className="divider" />
+                            <XAxisOptions pXAxis={pPanelOption.xAxisOptions} pSetPanelOption={pSetPanelOption} />
+                        </>
+                    )}
+                    {isTimeSeriesChart(pPanelOption.type) && pPanelOption.yAxisOptions && (
+                        <>
+                            <div className="divider" />
+                            <YAxisOptions pYAxis={pPanelOption.yAxisOptions} pSetPanelOption={pSetPanelOption} />
+                        </>
+                    )}
+                    <div className="divider" />
+                    <Collapse title="Chart Option">
+                        {pPanelOption.type === 'line' ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {pPanelOption.type === 'bar' ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {pPanelOption.type === 'pie' ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                    </Collapse>
+                    <div className="divider" />
                 </div>
-                <div className="divider" />
-                <ChartCommonOptions pPanelOption={pPanelOption} pHandleDefaultOption={handleDefaultOption} pHandleCheckboxOption={handleCheckboxOption} />
-                {isTimeSeriesChart(pPanelOption.type) && pPanelOption.xAxisOptions && (
-                    <>
-                        <div className="divider" />
-                        <XAxisOptions pXAxis={pPanelOption.xAxisOptions} pSetPanelOption={pSetPanelOption} />
-                    </>
-                )}
-                {isTimeSeriesChart(pPanelOption.type) && pPanelOption.yAxisOptions && (
-                    <>
-                        <div className="divider" />
-                        <YAxisOptions pYAxis={pPanelOption.yAxisOptions} pSetPanelOption={pSetPanelOption} />
-                    </>
-                )}
-                <div className="divider" />
-                <Collapse title="Chart Option">
-                    {pPanelOption.type === 'line' ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                    {pPanelOption.type === 'bar' ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                    {pPanelOption.type === 'pie' ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                </Collapse>
-                <div className="divider" />
             </div>
         </div>
     );
