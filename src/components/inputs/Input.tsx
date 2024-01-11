@@ -3,8 +3,8 @@ import './Input.scss';
 export interface InputProps {
     pWidth: number | string;
     pHeight: number;
-    pValue: string;
-    pSetValue: React.Dispatch<React.SetStateAction<string>>;
+    pValue?: string;
+    pSetValue?: React.Dispatch<React.SetStateAction<string>>;
     pType: 'text' | 'number';
     pIsFullWidth: boolean;
     pBorderRadius: number;
@@ -16,7 +16,7 @@ export const Input = (props: InputProps) => {
     const { pWidth, pBorderRadius, pHeight, pIsFullWidth, pValue, pSetValue, pType, pIsDisabled, onChange } = props;
 
     const handleChange = (aEvent: React.ChangeEvent<HTMLInputElement>) => {
-        pSetValue(aEvent.target.value);
+        pSetValue && pSetValue(aEvent.target.value);
         onChange(aEvent);
     };
 
