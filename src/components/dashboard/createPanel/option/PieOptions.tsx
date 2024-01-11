@@ -13,8 +13,8 @@ export const PieOptions = (props: PieOptionProps) => {
         pSetPanelOption((prev: any) => {
             return {
                 ...prev,
-                pieChartOptions: {
-                    ...prev.pieChartOptions,
+                chartOptions: {
+                    ...prev.chartOptions,
                     [aKey]: aIsCheckbox ? aEvent.target.checked : aEvent.target.value,
                 },
             };
@@ -29,14 +29,14 @@ export const PieOptions = (props: PieOptionProps) => {
                 pIsFullWidth
                 pHeight={30}
                 pBorderRadius={4}
-                pValue={pPanelOption.pieChartOptions?.doughnutRatio ?? 0}
+                pValue={pPanelOption.chartOptions?.doughnutRatio ?? 0}
                 pSetValue={() => null}
                 onChange={(aEvent: any) => handlePieOption(aEvent, 'doughnutRatio', false)}
             />
             <div style={{ height: '10px' }} />
             <CheckBox
                 pText="Nightingale Mode"
-                pDefaultChecked={pPanelOption.pieChartOptions?.roseType ?? false}
+                pDefaultChecked={pPanelOption.chartOptions?.roseType ?? false}
                 onChange={(aEvent: any) => handlePieOption(aEvent, 'roseType', true)}
             />
         </div>
