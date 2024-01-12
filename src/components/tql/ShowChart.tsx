@@ -24,6 +24,7 @@ export const ShowChart = (props: ShowChartProps) => {
             wrapRef.current?.appendChild(ChartDiv);
         } else {
             const sEchart = document.getElementById(pData.chartID) as HTMLDivElement | HTMLCanvasElement;
+            // @ts-ignore
             echarts.init(sEchart).clear();
         }
 

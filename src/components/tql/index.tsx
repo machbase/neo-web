@@ -133,8 +133,15 @@ const Tql = (props: TqlProps) => {
                 setMarkdown('');
                 HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             }
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/json') {
+            if (sResult.data && typeof sResult.data === 'object' && sResult.data.success) {
+                setResultType('text');
+                setTextField(JSON.stringify(sResult.data));
+            } else {
+                HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
+            }
         } else {
-            if (sResult.status === 200) HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, true);
+            if (sResult.status === 200) HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
             else HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
         }
     };
