@@ -1,5 +1,5 @@
 import './CreatePanelFooter.scss';
-import Series from './Series';
+import { Block } from './Block';
 import { useState, useEffect } from 'react';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { refreshTimeList } from '@/utils/dashboardUtil';
@@ -36,7 +36,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
 
     const CheckQueryBlock = (aTableList: any) => {
         const sTmpValueLimit = aTableList.reduce((preV: any, curV: any) => {
-            return preV || curV.type === 'tag' ? 1 : 0;
+            return preV || curV.type === 'tag' ? (curV.useCustom ? 0 : 1) : 0;
         }, 0);
         const sTmpBlockLimit = aTableList.reduce((preV: any, curV: any) => {
             return preV || curV.values.length > 1 ? 1 : 0;
@@ -44,6 +44,24 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
         if (!sTmpValueLimit && !sTmpBlockLimit && aTableList.length > 1) setValueLimit(1);
         else setValueLimit(sTmpValueLimit);
         setBlockLimit(sTmpBlockLimit);
+    };
+
+    const HandleAddBlock = () => {
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                tagTableInfo: [
+                    ...aPrev.tagTableInfo,
+                    {
+                        ...aPrev.tagTableInfo[aPrev.tagTableInfo.length - 1],
+                        values: [{ id: generateUUID(), alias: '', value: '', aggregator: 'avg' }],
+                        filter: [{ id: generateUUID(), column: '', value: '', operator: '=', useFilter: true }],
+                        id: generateUUID(),
+                        color: sColorList[aPrev.tagTableInfo.length + 1],
+                    },
+                ],
+            };
+        });
     };
 
     useEffect(() => {
@@ -65,10 +83,11 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
             </div>
             <div className="chart-footer">
                 <div style={{ display: sTab === 'Time' ? 'none' : '' }} className="body">
+                    {/* SET Block */}
                     {pTableList.length !== 0 &&
                         pPanelOption.tagTableInfo.map((aItem: any) => {
                             return (
-                                <Series
+                                <Block
                                     key={aItem.id}
                                     pType={pType}
                                     pPanelOption={pPanelOption}
@@ -80,28 +99,9 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                 />
                             );
                         })}
+                    {/* ADD Block */}
                     {pTableList.length !== 0 && pPanelOption.tagTableInfo.length < 10 && (
-                        <div
-                            onClick={() =>
-                                pSetPanelOption((aPrev: any) => {
-                                    return {
-                                        ...aPrev,
-                                        tagTableInfo: [
-                                            ...aPrev.tagTableInfo,
-                                            {
-                                                ...aPrev.tagTableInfo[aPrev.tagTableInfo.length - 1],
-                                                values: [{ id: generateUUID(), alias: '', value: '', aggregator: 'avg' }],
-                                                filter: [{ id: generateUUID(), column: '', value: '', operator: '=', useFilter: true }],
-                                                id: generateUUID(),
-                                                color: sColorList[aPrev.tagTableInfo.length + 1],
-                                            },
-                                        ],
-                                    };
-                                })
-                            }
-                            style={sBlockLimit === 1 ? { pointerEvents: 'none', opacity: 0.3 } : {}}
-                            className="plus-wrap"
-                        >
+                        <div onClick={HandleAddBlock} style={sBlockLimit === 1 ? { pointerEvents: 'none', opacity: 0.3 } : {}} className="plus-wrap">
                             <PlusCircle color="#FDB532" />
                         </div>
                     )}
@@ -139,7 +139,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                         pTimeValue={pPanelOption.timeRange.start ?? ''}
                                         onChange={(date: any) => handleTime('start', date)}
                                         pSetApply={(date: any) => setUseTimePicker('start', date)}
-                                    ></DatePicker>
+                                    />
                                 </div>
                                 <div>
                                     To
@@ -148,7 +148,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                         pTimeValue={pPanelOption.timeRange.end ?? ''}
                                         onChange={(date: any) => handleTime('end', date)}
                                         pSetApply={(date: any) => setUseTimePicker('end', date)}
-                                    ></DatePicker>
+                                    />
                                 </div>
                             </div>
                             <div className="select-time-range">

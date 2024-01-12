@@ -4,20 +4,14 @@ import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 import { tagAggregatorList } from '@/utils/dashboardUtil';
 
-const Value = ({ pTagTableInfo, pValue, pColumnList, pSelectedTableType, pIdx, pAddValue, pRemoveValue, pChangeValueOption, pValueLimit }: any) => {
+const Value = ({ pTagTableInfo, pValue, pColumnList, pIdx, pAddValue, pRemoveValue, pChangeValueOption, pValueLimit }: any) => {
     return (
         <div className="values">
             <div className="series-table">
                 <span className="series-title">
                     Value
                     {pIdx === pTagTableInfo.values.length - 1 ? (
-                        <IconButton
-                            pDisabled={pSelectedTableType === 'tag' || pValueLimit === 1}
-                            pWidth={25}
-                            pHeight={26}
-                            pIcon={<PlusCircle></PlusCircle>}
-                            onClick={pSelectedTableType === 'tag' || pValueLimit === 1 ? () => {} : () => pAddValue()}
-                        ></IconButton>
+                        <IconButton pDisabled={pValueLimit} pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={pValueLimit ? () => {} : () => pAddValue()} />
                     ) : (
                         <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => pRemoveValue(pValue.id)}></IconButton>
                     )}

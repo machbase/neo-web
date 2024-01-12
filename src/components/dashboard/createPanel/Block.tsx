@@ -1,26 +1,28 @@
 import { getTableInfo } from '@/api/repository/api';
-import { fetchTags } from '@/api/repository/machiot';
+import { fetchTags, getRollupTableList } from '@/api/repository/machiot';
 import { Close, Refresh, VscSync } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
-import CheckBox from '@/components/inputs/CheckBox';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
-import { getTableType, isNumberTypeColumn, tagAggregatorList } from '@/utils/dashboardUtil';
+import { createDefaultTagTableOption, getTableType, isNumberTypeColumn, tagAggregatorList } from '@/utils/dashboardUtil';
 import { useEffect, useState } from 'react';
 import Filter from './Filter';
-import './Series.scss';
-import { CompactPicker } from 'react-color';
-
+import './Block.scss';
 import Value from './Value';
+import { useSetRecoilState } from 'recoil';
+import { gRollupTableList } from '@/recoil/recoil';
+import { CompactPicker } from 'react-color';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { useRef } from 'react';
+import { Input } from '@/components/inputs/Input';
+import { TagColorList } from '@/utils/constants';
 
-const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
+export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
     const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
-    // const [sTableInfo, setTableInfo] = useState<any>([]);
-
+    const setRollupTabls = useSetRecoilState(gRollupTableList);
+    const [sIsLoadingRollup, setIsLoadingRollup] = useState<boolean>(false);
     const [sColumnList, setColumnList] = useState<any>([]);
     const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
     const sColorPickerRef = useRef<any>(null);
@@ -29,49 +31,53 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
-                    return aItem.id === pTagTableInfo.id ? { ...aItem, [aKey]: aData } : aItem;
+                blockList: aPrev.blockList.map((aItem: any) => {
+                    return aItem.id === pBlockInfo.id ? { ...aItem, [aKey]: aData } : aItem;
                 }),
             };
         });
     };
 
-    const changedOption = (aKey: string, aData: any) => {
-        pSetPanelOption((aPrev: any) => {
-            return {
-                ...aPrev,
-                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
-                    return aItem.id === pTagTableInfo.id ? { ...aItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value } : aItem;
-                }),
-            };
-        });
-        const sTable = pTableList.find((aItem: any) => aItem[3] === aData.target.value);
-
+    const changedOption = async (aKey: string, aData: any) => {
         if (aKey === 'table') {
-            setSelectedTableType(getTableType(sTable[4]));
-            getTableType(sTable[4]) === 'tag' && getTagList(aData.target.value);
+            const sTargetTable = pTableList.find((aItem: any) => aItem[3] === aData.target.value);
+            setSelectedTableType(getTableType(sTargetTable[4]));
+            let sTagList: any = [];
+            if (getTableType(sTargetTable[4]) === 'tag') sTagList = await getTagList(aData.target.value);
+            const sDefaultBlockOption = createDefaultTagTableOption(sTargetTable[1], sTargetTable, getTableType(sTargetTable[4]), sTagList[0]);
+            const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any, aIdx: number) => {
+                return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID(), color: TagColorList[aIdx] } : aTable;
+            });
             pSetPanelOption((aPrev: any) => {
                 return {
                     ...aPrev,
-                    tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
-                        return aItem.id === pTagTableInfo.id ? { ...aItem, type: getTableType(sTable[4]) } : aItem;
-                    }),
+                    blockList: sTempTableList,
                 };
             });
             getColumnList(aData.target.value);
+        } else {
+            pSetPanelOption((aPrev: any) => {
+                return {
+                    ...aPrev,
+                    blockList: aPrev.blockList.map((aItem: any) => {
+                        return aItem.id === pBlockInfo.id ? { ...aItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value } : aItem;
+                    }),
+                };
+            });
         }
     };
 
     const getColumnList = async (aTable: string) => {
         const sTable = pTableList.find((aItem: any) => aItem[3] === aTable);
         const sData = await getTableInfo(sTable[6], sTable[2]);
+
         setTimeList(sData.data.rows.filter((aItem: any) => aItem[1] === 6));
 
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
-                    return aItem.id === pTagTableInfo.id ? { ...aItem, type: getTableType(sTable[4]), tableInfo: sData.data.rows } : aItem;
+                blockList: aPrev.blockList.map((aItem: any) => {
+                    return aItem.id === pBlockInfo.id ? { ...aItem, type: getTableType(sTable[4]), tableInfo: sData.data.rows } : aItem;
                 }),
             };
         });
@@ -81,8 +87,8 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
             pSetPanelOption((aPrev: any) => {
                 return {
                     ...aPrev,
-                    tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
-                        return aItem.id === pTagTableInfo.id
+                    blockList: aPrev.blockList.map((aItem: any) => {
+                        return aItem.id === pBlockInfo.id
                             ? {
                                   ...aItem,
                                   time: sData.data.rows.filter((aItem: any) => {
@@ -112,18 +118,23 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
 
     const getTagList = async (aTable: any) => {
         const sData: any = await fetchTags(aTable);
-        setTagList(
-            sData.data.rows.map((aItem: any) => {
+        if (sData && sData.success && sData.data && sData.data.rows && sData.data.rows.length > 0) {
+            const sTagList = sData.data.rows.map((aItem: any) => {
                 return aItem[1];
-            })
-        );
+            });
+            setTagList(sTagList);
+            return sTagList;
+        } else {
+            setTagList([]);
+            return [];
+        }
     };
     const changeValueOption = (aKey: string, aData: any, aId: string, aChangedKey: string) => {
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
-                    return aItem.id === pTagTableInfo.id
+                blockList: aPrev.blockList.map((aItem: any) => {
+                    return aItem.id === pBlockInfo.id
                         ? {
                               ...aItem,
                               [aChangedKey]: aItem?.[aChangedKey].map((bItem: any) => {
@@ -140,8 +151,8 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
-                    return aItem.id === pTagTableInfo.id ? { ...aItem, values: [...aItem.values, { id: generateUUID(), alias: '', value: '', aggregator: 'avg' }] } : aItem;
+                blockList: aPrev.blockList.map((aItem: any) => {
+                    return aItem.id === pBlockInfo.id ? { ...aItem, values: [...aItem.values, { id: generateUUID(), alias: '', value: '', aggregator: 'avg' }] } : aItem;
                 }),
             };
         });
@@ -150,8 +161,10 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
-                    return aItem.id === pTagTableInfo.id ? { ...aItem, filter: [...aItem.filter, { id: generateUUID(), value: '', operator: '=', useFilter: true }] } : aItem;
+                blockList: aPrev.blockList.map((aItem: any) => {
+                    return aItem.id === pBlockInfo.id
+                        ? { ...aItem, filter: [...aItem.filter, { id: generateUUID(), value: '', operator: '=', useFilter: true, useTyping: false }] }
+                        : aItem;
                 }),
             };
         });
@@ -161,7 +174,7 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                tagTableInfo: aPrev.tagTableInfo.filter((aItem: any) => aItem.id !== pTagTableInfo.id),
+                blockList: aPrev.blockList.filter((aItem: any) => aItem.id !== pBlockInfo.id),
             };
         });
     };
@@ -169,8 +182,8 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
-                    return aItem.id === pTagTableInfo.id ? { ...aItem, values: aItem.values.filter((aItem: any) => aItem.id !== aId) } : aItem;
+                blockList: aPrev.blockList.map((aItem: any) => {
+                    return aItem.id === pBlockInfo.id ? { ...aItem, values: aItem.values.filter((aItem: any) => aItem.id !== aId) } : aItem;
                 }),
             };
         });
@@ -180,11 +193,20 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                tagTableInfo: aPrev.tagTableInfo.map((aItem: any) => {
-                    return aItem.id === pTagTableInfo.id ? { ...aItem, filter: aItem.filter.filter((aItem: any) => aItem.id !== aId) } : aItem;
+                blockList: aPrev.blockList.map((aItem: any) => {
+                    return aItem.id === pBlockInfo.id ? { ...aItem, filter: aItem.filter.filter((aItem: any) => aItem.id !== aId) } : aItem;
                 }),
             };
         });
+    };
+    /** Update Table + Rollup */
+    const HandleTable = async () => {
+        setIsLoadingRollup(() => true);
+        // Rollup
+        setRollupTabls(await getRollupTableList());
+        // Table
+        await pGetTables();
+        setIsLoadingRollup(() => false);
     };
 
     useEffect(() => {
@@ -192,8 +214,8 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
         sSelectedTableType === 'tag' &&
             pSetPanelOption({
                 ...pPanelOption,
-                tagTableInfo: pPanelOption.tagTableInfo.map((aItem: any) => {
-                    return aItem.id === pTagTableInfo.id
+                blockList: pPanelOption.blockList.map((aItem: any) => {
+                    return aItem.id === pBlockInfo.id
                         ? {
                               ...aItem,
                               values: aItem.values.filter((aItem: any, aIdx: number) => {
@@ -207,20 +229,16 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
     }, [sSelectedTableType]);
 
     useEffect(() => {
-        const sTable = pTableList.find((aItem: any) => aItem[3] === pTagTableInfo.table);
+        const sTable = pTableList.find((aItem: any) => aItem[3] === pBlockInfo.table);
         const sTableType = getTableType(sTable[4]);
         setSelectedTableType(sTableType);
 
-        getColumnList(pTagTableInfo.table);
-        if (sTableType === 'tag') {
-            getTagList(pTagTableInfo.table);
-        }
+        getColumnList(pBlockInfo.table);
+        if (sTableType === 'tag') getTagList(pBlockInfo.table);
     }, []);
 
     useEffect(() => {
-        if (pType === 'create') {
-            setOption('tag', sTagList[0]);
-        }
+        if (pBlockInfo.type === 'tag') setOption('tag', pBlockInfo.tag !== '' ? pBlockInfo.tag : sTagList[0]);
     }, [sTagList]);
 
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
@@ -229,18 +247,18 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
         <div className="series">
             <div className="row">
                 <div className="row-header">
-                    {pTagTableInfo.useCustom && (
-                        <div style={{ display: !pTagTableInfo.useCustom ? 'none' : '' }} className="row-header-left">
+                    {pBlockInfo.useCustom && (
+                        <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="row-header-left">
+                            {/* TABLE */}
                             <div className="series-table">
                                 <span className="series-title">
-                                    Table
-                                    <IconButton pWidth={25} pHeight={26} pIcon={<Refresh />} onClick={() => pGetTables()}></IconButton>
+                                    Table <IconButton pDisabled={sIsLoadingRollup} pWidth={25} pHeight={26} pIcon={<Refresh />} onClick={HandleTable} />
                                 </span>
                                 <Select
                                     pFontSize={12}
                                     pWidth={175}
                                     pBorderRadius={4}
-                                    pInitValue={pTagTableInfo.table}
+                                    pInitValue={pBlockInfo.table}
                                     pHeight={26}
                                     onChange={(aEvent: any) => changedOption('table', aEvent)}
                                     pOptions={pTableList.map((aItem: any) => aItem[3])}
@@ -265,57 +283,63 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
                                     )}
                                 </div>
                             </div>
-                            <div className="details padding-4">
-                                <CheckBox
-                                    pIsDisabled={sSelectedTableType !== 'tag'}
-                                    onChange={(aEvent: any) => changedOption('useRollup', aEvent)}
-                                    pDefaultChecked={pPanelOption.useRollup}
-                                    pText={'Rollup'}
-                                ></CheckBox>
-                            </div>
                         </div>
                     )}
-                    {!pTagTableInfo.useCustom && (
+                    {!pBlockInfo.useCustom && (
                         <div className="row-header-left">
                             <div className="series-table">
-                                <span className="series-title"> Table </span>
+                                <span className="series-title">
+                                    Table <IconButton pDisabled={sIsLoadingRollup} pWidth={25} pHeight={26} pIcon={<Refresh />} onClick={HandleTable} />
+                                </span>
                                 <Select
                                     pFontSize={12}
                                     pWidth={175}
                                     pBorderRadius={4}
-                                    pInitValue={pTagTableInfo.table}
+                                    pInitValue={pBlockInfo.table}
                                     pHeight={26}
                                     onChange={(aEvent: any) => changedOption('table', aEvent)}
                                     pOptions={pTableList.map((aItem: any) => {
                                         return aItem[3];
                                     })}
                                 />
-                                <IconButton pWidth={25} pHeight={26} pIcon={<Refresh></Refresh>} onClick={() => pGetTables()}></IconButton>
                             </div>
                             <div className="series-table">
                                 <span className="series-title"> Tag </span>
                                 {sTagList[0] && (
                                     <Select
                                         pFontSize={12}
-                                        pWidth={200}
+                                        pWidth={175}
                                         pAutoChanged={true}
                                         pBorderRadius={4}
-                                        pInitValue={pTagTableInfo.tag ? pTagTableInfo.tag : sTagList[0]}
+                                        pInitValue={pBlockInfo.tag}
                                         pHeight={26}
                                         onChange={(aEvent: any) => changedOption('tag', aEvent)}
                                         pOptions={sTagList}
+                                        pIsDisabled={sTagList.length <= 0}
                                     />
                                 )}
                             </div>
                             <div className="series-table">
+                                <span className="series-title"> Alias </span>
+                                <Input
+                                    pBorderRadius={4}
+                                    pWidth={175}
+                                    pHeight={26}
+                                    pType="text"
+                                    pValue={pBlockInfo.alias}
+                                    pSetValue={() => null}
+                                    onChange={(aEvent: any) => changedOption('alias', aEvent)}
+                                />
+                            </div>
+                            <div className="series-table">
                                 <span className="series-title"> Aggregator </span>
-                                {pTagTableInfo.aggregator && (
+                                {pBlockInfo.aggregator && (
                                     <Select
                                         pFontSize={12}
                                         pAutoChanged={true}
-                                        pWidth={200}
+                                        pWidth={175}
                                         pBorderRadius={4}
-                                        pInitValue={pTagTableInfo.aggregator}
+                                        pInitValue={pBlockInfo.aggregator}
                                         pHeight={26}
                                         onChange={(aEvent: any) => changedOption('aggregator', aEvent)}
                                         pOptions={tagAggregatorList}
@@ -331,53 +355,51 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
                                 pHeight={20}
                                 pIcon={
                                     <div
-                                        style={{ width: '14px', cursor: 'pointer', height: '14px', marginRight: '4px', borderRadius: '50%', backgroundColor: pTagTableInfo.color }}
+                                        style={{ width: '14px', cursor: 'pointer', height: '14px', marginRight: '4px', borderRadius: '50%', backgroundColor: pBlockInfo.color }}
                                     ></div>
                                 }
                                 onClick={() => setIsColorPicker(!sIsColorPicker)}
-                            ></IconButton>
+                            />
 
                             {sIsColorPicker && (
                                 <div className="color-picker">
                                     <CompactPicker
-                                        color={pTagTableInfo.color}
+                                        color={pBlockInfo.color}
                                         onChangeComplete={(aInfo: any) => {
                                             setOption('color', aInfo.hex);
                                         }}
-                                    ></CompactPicker>
+                                    />
                                 </div>
                             )}
                         </div>
                         <IconButton
                             pWidth={20}
                             pHeight={20}
-                            pIsActive={pTagTableInfo.useCustom}
+                            pIsActive={pBlockInfo.useCustom}
                             pDisabled={sSelectedTableType !== 'tag'}
                             pIcon={<VscSync />}
-                            onClick={sSelectedTableType !== 'tag' ? () => {} : () => setOption('useCustom', !pTagTableInfo.useCustom)}
-                        ></IconButton>
+                            onClick={sSelectedTableType !== 'tag' ? () => {} : () => setOption('useCustom', !pBlockInfo.useCustom)}
+                        />
                         <IconButton
-                            pDisabled={pPanelOption.tagTableInfo.length === 1}
+                            pDisabled={pPanelOption.blockList.length === 1}
                             pWidth={20}
                             pHeight={20}
-                            pIcon={<Close></Close>}
-                            onClick={pPanelOption.tagTableInfo.length !== 1 ? () => deleteSeries() : () => {}}
-                        ></IconButton>
+                            pIcon={<Close />}
+                            onClick={pPanelOption.blockList.length !== 1 ? () => deleteSeries() : () => {}}
+                        />
                     </div>
                 </div>
-                {pTagTableInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
-
-                <div style={{ display: !pTagTableInfo.useCustom ? 'none' : '' }} className="details">
+                {pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
+                <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
                     <div>
-                        {pTagTableInfo.values.map((aItem: any, aIdx: number) => {
+                        {pBlockInfo.values.map((aItem: any, aIdx: number) => {
                             return (
                                 <Value
                                     key={aItem.id}
-                                    pSelectedTableType={sSelectedTableType}
                                     pChangeValueOption={changeValueOption}
                                     pAddValue={addValue}
                                     pRemoveValue={removeValue}
-                                    pTagTableInfo={pTagTableInfo}
+                                    pBlockInfo={pBlockInfo}
                                     pValue={aItem}
                                     pIdx={aIdx}
                                     pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
@@ -387,22 +409,22 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
                         })}
                     </div>
                 </div>
-                {pTagTableInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
+                {pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
 
-                <div style={{ display: !pTagTableInfo.useCustom ? 'none' : '' }} className="details">
+                <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
                     <div>
-                        {pTagTableInfo.filter.map((aItem: any, aIdx: number) => {
+                        {pBlockInfo.filter.map((aItem: any, aIdx: number) => {
                             return (
                                 <Filter
                                     key={aItem.id}
                                     pColumnList={sColumnList}
-                                    pTagTableInfo={pTagTableInfo}
+                                    pBlockInfo={pBlockInfo}
                                     pFilterInfo={aItem}
                                     pChangeValueOption={changeValueOption}
                                     pIdx={aIdx}
                                     pAddFilter={addFilter}
                                     pRemoveFilter={removeFilter}
-                                ></Filter>
+                                />
                             );
                         })}
                     </div>
@@ -411,4 +433,3 @@ const Series = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTables, pS
         </div>
     );
 };
-export default Series;
