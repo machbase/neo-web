@@ -11,10 +11,12 @@ interface BlockTimeType {
 
 /** Dashboard QUERY PARSER */
 export const DashboardQueryParser = async (aBlockList: any, aRollupList: any, aTime: BlockTimeType) => {
+    console.log('aBlockList', aBlockList);
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
     const sTagList = GetColumnList(sQueryBlock);
-    const sParsedQueryList = GetParsedQuery(sQueryBlock, aTime);
-    const sResultQuery = `SELECT * FROM (\n` + `${sParsedQueryList.join(' UNION ALL ')}\n` + `) ORDER BY TIME, NAME`;
+    const sParsedQueryList = QueryParser(sQueryBlock, aTime);
+    // TO_TIMESTAMP() / 1000000.0
+    const sResultQuery = `SELECT * FROM (\n` + `${sParsedQueryList.join('UNION ALL ')}\n` + `) ORDER BY TIME`;
     return [sResultQuery, sTagList];
 };
 /** Block Parser */
@@ -23,7 +25,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
         return {
             ...aBlock,
             filter: aBlock.useCustom ? UseFilter(aBlock.filter) : GetFilter(aBlock),
-            values: aBlock.useCustom ? aBlock.values : GetValues(aBlock),
+            values: aBlock.useCustom ? UseValue(aBlock.values) : GetValues(aBlock),
         };
     });
     const sBlockGroupList = GetTableGroup(sParsedBlockList);
@@ -116,6 +118,10 @@ const GetFilterId = (aFilterList: any) => {
 const UseFilter = (aFilterList: any) => {
     return aFilterList.filter((aFilter: any) => aFilter.useFilter);
 };
+/** @return use valueList */
+const UseValue = (aValueList: any) => {
+    return aValueList.filter((aValue: any) => aValue.value !== '');
+};
 /** Create value list for collapsed block
  * @return ({ value: value, alias: '', aggregator: "aggregator"})
  */
@@ -136,15 +142,49 @@ const GetFilter = (aTableInfo: any) => {
     return [{ ...aTableInfo.filter[0], column: 'NAME', operator: 'in', value: aTableInfo.tag }];
 };
 /** @return Time */
-const GetTimeColumn = (aTable: any): string => {
-    if (aTable.type === 'tag') return 'TIME';
-    else return aTable.time;
+const GetTime = (aTable: any, aInterval: { IntervalType: string; IntervalValue: number }, sUseAggregator: boolean): string => {
+    if (aTable.useRollup && sUseAggregator) return `TIME ROLLUP ${aInterval.IntervalValue} ${aInterval.IntervalType}`;
+    else {
+        let sTime: any = 1;
+        if (aInterval.IntervalType === 'day') sTime = 60 * 60 * 24;
+        else if (aInterval.IntervalType === 'hour') sTime = 60 * 60;
+        else if (aInterval.IntervalType === 'min') sTime = 60;
+        else sTime = 1;
+        return `${aTable.time} / (${aInterval.IntervalValue} * ${sTime} * 1000000000) * (${aInterval.IntervalValue} * ${sTime} * 1000000000)`;
+    }
 };
-const GetColumns = (aQueryList: any) => {
-    return aQueryList[0].valueList.map((aValue: any) => {
-        if (aValue.alias && aValue.alias !== '') return ` ${aValue.aggregator}(${aValue.value}) * 1.0 AS '${aValue.alias}'`;
-        else return ` ${aValue.aggregator}(${aValue.value}) * 1.0 AS '${aValue.aggregator}(${aValue.value})'`;
+
+const GetGroupBy = (aUseAggregator: boolean): string => {
+    if (aUseAggregator) return 'GROUP BY TIME, NAME';
+    else return 'GROUP BY TIME, NAME' + ', VALUE ';
+};
+
+const GetColumns = (aQuery: any) => {
+    // block 관계없이 파싱된 query 개수 기반
+    // | mode | query | name in |
+    // __________________________
+    // | tag  |   1   |    o    | => pivot o => name time value1 value2...
+    // | tag  |   1   |    x    | => name time value
+    // | tag  |   2   |    o    | => mapvalue o => name time value1 value2 value3...
+    // | tag  |   2   |    x    | => mapvalue o => name time value1 value2...
+    // | log  |   2   |    x    | => name time value1 value2...
+
+    // name time value....... =>
+
+    const sColumnNameList: string[] = [];
+    // console.log('aQuery filterList', aQuery.filterList);
+    const sParsedColumnList = aQuery.valueList.map((aValue: any) => {
+        if (aValue.alias && aValue.alias !== '') {
+            sColumnNameList.push(aValue.alias);
+            if (aValue.aggregator === 'none') return ` ${aValue.value} AS '${aValue.alias}'`;
+            else return ` ${aValue.aggregator}(${aValue.value}) * 1.0 AS '${aValue.alias}'`;
+        } else {
+            sColumnNameList.push(aValue.value);
+            if (aValue.aggregator === 'none') return ` ${aValue.value} AS ${aValue.value}`;
+            else return ` ${aValue.aggregator}(${aValue.value}) * 1.0 AS ${aValue.value}`;
+        }
     });
+    return [sParsedColumnList, sColumnNameList];
 };
 const GetWhere = (aFilterList: any) => {
     const sFlatFilter = aFilterList
@@ -171,29 +211,29 @@ const GetWhere = (aFilterList: any) => {
     });
     return sResult.join(' AND');
 };
-const GetParsedQuery = (sQueryGroup: any, aTime: { interval: any; start: any; end: any }) => {
-    const sResultQuery = sQueryGroup.map((aQueryList: any) => {
-        // sub query (where)
-        let sWhere: any = '';
-        // column
-        let sColumns: string[] = [];
-        // time
-        let sTime: string = '';
-        // user.table
-        let sTable: string = '';
-        // table type (tag | log)
-        let sTableType: string = '';
-        if (aQueryList && aQueryList.length > 0) {
-            sTableType = aQueryList[0].type;
-            sTime = GetTimeColumn(aQueryList[0]);
-            sTable = aQueryList[0].userName + '.' + aQueryList[0].tableName;
-            sColumns = GetColumns(aQueryList);
-            sWhere = GetWhere(aQueryList);
-        }
-        return `SELECT ${sTime}${sTableType === 'tag' ? ' / 1000000000 * 1000000000' : ''} AS TIME, NAME,${sColumns} FROM ${sTable} WHERE ${sTime} BETWEEN ${
-            aTime.start
-        }000000 AND ${aTime.end}000000${sWhere ? ' AND' + sWhere : ''} GROUP BY NAME, ${sTime} `;
+const UseAggregator = (aValueList: any) => {
+    return aValueList.reduce((preV: boolean, aValue: any) => {
+        return preV || aValue.aggregator !== 'none' ? true : false;
+    }, false);
+};
+const QueryParser = (sQueryBlock: any, aTime: { interval: any; start: any; end: any }) => {
+    const sResultQuery = sQueryBlock.map((aQueryList: any) => {
+        const sUseAggregator: boolean = UseAggregator(aQueryList[0].valueList);
+        const [sParsedColumnList, sColumnNameList] = GetColumns(aQueryList[0]);
+        const sTime: string = GetTime(aQueryList[0], aTime.interval, sUseAggregator);
+        const sTable: string = aQueryList[0].userName + '.' + aQueryList[0].tableName;
+        const sGroupBy: string = GetGroupBy(sUseAggregator);
+        const sTimeType: string = aQueryList[0].time;
+        const sWhere: any = GetWhere(aQueryList);
+
+        // console.log('sColumnNameList', sColumnNameList);
+
+        return `SELECT ${sTime} AS TIME, NAME,${sParsedColumnList} FROM ${sTable} WHERE ${sTimeType} BETWEEN ${aTime.start}000000 AND ${aTime.end}000000 ${
+            sWhere ? 'AND' + sWhere : ''
+        } ${sGroupBy} `;
     });
+
+    // console.log(sResultQuery);
 
     return sResultQuery;
 };

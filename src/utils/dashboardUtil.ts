@@ -56,6 +56,9 @@ export const setUnitTime = (aTime: any) => {
             case 'd':
                 sSecTime = sCalcTime * 1000 * 24 * 3600;
                 break;
+            case 'M':
+                sSecTime = sCalcTime * 1000 * 24 * 3600 * 30;
+                break;
             case 'y':
                 sSecTime = sCalcTime * 1000 * 24 * 3600 * 365;
                 break;
