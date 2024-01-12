@@ -335,30 +335,30 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 setTqlCsv(sParsedCsvBody);
                 setTqlCsvHeader(sParsedCsvHeader);
             }
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/json') {
+            if (sResult.data && typeof sResult.data === 'object' && sResult.data.success) {
+                setTqlResultType('text');
+                if (sResult.data.data.rows && sResult.data.data.rows.length > 10) {
+                    const sLength = sResult.data.data.rows.length;
+                    sResult.data.data.rows = sResult.data.data.rows.filter((_: number[], aIdx: number) => aIdx < 6 || sLength - 6 < aIdx);
+                    sResult.data.data.rows.splice(5, 0, '....');
+                } else if (sResult.data.data.cols && sResult.data.data.cols.length > 0 && sResult.data.data.cols[0].length > 10) {
+                    const sTempList: any = [];
+                    sResult.data.data.cols.forEach((col: any) => {
+                        const sColLength = col.length;
+                        const sColResult = col.filter((_: number[], aIdx: number) => aIdx < 6 || sColLength - 6 < aIdx);
+                        sColResult.splice(5, 0, '....');
+                        sTempList.push(sColResult);
+                    });
+                    sResult.data.data.cols = sTempList;
+                }
+                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
+            } else {
+                HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
+            }
         } else {
-            if (sResult.status === 200) {
-                if (sResult.data && typeof sResult.data === 'object') {
-                    if (sResult.data.data.rows && sResult.data.data.rows.length > 10) {
-                        const sLength = sResult.data.data.rows.length;
-                        sResult.data.data.rows = sResult.data.data.rows.filter((_: number[], aIdx: number) => aIdx < 6 || sLength - 6 < aIdx);
-                        sResult.data.data.rows.splice(5, 0, '....');
-                    } else if (sResult.data.data.cols && sResult.data.data.cols.length > 0 && sResult.data.data.cols[0].length > 10) {
-                        const sTempList: any = [];
-                        sResult.data.data.cols.forEach((col: any) => {
-                            const sColLength = col.length;
-                            const sColResult = col.filter((_: number[], aIdx: number) => aIdx < 6 || sColLength - 6 < aIdx);
-                            sColResult.splice(5, 0, '....');
-                            sTempList.push(sColResult);
-                        });
-                        sResult.data.data.cols = sTempList;
-                    } else if (sResult.data.data.message) {
-                        HandleResutTypeAndTxt(sResult.data.data.message, false);
-                        return;
-                    }
-                    HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
-                    return;
-                } else HandleResutTypeAndTxt(sResult.statusText, true);
-            } else HandleResutTypeAndTxt(typeof sResult.data === 'object' ? (sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data)) : sResult.data, false);
+            if (sResult.status === 200) HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
+            else HandleResutTypeAndTxt(typeof sResult.data === 'object' ? (sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data)) : sResult.data, false);
         }
     };
 
