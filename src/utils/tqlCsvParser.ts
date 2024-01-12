@@ -4,14 +4,10 @@ import * as Parse from 'papaparse';
 const sParseOption: any = {
     quotes: false,
     quoteChar: '"',
-    // escapeChar: '"',
-    delimiter: ',',
+    delimiter: '"',
     skipEmptyLines: true,
-    // header: true,
-    dynamicTyping: true,
-    delimitersToGuess: [','],
+    dynamicTyping: false,
     comments: '//',
-    // columns: null, //or array of strings
 };
 
 const BodyParser = (raw: any) => {
@@ -23,7 +19,11 @@ const HeaderParser = (colLen: number) => {
 };
 
 export const TqlCsvParser = (raw: any) => {
-    const sParsedCsvBody: any = BodyParser(raw);
+    const sCheckCsv = raw.split('\n').filter((aRaw: string) => aRaw !== '');
+    let sTmpRaw: string = '';
+    if (sCheckCsv.length === 1) sTmpRaw = `"${sCheckCsv[0]}"`;
+    else sTmpRaw = raw;
+    const sParsedCsvBody: any = BodyParser(sTmpRaw);
     const sParsedCsvHeader: any = HeaderParser(sParsedCsvBody.data[0].length);
     return [sParsedCsvBody.data, sParsedCsvHeader];
 };
