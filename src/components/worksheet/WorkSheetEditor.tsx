@@ -337,7 +337,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/json') {
             if (sResult.data && typeof sResult.data === 'object' && sResult.data.success) {
-                setTqlResultType('text');
                 if (sResult.data.data.rows && sResult.data.data.rows.length > 10) {
                     const sLength = sResult.data.data.rows.length;
                     sResult.data.data.rows = sResult.data.data.rows.filter((_: number[], aIdx: number) => aIdx < 6 || sLength - 6 < aIdx);
