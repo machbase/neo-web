@@ -15,12 +15,17 @@ export const ShowChart = (props: ShowChartProps) => {
         if (pData && pData.jsAssets) await loadScriptsSequentially({ jsAssets: pData.jsAssets ? (ExistCommonScript(pData.jsAssets) as string[]) : [], jsCodeAssets: [] });
 
         const ChartDiv = document.createElement('div');
-        ChartDiv.id = pData.chartID;
-        ChartDiv.style.width = pData.style.width;
-        ChartDiv.style.height = pData.style.height;
-        ChartDiv.style.margin = pIsCenter ? 'auto' : 'initial';
-        ChartDiv.style.backgroundColor = sTheme === 'dark' ? '' : '#FFF';
-        wrapRef.current?.appendChild(ChartDiv);
+        if (wrapRef.current?.firstElementChild?.id !== pData.chartID) {
+            ChartDiv.id = pData.chartID;
+            ChartDiv.style.width = pData.style.width;
+            ChartDiv.style.height = pData.style.height;
+            ChartDiv.style.margin = pIsCenter ? 'auto' : 'initial';
+            ChartDiv.style.backgroundColor = sTheme === 'dark' ? '' : '#FFF';
+            wrapRef.current?.appendChild(ChartDiv);
+        } else {
+            const sEchart = document.getElementById(pData.chartID) as HTMLDivElement | HTMLCanvasElement;
+            echarts.init(sEchart).clear();
+        }
 
         pData && pData.jsCodeAssets && (await loadScriptsSequentially({ jsAssets: [], jsCodeAssets: pData.jsCodeAssets }));
         const tmpNodeList = wrapRef.current?.childNodes;
