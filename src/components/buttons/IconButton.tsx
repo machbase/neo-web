@@ -20,7 +20,7 @@ export const IconButton = (props: IconButtonProps) => {
         <div
             className={`${sDisabledClass} ${sIsActiveHoverClass} icon-btn-wrapper`}
             style={{ width: pWidth + 'px', minWidth: pWidth + 'px', height: pHeight + 'px', backgroundColor: pIsActive ? '#52535A' : '' }}
-            onClick={onClick}
+            onClick={!pDisabled ? onClick : () => null}
         >
             {pIcon}
         </div>

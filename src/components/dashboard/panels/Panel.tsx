@@ -3,7 +3,7 @@ import PanelHeader from './PanelHeader';
 import './Panel.scss';
 import { useRef, useState } from 'react';
 
-const Panel = ({ pBoardInfo, pShowEditPanel, pType, pPanelInfo, pInsetDraging, pDragStat }: any) => {
+const Panel = ({ pBoardInfo, pShowEditPanel, pType, pPanelInfo, pInsetDraging, pDragStat, pIsView }: any) => {
     const [sRefreshCount, setRefreshCount] = useState<number>(0);
     const sRef = useRef<HTMLDivElement>(null);
 
@@ -16,6 +16,7 @@ const Panel = ({ pBoardInfo, pShowEditPanel, pType, pPanelInfo, pInsetDraging, p
                 pType={pType}
                 pBoardInfo={pBoardInfo}
                 pPanelInfo={pPanelInfo}
+                pIsView={pIsView}
             ></PanelHeader>
             {pPanelInfo && (
                 <LineChart

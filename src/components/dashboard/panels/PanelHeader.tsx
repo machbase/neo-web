@@ -5,7 +5,7 @@ import { useRecoilState } from 'recoil';
 import { useState } from 'react';
 import './PanelHeader.scss';
 import { Tooltip } from 'react-tooltip';
-const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pSetRefreshCount }: any) => {
+const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pSetRefreshCount, pIsView }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sMouseDown, setMouseDown] = useState(false);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
@@ -44,7 +44,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pSetRefreshCount }: an
                 }
                 className="board-panel-header"
             >
-                <div>{pPanelInfo.name}</div>
+                <div>{pPanelInfo.title}</div>
                 <div className="panel-header-navigator">
                     <a data-tooltip-place="bottom" id="my-anchor-element">
                         {pPanelInfo.useCustomTime && <VscRecord color="#339900"></VscRecord>}
@@ -58,6 +58,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pSetRefreshCount }: an
                     <span className="delete">
                         {
                             <IconButton
+                                pDisabled={pIsView}
                                 pWidth={25}
                                 pIcon={<Refresh size={14} />}
                                 onClick={() =>
@@ -73,6 +74,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pSetRefreshCount }: an
                             <span className="delete">
                                 {
                                     <IconButton
+                                        pDisabled={pIsView}
                                         pWidth={25}
                                         pIcon={<GearFill size={14} />}
                                         onClick={(aEvent: any) => {
@@ -82,7 +84,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pSetRefreshCount }: an
                                     />
                                 }
                             </span>
-                            <span className="delete">{<IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}</span>
+                            <span className="delete">{<IconButton pDisabled={pIsView} pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}</span>
                         </>
                     )}
                 </div>
