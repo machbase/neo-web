@@ -9,6 +9,14 @@ interface PieOptionProps {
 export const PieOptions = (props: PieOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
 
+    const sMenuStyle = {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginRight: '10px',
+        marginBottom: '5px',
+    };
+
     const handlePieOption = (aEvent: any, aKey: any, aIsCheckbox: boolean) => {
         pSetPanelOption((prev: any) => {
             return {
@@ -23,16 +31,18 @@ export const PieOptions = (props: PieOptionProps) => {
 
     return (
         <div>
-            <span>Doughnut Ratio</span>
-            <Input
-                pType="number"
-                pIsFullWidth
-                pHeight={30}
-                pBorderRadius={4}
-                pValue={pPanelOption.chartOptions?.doughnutRatio ?? 0}
-                pSetValue={() => null}
-                onChange={(aEvent: any) => handlePieOption(aEvent, 'doughnutRatio', false)}
-            />
+            <div style={sMenuStyle}>
+                <span>Doughnut Ratio</span>
+                <Input
+                    pType="number"
+                    pWidth={50}
+                    pHeight={25}
+                    pBorderRadius={4}
+                    pValue={pPanelOption.chartOptions?.doughnutRatio ?? 0}
+                    pSetValue={() => null}
+                    onChange={(aEvent: any) => handlePieOption(aEvent, 'doughnutRatio', false)}
+                />
+            </div>
             <div style={{ height: '10px' }} />
             <CheckBox
                 pText="Nightingale Mode"
