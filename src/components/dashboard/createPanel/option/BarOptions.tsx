@@ -19,12 +19,13 @@ export const BarOptions = (props: BarOptionProps) => {
     };
 
     const handleBarOption = (aEvent: any, aKey: any, aIsCheckbox: boolean) => {
+        const sValue = aIsCheckbox ? aEvent.target.checked : isNaN(Number(aEvent.target.value)) ? aEvent.target.value : Number(aEvent.target.value);
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
                 chartOptions: {
                     ...aPrev.chartOptions,
-                    [aKey]: aIsCheckbox ? aEvent.target.checked : aEvent.target.value,
+                    [aKey]: sValue,
                 },
             };
         });
@@ -52,12 +53,37 @@ export const BarOptions = (props: BarOptionProps) => {
                 <div style={sPolarMenuStyle}>
                     <span>Start Angle</span>
                     <Input
+                        pType="number"
                         pWidth={50}
                         pHeight={25}
                         pBorderRadius={4}
                         pIsDisabled={!pPanelOption.chartOptions?.isPolar}
                         pValue={pPanelOption.chartOptions?.startAngle}
                         onChange={(aEvent: any) => handleBarOption(aEvent, 'startAngle', false)}
+                    />
+                </div>
+                <div style={sPolarMenuStyle}>
+                    <span>Radius</span>
+                    <Input
+                        pType="number"
+                        pWidth={50}
+                        pHeight={25}
+                        pBorderRadius={4}
+                        pIsDisabled={!pPanelOption.chartOptions?.isPolar}
+                        pValue={pPanelOption.chartOptions?.polarRadius}
+                        onChange={(aEvent: any) => handleBarOption(aEvent, 'polarRadius', false)}
+                    />
+                </div>
+                <div style={sPolarMenuStyle}>
+                    <span>Polar Size</span>
+                    <Input
+                        pType="number"
+                        pWidth={50}
+                        pHeight={25}
+                        pBorderRadius={4}
+                        pIsDisabled={!pPanelOption.chartOptions?.isPolar}
+                        pValue={pPanelOption.chartOptions?.polarSize}
+                        onChange={(aEvent: any) => handleBarOption(aEvent, 'polarSize', false)}
                     />
                 </div>
             </Collapse>
