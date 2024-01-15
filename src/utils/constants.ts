@@ -372,3 +372,6 @@ export const ChartTypeList = ['line', 'bar', 'scatter', 'gauge', 'pie'];
 export const ChartThemeList = ['dark', 'white', 'vintage', 'macarons', 'infographic', 'shine', 'roma'];
 export const ChartXAxisTypeList = ['category', 'time'];
 export const ChartSeriesColorList = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#FADE2A'];
+export const ChartTooltipTriggerList = ['item', 'axis', 'none'];
+
+export const ChartLineStackTooltipFormatter = `function (params) { let output = params[0].axisValueLabel + '<br/>'; output += '<table>'; params.reverse().forEach(function (param) { const value = typeof param.data === 'object' ? param.data[1] : param.data; if (value !== null) { output += '<tr><td>'+param.marker+'</td><td>'+param.seriesName+'&ensp;</td><td><b>'+value+'</b></td></tr>'; }}); return output + '</table>';}`;
