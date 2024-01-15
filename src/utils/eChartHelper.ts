@@ -3,14 +3,10 @@ import { ChartTheme, ChartType } from '@/type/eChart';
 
 // use create common chart option (createCommonOption)
 export const DefaultCommonOption = {
-    legend: {
-        show: true as boolean,
-    },
-    tooltip: {
-        show: true as boolean,
-        trigger: 'item' as 'item' | 'axis' | 'none',
-    },
-    dataZoom: false as any[] | boolean,
+    isLegend: true as boolean,
+    isTooltip: true as boolean,
+    tooltipTrigger: 'item' as 'item' | 'axis' | 'none',
+    isDataZoom: false as boolean,
 };
 
 export const DefaultXAxisOption = {
@@ -37,20 +33,12 @@ export const DefaultYAxisOption = {
     // }
 };
 
-// for marking option
-export const DefaultLineVisualMapOption = {
-    type: 'piecewise' as 'continuous' | 'piecewise',
-    show: false as boolean,
-    dimension: 0 as string | number,
-    seriesIndex: 0 as number | number[],
-    pieces: [] as any,
-};
-
 export const DefaultLineChartOption = {
     areaStyle: false as boolean,
     smooth: false as boolean,
     isStep: false as boolean,
     isStack: false as boolean,
+    connectNulls: true as boolean,
     markLine: {
         symbol: ['none', 'none'],
         label: {
@@ -58,7 +46,14 @@ export const DefaultLineChartOption = {
         },
         data: [] as any[],
     },
-    visualMap: DefaultLineVisualMapOption,
+    // for marking option
+    visualMap: {
+        type: 'piecewise' as 'continuous' | 'piecewise',
+        show: false as boolean,
+        dimension: 0 as string | number,
+        seriesIndex: 0 as number | number[],
+        pieces: [] as any,
+    },
 };
 
 export const DefaultBarChartOption = {
@@ -66,80 +61,41 @@ export const DefaultBarChartOption = {
     isLarge: false as boolean,
     isPolar: false as boolean,
     polarRadius: 30 as number,
+    polarSize: 80 as number,
     startAngle: 90 as number,
     maxValue: 100 as number,
     // coordinateSystem: 'cartesian2d' as 'cartesian2d' | 'polar',
 };
 
-export const DefaultBarPolarOption = {
-    polar: {
-        radius: [30, '80%'],
-    },
-    angleAxis: {
-        max: 4,
-        startAngle: 90,
-    },
-    radiusAxis: {
-        type: 'category',
-        // data: [] as any[],
-    },
-};
-
-export const DefaultScatterOption = {
+export const DefaultScatterChartOption = {
     isLarge: false as boolean,
     symbolSize: 10 as number,
 };
 
 export const DefaultPieChartOption = {
     doughnutRatio: 0 as number,
-    datasetIndex: 0 as number,
     roseType: false as boolean | string,
-    radius: [0, '70%'] as (number | string)[],
-    emphasis: {
-        itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)',
-        },
-    },
 };
 
 export const DefaultGaugeChartOption = {
-    progress: {
-        show: true,
-    },
-    axisTick: {
-        show: false,
-    },
-    axisLabel: {
-        distance: 25,
-        color: '#999',
-        fontSize: 16,
-    },
-    splitLine: {
-        length: 10,
-        distance: -10,
-        lineStyle: {
-            width: 2,
-            color: '#fff',
-        },
-    },
-    detail: {
-        fontSize: 22,
-        valueAnimation: false,
-        formatter: '{value}',
-        offsetCenter: [0, '30%'],
-    },
+    isAxisTick: true as boolean,
+    axisLabelDistance: 25 as number,
+    // axisLabelColor: '#999' as string,
+    // axisLabelFontSize: 16 as number,
+    valueFontSize: 30 as number,
+    valueAnimation: false as boolean,
+    alignCenter: 30 as number,
+    isAnchor: true as boolean,
+    anchorSize: 25 as number,
+    min: 0 as number,
+    max: 100 as number,
 };
 
 export const DefaultChartOption = {
     id: undefined as string | undefined,
-    name: 'chart Title',
+    title: 'chart Title' as string,
     type: 'line' as ChartType,
     theme: 'dark' as ChartTheme,
-    isLegend: true as boolean,
-    isTooltip: true as boolean,
-    isDataZoom: false as boolean,
     timeRange: {
         start: undefined as string | undefined,
         end: undefined as string | undefined,
@@ -149,14 +105,12 @@ export const DefaultChartOption = {
     tagTableInfo: undefined as any,
     useCustomTime: true as boolean,
 
+    commonOptions: DefaultCommonOption,
+
     xAxisOptions: [DefaultXAxisOption],
     yAxisOptions: [DefaultYAxisOption],
 
     chartOptions: undefined as any,
-
-    // gauge chart option
-    gaugeMin: 0 as number,
-    gaugeMax: 100 as number,
 
     // react-grid-layout value
     x: 0 as number, // x-position
@@ -183,69 +137,144 @@ export const DefaultTagTableOption = {
     value: 'value',
 };
 
-export const ChartSeriesOption = {
-    xAxis: {
-        type: 'category',
-        // data: [] as any,
-    } as any,
-    yAxis: {} as any,
-    series: [
-        {
-            type: 'line',
-            data: [] as any,
-        },
-    ] as any,
-};
-export const DefaultLineSeriesObject = {
-    type: 'line',
-    data: [] as any,
-};
-
-// const DefaultLineSeriesOption = {
-//     xAxis: { type: 'category' },
-//     yAxis: {},
-//     series: [{ type: 'line' }],
-// };
-const DefaultBarSeriesOption = {
-    xAxis: { type: 'category' },
-    yAxis: {},
-    series: [{ type: 'bar' }],
-};
-// const DefaultScatterSeriesOption = {
-//     xAxis: { type: 'category' },
-//     yAxis: {},
-//     series: [{ type: 'scatter' }],
-// };
-const DefaultLiquidSeriesOption = {
-    series: [{ type: 'liquidFill', shape: 'circle' }],
-};
-// const DefaultGaugeSeriesOption = {
-//     series: [
-//         {
-//             type: 'gauge',
-//             progress: {
-//                 show: true,
-//             },
-//             axisTick: { show: true },
-//         },
-//     ],
+// const DefaultLiquidSeriesOption = {
+//     series: [{ type: 'liquidFill', shape: 'circle' }],
 // };
 
-export const getDefaultSeriesOption = (aChartType: string) => {
+export const getDefaultSeriesOption = (aChartType: ChartType) => {
     switch (aChartType.toLocaleLowerCase()) {
-        case 'liquidfill':
-            return DefaultLiquidSeriesOption;
+        // case 'liquidfill':
+        //     return DefaultLiquidSeriesOption;
         case 'line':
             return DefaultLineChartOption;
         case 'bar':
             return DefaultBarChartOption;
         case 'scatter':
-            return DefaultScatterOption;
+            return DefaultScatterChartOption;
         case 'gauge':
             return DefaultGaugeChartOption;
         case 'pie':
             return DefaultPieChartOption;
         default:
-            return DefaultBarSeriesOption;
+            return DefaultLineChartOption;
     }
+};
+
+// structure of chart option
+export const StructureOfCommonOption = {
+    legend: {
+        show: true as boolean,
+    },
+    tooltip: {
+        show: true as boolean,
+        trigger: 'item' as 'item' | 'axis' | 'none',
+        formatter: null as unknown as (params: any, ticket: string, callback: (ticket: string, html: string) => any) => string | HTMLElement | HTMLElement[] | null,
+    },
+    dataZoom: false as any[] | boolean,
+};
+
+export const StructureOfLineSeriesOption = {
+    areaStyle: null as any,
+    smooth: false as boolean,
+    step: false as boolean | string,
+    stack: null as null | string,
+    connectNulls: true as boolean,
+    // use lineStyle for markline option
+    lineStyle: null as null | Object,
+    // if you markline option required visualMap option
+    markLine: {
+        symbol: ['none', 'none'],
+        label: {
+            show: false as boolean,
+        },
+        data: [] as any[],
+    },
+};
+
+export const StructureOfLineVisualMapOption = {
+    type: 'piecewise' as 'continuous' | 'piecewise',
+    show: false as boolean,
+    dimension: 0 as string | number,
+    seriesIndex: 0 as number | number[],
+    pieces: [] as any,
+};
+
+export const StructureOfBarSeriesOption = {
+    coordinateSystem: 'cartesian2d' as string,
+    large: false as boolean,
+    stack: false as boolean,
+};
+
+export const StructureOfBarPolarOption = {
+    polar: {
+        radius: [30, '80%'],
+    },
+    angleAxis: {
+        max: 4,
+        startAngle: 90,
+    },
+    radiusAxis: {
+        type: 'category',
+        // data: [] as any[],
+    },
+};
+
+export const StructureOfScatterSeriesOption = {
+    large: false as boolean,
+    symbolSize: 10 as number,
+};
+
+export const StructureOfPieSeriesOption = {
+    datasetIndex: 0 as number,
+    roseType: false as boolean | string,
+    radius: [0, '70%'] as (number | string)[],
+    emphasis: {
+        itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)',
+        },
+    },
+};
+
+export const StructureOfGaugeSeriesOption = {
+    min: 0,
+    max: 100,
+    progress: {
+        show: true,
+    },
+    axisTick: {
+        show: false,
+    },
+    axisLabel: {
+        // only number
+        distance: 25,
+        color: '#999',
+        fontSize: 16,
+    },
+    splitLine: {
+        length: 10,
+        distance: -10,
+        lineStyle: {
+            width: 2,
+            color: '#fff',
+        },
+    },
+    anchor: {
+        show: true,
+        showAbove: true,
+        size: 25,
+        itemStyle: {
+            borderWidth: 10,
+        },
+    },
+    detail: {
+        fontSize: 22,
+        valueAnimation: false,
+        formatter: '{value}',
+        offsetCenter: [0, '30%'],
+    },
+    itemStyle: {
+        color: '#5470C6',
+    },
 };

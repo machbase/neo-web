@@ -1,15 +1,21 @@
 import { getId } from '.';
 import {
     DefaultBarChartOption,
-    DefaultBarPolarOption,
-    DefaultCommonOption,
-    DefaultGaugeChartOption,
     DefaultLineChartOption,
     DefaultPieChartOption,
-    DefaultScatterOption,
+    DefaultScatterChartOption,
     DefaultTagTableOption,
+    DefaultGaugeChartOption,
+    StructureOfBarSeriesOption,
+    StructureOfBarPolarOption,
+    StructureOfCommonOption,
+    StructureOfGaugeSeriesOption,
+    StructureOfLineSeriesOption,
+    StructureOfPieSeriesOption,
+    StructureOfScatterSeriesOption,
+    StructureOfLineVisualMapOption,
 } from '@/utils/eChartHelper';
-import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList } from '@/utils/constants';
+import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartLineStackTooltipFormatter } from '@/utils/constants';
 import { ChartType } from '@/type/eChart';
 
 export const convertToMachbaseIntervalMs = (intervalMs: number) => {
@@ -291,7 +297,7 @@ export const createDefaultTagTableOption = (aUser: string, aTable: string) => {
 
 export const createOption = (aOptionInfo: any, aTagList: any) => {
     // set common chart option
-    let sOption = createCommonOption(aOptionInfo);
+    let sOption = createCommonOption(aOptionInfo.commonOptions);
 
     // set series option
     if (aOptionInfo.type === 'line') {
@@ -344,11 +350,15 @@ export const createOption = (aOptionInfo: any, aTagList: any) => {
     return sOption;
 };
 
-export const createCommonOption = (aOptionInfo: any) => {
-    const sCommon = JSON.parse(JSON.stringify(DefaultCommonOption));
-    sCommon.legend.show = aOptionInfo.isLegend;
-    sCommon.tooltip.show = aOptionInfo.isTooltip;
-    sCommon.dataZoom = aOptionInfo.isDataZoom ? [{ type: 'slider' }] : false;
+export const createCommonOption = (aCommonOptions: any) => {
+    const sCommon = JSON.parse(JSON.stringify(StructureOfCommonOption));
+    sCommon.legend.show = aCommonOptions.isLegend;
+    sCommon.tooltip.show = aCommonOptions.isTooltip;
+    sCommon.tooltip.trigger = aCommonOptions.tooltipTrigger;
+    sCommon.dataZoom = aCommonOptions.isDataZoom ? [{ type: 'slider' }] : false;
+    if (aCommonOptions.isTooltip && aCommonOptions.tooltipTrigger === 'axis') {
+        sCommon.tooltip.formatter = ChartLineStackTooltipFormatter;
+    }
     return sCommon;
 };
 
@@ -387,25 +397,23 @@ export const createLineVisualMapOption = (aOptionInfo: any, aTagList: any) => {
         return aAcc;
     }, []);
 
-    const sVisualMapOption = {
-        ...aOptionInfo.visualMap,
-        seriesIndex: sSeriesIndexArray,
-        pieces: sPieces,
-    };
+    const sVisualMapOption = JSON.parse(JSON.stringify(StructureOfLineVisualMapOption));
+    sVisualMapOption.seriesIndex = sSeriesIndexArray;
+    sVisualMapOption.pieces = sPieces;
 
     return sVisualMapOption;
 };
 
 export const createLineSeriesOption = (aLineOption: any, aXAxis: any[], aYAxis: any[], aIndex: number) => {
-    let sLineOption = {
-        areaStyle: aLineOption.areaStyle ? { opacity: 0.2 } : null,
-        smooth: aLineOption.smooth,
-        step: aLineOption.isStep ? 'start' : false,
-        stack: aLineOption.isStack ? 'Total' : null,
-        lineStyle: aLineOption.markLine ? { color: ChartSeriesColorList[aIndex], width: 2 } : null,
-        markLine: aIndex === 0 ? aLineOption.markLine : {},
-        connectNulls: true,
-    } as any;
+    let sLineOption = JSON.parse(JSON.stringify(StructureOfLineSeriesOption));
+    sLineOption.areaStyle = aLineOption.areaStyle ? { opacity: 0.2 } : null;
+    sLineOption.smooth = aLineOption.smooth;
+    sLineOption.step = aLineOption.isStep ? 'start' : false;
+    sLineOption.stack = aLineOption.isStack ? 'total' : null;
+    sLineOption.lineStyle = aLineOption.markLine ? { color: ChartSeriesColorList[aIndex], width: 2 } : null;
+    sLineOption.markLine = aIndex === 0 ? aLineOption.markLine : {};
+    sLineOption.connectNulls = aLineOption.connectNulls;
+
     // multi xaxis option add xAxisIndex
     if (aXAxis.length > 1 && aIndex !== 0) {
         sLineOption = {
@@ -425,44 +433,50 @@ export const createLineSeriesOption = (aLineOption: any, aXAxis: any[], aYAxis: 
 };
 
 export const createBarSeriesOption = (aBarOption: any) => {
-    const sBarOption = {
-        coordinateSystem: aBarOption.isPolar ? 'polar' : 'cartesian2d',
-        large: aBarOption.isLarge,
-        stack: aBarOption.isStack ? 'total' : null,
-    };
+    const sBarOption = JSON.parse(JSON.stringify(StructureOfBarSeriesOption));
+    sBarOption.coordinateSystem = aBarOption.isPolar ? 'polar' : 'cartesian2d';
+    sBarOption.large = aBarOption.isLarge;
+    sBarOption.stack = aBarOption.isStack ? 'total' : null;
 
     return sBarOption;
 };
 
 export const createBarPolarOption = (aBarOption: any) => {
-    const sBarPolarOption = JSON.parse(JSON.stringify(DefaultBarPolarOption));
+    const sBarPolarOption = JSON.parse(JSON.stringify(StructureOfBarPolarOption));
     sBarPolarOption.angleAxis.max = aBarOption.maxValue;
     sBarPolarOption.angleAxis.startAngle = aBarOption.startAngle;
     return sBarPolarOption;
 };
 
-export const createScatterSeriesOption = (aBarOption: any) => {
-    const sBarOption = {
-        large: aBarOption.isLarge,
-        symbolSize: aBarOption.symbolSize,
-    };
+export const createScatterSeriesOption = (aScatterOption: any) => {
+    const sScatterOption = JSON.parse(JSON.stringify(StructureOfScatterSeriesOption));
+    sScatterOption.large = aScatterOption.isLarge;
+    sScatterOption.symbolSize = aScatterOption.symbolSize;
 
-    return sBarOption;
+    return sScatterOption;
 };
 
-export const createGaugeSeriesOption = () => {
+export const createGaugeSeriesOption = (aGaugeOption: any) => {
+    const sGaugeOption = JSON.parse(JSON.stringify(StructureOfGaugeSeriesOption));
+    sGaugeOption.min = aGaugeOption.min;
+    sGaugeOption.max = aGaugeOption.max;
+    sGaugeOption.axisTick.show = aGaugeOption.isAxisTick;
+    sGaugeOption.axisLabel.distance = Number(aGaugeOption.axisLabelDistance);
+    sGaugeOption.anchor.show = aGaugeOption.isAnchor;
+    sGaugeOption.anchor.size = aGaugeOption.anchorSize;
+    sGaugeOption.detail.fontSize = aGaugeOption.valueFontSize;
+    sGaugeOption.detail.valueAnimation = aGaugeOption.valueAnimation;
+    sGaugeOption.detail.offsetCenter[1] = aGaugeOption.alignCenter + '%';
     // TODO change you need gauge option
-    return DefaultGaugeChartOption;
+    return sGaugeOption;
 };
 
 export const createPieSeriesOption = (aPieOption: any) => {
-    const sPieOption = JSON.parse(JSON.stringify(DefaultPieChartOption));
+    const sPieOption = JSON.parse(JSON.stringify(StructureOfPieSeriesOption));
     sPieOption.radius[0] = aPieOption.doughnutRatio;
     sPieOption.roseType = aPieOption.roseType ? 'area' : false;
 
-    const { doughnutRatio, ...restOption } = sPieOption;
-
-    return restOption;
+    return sPieOption;
 };
 
 export const setLineSeries = (aOptionInfo: any, aTagList: any) => {
@@ -501,7 +515,7 @@ export const setScatterSeries = (aOptionInfo: any, aTagList: any) => {
     const sSeries = [];
     for (let i = 0; i < aTagList.length; i++) {
         const sTempObject = {
-            ...createScatterSeriesOption(aOptionInfo.chartOptions ?? DefaultScatterOption),
+            ...createScatterSeriesOption(aOptionInfo.chartOptions ?? DefaultScatterChartOption),
             type: aOptionInfo.type,
             data: 'column(' + i + ')',
             name: aTagList[i],
@@ -527,7 +541,7 @@ export const setGaugeSeries = (aOptionInfo: any, aTagList: any) => {
     const sSeries = [] as any[];
     for (let i = 0; i < aTagList.length; i++) {
         const sTempObject = {
-            ...createGaugeSeriesOption(),
+            ...createGaugeSeriesOption(aOptionInfo.chartOptions ?? DefaultGaugeChartOption),
             type: aOptionInfo.type,
             data: 'column(' + i + ')',
             name: aTagList[i],
@@ -550,6 +564,15 @@ export const changeXAxisType = (aSeries: any, aType: 'category' | 'time') => {
 
 export const removeColumnQuotes = (aStr: string) => {
     return aStr.replace(/"column\((\d+)\)"/g, 'column($1)');
+};
+
+export const decodeFormatterFunction = (aStr: string) => {
+    return aStr.replace(/"(function \(params\) \{.*?\})"/g, (aMatch) => {
+        if (aMatch.startsWith('"') && aMatch.endsWith('"')) {
+            return aMatch.slice(1, -1);
+        }
+        return aMatch;
+    });
 };
 
 export const createMapValueForTag = (aTags: any, aIsStack: boolean) => {
