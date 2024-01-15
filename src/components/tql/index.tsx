@@ -120,7 +120,7 @@ const Tql = (props: TqlProps) => {
                 HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             } else {
                 setResultType('csv');
-                const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(typeof sResult.data === 'string' ? sResult.data : JSON.stringify(sResult.data));
+                const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(sResult.data);
                 setHeader(true);
                 setCsv(sParsedCsvBody);
                 setCsvHeader(sParsedCsvHeader);

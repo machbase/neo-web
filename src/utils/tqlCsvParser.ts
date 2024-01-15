@@ -4,14 +4,10 @@ import * as Parse from 'papaparse';
 const sParseOption: any = {
     quotes: false,
     quoteChar: '"',
-    // escapeChar: '"',
     delimiter: ',',
     skipEmptyLines: true,
-    // header: true,
     dynamicTyping: true,
-    delimitersToGuess: [','],
     comments: '//',
-    // columns: null, //or array of strings
 };
 
 const BodyParser = (raw: any) => {

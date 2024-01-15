@@ -7,6 +7,7 @@ test.each([
         `"world,3.141792",3.141792,"hello world,3.141792? 3.14"`,
         [[['world,3.141792', 3.141792, 'hello world,3.141792? 3.14']], ['column0', 'column1', 'column2']],
     ],
+    ['CSV - "629 issue"', `"A,B,C"`, [[['A,B,C']], ['column0']]],
 ])('TQL - %s', (_, aQueryText, expected) => {
     expect(TqlCsvParser(aQueryText)).toEqual(expected);
 });

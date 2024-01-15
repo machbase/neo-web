@@ -65,6 +65,7 @@ request.interceptors.request.use(
         }
         if (config.url === '/api/tql') {
             sHeaders['Content-Type'] = 'text/plain';
+            config.responseType = 'text';
         }
         if (sHeaders && config.url !== `${baseURL}/api/login` && config.url !== `${baseURL}/api/login`) {
             const accessToken = localStorage.getItem('accessToken');
@@ -88,12 +89,22 @@ request.interceptors.request.use(
         return Promise.reject(error);
     }
 );
-
+const isJsonString = (aString: string) => {
+    try {
+        const json = JSON.parse(aString);
+        return typeof json === 'object';
+    } catch {
+        return false;
+    }
+};
 // Response interceptor
 request.interceptors.response.use(
     (response: AxiosResponse) => {
         if (response.config.url === '/api/tql') {
-            return response;
+            if (isJsonString(response.data)) {
+                response.data = JSON.parse(response.data);
+                return response;
+            } else return response;
         }
         const res = response.data;
 
