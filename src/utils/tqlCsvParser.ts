@@ -4,9 +4,9 @@ import * as Parse from 'papaparse';
 const sParseOption: any = {
     quotes: false,
     quoteChar: '"',
-    delimiter: '"',
+    delimiter: ',',
     skipEmptyLines: true,
-    dynamicTyping: false,
+    dynamicTyping: true,
     comments: '//',
 };
 
@@ -19,11 +19,7 @@ const HeaderParser = (colLen: number) => {
 };
 
 export const TqlCsvParser = (raw: any) => {
-    const sCheckCsv = raw.split('\n').filter((aRaw: string) => aRaw !== '');
-    let sTmpRaw: string = '';
-    if (sCheckCsv.length === 1) sTmpRaw = `"${sCheckCsv[0]}"`;
-    else sTmpRaw = raw;
-    const sParsedCsvBody: any = BodyParser(sTmpRaw);
+    const sParsedCsvBody: any = BodyParser(raw);
     const sParsedCsvHeader: any = HeaderParser(sParsedCsvBody.data[0].length);
     return [sParsedCsvBody.data, sParsedCsvHeader];
 };
