@@ -11,6 +11,7 @@ import {
     createGaugeQuery,
     createPieQuery,
     createMapValueForPie,
+    decodeFormatterFunction,
 } from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
 import './LineChart.scss';
@@ -88,17 +89,19 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
         const sParsedQuery = await DashboardQueryParser(pPanelInfo.tagTableInfo, { interval: sIntervalInfo, start: sStartTime, end: sEndTime });
 
         const sTake = Number((sRefClientWidth.current / 3).toFixed());
+        // The variable below is used to adjust its value to a multiple of the number of tags.
+        const sTakeCount = sTake % sTagList.length === 0 ? sTake : sTake + (sTagList.length - (sTake % sTagList.length));
         const sResult: any = await getTqlChart(
             'SQL(`' +
                 sParsedQuery +
                 '`)\n' +
-                `TAKE(${sTake % 2 === 0 ? sTake : sTake + 1})\n` +
+                `TAKE(${sTakeCount})\n` +
                 sMapValueQuery +
                 'CHART(' +
                 `theme('${pPanelInfo.theme}'),` +
                 `size('${sRefClientWidth.current}px','${sRefClientHeight.current}px'), ` +
                 `chartOption(
-                        ${removeColumnQuotes(JSON.stringify(createOption(pPanelInfo, sTagList)))}
+                        ${removeColumnQuotes(decodeFormatterFunction(JSON.stringify(createOption(pPanelInfo, sTagList))))}
                     )` +
                 ')'
         );
