@@ -13,7 +13,7 @@ import { createDefaultTagTableOption, getTableType } from '@/utils/dashboardUtil
 import { getTableList } from '@/api/repository/api';
 import moment from 'moment';
 import { decodeJwt, generateUUID, isValidJSON } from '@/utils';
-import { DefaultChartOption, ChartSeriesOption } from '@/utils/eChartHelper';
+import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
 
 const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelId: string; pType: string; pSetCreateModal: (aValue: boolean) => void; pBoardInfo: any }) => {
     const [sSideSizes, setSideSizes] = useState<any>(['75%', '25%']);
@@ -123,8 +123,9 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
                             ...sOption,
                             id: generateUUID(),
                             tagTableInfo: createDefaultTagTableOption(decodeJwt(sToken).sub, newTable[0]),
-                            chartInfo: ChartSeriesOption,
+                            // chartInfo: ChartSeriesOption,
                         };
+                        sOption.chartOptions = getDefaultSeriesOption(sOption.type);
                         setPanelOption(sOption);
                         setAppliedPanelOption(JSON.parse(JSON.stringify(sOption)));
                     }

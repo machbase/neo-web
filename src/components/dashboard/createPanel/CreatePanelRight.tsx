@@ -12,28 +12,12 @@ import { isTimeSeriesChart } from '@/utils/dashboardUtil';
 import { YAxisOptions } from './option/YAxisOptions';
 import { BarOptions } from './option/BarOptions';
 import { ScatterOptions } from './option/ScatterOptions';
+import { GaugeOptions } from './option/GaugeOptions';
+import { ChartType } from '@/type/eChart';
 
 const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
-    const handleDefaultOption = (aEvent: ChangeEvent<HTMLInputElement>, aKey: string) => {
-        pSetPanelOption((aPrev: any) => {
-            return {
-                ...aPrev,
-                [aKey]: aEvent.target.value,
-            };
-        });
-    };
-
-    const handleCheckboxOption = (aEvent: ChangeEvent<HTMLInputElement>, aKey: string) => {
-        pSetPanelOption((aPrev: any) => {
-            return {
-                ...aPrev,
-                [aKey]: aEvent.target.checked,
-            };
-        });
-    };
-
     const changeTypeOfSeriesOption = (aEvent: ChangeEvent<HTMLInputElement>) => {
-        const sChangeChartOption = getDefaultSeriesOption(aEvent.target.value);
+        const sChangeChartOption = getDefaultSeriesOption(aEvent.target.value as ChartType);
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
@@ -59,7 +43,7 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                 />
                 <div className="divider" />
                 <div className="content">
-                    <ChartCommonOptions pPanelOption={pPanelOption} pHandleDefaultOption={handleDefaultOption} pHandleCheckboxOption={handleCheckboxOption} />
+                    <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />
                     {isTimeSeriesChart(pPanelOption.type) && pPanelOption.xAxisOptions && (
                         <>
                             <div className="divider" />
@@ -78,6 +62,7 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                         {pPanelOption.type === 'bar' ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                         {pPanelOption.type === 'scatter' ? <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                         {pPanelOption.type === 'pie' ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {pPanelOption.type === 'gauge' ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                     </Collapse>
                     <div className="divider" />
                 </div>
