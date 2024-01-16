@@ -104,7 +104,7 @@ const Tql = (props: TqlProps) => {
                 // SyntaxError: GEOMAP
                 HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/markdown') {
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('markdown')) {
             if (sResult.data && typeof sResult.data === 'string') {
                 setResultType('mrk');
                 setMarkdown(sResult.data);
@@ -112,7 +112,7 @@ const Tql = (props: TqlProps) => {
                 setMarkdown('');
                 HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('csv')) {
             if (typeof sResult.data === 'object') {
                 setHeader(false);
                 setCsv([]);
@@ -125,7 +125,7 @@ const Tql = (props: TqlProps) => {
                 setCsv(sParsedCsvBody);
                 setCsvHeader(sParsedCsvHeader);
             }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/xhtml+xml') {
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('xhtml+xml')) {
             if (sResult.data && typeof sResult.data === 'string') {
                 setResultType('xhtml');
                 setMarkdown(sResult.data);
@@ -133,7 +133,7 @@ const Tql = (props: TqlProps) => {
                 setMarkdown('');
                 HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/json') {
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('json')) {
             if (sResult.data && typeof sResult.data === 'object' && sResult.data.success) {
                 setResultType('text');
                 setTextField(JSON.stringify(sResult.data));
