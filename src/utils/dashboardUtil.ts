@@ -14,8 +14,9 @@ import {
     StructureOfPieSeriesOption,
     StructureOfScatterSeriesOption,
     StructureOfLineVisualMapOption,
+    DefaultLogTableOption,
 } from '@/utils/eChartHelper';
-import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartLineStackTooltipFormatter } from '@/utils/constants';
+import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartAxisTooltipFormatter } from '@/utils/constants';
 import { ChartType } from '@/type/eChart';
 import moment from 'moment';
 
@@ -285,19 +286,20 @@ export const tagTableValue = () => {
         useRollup: false,
         name: '',
         time: '',
-        useCustom: false,
+        useCustom: true,
         aggregator: 'avg',
         tag: '',
         value: '',
     };
 };
 
-export const tagAggregatorList = ['none', 'sum', 'count', 'min', 'max', 'avg', 'sumsq'];
+export const tagAggregatorList = ['none', 'count(*)', 'count', 'sum', 'min', 'max', 'avg', 'sumsq'];
 
 export const refreshTimeList = ['Off', '3 seconds', '5 seconds', '10 seconds', '30 seconds', '1 minute', '5 minutes', '10 minutes', '1 hour'];
 
-export const createDefaultTagTableOption = (aUser: string, aTable: string) => {
-    const sOption = [{ ...DefaultTagTableOption, userName: aUser, table: aTable ? aTable[3] : '' }];
+export const createDefaultTagTableOption = (aUser: string, aTable: string, aTableType: string, aTag: string) => {
+    const sDefaultTableOpt = aTableType === 'tag' ? DefaultTagTableOption : DefaultLogTableOption;
+    const sOption = [{ ...sDefaultTableOpt, userName: aUser, table: aTable ? aTable[3] : '', type: aTableType, tag: aTag }];
     return sOption;
 };
 
@@ -363,7 +365,7 @@ export const createCommonOption = (aCommonOptions: any) => {
     sCommon.tooltip.trigger = aCommonOptions.tooltipTrigger;
     sCommon.dataZoom = aCommonOptions.isDataZoom ? [{ type: 'slider' }] : false;
     if (aCommonOptions.isTooltip && aCommonOptions.tooltipTrigger === 'axis') {
-        sCommon.tooltip.formatter = ChartLineStackTooltipFormatter;
+        sCommon.tooltip.formatter = ChartAxisTooltipFormatter;
     }
     return sCommon;
 };
@@ -486,14 +488,14 @@ export const createPieSeriesOption = (aPieOption: any) => {
 };
 
 export const setLineSeries = (aOptionInfo: any, aTagList: any) => {
-    const sSeries = [];
-    const sIsStack = aOptionInfo.chartOptions?.isStack;
+    const sSeries = [] as any[];
+    // const sIsStack = aOptionInfo.chartOptions?.isStack;
     for (let i = 0; i < aTagList.length; i++) {
-        const sColumnIndex = sIsStack ? i + 1 : i;
+        // const sColumnIndex = sIsStack ? i + 1 : i;
         const sTempObject = {
             ...createLineSeriesOption(aOptionInfo.chartOptions ?? DefaultLineChartOption, aOptionInfo.xAxisOptions, aOptionInfo.yAxisOptions, i),
             type: aOptionInfo.type,
-            data: 'column(' + sColumnIndex + ')',
+            data: [],
             name: aTagList[i],
         };
         sSeries.push(sTempObject);
@@ -503,13 +505,13 @@ export const setLineSeries = (aOptionInfo: any, aTagList: any) => {
 
 export const setBarSeries = (aOptionInfo: any, aTagList: any) => {
     const sSeries = [];
-    const sIsStack = aOptionInfo.chartOptions?.isStack;
+    // const sIsStack = aOptionInfo.chartOptions?.isStack;
     for (let i = 0; i < aTagList.length; i++) {
-        const sColumnIndex = sIsStack ? i + 1 : i;
+        // const sColumnIndex = sIsStack ? i + 1 : i;
         const sTempObject = {
             ...createBarSeriesOption(aOptionInfo.chartOptions ?? DefaultBarChartOption),
             type: aOptionInfo.type,
-            data: 'column(' + sColumnIndex + ')',
+            data: [],
             name: aTagList[i],
         };
         sSeries.push(sTempObject);
@@ -523,7 +525,7 @@ export const setScatterSeries = (aOptionInfo: any, aTagList: any) => {
         const sTempObject = {
             ...createScatterSeriesOption(aOptionInfo.chartOptions ?? DefaultScatterChartOption),
             type: aOptionInfo.type,
-            data: 'column(' + i + ')',
+            data: [],
             name: aTagList[i],
         };
         sSeries.push(sTempObject);
@@ -585,7 +587,9 @@ export const createMapValueForTag = (aTags: any, aIsStack: boolean) => {
     let sResultString = '';
     let sMapValueString = '';
     let sPopValueString = '0';
-    for (let i = 0; i < aTagNum; i++) {
+    const sTagNum = aTags.length;
+    for (let i = 0; i < sTagNum; i++) {
+        // when select name, time, value
         // time, name , value
         sMapValueString += `MAPVALUE(${i + 3}, value(1) == '${aTags[i]}' ? value(2) : NULL)\n`;
     }
@@ -774,7 +778,7 @@ export const isNumberTypeColumn = (aType: number) => {
     }
 };
 
-export const createGaugeQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number) => {
+export const createGaugeQuery = (aInfo: any, aStart: number, aEnd: number) => {
     const selectQuery = 'SELECT trunc(' + aInfo.aggregator + '(VALUE), 2)';
     const fromQuery = 'FROM ' + aInfo.userName + '.' + aInfo.table;
     const whereTimeQuery = 'WHERE TIME between ' + aStart + '000000' + ' and ' + aEnd + '000000';
@@ -783,7 +787,7 @@ export const createGaugeQuery = (aInfo: any, aTime: any, aStart: number, aEnd: n
     return selectQuery + ' ' + fromQuery + ' ' + whereTimeQuery + ' ' + andNameQuery;
 };
 
-export const createPieQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number) => {
+export const createPieQuery = (aInfo: any, aStart: number, aEnd: number) => {
     const selectQuery = 'SELECT NAME, ' + aInfo.aggregator + '(VALUE)';
     const fromQuery = 'FROM ' + aInfo.userName + '.' + aInfo.table;
     const whereTimeQuery = 'WHERE TIME between ' + aStart + '000000' + ' and ' + aEnd + '000000';
