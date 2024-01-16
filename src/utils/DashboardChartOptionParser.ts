@@ -1,5 +1,3 @@
-import { ChartStructure } from '@/components/dashboard/chartStructure';
-
 export const DashboardChartOptionParser = (aChartType: string) => {
     // console.log('ChartStructure', ChartStructure(aChartType));
     return `{

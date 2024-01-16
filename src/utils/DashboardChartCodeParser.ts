@@ -1,10 +1,10 @@
-export const DashboardChartCodeParser = (aParsedQuery: any) => {
+export const DashboardChartCodeParser = async (aParsedQuery: any, aTake: number) => {
     // GEN variable
     const sDynamicVariable = aParsedQuery.map((aQuery: any) => {
-        return `{"q": \`SQL(${'"' + aQuery.sql + '"'})
-            JSON()\`,
-            "i": ${aQuery.idx}
-        }`;
+        return {
+            q: `SQL("${aQuery.sql}")\nTAKE(${aTake})\nJSON()`,
+            i: aQuery.idx,
+        };
     });
     // GEN func
     const sFunction = `function getData(aTql, aIdx) {
@@ -26,7 +26,7 @@ export const DashboardChartCodeParser = (aParsedQuery: any) => {
     })`;
 
     return `{
-        let sDatas = [${sDynamicVariable.join(',')}];
+        let sDatas = ${JSON.stringify(sDynamicVariable)};
         ${sFunction}
         ${sLoop}
     }`;
