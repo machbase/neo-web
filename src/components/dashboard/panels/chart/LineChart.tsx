@@ -32,57 +32,86 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
             sRefClientHeight.current = ChartRef.current.clientHeight;
         }
         sTimerRef.current = true;
-        // let lastQuery: string = '';
 
         const sPanelTimeRange = pPanelInfo.timeRange;
         const sBoardTimeRange = pBoardInfo.dashboard.timeRange;
-
         const sStartTime = pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.start) : setUnitTime(sBoardTimeRange.start);
         const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.end) : setUnitTime(sBoardTimeRange.end);
-
         const sIntervalInfo = calcInterval(sStartTime, sEndTime, sRefClientWidth.current);
-        // const sTagList = [] as string[];
 
-        // pPanelInfo.tagTableInfo.forEach((aInfo: any) => {
-        //     if (aInfo.useCustom) {
-        //         aInfo.filter.forEach((aItem: any) => {
-        //             aItem.value
-        //                 .replace(/['"]/g, '')
-        //                 .replace(/\s+/g, '')
-        //                 .split(',')
-        //                 .map((aTag: string) => {
-        //                     sTagList.push(aTag);
-        //                 });
-        //         });
-        //     } else {
-        //         sTagList.push(aInfo.tag);
-        //     }
-        // });
+        const sParsedQuery = await DashboardQueryParser(pPanelInfo.tagTableInfo, sRollupTableList, { interval: sIntervalInfo, start: sStartTime, end: sEndTime });
+        console.log('sParsedQueryList', sParsedQuery);
 
-        // for (let i = 0; i < pPanelInfo.tagTableInfo.length; i++) {
-        //     const sQuery: string = createQuery(pPanelInfo.tagTableInfo[i], sIntervalInfo, sStartTime, sEndTime);
-        //     if (i === 0) {
-        //         lastQuery += sQuery;
-        //     } else {
-        //         lastQuery += '\nUNION ALL\n' + sQuery;
-        //     }
-        // }
-
-        const [sParsedQuery, sTagList] = await DashboardQueryParser(pPanelInfo.tagTableInfo, sRollupTableList, { interval: sIntervalInfo, start: sStartTime, end: sEndTime });
+        // const sResult: any = await getTqlChart(
+        //     'SQL(`' +
+        //         sParsedQuery +
+        //         '`)\n' +
+        //         `TAKE(${(sRefClientWidth.current / 3).toFixed()})\n` +
+        //         // createMapValueForTag(sTagList, sTagList.length) +
+        //         'CHART(' +
+        //         `theme('${pPanelInfo.theme}'),` +
+        //         `size('${sRefClientWidth.current}px','${sRefClientHeight.current}px'), ` +
+        //         `chartOption(
+        //             )` +
+        //         ')'
+        //     // ${removeColumnQuotes(JSON.stringify(createSeriesOption(pPanelInfo, sTagList)))}
+        // );
 
         const sResult: any = await getTqlChart(
-            'SQL(`' +
-                sParsedQuery +
-                '`)\n' +
-                `TAKE(${(sRefClientWidth.current / 3).toFixed()})\n` +
-                createMapValueForTag(sTagList, sTagList.length) +
-                'CHART(' +
-                `theme('${pPanelInfo.theme}'),` +
-                `size('${sRefClientWidth.current}px','${sRefClientHeight.current}px'), ` +
-                `chartOption(
-                        ${removeColumnQuotes(JSON.stringify(createSeriesOption(pPanelInfo, sTagList)))}
-                    )` +
-                ')'
+            `FAKE(linspace(0, 1, 1))
+            CHART(
+                chartOption({
+                    "legend": { "show":true, "bottom": 10 },
+                    "xAxis": { "type": "time" },
+                    "yAxis": {},
+                    "animation": false,
+                    "tooltip": {
+                    "show": true,
+                    "trigger": "item",
+                    "formatter": null
+                },
+                    "series": [
+                        {
+                            "type": "line",
+                            "connectNulls": false,
+                            "name": "test",
+                            "data": []
+                        },
+                        {
+                            "type": "line",
+                            "connectNulls": false,
+                            "name": "tag01",
+                            "data": []
+                        }
+                    ]
+                }),
+                chartJSCode({
+                    let sDatas = [
+                        {"q":"SELECT TIME, VALUE FROM EXAMPLE WHERE TIME > TO_DATE('2023-12-19')  AND NAME IN ('tag00') ORDER BY TIME", "i":0},
+                        {"q":"SELECT TIME, VALUE FROM EXAMPLE WHERE TIME > TO_DATE('2023-12-19')  AND NAME IN ('tag01') ORDER BY TIME", "i":1}
+                        ]
+            
+                    function getData(aTql, aIdx) {
+                        fetch("http://127.0.0.1:5654/db/tql", {
+                            method: "POST",
+                            body: aTql
+                        }).then(function(rsp){
+                            return rsp.json()
+                        }).then(function(obj){
+                            _chartOption.series[aIdx].data = obj.data.rows
+                            _chart.setOption(_chartOption)
+                        }).catch(function(err){
+                            console.warn("data fetch error", err)
+                        });
+                    };
+            
+                    sDatas.forEach((aData)=>{
+                        getData(\`SQL("\${aData.q}")
+                        JSON()
+                        \`, aData.i);
+                    })
+                })
+            )`
         );
 
         if (!sResult.data.reason) {

@@ -44,11 +44,9 @@ export const Block = ({ pTagTableInfo, pPanelOption, pTableList, pType, pGetTabl
             setSelectedTableType(sTableType);
             sTableType === 'tag' && getTagList(aData.target.value);
 
-            const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.tagTableInfo))
-                .map((aTable: any) => {
-                    return aTable.id === pTagTableInfo.id ? { ...aTable, type: sTableType, table: aData.target.value } : aTable;
-                })
-                .filter((bTable: any) => bTable.type === sTableType);
+            const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.tagTableInfo)).map((aTable: any) => {
+                return aTable.id === pTagTableInfo.id ? { ...aTable, type: sTableType, table: aData.target.value } : aTable;
+            });
 
             pSetPanelOption((aPrev: any) => {
                 return {
