@@ -17,6 +17,7 @@ import {
 } from '@/utils/eChartHelper';
 import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartLineStackTooltipFormatter } from '@/utils/constants';
 import { ChartType } from '@/type/eChart';
+import moment from 'moment';
 
 export const convertToMachbaseIntervalMs = (intervalMs: number) => {
     let ms = '';
@@ -51,6 +52,7 @@ export const checkValueBracket = (value: string) => {
 export const setUnitTime = (aTime: any) => {
     if (aTime === 'now') return new Date().getTime();
     else if (!isNaN(Number(aTime))) return Number(aTime);
+    else if (moment(aTime).isValid()) return new Date(aTime).getTime();
     else {
         let sAggrPlus = true;
 
