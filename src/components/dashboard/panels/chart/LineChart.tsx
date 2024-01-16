@@ -1,11 +1,19 @@
 import { getTqlChart } from '@/api/repository/machiot';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
-import { calcInterval, calcRefreshTime, createSeriesOption, createQuery, removeColumnQuotes, setUnitTime, createMapValueForTag } from '@/utils/dashboardUtil';
+import {
+    calcInterval,
+    calcRefreshTime,
+    // createSeriesOption, createQuery, removeColumnQuotes,
+    // createMapValueForTag,
+    setUnitTime,
+} from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
 import './LineChart.scss';
 import { ShowChart } from '@/components/tql/ShowChart';
 import { isObjectEmpty } from '@/utils';
 import { DashboardQueryParser } from '@/utils/DashboardQueryParser';
+import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
+import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
 
@@ -40,11 +48,15 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
         const sIntervalInfo = calcInterval(sStartTime, sEndTime, sRefClientWidth.current);
 
         const sParsedQuery = await DashboardQueryParser(pPanelInfo.tagTableInfo, sRollupTableList, { interval: sIntervalInfo, start: sStartTime, end: sEndTime });
-        console.log('sParsedQueryList', sParsedQuery);
+        const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo.type);
+        const sParsedChartCode = await DashboardChartCodeParser(sParsedQuery);
+        console.log('tagTableInfo', pPanelInfo.type);
+        // console.log('sParsedQueryList', sParsedQuery);
+        // console.log('sParsedChartOption', sParsedChartOption);
+        // console.log('sParsedChartCode', sParsedChartCode);
 
         // const sResult: any = await getTqlChart(
-        //     'SQL(`' +
-        //         sParsedQuery +
+        //     'SQL(`' +s
         //         '`)\n' +
         //         `TAKE(${(sRefClientWidth.current / 3).toFixed()})\n` +
         //         // createMapValueForTag(sTagList, sTagList.length) +
@@ -59,58 +71,9 @@ const LineChart = ({ pPanelInfo, pBoardInfo, pType, pInsetDraging, pDragStat }: 
 
         const sResult: any = await getTqlChart(
             `FAKE(linspace(0, 1, 1))
-            CHART(
-                chartOption({
-                    "legend": { "show":true, "bottom": 10 },
-                    "xAxis": { "type": "time" },
-                    "yAxis": {},
-                    "animation": false,
-                    "tooltip": {
-                    "show": true,
-                    "trigger": "item",
-                    "formatter": null
-                },
-                    "series": [
-                        {
-                            "type": "line",
-                            "connectNulls": false,
-                            "name": "test",
-                            "data": []
-                        },
-                        {
-                            "type": "line",
-                            "connectNulls": false,
-                            "name": "tag01",
-                            "data": []
-                        }
-                    ]
-                }),
-                chartJSCode({
-                    let sDatas = [
-                        {"q":"SELECT TIME, VALUE FROM EXAMPLE WHERE TIME > TO_DATE('2023-12-19')  AND NAME IN ('tag00') ORDER BY TIME", "i":0},
-                        {"q":"SELECT TIME, VALUE FROM EXAMPLE WHERE TIME > TO_DATE('2023-12-19')  AND NAME IN ('tag01') ORDER BY TIME", "i":1}
-                        ]
-            
-                    function getData(aTql, aIdx) {
-                        fetch("http://127.0.0.1:5654/db/tql", {
-                            method: "POST",
-                            body: aTql
-                        }).then(function(rsp){
-                            return rsp.json()
-                        }).then(function(obj){
-                            _chartOption.series[aIdx].data = obj.data.rows
-                            _chart.setOption(_chartOption)
-                        }).catch(function(err){
-                            console.warn("data fetch error", err)
-                        });
-                    };
-            
-                    sDatas.forEach((aData)=>{
-                        getData(\`SQL("\${aData.q}")
-                        JSON()
-                        \`, aData.i);
-                    })
-                })
+             CHART(
+                chartOption(${sParsedChartOption}),
+                chartJSCode(${sParsedChartCode})
             )`
         );
 
