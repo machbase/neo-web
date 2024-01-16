@@ -130,7 +130,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                     From
                                     <DatePicker
                                         pTopPixel={55}
-                                        pTimeValue={pPanelOption.timeRange.start}
+                                        pTimeValue={pPanelOption.timeRange.start ?? ''}
                                         onChange={(date: any) => handleTime('start', date)}
                                         pSetApply={(date: any) => setUseTimePicker('start', date)}
                                     ></DatePicker>
@@ -139,7 +139,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                     To
                                     <DatePicker
                                         pTopPixel={55}
-                                        pTimeValue={pPanelOption.timeRange.end}
+                                        pTimeValue={pPanelOption.timeRange.end ?? ''}
                                         onChange={(date: any) => handleTime('end', date)}
                                         pSetApply={(date: any) => setUseTimePicker('end', date)}
                                     ></DatePicker>

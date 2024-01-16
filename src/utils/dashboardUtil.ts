@@ -50,9 +50,10 @@ export const checkValueBracket = (value: string) => {
 };
 
 export const setUnitTime = (aTime: any) => {
+    const sMomentValid = ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY-MM-DD HH', 'YYYY-MM-DD', 'YYYY-MM', 'YYYY'];
     if (aTime === 'now') return new Date().getTime();
     else if (!isNaN(Number(aTime))) return Number(aTime);
-    else if (moment(aTime).isValid()) return new Date(aTime).getTime();
+    else if (moment(aTime, sMomentValid, true).isValid()) return moment(aTime).unix() * 1000;
     else {
         let sAggrPlus = true;
 
@@ -73,6 +74,9 @@ export const setUnitTime = (aTime: any) => {
                 break;
             case 'd':
                 sSecTime = sCalcTime * 1000 * 24 * 3600;
+                break;
+            case 'M':
+                sSecTime = sCalcTime * 1000 * 24 * 3600 * 30;
                 break;
             case 'y':
                 sSecTime = sCalcTime * 1000 * 24 * 3600 * 365;
