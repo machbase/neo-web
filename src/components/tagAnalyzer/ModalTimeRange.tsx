@@ -37,14 +37,14 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal }: any) => {
                 ? ''
                 : typeof sBoardStartTime === 'string' && sBoardStartTime.includes('now')
                 ? sBoardStartTime
-                : moment.unix(sBoardStartTime / 1000).toDate()
+                : moment.unix(sBoardStartTime / 1000).format('YYYY-MM-DD HH:mm:ss')
         );
         setEndTime(
             sBoardEndTime === '' || sBoardEndTime === undefined
                 ? ''
                 : typeof sBoardEndTime === 'string' && sBoardEndTime.includes('now')
                 ? sBoardEndTime
-                : moment.unix(sBoardEndTime / 1000).toDate()
+                : moment.unix(sBoardEndTime / 1000).format('YYYY-MM-DD HH:mm:ss')
         );
     }, []);
 
