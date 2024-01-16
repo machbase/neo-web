@@ -1,6 +1,6 @@
 import './CreatePanelFooter.scss';
 import { Block } from './Block';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { refreshTimeList } from '@/utils/dashboardUtil';
 import DatePicker from '@/components/datePicker/DatePicker';
@@ -13,8 +13,7 @@ import { generateUUID } from '@/utils';
 const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
     const sColorList = ['#73BF69', '#F2CC0C', '#8AB8FF', '#FF780A', '#F2495C', '#5794F2', '#B877D9', '#705DA0', '#37872D', '#FADE2A'];
     const [sTab, setTab] = useState('Query');
-    const [sBlockLimit, setBlockLimit] = useState<number>(0);
-    const [sValueLimit, setValueLimit] = useState<number>(0);
+    const VALUE_LIMIT: number = 1;
 
     const setUseTimePicker = (aKey: string, aValue: any) => {
         pSetPanelOption((aPrev: any) => {
@@ -34,18 +33,6 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
         });
     };
 
-    const CheckQueryBlock = (aTableList: any) => {
-        const sTmpValueLimit = aTableList.reduce((preV: any, curV: any) => {
-            return preV || curV.type === 'tag' ? (curV.useCustom ? 0 : 1) : 0;
-        }, 0);
-        const sTmpBlockLimit = aTableList.reduce((preV: any, curV: any) => {
-            return preV || curV.values.length > 1 ? 1 : 0;
-        }, 0);
-        if (!sTmpValueLimit && !sTmpBlockLimit && aTableList.length > 1) setValueLimit(1);
-        else setValueLimit(sTmpValueLimit);
-        setBlockLimit(sTmpBlockLimit);
-    };
-
     const HandleAddBlock = () => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -63,10 +50,6 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
             };
         });
     };
-
-    useEffect(() => {
-        if (pPanelOption && pPanelOption.tagTableInfo && pPanelOption.tagTableInfo.length > 0) CheckQueryBlock(pPanelOption.tagTableInfo);
-    }, [pPanelOption]);
 
     return (
         <div className="chart-footer-form">
@@ -95,13 +78,13 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                     pGetTables={pGetTables}
                                     pTagTableInfo={aItem}
                                     pSetPanelOption={pSetPanelOption}
-                                    pValueLimit={sValueLimit}
+                                    pValueLimit={VALUE_LIMIT}
                                 />
                             );
                         })}
                     {/* ADD Block */}
                     {pTableList.length !== 0 && pPanelOption.tagTableInfo.length < 10 && (
-                        <div onClick={HandleAddBlock} style={sBlockLimit === 1 ? { pointerEvents: 'none', opacity: 0.3 } : {}} className="plus-wrap">
+                        <div onClick={HandleAddBlock} className="plus-wrap">
                             <PlusCircle color="#FDB532" />
                         </div>
                     )}

@@ -1,20 +1,27 @@
-import { Close, PlusCircle } from '@/assets/icons/Icon';
-import { IconButton } from '@/components/buttons/IconButton';
+// import { Close, PlusCircle } from '@/assets/icons/Icon';
+// import { IconButton } from '@/components/buttons/IconButton';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 import { tagAggregatorList } from '@/utils/dashboardUtil';
 
-const Value = ({ pTagTableInfo, pValue, pColumnList, pIdx, pAddValue, pRemoveValue, pChangeValueOption, pValueLimit }: any) => {
+const Value = ({
+    pValue,
+    pColumnList,
+    pChangeValueOption,
+}: // pTagTableInfo,
+// pIdx, pAddValue, pRemoveValue,
+// ,pValueLimit
+any) => {
     return (
         <div className="values">
             <div className="series-table">
                 <span className="series-title">
                     Value
-                    {pIdx === pTagTableInfo.values.length - 1 ? (
+                    {/* {pIdx === pTagTableInfo.values.length - 1 ? (
                         <IconButton pDisabled={pValueLimit} pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={pValueLimit ? () => {} : () => pAddValue()} />
                     ) : (
                         <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => pRemoveValue(pValue.id)}></IconButton>
-                    )}
+                    )} */}
                 </span>
                 {pColumnList[0] && (
                     <Select
