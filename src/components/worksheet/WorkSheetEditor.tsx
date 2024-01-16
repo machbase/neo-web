@@ -308,7 +308,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 // SyntaxError: GEOMAP
                 HandleResutTypeAndTxt(sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data), false);
             }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/markdown') {
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('markdown')) {
             if (sResult.data && typeof sResult.data === 'string') {
                 setTqlResultType('mrk');
                 setTqlMarkdown(sResult.data);
@@ -316,7 +316,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 setTqlMarkdown('');
                 HandleResutTypeAndTxt(sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data), false);
             }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/xhtml+xml') {
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('xhtml+xml')) {
             if (sResult.data && typeof sResult.data === 'string') {
                 setTqlResultType('xhtml');
                 setTqlMarkdown(sResult.data);
@@ -324,7 +324,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 setTqlMarkdown('');
                 HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'text/csv') {
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('csv')) {
             if (typeof sResult.data === 'object') {
                 setTqlCsv([]);
                 setTqlCsvHeader([]);
@@ -335,7 +335,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 setTqlCsv(sParsedCsvBody);
                 setTqlCsvHeader(sParsedCsvHeader);
             }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'] === 'application/json') {
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('json')) {
             if (sResult.data && typeof sResult.data === 'object' && sResult.data.success) {
                 if (sResult.data.data.rows && sResult.data.data.rows.length > 10) {
                     const sLength = sResult.data.data.rows.length;
