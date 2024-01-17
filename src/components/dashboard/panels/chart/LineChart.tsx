@@ -64,8 +64,6 @@ const LineChart = ({
         if (sRefClientWidth === 0) sRefClientWidth = Math.floor(pParentWidth / GRID_LAYOUT_COLS) * pPanelInfo.w - 10;
         if (sRefClientHeight === 0) sRefClientHeight = (GRID_LAYOUT_ROW_HEIGHT + 10) * (pPanelInfo.h - 1) - (pIsHeader ? 5 : -25);
 
-        console.log('pPanelInfo.useCustomTime', pPanelInfo.useCustomTime);
-
         const sPanelTimeRange = pPanelInfo.timeRange;
         const sBoardTimeRange = pBoardInfo.dashboard.timeRange;
         const sStartTime = pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.start ?? '') : setUnitTime(sBoardTimeRange.start);

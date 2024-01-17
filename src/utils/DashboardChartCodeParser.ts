@@ -1,4 +1,5 @@
 export const DashboardChartCodeParser = async (aParsedQuery: any, aTake: number) => {
+    const sTargetPath = window.location.host === '127.0.0.1:7777' ? 'http://127.0.0.1:5654/db/tql' : `http://${window.location.host}/db/tql`;
     // GEN variable
     const sDynamicVariable = aParsedQuery.map((aQuery: any) => {
         return {
@@ -8,7 +9,7 @@ export const DashboardChartCodeParser = async (aParsedQuery: any, aTake: number)
     });
     // GEN func
     const sFunction = `function getData(aTql, aIdx) {
-        fetch("http://127.0.0.1:5654/db/tql", {
+        fetch("${sTargetPath}", {
             method: "POST",
             body: aTql
         }).then(function(rsp){
