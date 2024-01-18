@@ -1,6 +1,5 @@
 import { SqlResDataType } from './DashboardQueryParser';
 import { ChartLineStackTooltipFormatter } from './constants';
-
 // structure of chart common option
 const StructureOfCommonOption = `{
     "legend": { "show": $isLegend$ },
@@ -11,18 +10,17 @@ const StructureOfCommonOption = `{
     },
     "dataZoom": $isDataZoom$
 }`;
-
 // chart structure
 const StructureSeriesOption: any = {
     line: `
-            "areaStyle": $areaStyle$,
-            "smooth": $smooth$,
-            "step": $isStep$,
-            "stack": $isStack$,
-            "connectNulls": $connectNulls$,
-            "lineStyle": null,
-            "markLine": $markLine$,
-            "data": []
+        "areaStyle": $areaStyle$,
+        "smooth": $smooth$,
+        "step": $isStep$,
+        "stack": $isStack$,
+        "connectNulls": $connectNulls$,
+        "lineStyle": null,
+        "markLine": $markLine$,
+        "data": []
     `,
     bar: `
         "coordinateSystem": "cartesian2d",
@@ -93,7 +91,6 @@ const StructureSeriesOption: any = {
         "data": []
     `,
 };
-
 // Polar structure
 const PolarOption: any = {
     structure: `{
@@ -103,7 +100,6 @@ const PolarOption: any = {
     }`,
     list: ['polarRadius', 'polarSize', 'maxValue', 'startAngle'],
 };
-
 /** replace type opt */
 const ReplaceTypeOpt = (aChartType: string, aDataType: string, aChartOption: any, aXAxis: any, aYAxis: any) => {
     let sChartSeriesStructure: any = StructureSeriesOption[aChartType];
@@ -154,19 +150,24 @@ const ReplaceCommonOpt = (aCommonOpt: any) => {
         else sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt[aOpt]);
     });
     const sResult = JSON.parse(sParsedOpt);
-    if (sResult.tooltip.show) sResult.tooltip.formatter = ChartLineStackTooltipFormatter;
+    if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis') sResult.tooltip.formatter = ChartLineStackTooltipFormatter;
     return sResult;
 };
 
 const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonOpt: any, aTypeOpt: any) => {
     const sResultOpt: any = { ...aCommonOpt, ...aTypeOpt.polar, ...aTypeOpt.xAxis, ...aTypeOpt.yAxis };
+    const sXLen: number = sResultOpt.xAxis && sResultOpt.xAxis.length;
+    const sYLen: number = sResultOpt.yAxis && sResultOpt.yAxis.length;
+
     if (aDataType === 'TIME_VALUE') {
-        sResultOpt.series = aTagList.map((aTag: string) => {
+        sResultOpt.series = aTagList.map((aTag: string, aIdx: number) => {
             return {
                 ...aTypeOpt.series,
                 type: aChartType,
                 data: [],
                 name: aTag,
+                xAxisIndex: sXLen > aIdx ? aIdx : 0,
+                yAxisIndex: sYLen > aIdx ? aIdx : 0,
             };
         });
     } else if (aDataType === 'NAME_VALUE') {
