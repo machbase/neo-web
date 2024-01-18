@@ -102,7 +102,7 @@ export const DefaultChartOption = {
         refresh: 'Off' as any,
     },
     chartInfo: undefined as any,
-    tagTableInfo: undefined as any,
+    blockList: undefined as any,
     useCustomTime: true as boolean,
 
     commonOptions: DefaultCommonOption,
@@ -124,17 +124,17 @@ export const DefaultTagTableOption = {
     table: undefined as string | undefined,
     userName: undefined as string | undefined,
     color: '#73BF69',
-    tableInfo: [],
-    type: 'tag',
-    filter: [{ id: generateUUID(), column: '', operator: '=', value: '', useFilter: true }],
-    values: [{ id: generateUUID(), alias: '', value: '', aggregator: 'avg' }],
+    blockList: [],
+    type: '',
+    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false }],
+    values: [{ id: generateUUID(), alias: '', value: '', aggregator: '' }],
     useRollup: false,
     name: '',
-    time: 'time',
+    time: '',
     useCustom: false,
-    aggregator: 'avg',
+    aggregator: '',
     tag: '',
-    value: 'value',
+    value: '',
 };
 
 // const DefaultLiquidSeriesOption = {

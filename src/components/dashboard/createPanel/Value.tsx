@@ -8,7 +8,7 @@ const Value = ({
     pValue,
     pColumnList,
     pChangeValueOption,
-}: // pTagTableInfo,
+}: // pBlockInfo,
 // pIdx, pAddValue, pRemoveValue,
 // ,pValueLimit
 any) => {
@@ -17,7 +17,7 @@ any) => {
             <div className="series-table">
                 <span className="series-title">
                     Value
-                    {/* {pIdx === pTagTableInfo.values.length - 1 ? (
+                    {/* {pIdx === pBlockInfo.values.length - 1 ? (
                         <IconButton pDisabled={pValueLimit} pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={pValueLimit ? () => {} : () => pAddValue()} />
                     ) : (
                         <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => pRemoveValue(pValue.id)}></IconButton>

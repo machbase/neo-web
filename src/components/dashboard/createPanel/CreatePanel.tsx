@@ -122,10 +122,11 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
                         sOption = {
                             ...sOption,
                             id: generateUUID(),
-                            tagTableInfo: createDefaultTagTableOption(decodeJwt(sToken).sub, newTable[0]),
+                            blockList: createDefaultTagTableOption(decodeJwt(sToken).sub, newTable[0], getTableType(newTable[0][4])),
                             // chartInfo: ChartSeriesOption,
                         };
                         sOption.chartOptions = getDefaultSeriesOption(sOption.type);
+                        console.log('sOption', sOption);
                         setPanelOption(sOption);
                         setAppliedPanelOption(JSON.parse(JSON.stringify(sOption)));
                     }
@@ -138,6 +139,8 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
     };
 
     const init = async () => {
+        console.log('---------------------------------------------------------------------');
+        console.log('CREATE PANEL', pType);
         getTables(true);
     };
 

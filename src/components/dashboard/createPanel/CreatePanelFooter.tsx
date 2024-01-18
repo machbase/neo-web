@@ -37,14 +37,14 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                tagTableInfo: [
-                    ...aPrev.tagTableInfo,
+                blockList: [
+                    ...aPrev.blockList,
                     {
-                        ...aPrev.tagTableInfo[aPrev.tagTableInfo.length - 1],
+                        ...aPrev.blockList[aPrev.blockList.length - 1],
                         values: [{ id: generateUUID(), alias: '', value: '', aggregator: 'avg' }],
                         filter: [{ id: generateUUID(), column: '', value: '', operator: '=', useFilter: true }],
                         id: generateUUID(),
-                        color: sColorList[aPrev.tagTableInfo.length + 1],
+                        color: sColorList[aPrev.blockList.length + 1],
                     },
                 ],
             };
@@ -56,7 +56,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
             <div className="chart-footer-tab">
                 <div className={sTab === 'Query' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Query')}>
                     Query
-                    <span className="series-count">{Number(pPanelOption.tagTableInfo.length)}</span>
+                    <span className="series-count">{Number(pPanelOption.blockList.length)}</span>
                 </div>
                 {pTableList.length !== 0 && (
                     <div className={sTab === 'Time' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Time')}>
@@ -68,7 +68,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                 <div style={{ display: sTab === 'Time' ? 'none' : '' }} className="body">
                     {/* SET Block */}
                     {pTableList.length !== 0 &&
-                        pPanelOption.tagTableInfo.map((aItem: any) => {
+                        pPanelOption.blockList.map((aItem: any) => {
                             return (
                                 <Block
                                     key={aItem.id}
@@ -76,14 +76,14 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                     pPanelOption={pPanelOption}
                                     pTableList={pTableList}
                                     pGetTables={pGetTables}
-                                    pTagTableInfo={aItem}
+                                    pBlockInfo={aItem}
                                     pSetPanelOption={pSetPanelOption}
                                     pValueLimit={VALUE_LIMIT}
                                 />
                             );
                         })}
                     {/* ADD Block */}
-                    {pTableList.length !== 0 && pPanelOption.tagTableInfo.length < 10 && (
+                    {pTableList.length !== 0 && pPanelOption.blockList.length < 10 && (
                         <div onClick={HandleAddBlock} className="plus-wrap">
                             <PlusCircle color="#FDB532" />
                         </div>

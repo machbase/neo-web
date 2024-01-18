@@ -4,14 +4,14 @@ import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 
-const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pTagTableInfo, pColumnList }: any) => {
+const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pBlockInfo, pColumnList }: any) => {
     const sFliterList = ['=', '<>', '>', '>=', '<', '<=', 'in'];
     return (
         <div className="values filter">
             <div className="series-table">
                 <span className="series-title">
                     Filter
-                    {pIdx === pTagTableInfo.filter.length - 1 ? (
+                    {pIdx === pBlockInfo.filter.length - 1 ? (
                         <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle></PlusCircle>} onClick={() => pAddFilter()}></IconButton>
                     ) : (
                         <IconButton pWidth={25} pHeight={26} pIcon={<Close></Close>} onClick={() => pRemoveFilter(pFilterInfo.id)}></IconButton>
