@@ -13,8 +13,8 @@ const StructureOfCommonOption = `{
 }`;
 
 // chart structure
-const StructureOption: any = {
-    line: `{
+const StructureSeriesOption: any = {
+    line: `
             "areaStyle": $areaStyle$,
             "smooth": $smooth$,
             "step": $isStep$,
@@ -23,17 +23,17 @@ const StructureOption: any = {
             "lineStyle": null,
             "markLine": $markLine$,
             "data": []
-    }`,
-    bar: `{
+    `,
+    bar: `
         "coordinateSystem": "cartesian2d",
         "large": false,
         "stack": $isStack$
-    }`,
-    scatter: `{
+    `,
+    scatter: `
         "large": false,
         "symbolSize": 10
-    }`,
-    pie: `{
+    `,
+    pie: `
         "radius": ["$doughnutRatio$", "70%"],
         "avoidLabelOverlap": false,
         "roseType": $roseType$,
@@ -50,8 +50,8 @@ const StructureOption: any = {
             "show": false
         },
         "data": []
-    }`,
-    gauge: `{
+    `,
+    gauge: `
         "min": $min$,
         "max": $max$,
         "progress": {
@@ -91,48 +91,58 @@ const StructureOption: any = {
             "color": "#5470C6"
         },
         "data": []
+    `,
+};
+
+// Polar structure
+const PolarOption: any = {
+    structure: `{
+        "polar": {"reaidus": ["$polarRadius$%", "$polarSize$%"]},
+        "angleAxis": {"max": $maxValue$, "startAngle": $startAngle$},
+        "radiusAxis": {"type": "category"}
     }`,
+    list: ['polarRadius', 'polarSize', 'maxValue', 'startAngle'],
 };
 
 /** replace type opt */
-const ReplaceTypeOpt = (aChartType: string, aChartOption: any) => {
-    let sChartStructure: any = StructureOption[aChartType];
-    console.log('aChartOption', aChartOption);
-    const sChartOptList: string[] = Object.keys(aChartOption);
-    console.log('sChartOptList', sChartOptList);
-    sChartOptList.map((aOpt: string) => {
-        if (aOpt === 'markLine') sChartStructure = sChartStructure.replace(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
-        if (aOpt === 'areaStyle') sChartStructure = sChartStructure.replace(`$${aOpt}$`, !aChartOption[aOpt] && 'null');
-        else sChartStructure = sChartStructure.replace(`$${aOpt}$`, aChartOption[aOpt]);
-    });
-    const sParsedSeries = JSON.parse(sChartStructure);
-    return sParsedSeries;
-};
+const ReplaceTypeOpt = (aChartType: string, aDataType: string, aChartOption: any, aXAxis: any, aYAxis: any) => {
+    let sChartSeriesStructure: any = StructureSeriesOption[aChartType];
+    let sChartOptList: string[] = Object.keys(aChartOption);
+    let sPolarStructure: any = `{}`;
+    let sXAxis: any = `{}`;
+    let sYAxis: any = `{}`;
 
-const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonOpt: any, aTypeOpt: any, aXAxis: any, aYAxis: any) => {
-    const sResultOpt: any = { ...aCommonOpt };
-    if (aDataType === 'TIME_VALUE') {
-        sResultOpt.series = aTagList.map((aTag: string) => {
-            return {
-                ...aTypeOpt,
-                type: aChartType,
-                data: [],
-                name: aTag,
-            };
+    // Set polar
+    if (aChartOption['isPolar']) {
+        sPolarStructure = PolarOption['structure'];
+        sChartOptList = sChartOptList.filter((aChartOpt: string) => !PolarOption['list'].includes(aChartOpt));
+        PolarOption['list'].map((aPolarOpt: string) => {
+            sPolarStructure = sPolarStructure.replace(`$${aPolarOpt}$`, aChartOption[aPolarOpt]);
         });
-        sResultOpt.xAxis = aXAxis;
-        sResultOpt.yAxis = aYAxis;
-    } else if (aDataType === 'NAME_VALUE') {
-        sResultOpt.series = [
-            {
-                ...aTypeOpt,
-                type: aChartType,
-                data: [],
-            },
-        ];
-        sResultOpt.dataset = { dataset: [] };
     }
-    return sResultOpt;
+    // Set xAxis | yAxis
+    if (aDataType === 'TIME_VALUE' && !aChartOption['isPolar']) {
+        sXAxis = JSON.stringify({ xAxis: aXAxis });
+        sYAxis = JSON.stringify({ yAxis: aYAxis });
+    }
+    if (aDataType === 'NAME_VALUE' || (aDataType === 'TIME_VALUE' && aChartOption['isPolar'])) {
+        sXAxis = `{}`;
+        sYAxis = `{}`;
+    }
+
+    // Set opt
+    sChartOptList.map((aOpt: string) => {
+        if (aOpt === 'markLine') sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
+        if (aOpt === 'areaStyle') sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, !aChartOption[aOpt] && 'null');
+        if (aOpt === 'isPolar' && aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "coordinateSystem": "polar"`;
+        else sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, aChartOption[aOpt]);
+    });
+
+    const sParsedSeries = JSON.parse('{' + sChartSeriesStructure + '}');
+    const sParsedPolar = JSON.parse(sPolarStructure);
+    const sParsedX = JSON.parse(sXAxis);
+    const sParsedY = JSON.parse(sYAxis);
+    return { series: sParsedSeries, polar: sParsedPolar, xAxis: sParsedX, yAxis: sParsedY };
 };
 
 /** replace common opt */
@@ -148,9 +158,33 @@ const ReplaceCommonOpt = (aCommonOpt: any) => {
     return sResult;
 };
 
+const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonOpt: any, aTypeOpt: any) => {
+    const sResultOpt: any = { ...aCommonOpt, ...aTypeOpt.polar, ...aTypeOpt.xAxis, ...aTypeOpt.yAxis };
+    if (aDataType === 'TIME_VALUE') {
+        sResultOpt.series = aTagList.map((aTag: string) => {
+            return {
+                ...aTypeOpt.series,
+                type: aChartType,
+                data: [],
+                name: aTag,
+            };
+        });
+    } else if (aDataType === 'NAME_VALUE') {
+        sResultOpt.series = [
+            {
+                ...aTypeOpt.series,
+                type: aChartType,
+                data: [],
+            },
+        ];
+        sResultOpt.dataset = { dataset: [] };
+    }
+    return sResultOpt;
+};
+
 export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any) => {
     const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions);
-    const sTypeOpt = ReplaceTypeOpt(aOptionInfo.type, aOptionInfo.chartOptions);
-    const sParsedOpt = ParseOpt(aOptionInfo.type, SqlResDataType(aOptionInfo.type), aTagList, sCommonOpt, sTypeOpt, aOptionInfo.xAxisOptions, aOptionInfo.yAxisOptions);
+    const sTypeOpt = ReplaceTypeOpt(aOptionInfo.type, SqlResDataType(aOptionInfo.type), aOptionInfo.chartOptions, aOptionInfo.xAxisOptions, aOptionInfo.yAxisOptions);
+    const sParsedOpt = ParseOpt(aOptionInfo.type, SqlResDataType(aOptionInfo.type), aTagList, sCommonOpt, sTypeOpt);
     return sParsedOpt;
 };
