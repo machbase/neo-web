@@ -150,7 +150,7 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
     });
 
     // Set visualMap only use line chart
-    if (!isEmpty(aChartOption['markLine'].data)) {
+    if (aChartOption['markLine'] && !isEmpty(aChartOption['markLine'].data)) {
         sVisualMapStructure = VisualMapOption['structure'];
         const sSeriesIndexArray = Array.from(aTagList, (_, aIndex) => aIndex);
         const sPieces = aChartOption['markLine'].data.reduce((aAcc: any, aCurrent: any, aIndex: number, aArr: any) => {
