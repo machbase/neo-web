@@ -27,15 +27,16 @@ const StructureOption: any = {
     bar: `{
         "coordinateSystem": "cartesian2d",
         "large": false,
-        "stack": false
+        "stack": $isStack$
     }`,
     scatter: `{
         "large": false,
         "symbolSize": 10
     }`,
     pie: `{
-        "radius": [0, "70%"],
+        "radius": ["$doughnutRatio$", "70%"],
         "avoidLabelOverlap": false,
+        "roseType": $roseType$,
         "itemStyle": {
             "borderRadius": 10,
             "borderColor": "#fff",
@@ -96,9 +97,12 @@ const StructureOption: any = {
 /** replace type opt */
 const ReplaceTypeOpt = (aChartType: string, aChartOption: any) => {
     let sChartStructure: any = StructureOption[aChartType];
+    console.log('aChartOption', aChartOption);
     const sChartOptList: string[] = Object.keys(aChartOption);
+    console.log('sChartOptList', sChartOptList);
     sChartOptList.map((aOpt: string) => {
         if (aOpt === 'markLine') sChartStructure = sChartStructure.replace(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
+        if (aOpt === 'areaStyle') sChartStructure = sChartStructure.replace(`$${aOpt}$`, !aChartOption[aOpt] && 'null');
         else sChartStructure = sChartStructure.replace(`$${aOpt}$`, aChartOption[aOpt]);
     });
     const sParsedSeries = JSON.parse(sChartStructure);
