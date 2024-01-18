@@ -1,5 +1,6 @@
+import { isEmpty, isObjectEmpty } from '.';
 import { SqlResDataType } from './DashboardQueryParser';
-import { ChartLineStackTooltipFormatter } from './constants';
+import { ChartLineStackTooltipFormatter, ChartSeriesColorList } from './constants';
 // structure of chart common option
 const StructureOfCommonOption = `{
     "legend": { "show": $isLegend$ },
@@ -100,11 +101,25 @@ const PolarOption: any = {
     }`,
     list: ['polarRadius', 'polarSize', 'maxValue', 'startAngle'],
 };
+// VisualMap structure
+const VisualMapOption = {
+    structure: `{
+        "visualMap": {
+            "type": "piecewise",
+            "show": false,
+            "dimension": 0,
+            "seriesIndex": $seriesIndex$,
+            "pieces": $pieces$
+        }
+    }`,
+    list: ['seriesIndex', 'pieces'],
+};
 /** replace type opt */
-const ReplaceTypeOpt = (aChartType: string, aDataType: string, aChartOption: any, aXAxis: any, aYAxis: any) => {
+const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aChartOption: any, aXAxis: any, aYAxis: any) => {
     let sChartSeriesStructure: any = StructureSeriesOption[aChartType];
     let sChartOptList: string[] = Object.keys(aChartOption);
     let sPolarStructure: any = `{}`;
+    let sVisualMapStructure: any = `{}`;
     let sXAxis: any = `{}`;
     let sYAxis: any = `{}`;
 
@@ -129,16 +144,31 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aChartOption: any
     // Set opt
     sChartOptList.map((aOpt: string) => {
         if (aOpt === 'markLine') sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
-        if (aOpt === 'areaStyle') sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, !aChartOption[aOpt] && 'null');
-        if (aOpt === 'isPolar' && aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "coordinateSystem": "polar"`;
+        else if (aOpt === 'areaStyle') sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, !aChartOption[aOpt] && 'null');
+        else if (aOpt === 'isPolar' && aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "coordinateSystem": "polar"`;
         else sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, aChartOption[aOpt]);
     });
 
+    // Set visualMap only use line chart
+    if (!isEmpty(aChartOption['markLine'].data)) {
+        sVisualMapStructure = VisualMapOption['structure'];
+        const sSeriesIndexArray = Array.from(aTagList, (_, aIndex) => aIndex);
+        const sPieces = aChartOption['markLine'].data.reduce((aAcc: any, aCurrent: any, aIndex: number, aArr: any) => {
+            if (aIndex % 2 === 0 && aIndex < aArr.length - 1) {
+                aAcc.push({ min: aCurrent.xAxis, max: aArr[aIndex + 1].xAxis, color: ChartSeriesColorList[0] });
+            }
+            return aAcc;
+        }, []);
+        sVisualMapStructure = sVisualMapStructure.replace(`$seriesIndex$`, JSON.stringify(sSeriesIndexArray));
+        sVisualMapStructure = sVisualMapStructure.replace(`$pieces$`, JSON.stringify(sPieces));
+    }
+
     const sParsedSeries = JSON.parse('{' + sChartSeriesStructure + '}');
     const sParsedPolar = JSON.parse(sPolarStructure);
+    const sParsedVisualMap = JSON.parse(sVisualMapStructure);
     const sParsedX = JSON.parse(sXAxis);
     const sParsedY = JSON.parse(sYAxis);
-    return { series: sParsedSeries, polar: sParsedPolar, xAxis: sParsedX, yAxis: sParsedY };
+    return { series: sParsedSeries, polar: sParsedPolar, visualMap: sParsedVisualMap, xAxis: sParsedX, yAxis: sParsedY };
 };
 
 /** replace common opt */
@@ -155,9 +185,10 @@ const ReplaceCommonOpt = (aCommonOpt: any) => {
 };
 
 const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonOpt: any, aTypeOpt: any) => {
-    const sResultOpt: any = { ...aCommonOpt, ...aTypeOpt.polar, ...aTypeOpt.xAxis, ...aTypeOpt.yAxis };
+    const sResultOpt: any = { ...aCommonOpt, ...aTypeOpt.polar, ...aTypeOpt.visualMap, ...aTypeOpt.xAxis, ...aTypeOpt.yAxis };
     const sXLen: number = sResultOpt.xAxis && sResultOpt.xAxis.length;
     const sYLen: number = sResultOpt.yAxis && sResultOpt.yAxis.length;
+    const sIsVisualMap = !isObjectEmpty(aTypeOpt.visualMap);
 
     if (aDataType === 'TIME_VALUE') {
         sResultOpt.series = aTagList.map((aTag: string, aIdx: number) => {
@@ -168,6 +199,7 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
                 name: aTag,
                 xAxisIndex: sXLen > aIdx ? aIdx : 0,
                 yAxisIndex: sYLen > aIdx ? aIdx : 0,
+                lineStyle: sIsVisualMap ? { color: ChartSeriesColorList[aIdx] } : null,
             };
         });
     } else if (aDataType === 'NAME_VALUE') {
@@ -185,7 +217,7 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
 
 export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any) => {
     const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions);
-    const sTypeOpt = ReplaceTypeOpt(aOptionInfo.type, SqlResDataType(aOptionInfo.type), aOptionInfo.chartOptions, aOptionInfo.xAxisOptions, aOptionInfo.yAxisOptions);
+    const sTypeOpt = ReplaceTypeOpt(aOptionInfo.type, SqlResDataType(aOptionInfo.type), aTagList, aOptionInfo.chartOptions, aOptionInfo.xAxisOptions, aOptionInfo.yAxisOptions);
     const sParsedOpt = ParseOpt(aOptionInfo.type, SqlResDataType(aOptionInfo.type), aTagList, sCommonOpt, sTypeOpt);
     return sParsedOpt;
 };
