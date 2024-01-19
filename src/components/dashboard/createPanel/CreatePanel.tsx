@@ -123,10 +123,9 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
                             ...sOption,
                             id: generateUUID(),
                             blockList: createDefaultTagTableOption(decodeJwt(sToken).sub, newTable[0], getTableType(newTable[0][4])),
-                            // chartInfo: ChartSeriesOption,
                         };
                         sOption.chartOptions = getDefaultSeriesOption(sOption.type);
-                        console.log('sOption', sOption);
+                        console.log('DEFAULT SET', sOption);
                         setPanelOption(sOption);
                         setAppliedPanelOption(JSON.parse(JSON.stringify(sOption)));
                     }

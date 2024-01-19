@@ -40,11 +40,11 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                 blockList: [
                     ...aPrev.blockList,
                     {
-                        ...aPrev.blockList[aPrev.blockList.length - 1],
-                        values: [{ id: generateUUID(), alias: '', value: '', aggregator: 'avg' }],
-                        filter: [{ id: generateUUID(), column: '', value: '', operator: '=', useFilter: true }],
+                        ...aPrev.blockList.at(-1),
                         id: generateUUID(),
                         color: sColorList[aPrev.blockList.length + 1],
+                        // values: [{ id: generateUUID(), alias: '', value: '', aggregator: 'avg' }],
+                        // filter: [{ id: generateUUID(), column: '', value: '', operator: '=', useFilter: false }],
                     },
                 ],
             };
