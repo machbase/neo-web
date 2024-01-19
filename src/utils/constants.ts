@@ -375,3 +375,7 @@ export const ChartSeriesColorList = ['#5470c6', '#91cc75', '#fac858', '#ee6666',
 export const ChartTooltipTriggerList = ['item', 'axis', 'none'];
 
 export const ChartLineStackTooltipFormatter = `function (params) { let output = params[0].axisValueLabel + '<br/>'; output += '<table>'; params.reverse().forEach(function (param) { const value = typeof param.data === 'object' ? param.data[1] : param.data; if (value !== null) { output += '<tr><td>'+param.marker+'</td><td>'+param.seriesName+'&ensp;</td><td><b>'+value+'</b></td></tr>'; }}); return output + '</table>';}`;
+
+// react grid layout value
+export const GRID_LAYOUT_COLS = 36;
+export const GRID_LAYOUT_ROW_HEIGHT = 30;

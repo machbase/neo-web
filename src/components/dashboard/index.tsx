@@ -15,6 +15,7 @@ import moment from 'moment';
 import { setUnitTime } from '@/utils/dashboardUtil';
 import { getRollupTableList } from '@/api/repository/machiot';
 import { isEmpty } from '@/utils';
+import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveModal }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
@@ -125,9 +126,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                             className="layout"
                             useCSSTransforms={false}
                             layout={pInfo && pInfo.dashboard.panels}
-                            cols={36}
+                            cols={GRID_LAYOUT_COLS}
                             autoSize={true}
-                            rowHeight={30}
+                            rowHeight={GRID_LAYOUT_ROW_HEIGHT}
                             width={pWidth}
                             onDragStart={(aEvent: any) => draging(true, aEvent)}
                             onDragStop={(aEvent: any) => draging(false, aEvent)}
@@ -147,6 +148,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                                                 pPanelInfo={aItem}
                                                 pModifyState={sModifyState}
                                                 pSetModifyState={setModifyState}
+                                                pParentWidth={pWidth}
                                             />
                                         </div>
                                     );
