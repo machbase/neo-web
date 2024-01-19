@@ -35,6 +35,7 @@ import { IconButton } from '@/components/buttons/IconButton';
 // import { TreeViewFilter } from '@/utils/treeViewFilter';
 import { renameManager } from '@/utils/file-manager';
 import { FileModal } from '../modal/FileModal';
+import { UrlDownloadModal } from '../modal/UrlDownloadModal';
 
 const Side = ({
     pGetInfo,
@@ -72,6 +73,7 @@ any) => {
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
     const [sIsFolderModal, setIsFoldermodal] = useState<boolean>(false);
+    const [sIsUrlDownloadModal, setIsUrlDownloadModal] = useState<boolean>(false);
     const [sIsGit, setIsGit] = useState(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
@@ -413,6 +415,10 @@ any) => {
         setIsFoldermodal(aHandle);
     };
 
+    const HandleUrlDownload = () => {
+        setIsUrlDownloadModal(true);
+    };
+
     const handleRefresh = (e?: MouseEvent) => {
         if (e) e.stopPropagation();
         getFileTree();
@@ -546,6 +552,10 @@ any) => {
                                                     <TbCloudDown size={12} />
                                                     <span>Git Clone...</span>
                                                 </Menu.Item>
+                                                <Menu.Item onClick={HandleUrlDownload}>
+                                                    <TbCloudDown size={12} />
+                                                    <span>Url Download...</span>
+                                                </Menu.Item>
                                             </>
                                         ) : null}
                                         <Menu.Item onClick={handleRename}>
@@ -578,6 +588,7 @@ any) => {
             {sIsFileModal ? <FileModal pIsDarkMode={true} setIsOpen={setIsFileModal} pCallback={handleRefresh} /> : null}
             {sIsFolderModal ? <FolderModal pIsGit={sIsGit} pIsDarkMode={true} setIsOpen={handleFolder} pCallback={handleRefresh} /> : null}
             {sIsDeleteModal ? <DeleteModal pIsDarkMode setIsOpen={setIsDeleteModal} pFileInfo={selectedContextFile} pCallback={handleDeleteFile} /> : null}
+            {sIsUrlDownloadModal && <UrlDownloadModal setIsOpen={setIsUrlDownloadModal} pCallback={handleRefresh} />}
         </div>
     );
 };
