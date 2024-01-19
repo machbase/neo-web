@@ -15,7 +15,23 @@ import moment from 'moment';
 import { decodeJwt, generateUUID, isValidJSON } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
 
-const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelId: string; pType: string; pSetCreateModal: (aValue: boolean) => void; pBoardInfo: any }) => {
+const CreatePanel = ({
+    pPanelId,
+    pSetCreateModal,
+    pType,
+    pBoardInfo,
+    pSetType,
+    pModifyState,
+    pSetModifyState,
+}: {
+    pPanelId: string;
+    pType: 'create' | 'edit' | undefined;
+    pSetCreateModal: (aValue: boolean) => void;
+    pBoardInfo: any;
+    pSetType: any;
+    pModifyState: { id: string; state: boolean };
+    pSetModifyState: any;
+}) => {
     const [sSideSizes, setSideSizes] = useState<any>(['75%', '25%']);
     const [sBottomSizes, setBottomSizes] = useState<any>(['50%', '50%']);
     const [sInsetDraging, setInsetDraging] = useState(false);
@@ -52,8 +68,8 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
                 return aItem.id === pBoardInfo.id ? { ...aItem, dashboard: { ...aItem.dashboard, panels: [...aItem.dashboard.panels, sPanelOption] } } : aItem;
             })
         );
-
-        pSetCreateModal(false);
+        pSetModifyState({ id: sPanelOption.id, state: true });
+        handleClose();
     };
 
     const editPanel = () => {
@@ -72,7 +88,8 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
                     : aItem;
             });
         });
-        pSetCreateModal(false);
+        pSetModifyState({ id: sPanelOption.id, state: true });
+        handleClose();
     };
 
     const applyPanel = () => {
@@ -100,10 +117,12 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
             if (isValidJSON(JSON.stringify(sPanelOption))) {
                 const sTempOption = JSON.parse(JSON.stringify({ ...sPanelOption, timeRange: { ...sPanelOption.timeRange, start: sStart, end: sEnd } }));
                 setAppliedPanelOption(sTempOption);
+                pSetModifyState({ id: sTempOption.id, state: true });
             }
         } else {
             if (isValidJSON(JSON.stringify(sPanelOption))) {
                 setAppliedPanelOption(JSON.parse(JSON.stringify(sPanelOption)));
+                pSetModifyState({ id: sPanelOption.id, state: true });
             }
         }
     };
@@ -137,6 +156,11 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
         }
     };
 
+    const handleClose = () => {
+        pSetType(undefined);
+        pSetCreateModal(false);
+    };
+
     const init = async () => {
         console.log('---------------------------------------------------------------------');
         console.log('CREATE PANEL', pType);
@@ -151,7 +175,7 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
         <div className="create-panel-form">
             <div className="header">
                 <div className="left">
-                    <IconButton pWidth={20} pHeight={32} pIcon={<IoArrowBackOutline></IoArrowBackOutline>} onClick={() => pSetCreateModal(false)}></IconButton>
+                    <IconButton pWidth={20} pHeight={32} pIcon={<IoArrowBackOutline />} onClick={handleClose} />
                     <span>Create Panel</span>
                 </div>
 
@@ -212,7 +236,16 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
                             onChange={setBottomSizes}
                         >
                             <Pane maxSize="90%">
-                                {sAppliedPanelOption.id && <CreatePanelBody pBoardInfo={pBoardInfo} pType={pType} pInsetDraging={sInsetDraging} pPanelInfo={sAppliedPanelOption} />}
+                                {sAppliedPanelOption.id && (
+                                    <CreatePanelBody
+                                        pBoardInfo={pBoardInfo}
+                                        pType={pType}
+                                        pInsetDraging={sInsetDraging}
+                                        pPanelInfo={sAppliedPanelOption}
+                                        pModifyState={pModifyState}
+                                        pSetModifyState={pSetModifyState}
+                                    />
+                                )}
                             </Pane>
                             <Pane>
                                 {sPanelOption.id && (
@@ -227,7 +260,7 @@ const CreatePanel = ({ pPanelId, pSetCreateModal, pType, pBoardInfo }: { pPanelI
                             </Pane>
                         </SplitPane>
                     </Pane>
-                    <Pane>{sPanelOption.id && <CreatePanelRight pPanelOption={sPanelOption} pSetPanelOption={setPanelOption}></CreatePanelRight>}</Pane>
+                    <Pane>{sPanelOption.id && <CreatePanelRight pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} />}</Pane>
                 </SplitPane>
             </div>
         </div>

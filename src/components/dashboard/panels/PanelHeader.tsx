@@ -56,35 +56,33 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pSetRefreshCount, pIsV
                     </a>
 
                     <span className="delete">
-                        {
-                            <IconButton
-                                pDisabled={pIsView}
-                                pWidth={25}
-                                pIcon={<Refresh size={14} />}
-                                onClick={() =>
-                                    pSetRefreshCount((Prev: any) => {
-                                        return Prev + 1;
-                                    })
-                                }
-                            />
-                        }
+                        <IconButton
+                            pDisabled={pIsView}
+                            pWidth={25}
+                            pIcon={<Refresh size={14} />}
+                            onClick={() =>
+                                pSetRefreshCount((Prev: any) => {
+                                    return Prev + 1;
+                                })
+                            }
+                        />
                     </span>
                     {pType !== 'create' && pType !== 'edit' && (
                         <>
                             <span className="delete">
-                                {
-                                    <IconButton
-                                        pDisabled={pIsView}
-                                        pWidth={25}
-                                        pIcon={<GearFill size={14} />}
-                                        onClick={(aEvent: any) => {
-                                            aEvent.stopPropagation();
-                                            pShowEditPanel('edit', pPanelInfo.id);
-                                        }}
-                                    />
-                                }
+                                <IconButton
+                                    pDisabled={pIsView}
+                                    pWidth={25}
+                                    pIcon={<GearFill size={14} />}
+                                    onClick={(aEvent: any) => {
+                                        aEvent.stopPropagation();
+                                        pShowEditPanel('edit', pPanelInfo.id);
+                                    }}
+                                />
                             </span>
-                            <span className="delete">{<IconButton pDisabled={pIsView} pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}</span>
+                            <span className="delete">
+                                <IconButton pDisabled={pIsView} pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />
+                            </span>
                         </>
                     )}
                 </div>

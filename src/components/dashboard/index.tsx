@@ -14,6 +14,7 @@ import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
 import moment from 'moment';
 import { setUnitTime } from '@/utils/dashboardUtil';
 import { getRollupTableList } from '@/api/repository/machiot';
+import { isEmpty } from '@/utils';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveModal }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
@@ -24,9 +25,10 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
     const sBoardRef: Element | any = useRef({});
     const [sCreateModal, setCreateModal] = useState(false);
     const [sPanelId, setPanelId] = useState('');
-    const [sCreateOrEditType, setCreateOrEditType] = useState('create');
+    const [sThisPanelStatus, setThisPanelStatus] = useState<'create' | 'edit' | undefined>(undefined);
+    const [sModifyState, setModifyState] = useState<any>({ id: '', state: false });
 
-    const moveTimRange = (aItem: string) => {
+    const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
         let sStartTimeBeforeEnd = pInfo.dashboard.timeRange.end;
 
@@ -50,8 +52,8 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
             })
         );
     };
-    const showEditPanel = (aType: string, aId?: string) => {
-        setCreateOrEditType(aType);
+    const showEditPanel = (aType: 'create' | 'edit' | undefined, aId?: string) => {
+        setThisPanelStatus(aType);
         if (aId) {
             setPanelId(aId);
         }
@@ -94,10 +96,8 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
         sLoadedRollupTable && (
             <div ref={sBoardRef} className="dashboard-form">
                 <div className="board-header">
-                    <IconButton pWidth={24} pHeight={24} pIcon={<TbSquarePlus></TbSquarePlus>} onClick={() => showEditPanel('create')}></IconButton>
-
-                    <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft></VscChevronLeft>} onClick={() => moveTimRange('l')}></IconButton>
-
+                    <IconButton pWidth={24} pHeight={24} pIcon={<TbSquarePlus />} onClick={() => showEditPanel('create')}></IconButton>
+                    <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')}></IconButton>
                     <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
                         <Calendar />
                         {pInfo && pInfo.dashboard.timeRange.start ? (
@@ -115,7 +115,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                         )}
                         , Refresh : {pInfo.dashboard.timeRange.refresh}
                     </button>
-                    <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight></VscChevronRight>} onClick={() => moveTimRange('r')}></IconButton>
+                    <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight></VscChevronRight>} onClick={() => moveTimeRange('r')}></IconButton>
                     <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
                     <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
                 </div>
@@ -139,21 +139,39 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                                 pInfo.dashboard.panels.map((aItem: any) => {
                                     return (
                                         <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
-                                            <Panel pDragStat={pDragStat} pShowEditPanel={showEditPanel} pBoardInfo={pInfo} pPanelInfo={aItem}></Panel>
+                                            <Panel
+                                                pDragStat={pDragStat}
+                                                pType={sThisPanelStatus}
+                                                pShowEditPanel={showEditPanel}
+                                                pBoardInfo={pInfo}
+                                                pPanelInfo={aItem}
+                                                pModifyState={sModifyState}
+                                                pSetModifyState={setModifyState}
+                                            />
                                         </div>
                                     );
                                 })}
                         </GridLayout>
-                        {pInfo.dashboard.panels.length === 0 && (
+                        {isEmpty(pInfo.dashboard.panels) && (
                             <div className="non-set-panel">
-                                <IconButton pWidth={70} pHeight={70} pIcon={<TbSquarePlus size="70px"></TbSquarePlus>} onClick={() => showEditPanel('create')}></IconButton>
+                                <IconButton pWidth={70} pHeight={70} pIcon={<TbSquarePlus size="70px" />} onClick={() => showEditPanel('create')} />
                                 Create New Panel
                             </div>
                         )}
                     </div>
                 )}
-                {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal}></ModalTimeRange>}
-                {sCreateModal && <CreatePanel pType={sCreateOrEditType} pPanelId={sPanelId} pBoardInfo={pInfo} pSetCreateModal={setCreateModal}></CreatePanel>}
+                {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal} />}
+                {sCreateModal && (
+                    <CreatePanel
+                        pType={sThisPanelStatus}
+                        pPanelId={sPanelId}
+                        pBoardInfo={pInfo}
+                        pSetType={setThisPanelStatus}
+                        pSetCreateModal={setCreateModal}
+                        pModifyState={sModifyState}
+                        pSetModifyState={setModifyState}
+                    />
+                )}
             </div>
         )
     );
