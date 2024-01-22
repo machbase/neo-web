@@ -95,7 +95,7 @@ const StructureSeriesOption: any = {
 // Polar structure
 const PolarOption: any = {
     structure: `{
-        "polar": {"reaidus": ["$polarRadius$%", "$polarSize$%"]},
+        "polar": {"radius": ["$polarRadius$%", "$polarSize$%"]},
         "angleAxis": {"max": $maxValue$, "startAngle": $startAngle$},
         "radiusAxis": {"type": "category"}
     }`,
