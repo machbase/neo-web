@@ -90,6 +90,7 @@ export const DefaultGaugeChartOption = {
     min: 0 as number,
     max: 100 as number,
     tagLimit: 1 as number,
+    gaugeValueLimit: 0 as number | undefined,
 };
 
 export const DefaultChartOption = {

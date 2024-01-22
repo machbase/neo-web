@@ -119,6 +119,17 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'alignCenter')}
                     />
                 </div>
+                <div style={sMenuStyle}>
+                    <div>Decimal Places</div>
+                    <Input
+                        pType="number"
+                        pHeight={25}
+                        pWidth={50}
+                        pBorderRadius={4}
+                        pValue={pPanelOption.chartOptions?.gaugeValueLimit}
+                        onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'gaugeValueLimit')}
+                    />
+                </div>
                 <CheckBox
                     pText="Active Animation"
                     pDefaultChecked={pPanelOption.chartOptions?.valueAnimation ?? false}

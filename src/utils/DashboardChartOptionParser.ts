@@ -83,7 +83,7 @@ const StructureSeriesOption: any = {
         "detail": {
             "fontSize": $valueFontSize$,
             "valueAnimation": $valueAnimation$,
-            "formatter": "{value}",
+            "formatter": "function (params) { return params.toFixed($gaugeValueLimit$) }",
             "offsetCenter": [0, "$alignCenter$%"]
         },
         "itemStyle": {
