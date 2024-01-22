@@ -39,6 +39,7 @@ const CreatePanel = ({
     const [sAppliedPanelOption, setAppliedPanelOption] = useState<any>({});
     const [sTableList, setTableList] = useState<any>([]);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
+    const [sTagLimit, setTagLimit] = useState<number>(12);
 
     const addPanel = () => {
         if (sPanelOption.useCustomTime) {
@@ -93,36 +94,44 @@ const CreatePanel = ({
     };
 
     const applyPanel = () => {
-        if (sPanelOption.useCustomTime) {
+        const sTmpPanelOption = JSON.parse(JSON.stringify(sPanelOption));
+
+        if (sTmpPanelOption.chartOptions?.tagLimit) {
+            setTagLimit(sTmpPanelOption.chartOptions.tagLimit);
+            sTmpPanelOption.blockList = [sTmpPanelOption.blockList[0]];
+            setPanelOption(sTmpPanelOption);
+        } else setTagLimit(12);
+
+        if (sTmpPanelOption.useCustomTime) {
             let sStart: any;
             let sEnd: any;
-            if (typeof sPanelOption.timeRange.start === 'string' && sPanelOption.timeRange.start.includes('now')) {
-                sStart = sPanelOption.timeRange.start;
+            if (typeof sTmpPanelOption.timeRange.start === 'string' && sTmpPanelOption.timeRange.start.includes('now')) {
+                sStart = sTmpPanelOption.timeRange.start;
             } else {
-                sStart = moment(sPanelOption.timeRange.start).unix() * 1000;
+                sStart = moment(sTmpPanelOption.timeRange.start).unix() * 1000;
                 if (sStart < 0 || isNaN(sStart)) {
                     Error('Please check the entered time.');
                     return;
                 }
             }
-            if (typeof sPanelOption.timeRange.end === 'string' && sPanelOption.timeRange.end.includes('now')) {
-                sEnd = sPanelOption.timeRange.end;
+            if (typeof sTmpPanelOption.timeRange.end === 'string' && sTmpPanelOption.timeRange.end.includes('now')) {
+                sEnd = sTmpPanelOption.timeRange.end;
             } else {
-                sEnd = moment(sPanelOption.timeRange.end).unix() * 1000;
+                sEnd = moment(sTmpPanelOption.timeRange.end).unix() * 1000;
                 if (sEnd < 0 || isNaN(sEnd)) {
                     Error('Please check the entered time.');
                     return;
                 }
             }
-            if (isValidJSON(JSON.stringify(sPanelOption))) {
-                const sTempOption = JSON.parse(JSON.stringify({ ...sPanelOption, timeRange: { ...sPanelOption.timeRange, start: sStart, end: sEnd } }));
+            if (isValidJSON(JSON.stringify(sTmpPanelOption))) {
+                const sTempOption = { ...sTmpPanelOption, timeRange: { ...sTmpPanelOption.timeRange, start: sStart, end: sEnd } };
                 setAppliedPanelOption(sTempOption);
                 pSetModifyState({ id: sTempOption.id, state: true });
             }
         } else {
-            if (isValidJSON(JSON.stringify(sPanelOption))) {
-                setAppliedPanelOption(JSON.parse(JSON.stringify(sPanelOption)));
-                pSetModifyState({ id: sPanelOption.id, state: true });
+            if (isValidJSON(JSON.stringify(sTmpPanelOption))) {
+                setAppliedPanelOption(sTmpPanelOption);
+                pSetModifyState({ id: sTmpPanelOption.id, state: true });
             }
         }
     };
@@ -147,6 +156,8 @@ const CreatePanel = ({
                         console.log('DEFAULT SET', sOption);
                         setPanelOption(sOption);
                         setAppliedPanelOption(JSON.parse(JSON.stringify(sOption)));
+                        if (sPanelOption.chartOptions?.tagLimit) setTagLimit(sPanelOption.chartOptions.tagLimit);
+                        else setTagLimit(12);
                     }
                 } else {
                     setPanelOption(pBoardInfo.dashboard.panels.find((aItem: any) => aItem.id === pPanelId));
@@ -255,6 +266,7 @@ const CreatePanel = ({
                                         pTableList={sTableList}
                                         pPanelOption={sPanelOption}
                                         pSetPanelOption={setPanelOption}
+                                        pTagLimit={sTagLimit}
                                     ></CreatePanelFooter>
                                 )}
                             </Pane>

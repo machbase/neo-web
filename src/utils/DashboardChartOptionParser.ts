@@ -191,12 +191,13 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
     const sIsVisualMap = !isObjectEmpty(aTypeOpt.visualMap);
 
     if (aDataType === 'TIME_VALUE') {
-        sResultOpt.series = aTagList.map((aTag: string, aIdx: number) => {
+        sResultOpt.series = aTagList.map((aTag: { name: string; color: string }, aIdx: number) => {
             return {
                 ...aTypeOpt.series,
                 type: aChartType,
                 data: [],
-                name: aTag,
+                name: aTag.name,
+                color: aTag.color,
                 xAxisIndex: sXLen > aIdx ? aIdx : 0,
                 yAxisIndex: sYLen > aIdx ? aIdx : 0,
                 lineStyle: sIsVisualMap ? { color: ChartSeriesColorList[aIdx] } : null,
@@ -207,6 +208,7 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
             {
                 ...aTypeOpt.series,
                 type: aChartType,
+                color: aTagList.map((aTagInfo: any) => aTagInfo.color),
                 data: [],
             },
         ];
@@ -217,7 +219,14 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
 
 export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any) => {
     const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions);
-    const sTypeOpt = ReplaceTypeOpt(aOptionInfo.type, SqlResDataType(aOptionInfo.type), aTagList, aOptionInfo.chartOptions, aOptionInfo.xAxisOptions, aOptionInfo.yAxisOptions);
+    const sTypeOpt = ReplaceTypeOpt(
+        aOptionInfo.type,
+        SqlResDataType(aOptionInfo.type),
+        aTagList.map((aTagInfo: any) => aTagInfo.name),
+        aOptionInfo.chartOptions,
+        aOptionInfo.xAxisOptions,
+        aOptionInfo.yAxisOptions
+    );
     const sParsedOpt = ParseOpt(aOptionInfo.type, SqlResDataType(aOptionInfo.type), aTagList, sCommonOpt, sTypeOpt);
     return sParsedOpt;
 };

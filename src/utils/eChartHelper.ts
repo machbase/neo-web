@@ -89,6 +89,7 @@ export const DefaultGaugeChartOption = {
     anchorSize: 25 as number,
     min: 0 as number,
     max: 100 as number,
+    tagLimit: 1 as number,
 };
 
 export const DefaultChartOption = {

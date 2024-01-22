@@ -10,7 +10,7 @@ import CheckBox from '@/components/inputs/CheckBox';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
 
-const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
+const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption, pTagLimit }: any) => {
     const sColorList = ['#73BF69', '#F2CC0C', '#8AB8FF', '#FF780A', '#F2495C', '#5794F2', '#B877D9', '#705DA0', '#37872D', '#FADE2A'];
     const [sTab, setTab] = useState('Query');
     const VALUE_LIMIT: number = 1;
@@ -84,7 +84,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                         })}
                     {/* ADD Block */}
                     {pTableList.length !== 0 && pPanelOption.blockList.length < 10 && (
-                        <div onClick={HandleAddBlock} className="plus-wrap">
+                        <div onClick={HandleAddBlock} className="plus-wrap" style={pTagLimit <= pPanelOption.blockList.length ? { opacity: 0.7, pointerEvents: 'none' } : {}}>
                             <PlusCircle color="#FDB532" />
                         </div>
                     )}
