@@ -34,19 +34,19 @@ const StructureSeriesOption: any = {
     `,
     pie: `
         "radius": ["$doughnutRatio$", "70%"],
-        "avoidLabelOverlap": false,
+        "avoidLabelOverlap": true,
         "roseType": $roseType$,
         "itemStyle": {
             "borderRadius": 10,
             "borderColor": "#fff",
             "borderWidth": 2
         },
-        "label": { "show": false, "position": "center" },
+        "label": { "show": true },
         "emphasis": {
-            "label": { "show": true, "fontSize": 40, "fontWeight": "bold" }
+            "label": { "show": true, "fontSize": 20, "fontWeight": "bold" }
         },
         "labelLine": {
-            "show": false
+            "show": true
         },
         "data": []
     `,
@@ -162,6 +162,8 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
         sVisualMapStructure = sVisualMapStructure.replace(`$seriesIndex$`, JSON.stringify(sSeriesIndexArray));
         sVisualMapStructure = sVisualMapStructure.replace(`$pieces$`, JSON.stringify(sPieces));
     }
+
+    console.log('check', sChartSeriesStructure);
 
     const sParsedSeries = JSON.parse('{' + sChartSeriesStructure + '}');
     const sParsedPolar = JSON.parse(sPolarStructure);
