@@ -153,7 +153,6 @@ const CreatePanel = ({
                             blockList: createDefaultTagTableOption(decodeJwt(sToken).sub, newTable[0], getTableType(newTable[0][4])),
                         };
                         sOption.chartOptions = getDefaultSeriesOption(sOption.type);
-                        console.log('DEFAULT SET', sOption);
                         setPanelOption(sOption);
                         setAppliedPanelOption(JSON.parse(JSON.stringify(sOption)));
                         if (sPanelOption.chartOptions?.tagLimit) setTagLimit(sPanelOption.chartOptions.tagLimit);
@@ -173,8 +172,6 @@ const CreatePanel = ({
     };
 
     const init = async () => {
-        console.log('---------------------------------------------------------------------');
-        console.log('CREATE PANEL', pType);
         getTables(true);
     };
 

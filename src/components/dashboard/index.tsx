@@ -61,6 +61,19 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
         }
         setCreateModal(!sCreateModal);
     };
+    const HandlePanelHeader = () => {
+        setBoardList(
+            sBoardList.map((aItem: any) => {
+                return aItem.id === pInfo.id
+                    ? {
+                          ...aItem,
+                          panelHeader: !sIsPanelHeader,
+                      }
+                    : aItem;
+            })
+        );
+        setIsPanelHeader(!sIsPanelHeader);
+    };
 
     const draging = (aValue: any, aEvent: any) => {
         !aValue && changeLayout(aEvent);
@@ -91,6 +104,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
 
     useEffect(() => {
         GetRollupTables();
+        setIsPanelHeader(pInfo.panelHeader);
     }, []);
 
     return (
@@ -104,7 +118,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                         pHeight={24}
                         pIcon={<MdDevicesFold style={{ transform: 'rotate(-90deg)' }} />}
                         pIsActive={!sIsPanelHeader}
-                        onClick={() => setIsPanelHeader(!sIsPanelHeader)}
+                        onClick={HandlePanelHeader}
                     />
                     <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')}></IconButton>
                     <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
