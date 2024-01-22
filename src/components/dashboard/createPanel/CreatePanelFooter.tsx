@@ -83,7 +83,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                             );
                         })}
                     {/* ADD Block */}
-                    {pTableList.length !== 0 && pPanelOption.blockList.length < 10 && (
+                    {pTableList.length !== 0 && (
                         <div onClick={HandleAddBlock} className="plus-wrap" style={pTagLimit <= pPanelOption.blockList.length ? { opacity: 0.7, pointerEvents: 'none' } : {}}>
                             <PlusCircle color="#FDB532" />
                         </div>
