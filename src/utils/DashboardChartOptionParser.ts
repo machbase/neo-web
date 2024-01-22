@@ -163,8 +163,6 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
         sVisualMapStructure = sVisualMapStructure.replace(`$pieces$`, JSON.stringify(sPieces));
     }
 
-    console.log('check', sChartSeriesStructure);
-
     const sParsedSeries = JSON.parse('{' + sChartSeriesStructure + '}');
     const sParsedPolar = JSON.parse(sPolarStructure);
     const sParsedVisualMap = JSON.parse(sVisualMapStructure);

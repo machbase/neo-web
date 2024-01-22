@@ -14,6 +14,7 @@ import { getTableList } from '@/api/repository/api';
 import moment from 'moment';
 import { decodeJwt, generateUUID, isValidJSON } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
+import { fetchTags } from '@/api/repository/machiot';
 
 const CreatePanel = ({
     pPanelId,
@@ -147,10 +148,15 @@ const CreatePanel = ({
                     const sToken = localStorage.getItem('accessToken');
                     if (sToken) {
                         let sOption = DefaultChartOption;
+                        const sTableType = getTableType(newTable[0][4]);
+                        let sData: any = null;
+                        let sTag: string = '';
+                        if (sTableType === 'tag') sData = await fetchTags(newTable[0][3]);
+                        if (sData && sData.success && sData.data && sData.data.rows && sData.data.rows.length > 0) sTag = sData.data.rows[0][1];
                         sOption = {
                             ...sOption,
                             id: generateUUID(),
-                            blockList: createDefaultTagTableOption(decodeJwt(sToken).sub, newTable[0], getTableType(newTable[0][4])),
+                            blockList: createDefaultTagTableOption(decodeJwt(sToken).sub, newTable[0], sTableType, sTag),
                         };
                         sOption.chartOptions = getDefaultSeriesOption(sOption.type);
                         setPanelOption(sOption);
