@@ -53,6 +53,9 @@ const StructureSeriesOption: any = {
     gauge: `
         "min": $min$,
         "max": $max$,
+        "title": {
+            "show": false
+        },
         "progress": {
             "show": true
         },

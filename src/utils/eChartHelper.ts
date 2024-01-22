@@ -82,7 +82,7 @@ export const DefaultGaugeChartOption = {
     axisLabelDistance: 25 as number,
     // axisLabelColor: '#999' as string,
     // axisLabelFontSize: 16 as number,
-    valueFontSize: 30 as number,
+    valueFontSize: 15 as number,
     valueAnimation: false as boolean,
     alignCenter: 30 as number,
     isAnchor: true as boolean,
