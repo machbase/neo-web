@@ -10,7 +10,7 @@ export const DefaultCommonOption = {
 };
 
 export const DefaultXAxisOption = {
-    type: 'category' as string,
+    type: 'time' as string,
     axisTick: {
         alignWithLabel: true as boolean,
     },
