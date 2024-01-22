@@ -1,14 +1,17 @@
-import { Delete, GearFill, Refresh, VscRecord } from '@/assets/icons/Icon';
+import { Delete, GearFill, VscRecord } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { gBoardList, GBoardListType, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import { useState } from 'react';
 import './PanelHeader.scss';
 import { Tooltip } from 'react-tooltip';
-const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pSetRefreshCount, pIsView }: any) => {
+import { generateRandomString } from '@/utils';
+
+const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sMouseDown, setMouseDown] = useState(false);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
+    const sHeaderId = generateRandomString();
 
     const removePanel = () => {
         setBoardList(
@@ -42,20 +45,24 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pSetRefreshCount, pIsV
                               }
                         : {}
                 }
-                className="board-panel-header"
+                className={`board-panel-header ${pPanelInfo.theme !== 'dark' ? 'panel-theme-white' : ''}`}
             >
                 <div>{pPanelInfo.title}</div>
                 <div className="panel-header-navigator">
-                    <a data-tooltip-place="bottom" id="my-anchor-element">
-                        {pPanelInfo.useCustomTime && <VscRecord color="#339900"></VscRecord>}
-                        <Tooltip
-                            className="tooltip"
-                            anchorSelect="#my-anchor-element"
-                            content={`${pPanelInfo.timeRange.start} ~ ${pPanelInfo.timeRange.end} , ${pPanelInfo.timeRange.refresh}`}
-                        />
-                    </a>
+                    {pPanelInfo.useCustomTime && pType === undefined && (
+                        <>
+                            <a data-tooltip-place="bottom" className="panel-header-time-range" id={sHeaderId}>
+                                <VscRecord color="#339900" />
+                            </a>
+                            <Tooltip
+                                className="tooltip"
+                                anchorSelect={'#' + sHeaderId}
+                                content={`${pPanelInfo.timeRange.start} ~ ${pPanelInfo.timeRange.end} , ${pPanelInfo.timeRange.refresh}`}
+                            />
+                        </>
+                    )}
 
-                    <span className="delete">
+                    {/* <span className="delete">
                         <IconButton
                             pDisabled={pIsView}
                             pWidth={25}
@@ -66,7 +73,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pSetRefreshCount, pIsV
                                 })
                             }
                         />
-                    </span>
+                    </span> */}
                     {pType !== 'create' && pType !== 'edit' && (
                         <>
                             <span className="delete">

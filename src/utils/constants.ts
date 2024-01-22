@@ -370,6 +370,15 @@ export const DB_NUMBER_TYPE = ['SHORT', 'INTEGER', 'LONG', 'FLOAT', 'DOUBLE', 'U
 // export type SeriesType = 'line' | 'bar' | 'scatter' | 'pie' | 'radar' | 'candlestick' | 'heatmap' | 'sankey' | 'gauge' | 'liquidFill' | 'wordCloud';
 export const ChartTypeList = ['line', 'bar', 'scatter', 'gauge', 'pie'];
 export const ChartThemeList = ['dark', 'white', 'vintage', 'macarons', 'infographic', 'shine', 'roma'];
+export const ChartThemeBackgroundColor = {
+    dark: '#100B2A',
+    white: '#FFFFFF',
+    vintage: '#FEF8F0',
+    macarons: '#FFFFFF',
+    infographic: '#FFFFFF',
+    shine: '#FFFFFF',
+    roma: '#FFFFFF',
+} as { [key: string]: string };
 export const ChartXAxisTypeList = ['category', 'time'];
 export const ChartSeriesColorList = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#FADE2A'];
 export const ChartTooltipTriggerList = ['item', 'axis', 'none'];

@@ -14,7 +14,7 @@
             display: flex;
             align-items: center;
             font-size: 13px;
-            #my-anchor-element {
+            .panel-header-time-range {
                 justify-content: center;
                 width: 25px;
                 min-width: 25px;
@@ -22,6 +22,13 @@
                 display: flex;
                 align-items: center;
             }
+        }
+    }
+
+    .panel-theme-white {
+        color: black;
+        svg {
+            color: rgb(58, 58, 58);
         }
     }
 }
