@@ -20,7 +20,10 @@ const DashboardView = () => {
             setNotFound(true);
         }
     };
+
     useEffect(() => {
+        const sIsLogin = localStorage.getItem('accessToken');
+        if (!sIsLogin) localStorage.setItem('view', JSON.stringify({ path: '/view/' + sParams.file }));
         getDshFile(sParams.file);
     }, []);
 
@@ -47,7 +50,7 @@ const DashboardView = () => {
                     sBoardInformation.dashboard.panels.map((aItem: any) => {
                         return (
                             <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
-                                <Panel pBoardInfo={sBoardInformation} pPanelInfo={aItem} pIsView></Panel>
+                                <Panel pBoardInfo={sBoardInformation} pPanelInfo={aItem} pModifyState={{ id: '', state: false }} pSetModifyState={() => null} pIsView></Panel>
                             </div>
                         );
                     })}
