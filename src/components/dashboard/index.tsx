@@ -9,7 +9,7 @@ import { gBoardList, gRollupTableList } from '@/recoil/recoil';
 import Panel from './panels/Panel';
 import CreatePanel from './createPanel/CreatePanel';
 import { IconButton } from '../buttons/IconButton';
-import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs } from '@/assets/icons/Icon';
+import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, MdDevicesFold } from '@/assets/icons/Icon';
 import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
 import moment from 'moment';
 import { setUnitTime } from '@/utils/dashboardUtil';
@@ -28,6 +28,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
     const [sPanelId, setPanelId] = useState('');
     const [sThisPanelStatus, setThisPanelStatus] = useState<'create' | 'edit' | undefined>(undefined);
     const [sModifyState, setModifyState] = useState<any>({ id: '', state: false });
+    const [sIsPanelHeader, setIsPanelHeader] = useState<boolean>(true);
 
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
@@ -98,6 +99,13 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
             <div ref={sBoardRef} className="dashboard-form">
                 <div className="board-header">
                     <IconButton pWidth={24} pHeight={24} pIcon={<TbSquarePlus />} onClick={() => showEditPanel('create')}></IconButton>
+                    <IconButton
+                        pWidth={24}
+                        pHeight={24}
+                        pIcon={<MdDevicesFold style={{ transform: 'rotate(-90deg)' }} />}
+                        pIsActive={!sIsPanelHeader}
+                        onClick={() => setIsPanelHeader(!sIsPanelHeader)}
+                    />
                     <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')}></IconButton>
                     <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
                         <Calendar />
@@ -133,7 +141,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                             onDragStart={(aEvent: any) => draging(true, aEvent)}
                             onDragStop={(aEvent: any) => draging(false, aEvent)}
                             onResizeStop={changeLayout}
-                            draggableHandle=".board-panel-header"
+                            draggableHandle=".board-panel-header, .draggable-panel-header"
                         >
                             {pInfo.dashboard &&
                                 pInfo.dashboard.panels &&
@@ -149,6 +157,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                                                 pModifyState={sModifyState}
                                                 pSetModifyState={setModifyState}
                                                 pParentWidth={pWidth}
+                                                pIsHeader={sIsPanelHeader}
                                             />
                                         </div>
                                     );

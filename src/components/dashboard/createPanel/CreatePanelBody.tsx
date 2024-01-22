@@ -4,7 +4,15 @@ const CreatePanelBody = ({ pType, pPanelInfo, pBoardInfo, pInsetDraging, pModify
     return (
         <div className="chart-body">
             {pPanelInfo && (
-                <Panel pBoardInfo={pBoardInfo} pPanelInfo={pPanelInfo} pInsetDraging={pInsetDraging} pType={pType} pModifyState={pModifyState} pSetModifyState={pSetModifyState} />
+                <Panel
+                    pBoardInfo={pBoardInfo}
+                    pPanelInfo={pPanelInfo}
+                    pInsetDraging={pInsetDraging}
+                    pType={pType}
+                    pModifyState={pModifyState}
+                    pSetModifyState={pSetModifyState}
+                    pIsHeader
+                />
             )}
         </div>
     );

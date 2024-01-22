@@ -61,6 +61,7 @@ export {
     MdFlagCircle,
     MdOutlineCancel as Cancel,
     MdLink,
+    MdDevicesFold,
 } from 'react-icons/md';
 
 export { RxUpdate as Update } from 'react-icons/rx';
@@ -88,7 +89,7 @@ export { TbSquarePlus, TbParachute, TbRowInsertTop as InsertRowTop, TbFolderPlus
 
 export { IoIosCopy as Copy, IoIosArrowForward } from 'react-icons/io';
 
-export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase } from 'react-icons/go';
+export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase, GoGrabber } from 'react-icons/go';
 
 export { LuFlipVertical, LuMonitorSpeaker, LuTimerReset } from 'react-icons/lu';
 
