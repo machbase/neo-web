@@ -73,7 +73,7 @@ export const DefaultScatterChartOption = {
 };
 
 export const DefaultPieChartOption = {
-    doughnutRatio: 0 as number,
+    doughnutRatio: 50 as number,
     roseType: false as boolean | string,
 };
 
