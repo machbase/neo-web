@@ -3,7 +3,7 @@ import { Select } from '@/components/inputs/Select';
 import { ChangeEvent } from 'react';
 import { ChartTypeList } from '@/utils/constants';
 import { ChartCommonOptions } from './option/ChartCommonOptions';
-import { getDefaultSeriesOption } from '@/utils/eChartHelper';
+import { CheckPlgChart, getDefaultSeriesOption } from '@/utils/eChartHelper';
 import { Collapse } from '@/components/collapse/Collapse';
 import { PieOptions } from './option/PieOptions';
 import { LineOptions } from './option/LineOptions';
@@ -14,17 +14,22 @@ import { BarOptions } from './option/BarOptions';
 import { ScatterOptions } from './option/ScatterOptions';
 import { GaugeOptions } from './option/GaugeOptions';
 import { ChartType } from '@/type/eChart';
+import { LiquidfillOptions } from './option/LiquidfillOptions';
 
 const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
     const changeTypeOfSeriesOption = (aEvent: ChangeEvent<HTMLInputElement>) => {
+        const sIsPlgChart = CheckPlgChart(aEvent.target.value as ChartType);
         const sChangeChartOption = getDefaultSeriesOption(aEvent.target.value as ChartType);
         pSetPanelOption((aPrev: any) => {
-            return {
+            const sResVal = {
                 ...aPrev,
                 type: aEvent.target.value,
                 chartInfo: sChangeChartOption,
                 chartOptions: sChangeChartOption,
             };
+            if (sIsPlgChart) sResVal.plg = sIsPlgChart.plg;
+            else sResVal.plg = undefined;
+            return sResVal;
         });
     };
 
@@ -42,7 +47,7 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                     pOptions={ChartTypeList}
                 />
                 <div className="divider" />
-                <div className="content">
+                <div className="content" style={{ height: '100%' }}>
                     <ChartCommonOptions pType={pPanelOption.type} pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />
                     {isTimeSeriesChart(pPanelOption.type) && pPanelOption.xAxisOptions && (
                         <>
@@ -63,6 +68,7 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                         {pPanelOption.type === 'scatter' ? <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                         {pPanelOption.type === 'pie' ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                         {pPanelOption.type === 'gauge' ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {pPanelOption.type === 'liquidFill' ? <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                     </Collapse>
                     <div className="divider" />
                 </div>

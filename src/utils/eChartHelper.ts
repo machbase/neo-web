@@ -72,6 +72,16 @@ export const DefaultBarChartOption = {
     // coordinateSystem: 'cartesian2d' as 'cartesian2d' | 'polar',
 };
 
+export const DefaultLiquidfillChartOption = {
+    shape: 'circle' as 'container' | 'circle' | 'rect' | 'roundRect' | 'triangle' | 'diamond' | 'pin' | 'arrow',
+    amplitude: 20 as number,
+    waveAnimation: false as boolean,
+    isOutline: false as boolean,
+    minData: 0 as number,
+    maxData: 100 as number,
+    fontSize: 50 as number,
+};
+
 export const DefaultScatterChartOption = {
     isLarge: false as boolean,
     symbolSize: 10 as number,
@@ -162,14 +172,8 @@ export const DefaultLogTableOption = {
     value: '',
 };
 
-// const DefaultLiquidSeriesOption = {
-//     series: [{ type: 'liquidFill', shape: 'circle' }],
-// };
-
 export const getDefaultSeriesOption = (aChartType: ChartType) => {
-    switch (aChartType.toLocaleLowerCase()) {
-        // case 'liquidfill':
-        //     return DefaultLiquidSeriesOption;
+    switch (aChartType) {
         case 'line':
             return DefaultLineChartOption;
         case 'bar':
@@ -180,8 +184,19 @@ export const getDefaultSeriesOption = (aChartType: ChartType) => {
             return DefaultGaugeChartOption;
         case 'pie':
             return DefaultPieChartOption;
+        case 'liquidFill':
+            return DefaultLiquidfillChartOption;
         default:
             return DefaultLineChartOption;
+    }
+};
+
+export const CheckPlgChart = (aChartType: ChartType) => {
+    switch (aChartType) {
+        case 'liquidFill':
+            return { plg: 'liquidfill' };
+        default:
+            return null;
     }
 };
 

@@ -18,12 +18,9 @@ export const DashboardChartCodeParser = async (aParsedQuery: any) => {
             if (aType === 'TIME_VALUE') {
                 _chartOption.series[aIdx].data = obj.data.rows;
             } else if (aType === 'NAME_VALUE') {
-                // let aDatas = [];
                 obj.data.rows.forEach((aData)=>{
-                    // aDatas.push(aData[0])
                     sTmpDatas[aIdx] = (aData[0]);
                 });
-                // _chartOption.series[0].data = [..._chartOption.series[0].data, ...aDatas];
                 _chartOption.series[0].data = sTmpDatas;
             }
             _chart.setOption(_chartOption);

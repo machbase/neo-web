@@ -101,6 +101,18 @@ const StructureSeriesOption: any = {
         },
         "data": []
     `,
+    liquidFill: `
+        "shape": "$shape$",
+        "amplitude": $amplitude$,
+        "waveAnimation": $waveAnimation$,
+        "outline": {
+            "show": $isOutline$
+        },
+        "label": {
+            "fontSize": $fontSize$
+        },
+        "data": []
+    `,
 };
 // Polar structure
 const PolarOption: any = {
