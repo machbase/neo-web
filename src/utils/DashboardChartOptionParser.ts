@@ -169,7 +169,7 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
         else if (aOpt === 'isPolar' && aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "coordinateSystem": "polar"`;
         else if (aOpt === 'isAxisLineStyleColor')
             sChartSeriesStructure = aChartOption[aOpt]
-                ? sChartSeriesStructure.replace(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: JSON.parse(`[${aChartOption['axisLineStyleColor']}]`) } }))
+                ? sChartSeriesStructure.replace(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: aChartOption['axisLineStyleColor'] } }))
                 : sChartSeriesStructure.replace(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10 } }));
         else sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, aChartOption[aOpt]);
     });
