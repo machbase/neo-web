@@ -56,6 +56,7 @@ const StructureSeriesOption: any = {
         "title": {
             "show": false
         },
+        "axisLine": $isAxisLineStyleColor$,
         "progress": {
             "show": true
         },
@@ -143,12 +144,15 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
         sXAxis = `{}`;
         sYAxis = `{}`;
     }
-
     // Set opt
     sChartOptList.map((aOpt: string) => {
         if (aOpt === 'markLine') sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
         else if (aOpt === 'areaStyle') sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, !aChartOption[aOpt] && 'null');
         else if (aOpt === 'isPolar' && aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "coordinateSystem": "polar"`;
+        else if (aOpt === 'isAxisLineStyleColor')
+            sChartSeriesStructure = aChartOption[aOpt]
+                ? sChartSeriesStructure.replace(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: JSON.parse(`[${aChartOption['axisLineStyleColor']}]`) } }))
+                : sChartSeriesStructure.replace(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10 } }));
         else sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, aChartOption[aOpt]);
     });
 

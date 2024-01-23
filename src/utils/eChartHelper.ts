@@ -91,6 +91,9 @@ export const DefaultGaugeChartOption = {
     max: 100 as number,
     tagLimit: 1 as number,
     gaugeValueLimit: 0 as number | undefined,
+    axisLineStyleWidth: 10 as number,
+    isAxisLineStyleColor: false as boolean,
+    axisLineStyleColor: [`[1, "#F44E3B"]`] as any,
 };
 
 export const DefaultChartOption = {

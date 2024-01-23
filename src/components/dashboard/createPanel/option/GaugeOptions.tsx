@@ -73,6 +73,24 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'axisLabelDistance')}
                     />
                 </div>
+                <CheckBox
+                    pText="Show axis line style"
+                    pDefaultChecked={pPanelOption.chartOptions?.isAxisLineStyleColor ?? false}
+                    onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAxisLineStyleColor')}
+                />
+                {pPanelOption.chartOptions?.isAxisLineStyleColor && (
+                    <>
+                        <div style={{ height: '10px' }} />
+                        <Input
+                            pType="text"
+                            pHeight={25}
+                            pWidth={350}
+                            pBorderRadius={4}
+                            pValue={pPanelOption.chartOptions?.axisLineStyleColor}
+                            onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'axisLineStyleColor')}
+                        />
+                    </>
+                )}
             </Collapse>
             <div className="divider" />
             <Collapse title="Anchor">
