@@ -1,6 +1,6 @@
 import { isEmpty, isObjectEmpty } from '.';
 import { SqlResDataType } from './DashboardQueryParser';
-import { ChartLineStackTooltipFormatter, ChartSeriesColorList } from './constants';
+import { ChartItemTooltipFormatter, ChartLineStackTooltipFormatter, ChartSeriesColorList } from './constants';
 // structure of chart common option
 const StructureOfCommonOption = `{
     "legend": { "show": $isLegend$ },
@@ -184,6 +184,7 @@ const ReplaceCommonOpt = (aCommonOpt: any) => {
     });
     const sResult = JSON.parse(sParsedOpt);
     if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis') sResult.tooltip.formatter = ChartLineStackTooltipFormatter;
+    if (sResult.tooltip.show && sResult.tooltip.trigger === 'item') sResult.tooltip.formatter = ChartItemTooltipFormatter;
     return sResult;
 };
 
