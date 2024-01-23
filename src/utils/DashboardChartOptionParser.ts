@@ -193,7 +193,6 @@ const ReplaceCommonOpt = (aCommonOpt: any, aDataType: string) => {
         else if (aOpt === 'title') sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt.isInsideTitle ? aCommonOpt[aOpt] : '');
         else sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt[aOpt]);
     });
-    console.log('check', sCommOptList, sParsedOpt);
     const sResult = JSON.parse(sParsedOpt);
     if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis' && aDataType === 'TIME_VALUE') sResult.tooltip.formatter = ChartAxisTooltipFormatter;
     if (sResult.tooltip.show && sResult.tooltip.trigger === 'item' && aDataType === 'TIME_VALUE') sResult.tooltip.formatter = ChartItemTooltipFormatter;
