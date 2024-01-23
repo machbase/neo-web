@@ -390,7 +390,7 @@ export const ChartAxisTooltipFormatter =
     `function (params) {` +
     `const d = new Date(0);` +
     `d.setUTCSeconds(params[0].name / 1000);` +
-    `let output = params[0].name === '' ? params[0].axisValueLabel : d.toLocaleString('en-GB', { timeZone: 'UTC' }) + '<br/>';` +
+    `let output = params[0].name === '' ? params[0].axisValueLabel : d.toLocaleString('en-GB', { timezone: 'UTC' }) + '<br/>';` +
     `output += '<table>';` +
     `params.reverse().forEach(function (param) {` +
     `output += '<tr><td>' + param.marker + '</td><td>' + param.seriesName + '&ensp;</td><td><b>' + param.data[1] + '</b></td></tr>';` +
@@ -398,7 +398,14 @@ export const ChartAxisTooltipFormatter =
     `return output + '</table>';` +
     `}`;
 
-export const ChartItemTooltipFormatter = `function (params) { let output = params.seriesName + '<br/>'; output += '<table>'; let d = new Date(0); d.setUTCSeconds(params.data[0] / 1000); output += '<tr><td>'+params.marker+'</td><td>'+params.data[1]+'&ensp;</td><td><b>'+ d.toLocaleString('en-GB', { timeZone: 'UTC' }) +'</b></td></tr>'; return output + '</table>';}`;
+export const ChartItemTooltipFormatter =
+    `function (params) {` +
+    `let d = new Date(0);` +
+    `d.setUTCSeconds(params.data[0] / 1000);` +
+    `let output = d.toLocaleString('en-GB', { timezone: 'UTC' }) + '<br/>';` +
+    `output += '<table>'; ` +
+    `output += '<tr><td>'+params.marker+'</td><td>' + params.seriesName + '&ensp;</td><td><b>' + params.data[1]+'&ensp;</b>` +
+    `</tr>'; return output + '</table>';}`;
 
 // react grid layout value
 export const GRID_LAYOUT_COLS = 36;

@@ -9,7 +9,7 @@ const StructureOfCommonOption = `{
         "left": "$legendLeft$",
         "orient": "$legendOrient$"
     },
-    "title": { "text": "$title$", "left": 30 },
+    "title": { "text": "$title$", "left": 20 },
     "tooltip": {
         "show": $isTooltip$,
         "trigger": "$tooltipTrigger$",
