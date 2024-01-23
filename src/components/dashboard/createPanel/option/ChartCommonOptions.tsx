@@ -33,6 +33,11 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
         });
     };
 
+    const handleTitle = (aEvent: any) => {
+        handleCustomOption(aEvent.target.value, 'title');
+        handleCommonOption(aEvent.target.value, 'title');
+    };
+
     return (
         <>
             <Collapse title="Panel Option">
@@ -44,7 +49,13 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                     pValue={pPanelOption.title}
                     pSetValue={() => null}
                     pBorderRadius={4}
-                    onChange={(aEvent: any) => handleCustomOption(aEvent.target.value, 'title')}
+                    onChange={(aEvent: any) => handleTitle(aEvent)}
+                />
+                <div style={{ height: '10px' }} />
+                <CheckBox
+                    pText="Display Inside Title"
+                    pDefaultChecked={pPanelOption.commonOptions.isInsideTitle}
+                    onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isInsideTitle')}
                 />
                 <div style={{ height: '10px' }} />
                 <div className="panel-name-wrap">Theme</div>

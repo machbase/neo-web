@@ -4,6 +4,7 @@ import { ChartItemTooltipFormatter, ChartAxisTooltipFormatter, ChartSeriesColorL
 // structure of chart common option
 const StructureOfCommonOption = `{
     "legend": { "show": $isLegend$ },
+    "title": { "text": "$title$", "left": 10 },
     "tooltip": {
         "show": $isTooltip$,
         "trigger": "$tooltipTrigger$",
@@ -184,8 +185,10 @@ const ReplaceCommonOpt = (aCommonOpt: any, aDataType: string) => {
     let sParsedOpt: any = StructureOfCommonOption;
     sCommOptList.map((aOpt: string) => {
         if (aOpt === 'isDataZoom') sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt.isDataZoom ? JSON.stringify([{ type: 'slider' }]) : false);
+        else if (aOpt === 'title') sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt.isInsideTitle ? aCommonOpt[aOpt] : '');
         else sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt[aOpt]);
     });
+    console.log('check', sCommOptList, sParsedOpt);
     const sResult = JSON.parse(sParsedOpt);
     if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis' && aDataType === 'TIME_VALUE') sResult.tooltip.formatter = ChartAxisTooltipFormatter;
     if (sResult.tooltip.show && sResult.tooltip.trigger === 'item' && aDataType === 'TIME_VALUE') sResult.tooltip.formatter = ChartItemTooltipFormatter;

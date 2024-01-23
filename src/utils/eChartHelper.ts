@@ -7,6 +7,8 @@ export const DefaultCommonOption = {
     isTooltip: true as boolean,
     tooltipTrigger: 'item' as 'item' | 'axis' | 'none',
     isDataZoom: false as boolean,
+    title: 'chart Title' as string,
+    isInsideTitle: false as boolean,
 };
 
 export const DefaultXAxisOption = {
