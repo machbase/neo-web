@@ -9,9 +9,15 @@ export const DefaultCommonOption = {
     legendOrient: 'horizontal' as 'horizontal' | 'vertical',
     isTooltip: true as boolean,
     tooltipTrigger: 'item' as 'item' | 'axis' | 'none',
+    tooltipBgColor: '#FFFFFF' as string,
+    tooltipTxtColor: '#333' as string,
     isDataZoom: false as boolean,
     title: 'chart Title' as string,
     isInsideTitle: false as boolean,
+    gridLeft: 35 as number,
+    gridRight: 35 as number,
+    gridTop: 50 as number,
+    gridBottom: 50 as number,
 };
 
 export const DefaultXAxisOption = {

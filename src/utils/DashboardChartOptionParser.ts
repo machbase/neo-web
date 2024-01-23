@@ -13,9 +13,19 @@ const StructureOfCommonOption = `{
     "tooltip": {
         "show": $isTooltip$,
         "trigger": "$tooltipTrigger$",
-        "formatter": null
+        "backgroundColor": "$tooltipBgColor$",
+        "formatter": null,
+        "textStyle": {
+            "color": "$tooltipTxtColor$"
+        }
     },
-    "dataZoom": $isDataZoom$
+    "dataZoom": $isDataZoom$,
+    "grid": {
+        "left": "$gridLeft$",
+        "right": "$gridRight$",
+        "top": "$gridTop$",
+        "bottom": "$gridBottom$"
+    }
 }`;
 // chart structure
 const StructureSeriesOption: any = {
