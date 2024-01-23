@@ -1,6 +1,6 @@
 import { isEmpty, isObjectEmpty } from '.';
 import { SqlResDataType } from './DashboardQueryParser';
-import { ChartItemTooltipFormatter, ChartLineStackTooltipFormatter, ChartSeriesColorList } from './constants';
+import { ChartItemTooltipFormatter, ChartAxisTooltipFormatter, ChartSeriesColorList } from './constants';
 // structure of chart common option
 const StructureOfCommonOption = `{
     "legend": { "show": $isLegend$ },
@@ -175,7 +175,7 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
 };
 
 /** replace common opt */
-const ReplaceCommonOpt = (aCommonOpt: any) => {
+const ReplaceCommonOpt = (aCommonOpt: any, aDataType: string) => {
     const sCommOptList: string[] = Object.keys(aCommonOpt);
     let sParsedOpt: any = StructureOfCommonOption;
     sCommOptList.map((aOpt: string) => {
@@ -183,8 +183,8 @@ const ReplaceCommonOpt = (aCommonOpt: any) => {
         else sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt[aOpt]);
     });
     const sResult = JSON.parse(sParsedOpt);
-    if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis') sResult.tooltip.formatter = ChartLineStackTooltipFormatter;
-    if (sResult.tooltip.show && sResult.tooltip.trigger === 'item') sResult.tooltip.formatter = ChartItemTooltipFormatter;
+    if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis' && aDataType === 'TIME_VALUE') sResult.tooltip.formatter = ChartAxisTooltipFormatter;
+    if (sResult.tooltip.show && sResult.tooltip.trigger === 'item' && aDataType === 'TIME_VALUE') sResult.tooltip.formatter = ChartItemTooltipFormatter;
     return sResult;
 };
 
@@ -222,7 +222,7 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
 };
 
 export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any) => {
-    const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions);
+    const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, SqlResDataType(aOptionInfo.type));
     const sTypeOpt = ReplaceTypeOpt(
         aOptionInfo.type,
         SqlResDataType(aOptionInfo.type),

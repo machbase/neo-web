@@ -383,7 +383,17 @@ export const ChartXAxisTypeList = ['category', 'time'];
 export const ChartSeriesColorList = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#FADE2A'];
 export const ChartTooltipTriggerList = ['item', 'axis'];
 
-export const ChartLineStackTooltipFormatter = `function (params) { let d = new Date(0); d.setUTCSeconds(params[0].name / 1000); let output =  params[0].name === '' ? params[0].axisValueLabel : d.toLocaleString('en-GB', { timeZone: 'UTC' }) + '<br/>'; output += '<table>'; params.reverse().forEach(function (param) { const value = typeof param.data === 'object' ? param.data[0] : param.data; if (value !== null) { let c = new Date(0); c.setUTCSeconds(value / 1000); output += '<tr><td>'+param.marker+'</td><td>'+param.seriesName+'&ensp;</td><td><b>'+c.toLocaleString('en-GB', { timeZone: 'UTC' })+'</b></td></tr>'; }}); return output + '</table>';}`;
+export const ChartAxisTooltipFormatter =
+    `function (params) {` +
+    `const d = new Date(0);` +
+    `d.setUTCSeconds(params[0].name / 1000);` +
+    `let output = params[0].name === '' ? params[0].axisValueLabel : d.toLocaleString('en-GB', { timeZone: 'UTC' }) + '<br/>';` +
+    `output += '<table>';` +
+    `params.reverse().forEach(function (param) {` +
+    `output += '<tr><td>' + param.marker + '</td><td>' + param.seriesName + '&ensp;</td><td><b>' + param.data[1] + '</b></td></tr>';` +
+    `});` +
+    `return output + '</table>';` +
+    `}`;
 
 export const ChartItemTooltipFormatter = `function (params) { let output = params.seriesName + '<br/>'; output += '<table>'; let d = new Date(0); d.setUTCSeconds(params.data[0] / 1000); output += '<tr><td>'+params.marker+'</td><td>'+params.data[1]+'&ensp;</td><td><b>'+ d.toLocaleString('en-GB', { timeZone: 'UTC' }) +'</b></td></tr>'; return output + '</table>';}`;
 
