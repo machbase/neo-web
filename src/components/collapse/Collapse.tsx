@@ -5,10 +5,11 @@ import { VscChevronDown, VscChevronRight } from '@/assets/icons/Icon';
 interface CollapseProps {
     title: string;
     children: React.ReactNode;
+    isOpen?: boolean;
 }
 export const Collapse = (props: CollapseProps) => {
-    const { title, children } = props;
-    const [sIsOpen, setIsOpen] = useState<boolean>(false);
+    const { title, children, isOpen = false } = props;
+    const [sIsOpen, setIsOpen] = useState<boolean>(isOpen);
 
     const handleOpen = () => {
         setIsOpen(!sIsOpen);

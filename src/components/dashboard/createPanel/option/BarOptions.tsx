@@ -37,7 +37,7 @@ export const BarOptions = (props: BarOptionProps) => {
             <div style={{ height: '10px' }} />
             <CheckBox pText="Large Data Mode" pDefaultChecked={pPanelOption.chartOptions?.isLarge ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isLarge', true)} />
             <div style={{ height: '10px' }} />
-            <Collapse title="polar option">
+            <Collapse title="polar option" isOpen={pPanelOption.chartOptions?.isPolar ?? false}>
                 <CheckBox pText="Polar Mode" pDefaultChecked={pPanelOption.chartOptions?.isPolar ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isPolar', true)} />
                 <div style={sPolarMenuStyle}>
                     <span>Max</span>

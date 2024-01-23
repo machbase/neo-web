@@ -3,8 +3,13 @@ import { SqlResDataType } from './DashboardQueryParser';
 import { ChartItemTooltipFormatter, ChartAxisTooltipFormatter, ChartSeriesColorList } from './constants';
 // structure of chart common option
 const StructureOfCommonOption = `{
-    "legend": { "show": $isLegend$ },
-    "title": { "text": "$title$", "left": 10 },
+    "legend": {
+        "show": $isLegend$,
+        "top": "$legendTop$",
+        "left": "$legendLeft$",
+        "orient": "$legendOrient$"
+    },
+    "title": { "text": "$title$", "left": 30 },
     "tooltip": {
         "show": $isTooltip$,
         "trigger": "$tooltipTrigger$",

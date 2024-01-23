@@ -44,6 +44,10 @@ export const Select = (props: SelectProps) => {
     useOutsideClick(optionRef, () => setIsOpen(false));
 
     useEffect(() => {
+        setSelectValue(pInitValue);
+    }, [pInitValue]);
+
+    useEffect(() => {
         if (isMounted.current) {
             pAutoChanged && setSelectValue(pOptions[0]);
         } else {

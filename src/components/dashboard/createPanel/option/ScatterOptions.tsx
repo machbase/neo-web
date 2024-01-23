@@ -9,13 +9,6 @@ interface ScatterOptionProps {
 export const ScatterOptions = (props: ScatterOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
 
-    const sMenuStyle = {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginRight: '10px',
-    };
-
     const handleScatterOption = (aEvent: any, aKey: any, aIsCheckbox: boolean) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -36,7 +29,7 @@ export const ScatterOptions = (props: ScatterOptionProps) => {
                 onChange={(aEvent: any) => handleScatterOption(aEvent, 'isLarge', true)}
             />
             <div style={{ height: '10px' }} />
-            <div style={sMenuStyle}>
+            <div className="menu-style">
                 <span>Symbol Size</span>
                 <Input
                     pWidth={50}

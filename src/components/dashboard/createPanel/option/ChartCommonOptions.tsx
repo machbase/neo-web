@@ -1,16 +1,20 @@
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
-import { ChartThemeList, ChartTooltipTriggerList } from '@/utils/constants';
+import { ChartThemeList, ChartTooltipTriggerList, ChartLegendLeftList, ChartLegendTopList, ChartLegendOrientList } from '@/utils/constants';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Collapse } from '@/components/collapse/Collapse';
+import { useEffect } from 'react';
 
 interface ChartCommonOptionsProps {
     pPanelOption: any;
     pSetPanelOption: any;
+    pType: string;
 }
 
 export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
-    const { pPanelOption, pSetPanelOption } = props;
+    const { pPanelOption, pSetPanelOption, pType } = props;
+    const sPieLegendValue = { legendTop: 'top', legendLeft: 'right', legendOrient: 'vertical' };
+    const sDefaultLegendValue = { legendTop: 'bottom', legendLeft: 'center', legendOrient: 'horizontal' };
 
     const handleCustomOption = (aValue: string | boolean, aKey: string) => {
         pSetPanelOption((aPrev: any) => {
@@ -38,9 +42,26 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
         handleCommonOption(aEvent.target.value, 'title');
     };
 
+    const changeLegendOption = (aObject: { legendTop: string; legendLeft: string; legendOrient: string }) => {
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                commonOptions: {
+                    ...aPrev.commonOptions,
+                    ...aObject,
+                },
+            };
+        });
+    };
+
+    useEffect(() => {
+        if (pType === 'pie') changeLegendOption(sPieLegendValue);
+        else changeLegendOption(sDefaultLegendValue);
+    }, [pType]);
+
     return (
         <>
-            <Collapse title="Panel Option">
+            <Collapse title="Panel Option" isOpen>
                 <div className="panel-name-wrap">Title</div>
                 <Input
                     pType="text"
@@ -76,6 +97,46 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                     pDefaultChecked={pPanelOption.commonOptions.isLegend}
                     onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isLegend')}
                 />
+                <div style={{ height: '10px' }} />
+                <div className="menu-style">
+                    <span>Top</span>
+                    <Select
+                        pFontSize={14}
+                        pWidth={100}
+                        pBorderRadius={4}
+                        pIsDisabled={!pPanelOption.commonOptions.isLegend}
+                        pInitValue={pPanelOption.commonOptions.legendTop}
+                        pHeight={25}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'legendTop')}
+                        pOptions={ChartLegendTopList}
+                    />
+                </div>
+                <div className="menu-style">
+                    <span>Left</span>
+                    <Select
+                        pFontSize={14}
+                        pWidth={100}
+                        pBorderRadius={4}
+                        pIsDisabled={!pPanelOption.commonOptions.isLegend}
+                        pInitValue={pPanelOption.commonOptions.legendLeft}
+                        pHeight={25}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'legendLeft')}
+                        pOptions={ChartLegendLeftList}
+                    />
+                </div>
+                <div className="menu-style">
+                    <span>Sort</span>
+                    <Select
+                        pFontSize={14}
+                        pWidth={100}
+                        pBorderRadius={4}
+                        pIsDisabled={!pPanelOption.commonOptions.isLegend}
+                        pInitValue={pPanelOption.commonOptions.legendOrient}
+                        pHeight={25}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'legendOrient')}
+                        pOptions={ChartLegendOrientList}
+                    />
+                </div>
             </Collapse>
             <div className="divider" />
             <Collapse title="Tooltip">

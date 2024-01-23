@@ -9,14 +9,6 @@ interface PieOptionProps {
 export const PieOptions = (props: PieOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
 
-    const sMenuStyle = {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginRight: '10px',
-        marginBottom: '5px',
-    };
-
     const handlePieOption = (aEvent: any, aKey: any, aIsCheckbox: boolean) => {
         pSetPanelOption((prev: any) => {
             return {
@@ -31,7 +23,7 @@ export const PieOptions = (props: PieOptionProps) => {
 
     return (
         <div>
-            <div style={sMenuStyle}>
+            <div className="menu-style">
                 <span>Doughnut Ratio</span>
                 <Input
                     pType="number"

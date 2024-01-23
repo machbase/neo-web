@@ -43,7 +43,7 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                 />
                 <div className="divider" />
                 <div className="content">
-                    <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />
+                    <ChartCommonOptions pType={pPanelOption.type} pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />
                     {isTimeSeriesChart(pPanelOption.type) && pPanelOption.xAxisOptions && (
                         <>
                             <div className="divider" />
@@ -57,7 +57,7 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                         </>
                     )}
                     <div className="divider" />
-                    <Collapse title="Chart Option">
+                    <Collapse title="Chart Option" isOpen>
                         {pPanelOption.type === 'line' ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                         {pPanelOption.type === 'bar' ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                         {pPanelOption.type === 'scatter' ? <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}

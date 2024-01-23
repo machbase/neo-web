@@ -4,6 +4,9 @@ import { ChartTheme, ChartType } from '@/type/eChart';
 // use create common chart option (createCommonOption)
 export const DefaultCommonOption = {
     isLegend: true as boolean,
+    legendTop: 'bottom' as 'top' | 'center' | 'top',
+    legendLeft: 'center' as 'left' | 'center' | 'right',
+    legendOrient: 'horizontal' as 'horizontal' | 'vertical',
     isTooltip: true as boolean,
     tooltipTrigger: 'item' as 'item' | 'axis' | 'none',
     isDataZoom: false as boolean,

@@ -10,14 +10,6 @@ interface GaugeOptionProps {
 export const GaugeOptions = (props: GaugeOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
 
-    const sMenuStyle = {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginRight: '10px',
-        marginBottom: '5px',
-    };
-
     const handleGaugeOption = (aValue: string | boolean, aKey: string) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -32,7 +24,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
 
     return (
         <div>
-            <div style={sMenuStyle}>
+            <div className="menu-style">
                 <div>Min</div>
                 <Input
                     pType="number"
@@ -43,7 +35,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                     onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'min')}
                 />
             </div>
-            <div style={sMenuStyle}>
+            <div className="menu-style">
                 <div>Max</div>
                 <Input
                     pType="number"
@@ -62,7 +54,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                     onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAxisTick')}
                 />
                 <div style={{ height: '10px' }} />
-                <div style={sMenuStyle}>
+                <div className="menu-style">
                     <div>Axis Label Distance</div>
                     <Input
                         pType="number"
@@ -100,7 +92,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                     onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAnchor')}
                 />
                 <div style={{ height: '10px' }} />
-                <div style={sMenuStyle}>
+                <div className="menu-style">
                     <div>Anchor Size</div>
                     <Input
                         pType="number"
@@ -115,7 +107,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
             </Collapse>
             <div className="divider" />
             <Collapse title="Value">
-                <div style={sMenuStyle}>
+                <div className="menu-style">
                     <div>Font Size</div>
                     <Input
                         pType="number"
@@ -126,7 +118,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'valueFontSize')}
                     />
                 </div>
-                <div style={sMenuStyle}>
+                <div className="menu-style">
                     <div>Value Center Offset</div>
                     <Input
                         pType="number"
@@ -137,7 +129,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'alignCenter')}
                     />
                 </div>
-                <div style={sMenuStyle}>
+                <div className="menu-style">
                     <div>Decimal Places</div>
                     <Input
                         pType="number"

@@ -83,7 +83,7 @@ export const LineOptions = (props: LineOptionProps) => {
             <div style={{ height: '10px' }} />
             <CheckBox pText="Stack Mode" pDefaultChecked={pPanelOption.chartOptions?.isStack ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStack', true)} />
             <div className="divider" />
-            <Collapse title="marking option">
+            <Collapse title="marking option" isOpen={sIsMarkLine}>
                 <CheckBox pText="Set MarkLine" pDefaultChecked={sIsMarkLine} onChange={showMarkLine} />
                 {sIsMarkLine &&
                     sMarkLineList

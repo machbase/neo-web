@@ -382,6 +382,9 @@ export const ChartThemeBackgroundColor = {
 export const ChartXAxisTypeList = ['category', 'time'];
 export const ChartSeriesColorList = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#FADE2A'];
 export const ChartTooltipTriggerList = ['item', 'axis'];
+export const ChartLegendTopList = ['top', 'center', 'bottom'];
+export const ChartLegendLeftList = ['left', 'center', 'right'];
+export const ChartLegendOrientList = ['horizontal', 'vertical'];
 
 export const ChartAxisTooltipFormatter =
     `function (params) {` +
