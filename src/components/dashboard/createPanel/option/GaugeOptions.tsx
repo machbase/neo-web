@@ -28,9 +28,9 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
     };
 
     const HandleItem = (key: string, idx: number) => {
-        let sNewList = JSON.parse(JSON.stringify(pPanelOption.chartOptions.axisLineStyleColor));
+        const sNewList = JSON.parse(JSON.stringify(pPanelOption.chartOptions.axisLineStyleColor));
         if (key === 'add') sNewList.push(sNewList.at(-1));
-        else sNewList = sNewList.slice(idx, 1);
+        else sNewList.splice(idx, 1);
 
         pSetPanelOption((aPrev: any) => {
             return {
@@ -116,6 +116,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                         {pPanelOption.chartOptions?.axisLineStyleColor.map((aAxisColor: any, aIdx: number) => {
                             return (
                                 <LineStyleValue
+                                    key={aIdx}
                                     aIdx={aIdx}
                                     aAxisColor={aAxisColor}
                                     HandleItemColor={HandleItemColor}
