@@ -86,6 +86,7 @@ export const DefaultLiquidfillChartOption = {
     minData: 0 as number,
     maxData: 100 as number,
     fontSize: 50 as number,
+    tagLimit: 1 as number,
 };
 
 export const DefaultScatterChartOption = {
