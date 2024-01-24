@@ -163,6 +163,7 @@ export const DefaultTagTableOption = {
     aggregator: 'avg',
     tag: '',
     value: 'VALUE',
+    alias: '',
 };
 
 export const DefaultLogTableOption = {
@@ -180,6 +181,7 @@ export const DefaultLogTableOption = {
     aggregator: 'avg',
     tag: '',
     value: '',
+    alias: '',
 };
 
 export const getDefaultSeriesOption = (aChartType: ChartType) => {

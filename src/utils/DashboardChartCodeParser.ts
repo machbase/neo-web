@@ -19,7 +19,6 @@ const LiquidTimeValueFunc = (aChartOption: any) => {
         _chartOption.series[aIdx].label.formatter = function () {
             return Number.parseFloat(sValue).toFixed(${aChartOption.digit}) + '${aChartOption.unit}';
         };
-        console.log('_chartOption.series[aIdx].data', _chartOption.series[aIdx].data)
         _chart.setOption(_chartOption);
     }`;
 };
