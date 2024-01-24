@@ -25,10 +25,21 @@
         }
     }
 
+    .display-none {
+        display: none !important;
+    }
+    .cursor-grab {
+        cursor: grab;
+    }
     .panel-theme-white {
         color: black;
         svg {
             color: rgb(58, 58, 58);
         }
+    }
+    .hidden-header-menu {
+        position: absolute;
+        top: 5px;
+        left: 5px;
     }
 }
