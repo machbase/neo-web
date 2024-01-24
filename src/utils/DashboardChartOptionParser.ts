@@ -15,6 +15,7 @@ const StructureOfCommonOption = `{
         "trigger": "$tooltipTrigger$",
         "backgroundColor": "$tooltipBgColor$",
         "formatter": null,
+        "confine": true,
         "textStyle": {
             "color": "$tooltipTxtColor$"
         }
@@ -38,16 +39,17 @@ const StructureSeriesOption: any = {
         "connectNulls": $connectNulls$,
         "lineStyle": null,
         "markLine": $markLine$,
-        "data": []
+        "symbol": "$symbol$",
+        "symbolSize": $symbolSize$
     `,
     bar: `
         "coordinateSystem": "cartesian2d",
-        "large": false,
+        "large": $isLarge$,
         "stack": $isStack$
     `,
     scatter: `
-        "large": false,
-        "symbolSize": 10
+        "large": $isLarge$,
+        "symbolSize": $symbolSize$
     `,
     pie: `
         "radius": ["$doughnutRatio$", "70%"],
@@ -64,8 +66,7 @@ const StructureSeriesOption: any = {
         },
         "labelLine": {
             "show": true
-        },
-        "data": []
+        }
     `,
     gauge: `
         "min": $min$,
@@ -74,8 +75,13 @@ const StructureSeriesOption: any = {
             "show": false
         },
         "axisLine": $isAxisLineStyleColor$,
+        "pointer": {
+            "itemStyle": {
+                "color": "auto"
+            }
+        },
         "progress": {
-            "show": true
+            "show": false
         },
         "axisTick": {
             "show": $isAxisTick$
@@ -109,8 +115,7 @@ const StructureSeriesOption: any = {
         },
         "itemStyle": {
             "color": "#5470C6"
-        },
-        "data": []
+        }
     `,
     liquidFill: `
         "shape": "$shape$",
@@ -120,8 +125,7 @@ const StructureSeriesOption: any = {
             "show": $isOutline$
         },
         "label": {
-            "fontSize": $fontSize$,
-            "formatter": "function (params) { return Number.parseFloat(params.data).toFixed($digit$) +'$unit$'}"
+            "fontSize": $fontSize$
         },
         "backgroundStyle": {
             "color": "$backgroundColor$"
@@ -134,9 +138,9 @@ const PolarOption: any = {
     structure: `{
         "polar": {"radius": ["$polarRadius$%", "$polarSize$%"]},
         "angleAxis": {"max": $maxValue$, "startAngle": $startAngle$},
-        "radiusAxis": {"type": "category"}
+        "radiusAxis": {"type": "$polarAxis$"}
     }`,
-    list: ['polarRadius', 'polarSize', 'maxValue', 'startAngle'],
+    list: ['polarRadius', 'polarSize', 'maxValue', 'startAngle', 'polarAxis'],
 };
 // VisualMap structure
 const VisualMapOption = {
@@ -179,14 +183,18 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
     }
     // Set opt
     sChartOptList.map((aOpt: string) => {
-        if (aOpt === 'markLine') sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
-        else if (aOpt === 'areaStyle') sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, !aChartOption[aOpt] && 'null');
+        if (aOpt === 'markLine') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
+        else if (aOpt === 'areaStyle') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, !aChartOption[aOpt] && 'null');
         else if (aOpt === 'isPolar' && aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "coordinateSystem": "polar"`;
-        else if (aOpt === 'isAxisLineStyleColor')
+        else if (aOpt === 'isSampling' && !aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "sampling": "lttb"`;
+        else if (aOpt == 'isLarge') {
+            if (aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, false);
+            else sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, true) + `, "largeThreshold": 2000`;
+        } else if (aOpt === 'isAxisLineStyleColor')
             sChartSeriesStructure = aChartOption[aOpt]
-                ? sChartSeriesStructure.replace(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: aChartOption['axisLineStyleColor'] } }))
-                : sChartSeriesStructure.replace(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: [[1, '#c2c2c2']] } }));
-        else sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, aChartOption[aOpt]);
+                ? sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: aChartOption['axisLineStyleColor'] } }))
+                : sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: [[1, '#c2c2c2']] } }));
+        else sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, aChartOption[aOpt]);
     });
 
     // Set visualMap only use line chart
@@ -237,7 +245,7 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
             return {
                 ...aTypeOpt.series,
                 type: aChartType,
-                data: [],
+                // data: [],
                 name: aTag.name,
                 color: aTag.color,
                 xAxisIndex: sXLen > aIdx ? aIdx : 0,
@@ -251,12 +259,26 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
                 ...aTypeOpt.series,
                 type: aChartType,
                 color: aTagList.map((aTagInfo: any) => aTagInfo.color),
-                data: [],
+                // data: [],
             },
         ];
-        sResultOpt.dataset = { dataset: [] };
+        // sResultOpt.dataset = { dataset: [] };
     }
     return sResultOpt;
+};
+
+const CheckYAxisMinMax = (yAxisOptions: any) => {
+    const sResult = yAxisOptions.map((aYAxis: any) => {
+        if (aYAxis.useMinMax) return aYAxis;
+        else {
+            const sReturn = JSON.parse(JSON.stringify(aYAxis));
+            delete sReturn.useMinMax;
+            delete sReturn.min;
+            delete sReturn.max;
+            return sReturn;
+        }
+    });
+    return sResult;
 };
 
 export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any) => {
@@ -267,7 +289,7 @@ export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any
         aTagList.map((aTagInfo: any) => aTagInfo.name),
         aOptionInfo.chartOptions,
         aOptionInfo.xAxisOptions,
-        aOptionInfo.yAxisOptions
+        CheckYAxisMinMax(aOptionInfo.yAxisOptions)
     );
     const sParsedOpt = ParseOpt(aOptionInfo.type, SqlResDataType(aOptionInfo.type), aTagList, sCommonOpt, sTypeOpt);
     return sParsedOpt;
