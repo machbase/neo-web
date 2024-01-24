@@ -79,7 +79,7 @@ const LineChart = ({
             end: sEndTime,
         });
         const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo, sAliasList);
-        const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, pPanelInfo.type, sParsedQuery);
+        const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.type, sParsedQuery);
 
         const sResult: any = await getTqlChart(
             `FAKE(linspace(0, 1, 1))

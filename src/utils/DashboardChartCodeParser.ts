@@ -11,25 +11,19 @@ const TimeValueFunc = (obj: any) => {
     _chartOption.series[aIdx].data = obj.data.rows;
     _chart.setOption(_chartOption);
 };
-/** LIQUIDFILL TIME_VALUE func */
-const LiquidTimeValueFunc = (aChartOption: any) => {
-    return `(obj) => {
-        const sValue = obj.data.rows[0][0].value;
-        _chartOption.series[aIdx].data = [(sValue - ${aChartOption.minData}) / ${aChartOption.maxData - aChartOption.minData}];
-        _chartOption.series[aIdx].label.formatter = function () {
-            return Number.parseFloat(sValue).toFixed(${aChartOption.digit}) + '${aChartOption.unit}';
-        };
-        _chart.setOption(_chartOption);
-    }`;
+/** LIQUIDFILL NAME_VALUE func */
+const LiquidNameValueFunc = (obj: any) => {
+    _chartOption.series[aIdx].data = [obj.data.rows[0][0].value];
+    _chart.setOption(_chartOption);
 };
 
-export const DashboardChartCodeParser = async (aChartOption: any, aChartType: string, aParsedQuery: any) => {
+export const DashboardChartCodeParser = async (aChartType: string, aParsedQuery: any) => {
     const sDataType = aParsedQuery[0].dataType;
     let sInjectFunc = null;
 
     if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc;
     if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc;
-    if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidTimeValueFunc(aChartOption);
+    if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidNameValueFunc;
 
     // GEN variable
     const sDynamicVariable = aParsedQuery.map((aQuery: any) => {

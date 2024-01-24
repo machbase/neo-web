@@ -140,7 +140,7 @@ export const DefaultChartOption = {
         IntervalValue: 1 as number,
     },
     blockList: undefined as any,
-    useCustomTime: true as boolean,
+    useCustomTime: false as boolean,
 
     commonOptions: DefaultCommonOption,
 

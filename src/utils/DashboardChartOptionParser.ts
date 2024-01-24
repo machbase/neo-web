@@ -120,7 +120,8 @@ const StructureSeriesOption: any = {
             "show": $isOutline$
         },
         "label": {
-            "fontSize": $fontSize$
+            "fontSize": $fontSize$,
+            "formatter": "function (params) { return Number.parseFloat(params.data).toFixed($digit$) +'$unit$'}"
         },
         "backgroundStyle": {
             "color": "$backgroundColor$"
