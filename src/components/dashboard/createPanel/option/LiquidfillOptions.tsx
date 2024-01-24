@@ -1,6 +1,10 @@
+import { IconButton } from '@/components/buttons/IconButton';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
+import useOutsideClick from '@/hooks/useOutsideClick';
+import { useRef, useState } from 'react';
+import { CompactPicker } from 'react-color';
 
 interface LiquidfillOptionProps {
     pPanelOption: any;
@@ -10,6 +14,10 @@ interface LiquidfillOptionProps {
 export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
     const sShapeList = ['container', 'circle', 'rect', 'roundRect', 'triangle', 'diamond', 'pin', 'arrow'];
+    const sColorPickerRef = useRef<any>(null);
+    const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
+
+    useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
 
     const sMenuStyle = {
         display: 'flex',
@@ -44,6 +52,64 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                     onChange={(aEvent: any) => HandleOption(aEvent, 'shape')}
                     pOptions={sShapeList}
                 />
+            </div>
+            <div style={{ height: '10px' }} />
+            <div style={sMenuStyle}>
+                <span>Unit</span>
+                <Input
+                    pType="text"
+                    pWidth={100}
+                    pHeight={25}
+                    pBorderRadius={4}
+                    pValue={pPanelOption.chartOptions?.unit ?? '%'}
+                    pSetValue={() => null}
+                    onChange={(aEvent: any) => HandleOption(aEvent, 'unit')}
+                />
+            </div>
+            <div style={{ height: '10px' }} />
+            <div style={sMenuStyle}>
+                <span>Digit</span>
+                <Input
+                    pType="number"
+                    pWidth={100}
+                    pHeight={25}
+                    pBorderRadius={4}
+                    pValue={pPanelOption.chartOptions?.digit ?? 0}
+                    pSetValue={() => null}
+                    onChange={(aEvent: any) => HandleOption(aEvent, 'digit')}
+                />
+            </div>
+            <div style={{ height: '10px' }} />
+            <div ref={sColorPickerRef} style={{ position: 'relative', ...sMenuStyle }}>
+                <span>Background color</span>
+                <IconButton
+                    pWidth={20}
+                    pHeight={20}
+                    pIcon={
+                        <div
+                            style={{
+                                width: '14px',
+                                cursor: 'pointer',
+                                height: '14px',
+                                marginRight: '4px',
+                                borderRadius: '50%',
+                                backgroundColor: pPanelOption.chartOptions?.backgroundColor as string,
+                            }}
+                        ></div>
+                    }
+                    onClick={() => setIsColorPicker(!sIsColorPicker)}
+                />
+
+                {sIsColorPicker && (
+                    <div className="color-picker" style={{ position: 'absolute', zIndex: 999 }}>
+                        <CompactPicker
+                            color={pPanelOption.chartOptions?.backgroundColor as string}
+                            onChangeComplete={(aInfo: any) => {
+                                HandleOption({ target: { value: aInfo.hex } }, 'backgroundColor');
+                            }}
+                        />
+                    </div>
+                )}
             </div>
             <div style={{ height: '10px' }} />
             <div style={sMenuStyle}>

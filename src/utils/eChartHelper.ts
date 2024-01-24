@@ -84,9 +84,12 @@ export const DefaultLiquidfillChartOption = {
     waveAnimation: false as boolean,
     isOutline: false as boolean,
     minData: 0 as number,
-    maxData: 100 as number,
-    fontSize: 50 as number,
+    maxData: 1 as number,
+    fontSize: 30 as number,
     tagLimit: 1 as number,
+    unit: '%' as string,
+    digit: 0 as number,
+    backgroundColor: '#E3F7FF' as string,
 };
 
 export const DefaultScatterChartOption = {

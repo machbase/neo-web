@@ -121,6 +121,9 @@ const StructureSeriesOption: any = {
         "label": {
             "fontSize": $fontSize$
         },
+        "backgroundStyle": {
+            "color": "$backgroundColor$"
+        },
         "data": []
     `,
 };
