@@ -131,6 +131,11 @@ export const DefaultChartOption = {
         end: 'now' as string | undefined,
         refresh: 'Off' as any,
     },
+    isAxisInterval: false as boolean,
+    axisInterval: {
+        IntervalType: 'sec' as string,
+        IntervalValue: 1 as number,
+    },
     blockList: undefined as any,
     useCustomTime: true as boolean,
 

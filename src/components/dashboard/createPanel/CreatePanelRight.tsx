@@ -52,7 +52,12 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                     {isTimeSeriesChart(pPanelOption.type) && pPanelOption.xAxisOptions && (
                         <>
                             <div className="divider" />
-                            <XAxisOptions pXAxis={pPanelOption.xAxisOptions} pSetPanelOption={pSetPanelOption} />
+                            <XAxisOptions
+                                pXAxis={pPanelOption.xAxisOptions}
+                                pAxisInterval={pPanelOption.axisInterval}
+                                pIsAxisInterval={pPanelOption.isAxisInterval}
+                                pSetPanelOption={pSetPanelOption}
+                            />
                         </>
                     )}
                     {isTimeSeriesChart(pPanelOption.type) && pPanelOption.yAxisOptions && (
