@@ -24,7 +24,8 @@ const StructureOfCommonOption = `{
         "left": "$gridLeft$",
         "right": "$gridRight$",
         "top": "$gridTop$",
-        "bottom": "$gridBottom$"
+        "bottom": "$gridBottom$",
+        "containLabel": true
     }
 }`;
 // chart structure

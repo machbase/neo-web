@@ -137,6 +137,49 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         pOptions={ChartLegendOrientList}
                     />
                 </div>
+                <div className="divider" />
+                <Collapse title="Padding">
+                    <div className="menu-style">
+                        <span>Top</span>
+                        <Input
+                            pWidth={50}
+                            pHeight={25}
+                            pBorderRadius={4}
+                            pValue={pPanelOption.commonOptions.gridTop}
+                            onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridTop')}
+                        />
+                    </div>
+                    <div className="menu-style">
+                        <span>Bottom</span>
+                        <Input
+                            pWidth={50}
+                            pHeight={25}
+                            pBorderRadius={4}
+                            pValue={pPanelOption.commonOptions.gridBottom}
+                            onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridBottom')}
+                        />
+                    </div>
+                    <div className="menu-style">
+                        <span>Left</span>
+                        <Input
+                            pWidth={50}
+                            pHeight={25}
+                            pBorderRadius={4}
+                            pValue={pPanelOption.commonOptions.gridLeft}
+                            onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridLeft')}
+                        />
+                    </div>
+                    <div className="menu-style">
+                        <span>Right</span>
+                        <Input
+                            pWidth={50}
+                            pHeight={25}
+                            pBorderRadius={4}
+                            pValue={pPanelOption.commonOptions.gridRight}
+                            onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridRight')}
+                        />
+                    </div>
+                </Collapse>
             </Collapse>
             <div className="divider" />
             <Collapse title="Tooltip">
@@ -155,14 +198,6 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                     pHeight={30}
                     onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'tooltipTrigger')}
                     pOptions={ChartTooltipTriggerList}
-                />
-            </Collapse>
-            <div className="divider" />
-            <Collapse title="Data Zoom">
-                <CheckBox
-                    pText="Use Zoom"
-                    pDefaultChecked={pPanelOption.commonOptions.isDataZoom}
-                    onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isDataZoom')}
                 />
             </Collapse>
         </>
