@@ -44,6 +44,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                 };
                 sResVal.commonOptions = sIsPie ? sPieLegendOption : DefaultCommonOption;
             }
+            if (sResVal.chartOptions?.tagLimit) sResVal.blockList = sResVal.blockList.slice(0, sResVal.chartOptions?.tagLimit);
             if (sIsPlgChart) sResVal.plg = sIsPlgChart.plg;
             else sResVal.plg = undefined;
             return sResVal;

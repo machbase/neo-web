@@ -65,6 +65,7 @@ export const DefaultLineChartOption = {
         seriesIndex: 0 as number | number[],
         pieces: [] as any,
     },
+    tagLimit: 12 as number,
 };
 
 export const DefaultBarChartOption = {
@@ -75,6 +76,7 @@ export const DefaultBarChartOption = {
     polarSize: 80 as number,
     startAngle: 90 as number,
     maxValue: 100 as number,
+    tagLimit: 12 as number,
     // coordinateSystem: 'cartesian2d' as 'cartesian2d' | 'polar',
 };
 
@@ -95,11 +97,13 @@ export const DefaultLiquidfillChartOption = {
 export const DefaultScatterChartOption = {
     isLarge: false as boolean,
     symbolSize: 10 as number,
+    tagLimit: 12 as number,
 };
 
 export const DefaultPieChartOption = {
     doughnutRatio: 50 as number,
     roseType: false as boolean | string,
+    tagLimit: 12 as number,
 };
 
 export const DefaultGaugeChartOption = {

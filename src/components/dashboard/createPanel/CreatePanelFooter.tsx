@@ -10,8 +10,8 @@ import CheckBox from '@/components/inputs/CheckBox';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
 
-const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption, pTagLimit }: any) => {
-    const sColorList = ['#73BF69', '#F2CC0C', '#8AB8FF', '#FF780A', '#F2495C', '#5794F2', '#B877D9', '#705DA0', '#37872D', '#FADE2A'];
+const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
+    const sColorList = ['#73BF69', '#F2CC0C', '#8AB8FF', '#FF780A', '#F2495C', '#5794F2', '#B877D9', '#705DA0', '#37872D', '#FDA1FF', '#7B64FF', '#999999'];
     const [sTab, setTab] = useState('Query');
     const VALUE_LIMIT: number = 1;
 
@@ -42,7 +42,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                     {
                         ...aPrev.blockList.at(-1),
                         id: generateUUID(),
-                        color: sColorList[aPrev.blockList.length + 1],
+                        color: sColorList[aPrev.blockList.length],
                         // values: [{ id: generateUUID(), alias: '', value: '', aggregator: 'avg' }],
                         // filter: [{ id: generateUUID(), column: '', value: '', operator: '=', useFilter: false }],
                     },
@@ -56,7 +56,9 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
             <div className="chart-footer-tab">
                 <div className={sTab === 'Query' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Query')}>
                     Query
-                    <span className="series-count">{Number(pPanelOption.blockList.length)}</span>
+                    <span className="series-count">{`${Number(pPanelOption.blockList.length)} / ${
+                        pPanelOption.chartOptions?.tagLimit ? pPanelOption.chartOptions?.tagLimit : '12'
+                    }`}</span>
                 </div>
                 {pTableList.length !== 0 && (
                     <div className={sTab === 'Time' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Time')}>
@@ -84,7 +86,11 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                         })}
                     {/* ADD Block */}
                     {pTableList.length !== 0 && (
-                        <div onClick={HandleAddBlock} className="plus-wrap" style={pTagLimit <= pPanelOption.blockList.length ? { opacity: 0.7, pointerEvents: 'none' } : {}}>
+                        <div
+                            onClick={HandleAddBlock}
+                            className="plus-wrap"
+                            style={pPanelOption.chartOptions?.tagLimit <= pPanelOption.blockList.length ? { opacity: 0.7, pointerEvents: 'none' } : {}}
+                        >
                             <PlusCircle color="#FDB532" />
                         </div>
                     )}

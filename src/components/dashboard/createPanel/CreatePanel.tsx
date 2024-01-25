@@ -40,7 +40,6 @@ const CreatePanel = ({
     const [sAppliedPanelOption, setAppliedPanelOption] = useState<any>({});
     const [sTableList, setTableList] = useState<any>([]);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
-    const [sTagLimit, setTagLimit] = useState<number>(12);
 
     const addPanel = () => {
         if (sPanelOption.useCustomTime) {
@@ -98,10 +97,9 @@ const CreatePanel = ({
         const sTmpPanelOption = JSON.parse(JSON.stringify(sPanelOption));
 
         if (sTmpPanelOption.chartOptions?.tagLimit) {
-            setTagLimit(sTmpPanelOption.chartOptions.tagLimit);
             sTmpPanelOption.blockList = [sTmpPanelOption.blockList[0]];
             setPanelOption(sTmpPanelOption);
-        } else setTagLimit(12);
+        }
 
         if (sTmpPanelOption.useCustomTime) {
             let sStart: any;
@@ -161,8 +159,6 @@ const CreatePanel = ({
                         sOption.chartOptions = getDefaultSeriesOption(sOption.type);
                         setPanelOption(sOption);
                         setAppliedPanelOption(JSON.parse(JSON.stringify(sOption)));
-                        if (sPanelOption.chartOptions?.tagLimit) setTagLimit(sPanelOption.chartOptions.tagLimit);
-                        else setTagLimit(12);
                     }
                 } else {
                     setPanelOption(pBoardInfo.dashboard.panels.find((aItem: any) => aItem.id === pPanelId));
@@ -263,14 +259,7 @@ const CreatePanel = ({
                             </Pane>
                             <Pane>
                                 {sPanelOption.id && (
-                                    <CreatePanelFooter
-                                        pType={pType}
-                                        pGetTables={getTables}
-                                        pTableList={sTableList}
-                                        pPanelOption={sPanelOption}
-                                        pSetPanelOption={setPanelOption}
-                                        pTagLimit={sTagLimit}
-                                    ></CreatePanelFooter>
+                                    <CreatePanelFooter pType={pType} pGetTables={getTables} pTableList={sTableList} pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} />
                                 )}
                             </Pane>
                         </SplitPane>
