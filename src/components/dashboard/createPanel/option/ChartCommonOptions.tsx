@@ -3,18 +3,14 @@ import { Select } from '@/components/inputs/Select';
 import { ChartThemeList, ChartTooltipTriggerList, ChartLegendLeftList, ChartLegendTopList, ChartLegendOrientList } from '@/utils/constants';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Collapse } from '@/components/collapse/Collapse';
-import { useEffect } from 'react';
 
 interface ChartCommonOptionsProps {
     pPanelOption: any;
     pSetPanelOption: any;
-    pType: string;
 }
 
 export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
-    const { pPanelOption, pSetPanelOption, pType } = props;
-    const sPieLegendValue = { legendTop: 'top', legendLeft: 'right', legendOrient: 'vertical' };
-    const sDefaultLegendValue = { legendTop: 'bottom', legendLeft: 'center', legendOrient: 'horizontal' };
+    const { pPanelOption, pSetPanelOption } = props;
 
     const handleCustomOption = (aValue: string | boolean, aKey: string) => {
         pSetPanelOption((aPrev: any) => {
@@ -41,23 +37,6 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
         handleCustomOption(aEvent.target.value, 'title');
         handleCommonOption(aEvent.target.value, 'title');
     };
-
-    const changeLegendOption = (aObject: { legendTop: string; legendLeft: string; legendOrient: string }) => {
-        pSetPanelOption((aPrev: any) => {
-            return {
-                ...aPrev,
-                commonOptions: {
-                    ...aPrev.commonOptions,
-                    ...aObject,
-                },
-            };
-        });
-    };
-
-    useEffect(() => {
-        if (pType === 'pie') changeLegendOption(sPieLegendValue);
-        else changeLegendOption(sDefaultLegendValue);
-    }, [pType]);
 
     return (
         <>
@@ -99,7 +78,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                 />
                 <div style={{ height: '10px' }} />
                 <div className="menu-style">
-                    <span>Top</span>
+                    <span>Vertical</span>
                     <Select
                         pFontSize={14}
                         pWidth={100}
@@ -112,7 +91,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                     />
                 </div>
                 <div className="menu-style">
-                    <span>Left</span>
+                    <span>Horizontal</span>
                     <Select
                         pFontSize={14}
                         pWidth={100}
@@ -125,7 +104,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                     />
                 </div>
                 <div className="menu-style">
-                    <span>Sort</span>
+                    <span>Alignment type</span>
                     <Select
                         pFontSize={14}
                         pWidth={100}

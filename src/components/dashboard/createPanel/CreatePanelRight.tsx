@@ -3,7 +3,7 @@ import { Select } from '@/components/inputs/Select';
 import { ChangeEvent } from 'react';
 import { ChartTypeList } from '@/utils/constants';
 import { ChartCommonOptions } from './option/ChartCommonOptions';
-import { CheckPlgChart, getDefaultSeriesOption } from '@/utils/eChartHelper';
+import { CheckPlgChart, DefaultCommonOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
 import { Collapse } from '@/components/collapse/Collapse';
 import { PieOptions } from './option/PieOptions';
 import { LineOptions } from './option/LineOptions';
@@ -16,10 +16,20 @@ import { GaugeOptions } from './option/GaugeOptions';
 import { ChartType } from '@/type/eChart';
 import { LiquidfillOptions } from './option/LiquidfillOptions';
 
-const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
+interface CreatePanelRightProps {
+    pPanelOption: any;
+    pSetPanelOption: any;
+    pType: undefined | 'create' | 'edit';
+}
+
+const CreatePanelRight = (props: CreatePanelRightProps) => {
+    const { pPanelOption, pSetPanelOption, pType } = props;
+    const sPieLegendValue = { legendTop: 'top', legendLeft: 'right', legendOrient: 'vertical' };
+
     const changeTypeOfSeriesOption = (aEvent: ChangeEvent<HTMLInputElement>) => {
         const sIsPlgChart = CheckPlgChart(aEvent.target.value as ChartType);
         const sChangeChartOption = getDefaultSeriesOption(aEvent.target.value as ChartType);
+        const sIsPie = aEvent.target.value === 'pie';
         pSetPanelOption((aPrev: any) => {
             const sResVal = {
                 ...aPrev,
@@ -27,6 +37,13 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                 chartInfo: sChangeChartOption,
                 chartOptions: sChangeChartOption,
             };
+            if (pType === 'create') {
+                const sPieLegendOption = {
+                    ...DefaultCommonOption,
+                    ...sPieLegendValue,
+                };
+                sResVal.commonOptions = sIsPie ? sPieLegendOption : DefaultCommonOption;
+            }
             if (sIsPlgChart) sResVal.plg = sIsPlgChart.plg;
             else sResVal.plg = undefined;
             return sResVal;
@@ -48,7 +65,7 @@ const CreatePanelRight = ({ pPanelOption, pSetPanelOption }: any) => {
                 />
                 <div className="divider" />
                 <div className="content" style={{ height: '100%' }}>
-                    <ChartCommonOptions pType={pPanelOption.type} pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />
+                    <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />
                     {isTimeSeriesChart(pPanelOption.type) && pPanelOption.xAxisOptions && (
                         <>
                             <div className="divider" />

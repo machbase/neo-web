@@ -184,7 +184,7 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
         else if (aOpt === 'isAxisLineStyleColor')
             sChartSeriesStructure = aChartOption[aOpt]
                 ? sChartSeriesStructure.replace(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: aChartOption['axisLineStyleColor'] } }))
-                : sChartSeriesStructure.replace(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10 } }));
+                : sChartSeriesStructure.replace(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: [[1, '#c2c2c2']] } }));
         else sChartSeriesStructure = sChartSeriesStructure.replace(`$${aOpt}$`, aChartOption[aOpt]);
     });
 

@@ -198,7 +198,7 @@ const CreatePanel = ({
                         pHeight={28}
                         pWidth={75}
                         pIsDisabled={false}
-                        onClick={() => pSetCreateModal(false)}
+                        onClick={handleClose}
                         pFontColor="rgb(231 65 131)"
                         pText="Discard"
                         pBorderColor="rgb(231 65 131)"
@@ -275,7 +275,7 @@ const CreatePanel = ({
                             </Pane>
                         </SplitPane>
                     </Pane>
-                    <Pane>{sPanelOption.id && <CreatePanelRight pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} />}</Pane>
+                    <Pane>{sPanelOption.id && <CreatePanelRight pType={pType} pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} />}</Pane>
                 </SplitPane>
             </div>
         </div>
