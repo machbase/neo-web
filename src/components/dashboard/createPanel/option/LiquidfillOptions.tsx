@@ -172,7 +172,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
             <div style={{ height: '10px' }} />
             <CheckBox
                 pText="Outline"
-                pDefaultChecked={pPanelOption.chartOptions?.waveAnimation ?? false}
+                pDefaultChecked={pPanelOption.chartOptions?.isOutline ?? false}
                 onChange={(aEvent: any) => HandleOption({ target: { value: aEvent.target.checked } }, 'isOutline')}
             />
         </div>
