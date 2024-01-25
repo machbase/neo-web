@@ -9,7 +9,7 @@ import { gBoardList, gRollupTableList } from '@/recoil/recoil';
 import Panel from './panels/Panel';
 import CreatePanel from './createPanel/CreatePanel';
 import { IconButton } from '../buttons/IconButton';
-import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, MdDevicesFold } from '@/assets/icons/Icon';
+import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, MdDevicesFold, VscSync } from '@/assets/icons/Icon';
 import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
 import moment from 'moment';
 import { setUnitTime } from '@/utils/dashboardUtil';
@@ -22,13 +22,13 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const setRollupTabls = useSetRecoilState(gRollupTableList);
     const [sLoadedRollupTable, setLoadedRollupTable] = useState<boolean>(false);
-
     const sBoardRef: Element | any = useRef({});
     const [sCreateModal, setCreateModal] = useState(false);
     const [sPanelId, setPanelId] = useState('');
     const [sThisPanelStatus, setThisPanelStatus] = useState<'create' | 'edit' | undefined>(undefined);
     const [sModifyState, setModifyState] = useState<any>({ id: '', state: false });
     const [sIsPanelHeader, setIsPanelHeader] = useState<boolean>(true);
+    const [sRefresh, setRefresh] = useState<number>(0);
 
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
@@ -102,6 +102,10 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
         setLoadedRollupTable(true);
     };
 
+    const HandleRefresh = () => {
+        setRefresh(sRefresh + 1);
+    };
+
     useEffect(() => {
         GetRollupTables();
         setIsPanelHeader(pInfo.panelHeader);
@@ -120,6 +124,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                         pIsActive={!sIsPanelHeader}
                         onClick={HandlePanelHeader}
                     />
+                    <IconButton pWidth={20} pHeight={20} pIcon={<VscSync />} onClick={HandleRefresh} />
                     <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')}></IconButton>
                     <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
                         <Calendar />
@@ -163,6 +168,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                                     return (
                                         <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
                                             <Panel
+                                                pRefresh={sRefresh}
                                                 pDragStat={pDragStat}
                                                 pType={sThisPanelStatus}
                                                 pShowEditPanel={showEditPanel}

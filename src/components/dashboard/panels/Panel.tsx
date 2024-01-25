@@ -4,7 +4,7 @@ import './Panel.scss';
 import { useState } from 'react';
 import { ChartThemeBackgroundColor } from '@/utils/constants';
 
-const Panel = ({ pBoardInfo, pShowEditPanel, pType, pPanelInfo, pInsetDraging, pDragStat, pIsView, pModifyState, pSetModifyState, pParentWidth, pIsHeader }: any) => {
+const Panel = ({ pRefresh, pBoardInfo, pShowEditPanel, pType, pPanelInfo, pInsetDraging, pDragStat, pIsView, pModifyState, pSetModifyState, pParentWidth, pIsHeader }: any) => {
     const [sRefreshCount, setRefreshCount] = useState<number>(0);
 
     return (
@@ -21,6 +21,7 @@ const Panel = ({ pBoardInfo, pShowEditPanel, pType, pPanelInfo, pInsetDraging, p
             ></PanelHeader>
             {pPanelInfo && (
                 <LineChart
+                    pRefresh={pRefresh}
                     pDragStat={pDragStat}
                     pInsetDraging={pInsetDraging}
                     pBoardInfo={pBoardInfo}
