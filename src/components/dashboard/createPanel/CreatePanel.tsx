@@ -96,11 +96,6 @@ const CreatePanel = ({
     const applyPanel = () => {
         const sTmpPanelOption = JSON.parse(JSON.stringify(sPanelOption));
 
-        if (sTmpPanelOption.chartOptions?.tagLimit) {
-            sTmpPanelOption.blockList = [sTmpPanelOption.blockList[0]];
-            setPanelOption(sTmpPanelOption);
-        }
-
         if (sTmpPanelOption.useCustomTime) {
             let sStart: any;
             let sEnd: any;
