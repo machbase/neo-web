@@ -259,9 +259,10 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
                 ...aTypeOpt.series,
                 type: aChartType,
                 color: aTagList.map((aTagInfo: any) => aTagInfo.color),
-                data: [],
+                // data: [],
             },
         ];
+        // sResultOpt.dataset = { dataset: [] };
     }
     return sResultOpt;
 };

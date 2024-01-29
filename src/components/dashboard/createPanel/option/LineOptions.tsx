@@ -85,6 +85,12 @@ export const LineOptions = (props: LineOptionProps) => {
             <div style={{ height: '10px' }} />
             <CheckBox pText="Stack Mode" pDefaultChecked={pPanelOption.chartOptions?.isStack ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStack', true)} />
             <div style={{ height: '10px' }} />
+            <CheckBox
+                pText="Large Data Mode"
+                pDefaultChecked={pPanelOption.chartOptions?.isSampling ?? false}
+                onChange={(aEvent: any) => handleLineOption(aEvent, 'isSampling', true)}
+            />
+            <div style={{ height: '10px' }} />
             <div className="menu-style">
                 <span>Symbol</span>
                 <Select
