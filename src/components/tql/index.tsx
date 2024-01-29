@@ -239,7 +239,7 @@ const Tql = (props: TqlProps) => {
                                     <div style={{ padding: '0 1rem' }}>{sTextField}</div>
                                 )
                             ) : null}
-                            {sResultType === 'html' ? <ShowChart pData={sChartData} /> : null}
+                            {sResultType === 'html' ? <ShowChart pData={sChartData} pLoopMode={false} /> : null}
                             {sResultType === 'map' ? <ShowMap pData={sMapData} pBodyRef={tqlResultBodyRef} /> : null}
                             {sResultType === 'mrk' ? <Markdown pIdx={1} pContents={sMarkdown} pType="mrk" /> : null}
                             {sResultType === 'xhtml' ? <Markdown pIdx={1} pContents={sMarkdown} /> : null}

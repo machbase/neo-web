@@ -17,6 +17,7 @@ import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper
 import { fetchTags } from '@/api/repository/machiot';
 
 const CreatePanel = ({
+    pLoopMode,
     pPanelId,
     pSetCreateModal,
     pType,
@@ -25,6 +26,7 @@ const CreatePanel = ({
     pModifyState,
     pSetModifyState,
 }: {
+    pLoopMode: boolean,
     pPanelId: string;
     pType: 'create' | 'edit' | undefined;
     pSetCreateModal: (aValue: boolean) => void;
@@ -243,6 +245,7 @@ const CreatePanel = ({
                             <Pane maxSize="90%">
                                 {sAppliedPanelOption.id && (
                                     <CreatePanelBody
+                                        pLoopMode={pLoopMode}
                                         pBoardInfo={pBoardInfo}
                                         pType={pType}
                                         pInsetDraging={sInsetDraging}

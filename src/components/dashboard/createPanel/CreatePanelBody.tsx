@@ -1,10 +1,11 @@
 import Panel from '../panels/Panel';
 import './CreatePanelBody.scss';
-const CreatePanelBody = ({ pType, pPanelInfo, pBoardInfo, pInsetDraging, pModifyState, pSetModifyState }: any) => {
+const CreatePanelBody = ({ pLoopMode, pType, pPanelInfo, pBoardInfo, pInsetDraging, pModifyState, pSetModifyState }: any) => {
     return (
         <div className="chart-body">
             {pPanelInfo && (
                 <Panel
+                    pLoopMode={pLoopMode}
                     pBoardInfo={pBoardInfo}
                     pPanelInfo={pPanelInfo}
                     pInsetDraging={pInsetDraging}

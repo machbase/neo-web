@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ChartThemeBackgroundColor } from '@/utils/constants';
 
 const Panel = ({
+    pLoopMode,
     pChartVariableId,
     pRefresh,
     pBoardInfo,
@@ -35,6 +36,7 @@ const Panel = ({
             ></PanelHeader>
             {pPanelInfo && (
                 <LineChart
+                    pLoopMode={pLoopMode}
                     pRefresh={pRefresh}
                     pDragStat={pDragStat}
                     pInsetDraging={pInsetDraging}

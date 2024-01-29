@@ -14,9 +14,10 @@ const TimeValueFunc = (obj: any) => {
 };
 /** LIQUIDFILL NAME_VALUE func */
 const LiquidNameValueFunc = (aChartOptions: any) => {
-    return `(obj) => {let sValue = obj.data.rows[0][0].value
-    _chartOption.series[aIdx].data = [ (sValue - ${aChartOptions.minData}) / ( ${aChartOptions.maxData} -  ${aChartOptions.minData}) ]
-    _chartOption.series[aIdx].label.formatter = function() {
+    return `(obj) => {
+        let sValue = obj.data.rows[0][0].value;
+        _chartOption.series[aIdx].data = [ (sValue - ${aChartOptions.minData}) / ( ${aChartOptions.maxData} -  ${aChartOptions.minData}) ]
+        _chartOption.series[aIdx].label.formatter = function() {
         return Number.parseFloat(sValue).toFixed(${aChartOptions.digit}) + "${aChartOptions.unit}";
     }
     _chart.setOption(_chartOption)}`;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import GridLayout from 'react-grid-layout';
 import { useRef, useState, useEffect } from 'react';
 
@@ -14,7 +15,7 @@ import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
 import moment from 'moment';
 import { setUnitTime } from '@/utils/dashboardUtil';
 import { getRollupTableList } from '@/api/repository/machiot';
-import { generateUUID, getId, isEmpty } from '@/utils';
+import { getId, isEmpty } from '@/utils';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveModal }: any) => {
@@ -176,6 +177,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                                     return (
                                         <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
                                             <Panel
+                                                pLoopMode={pInfo.dashboard.timeRange.refresh === 'Off' ? false : true}
                                                 pRefresh={sRefresh}
                                                 pDragStat={pDragStat}
                                                 pType={sThisPanelStatus}
@@ -203,6 +205,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                 {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal} />}
                 {sCreateModal && (
                     <CreatePanel
+                        pLoopMode={false}
                         pType={sThisPanelStatus}
                         pPanelId={sPanelId}
                         pBoardInfo={pInfo}

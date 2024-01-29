@@ -419,7 +419,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         }}
                     />
                 )}
-                {sTqlResultType === 'html' && sTqlChartData ? <ShowChart pData={sTqlChartData} pIsCenter /> : null}
+                {sTqlResultType === 'html' && sTqlChartData ? <ShowChart pData={sTqlChartData} pIsCenter pLoopMode={false} /> : null}
                 {sTqlResultType === 'mrk' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} pType="wrk-mrk" /> : null}
                 {sTqlResultType === 'xhtml' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} /> : null}
                 {sTqlResultType === 'text' && sTqlTextResult ? (
