@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Collapse } from '@/components/collapse/Collapse';
+// import { Collapse } from '@/components/collapse/Collapse';
 import CheckBox from '@/components/inputs/CheckBox';
-import { MarkLineOption } from './MarkLineOption';
+// import { MarkLineOption } from './MarkLineOption';
 import { isEmpty } from '@/utils';
 import { Select } from '@/components/inputs/Select';
 import { ChartLineSymbolList } from '@/utils/constants';
@@ -103,7 +103,7 @@ export const LineOptions = (props: LineOptionProps) => {
                     pOptions={ChartLineSymbolList}
                 />
             </div>
-            <div className="divider" />
+            {/* <div className="divider" />
             <Collapse title="marking option" isOpen={sIsMarkLine}>
                 <CheckBox pText="Set MarkLine" pDefaultChecked={sIsMarkLine} onChange={showMarkLine} />
                 {sIsMarkLine &&
@@ -119,7 +119,7 @@ export const LineOptions = (props: LineOptionProps) => {
                                 />
                             </div>
                         ))}
-            </Collapse>
+            </Collapse> */}
         </div>
     );
 };
