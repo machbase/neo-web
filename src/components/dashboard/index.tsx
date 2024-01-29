@@ -14,7 +14,7 @@ import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
 import moment from 'moment';
 import { setUnitTime } from '@/utils/dashboardUtil';
 import { getRollupTableList } from '@/api/repository/machiot';
-import { isEmpty } from '@/utils';
+import { generateUUID, getId, isEmpty } from '@/utils';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveModal }: any) => {
@@ -29,6 +29,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
     const [sModifyState, setModifyState] = useState<any>({ id: '', state: false });
     const [sIsPanelHeader, setIsPanelHeader] = useState<boolean>(true);
     const [sRefresh, setRefresh] = useState<number>(0);
+    const [sChartVariableId, setChartVariableId] = useState<string>('');
 
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
@@ -79,6 +80,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
         !aValue && changeLayout(aEvent);
     };
     const changeLayout = (aLayout: any) => {
+        setRefresh(sRefresh + 1);
         const sTempBoardList = sBoardList.map((aItem: any) => {
             return aItem.id === pInfo.id
                 ? {
@@ -102,11 +104,17 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
         setLoadedRollupTable(true);
     };
 
+    const GenChartVariableId = () => {
+        setChartVariableId(getId());
+    };
+
     const HandleRefresh = () => {
+        GenChartVariableId();
         setRefresh(sRefresh + 1);
     };
 
     useEffect(() => {
+        GenChartVariableId();
         GetRollupTables();
         setIsPanelHeader(pInfo.panelHeader);
     }, []);
@@ -178,6 +186,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                                                 pSetModifyState={setModifyState}
                                                 pParentWidth={pWidth}
                                                 pIsHeader={sIsPanelHeader}
+                                                pChartVariableId={sChartVariableId}
                                             />
                                         </div>
                                     );

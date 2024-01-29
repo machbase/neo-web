@@ -4,16 +4,16 @@ import { ExistCommonScript, loadScriptsSequentially } from '@/assets/ts/ScriptRe
 interface ShowChartProps {
     pData: any;
     pIsCenter?: boolean;
+    pKeepChartOption?: boolean;
 }
 
 export const ShowChart = (props: ShowChartProps) => {
-    const { pData, pIsCenter } = props;
+    const { pData, pIsCenter, pKeepChartOption } = props;
     const sTheme = pData.theme ? pData.theme : 'dark';
     const wrapRef = useRef<HTMLDivElement>(null);
 
     const LoadScript = async () => {
         if (pData && pData.jsAssets) await loadScriptsSequentially({ jsAssets: pData.jsAssets ? (ExistCommonScript(pData.jsAssets) as string[]) : [], jsCodeAssets: [] });
-
         const ChartDiv = document.createElement('div');
         if (wrapRef.current?.firstElementChild?.id !== pData.chartID) {
             ChartDiv.id = pData.chartID;
@@ -23,9 +23,11 @@ export const ShowChart = (props: ShowChartProps) => {
             ChartDiv.style.backgroundColor = sTheme === 'dark' ? '' : '#FFF';
             wrapRef.current?.appendChild(ChartDiv);
         } else {
-            const sEchart = document.getElementById(pData.chartID) as HTMLDivElement | HTMLCanvasElement;
-            // @ts-ignore
-            echarts.init(sEchart).clear();
+            if (!pKeepChartOption) {
+                const sEchart = document.getElementById(pData.chartID) as HTMLDivElement | HTMLCanvasElement;
+                // @ts-ignore
+                echarts.init(sEchart).clear();
+            }
         }
 
         pData && pData.jsCodeAssets && (await loadScriptsSequentially({ jsAssets: [], jsCodeAssets: pData.jsCodeAssets }));

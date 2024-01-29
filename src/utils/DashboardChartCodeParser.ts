@@ -47,13 +47,14 @@ export const DashboardChartCodeParser = async (aChartOptions: any, aChartType: s
         .catch((err) => console.warn("data fetch error", err));
     };`;
     // GEN loop
-    const sLoop = `sDatas.forEach((aData)=>{
+    const sLoop = `sQuery.forEach((aData)=>{
         getData(aData.query, aData.idx);
     });`;
 
     return `{
-        let sDatas = ${JSON.stringify(sDynamicVariable)};
+        let sQuery = ${JSON.stringify(sDynamicVariable)};
         ${sFunction}
         ${sLoop}
+        _chart.resize();
     }`;
 };
