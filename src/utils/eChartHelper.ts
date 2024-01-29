@@ -80,6 +80,7 @@ export const DefaultBarChartOption = {
     startAngle: 90 as number,
     maxValue: 100 as number,
     tagLimit: 12 as number,
+    polarAxis: 'category' as 'category' | 'time',
     // coordinateSystem: 'cartesian2d' as 'cartesian2d' | 'polar',
 };
 
