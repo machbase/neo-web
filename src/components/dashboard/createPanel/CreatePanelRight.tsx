@@ -15,6 +15,7 @@ import { ScatterOptions } from './option/ScatterOptions';
 import { GaugeOptions } from './option/GaugeOptions';
 import { ChartType } from '@/type/eChart';
 import { LiquidfillOptions } from './option/LiquidfillOptions';
+import { generateUUID } from '@/utils';
 
 interface CreatePanelRightProps {
     pPanelOption: any;
@@ -33,6 +34,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
         pSetPanelOption((aPrev: any) => {
             const sResVal = {
                 ...aPrev,
+                id: generateUUID(),
                 type: aEvent.target.value,
                 chartInfo: sChangeChartOption,
                 chartOptions: sChangeChartOption,
