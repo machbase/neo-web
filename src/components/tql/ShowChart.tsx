@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { useEffect, useRef } from 'react';
 import { ExistCommonScript, loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
 
@@ -23,10 +24,15 @@ export const ShowChart = (props: ShowChartProps) => {
             ChartDiv.style.backgroundColor = sTheme === 'dark' ? '' : '#FFF';
             wrapRef.current?.appendChild(ChartDiv);
         } else {
+            const sEchart = document.getElementById(pData.chartID) as HTMLDivElement | HTMLCanvasElement;
             if (!pKeepChartOption) {
-                const sEchart = document.getElementById(pData.chartID) as HTMLDivElement | HTMLCanvasElement;
                 // @ts-ignore
                 echarts.init(sEchart).clear();
+            } else {
+                sEchart.style.width = pData.style.width;
+                sEchart.style.height = pData.style.height;
+                // @ts-ignore
+                echarts.init(sEchart).resize();
             }
         }
 

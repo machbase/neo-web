@@ -55,6 +55,5 @@ export const DashboardChartCodeParser = async (aChartOptions: any, aChartType: s
         let sQuery = ${JSON.stringify(sDynamicVariable)};
         ${sFunction}
         ${sLoop}
-        _chart.resize();
     }`;
 };
