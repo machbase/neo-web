@@ -3,6 +3,8 @@ import { Collapse } from '@/components/collapse/Collapse';
 import CheckBox from '@/components/inputs/CheckBox';
 import { MarkLineOption } from './MarkLineOption';
 import { isEmpty } from '@/utils';
+import { Select } from '@/components/inputs/Select';
+import { ChartLineSymbolList } from '@/utils/constants';
 
 interface LineOptionProps {
     pPanelOption: any;
@@ -82,6 +84,19 @@ export const LineOptions = (props: LineOptionProps) => {
             <CheckBox pText="Step Line" pDefaultChecked={pPanelOption.chartOptions?.isStep ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStep', true)} />
             <div style={{ height: '10px' }} />
             <CheckBox pText="Stack Mode" pDefaultChecked={pPanelOption.chartOptions?.isStack ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStack', true)} />
+            <div style={{ height: '10px' }} />
+            <div className="menu-style">
+                <span>Symbol</span>
+                <Select
+                    pFontSize={12}
+                    pWidth={100}
+                    pBorderRadius={4}
+                    pInitValue={pPanelOption.chartOptions?.symbol}
+                    pHeight={25}
+                    onChange={(aEvent: any) => handleLineOption(aEvent, 'symbol', false)}
+                    pOptions={ChartLineSymbolList}
+                />
+            </div>
             <div className="divider" />
             <Collapse title="marking option" isOpen={sIsMarkLine}>
                 <CheckBox pText="Set MarkLine" pDefaultChecked={sIsMarkLine} onChange={showMarkLine} />

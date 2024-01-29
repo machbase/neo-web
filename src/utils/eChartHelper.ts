@@ -37,6 +37,7 @@ export const DefaultYAxisOption = {
     type: 'value' as string,
     position: 'left' as 'left' | 'right',
     alignTicks: true,
+    scale: true,
     // axisLine: {
     //     lineStyle: {
     //         color: '#fff'
@@ -50,6 +51,7 @@ export const DefaultLineChartOption = {
     isStep: false as boolean,
     isStack: false as boolean,
     connectNulls: true as boolean,
+    symbol: 'none' as string,
     markLine: {
         symbol: ['none', 'none'],
         label: {

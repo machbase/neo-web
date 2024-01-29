@@ -385,6 +385,7 @@ export const ChartTooltipTriggerList = ['item', 'axis'];
 export const ChartLegendTopList = ['top', 'center', 'bottom'];
 export const ChartLegendLeftList = ['left', 'center', 'right'];
 export const ChartLegendOrientList = ['horizontal', 'vertical'];
+export const ChartLineSymbolList = ['circle', 'rect', 'roundRect', 'triangle', 'diamond', 'pin', 'arrow', 'none'];
 
 export const ChartAxisTooltipFormatter =
     `function (params) {` +
