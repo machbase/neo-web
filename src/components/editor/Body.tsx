@@ -28,6 +28,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
     const sFilterBoard = useRecoilValue<any>(gSelectedBoard);
     const [sIsSaveModal, setIsSaveModal] = useState<boolean>(false);
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
+    const [sBodyWidth, setBodyWidth] = useState<number>(0);
     const sSaveWorkSheet = useRecoilValue(gSaveWorkSheets);
     const sTabRef = useRef(null);
     const [sTabDragInfo, setTabDragInfo] = useState<{ start: number | undefined; over: number | undefined; enter: number | undefined; end: boolean }>({
@@ -155,6 +156,25 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
         }
     }, [sTabDragInfo.end]);
 
+    // resize body ref when extension button click
+    useEffect(() => {
+        const resizeObserver = new ResizeObserver((entries) => {
+            if (entries[0]) {
+                setBodyWidth(entries[0].contentRect.width);
+            }
+        });
+
+        if (sBodyRef.current) {
+            resizeObserver.observe(sBodyRef.current);
+        }
+
+        return () => {
+            if (sBodyRef.current) {
+                resizeObserver.unobserve(sBodyRef.current);
+            }
+        };
+    }, []);
+
     return (
         <div ref={sBodyRef} style={{ width: '100%', height: '100%', background: '#262831' }}>
             <div className="tab">
@@ -208,7 +228,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                             {aItem.type === 'dsh' && (
                                 <Dashboard
                                     pDragStat={pDragStat}
-                                    pWidth={sBodyRef?.current?.clientWidth}
+                                    pWidth={sBodyWidth}
                                     pHandleSaveModalOpen={handleSaveModalOpen}
                                     pInfo={aItem}
                                     setIsSaveModal={setIsSaveModal}
