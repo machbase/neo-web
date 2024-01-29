@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /** Declare helper */
-const { _chartOption, _chart, aIdx }: any = [null, null, null];
+const { _chartOption, _chart, aIdx, sData }: any = [null, null, null, null];
 /** NAME_VALUE func */
 const NameValueFunc = (obj: any) => {
-    _chartOption.series[0].data[aIdx] = obj.data.rows[0][0];
+    sData[aIdx] = obj.data.rows[0][0];
+    _chartOption.series[0] = { ..._chartOption.series[0], data: sData };
     _chart.setOption(_chartOption);
 };
 /** TIME_VALUE func */
@@ -53,6 +54,7 @@ export const DashboardChartCodeParser = async (aChartOptions: any, aChartType: s
 
     return `{
         let sQuery = ${JSON.stringify(sDynamicVariable)};
+        let sData = [];
         ${sFunction}
         ${sLoop}
     }`;

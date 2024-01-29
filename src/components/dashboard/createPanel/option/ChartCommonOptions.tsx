@@ -3,6 +3,7 @@ import { Select } from '@/components/inputs/Select';
 import { ChartThemeList, ChartTooltipTriggerList, ChartLegendLeftList, ChartLegendTopList, ChartLegendOrientList } from '@/utils/constants';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Collapse } from '@/components/collapse/Collapse';
+import { generateUUID } from '@/utils';
 
 interface ChartCommonOptionsProps {
     pPanelOption: any;
@@ -16,6 +17,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
+                id: generateUUID(),
                 [aKey]: aValue,
             };
         });
@@ -25,6 +27,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
+                id: generateUUID(),
                 commonOptions: {
                     ...aPrev.commonOptions,
                     [aKey]: aValue,
