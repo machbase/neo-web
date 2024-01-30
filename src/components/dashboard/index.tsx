@@ -134,7 +134,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                         onClick={HandlePanelHeader}
                     />
                     <IconButton pWidth={20} pHeight={20} pIcon={<VscSync />} onClick={HandleRefresh} />
-                    <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')}></IconButton>
+                    <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')} />
                     <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
                         <Calendar />
                         {pInfo && pInfo.dashboard.timeRange.start ? (
@@ -152,7 +152,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                         )}
                         , Refresh : {pInfo.dashboard.timeRange.refresh}
                     </button>
-                    <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight></VscChevronRight>} onClick={() => moveTimeRange('r')}></IconButton>
+                    <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight />} onClick={() => moveTimeRange('r')} />
                     <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
                     <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
                 </div>

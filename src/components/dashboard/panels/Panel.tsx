@@ -48,6 +48,7 @@ const Panel = ({
                     pParentWidth={pParentWidth}
                     pIsHeader={pIsHeader}
                     pChartVariableId={pChartVariableId}
+                    pIsView={pIsView}
                 ></LineChart>
             )}
         </div>
