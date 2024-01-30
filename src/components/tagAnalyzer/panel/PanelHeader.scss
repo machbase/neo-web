@@ -43,3 +43,21 @@
         margin: 0 5px;
     }
 }
+.panel-header-navigator {
+    .mui-svg-hover {
+        &:hover {
+            path {
+                fill: white;
+            }
+        }
+    }
+}
+.hidden-header-menu {
+    .item:hover {
+        .mui-svg-hover {
+            path {
+                fill: white;
+            }
+        }
+    }
+}

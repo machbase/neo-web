@@ -4,15 +4,19 @@ import { gBoardList, GBoardListType, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import './PanelHeader.scss';
 import { Tooltip } from 'react-tooltip';
-import { generateRandomString } from '@/utils';
+import { generateRandomString, getId, isEmpty } from '@/utils';
 import Menu from '@/components/contextMenu/Menu';
 import { useState, useRef } from 'react';
 import useOutsideClick from '@/hooks/useOutsideClick';
+import { convertChartDefault } from '@/utils/utils';
+import { DEFAULT_CHART } from '@/utils/constants';
+import { Error } from '@/components/toast/Toast';
+import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: any) => {
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
-    const [sSelectedTab] = useRecoilState(gSelectedTab);
+    const [sSelectedTab, setSelectedTab] = useRecoilState(gSelectedTab);
     const sHeaderId = generateRandomString();
     const sMenuRef = useRef<HTMLDivElement>(null);
 
@@ -49,6 +53,80 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
         setIsContextMenu(false);
     };
 
+    const handleMoveTagz = (aEvent: React.MouseEvent) => {
+        aEvent.stopPropagation();
+        const sTags = [] as any[];
+
+        pPanelInfo.blockList
+            .filter((aTag: any) => aTag.type === 'tag' && !aTag.useCustom)
+            .map((aPanel: any) => {
+                sTags.push(createTag(aPanel));
+            });
+
+        if (!isEmpty(sTags)) {
+            const sBoard = sBoardList.filter((aBoard) => aBoard.id === sSelectedTab)[0];
+            const sTime = pPanelInfo.useCustomTime ? pPanelInfo.timeRange : sBoard.dashboard.timeRange;
+            const sNewData = {
+                chartType: 'Line',
+                tagSet: sTags,
+                defaultRange: {
+                    min: sTime.start,
+                    max: sTime.end,
+                },
+            };
+
+            const tagzFormat = convertChartDefault(DEFAULT_CHART, sNewData);
+            createTagzTab(sBoard.name.replace(/[.]/g, ''), tagzFormat);
+        } else {
+            Error('Cannot view taganalyzer because there is no tag');
+        }
+        setIsContextMenu(false);
+    };
+
+    const createTag = (aInfo: any) => {
+        return {
+            key: getId(),
+            tagName: aInfo.tag,
+            table: aInfo.table,
+            calculationMode: 'avg',
+            alias: aInfo.alias ?? '',
+            weight: 1.0,
+            // onRollup: false,
+            colName: { name: aInfo.tableInfo[0][0], time: aInfo.tableInfo[1][0], value: aInfo.tableInfo[2][0] },
+        };
+    };
+
+    const createTagzTab = (aName: string, aPanels: any) => {
+        const sId = getId();
+        setBoardList((aPrev: any) => {
+            return [
+                ...aPrev,
+                {
+                    id: sId,
+                    path: '/',
+                    type: 'taz',
+                    name: aName + '.taz',
+                    panels: [aPanels],
+                    sheet: [],
+                    code: '',
+                    savedCode: false,
+                    range_bgn: '',
+                    range_end: '',
+                    shell: { icon: 'chart-line', theme: '', id: 'TAZ' },
+                    dashboard: {
+                        timeRange: {
+                            start: 'now-30m',
+                            end: 'now',
+                            refresh: 'Off',
+                        },
+                        panels: [],
+                    },
+                },
+            ];
+        });
+        setSelectedTab(sId);
+    };
+
     useOutsideClick(sMenuRef, () => setIsContextMenu(false));
 
     return (
@@ -60,6 +138,10 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                         <Menu.Item onClick={(aEvent: any) => handleMoveEditOnMenu(aEvent, pPanelInfo.id)}>
                             <GearFill />
                             <span>Setting</span>
+                        </Menu.Item>
+                        <Menu.Item onClick={handleMoveTagz}>
+                            <MuiTagAnalyzerGray className="mui-svg-hover" width={13} />
+                            <span>Show Taganalyer</span>
                         </Menu.Item>
                         <Menu.Item onClick={handleDeleteOnMenu}>
                             <Delete />
@@ -83,16 +165,20 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                             content={`${pPanelInfo.timeRange.start} ~ ${pPanelInfo.timeRange.end} , ${pPanelInfo.timeRange.refresh}`}
                         />
                     </a>
-                    <IconButton
-                        pDisabled={pIsView}
-                        pWidth={25}
-                        pIcon={<GearFill size={14} />}
-                        onClick={(aEvent: any) => {
-                            aEvent.stopPropagation();
-                            pShowEditPanel('edit', pPanelInfo.id);
-                        }}
-                    />
-                    <IconButton pDisabled={pIsView} pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />
+                    {!pIsView && (
+                        <>
+                            <IconButton pWidth={25} pIcon={<MuiTagAnalyzerGray className="mui-svg-hover" width={16} />} onClick={handleMoveTagz} />
+                            <IconButton
+                                pWidth={25}
+                                pIcon={<GearFill size={14} />}
+                                onClick={(aEvent: any) => {
+                                    aEvent.stopPropagation();
+                                    pShowEditPanel('edit', pPanelInfo.id);
+                                }}
+                            />
+                            <IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />
+                        </>
+                    )}
                 </div>
             </div>
         </>

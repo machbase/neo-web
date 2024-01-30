@@ -8,6 +8,7 @@ import moment from 'moment';
 import { Calendar, MdDevicesFold, VscChevronLeft, VscChevronRight, VscSync } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { setUnitTime } from '@/utils/dashboardUtil';
+import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 
 const DashboardView = () => {
     const sParams = useParams();
@@ -117,14 +118,11 @@ const DashboardView = () => {
                     className="layout"
                     useCSSTransforms={false}
                     layout={sBoardInformation && sBoardInformation.dashboard.panels}
-                    cols={36}
+                    cols={GRID_LAYOUT_COLS}
                     autoSize={true}
-                    rowHeight={30}
+                    rowHeight={GRID_LAYOUT_ROW_HEIGHT}
                     width={sLayoutRef.current?.clientWidth}
-                    // onDragStart={(aEvent: any) => draging(true, aEvent)}
-                    // onDragStop={(aEvent: any) => draging(false, aEvent)}
-                    // onResizeStop={changeLayout}
-                    draggableHandle=".board-panel-header"
+                    isResizable={false}
                 >
                     {sBoardInformation &&
                         sBoardInformation.dashboard &&
