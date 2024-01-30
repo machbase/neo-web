@@ -10,15 +10,16 @@ import { gBoardList, gRollupTableList } from '@/recoil/recoil';
 import Panel from './panels/Panel';
 import CreatePanel from './createPanel/CreatePanel';
 import { IconButton } from '../buttons/IconButton';
-import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, MdDevicesFold, VscSync } from '@/assets/icons/Icon';
+import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, MdDevicesFold, VscSync, MdLink } from '@/assets/icons/Icon';
 import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
 import moment from 'moment';
 import { setUnitTime } from '@/utils/dashboardUtil';
 import { getRollupTableList } from '@/api/repository/machiot';
 import { getId, isEmpty } from '@/utils';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
+import { ClipboardCopy } from '@/utils/ClipboardCopy';
 
-const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveModal }: any) => {
+const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveModal, pIsSave }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const setRollupTabls = useSetRecoilState(gRollupTableList);
@@ -81,7 +82,6 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
         !aValue && changeLayout(aEvent);
     };
     const changeLayout = (aLayout: any) => {
-        setRefresh(sRefresh + 1);
         const sTempBoardList = sBoardList.map((aItem: any) => {
             return aItem.id === pInfo.id
                 ? {
@@ -114,6 +114,12 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
         setRefresh(sRefresh + 1);
     };
 
+    const handleCopyLink = () => {
+        const sTargetBoard = sBoardList.find((aBoard) => aBoard.id === pInfo.id);
+        const sTargetPath = `http://${window.location.host + '/web/ui/view/' + sTargetBoard!.name.split('.')[0]}`;
+        ClipboardCopy(sTargetPath);
+    };
+
     useEffect(() => {
         GenChartVariableId();
         GetRollupTables();
@@ -125,15 +131,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
         sLoadedRollupTable && (
             <div ref={sBoardRef} className="dashboard-form">
                 <div className="board-header">
-                    <IconButton pWidth={24} pHeight={24} pIcon={<TbSquarePlus />} onClick={() => showEditPanel('create')}></IconButton>
-                    <IconButton
-                        pWidth={24}
-                        pHeight={24}
-                        pIcon={<MdDevicesFold style={{ transform: 'rotate(-90deg)' }} />}
-                        pIsActive={!sIsPanelHeader}
-                        onClick={HandlePanelHeader}
-                    />
-                    <IconButton pWidth={20} pHeight={20} pIcon={<VscSync />} onClick={HandleRefresh} />
+                    <IconButton pIcon={<TbSquarePlus />} onClick={() => showEditPanel('create')}></IconButton>
+                    <IconButton pIcon={<MdDevicesFold style={{ transform: 'rotate(-90deg)' }} />} pIsActive={!sIsPanelHeader} onClick={HandlePanelHeader} />
+                    <IconButton pIcon={<VscSync />} onClick={HandleRefresh} />
                     <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')} />
                     <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
                         <Calendar />
@@ -155,6 +155,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                     <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight />} onClick={() => moveTimeRange('r')} />
                     <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
                     <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
+                    {pIsSave ? <IconButton pIcon={<MdLink size={18} />} onClick={handleCopyLink} /> : null}
                 </div>
                 {pWidth && (
                     <div className="board-body">

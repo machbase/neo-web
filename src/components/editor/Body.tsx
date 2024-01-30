@@ -235,6 +235,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     pDraged={pDraged}
                                     pId={aItem.id}
                                     pSideSizes={pSideSizes}
+                                    pIsSave={aItem.path}
                                 ></Dashboard>
                             )}
                             {aItem.type === 'wrk' && <WorkSheet pId={aItem.id} pSheet={aItem.sheet} pHandleSaveModalOpen={handleSaveModalOpen} setIsSaveModal={setIsSaveModal} />}
