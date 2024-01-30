@@ -26,7 +26,7 @@ const CreatePanel = ({
     pModifyState,
     pSetModifyState,
 }: {
-    pLoopMode: boolean,
+    pLoopMode: boolean;
     pPanelId: string;
     pType: 'create' | 'edit' | undefined;
     pSetCreateModal: (aValue: boolean) => void;

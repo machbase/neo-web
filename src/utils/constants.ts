@@ -411,3 +411,6 @@ export const ChartItemTooltipFormatter =
 // react grid layout value
 export const GRID_LAYOUT_COLS = 36;
 export const GRID_LAYOUT_ROW_HEIGHT = 30;
+
+// tag color
+export const TagColorList = ['#73BF69', '#F2CC0C', '#8AB8FF', '#FF780A', '#F2495C', '#5794F2', '#B877D9', '#705DA0', '#37872D', '#FDA1FF', '#7B64FF', '#999999'];

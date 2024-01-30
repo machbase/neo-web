@@ -9,9 +9,9 @@ import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
+import { TagColorList } from '@/utils/constants';
 
 const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
-    const sColorList = ['#73BF69', '#F2CC0C', '#8AB8FF', '#FF780A', '#F2495C', '#5794F2', '#B877D9', '#705DA0', '#37872D', '#FDA1FF', '#7B64FF', '#999999'];
     const [sTab, setTab] = useState('Query');
     const VALUE_LIMIT: number = 1;
 
@@ -42,9 +42,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                     {
                         ...aPrev.blockList.at(-1),
                         id: generateUUID(),
-                        color: sColorList[aPrev.blockList.length],
-                        // values: [{ id: generateUUID(), alias: '', value: '', aggregator: 'avg' }],
-                        // filter: [{ id: generateUUID(), column: '', value: '', operator: '=', useFilter: false }],
+                        color: TagColorList[aPrev.blockList.length],
                     },
                 ],
             };
