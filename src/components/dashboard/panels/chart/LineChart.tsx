@@ -106,7 +106,7 @@ const LineChart = ({
     };
 
     const sSetIntervalTime = () => {
-        if (pType === 'create' || pType === 'edit' || pIsView) return null;
+        if (pType === 'create' || pType === 'edit') return null;
         if (pPanelInfo.timeRange.refresh !== 'Off') return calcRefreshTime(pPanelInfo.timeRange.refresh);
         if (pBoardInfo.dashboard.timeRange.refresh !== 'Off') return calcRefreshTime(pBoardInfo.dashboard.timeRange.refresh);
         return null;
