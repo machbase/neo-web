@@ -235,6 +235,7 @@ export const StructureOfCommonOption = {
     },
     tooltip: {
         show: true as boolean,
+        confine: true as boolean,
         trigger: 'item' as 'item' | 'axis' | 'none',
         formatter: null as unknown as (params: any, ticket: string, callback: (ticket: string, html: string) => any) => string | HTMLElement | HTMLElement[] | null,
     },
