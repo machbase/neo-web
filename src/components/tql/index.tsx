@@ -60,6 +60,10 @@ const Tql = (props: TqlProps) => {
         setCurrentLang('go');
     }, []);
 
+    useEffect(() => {
+        if (sText !== pCode && sCurrentLang) setText(pCode);
+    }, [pCode]);
+
     const handleSplitVertical = () => {
         setIsVertical(true);
     };

@@ -1,4 +1,4 @@
-import { Delete, GearFill, VscRecord, GoGrabber } from '@/assets/icons/Icon';
+import { Delete, GearFill, VscRecord, GoGrabber, Save } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { gBoardList, GBoardListType, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
@@ -12,6 +12,7 @@ import { convertChartDefault } from '@/utils/utils';
 import { DEFAULT_CHART } from '@/utils/constants';
 import { Error } from '@/components/toast/Toast';
 import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
+import { SaveDashboardModal } from '@/components/modal/SaveDashboardModal';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: any) => {
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
@@ -19,6 +20,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
     const [sSelectedTab, setSelectedTab] = useRecoilState(gSelectedTab);
     const sHeaderId = generateRandomString();
     const sMenuRef = useRef<HTMLDivElement>(null);
+    const [sDownloadModal, setDownloadModal] = useState<boolean>(false);
 
     const removePanel = () => {
         setBoardList(
@@ -52,7 +54,6 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
         pShowEditPanel('edit', aPanelId);
         setIsContextMenu(false);
     };
-
     const handleMoveTagz = (aEvent: React.MouseEvent) => {
         aEvent.stopPropagation();
         const sTags = [] as any[];
@@ -127,6 +128,11 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
         setSelectedTab(sId);
     };
 
+    const HandleDownload = () => {
+        setIsContextMenu(false);
+        setDownloadModal(true);
+    };
+
     useOutsideClick(sMenuRef, () => setIsContextMenu(false));
 
     return (
@@ -146,6 +152,10 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                         <Menu.Item onClick={handleDeleteOnMenu}>
                             <Delete />
                             <span>Delete</span>
+                        </Menu.Item>
+                        <Menu.Item onClick={HandleDownload}>
+                            <Save />
+                            <span>Save</span>
                         </Menu.Item>
                     </Menu>
                 </div>
@@ -181,6 +191,14 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                     )}
                 </div>
             </div>
+            {sDownloadModal && (
+                <SaveDashboardModal
+                    pDashboardTime={sBoardList.find((aItem: any) => aItem.id === sSelectedTab)?.dashboard.timeRange}
+                    setIsOpen={setDownloadModal}
+                    pPanelInfo={pPanelInfo}
+                    pIsDarkMode={true}
+                />
+            )}
         </>
     );
 };
