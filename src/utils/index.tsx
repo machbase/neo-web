@@ -288,3 +288,7 @@ export const generateRandomString = () => {
 
     return result;
 };
+
+export const isMobile = () => {
+    return /iPhone|Android/i.test(window.navigator.userAgent);
+};
