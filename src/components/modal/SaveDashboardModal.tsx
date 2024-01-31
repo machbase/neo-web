@@ -67,12 +67,12 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, pPanelInfo.type, sParsedQuery);
         const sUsePlg: boolean = !!pPanelInfo.plg;
         let sResult: string = `FAKE(linspace(0, 1, 1))\n` + `CHART(\n`;
-        if (sUsePlg) sResult += `    plugins('${pPanelInfo.plg}'),\n`;
+        if (sUsePlg) sResult += `\tplugins('${pPanelInfo.plg}'),\n`;
         sResult +=
-            `    theme('${pPanelInfo.theme}'),\n` +
-            `    size('${pPanelInfo.w * 50}px','${pPanelInfo.h * 40}px'),\n` +
-            `    chartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption))}),\n` +
-            `    chartJSCode(${sParsedChartCode})\n` +
+            `\ttheme("${pPanelInfo.theme}"),\n` +
+            `\tsize("${pPanelInfo.w * 50}px","${pPanelInfo.h * 40}px"),\n` +
+            `\tchartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption))}),\n` +
+            `\tchartJSCode(${sParsedChartCode})\n` +
             `)`;
         return sResult;
     };

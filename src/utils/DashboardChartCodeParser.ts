@@ -1,34 +1,35 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/** Declare helper */
-const { _chartOption, _chart, aIdx, sData }: any = [null, null, null, null];
 /** NAME_VALUE func */
-const NameValueFunc = (obj: any) => {
-    sData[aIdx] = obj.data.rows[0][0];
-    _chartOption.series[0] = { ..._chartOption.series[0], data: sData };
-    _chart.setOption(_chartOption);
+const NameValueFunc = () => {
+    return `(obj) => {
+        \t\tsData[aIdx] = obj.data.rows[0][0];
+        \t\t_chartOption.series[0] = { ..._chartOption.series[0], data: sData };
+        \t\t_chart.setOption(_chartOption);
+        \t}`;
 };
 /** TIME_VALUE func */
-const TimeValueFunc = (obj: any) => {
-    _chartOption.series[aIdx].data = obj.data.rows;
-    _chart.setOption(_chartOption);
+const TimeValueFunc = () => {
+    return `(obj) => {
+        \t\t_chartOption.series[aIdx].data = obj.data.rows;
+        \t\t_chart.setOption(_chartOption);
+        \t}`;
 };
 /** LIQUIDFILL NAME_VALUE func */
 const LiquidNameValueFunc = (aChartOptions: any) => {
     return `(obj) => {
-        let sValue = obj.data.rows[0][0].value;
-        _chartOption.series[aIdx].data = [ (sValue - ${aChartOptions.minData}) / ( ${aChartOptions.maxData} -  ${aChartOptions.minData}) ]
-        _chartOption.series[aIdx].label.formatter = function() {
-        return Number.parseFloat(sValue).toFixed(${aChartOptions.digit}) + "${aChartOptions.unit}";
-    }
-    _chart.setOption(_chartOption)}`;
+        \t\tlet sValue = obj.data.rows[0][0].value;
+        \t\t_chartOption.series[aIdx].data = [ (sValue - ${aChartOptions.minData}) / ( ${aChartOptions.maxData} -  ${aChartOptions.minData}) ]
+        \t\t_chartOption.series[aIdx].label.formatter = function() {
+        \t\t\treturn Number.parseFloat(sValue).toFixed(${aChartOptions.digit}) + "${aChartOptions.unit}";
+        \t\t}
+        \t\t_chart.setOption(_chartOption)}`;
 };
 
 export const DashboardChartCodeParser = async (aChartOptions: any, aChartType: string, aParsedQuery: any) => {
     const sDataType = aParsedQuery[0].dataType;
     let sInjectFunc = null;
 
-    if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc;
-    if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc;
+    if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc();
+    if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc();
     if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidNameValueFunc(aChartOptions);
 
     // GEN variable
@@ -38,20 +39,19 @@ export const DashboardChartCodeParser = async (aChartOptions: any, aChartType: s
             idx: aQuery.idx,
         };
     });
+
     // GEN func
     const sFunction = `function getData(aTql, aIdx) {
-        fetch("http://${window.location.hostname}:5654/db/tql", {
-            method: "POST",
-            body: aTql
-        })
-        .then((rsp) => rsp.json())
-        .then(${sInjectFunc})
-        .catch((err) => console.warn("data fetch error", err));
-    };`;
+        \tfetch("http://${window.location.hostname}:5654/db/tql", {
+            \tmethod: "POST",
+            \tbody: aTql
+        \t})
+        \t.then((rsp) => rsp.json())
+        \t.then(${sInjectFunc})
+        \t.catch((err) => console.warn("data fetch error", err));
+        };`;
     // GEN loop
-    const sLoop = `sQuery.forEach((aData)=>{
-        getData(aData.query, aData.idx);
-    });`;
+    const sLoop = `sQuery.forEach((aData) => {\n` + `\t\t\tgetData(aData.query, aData.idx);\n` + `\t\t});`;
 
     return `{
         let sQuery = ${JSON.stringify(sDynamicVariable)};
