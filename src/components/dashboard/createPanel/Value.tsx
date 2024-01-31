@@ -55,7 +55,7 @@ any) => {
                     pFontSize={12}
                     pWidth={175}
                     pBorderRadius={4}
-                    pInitValue={'avg'}
+                    pInitValue={pValue.aggregator ?? 'avg'}
                     pHeight={26}
                     onChange={(aEvent: any) => pChangeValueOption('aggregator', aEvent, pValue.id, 'values')}
                     pOptions={tagAggregatorList}
