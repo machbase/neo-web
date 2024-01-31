@@ -224,25 +224,47 @@
 
     .save-option {
         display: flex;
-        // justify-content: space-around;
+        justify-content: space-around;
         align-items: center;
-        height: 120px;
+        height: 80px;
         width: 100%;
         padding-left: 14px;
         padding-right: 14px;
         .save-file-name {
-            width: 25%;
             padding-right: 3px;
+            font-size: 12px;
+            .input-wrapper {
+                border: solid 0.5px rgba(255, 255, 255, 0.5);
+                input {
+                    color: white !important;
+                }
+            }
         }
         .save-file-data {
-            width: 25%;
-            // display: flex;
+            font-size: 12px;
+            .select-input {
+                input {
+                    cursor: pointer;
+                }
+            }
+            .select-options {
+                .options-item {
+                    cursor: pointer;
+                }
+            }
         }
         .save-file-block {
-            width: 25%;
-        }
-        .save-file-output {
-            width: 25%;
+            font-size: 12px;
+            .select-input {
+                input {
+                    cursor: pointer;
+                }
+            }
+            .select-options {
+                .options-item {
+                    cursor: pointer;
+                }
+            }
         }
     }
 

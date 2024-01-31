@@ -1,4 +1,4 @@
-import { Delete, GearFill, VscRecord, GoGrabber, Save } from '@/assets/icons/Icon';
+import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { gBoardList, GBoardListType, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
@@ -154,8 +154,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                             <span>Delete</span>
                         </Menu.Item>
                         <Menu.Item onClick={HandleDownload}>
-                            <Save />
-                            <span>Save</span>
+                            <VscGraphScatter />
+                            <span>Save to tql</span>
                         </Menu.Item>
                     </Menu>
                 </div>
