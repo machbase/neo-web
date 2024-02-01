@@ -84,7 +84,7 @@ const CreatePanel = ({
                           dashboard: {
                               ...aItem.dashboard,
                               panels: aItem.dashboard.panels.map((bItem: any) => {
-                                  return bItem.id === pPanelId ? sPanelOption : bItem;
+                                  return bItem.id === pPanelId ? { ...sPanelOption, id: generateUUID() } : bItem;
                               }),
                           },
                       }

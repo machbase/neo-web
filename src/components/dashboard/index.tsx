@@ -180,6 +180,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                                             <Panel
                                                 pLoopMode={pInfo.dashboard.timeRange.refresh === 'Off' ? false : true}
                                                 pRefresh={sRefresh}
+                                                pSetRefresh={setRefresh}
                                                 pDragStat={pDragStat}
                                                 pType={sThisPanelStatus}
                                                 pShowEditPanel={showEditPanel}

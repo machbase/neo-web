@@ -8,6 +8,7 @@ const Panel = ({
     pLoopMode,
     pChartVariableId,
     pRefresh,
+    pSetRefresh,
     pBoardInfo,
     pShowEditPanel,
     pType,
@@ -38,6 +39,7 @@ const Panel = ({
                 <LineChart
                     pLoopMode={pLoopMode}
                     pRefresh={pRefresh}
+                    pSetRefresh={pSetRefresh}
                     pDragStat={pDragStat}
                     pInsetDraging={pInsetDraging}
                     pBoardInfo={pBoardInfo}
