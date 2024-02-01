@@ -77,7 +77,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
             };
 
             const tagzFormat = convertChartDefault(DEFAULT_CHART, sNewData);
-            createTagzTab(sBoard.name.replace(/[.]/g, ''), tagzFormat);
+            createTagzTab(pPanelInfo.title, tagzFormat);
         } else {
             Error('Cannot view taganalyzer because there is no tag');
         }

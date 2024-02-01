@@ -30,16 +30,6 @@ const CHART = ({
         if (pChartAixsList.length === 0) return;
         const tmpSize = { width: Math.floor(chartRef.current.clientWidth), height: Math.floor(chartRef.current.clientHeight - sControlPanelHeight) };
         setStyle(tmpSize);
-        console.log(
-            'aaaa',
-            sqlBasicChartFormatter(pSqlQueryTxt(), {
-                x: sSelectedXAxis,
-                y: sSelectedYAxis,
-                xIndex: pChartAixsList.indexOf(sSelectedXAxis),
-                yIndex: pChartAixsList.indexOf(sSelectedYAxis),
-                list: pChartAixsList,
-            })
-        );
         const sTmpResult = await getTqlChart(
             sqlBasicChartFormatter(pSqlQueryTxt(), {
                 x: sSelectedXAxis,

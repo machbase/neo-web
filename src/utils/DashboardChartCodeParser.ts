@@ -4,7 +4,7 @@ const NameValueFunc = () => {
         \t\tsData[aIdx] = obj.data.rows[0][0];
         \t\tsCount += 1;
         \t\t_chartOption.series[0] = { ..._chartOption.series[0], data: sData };
-        \t\tif (sCount === sQuery.length) {console.log('test', sData); _chart.setOption(_chartOption);}
+        \t\tif (sCount === sQuery.length) _chart.setOption(_chartOption);
         \t}`;
 };
 /** TIME_VALUE func */
