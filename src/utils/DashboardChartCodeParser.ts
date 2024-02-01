@@ -2,8 +2,9 @@
 const NameValueFunc = () => {
     return `(obj) => {
         \t\tsData[aIdx] = obj.data.rows[0][0];
+        \t\tsCount += 1;
         \t\t_chartOption.series[0] = { ..._chartOption.series[0], data: sData };
-        \t\tif (sData.length === sQuery.length) _chart.setOption(_chartOption);
+        \t\tif (sCount === sQuery.length) {console.log('test', sData); _chart.setOption(_chartOption);}
         \t}`;
 };
 /** TIME_VALUE func */
@@ -56,6 +57,7 @@ export const DashboardChartCodeParser = async (aChartOptions: any, aChartType: s
     return `{
         let sQuery = ${JSON.stringify(sDynamicVariable)};
         let sData = [];
+        let sCount = 0;
         ${sFunction}
         ${sLoop}
     }`;
