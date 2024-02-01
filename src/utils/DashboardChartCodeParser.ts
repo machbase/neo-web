@@ -3,7 +3,7 @@ const NameValueFunc = () => {
     return `(obj) => {
         \t\tsData[aIdx] = obj.data.rows[0][0];
         \t\t_chartOption.series[0] = { ..._chartOption.series[0], data: sData };
-        \t\t_chart.setOption(_chartOption);
+        \t\tif (sData.length === sQuery.length) _chart.setOption(_chartOption);
         \t}`;
 };
 /** TIME_VALUE func */
