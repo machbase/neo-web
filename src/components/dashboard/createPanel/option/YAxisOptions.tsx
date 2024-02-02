@@ -1,5 +1,6 @@
 // import { TextButton } from '@/components/buttons/TextButton';
 import { Collapse } from '@/components/collapse/Collapse';
+import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 // import { DefaultYAxisOption } from '@/utils/eChartHelper';
 
@@ -38,6 +39,17 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
     //     });
     // };
 
+    const HandleMinMax = (aTarget: string, aValue: number, aIndex: number) => {
+        const sCurrentYAxis = JSON.parse(JSON.stringify(pYAxis));
+        sCurrentYAxis[aIndex][aTarget] = aValue;
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                yAxisOptions: sCurrentYAxis,
+            };
+        });
+    };
+
     return (
         <Collapse title="yAxis">
             {pYAxis.map((aItem: any, aIndex: number) => (
@@ -52,6 +64,26 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                         pOptions={sPositionList}
                     />
                     {/* <div className="divider" /> */}
+                    <div>Min</div>
+                    <Input
+                        pType="number"
+                        pWidth={50}
+                        pHeight={25}
+                        pBorderRadius={4}
+                        pIsDisabled={false}
+                        pValue={aItem?.min ?? 0}
+                        onChange={(aEvent: any) => HandleMinMax('min', aEvent.target.value, aIndex)}
+                    />
+                    <div>Max</div>
+                    <Input
+                        pType="number"
+                        pWidth={50}
+                        pHeight={25}
+                        pBorderRadius={4}
+                        pIsDisabled={false}
+                        pValue={aItem?.max ?? 0}
+                        onChange={(aEvent: any) => HandleMinMax('max', aEvent.target.value, aIndex)}
+                    />
                 </div>
             ))}
 

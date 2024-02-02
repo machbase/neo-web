@@ -38,6 +38,8 @@ export const DefaultYAxisOption = {
     position: 'left' as 'left' | 'right',
     alignTicks: true,
     scale: true,
+    min: 0 as number,
+    max: 100 as number,
     // axisLine: {
     //     lineStyle: {
     //         color: '#fff'
