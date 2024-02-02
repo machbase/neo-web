@@ -29,7 +29,7 @@ any) => {
                         pWidth={175}
                         pBorderRadius={4}
                         pAutoChanged={true}
-                        pInitValue={pValue.value && ''}
+                        pInitValue={pValue.value ?? ''}
                         pHeight={26}
                         onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
                         pOptions={pColumnList.map((aItem: any) => aItem[0])}
