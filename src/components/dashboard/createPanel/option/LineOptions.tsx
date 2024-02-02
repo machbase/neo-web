@@ -5,6 +5,7 @@ import CheckBox from '@/components/inputs/CheckBox';
 import { isEmpty } from '@/utils';
 import { Select } from '@/components/inputs/Select';
 import { ChartLineSymbolList } from '@/utils/constants';
+import { Input } from '@/components/inputs/Input';
 
 interface LineOptionProps {
     pPanelOption: any;
@@ -101,6 +102,17 @@ export const LineOptions = (props: LineOptionProps) => {
                     pHeight={25}
                     onChange={(aEvent: any) => handleLineOption(aEvent, 'symbol', false)}
                     pOptions={ChartLineSymbolList}
+                />
+            </div>
+            <div className="menu-style">
+                <span>Symbol Size</span>
+                <Input
+                    pWidth={100}
+                    pHeight={25}
+                    pBorderRadius={4}
+                    pIsDisabled={pPanelOption.chartOptions?.symbol === 'none'}
+                    pValue={pPanelOption.chartOptions?.symbolSize}
+                    onChange={(aEvent: any) => handleLineOption(aEvent, 'symbolSize', false)}
                 />
             </div>
             {/* <div className="divider" />

@@ -5,19 +5,21 @@ import GridLayout from 'react-grid-layout';
 import { useParams } from 'react-router-dom';
 import './DashboardView.scss';
 import moment from 'moment';
-import { Calendar, MdDevicesFold, VscChevronLeft, VscChevronRight, VscSync } from '@/assets/icons/Icon';
+import { Calendar, VscChevronLeft, VscChevronRight, VscSync } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { setUnitTime } from '@/utils/dashboardUtil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { isMobile } from '@/utils';
+import ViewTimeRangeModal from '@/components/modal/ViewTimeRangeModal';
 
 const DashboardView = () => {
     const sParams = useParams();
     const sLayoutRef = useRef<HTMLDivElement>(null);
     const [sBoardInformation, setBoardInformation] = useState<{ dashboard: any; name: string; id: string; panelHeader: boolean }>();
     const [sNotfound, setNotFound] = useState<boolean>(false);
-    const [sIsPanelHeader, setIsPanelHeader] = useState<boolean>(true);
+    // const [sIsPanelHeader, setIsPanelHeader] = useState<boolean>(true);
     const [sRefresh, setRefresh] = useState<number>(0);
+    const [sIsTimeRangeModal, setIsTimeRangeModal] = useState<boolean>(false);
     const sIsMobile = isMobile();
 
     const getDshFile = async (aFileName: string | undefined) => {
@@ -59,16 +61,6 @@ const DashboardView = () => {
         });
     };
 
-    const handlePanelHeader = () => {
-        setBoardInformation((aPrev: any) => {
-            return {
-                ...aPrev,
-                panelHeader: !sIsPanelHeader,
-            };
-        });
-        setIsPanelHeader(!sIsPanelHeader);
-    };
-
     const handleRefresh = () => {
         setRefresh((aPrev) => aPrev + 1);
     };
@@ -88,18 +80,11 @@ const DashboardView = () => {
                     <span className="title">{sBoardInformation?.name}</span>
                     <div className="header-menu">
                         <div className="list-menu">
-                            <IconButton
-                                pWidth={24}
-                                pHeight={24}
-                                pIcon={<MdDevicesFold style={{ transform: 'rotate(-90deg)' }} />}
-                                pIsActive={!sIsPanelHeader}
-                                onClick={handlePanelHeader}
-                            />
                             <IconButton pWidth={20} pHeight={20} pIcon={<VscSync />} onClick={handleRefresh} />
                         </div>
                         <div className="calendar-group">
                             <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')} />
-                            <button onClick={() => null} className="calendar">
+                            <button onClick={() => setIsTimeRangeModal(true)} className="calendar">
                                 <Calendar />
                                 {sBoardInformation && sBoardInformation.dashboard.timeRange.start ? (
                                     <span>
@@ -142,14 +127,24 @@ const DashboardView = () => {
                                         pPanelInfo={aItem}
                                         pModifyState={{ id: '', state: false }}
                                         pSetModifyState={() => null}
-                                        pIsHeader={sIsPanelHeader}
+                                        pIsHeader={false}
                                         pRefresh={sRefresh}
+                                        pSetRefresh={setRefresh}
                                     />
                                 </div>
                             );
                         })}
                 </GridLayout>
             </div>
+            {sIsTimeRangeModal && (
+                <ViewTimeRangeModal
+                    pSetTimeRangeModal={setIsTimeRangeModal}
+                    pStartTime={sBoardInformation?.dashboard.timeRange.start}
+                    pEndTime={sBoardInformation?.dashboard.timeRange.end}
+                    pSetTime={setBoardInformation}
+                    pRefresh={'Off'}
+                />
+            )}
         </>
     );
 };

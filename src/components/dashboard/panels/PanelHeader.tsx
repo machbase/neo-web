@@ -77,7 +77,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
             };
 
             const tagzFormat = convertChartDefault(DEFAULT_CHART, sNewData);
-            createTagzTab(pPanelInfo.title, tagzFormat);
+            createTagzTab(pPanelInfo.title, tagzFormat, sTime);
         } else {
             Error('Cannot view taganalyzer because there is no tag');
         }
@@ -97,7 +97,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
         };
     };
 
-    const createTagzTab = (aName: string, aPanels: any) => {
+    const createTagzTab = (aName: string, aPanels: any, aTime: any) => {
         const sId = getId();
         setBoardList((aPrev: any) => {
             return [
@@ -111,8 +111,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                     sheet: [],
                     code: '',
                     savedCode: false,
-                    range_bgn: '',
-                    range_end: '',
+                    range_bgn: aTime.start ?? '',
+                    range_end: aTime.end ?? '',
                     shell: { icon: 'chart-line', theme: '', id: 'TAZ' },
                     dashboard: {
                         timeRange: {

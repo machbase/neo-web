@@ -52,6 +52,7 @@ export const DefaultLineChartOption = {
     isStack: false as boolean,
     connectNulls: true as boolean,
     symbol: 'none' as string,
+    symbolSize: 10 as number,
     isSampling: false as boolean,
     markLine: {
         symbol: ['none', 'none'],
