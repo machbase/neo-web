@@ -5,7 +5,7 @@ import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 
 const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pBlockInfo, pColumnList }: any) => {
-    const sFliterList = ['=', '<>', '>', '>=', '<', '<=', 'in'];
+    const sFliterList = ['=', '<>', '>', '>=', '<', '<=', 'in', 'like'];
     return (
         <div className="values filter">
             <div className="series-table">
