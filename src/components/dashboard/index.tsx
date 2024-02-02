@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import GridLayout from 'react-grid-layout';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, KeyboardEvent } from 'react';
 
 import '/node_modules/react-grid-layout/css/styles.css';
 import '/node_modules/react-resizable/css/styles.css';
@@ -18,6 +18,7 @@ import { getRollupTableList } from '@/api/repository/machiot';
 import { getId, isEmpty } from '@/utils';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
+import { Input } from '../inputs/Input';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveModal, pIsSave }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
@@ -120,6 +121,19 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
         ClipboardCopy(sTargetPath);
     };
 
+    const changeDashboardName = (e: any) => {
+        setBoardList(
+            sBoardList.map((aItem: any) => {
+                return aItem.id === pInfo.id
+                    ? {
+                          ...aItem,
+                          dashboard: { ...aItem.dashboard, title: e.target.value },
+                      }
+                    : aItem;
+            })
+        );
+    };
+
     useEffect(() => {
         GenChartVariableId();
         GetRollupTables();
@@ -131,31 +145,44 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
         sLoadedRollupTable && (
             <div ref={sBoardRef} className="dashboard-form">
                 <div className="board-header">
-                    <IconButton pIcon={<TbSquarePlus />} onClick={() => showEditPanel('create')}></IconButton>
-                    <IconButton pIcon={<MdDevicesFold style={{ transform: 'rotate(-90deg)' }} />} pIsActive={!sIsPanelHeader} onClick={HandlePanelHeader} />
-                    <IconButton pIcon={<VscSync />} onClick={HandleRefresh} />
-                    <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')} />
-                    <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
-                        <Calendar />
-                        {pInfo && pInfo.dashboard.timeRange.start ? (
-                            <span>
-                                {(typeof pInfo.dashboard.timeRange.start === 'string' && pInfo.dashboard.timeRange.start.includes('now')
-                                    ? pInfo.dashboard.timeRange.start
-                                    : moment(pInfo.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
-                                    '~' +
-                                    (typeof pInfo.dashboard.timeRange.end === 'string' && pInfo.dashboard.timeRange.end.includes('now')
-                                        ? pInfo.dashboard.timeRange.end
-                                        : moment(pInfo.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
-                            </span>
-                        ) : (
-                            <span>Time range not set</span>
-                        )}
-                        , Refresh : {pInfo.dashboard.timeRange.refresh}
-                    </button>
-                    <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight />} onClick={() => moveTimeRange('r')} />
-                    <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
-                    <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
-                    {pIsSave ? <IconButton pIcon={<MdLink size={18} />} onClick={handleCopyLink} /> : null}
+                    <div className="board-header-l">
+                        <Input
+                            pBorderRadius={4}
+                            pWidth={175}
+                            pHeight={26}
+                            pType="text"
+                            pValue={pInfo.dashboard.title ? pInfo.dashboard.title : ''}
+                            pSetValue={() => null}
+                            onChange={changeDashboardName}
+                        />
+                    </div>
+                    <div className="board-header-r">
+                        <IconButton pIcon={<TbSquarePlus />} onClick={() => showEditPanel('create')}></IconButton>
+                        <IconButton pIcon={<MdDevicesFold style={{ transform: 'rotate(-90deg)' }} />} pIsActive={!sIsPanelHeader} onClick={HandlePanelHeader} />
+                        <IconButton pIcon={<VscSync />} onClick={HandleRefresh} />
+                        <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')} />
+                        <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
+                            <Calendar />
+                            {pInfo && pInfo.dashboard.timeRange.start ? (
+                                <span>
+                                    {(typeof pInfo.dashboard.timeRange.start === 'string' && pInfo.dashboard.timeRange.start.includes('now')
+                                        ? pInfo.dashboard.timeRange.start
+                                        : moment(pInfo.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
+                                        '~' +
+                                        (typeof pInfo.dashboard.timeRange.end === 'string' && pInfo.dashboard.timeRange.end.includes('now')
+                                            ? pInfo.dashboard.timeRange.end
+                                            : moment(pInfo.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
+                                </span>
+                            ) : (
+                                <span>Time range not set</span>
+                            )}
+                            , Refresh : {pInfo.dashboard.timeRange.refresh}
+                        </button>
+                        <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight />} onClick={() => moveTimeRange('r')} />
+                        <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
+                        <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
+                        {pIsSave ? <IconButton pIcon={<MdLink size={18} />} onClick={handleCopyLink} /> : null}
+                    </div>
                 </div>
                 {pWidth && (
                     <div className="board-body">

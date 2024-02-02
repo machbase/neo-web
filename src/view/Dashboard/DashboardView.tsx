@@ -77,7 +77,7 @@ const DashboardView = () => {
         <>
             <div ref={sLayoutRef} style={{ width: '100vw', height: '100vh' }}>
                 <div className="dashboard-view-header">
-                    <span className="title">{sBoardInformation?.name}</span>
+                    <span className="title">{sBoardInformation?.dashboard?.title || ''}</span>
                     <div className="header-menu">
                         <div className="list-menu">
                             <IconButton pWidth={20} pHeight={20} pIcon={<VscSync />} onClick={handleRefresh} />
