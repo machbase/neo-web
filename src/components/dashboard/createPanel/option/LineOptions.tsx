@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+// import { useEffect, useState } from 'react';
 // import { Collapse } from '@/components/collapse/Collapse';
 import CheckBox from '@/components/inputs/CheckBox';
 // import { MarkLineOption } from './MarkLineOption';
-import { isEmpty } from '@/utils';
+// import { isEmpty } from '@/utils';
 import { Select } from '@/components/inputs/Select';
 import { ChartLineSymbolList } from '@/utils/constants';
 import { Input } from '@/components/inputs/Input';
@@ -14,8 +14,8 @@ interface LineOptionProps {
 
 export const LineOptions = (props: LineOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
-    const [sIsMarkLine, setIsMarkLine] = useState<boolean>(pPanelOption.chartOptions?.markLine.data.length > 0 ?? false);
-    const [sMarkLineList, setMarkLineList] = useState<{ xAxis: number }[]>(pPanelOption.chartOptions?.markLine.data ?? []);
+    // const [sIsMarkLine, setIsMarkLine] = useState<boolean>(pPanelOption.chartOptions?.markLine.data.length > 0 ?? false);
+    // const [sMarkLineList, setMarkLineList] = useState<{ xAxis: number }[]>(pPanelOption.chartOptions?.markLine.data ?? []);
 
     const handleLineOption = (aEvent: any, aKey: any, aIsCheckbox: boolean) => {
         pSetPanelOption((prev: any) => {
@@ -29,48 +29,48 @@ export const LineOptions = (props: LineOptionProps) => {
         });
     };
 
-    const addMarkLine = () => {
-        const sNewMarkLine = { xAxis: 0 };
-        const sCopyMarkLineList = JSON.parse(JSON.stringify(sMarkLineList));
-        sCopyMarkLineList.push(sNewMarkLine);
-        sCopyMarkLineList.push(sNewMarkLine);
-        setMarkLineList(sCopyMarkLineList);
-    };
+    // const addMarkLine = () => {
+    //     const sNewMarkLine = { xAxis: 0 };
+    //     const sCopyMarkLineList = JSON.parse(JSON.stringify(sMarkLineList));
+    //     sCopyMarkLineList.push(sNewMarkLine);
+    //     sCopyMarkLineList.push(sNewMarkLine);
+    //     setMarkLineList(sCopyMarkLineList);
+    // };
 
-    const removeMarkLine = (aIndex: number) => {
-        const sCopyMarkLineList = JSON.parse(JSON.stringify(sMarkLineList));
-        sCopyMarkLineList.splice(aIndex * 2, 2);
-        setMarkLineList(sCopyMarkLineList);
-    };
+    // const removeMarkLine = (aIndex: number) => {
+    //     const sCopyMarkLineList = JSON.parse(JSON.stringify(sMarkLineList));
+    //     sCopyMarkLineList.splice(aIndex * 2, 2);
+    //     setMarkLineList(sCopyMarkLineList);
+    // };
 
-    const handleMarklineOption = (aData: any) => {
-        pSetPanelOption((prev: any) => {
-            return {
-                ...prev,
-                chartOptions: {
-                    ...prev.chartOptions,
-                    markLine: {
-                        ...prev.chartOptions?.markLine,
-                        data: aData,
-                    },
-                },
-            };
-        });
-    };
+    // const handleMarklineOption = (aData: any) => {
+    //     pSetPanelOption((prev: any) => {
+    //         return {
+    //             ...prev,
+    //             chartOptions: {
+    //                 ...prev.chartOptions,
+    //                 markLine: {
+    //                     ...prev.chartOptions?.markLine,
+    //                     data: aData,
+    //                 },
+    //             },
+    //         };
+    //     });
+    // };
 
-    const showMarkLine = () => {
-        setIsMarkLine(!sIsMarkLine);
-        if (!sIsMarkLine) {
-            const sInitValue = isEmpty(pPanelOption.chartOptions?.markLine.data) ? [{ xAxis: 0 }, { xAxis: 0 }] : pPanelOption.chartOptions?.markLine.data;
-            setMarkLineList(sInitValue);
-        } else {
-            setMarkLineList([]);
-        }
-    };
+    // const showMarkLine = () => {
+    //     setIsMarkLine(!sIsMarkLine);
+    //     if (!sIsMarkLine) {
+    //         const sInitValue = isEmpty(pPanelOption.chartOptions?.markLine.data) ? [{ xAxis: 0 }, { xAxis: 0 }] : pPanelOption.chartOptions?.markLine.data;
+    //         setMarkLineList(sInitValue);
+    //     } else {
+    //         setMarkLineList([]);
+    //     }
+    // };
 
-    useEffect(() => {
-        handleMarklineOption(sMarkLineList);
-    }, [sMarkLineList]);
+    // useEffect(() => {
+    //     handleMarklineOption(sMarkLineList);
+    // }, [sMarkLineList]);
 
     return (
         <div>
