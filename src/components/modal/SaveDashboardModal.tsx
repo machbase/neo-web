@@ -44,7 +44,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     const [sFileType, setFileType] = useState<string>('');
     const [sFileTree, setFileTree] = useRecoilState(gFileTree);
     const sRollupTableList = useRecoilValue(gRollupTableList);
-    const [sOutput, setOutput] = useState<'CHART' | 'JSON' | 'CSV'>('CHART');
+    const [sOutput, setOutput] = useState<'CHART' | 'DATA(JSON)' | 'DATA(CSV)'>('CHART');
     const [sBlockList, setBlockList] = useState<any>([]);
     const [sSelectedBlock, setSelectedBlock] = useState<any>('');
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
@@ -78,7 +78,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     };
     const GetSaveDataText = async () => {
         const [sParsedQuery] = await GetQuery();
-        const sOutputStr: string = `${sOutput}()`;
+        const sOutputStr: string = sOutput === 'CHART' ? `${sOutput}()` : sOutput === 'DATA(JSON)' ? 'JSON()' : 'CSV()';
         const sTargetSql = sParsedQuery.find((aBlock: any) => aBlock.alias === sSelectedBlock).sql;
         const sResult: string = `SQL("${sTargetSql}")\n` + sOutputStr;
         return sResult;
@@ -295,7 +295,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
             closeContextMenu();
         }
     };
-    const HandleOutput = (aValue: 'CHART' | 'JSON' | 'CSV') => {
+    const HandleOutput = (aValue: 'CHART' | 'DATA(JSON)' | 'DATA(CSV)') => {
         if (aValue === 'CHART') setSelectedBlock('');
         else setSelectedBlock(sBlockList[0] ? sBlockList[0].name : '');
         setOutput(aValue);
@@ -408,7 +408,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                                 pInitValue={sOutput}
                                 pHeight={33}
                                 onChange={(aEvent: any) => HandleOutput(aEvent.target.value)}
-                                pOptions={['JSON', 'CSV', 'CHART']}
+                                pOptions={['DATA(JSON)', 'DATA(CSV)', 'CHART']}
                             />
                         </div>
                         <div className="save-file-block" style={sOutput === 'CHART' ? { opacity: 0.5, pointerEvents: 'none' } : {}}>

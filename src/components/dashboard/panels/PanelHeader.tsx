@@ -177,6 +177,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                     </a>
                     {!pIsView && (
                         <>
+                            <IconButton pWidth={25} pIcon={<VscGraphScatter className="mui-svg-hover" width={16} />} onClick={HandleDownload} />
                             <IconButton pWidth={25} pIcon={<MuiTagAnalyzerGray className="mui-svg-hover" width={16} />} onClick={handleMoveTagz} />
                             <IconButton
                                 pWidth={25}
