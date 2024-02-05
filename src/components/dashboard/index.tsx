@@ -146,15 +146,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
             <div ref={sBoardRef} className="dashboard-form">
                 <div className="board-header">
                     <div className="board-header-l">
-                        <Input
-                            pBorderRadius={4}
-                            pWidth={175}
-                            pHeight={26}
-                            pType="text"
-                            pValue={pInfo.dashboard.title ? pInfo.dashboard.title : ''}
-                            pSetValue={() => null}
-                            onChange={changeDashboardName}
-                        />
+                        <Input pBorderRadius={4} pWidth={175} pHeight={26} pType="text" pValue={pInfo.dashboard.title} pSetValue={() => null} onChange={changeDashboardName} />
                     </div>
                     <div className="board-header-r">
                         <IconButton pIcon={<TbSquarePlus />} onClick={() => showEditPanel('create')}></IconButton>
