@@ -76,6 +76,7 @@ const CreatePanel = ({
     };
 
     const editPanel = () => {
+        const sNewPanelId = generateUUID();
         setBoardList((aPrev: any) => {
             return aPrev.map((aItem: any) => {
                 return aItem.id === pBoardInfo.id
@@ -84,14 +85,14 @@ const CreatePanel = ({
                           dashboard: {
                               ...aItem.dashboard,
                               panels: aItem.dashboard.panels.map((bItem: any) => {
-                                  return bItem.id === pPanelId ? { ...sPanelOption, id: generateUUID() } : bItem;
+                                  return bItem.id === pPanelId ? { ...sPanelOption, id: sNewPanelId } : bItem;
                               }),
                           },
                       }
                     : aItem;
             });
         });
-        pSetModifyState({ id: sPanelOption.id, state: true });
+        pSetModifyState({ id: sNewPanelId, state: true });
         handleClose();
     };
 

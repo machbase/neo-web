@@ -6,12 +6,10 @@ interface ShowChartProps {
     pData: any;
     pIsCenter?: boolean;
     pLoopMode: boolean;
-    pClearChartOpt?: string;
-    pSetClearChartOpt?: (status: string) => void;
 }
 
 export const ShowChart = (props: ShowChartProps) => {
-    const { pData, pIsCenter, pLoopMode, pClearChartOpt, pSetClearChartOpt } = props;
+    const { pData, pIsCenter, pLoopMode } = props;
     const sTheme = pData.theme ? pData.theme : 'dark';
     const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -28,18 +26,13 @@ export const ShowChart = (props: ShowChartProps) => {
         } else {
             const sEchart = document.getElementById(pData.chartID) as HTMLDivElement | HTMLCanvasElement;
             if (pLoopMode) {
-                if (pClearChartOpt && pSetClearChartOpt) {
-                    pSetClearChartOpt('');
-                    // @ts-ignore
-                    echarts.init(sEchart).clear();
-                }
                 sEchart.style.width = pData.style.width;
                 sEchart.style.height = pData.style.height;
                 // @ts-ignore
-                echarts.init(sEchart).resize();
+                sEchart && echarts.init(sEchart).resize();
             } else {
                 // @ts-ignore
-                echarts.init(sEchart).clear();
+                sEchart && echarts.init(sEchart).clear();
             }
         }
 
