@@ -44,6 +44,10 @@ const ViewTimeRangeModal = (props: ViewTimeRangeModalProps) => {
         setEndTime(aValue.value[1]);
     };
 
+    const HandleRefresh = (aValue: any) => {
+        setRefresh(aValue.target.value);
+    };
+
     const setGlobalTime = () => {
         let sStart: any;
         let sEnd: any;
@@ -74,6 +78,7 @@ const ViewTimeRangeModal = (props: ViewTimeRangeModalProps) => {
                     timeRange: {
                         start: sStart,
                         end: sEnd,
+                        refresh: sRefresh,
                     },
                 },
             };
@@ -127,17 +132,7 @@ const ViewTimeRangeModal = (props: ViewTimeRangeModalProps) => {
                         </div>
                         <div className="to">
                             <span className="span-to">Refresh </span>
-                            {sRefresh && (
-                                <Select
-                                    pInitValue={pRefresh}
-                                    pFontSize={12}
-                                    pWidth={200}
-                                    pBorderRadius={4}
-                                    pHeight={30}
-                                    onChange={(aEvent: any) => setRefresh(aEvent.target.value)}
-                                    pOptions={refreshTimeList}
-                                />
-                            )}
+                            <Select pInitValue={sRefresh} pFontSize={12} pWidth={200} pBorderRadius={4} pHeight={30} onChange={HandleRefresh} pOptions={refreshTimeList} />
                         </div>
                     </div>
                     <div className="bottom">

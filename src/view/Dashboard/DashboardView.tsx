@@ -99,6 +99,7 @@ const DashboardView = () => {
                                 ) : (
                                     <span>Time range not set</span>
                                 )}
+                                , Refresh : {sBoardInformation?.dashboard.timeRange.refresh}
                             </button>
                             <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight />} onClick={() => moveTimeRange('r')} />
                         </div>
@@ -130,6 +131,7 @@ const DashboardView = () => {
                                         pIsHeader={false}
                                         pRefresh={sRefresh}
                                         pSetRefresh={setRefresh}
+                                        pLoopMode={sBoardInformation?.dashboard.timeRange.refresh === 'Off' ? false : true}
                                     />
                                 </div>
                             );
@@ -142,7 +144,7 @@ const DashboardView = () => {
                     pStartTime={sBoardInformation?.dashboard.timeRange.start}
                     pEndTime={sBoardInformation?.dashboard.timeRange.end}
                     pSetTime={setBoardInformation}
-                    pRefresh={'Off'}
+                    pRefresh={sBoardInformation?.dashboard.timeRange.refresh}
                 />
             )}
         </>
