@@ -130,6 +130,7 @@ const NewBoard = (props: NewBoardProps) => {
                                   end: 'now',
                                   refresh: 'Off',
                               },
+                              title: 'New dashboard',
                               panels: [],
                           },
                       }

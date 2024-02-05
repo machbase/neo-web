@@ -38,6 +38,7 @@ export const DefaultYAxisOption = {
     position: 'left' as 'left' | 'right',
     alignTicks: true,
     scale: true,
+    useMinMax: false,
     min: 0 as number,
     max: 100 as number,
     // axisLine: {
@@ -54,7 +55,7 @@ export const DefaultLineChartOption = {
     isStack: false as boolean,
     connectNulls: true as boolean,
     symbol: 'none' as string,
-    symbolSize: 10 as number,
+    symbolSize: 4 as number,
     isSampling: false as boolean,
     markLine: {
         symbol: ['none', 'none'],
@@ -103,7 +104,7 @@ export const DefaultLiquidfillChartOption = {
 
 export const DefaultScatterChartOption = {
     isLarge: false as boolean,
-    symbolSize: 10 as number,
+    symbolSize: 4 as number,
     tagLimit: 12 as number,
 };
 
@@ -293,7 +294,7 @@ export const StructureOfBarPolarOption = {
 
 export const StructureOfScatterSeriesOption = {
     large: false as boolean,
-    symbolSize: 10 as number,
+    symbolSize: 4 as number,
 };
 
 export const StructureOfPieSeriesOption = {
