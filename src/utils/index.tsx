@@ -277,3 +277,18 @@ export const createMinMaxQuery = (tableTagMap: TableTagMap[], currentUserName: s
     });
     return query;
 };
+
+export const generateRandomString = () => {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    let result = '';
+    const charactersLength = characters.length;
+    for (let i = 0; i < 20; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+
+    return result;
+};
+
+export const isMobile = () => {
+    return /iPhone|Android/i.test(window.navigator.userAgent);
+};

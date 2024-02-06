@@ -1,8 +1,5 @@
 import { Calendar, Close } from '@/assets/icons/Icon';
-import './ModalTimeRange.scss';
 import { useState, useEffect } from 'react';
-import { useRecoilState } from 'recoil';
-import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import DatePicker from '@/components/datePicker/DatePicker';
 import moment from 'moment';
 import { TextButton } from '../buttons/TextButton';
@@ -11,41 +8,27 @@ import { Error } from '../toast/Toast';
 import { Select } from '../inputs/Select';
 import { refreshTimeList } from '@/utils/dashboardUtil';
 
-const ModalTimeRange = ({ pType, pSetTimeRangeModal }: any) => {
-    const [sSelectedTab] = useRecoilState(gSelectedTab);
-    const [sBoardList, setBoardList] = useRecoilState(gBoardList);
+interface ViewTimeRangeModalProps {
+    pSetTimeRangeModal: React.Dispatch<React.SetStateAction<boolean>>;
+    pStartTime: string | number;
+    pEndTime: string | number;
+    pRefresh: any;
+    pSetTime: any;
+}
+
+const ViewTimeRangeModal = (props: ViewTimeRangeModalProps) => {
+    const { pSetTimeRangeModal, pStartTime, pEndTime, pRefresh, pSetTime } = props;
 
     const [sStartTime, setStartTime] = useState<any>('');
     const [sEndTime, setEndTime] = useState<any>('');
     const [sRefresh, setRefresh] = useState<any>('');
 
     useEffect(() => {
-        const sBoardStartTime =
-            pType === 'dashboard'
-                ? sBoardList.filter((aItem) => sSelectedTab === aItem.id)[0].dashboard.timeRange.start
-                : sBoardList.filter((aItem) => sSelectedTab === aItem.id)[0].range_bgn;
-        const sBoardEndTime =
-            pType === 'dashboard'
-                ? sBoardList.filter((aItem) => sSelectedTab === aItem.id)[0].dashboard.timeRange.end
-                : sBoardList.filter((aItem) => sSelectedTab === aItem.id)[0].range_end;
-        if (pType === 'dashboard') {
-            const sBoardRefresh = sBoardList.filter((aItem) => sSelectedTab === aItem.id)[0].dashboard.timeRange.refresh;
-            setRefresh(sBoardRefresh);
-        }
-        setStartTime(
-            sBoardStartTime === '' || sBoardStartTime === undefined
-                ? ''
-                : typeof sBoardStartTime === 'string' && sBoardStartTime.includes('now')
-                ? sBoardStartTime
-                : moment.unix(sBoardStartTime / 1000).format('YYYY-MM-DD HH:mm:ss')
-        );
-        setEndTime(
-            sBoardEndTime === '' || sBoardEndTime === undefined
-                ? ''
-                : typeof sBoardEndTime === 'string' && sBoardEndTime.includes('now')
-                ? sBoardEndTime
-                : moment.unix(sBoardEndTime / 1000).format('YYYY-MM-DD HH:mm:ss')
-        );
+        const sStart = typeof pStartTime === 'number' ? moment.unix(pStartTime / 1000).format('YYYY-MM-DD HH:mm:ss') : pStartTime;
+        const sEnd = typeof pEndTime === 'number' ? moment.unix(pEndTime / 1000).format('YYYY-MM-DD HH:mm:ss') : pEndTime;
+        setStartTime(sStart);
+        setEndTime(sEnd);
+        setRefresh(pRefresh);
     }, []);
 
     const handleStartTime = (aEvent: any) => {
@@ -59,6 +42,10 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal }: any) => {
     const handleQuickTime = (aValue: any) => {
         setStartTime(aValue.value[0]);
         setEndTime(aValue.value[1]);
+    };
+
+    const HandleRefresh = (aValue: any) => {
+        setRefresh(aValue.target.value);
     };
 
     const setGlobalTime = () => {
@@ -83,19 +70,33 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal }: any) => {
             }
         }
 
-        if (pType === 'dashboard') {
-            setBoardList((aPrev: any) =>
-                aPrev.map((aItem: any) => {
-                    return aItem.id === sSelectedTab ? { ...aItem, dashboard: { ...aItem.dashboard, timeRange: { start: sStart, end: sEnd, refresh: sRefresh } } } : aItem;
-                })
-            );
-        } else {
-            setBoardList((aPrev: any) =>
-                aPrev.map((aItem: any) => {
-                    return aItem.id === sSelectedTab ? { ...aItem, range_bgn: sStart, range_end: sEnd } : aItem;
-                })
-            );
-        }
+        pSetTime((aPrev: any) => {
+            return {
+                ...aPrev,
+                dashboard: {
+                    ...aPrev.dashboard,
+                    timeRange: {
+                        start: sStart,
+                        end: sEnd,
+                        refresh: sRefresh,
+                    },
+                },
+            };
+        });
+
+        // if (pType === 'dashboard') {
+        //     setBoardList((aPrev: any) =>
+        //         aPrev.map((aItem: any) => {
+        //             return aItem.id === sSelectedTab ? { ...aItem, dashboard: { ...aItem.dashboard, timeRange: { start: sStart, end: sEnd, refresh: sRefresh } } } : aItem;
+        //         })
+        //     );
+        // } else {
+        //     setBoardList((aPrev: any) =>
+        //         aPrev.map((aItem: any) => {
+        //             return aItem.id === sSelectedTab ? { ...aItem, range_bgn: sStart, range_end: sEnd } : aItem;
+        //         })
+        //     );
+        // }
 
         pSetTimeRangeModal(false);
     };
@@ -129,22 +130,10 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal }: any) => {
                             <span className="span-to">To </span>
                             <DatePicker pTopPixel={32} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date)} pSetApply={(date: any) => setEndTime(date)}></DatePicker>
                         </div>
-                        {pType === 'dashboard' && (
-                            <div className="to">
-                                <span className="span-to">Refresh </span>
-                                {sRefresh && (
-                                    <Select
-                                        pInitValue={sRefresh}
-                                        pFontSize={12}
-                                        pWidth={200}
-                                        pBorderRadius={4}
-                                        pHeight={30}
-                                        onChange={(aEvent: any) => setRefresh(aEvent.target.value)}
-                                        pOptions={refreshTimeList}
-                                    />
-                                )}
-                            </div>
-                        )}
+                        <div className="to">
+                            <span className="span-to">Refresh </span>
+                            <Select pInitValue={sRefresh} pFontSize={12} pWidth={200} pBorderRadius={4} pHeight={30} onChange={HandleRefresh} pOptions={refreshTimeList} />
+                        </div>
                     </div>
                     <div className="bottom">
                         <div className="quick-range">Quick Range</div>
@@ -161,4 +150,4 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal }: any) => {
         </div>
     );
 };
-export default ModalTimeRange;
+export default ViewTimeRangeModal;

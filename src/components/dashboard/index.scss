@@ -14,54 +14,64 @@
         height: 100% !important;
     }
     .board-header {
-        gap: 8px;
+        gap: 1px;
         position: relative;
         height: 40px;
         background-color: #262831;
-        display: flex;
-        align-items: center;
         padding: 0 16px;
-        svg {
-            cursor: pointer;
-        }
-        .plus-btn {
-            border: 0.5px solid rgba(255, 255, 255, 0.5);
+        display: flex;
+        justify-content: space-between;
+        &-l {
             display: flex;
-            border-radius: 6px;
-            height: 24px;
-            width: 24px;
-            justify-content: center;
+            justify-content: flex-start;
+            align-items: center;
+        }
+        &-r {
+            display: flex;
+            justify-content: flex-end;
             align-items: center;
             svg {
-                height: 16px;
-                width: 16px;
-                color: rgba(255, 255, 255, 0.5);
+                cursor: pointer;
             }
-
-            &:hover {
+            .plus-btn {
+                border: 0.5px solid rgba(255, 255, 255, 0.5);
+                display: flex;
+                border-radius: 6px;
+                height: 24px;
+                width: 24px;
+                justify-content: center;
+                align-items: center;
                 svg {
+                    height: 16px;
+                    width: 16px;
+                    color: rgba(255, 255, 255, 0.5);
+                }
+
+                &:hover {
+                    svg {
+                        color: #f8f8f8;
+                    }
+                    border-color: #f8f8f8;
+                }
+            }
+            .set-global-option-btn {
+                &:hover {
                     color: #f8f8f8;
                 }
-                border-color: #f8f8f8;
-            }
-        }
-        .set-global-option-btn {
-            &:hover {
-                color: #f8f8f8;
-            }
-            color: #939498;
-            display: flex;
-            align-items: center;
-            background-color: transparent;
-            border: 0.5px solid rgba(255, 255, 255, 0.5);
-            height: 26px;
-            font-size: 13px;
-            border-radius: 6px;
-            padding: 0 8px;
+                color: #939498;
+                display: flex;
+                align-items: center;
+                background-color: transparent;
+                border: 0.5px solid rgba(255, 255, 255, 0.5);
+                height: 26px;
+                font-size: 13px;
+                border-radius: 6px;
+                padding: 0 8px;
 
-            svg {
-                margin-right: 4px;
-                height: 16px;
+                svg {
+                    margin-right: 4px;
+                    height: 16px;
+                }
             }
         }
     }
@@ -84,4 +94,12 @@
             }
         }
     }
+}
+
+.menu-style {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-right: 10px;
+    margin-bottom: 5px;
 }

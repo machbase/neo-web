@@ -1,12 +1,21 @@
-import { getId } from '@/utils';
+import { generateUUID } from '@/utils';
 import './CheckBox.scss';
 
-const CheckBox = ({ pText, onChange, pDefaultChecked, pIsDisabled }: any) => {
-    const sId = getId();
+interface CheckboxProps {
+    pText?: string;
+    onChange: any;
+    pDefaultChecked?: boolean;
+    pIsDisabled?: boolean;
+}
+
+const CheckBox = (props: CheckboxProps) => {
+    const { pText, onChange, pDefaultChecked, pIsDisabled = false } = props;
+    const sId = generateUUID();
+
     return (
-        <div className="checkbox-wrapper-13" style={{ opacity: pIsDisabled ? 0.3 : 1 }}>
-            <input id={sId + '-13'} disabled={pIsDisabled} defaultChecked={pDefaultChecked} type="checkbox" onChange={onChange} />
-            <label htmlFor={sId + '-13'}>{pText}</label>
+        <div className="checkbox-wrapper" style={{ opacity: pIsDisabled ? 0.3 : 1 }}>
+            <input id={sId} disabled={pIsDisabled} defaultChecked={pDefaultChecked} type="checkbox" onChange={onChange} />
+            <label htmlFor={sId}>{pText}</label>
         </div>
     );
 };

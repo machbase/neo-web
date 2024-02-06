@@ -368,6 +368,49 @@ export const DB_NUMBER_TYPE = ['SHORT', 'INTEGER', 'LONG', 'FLOAT', 'DOUBLE', 'U
 
 // dashboard e-chart setting value
 // export type SeriesType = 'line' | 'bar' | 'scatter' | 'pie' | 'radar' | 'candlestick' | 'heatmap' | 'sankey' | 'gauge' | 'liquidFill' | 'wordCloud';
-export const ChartTypeList = ['line', 'bar', 'scatter'];
-export const ChartThemeList = ['dark', 'white'];
+export const ChartTypeList = ['line', 'bar', 'scatter', 'gauge', 'pie', 'liquidFill'];
+export const ChartThemeList = ['dark', 'white', 'vintage', 'macarons', 'infographic', 'shine', 'roma'];
+export const ChartThemeBackgroundColor = {
+    dark: '#100B2A',
+    white: '#FFFFFF',
+    vintage: '#FEF8F0',
+    macarons: '#FFFFFF',
+    infographic: '#FFFFFF',
+    shine: '#FFFFFF',
+    roma: '#FFFFFF',
+} as { [key: string]: string };
 export const ChartXAxisTypeList = ['category', 'time'];
+export const ChartSeriesColorList = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#FADE2A'];
+export const ChartTooltipTriggerList = ['item', 'axis'];
+export const ChartLegendTopList = ['top', 'center', 'bottom'];
+export const ChartLegendLeftList = ['left', 'center', 'right'];
+export const ChartLegendOrientList = ['horizontal', 'vertical'];
+export const ChartLineSymbolList = ['circle', 'rect', 'roundRect', 'triangle', 'diamond', 'pin', 'arrow', 'none'];
+
+export const ChartAxisTooltipFormatter =
+    `function (params) {` +
+    `const d = new Date(0);` +
+    `d.setUTCSeconds(params[0].name / 1000);` +
+    `let output = params[0].name === '' ? params[0].axisValueLabel : d.toLocaleString('en-GB', { timezone: 'UTC' }) + '<br/>';` +
+    `output += '<table>';` +
+    `params.reverse().forEach(function (param) {` +
+    `output += '<tr><td>' + param.marker + '</td><td>' + param.seriesName + '&ensp;</td><td><b>' + param.data[1] + '</b></td></tr>';` +
+    `});` +
+    `return output + '</table>';` +
+    `}`;
+
+export const ChartItemTooltipFormatter =
+    `function (params) {` +
+    `let d = new Date(0);` +
+    `d.setUTCSeconds(params.data[0] / 1000);` +
+    `let output = d.toLocaleString('en-GB', { timezone: 'UTC' }) + '<br/>';` +
+    `output += '<table>'; ` +
+    `output += '<tr><td>'+params.marker+'</td><td>' + params.seriesName + '&ensp;</td><td><b>' + params.data[1]+'&ensp;</b>` +
+    `</tr>'; return output + '</table>';}`;
+
+// react grid layout value
+export const GRID_LAYOUT_COLS = 36;
+export const GRID_LAYOUT_ROW_HEIGHT = 30;
+
+// tag color
+export const TagColorList = ['#73BF69', '#F2CC0C', '#8AB8FF', '#FF780A', '#F2495C', '#5794F2', '#B877D9', '#705DA0', '#37872D', '#FDA1FF', '#7B64FF', '#999999'];

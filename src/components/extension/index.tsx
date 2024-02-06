@@ -12,11 +12,11 @@ import { LicenseModal } from '@/components/modal/LicenseModal';
 import { logOut } from '@/api/repository/login';
 import { useNavigate } from 'react-router-dom';
 
-const Extention = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
+const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const sNavigate = useNavigate();
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const MenuRef = useRef<HTMLDivElement>(null);
-    const [sExtentionList] = useRecoilState<any>(gExtensionList);
+    const [sExtensionList] = useRecoilState<any>(gExtensionList);
     const [sSelectedExtension, setSelectedExtension] = useRecoilState<string>(gSelectedExtension);
     const [sIsLicenseModal, setIsLicenseModal] = useState<boolean>(false);
 
@@ -88,9 +88,9 @@ const Extention = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
         <>
             <div className="extension-form">
                 <div className="extension-top-list">
-                    {sExtentionList &&
-                        sExtentionList.length !== 0 &&
-                        sExtentionList.map((aItem: any, aIdx: number) => {
+                    {sExtensionList &&
+                        sExtensionList.length !== 0 &&
+                        sExtensionList.map((aItem: any, aIdx: number) => {
                             return (
                                 <div
                                     key={aIdx}
@@ -136,4 +136,4 @@ const Extention = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
         </>
     );
 };
-export default Extention;
+export default Extension;

@@ -1,14 +1,30 @@
 import LineChart from './chart/LineChart';
 import PanelHeader from './PanelHeader';
 import './Panel.scss';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
+import { ChartThemeBackgroundColor } from '@/utils/constants';
 
-const Panel = ({ pBoardInfo, pShowEditPanel, pType, pPanelInfo, pInsetDraging, pDragStat }: any) => {
+const Panel = ({
+    pLoopMode,
+    pChartVariableId,
+    pRefresh,
+    pSetRefresh,
+    pBoardInfo,
+    pShowEditPanel,
+    pType,
+    pPanelInfo,
+    pInsetDraging,
+    pDragStat,
+    pIsView,
+    pModifyState,
+    pSetModifyState,
+    pParentWidth,
+    pIsHeader,
+}: any) => {
     const [sRefreshCount, setRefreshCount] = useState<number>(0);
-    const sRef = useRef<HTMLDivElement>(null);
 
     return (
-        <div ref={sRef} className="panel-wrap">
+        <div className="panel-wrap" style={{ backgroundColor: ChartThemeBackgroundColor[pPanelInfo.theme] }}>
             <PanelHeader
                 pRefreshCount={sRefreshCount}
                 pSetRefreshCount={setRefreshCount}
@@ -16,15 +32,25 @@ const Panel = ({ pBoardInfo, pShowEditPanel, pType, pPanelInfo, pInsetDraging, p
                 pType={pType}
                 pBoardInfo={pBoardInfo}
                 pPanelInfo={pPanelInfo}
+                pIsView={pIsView}
+                pIsHeader={pIsHeader}
             ></PanelHeader>
             {pPanelInfo && (
                 <LineChart
-                    // pRefreshCount={sRefreshCount}
+                    pLoopMode={pLoopMode}
+                    pRefresh={pRefresh}
+                    pSetRefresh={pSetRefresh}
                     pDragStat={pDragStat}
                     pInsetDraging={pInsetDraging}
                     pBoardInfo={pBoardInfo}
                     pType={pType}
                     pPanelInfo={pPanelInfo}
+                    pModifyState={pModifyState}
+                    pSetModifyState={pSetModifyState}
+                    pParentWidth={pParentWidth}
+                    pIsHeader={pIsHeader}
+                    pChartVariableId={pChartVariableId}
+                    pIsView={pIsView}
                 ></LineChart>
             )}
         </div>

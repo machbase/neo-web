@@ -185,7 +185,7 @@ export const FFTModal = (props: FFTModalProps) => {
                                 <Spinner />
                             </div>
                         ) : null}
-                        {!sIsLoading && sChartData ? <ShowChart pData={sChartData} /> : null}
+                        {!sIsLoading && sChartData ? <ShowChart pData={sChartData} pLoopMode={false} /> : null}
                     </div>
                 </Modal.Body>
             </Modal>

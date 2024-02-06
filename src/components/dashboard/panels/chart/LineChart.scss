@@ -19,4 +19,21 @@
             height: 100% !important;
         }
     }
+    .loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+}
+.chart-message-error {
+    color: rgb(231, 65, 131);
+}
+
+.chart-message-success {
+    color: rgb(65, 153, 255);
+}
+
+.chart-non-header {
+    height: 100%;
 }

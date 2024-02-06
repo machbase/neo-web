@@ -53,10 +53,16 @@ const Login = () => {
             } else {
                 localStorage.removeItem('rememberId');
             }
+            const sIsView = localStorage.getItem('view');
             localStorage.setItem('accessToken', sReturn.accessToken);
             localStorage.setItem('refreshToken', sReturn.refreshToken);
             sReturn.option && sReturn.option.experimentMode ? localStorage.setItem('experimentMode', sReturn.option.experimentMode) : localStorage.removeItem('experimentMode');
-            sNavigate('/');
+            if (sIsView) {
+                sNavigate(JSON.parse(sIsView).path);
+                localStorage.removeItem('view');
+            } else {
+                sNavigate('/');
+            }
         } else {
             Error('Login fail');
         }

@@ -1,26 +1,27 @@
-import { Close, PlusCircle } from '@/assets/icons/Icon';
-import { IconButton } from '@/components/buttons/IconButton';
+// import { Close, PlusCircle } from '@/assets/icons/Icon';
+// import { IconButton } from '@/components/buttons/IconButton';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 import { tagAggregatorList } from '@/utils/dashboardUtil';
 
-const Value = ({ pTagTableInfo, pValue, pColumnList, pSelectedTableType, pIdx, pAddValue, pRemoveValue, pChangeValueOption }: any) => {
+const Value = ({
+    pValue,
+    pColumnList,
+    pChangeValueOption,
+}: // pBlockInfo,
+// pIdx, pAddValue, pRemoveValue,
+// ,pValueLimit
+any) => {
     return (
         <div className="values">
             <div className="series-table">
                 <span className="series-title">
                     Value
-                    {pIdx === pTagTableInfo.values.length - 1 ? (
-                        <IconButton
-                            pDisabled={pSelectedTableType === 'tag'}
-                            pWidth={25}
-                            pHeight={26}
-                            pIcon={<PlusCircle></PlusCircle>}
-                            onClick={pSelectedTableType === 'tag' ? () => {} : () => pAddValue()}
-                        ></IconButton>
+                    {/* {pIdx === pBlockInfo.values.length - 1 ? (
+                        <IconButton pDisabled={pValueLimit} pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={pValueLimit ? () => {} : () => pAddValue()} />
                     ) : (
                         <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => pRemoveValue(pValue.id)}></IconButton>
-                    )}
+                    )} */}
                 </span>
                 {pColumnList[0] && (
                     <Select
@@ -28,7 +29,7 @@ const Value = ({ pTagTableInfo, pValue, pColumnList, pSelectedTableType, pIdx, p
                         pWidth={175}
                         pBorderRadius={4}
                         pAutoChanged={true}
-                        pInitValue={pColumnList.filter((aItem: any) => aItem[0] === 'VALUE')[0] ? 'VALUE' : pColumnList[0] && pColumnList[0][0]}
+                        pInitValue={pValue.value ?? ''}
                         pHeight={26}
                         onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
                         pOptions={pColumnList.map((aItem: any) => aItem[0])}
@@ -54,7 +55,7 @@ const Value = ({ pTagTableInfo, pValue, pColumnList, pSelectedTableType, pIdx, p
                     pFontSize={12}
                     pWidth={175}
                     pBorderRadius={4}
-                    pInitValue={'avg'}
+                    pInitValue={pValue.aggregator ?? 'avg'}
                     pHeight={26}
                     onChange={(aEvent: any) => pChangeValueOption('aggregator', aEvent, pValue.id, 'values')}
                     pOptions={tagAggregatorList}

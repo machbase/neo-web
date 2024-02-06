@@ -1,5 +1,5 @@
 import './CreatePanelFooter.scss';
-import Series from './Series';
+import { Block } from './Block';
 import { useState } from 'react';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { refreshTimeList } from '@/utils/dashboardUtil';
@@ -9,10 +9,11 @@ import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
+import { TagColorList } from '@/utils/constants';
 
-const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
-    const sColorList = ['#73BF69', '#F2CC0C', '#8AB8FF', '#FF780A', '#F2495C', '#5794F2', '#B877D9', '#705DA0', '#37872D', '#FADE2A'];
+const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
     const [sTab, setTab] = useState('Query');
+    const VALUE_LIMIT: number = 1;
 
     const setUseTimePicker = (aKey: string, aValue: any) => {
         pSetPanelOption((aPrev: any) => {
@@ -32,12 +33,30 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
         });
     };
 
+    const HandleAddBlock = () => {
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                blockList: [
+                    ...aPrev.blockList,
+                    {
+                        ...aPrev.blockList.at(-1),
+                        id: generateUUID(),
+                        color: TagColorList[aPrev.blockList.length],
+                    },
+                ],
+            };
+        });
+    };
+
     return (
         <div className="chart-footer-form">
             <div className="chart-footer-tab">
                 <div className={sTab === 'Query' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Query')}>
                     Query
-                    <span className="series-count">{Number(pPanelOption.tagTableInfo.length)}</span>
+                    <span className="series-count">{`${Number(pPanelOption.blockList.length)} / ${
+                        pPanelOption.chartOptions?.tagLimit ? pPanelOption.chartOptions?.tagLimit : '12'
+                    }`}</span>
                 </div>
                 {pTableList.length !== 0 && (
                     <div className={sTab === 'Time' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Time')}>
@@ -47,34 +66,28 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
             </div>
             <div className="chart-footer">
                 <div style={{ display: sTab === 'Time' ? 'none' : '' }} className="body">
+                    {/* SET Block */}
                     {pTableList.length !== 0 &&
-                        pPanelOption.tagTableInfo.map((aItem: any) => {
+                        pPanelOption.blockList.map((aItem: any) => {
                             return (
-                                <Series
+                                <Block
                                     key={aItem.id}
                                     pType={pType}
                                     pPanelOption={pPanelOption}
                                     pTableList={pTableList}
                                     pGetTables={pGetTables}
-                                    pTagTableInfo={aItem}
+                                    pBlockInfo={aItem}
                                     pSetPanelOption={pSetPanelOption}
+                                    pValueLimit={VALUE_LIMIT}
                                 />
                             );
                         })}
-                    {pTableList.length !== 0 && pPanelOption.tagTableInfo.length < 10 && (
+                    {/* ADD Block */}
+                    {pTableList.length !== 0 && (
                         <div
-                            onClick={() =>
-                                pSetPanelOption((aPrev: any) => {
-                                    return {
-                                        ...aPrev,
-                                        tagTableInfo: [
-                                            ...aPrev.tagTableInfo,
-                                            { ...aPrev.tagTableInfo[aPrev.tagTableInfo.length - 1], id: generateUUID(), color: sColorList[aPrev.tagTableInfo.length + 1] },
-                                        ],
-                                    };
-                                })
-                            }
+                            onClick={HandleAddBlock}
                             className="plus-wrap"
+                            style={pPanelOption.chartOptions?.tagLimit <= pPanelOption.blockList.length ? { opacity: 0.7, pointerEvents: 'none' } : {}}
                         >
                             <PlusCircle color="#FDB532" />
                         </div>
@@ -110,19 +123,19 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                     From
                                     <DatePicker
                                         pTopPixel={55}
-                                        pTimeValue={pPanelOption.timeRange.start}
+                                        pTimeValue={pPanelOption.timeRange.start ?? ''}
                                         onChange={(date: any) => handleTime('start', date)}
                                         pSetApply={(date: any) => setUseTimePicker('start', date)}
-                                    ></DatePicker>
+                                    />
                                 </div>
                                 <div>
                                     To
                                     <DatePicker
                                         pTopPixel={55}
-                                        pTimeValue={pPanelOption.timeRange.end}
+                                        pTimeValue={pPanelOption.timeRange.end ?? ''}
                                         onChange={(date: any) => handleTime('end', date)}
                                         pSetApply={(date: any) => setUseTimePicker('end', date)}
-                                    ></DatePicker>
+                                    />
                                 </div>
                             </div>
                             <div className="select-time-range">
@@ -151,4 +164,4 @@ const CreatePanelFotter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
         </div>
     );
 };
-export default CreatePanelFotter;
+export default CreatePanelFooter;

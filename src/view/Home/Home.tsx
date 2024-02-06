@@ -26,7 +26,7 @@ const Home = () => {
     const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
     const sNavigate = useNavigate();
     const [sSelectedExtension] = useRecoilState<string>(gSelectedExtension);
-    const [sExtentionList] = useRecoilState<any>(gExtensionList);
+    const [sExtensionList] = useRecoilState<any>(gExtensionList);
     const [sDragStat, setDragStat] = useState<boolean>(false);
 
     const timer: any = useRef();
@@ -148,9 +148,9 @@ const Home = () => {
                     onDragStart={setStatus}
                 >
                     <Pane minSize={0} maxSize="50%">
-                        {sExtentionList &&
-                            sExtentionList.length !== 0 &&
-                            sExtentionList.map((aItem: any) => {
+                        {sExtensionList &&
+                            sExtensionList.length !== 0 &&
+                            sExtensionList.map((aItem: any) => {
                                 return (
                                     <div key={aItem.id} style={aItem.id === sSelectedExtension ? { width: '100%', height: '100%' } : { display: 'none' }}>
                                         {aItem.id === 'EXPLORER' && <Side pServer={sServer} pGetInfo={getInfo} pSavedPath={sSavedPath}></Side>}

@@ -44,6 +44,10 @@ export const Select = (props: SelectProps) => {
     useOutsideClick(optionRef, () => setIsOpen(false));
 
     useEffect(() => {
+        setSelectValue(pInitValue);
+    }, [pInitValue]);
+
+    useEffect(() => {
         if (isMounted.current) {
             pAutoChanged && setSelectValue(pOptions[0]);
         } else {
@@ -58,6 +62,7 @@ export const Select = (props: SelectProps) => {
                 width: pIsFullWidth ? '100%' : typeof pWidth === 'string' ? pWidth : pWidth + 'px',
                 minWidth: pIsFullWidth ? '100%' : pWidth + 'px',
                 height: pHeight + 'px',
+                opacity: pIsDisabled ? 0.6 : 1,
             }}
         >
             <div className="select-input" onClick={handleClick}>

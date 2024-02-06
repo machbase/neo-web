@@ -1,6 +1,24 @@
 import { getId } from '.';
-import { DefaultTagTableOption } from '@/utils/eChartHelper';
-import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE } from '@/utils/constants';
+import {
+    DefaultBarChartOption,
+    DefaultLineChartOption,
+    DefaultPieChartOption,
+    DefaultScatterChartOption,
+    DefaultTagTableOption,
+    DefaultGaugeChartOption,
+    StructureOfBarSeriesOption,
+    StructureOfBarPolarOption,
+    StructureOfCommonOption,
+    StructureOfGaugeSeriesOption,
+    StructureOfLineSeriesOption,
+    StructureOfPieSeriesOption,
+    StructureOfScatterSeriesOption,
+    StructureOfLineVisualMapOption,
+    DefaultLogTableOption,
+} from '@/utils/eChartHelper';
+import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartAxisTooltipFormatter } from '@/utils/constants';
+import { ChartType } from '@/type/eChart';
+import moment from 'moment';
 
 export const convertToMachbaseIntervalMs = (intervalMs: number) => {
     let ms = '';
@@ -33,8 +51,10 @@ export const checkValueBracket = (value: string) => {
 };
 
 export const setUnitTime = (aTime: any) => {
+    const sMomentValid = ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY-MM-DD HH', 'YYYY-MM-DD', 'YYYY-MM', 'YYYY'];
     if (aTime === 'now') return new Date().getTime();
     else if (!isNaN(Number(aTime))) return Number(aTime);
+    else if (moment(aTime, sMomentValid, true).isValid()) return moment(aTime).unix() * 1000;
     else {
         let sAggrPlus = true;
 
@@ -55,6 +75,9 @@ export const setUnitTime = (aTime: any) => {
                 break;
             case 'd':
                 sSecTime = sCalcTime * 1000 * 24 * 3600;
+                break;
+            case 'M':
+                sSecTime = sCalcTime * 1000 * 24 * 3600 * 30;
                 break;
             case 'y':
                 sSecTime = sCalcTime * 1000 * 24 * 3600 * 365;
@@ -263,119 +286,277 @@ export const tagTableValue = () => {
         useRollup: false,
         name: '',
         time: '',
-        useCustom: false,
+        useCustom: true,
         aggregator: 'avg',
         tag: '',
         value: '',
     };
 };
 
-export const tagAggregatorList = ['none', 'sum', 'count', 'min', 'max', 'avg', 'sumsq'];
+export const tagAggregatorList = ['none', 'count(*)', 'count', 'sum', 'min', 'max', 'avg', 'sumsq'];
 
 export const refreshTimeList = ['Off', '3 seconds', '5 seconds', '10 seconds', '30 seconds', '1 minute', '5 minutes', '10 minutes', '1 hour'];
 
-export const defaultTimeSeriesData = (aTable: any, aUser: string) => {
-    const sData = {
-        //default Option
-        panelName: 'chart Title',
-        dataType: 'timeSeries',
-        chartType: 'line',
-        i: getId(),
-        x: 0,
-        y: 0,
-        w: 7,
-        h: 7,
-        // Info
-        useDataZoom: false,
-        dataZoomType: 'slider',
-        dataZoomMin: 0,
-        dataZoomMax: 100,
-        useOpacity: false,
-        opacity: 1,
-        useAutoRotate: false,
-        autoRotate: 0,
-        useGridSize: false,
-        gridSizeWidth: 100,
-        gridSizeHeight: 100,
-        gridSizeDepth: 100,
-        useVisualMap: false,
-        visualMapMin: 0,
-        visualMapMax: 1,
-        useMarkArea: false,
-        start: '',
-        end: '',
-        refresh: '',
-        markArea: [
-            {
-                id: getId(),
-                coord0: 'now+1s',
-                coord1: 'now+2s',
-                label: 'Error',
-                color: '#ff000033',
-                opacity: 0,
+export const createDefaultTagTableOption = (aUser: string, aTable: string, aTableType: string, aTag: string) => {
+    const sDefaultTableOpt = aTableType === 'tag' ? DefaultTagTableOption : DefaultLogTableOption;
+    const sOption = [{ ...sDefaultTableOpt, userName: aUser, table: aTable ? aTable[3] : '', type: aTableType, tag: aTag }];
+    return sOption;
+};
+
+export const createOption = (aOptionInfo: any, aTagList: any) => {
+    // set common chart option
+    let sOption = createCommonOption(aOptionInfo.commonOptions);
+
+    // set series option
+    if (aOptionInfo.type === 'line') {
+        const sIsVisualMap = aOptionInfo.chartOptions?.markLine.data.length > 0;
+        sOption = {
+            ...sOption,
+            series: setLineSeries(aOptionInfo, aTagList),
+            visualMap: sIsVisualMap ? createLineVisualMapOption(aOptionInfo.chartOptions, aTagList) : null,
+        };
+    }
+    if (aOptionInfo.type === 'bar') {
+        const sIsPolar = aOptionInfo.chartOptions.isPolar;
+        sOption = {
+            ...sOption,
+            ...(sIsPolar ? createBarPolarOption(aOptionInfo.chartOptions) : null),
+            series: setBarSeries(aOptionInfo, aTagList),
+        };
+    }
+    if (aOptionInfo.type === 'scatter') {
+        sOption = {
+            ...sOption,
+            series: setScatterSeries(aOptionInfo, aTagList),
+        };
+    }
+    if (aOptionInfo.type === 'gauge') {
+        sOption = {
+            ...sOption,
+            series: setGaugeSeries(aOptionInfo, aTagList),
+        };
+    }
+    if (aOptionInfo.type === 'pie') {
+        sOption = {
+            ...sOption,
+            series: setPieSeries(aOptionInfo),
+            dataset: {
+                source: 'column(0)',
             },
-        ],
-        theme: 'westeros',
-        // otherInfo
-        // showXTickline: true,
-        // showYTickline: true,
-        // pixelsPerTick: 3,
-        // zeroBase: false,
-        // useCustom: false,
-        // lineWidth: 1,
-        // useCustomMin: 0,
-        // useCustomMax: 0,
-        // showPoint: false,
-        // pointRadius: 1,
-        // showYaxisRightTickline: false,
-        // zeroBaseRightYaxis: false,
-        // useRightYaxis: false,
-        // useCustomRightYaxis: false,
-        // useCustomRightYaxisMin: 0,
-        // useCustomRightYaxisMax: 0,
+        };
+    }
 
-        //timeRange
-        useCustomTime: false,
-        timeRange: {
-            start: '',
-            end: '',
-            refresh: 'Off',
-        },
-        // query
-        series: [{ ...tagTableValue(), userName: aUser, table: aTable ? aTable[3] : '' }],
-    };
-    return sData;
-};
+    // set xAxis, yAxis option
+    if (aOptionInfo.type === 'gauge' || aOptionInfo.type === 'pie' || (aOptionInfo.type === 'bar' && aOptionInfo.chartOptions.isPolar)) {
+        const { xAxis, yAxis, ...restOption } = sOption;
+        sOption = restOption;
+    } else {
+        sOption.xAxis = createXAxisOption(aOptionInfo);
+        sOption.yAxis = createYAxisOption(aOptionInfo);
+    }
 
-export const createDefaultTagTableOption = (aUser: string, aTable: string) => {
-    const sOption = [{ ...DefaultTagTableOption, userName: aUser, table: aTable ? aTable[3] : '' }];
     return sOption;
 };
 
-export const createSeriesOption = (aOptionInfo: any, aTagList: any) => {
-    const sOption = {
-        ...aOptionInfo.chartInfo,
-        xAxis: {
-            ...aOptionInfo.chartInfo.xAxis,
-            // data: 'column(0)',
-        },
-        series: setSeries(aOptionInfo, aTagList),
-        legend: { show: aOptionInfo.isLegend ? true : false },
-    };
-    return sOption;
+export const createCommonOption = (aCommonOptions: any) => {
+    const sCommon = JSON.parse(JSON.stringify(StructureOfCommonOption));
+    sCommon.legend.show = aCommonOptions.isLegend;
+    sCommon.tooltip.show = aCommonOptions.isTooltip;
+    sCommon.tooltip.trigger = aCommonOptions.tooltipTrigger;
+    sCommon.dataZoom = aCommonOptions.isDataZoom ? [{ type: 'slider' }] : false;
+    if (aCommonOptions.isTooltip && aCommonOptions.tooltipTrigger === 'axis') {
+        sCommon.tooltip.formatter = ChartAxisTooltipFormatter;
+    }
+    return sCommon;
 };
 
-export const setSeries = (aOptionInfo: any, aTagList: any) => {
-    let sSeries = [] as any[];
+export const createXAxisOption = (aOptionInfo: any) => {
+    const sXAxisOption = [] as any;
+    aOptionInfo.xAxisOptions &&
+        aOptionInfo.xAxisOptions.map((aItem: any) => {
+            sXAxisOption.push(aItem);
+        });
+    if (aOptionInfo.chartOptions?.isStack) {
+        sXAxisOption[0] = {
+            ...sXAxisOption[0],
+            data: 'column(0)',
+        };
+    }
+
+    return sXAxisOption;
+};
+
+export const createYAxisOption = (aOptionInfo: any) => {
+    const sYAxisOption = [] as any;
+    aOptionInfo.yAxisOptions &&
+        aOptionInfo.yAxisOptions.map((aItem: any) => {
+            sYAxisOption.push(aItem);
+        });
+
+    return sYAxisOption;
+};
+
+export const createLineVisualMapOption = (aOptionInfo: any, aTagList: any) => {
+    const sSeriesIndexArray = Array.from(aTagList, (_, aIndex) => aIndex);
+    const sPieces = aOptionInfo.markLine.data.reduce((aAcc: any, aCurrent: any, aIndex: number, aArr: any) => {
+        if (aIndex % 2 === 0 && aIndex < aArr.length - 1) {
+            aAcc.push({ min: aCurrent.xAxis, max: aArr[aIndex + 1].xAxis, color: ChartSeriesColorList[0] });
+        }
+        return aAcc;
+    }, []);
+
+    const sVisualMapOption = JSON.parse(JSON.stringify(StructureOfLineVisualMapOption));
+    sVisualMapOption.seriesIndex = sSeriesIndexArray;
+    sVisualMapOption.pieces = sPieces;
+
+    return sVisualMapOption;
+};
+
+export const createLineSeriesOption = (aLineOption: any, aXAxis: any[], aYAxis: any[], aIndex: number) => {
+    let sLineOption = JSON.parse(JSON.stringify(StructureOfLineSeriesOption));
+    sLineOption.areaStyle = aLineOption.areaStyle ? { opacity: 0.2 } : null;
+    sLineOption.smooth = aLineOption.smooth;
+    sLineOption.step = aLineOption.isStep ? 'start' : false;
+    sLineOption.stack = aLineOption.isStack ? 'total' : null;
+    sLineOption.lineStyle = aLineOption.markLine ? { color: ChartSeriesColorList[aIndex], width: 2 } : null;
+    sLineOption.markLine = aIndex === 0 ? aLineOption.markLine : {};
+    sLineOption.connectNulls = aLineOption.connectNulls;
+
+    // multi xaxis option add xAxisIndex
+    if (aXAxis.length > 1 && aIndex !== 0) {
+        sLineOption = {
+            ...sLineOption,
+            xAxisIndex: aIndex,
+        };
+    }
+    // multi yaxis option add yAxisIndex
+    if (aYAxis.length > 1 && aIndex !== 0) {
+        sLineOption = {
+            ...sLineOption,
+            yAxisIndex: aIndex,
+        };
+    }
+
+    return sLineOption;
+};
+
+export const createBarSeriesOption = (aBarOption: any) => {
+    const sBarOption = JSON.parse(JSON.stringify(StructureOfBarSeriesOption));
+    sBarOption.coordinateSystem = aBarOption.isPolar ? 'polar' : 'cartesian2d';
+    sBarOption.large = aBarOption.isLarge;
+    sBarOption.stack = aBarOption.isStack ? 'total' : null;
+
+    return sBarOption;
+};
+
+export const createBarPolarOption = (aBarOption: any) => {
+    const sBarPolarOption = JSON.parse(JSON.stringify(StructureOfBarPolarOption));
+    sBarPolarOption.angleAxis.max = aBarOption.maxValue;
+    sBarPolarOption.angleAxis.startAngle = aBarOption.startAngle;
+    return sBarPolarOption;
+};
+
+export const createScatterSeriesOption = (aScatterOption: any) => {
+    const sScatterOption = JSON.parse(JSON.stringify(StructureOfScatterSeriesOption));
+    sScatterOption.large = aScatterOption.isLarge;
+    sScatterOption.symbolSize = aScatterOption.symbolSize;
+
+    return sScatterOption;
+};
+
+export const createGaugeSeriesOption = (aGaugeOption: any) => {
+    const sGaugeOption = JSON.parse(JSON.stringify(StructureOfGaugeSeriesOption));
+    sGaugeOption.min = aGaugeOption.min;
+    sGaugeOption.max = aGaugeOption.max;
+    sGaugeOption.axisTick.show = aGaugeOption.isAxisTick;
+    sGaugeOption.axisLabel.distance = Number(aGaugeOption.axisLabelDistance);
+    sGaugeOption.anchor.show = aGaugeOption.isAnchor;
+    sGaugeOption.anchor.size = aGaugeOption.anchorSize;
+    sGaugeOption.detail.fontSize = aGaugeOption.valueFontSize;
+    sGaugeOption.detail.valueAnimation = aGaugeOption.valueAnimation;
+    sGaugeOption.detail.offsetCenter[1] = aGaugeOption.alignCenter + '%';
+    // TODO change you need gauge option
+    return sGaugeOption;
+};
+
+export const createPieSeriesOption = (aPieOption: any) => {
+    const sPieOption = JSON.parse(JSON.stringify(StructureOfPieSeriesOption));
+    sPieOption.radius[0] = aPieOption.doughnutRatio;
+    sPieOption.roseType = aPieOption.roseType ? 'area' : false;
+
+    return sPieOption;
+};
+
+export const setLineSeries = (aOptionInfo: any, aTagList: any) => {
+    const sSeries = [] as any[];
+    // const sIsStack = aOptionInfo.chartOptions?.isStack;
+    for (let i = 0; i < aTagList.length; i++) {
+        // const sColumnIndex = sIsStack ? i + 1 : i;
+        const sTempObject = {
+            ...createLineSeriesOption(aOptionInfo.chartOptions ?? DefaultLineChartOption, aOptionInfo.xAxisOptions, aOptionInfo.yAxisOptions, i),
+            type: aOptionInfo.type,
+            data: [],
+            name: aTagList[i],
+        };
+        sSeries.push(sTempObject);
+    }
+    return sSeries;
+};
+
+export const setBarSeries = (aOptionInfo: any, aTagList: any) => {
+    const sSeries = [];
+    // const sIsStack = aOptionInfo.chartOptions?.isStack;
+    for (let i = 0; i < aTagList.length; i++) {
+        // const sColumnIndex = sIsStack ? i + 1 : i;
+        const sTempObject = {
+            ...createBarSeriesOption(aOptionInfo.chartOptions ?? DefaultBarChartOption),
+            type: aOptionInfo.type,
+            data: [],
+            name: aTagList[i],
+        };
+        sSeries.push(sTempObject);
+    }
+    return sSeries;
+};
+
+export const setScatterSeries = (aOptionInfo: any, aTagList: any) => {
+    const sSeries = [];
     for (let i = 0; i < aTagList.length; i++) {
         const sTempObject = {
-            ...aOptionInfo.chartInfo.series[i],
+            ...createScatterSeriesOption(aOptionInfo.chartOptions ?? DefaultScatterChartOption),
+            type: aOptionInfo.type,
+            data: [],
+            name: aTagList[i],
+        };
+        sSeries.push(sTempObject);
+    }
+    return sSeries;
+};
+
+export const setPieSeries = (aOptionInfo: any) => {
+    const sSeries = [] as any[];
+    // TODO multi pie series
+    const sTempObject = {
+        ...createPieSeriesOption(aOptionInfo.chartOptions ?? DefaultPieChartOption),
+        type: aOptionInfo.type,
+    };
+    sSeries.push(sTempObject);
+
+    return sSeries;
+};
+
+export const setGaugeSeries = (aOptionInfo: any, aTagList: any) => {
+    const sSeries = [] as any[];
+    for (let i = 0; i < aTagList.length; i++) {
+        const sTempObject = {
+            ...createGaugeSeriesOption(aOptionInfo.chartOptions ?? DefaultGaugeChartOption),
             type: aOptionInfo.type,
             data: 'column(' + i + ')',
             name: aTagList[i],
         };
         sSeries.push(sTempObject);
     }
+
     return sSeries;
 };
 
@@ -393,22 +574,47 @@ export const removeColumnQuotes = (aStr: string) => {
     return aStr.replace(/"column\((\d+)\)"/g, 'column($1)');
 };
 
-export const createMapValueForTag = (aTags: any, aTagNum: number) => {
+export const decodeFormatterFunction = (aStr: string) => {
+    return aStr.replace(/"(function \(params\) \{.*?\})"/g, (aMatch) => {
+        if (aMatch.startsWith('"') && aMatch.endsWith('"')) {
+            return aMatch.slice(1, -1);
+        }
+        return aMatch;
+    });
+};
+
+export const createMapValueForTag = (aTags: any, aIsStack: boolean) => {
     let sResultString = '';
     let sMapValueString = '';
     let sPopValueString = '0';
-    for (let i = 0; i < aTagNum; i++) {
+    const sTagNum = aTags.length;
+    for (let i = 0; i < sTagNum; i++) {
         // when select name, time, value
-        sMapValueString += `MAPVALUE(${i + 3}, value(0) == '${aTags[i]}' ? value(2) : NULL)\n`;
+        // time, name , value
+        sMapValueString += `MAPVALUE(${i + 3}, value(1) == '${aTags[i]}' ? value(2) : NULL)\n`;
     }
-    sResultString = sMapValueString + `POPVALUE(0, 2)\n`;
-    sMapValueString = '';
-    for (let i = 0; i < aTagNum; i++) {
-        sMapValueString += `MAPVALUE(${aTagNum + (i + 1)}, list(value(0), value(${i + 1}) == NULL ? NULL : value(${i + 1})))\n`;
-        sPopValueString += ', ' + (i + 1);
+    sResultString = sMapValueString + `POPVALUE(1, 2)\n`;
+    if (aIsStack) {
+        const sGroupValueString = 'GROUP(by(value(0)), {replace})\n';
+        let sReplaceValueString = '';
+        for (let i = 0; i < sTagNum; i++) {
+            sReplaceValueString += `max(value(${i + 1}) == NULL ? -999999 : value(${i + 1}))`;
+            if (i !== sTagNum - 1) sReplaceValueString += ', ';
+        }
+        sResultString += sGroupValueString.replace('{replace}', sReplaceValueString);
+    } else {
+        sMapValueString = '';
+        for (let i = 0; i < sTagNum; i++) {
+            sMapValueString += `MAPVALUE(${sTagNum + (i + 1)}, list(value(0), value(${i + 1}) == NULL ? NULL : value(${i + 1})))\n`;
+            sPopValueString += ', ' + (i + 1);
+        }
+        sResultString += sMapValueString + `POPVALUE(${sPopValueString})\n`;
     }
-    sResultString += sMapValueString + `POPVALUE(${sPopValueString})\n`;
     return sResultString;
+};
+
+export const createMapValueForPie = () => {
+    return 'MAPVALUE(0, list(value(1), value(2)))\n';
 };
 
 export const calcRefreshTime = (aTime: string) => {
@@ -569,5 +775,67 @@ export const isNumberTypeColumn = (aType: number) => {
         return true;
     } else {
         return false;
+    }
+};
+
+export const createGaugeQuery = (aInfo: any, aStart: number, aEnd: number) => {
+    const selectQuery = 'SELECT trunc(' + aInfo.aggregator + '(VALUE), 2)';
+    const fromQuery = 'FROM ' + aInfo.userName + '.' + aInfo.table;
+    const whereTimeQuery = 'WHERE TIME between ' + aStart + '000000' + ' and ' + aEnd + '000000';
+    const andNameQuery = `AND NAME = '${aInfo.tag}'`;
+
+    return selectQuery + ' ' + fromQuery + ' ' + whereTimeQuery + ' ' + andNameQuery;
+};
+
+export const createPieQuery = (aInfo: any, aStart: number, aEnd: number) => {
+    const selectQuery = 'SELECT NAME, ' + aInfo.aggregator + '(VALUE)';
+    const fromQuery = 'FROM ' + aInfo.userName + '.' + aInfo.table;
+    const whereTimeQuery = 'WHERE TIME between ' + aStart + '000000' + ' and ' + aEnd + '000000';
+    let andNameQuery = `AND NAME = '${aInfo.tag}'`;
+    const groupByQuery = 'GROUP BY NAME';
+
+    if (aInfo.useCustom) {
+        const sFilterList = aInfo.filter.map((aItem: any) => {
+            let sValue = '';
+            if (aItem.useFilter) {
+                const sTableInfo = aInfo.tableInfo.find((bItem: any) => {
+                    return bItem[0] === aItem.column;
+                });
+                if (sTableInfo && isNumberTypeColumn(sTableInfo[1])) {
+                    sValue = `${aItem.value}`;
+                } else {
+                    if (aItem.operator === 'in') {
+                        sValue = aItem.value
+                            .split(',')
+                            .map((val: string) => {
+                                const trimVal = val.trim();
+                                return trimVal.startsWith("'") ? trimVal : "'" + trimVal + "'";
+                            })
+                            .join(',');
+                        sValue = `(${sValue})`;
+                    } else {
+                        sValue = `'${aItem.value}'`;
+                    }
+                }
+                return `${aItem.column} ${aItem.operator} ${sValue}`;
+            } else {
+                return '';
+            }
+        });
+        andNameQuery = ' AND ' + sFilterList.join(' AND ');
+    }
+
+    return selectQuery + ' ' + fromQuery + ' ' + whereTimeQuery + ' ' + andNameQuery + ' ' + groupByQuery;
+};
+
+export const isTimeSeriesChart = (aType: ChartType) => {
+    switch (aType) {
+        case 'line':
+        case 'bar':
+        case 'scatter':
+        case 'candlestick':
+            return true;
+        default:
+            return false;
     }
 };

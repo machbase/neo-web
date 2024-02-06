@@ -60,6 +60,10 @@ const Tql = (props: TqlProps) => {
         setCurrentLang('go');
     }, []);
 
+    useEffect(() => {
+        if (sText !== pCode && sCurrentLang) setText(pCode);
+    }, [pCode]);
+
     const handleSplitVertical = () => {
         setIsVertical(true);
     };
@@ -174,7 +178,7 @@ const Tql = (props: TqlProps) => {
     };
 
     const handleCopyLink = () => {
-        const sTargetBoard = sBoardList.find((aBoard) => aBoard.id == sSelectedTab);
+        const sTargetBoard = sBoardList.find((aBoard) => aBoard.id === sSelectedTab);
         const sTargetPath = `http://${window.location.host + '/db/tql' + sTargetBoard!.path + sTargetBoard!.name}`;
         ClipboardCopy(sTargetPath);
     };
@@ -239,7 +243,7 @@ const Tql = (props: TqlProps) => {
                                     <div style={{ padding: '0 1rem' }}>{sTextField}</div>
                                 )
                             ) : null}
-                            {sResultType === 'html' ? <ShowChart pData={sChartData} /> : null}
+                            {sResultType === 'html' ? <ShowChart pData={sChartData} pLoopMode={false} /> : null}
                             {sResultType === 'map' ? <ShowMap pData={sMapData} pBodyRef={tqlResultBodyRef} /> : null}
                             {sResultType === 'mrk' ? <Markdown pIdx={1} pContents={sMarkdown} pType="mrk" /> : null}
                             {sResultType === 'xhtml' ? <Markdown pIdx={1} pContents={sMarkdown} /> : null}
