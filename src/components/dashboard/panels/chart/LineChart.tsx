@@ -38,8 +38,8 @@ const LineChart = ({
     pSetModifyState,
     pParentWidth,
     pIsHeader,
-    pIsView,
-}: any) => {
+}: // pIsView,
+any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
     const [sChartData, setChartData] = useState<any>({});
     const [sIsMessage, setIsMessage] = useState<any>('Please set up a Query.');
