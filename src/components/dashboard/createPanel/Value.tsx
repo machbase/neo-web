@@ -16,7 +16,7 @@ any) => {
         <div className="values">
             <div className="series-table">
                 <span className="series-title">
-                    Value
+                    Value field
                     {/* {pIdx === pBlockInfo.values.length - 1 ? (
                         <IconButton pDisabled={pValueLimit} pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={pValueLimit ? () => {} : () => pAddValue()} />
                     ) : (

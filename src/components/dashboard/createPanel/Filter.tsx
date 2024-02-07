@@ -1,4 +1,4 @@
-import { Close, PlusCircle } from '@/assets/icons/Icon';
+import { Close, GoPencil, PlusCircle } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
@@ -62,17 +62,19 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                 />
             </div>
             <div className="series-table padding-4">
-                <CheckBox
-                    onChange={(aEvent: any) => pChangeValueOption('useTyping', aEvent, pFilterInfo.id, 'filter')}
-                    pDefaultChecked={pFilterInfo.useTyping}
-                    pText={'typing'}
-                ></CheckBox>
+                <IconButton
+                    pWidth={20}
+                    pHeight={20}
+                    pIsActive={pFilterInfo.useTyping}
+                    pIcon={<GoPencil />}
+                    onClick={() => pChangeValueOption('useTyping', { target: { value: !pFilterInfo.useTyping } }, pFilterInfo.id, 'filter')}
+                />
             </div>
             <div className="series-table padding-4">
                 <CheckBox
                     onChange={(aEvent: any) => pChangeValueOption('useFilter', aEvent, pFilterInfo.id, 'filter')}
                     pDefaultChecked={pFilterInfo.useFilter}
-                    pText={'use'}
+                    pText={'Use'}
                 ></CheckBox>
             </div>
         </div>

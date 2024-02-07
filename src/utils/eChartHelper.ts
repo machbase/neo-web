@@ -142,8 +142,8 @@ export const DefaultChartOption = {
     type: 'line' as ChartType,
     theme: 'dark' as ChartTheme,
     timeRange: {
-        start: 'now-1y' as string | undefined,
-        end: 'now' as string | undefined,
+        start: '' as string | undefined,
+        end: '' as string | undefined,
         refresh: 'Off' as any,
     },
     isAxisInterval: false as boolean,

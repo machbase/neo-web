@@ -1,6 +1,6 @@
 import { getTableInfo } from '@/api/repository/api';
 import { fetchTags, getRollupTableList } from '@/api/repository/machiot';
-import { Close, Refresh, VscSync } from '@/assets/icons/Icon';
+import { Close, HideOff, HideOn, Refresh } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
@@ -266,7 +266,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             </div>
                             <div className="details">
                                 <div className="series-table">
-                                    <span className="series-title"> TimeField </span>
+                                    <span className="series-title"> Time field </span>
                                     {sTimeList[0] && (
                                         <Select
                                             pFontSize={12}
@@ -375,9 +375,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                         <IconButton
                             pWidth={20}
                             pHeight={20}
-                            pIsActive={pBlockInfo.useCustom}
                             pDisabled={sSelectedTableType !== 'tag'}
-                            pIcon={<VscSync />}
+                            pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <HideOn size={18} /> : <HideOff size={18} style={{ transform: 'rotate(90deg)' }} />}
                             onClick={sSelectedTableType !== 'tag' ? () => {} : () => setOption('useCustom', !pBlockInfo.useCustom)}
                         />
                         <IconButton
