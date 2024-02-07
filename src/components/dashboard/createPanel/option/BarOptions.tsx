@@ -35,12 +35,12 @@ export const BarOptions = (props: BarOptionProps) => {
 
     return (
         <div>
-            <CheckBox pText="Stack Mode" pDefaultChecked={pPanelOption.chartOptions?.isStack ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isStack', true)} />
+            <CheckBox pText="Stack mode" pDefaultChecked={pPanelOption.chartOptions?.isStack ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isStack', true)} />
             <div style={{ height: '10px' }} />
-            <CheckBox pText="Large Data Mode" pDefaultChecked={pPanelOption.chartOptions?.isLarge ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isLarge', true)} />
+            <CheckBox pText="Large data mode" pDefaultChecked={pPanelOption.chartOptions?.isLarge ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isLarge', true)} />
             <div style={{ height: '10px' }} />
-            <Collapse title="polar option" isOpen={pPanelOption.chartOptions?.isPolar ?? false}>
-                <CheckBox pText="Polar Mode" pDefaultChecked={pPanelOption.chartOptions?.isPolar ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isPolar', true)} />
+            <Collapse title="Polar option" isOpen={pPanelOption.chartOptions?.isPolar ?? false}>
+                <CheckBox pText="Polar mode" pDefaultChecked={pPanelOption.chartOptions?.isPolar ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isPolar', true)} />
                 <div style={sPolarMenuStyle}>
                     <span>Max</span>
                     <Input
@@ -53,7 +53,7 @@ export const BarOptions = (props: BarOptionProps) => {
                     />
                 </div>
                 <div style={sPolarMenuStyle}>
-                    <span>Start Angle</span>
+                    <span>Start angle</span>
                     <Input
                         pType="number"
                         pWidth={50}
@@ -77,7 +77,7 @@ export const BarOptions = (props: BarOptionProps) => {
                     />
                 </div>
                 <div style={sPolarMenuStyle}>
-                    <span>Polar Size</span>
+                    <span>Polar size</span>
                     <Input
                         pType="number"
                         pWidth={50}
@@ -89,7 +89,7 @@ export const BarOptions = (props: BarOptionProps) => {
                     />
                 </div>
                 <div style={sPolarMenuStyle}>
-                    <span>Polar Axis</span>
+                    <span>Polar axis</span>
                     <Select
                         pWidth={100}
                         pHeight={25}

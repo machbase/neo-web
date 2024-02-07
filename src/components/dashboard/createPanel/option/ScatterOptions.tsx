@@ -24,13 +24,13 @@ export const ScatterOptions = (props: ScatterOptionProps) => {
     return (
         <div>
             <CheckBox
-                pText="Large Data Mode"
+                pText="Large data mode"
                 pDefaultChecked={pPanelOption.chartOptions?.isLarge ?? false}
                 onChange={(aEvent: any) => handleScatterOption(aEvent, 'isLarge', true)}
             />
             <div style={{ height: '10px' }} />
             <div className="menu-style">
-                <span>Symbol Size</span>
+                <span>Symbol size</span>
                 <Input
                     pWidth={50}
                     pHeight={25}

@@ -165,7 +165,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
             </div>
             <div style={{ height: '10px' }} />
             <CheckBox
-                pText="WaveAnimation"
+                pText="Wave animation"
                 pDefaultChecked={pPanelOption.chartOptions?.waveAnimation ?? false}
                 onChange={(aEvent: any) => HandleOption({ target: { value: aEvent.target.checked } }, 'waveAnimation')}
             />

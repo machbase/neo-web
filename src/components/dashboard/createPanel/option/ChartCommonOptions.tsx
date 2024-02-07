@@ -43,7 +43,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
 
     return (
         <>
-            <Collapse title="Panel Option" isOpen>
+            <Collapse title="Panel option" isOpen>
                 <div className="panel-name-wrap">Title</div>
                 <Input
                     pType="text"
@@ -56,7 +56,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                 />
                 <div style={{ height: '10px' }} />
                 <CheckBox
-                    pText="Display Inside Title"
+                    pText="Display inside title"
                     pDefaultChecked={pPanelOption.commonOptions.isInsideTitle}
                     onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isInsideTitle')}
                 />
@@ -75,7 +75,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
             <div className="divider" />
             <Collapse title="Legend">
                 <CheckBox
-                    pText="Show Legend"
+                    pText="Show legend"
                     pDefaultChecked={pPanelOption.commonOptions.isLegend}
                     onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isLegend')}
                 />
@@ -166,7 +166,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
             <div className="divider" />
             <Collapse title="Tooltip">
                 <CheckBox
-                    pText="Show Tooltip"
+                    pText="Show tooltip"
                     pDefaultChecked={pPanelOption.commonOptions.isTooltip}
                     onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isTooltip')}
                 />

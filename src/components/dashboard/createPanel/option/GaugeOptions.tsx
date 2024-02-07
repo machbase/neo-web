@@ -89,13 +89,13 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
             <div className="divider" />
             <Collapse title="Axis">
                 <CheckBox
-                    pText="Show Axis Tick"
+                    pText="Show axis tick"
                     pDefaultChecked={pPanelOption.chartOptions?.isAxisTick ?? false}
                     onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAxisTick')}
                 />
                 <div style={{ height: '10px' }} />
                 <div className="menu-style">
-                    <div>Axis Label Distance</div>
+                    <div>Axis label distance</div>
                     <Input
                         pType="number"
                         pHeight={25}
@@ -131,13 +131,13 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
             <div className="divider" />
             <Collapse title="Anchor">
                 <CheckBox
-                    pText="Show Anchor"
+                    pText="Show anchor"
                     pDefaultChecked={pPanelOption.chartOptions?.isAnchor ?? false}
                     onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAnchor')}
                 />
                 <div style={{ height: '10px' }} />
                 <div className="menu-style">
-                    <div>Anchor Size</div>
+                    <div>Anchor size</div>
                     <Input
                         pType="number"
                         pHeight={25}
@@ -152,7 +152,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
             <div className="divider" />
             <Collapse title="Value">
                 <div className="menu-style">
-                    <div>Font Size</div>
+                    <div>Font size</div>
                     <Input
                         pType="number"
                         pHeight={25}
@@ -163,7 +163,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                     />
                 </div>
                 <div className="menu-style">
-                    <div>Value Center Offset</div>
+                    <div>Value center offset</div>
                     <Input
                         pType="number"
                         pHeight={25}
@@ -174,7 +174,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                     />
                 </div>
                 <div className="menu-style">
-                    <div>Decimal Places</div>
+                    <div>Decimal places</div>
                     <Input
                         pType="number"
                         pHeight={25}
@@ -185,7 +185,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                     />
                 </div>
                 <CheckBox
-                    pText="Active Animation"
+                    pText="Active animation"
                     pDefaultChecked={pPanelOption.chartOptions?.valueAnimation ?? false}
                     onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'valueAnimation')}
                 />

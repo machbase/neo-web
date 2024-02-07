@@ -85,7 +85,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                         </>
                     )}
                     <div className="divider" />
-                    <Collapse title="Chart Option" isOpen>
+                    <Collapse title="Chart option" isOpen>
                         {pPanelOption.type === 'line' ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                         {pPanelOption.type === 'bar' ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                         {pPanelOption.type === 'scatter' ? <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}

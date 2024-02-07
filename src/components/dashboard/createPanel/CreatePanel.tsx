@@ -184,7 +184,7 @@ const CreatePanel = ({
             <div className="header">
                 <div className="left">
                     <IconButton pWidth={20} pHeight={32} pIcon={<IoArrowBackOutline />} onClick={handleClose} />
-                    <span>Create Panel</span>
+                    <span>Create panel</span>
                 </div>
 
                 <div className="right">

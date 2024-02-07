@@ -75,25 +75,25 @@ export const LineOptions = (props: LineOptionProps) => {
     return (
         <div>
             <CheckBox
-                pText="Fill Area Style"
+                pText="Fill area style"
                 pDefaultChecked={pPanelOption.chartOptions?.areaStyle ?? false}
                 onChange={(aEvent: any) => handleLineOption(aEvent, 'areaStyle', true)}
             />
             <div style={{ height: '10px' }} />
-            <CheckBox pText="Smooth Line" pDefaultChecked={pPanelOption.chartOptions?.smooth ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'smooth', true)} />
+            <CheckBox pText="Smooth line" pDefaultChecked={pPanelOption.chartOptions?.smooth ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'smooth', true)} />
             <div style={{ height: '10px' }} />
-            <CheckBox pText="Step Line" pDefaultChecked={pPanelOption.chartOptions?.isStep ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStep', true)} />
+            <CheckBox pText="Step line" pDefaultChecked={pPanelOption.chartOptions?.isStep ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStep', true)} />
             <div style={{ height: '10px' }} />
-            <CheckBox pText="Stack Mode" pDefaultChecked={pPanelOption.chartOptions?.isStack ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStack', true)} />
+            <CheckBox pText="Stack mode" pDefaultChecked={pPanelOption.chartOptions?.isStack ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStack', true)} />
             <div style={{ height: '10px' }} />
             <CheckBox
-                pText="Large Data Mode"
+                pText="Large data mode"
                 pDefaultChecked={pPanelOption.chartOptions?.isSampling ?? false}
                 onChange={(aEvent: any) => handleLineOption(aEvent, 'isSampling', true)}
             />
             <div style={{ height: '10px' }} />
             <div className="menu-style">
-                <span>Symbol</span>
+                <span>Symbol type</span>
                 <Select
                     pFontSize={12}
                     pWidth={100}
@@ -105,7 +105,7 @@ export const LineOptions = (props: LineOptionProps) => {
                 />
             </div>
             <div className="menu-style">
-                <span>Symbol Size</span>
+                <span>Symbol size</span>
                 <Input
                     pWidth={100}
                     pHeight={25}

@@ -86,9 +86,9 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                 <>
                     <div className="divider" />
                     <Collapse title="Interval" isOpen>
-                        <CheckBox onChange={(aEvent: any) => changeAxisInterval(aEvent.target.checked)} pDefaultChecked={pIsAxisInterval} pText={'Setting Axis Interval'} />
+                        <CheckBox onChange={(aEvent: any) => changeAxisInterval(aEvent.target.checked)} pDefaultChecked={pIsAxisInterval} pText={'Setting axis interval'} />
                         <div className="menu-style">
-                            <span>type</span>
+                            <span>Type</span>
                             <Select
                                 pWidth={100}
                                 pHeight={25}
@@ -100,7 +100,7 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                             />
                         </div>
                         <div className="menu-style">
-                            <span>value</span>
+                            <span>Value</span>
                             <Input
                                 pType="number"
                                 pWidth={100}
