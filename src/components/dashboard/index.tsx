@@ -234,6 +234,8 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                         pSetCreateModal={setCreateModal}
                         pModifyState={sModifyState}
                         pSetModifyState={setModifyState}
+                        pMoveTimeRange={moveTimeRange}
+                        pSetTimeRangeModal={setTimeRangeModal}
                     />
                 )}
             </div>
