@@ -39,6 +39,16 @@ export default defineConfig({
                 changeOrigin: true,
                 secure: false,
                 ws: false,
+                configure: (proxy, options) => {
+                    proxy.on('error', function (err, req, res) {
+                        if (req.url === '/web/api/tql' && req.method === 'POST') {
+                            res.writeHead(401, {
+                                'Content-Type': 'application/json; charset=utf-8',
+                            });
+                            res.end('{"reason":"token is expired by 6.3134028s","success":false}');
+                        }
+                    });
+                },
             },
             '/web/machbase': {
                 target: `http://${TestTarget}`,
