@@ -54,6 +54,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             useRollup: isRollup(aRollupList, bBlock.table, getInterval(aTime.interval.IntervalType, aTime.interval.IntervalValue)),
             useCustom: bBlock.useCustom,
             color: bBlock.color,
+            tableInfo: bBlock.tableInfo,
         };
     });
     return sParsedBlock;
@@ -97,7 +98,8 @@ const GetValues = (aTable: any) => {
  * @return (filter {column: name, operator: in, name: "tag"})
  */
 const GetFilter = (aTableInfo: any) => {
-    return [{ ...aTableInfo.filter[0], column: 'NAME', operator: 'in', value: aTableInfo.tag }];
+    if (aTableInfo.tag !== '') return [{ ...aTableInfo.filter[0], column: 'NAME', operator: 'in', value: aTableInfo.tag }];
+    else return [];
 };
 
 const GetValueColumn = (aValueList: any) => {
@@ -122,12 +124,12 @@ const GetTimeWhere = (aTimeType: string, aTime: any): string => {
     return `${aTimeType} BETWEEN ${aTime.start}000000 AND ${aTime.end}000000`;
 };
 
-const GetFilterWhere = (aFilterList: any, aUseCustom: boolean) => {
+const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
     if (aFilterList.length === 0) return '';
     const sParsedFilter: any = {};
     aFilterList.map((aFilter: any) => {
         if (aFilter.useTyping && aUseCustom) {
-            if (!sParsedFilter[aFilter.value]) sParsedFilter[aFilter.value] = { ...aFilter, valueList: [aFilter.value] };
+            if (!sParsedFilter[aFilter.typingValue]) sParsedFilter[aFilter.typingValue] = { ...aFilter, valueList: [aFilter.typingValue] };
         } else {
             if (sParsedFilter[aFilter.column + aFilter.operator]) {
                 sParsedFilter[aFilter.column + aFilter.operator] = {
@@ -146,9 +148,11 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean) => {
         } else {
             if (aFilter.operator === 'in') return `${aFilter.column} ${aFilter.operator} ('${aFilter.valueList.join("','")}')`;
             else {
+                // Check varchar type
+                const sUseQuote = aQuery.tableInfo.find((aTable: any) => aTable[0] === aFilter.column)[1] === 5;
                 return aFilter.valueList
                     .map((aValue: any) => {
-                        return `${aFilter.column} ${aFilter.operator} ${aValue}`;
+                        return `${aFilter.column} ${aFilter.operator} ${sUseQuote ? `'${aValue}'` : aValue}`;
                     })
                     .join(' AND ');
             }
@@ -181,7 +185,7 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
         const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval);
         const sValueColumn = GetValueColumn(aQuery.valueList)[0];
         const sTimeWhere = GetTimeWhere(aQuery.time, aTime);
-        const sFilterWhere = GetFilterWhere(aQuery.filterList, aQuery.useCustom);
+        const sFilterWhere = GetFilterWhere(aQuery.filterList, aQuery.useCustom, aQuery);
         const sGroupBy = `GROUP BY TIME ${UseGroupByTime(aQuery.valueList)}`;
         const sOrderBy = 'ORDER BY TIME';
         const sAlias = GetAlias(aQuery.valueList[0]);

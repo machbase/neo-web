@@ -49,17 +49,31 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                     </div>
                 </>
             )}
-            <div className="series-table">
-                <Input
-                    pBorderRadius={4}
-                    pWidth={pFilterInfo.useTyping ? 436 : 175}
-                    pHeight={26}
-                    pType="text"
-                    pValue={pFilterInfo.value}
-                    pSetValue={() => null}
-                    onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
-                />
-            </div>
+            {pFilterInfo.useTyping ? (
+                <div className="series-table">
+                    <Input
+                        pBorderRadius={4}
+                        pWidth={436}
+                        pHeight={26}
+                        pType="text"
+                        pValue={pFilterInfo.typingValue}
+                        pSetValue={() => null}
+                        onChange={(aEvent: any) => pChangeValueOption('typingValue', aEvent, pFilterInfo.id, 'filter')}
+                    />
+                </div>
+            ) : (
+                <div className="series-table">
+                    <Input
+                        pBorderRadius={4}
+                        pWidth={175}
+                        pHeight={26}
+                        pType="text"
+                        pValue={pFilterInfo.value}
+                        pSetValue={() => null}
+                        onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
+                    />
+                </div>
+            )}
             <div className="series-table padding-4">
                 <IconButton
                     pWidth={20}

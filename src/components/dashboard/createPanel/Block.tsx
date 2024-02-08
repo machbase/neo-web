@@ -140,13 +140,23 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                               [aChangedKey]: aItem?.[aChangedKey].map((bItem: any) => {
                                   if (bItem.id === aId && aChangedKey === 'filter') {
                                       let sUseFilter: boolean = false;
-                                      //   column | operator | value
-                                      aKey === 'value' && bItem.column !== '' && bItem.operator !== '' && aData.target.value !== '' && (sUseFilter = true);
-                                      aKey === 'operator' && bItem.column !== '' && bItem.value !== '' && aData.target.value !== '' && (sUseFilter = true);
-                                      aKey === 'column' && bItem.value !== '' && bItem.operator !== '' && aData.target.value !== '' && (sUseFilter = true);
-                                      return bItem.id === aId
-                                          ? { ...bItem, useFilter: sUseFilter, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value }
-                                          : bItem;
+                                      if (aKey === 'column' || aKey === 'value' || aKey === 'operator') {
+                                          // column | operator | value
+                                          aKey === 'column' && bItem.value !== '' && bItem.operator !== '' && aData.target.value !== '' && (sUseFilter = true);
+                                          aKey === 'value' && bItem.column !== '' && bItem.operator !== '' && aData.target.value !== '' && (sUseFilter = true);
+                                          aKey === 'operator' && bItem.column !== '' && bItem.value !== '' && aData.target.value !== '' && (sUseFilter = true);
+                                      } else sUseFilter = bItem.useFilter;
+                                      if (aKey === 'useTyping' && aData.target.value && bItem.useFilter) {
+                                          // Check varchar type
+                                          const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)[1] === 5;
+                                          const sValue = sUseQuote ? `"${bItem.value}"` : bItem.value;
+                                          const sTypingValue =
+                                              bItem.column === 'NAME' && bItem.operator === 'in'
+                                                  ? `${bItem.column} ${bItem.operator} (${sValue})`
+                                                  : `${bItem.column} ${bItem.operator} ${sValue}`;
+                                          return { ...bItem, useFilter: sUseFilter, typingValue: sTypingValue, [aKey]: aData.target.value };
+                                      }
+                                      return { ...bItem, useFilter: sUseFilter, [aKey]: aData.target.value };
                                   } else
                                       return bItem.id === aId
                                           ? { ...bItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value }
@@ -175,7 +185,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                 ...aPrev,
                 blockList: aPrev.blockList.map((aItem: any) => {
                     return aItem.id === pBlockInfo.id
-                        ? { ...aItem, filter: [...aItem.filter, { id: generateUUID(), value: '', operator: '=', useFilter: true, useTyping: false }] }
+                        ? { ...aItem, filter: [...aItem.filter, { id: generateUUID(), value: '', operator: '=', useFilter: true, useTyping: false, typingValue: '' }] }
                         : aItem;
                 }),
             };
