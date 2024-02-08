@@ -138,7 +138,19 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                         ? {
                               ...aItem,
                               [aChangedKey]: aItem?.[aChangedKey].map((bItem: any) => {
-                                  return bItem.id === aId ? { ...bItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value } : bItem;
+                                  if (bItem.id === aId && aChangedKey === 'filter') {
+                                      let sUseFilter: boolean = false;
+                                      //   column | operator | value
+                                      aKey === 'value' && bItem.column !== '' && bItem.operator !== '' && aData.target.value !== '' && (sUseFilter = true);
+                                      aKey === 'operator' && bItem.column !== '' && bItem.value !== '' && aData.target.value !== '' && (sUseFilter = true);
+                                      aKey === 'column' && bItem.value !== '' && bItem.operator !== '' && aData.target.value !== '' && (sUseFilter = true);
+                                      return bItem.id === aId
+                                          ? { ...bItem, useFilter: sUseFilter, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value }
+                                          : bItem;
+                                  } else
+                                      return bItem.id === aId
+                                          ? { ...bItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value }
+                                          : bItem;
                               }),
                           }
                         : aItem;
