@@ -199,6 +199,37 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             };
         });
     };
+
+    const HandleFold = () => {
+        const sChangedBlockInfo = JSON.parse(JSON.stringify(pBlockInfo));
+        sChangedBlockInfo.useCustom = !pBlockInfo.useCustom;
+        if (pBlockInfo.useCustom) {
+            sChangedBlockInfo.alias = sChangedBlockInfo.values[0].alias;
+            sChangedBlockInfo.aggregator = sChangedBlockInfo.values[0].aggregator;
+            sChangedBlockInfo.tag = '';
+        } else {
+            sChangedBlockInfo.values = [{ ...sChangedBlockInfo.values[0], aggregator: pBlockInfo.aggregator, alias: pBlockInfo.alias }];
+            sChangedBlockInfo.filter = [
+                {
+                    ...sChangedBlockInfo.filter[0],
+                    column: 'NAME',
+                    useFilter: pBlockInfo.tag !== '' ? true : false,
+                    operator: 'in',
+                    value: pBlockInfo.tag !== '' ? pBlockInfo.tag : '',
+                },
+            ];
+        }
+
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                blockList: aPrev.blockList.map((aItem: any) => {
+                    return aItem.id === pBlockInfo.id ? sChangedBlockInfo : aItem;
+                }),
+            };
+        });
+    };
+
     /** Update Table + Rollup */
     const HandleTable = async () => {
         setIsLoadingRollup(() => true);
@@ -377,7 +408,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             pHeight={20}
                             pDisabled={sSelectedTableType !== 'tag'}
                             pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <HideOn size={18} /> : <HideOff size={18} style={{ transform: 'rotate(90deg)' }} />}
-                            onClick={sSelectedTableType !== 'tag' ? () => {} : () => setOption('useCustom', !pBlockInfo.useCustom)}
+                            onClick={sSelectedTableType !== 'tag' ? () => {} : () => HandleFold()}
                         />
                         <IconButton
                             pDisabled={pPanelOption.blockList.length === 1}
