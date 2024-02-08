@@ -79,6 +79,9 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                     pWidth={20}
                     pHeight={20}
                     pIsActive={pFilterInfo.useTyping}
+                    pIsToopTip
+                    pToolTipContent={pFilterInfo.useTyping ? 'Selecting' : 'Typing'}
+                    pToolTipId={pBlockInfo.id + '-block-filter-pencil' + pIdx}
                     pIcon={<GoPencil />}
                     onClick={() => pChangeValueOption('useTyping', { target: { value: !pFilterInfo.useTyping } }, pFilterInfo.id, 'filter')}
                 />

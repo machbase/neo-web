@@ -230,6 +230,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             sChangedBlockInfo.aggregator = sChangedBlockInfo.values[0].aggregator;
             sChangedBlockInfo.tag = '';
         } else {
+            sChangedBlockInfo.tag = '';
             sChangedBlockInfo.values = [{ ...sChangedBlockInfo.values[0], aggregator: pBlockInfo.aggregator, alias: pBlockInfo.alias }];
             sChangedBlockInfo.filter = [
                 {
@@ -237,7 +238,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                     column: 'NAME',
                     useFilter: pBlockInfo.tag !== '' ? true : false,
                     operator: 'in',
-                    value: pBlockInfo.tag !== '' ? pBlockInfo.tag : '',
+                    value: pBlockInfo.tag && pBlockInfo.tag !== '' ? pBlockInfo.tag : '',
                 },
             ];
         }
@@ -406,6 +407,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             <IconButton
                                 pWidth={20}
                                 pHeight={20}
+                                pIsToopTip
+                                pToolTipContent={'Color'}
+                                pToolTipId={pBlockInfo.id + '-block-color'}
                                 pIcon={
                                     <div
                                         style={{ width: '14px', cursor: 'pointer', height: '14px', marginRight: '4px', borderRadius: '50%', backgroundColor: pBlockInfo.color }}
@@ -428,6 +432,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                         <IconButton
                             pWidth={20}
                             pHeight={20}
+                            pIsToopTip
+                            pToolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
+                            pToolTipId={pBlockInfo.id + '-block-expand'}
                             pDisabled={sSelectedTableType !== 'tag'}
                             pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <HideOn size={18} /> : <HideOff size={18} style={{ transform: 'rotate(90deg)' }} />}
                             onClick={sSelectedTableType !== 'tag' ? () => {} : () => HandleFold()}
