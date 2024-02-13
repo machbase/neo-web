@@ -54,6 +54,7 @@ export const DefaultLineChartOption = {
     isStep: false as boolean,
     isStack: false as boolean,
     connectNulls: true as boolean,
+    isSymbol: true as boolean,
     symbol: 'none' as string,
     symbolSize: 4 as number,
     isSampling: false as boolean,
@@ -104,6 +105,7 @@ export const DefaultLiquidfillChartOption = {
 
 export const DefaultScatterChartOption = {
     isLarge: false as boolean,
+    symbol: 'circle' as string,
     symbolSize: 4 as number,
     tagLimit: 12 as number,
 };

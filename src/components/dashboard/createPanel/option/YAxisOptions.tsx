@@ -68,7 +68,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                     </div>
                     <div className="divider" />
                     <CheckBox
-                        pText="Setting min max"
+                        pText="Custom min max"
                         pDefaultChecked={aItem.useMinMax ?? false}
                         onChange={(aEvent: any) => HandleMinMax('useMinMax', aEvent.target.checked, aIndex)}
                     />
@@ -77,7 +77,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                         <div>Min</div>
                         <Input
                             pType="number"
-                            pWidth={50}
+                            pWidth={100}
                             pHeight={25}
                             pBorderRadius={4}
                             pIsDisabled={!aItem.useMinMax}
@@ -89,7 +89,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                         <div>Max</div>
                         <Input
                             pType="number"
-                            pWidth={50}
+                            pWidth={100}
                             pHeight={25}
                             pBorderRadius={4}
                             pIsDisabled={!aItem.useMinMax}

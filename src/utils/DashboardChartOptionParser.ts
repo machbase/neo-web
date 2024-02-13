@@ -49,7 +49,8 @@ const StructureSeriesOption: any = {
     `,
     scatter: `
         "large": $isLarge$,
-        "symbolSize": $symbolSize$
+        "symbolSize": $symbolSize$,
+        "symbol": "$symbol$"
     `,
     pie: `
         "radius": ["$doughnutRatio$", "70%"],

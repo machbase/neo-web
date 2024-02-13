@@ -85,33 +85,32 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
             {pXAxis[0].type === 'time' ? (
                 <>
                     <div className="divider" />
-                    <Collapse title="Interval" isOpen>
-                        <CheckBox onChange={(aEvent: any) => changeAxisInterval(aEvent.target.checked)} pDefaultChecked={pIsAxisInterval} pText={'Setting axis interval'} />
-                        <div className="menu-style">
-                            <span>Type</span>
-                            <Select
-                                pWidth={100}
-                                pHeight={25}
-                                pBorderRadius={4}
-                                pIsDisabled={!pIsAxisInterval}
-                                pInitValue={pAxisInterval.IntervalType}
-                                onChange={(aEvent) => handleAxisInterval(aEvent.target.value, pAxisInterval.IntervalValue)}
-                                pOptions={sIntervalTypeList}
-                            />
-                        </div>
-                        <div className="menu-style">
-                            <span>Value</span>
-                            <Input
-                                pType="number"
-                                pWidth={100}
-                                pHeight={25}
-                                pBorderRadius={4}
-                                pIsDisabled={!pIsAxisInterval}
-                                pValue={pAxisInterval.IntervalValue.toString()}
-                                onChange={(aEvent) => handleAxisInterval(pAxisInterval.IntervalType, Number(aEvent.target.value))}
-                            />
-                        </div>
-                    </Collapse>
+                    <CheckBox onChange={(aEvent: any) => changeAxisInterval(aEvent.target.checked)} pDefaultChecked={pIsAxisInterval} pText={'Custom time interval'} />
+                    <div style={{ height: '10px' }} />
+                    <div className="menu-style">
+                        <span>Type</span>
+                        <Select
+                            pWidth={100}
+                            pHeight={25}
+                            pBorderRadius={4}
+                            pIsDisabled={!pIsAxisInterval}
+                            pInitValue={pAxisInterval.IntervalType}
+                            onChange={(aEvent) => handleAxisInterval(aEvent.target.value, pAxisInterval.IntervalValue)}
+                            pOptions={sIntervalTypeList}
+                        />
+                    </div>
+                    <div className="menu-style">
+                        <span>Value</span>
+                        <Input
+                            pType="number"
+                            pWidth={100}
+                            pHeight={25}
+                            pBorderRadius={4}
+                            pIsDisabled={!pIsAxisInterval}
+                            pValue={pAxisInterval.IntervalValue.toString()}
+                            onChange={(aEvent) => handleAxisInterval(pAxisInterval.IntervalType, Number(aEvent.target.value))}
+                        />
+                    </div>
                 </>
             ) : null}
 

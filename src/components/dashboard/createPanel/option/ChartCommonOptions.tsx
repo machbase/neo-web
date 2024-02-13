@@ -61,16 +61,18 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                     onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isInsideTitle')}
                 />
                 <div style={{ height: '10px' }} />
-                <div className="panel-name-wrap">Theme</div>
-                <Select
-                    pFontSize={14}
-                    pIsFullWidth
-                    pBorderRadius={4}
-                    pInitValue={pPanelOption.theme}
-                    pHeight={30}
-                    onChange={(aEvent: any) => handleCustomOption(aEvent.target.value, 'theme')}
-                    pOptions={ChartThemeList}
-                />
+                <div className="menu-style">
+                    <span>Theme</span>
+                    <Select
+                        pWidth={100}
+                        pHeight={25}
+                        pFontSize={14}
+                        pBorderRadius={4}
+                        pInitValue={pPanelOption.theme}
+                        onChange={(aEvent: any) => handleCustomOption(aEvent.target.value, 'theme')}
+                        pOptions={ChartThemeList}
+                    />
+                </div>
             </Collapse>
             <div className="divider" />
             <Collapse title="Legend">
@@ -119,49 +121,49 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         pOptions={ChartLegendOrientList}
                     />
                 </div>
-                <div className="divider" />
-                <Collapse title="Padding">
-                    <div className="menu-style">
-                        <span>Top</span>
-                        <Input
-                            pWidth={50}
-                            pHeight={25}
-                            pBorderRadius={4}
-                            pValue={pPanelOption.commonOptions.gridTop}
-                            onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridTop')}
-                        />
-                    </div>
-                    <div className="menu-style">
-                        <span>Bottom</span>
-                        <Input
-                            pWidth={50}
-                            pHeight={25}
-                            pBorderRadius={4}
-                            pValue={pPanelOption.commonOptions.gridBottom}
-                            onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridBottom')}
-                        />
-                    </div>
-                    <div className="menu-style">
-                        <span>Left</span>
-                        <Input
-                            pWidth={50}
-                            pHeight={25}
-                            pBorderRadius={4}
-                            pValue={pPanelOption.commonOptions.gridLeft}
-                            onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridLeft')}
-                        />
-                    </div>
-                    <div className="menu-style">
-                        <span>Right</span>
-                        <Input
-                            pWidth={50}
-                            pHeight={25}
-                            pBorderRadius={4}
-                            pValue={pPanelOption.commonOptions.gridRight}
-                            onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridRight')}
-                        />
-                    </div>
-                </Collapse>
+            </Collapse>
+            <div className="divider" />
+            <Collapse title="Panel padding">
+                <div className="menu-style">
+                    <span>Top</span>
+                    <Input
+                        pWidth={100}
+                        pHeight={25}
+                        pBorderRadius={4}
+                        pValue={pPanelOption.commonOptions.gridTop}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridTop')}
+                    />
+                </div>
+                <div className="menu-style">
+                    <span>Bottom</span>
+                    <Input
+                        pWidth={100}
+                        pHeight={25}
+                        pBorderRadius={4}
+                        pValue={pPanelOption.commonOptions.gridBottom}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridBottom')}
+                    />
+                </div>
+                <div className="menu-style">
+                    <span>Left</span>
+                    <Input
+                        pWidth={100}
+                        pHeight={25}
+                        pBorderRadius={4}
+                        pValue={pPanelOption.commonOptions.gridLeft}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridLeft')}
+                    />
+                </div>
+                <div className="menu-style">
+                    <span>Right</span>
+                    <Input
+                        pWidth={100}
+                        pHeight={25}
+                        pBorderRadius={4}
+                        pValue={pPanelOption.commonOptions.gridRight}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridRight')}
+                    />
+                </div>
             </Collapse>
             <div className="divider" />
             <Collapse title="Tooltip">
@@ -171,16 +173,19 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                     onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isTooltip')}
                 />
                 <div style={{ height: '10px' }} />
-                <Select
-                    pFontSize={14}
-                    pIsFullWidth
-                    pBorderRadius={4}
-                    pIsDisabled={!pPanelOption.commonOptions.isTooltip}
-                    pInitValue={pPanelOption.commonOptions.tooltipTrigger}
-                    pHeight={30}
-                    onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'tooltipTrigger')}
-                    pOptions={ChartTooltipTriggerList}
-                />
+                <div className="menu-style">
+                    <span>Type</span>
+                    <Select
+                        pWidth={100}
+                        pHeight={25}
+                        pFontSize={14}
+                        pBorderRadius={4}
+                        pIsDisabled={!pPanelOption.commonOptions.isTooltip}
+                        pInitValue={pPanelOption.commonOptions.tooltipTrigger}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'tooltipTrigger')}
+                        pOptions={ChartTooltipTriggerList}
+                    />
+                </div>
             </Collapse>
         </>
     );

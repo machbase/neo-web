@@ -1,5 +1,7 @@
 import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
+import { Select } from '@/components/inputs/Select';
+import { ChartLineSymbolList } from '@/utils/constants';
 
 interface ScatterOptionProps {
     pPanelOption: any;
@@ -28,11 +30,25 @@ export const ScatterOptions = (props: ScatterOptionProps) => {
                 pDefaultChecked={pPanelOption.chartOptions?.isLarge ?? false}
                 onChange={(aEvent: any) => handleScatterOption(aEvent, 'isLarge', true)}
             />
+            <div className="divider" />
+            <span>Symbol</span>
             <div style={{ height: '10px' }} />
             <div className="menu-style">
-                <span>Symbol size</span>
+                <span>Type</span>
+                <Select
+                    pWidth={100}
+                    pHeight={25}
+                    pBorderRadius={4}
+                    pFontSize={12}
+                    pInitValue={pPanelOption.chartOptions?.symbol}
+                    onChange={(aEvent: any) => handleScatterOption(aEvent, 'symbol', false)}
+                    pOptions={ChartLineSymbolList.filter((aItem: string) => aItem !== 'none')}
+                />
+            </div>
+            <div className="menu-style">
+                <span>Size</span>
                 <Input
-                    pWidth={50}
+                    pWidth={100}
                     pHeight={25}
                     pBorderRadius={4}
                     pValue={pPanelOption.chartOptions?.symbolSize}

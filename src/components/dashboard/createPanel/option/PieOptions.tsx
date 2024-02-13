@@ -27,7 +27,7 @@ export const PieOptions = (props: PieOptionProps) => {
                 <span>Doughnut ratio</span>
                 <Input
                     pType="number"
-                    pWidth={50}
+                    pWidth={100}
                     pHeight={25}
                     pBorderRadius={4}
                     pValue={pPanelOption.chartOptions?.doughnutRatio ?? 0}
@@ -35,7 +35,6 @@ export const PieOptions = (props: PieOptionProps) => {
                     onChange={(aEvent: any) => handlePieOption(aEvent, 'doughnutRatio', false)}
                 />
             </div>
-            <div style={{ height: '10px' }} />
             <CheckBox
                 pText="Nightingale mode"
                 pDefaultChecked={pPanelOption.chartOptions?.roseType ?? false}
