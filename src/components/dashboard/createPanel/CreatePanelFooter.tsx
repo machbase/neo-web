@@ -139,8 +139,18 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                         pSetApply={(date: any) => handleTime('end', date)}
                                     />
                                 </div>
-                                <div style={{ marginTop: '8px' }}>
-                                    <IconButton pWidth={20} pHeight={20} pIcon={<VscTrash size="70px" />} onClick={() => handleTime('', '')} />
+                                <div className="icon-btn-wrapper" style={{ marginTop: '24px', display: 'flex', justifyContent: 'start' }}>
+                                    <IconButton
+                                        pWidth={50}
+                                        pHeight={20}
+                                        pIcon={
+                                            <>
+                                                <VscTrash size="70px" />
+                                                <span style={{ cursor: 'pointer' }}>Clear</span>
+                                            </>
+                                        }
+                                        onClick={() => handleTime('', '')}
+                                    />
                                 </div>
                             </div>
                             <div className="select-time-range">
