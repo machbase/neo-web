@@ -156,7 +156,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                                   : `${bItem.column} ${bItem.operator} ${sValue}`;
                                           return { ...bItem, useFilter: sUseFilter, typingValue: sTypingValue, [aKey]: aData.target.value };
                                       }
-                                      return { ...bItem, useFilter: sUseFilter, [aKey]: aData.target.value, typingValue: '' };
+                                      return { ...bItem, typingValue: '', useFilter: sUseFilter, [aKey]: aData.target.value };
                                   } else
                                       return bItem.id === aId
                                           ? { ...bItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value }
@@ -185,7 +185,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                 ...aPrev,
                 blockList: aPrev.blockList.map((aItem: any) => {
                     return aItem.id === pBlockInfo.id
-                        ? { ...aItem, filter: [...aItem.filter, { id: generateUUID(), value: '', operator: '=', useFilter: true, useTyping: false, typingValue: '' }] }
+                        ? { ...aItem, filter: [...aItem.filter, { id: generateUUID(), value: '', operator: '=', useFilter: false, useTyping: false, typingValue: '' }] }
                         : aItem;
                 }),
             };

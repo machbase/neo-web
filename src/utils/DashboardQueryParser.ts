@@ -143,23 +143,30 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
         return sParsedFilter[aKey];
     });
     const sResult = sParsedFilterList.map((aFilter: any) => {
-        if (aFilter.useTyping && aUseCustom) {
-            return aFilter.valueList[0].replaceAll('"', "'");
-        } else {
-            if (aFilter.useTyping) return aFilter.valueList;
+        const sUseInOperator = aFilter.operator === 'in';
+        // Check varchar type
+        const sTargetColumnInfo = aQuery.tableInfo.find((aTable: any) => aTable[0] === aFilter.column);
+        const sUseQuote = sTargetColumnInfo ? (sTargetColumnInfo[1] === 5 ? "'" : '') : '';
+        // Expand mode
+        if (aUseCustom) {
+            if (aFilter.useTyping) return aFilter.typingValue.replaceAll('"', "'");
             else {
-                if (aFilter.operator === 'in') return `${aFilter.column} ${aFilter.operator} ('${aFilter.valueList.join("','")}')`;
-                else {
-                    // Check varchar type
-                    const sUseQuote = aQuery.tableInfo.find((aTable: any) => aTable[0] === aFilter.column)[1] === 5;
+                if (sUseInOperator) {
+                    const sParseValueList = aFilter.valueList.map((pValue: any) => {
+                        if (pValue.includes(',')) return pValue.split(',');
+                        else return pValue;
+                    });
+                    return `${aFilter.column} ${aFilter.operator} ('${sParseValueList.flat().join("','")}')`;
+                } else
                     return aFilter.valueList
                         .map((aValue: any) => {
                             return `${aFilter.column} ${aFilter.operator} ${sUseQuote ? `'${aValue}'` : aValue}`;
                         })
                         .join(' AND ');
-                }
             }
         }
+        // Collapse mode
+        else return `${aFilter.column} ${aFilter.operator} ('${aFilter.valueList.join("','")}')`;
     });
     return sResult.join(' AND ');
 };
