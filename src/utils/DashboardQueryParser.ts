@@ -142,32 +142,34 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
     const sParsedFilterList = Object.keys(sParsedFilter).map((aKey: string) => {
         return sParsedFilter[aKey];
     });
-    const sResult = sParsedFilterList.map((aFilter: any) => {
-        const sUseInOperator = aFilter.operator === 'in';
-        // Check varchar type
-        const sTargetColumnInfo = aQuery.tableInfo.find((aTable: any) => aTable[0] === aFilter.column);
-        const sUseQuote = sTargetColumnInfo ? (sTargetColumnInfo[1] === 5 ? "'" : '') : '';
-        // Expand mode
-        if (aUseCustom) {
-            if (aFilter.useTyping) return aFilter.typingValue.replaceAll('"', "'");
-            else {
-                if (sUseInOperator) {
-                    const sParseValueList = aFilter.valueList.map((pValue: any) => {
-                        if (pValue.includes(',')) return pValue.split(',');
-                        else return pValue;
-                    });
-                    return `${aFilter.column} ${aFilter.operator} ('${sParseValueList.flat().join("','")}')`;
-                } else
-                    return aFilter.valueList
-                        .map((aValue: any) => {
-                            return `${aFilter.column} ${aFilter.operator} ${sUseQuote ? `'${aValue}'` : aValue}`;
-                        })
-                        .join(' AND ');
+    const sResult = sParsedFilterList
+        .map((aFilter: any) => {
+            const sUseInOperator = aFilter.operator === 'in';
+            // Check varchar type
+            const sTargetColumnInfo = aQuery.tableInfo.find((aTable: any) => aTable[0] === aFilter.column);
+            const sUseQuote = sTargetColumnInfo ? (sTargetColumnInfo[1] === 5 ? "'" : '') : '';
+            // Expand mode
+            if (aUseCustom) {
+                if (aFilter.useTyping) return aFilter.typingValue.replaceAll('"', "'");
+                else {
+                    if (sUseInOperator) {
+                        const sParseValueList = aFilter.valueList.map((pValue: any) => {
+                            if (pValue.includes(',')) return pValue.split(',');
+                            else return pValue;
+                        });
+                        return `${aFilter.column} ${aFilter.operator} ('${sParseValueList.flat().join("','")}')`;
+                    } else
+                        return aFilter.valueList
+                            .map((aValue: any) => {
+                                return `${aFilter.column} ${aFilter.operator} ${sUseQuote ? `'${aValue}'` : aValue}`;
+                            })
+                            .join(' AND ');
+                }
             }
-        }
-        // Collapse mode
-        else return `${aFilter.column} ${aFilter.operator} ('${aFilter.valueList.join("','")}')`;
-    });
+            // Collapse mode
+            else return `${aFilter.column} ${aFilter.operator} ('${aFilter.valueList.join("','")}')`;
+        })
+        .filter((bFilter: any) => bFilter.trim() !== '');
     return sResult.join(' AND ');
 };
 const UseGroupByTime = (aValueList: any) => {

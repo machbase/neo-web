@@ -156,7 +156,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                                   : `${bItem.column} ${bItem.operator} ${sValue}`;
                                           return { ...bItem, useFilter: sUseFilter, typingValue: sTypingValue, [aKey]: aData.target.value };
                                       }
-                                      return { ...bItem, typingValue: '', useFilter: sUseFilter, [aKey]: aData.target.value };
+                                      return { ...bItem, useFilter: sUseFilter, [aKey]: aData.target.value };
                                   } else
                                       return bItem.id === aId
                                           ? { ...bItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value }
@@ -239,6 +239,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                     useFilter: pBlockInfo.tag !== '' ? true : false,
                     operator: 'in',
                     value: pBlockInfo.tag && pBlockInfo.tag !== '' ? pBlockInfo.tag : '',
+                    typingValue: pBlockInfo.tag !== '' ? `NAME in ("${pBlockInfo.tag}")` : '',
                 },
             ];
         }
