@@ -80,51 +80,6 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                 />
             </div>
             <div style={{ height: '10px' }} />
-            <div ref={sColorPickerRef} style={{ position: 'relative', ...sMenuStyle }}>
-                <span>Background color</span>
-                <IconButton
-                    pWidth={20}
-                    pHeight={20}
-                    pIcon={
-                        <div
-                            style={{
-                                width: '14px',
-                                cursor: 'pointer',
-                                height: '14px',
-                                marginRight: '4px',
-                                borderRadius: '50%',
-                                backgroundColor: pPanelOption.chartOptions?.backgroundColor as string,
-                            }}
-                        ></div>
-                    }
-                    onClick={() => setIsColorPicker(!sIsColorPicker)}
-                />
-
-                {sIsColorPicker && (
-                    <div className="color-picker" style={{ position: 'absolute', zIndex: 999 }}>
-                        <CompactPicker
-                            color={pPanelOption.chartOptions?.backgroundColor as string}
-                            onChangeComplete={(aInfo: any) => {
-                                HandleOption({ target: { value: aInfo.hex } }, 'backgroundColor');
-                            }}
-                        />
-                    </div>
-                )}
-            </div>
-            <div style={{ height: '10px' }} />
-            <div style={sMenuStyle}>
-                <span>Amplitude</span>
-                <Input
-                    pType="number"
-                    pWidth={100}
-                    pHeight={25}
-                    pBorderRadius={4}
-                    pValue={pPanelOption.chartOptions?.amplitude ?? 0}
-                    pSetValue={() => null}
-                    onChange={(aEvent: any) => HandleOption(aEvent, 'amplitude')}
-                />
-            </div>
-            <div style={{ height: '10px' }} />
             <div style={sMenuStyle}>
                 <span>Min</span>
                 <Input
@@ -163,6 +118,51 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                     onChange={(aEvent: any) => HandleOption(aEvent, 'fontSize')}
                 />
             </div>
+            <div style={{ height: '10px' }} />
+            <div style={sMenuStyle}>
+                <span>Amplitude</span>
+                <Input
+                    pType="number"
+                    pWidth={100}
+                    pHeight={25}
+                    pBorderRadius={4}
+                    pValue={pPanelOption.chartOptions?.amplitude ?? 0}
+                    pSetValue={() => null}
+                    onChange={(aEvent: any) => HandleOption(aEvent, 'amplitude')}
+                />
+            </div>
+            <div style={{ height: '10px' }} />
+            <div ref={sColorPickerRef} style={{ position: 'relative', ...sMenuStyle }}>
+                <span>Background color</span>
+                <IconButton
+                    pWidth={20}
+                    pHeight={20}
+                    pIcon={
+                        <div
+                            style={{
+                                width: '14px',
+                                cursor: 'pointer',
+                                height: '14px',
+                                marginRight: '4px',
+                                borderRadius: '50%',
+                                backgroundColor: pPanelOption.chartOptions?.backgroundColor as string,
+                            }}
+                        ></div>
+                    }
+                    onClick={() => setIsColorPicker(!sIsColorPicker)}
+                />
+                {sIsColorPicker && (
+                    <div className="color-picker" style={{ position: 'absolute', zIndex: 999 }}>
+                        <CompactPicker
+                            color={pPanelOption.chartOptions?.backgroundColor as string}
+                            onChangeComplete={(aInfo: any) => {
+                                HandleOption({ target: { value: aInfo.hex } }, 'backgroundColor');
+                            }}
+                        />
+                    </div>
+                )}
+            </div>
+
             <div style={{ height: '10px' }} />
             <CheckBox
                 pText="Wave animation"
