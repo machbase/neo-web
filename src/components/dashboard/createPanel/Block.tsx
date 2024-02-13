@@ -1,6 +1,6 @@
 import { getTableInfo } from '@/api/repository/api';
 import { fetchTags, getRollupTableList } from '@/api/repository/machiot';
-import { Close, HideOff, HideOn, Refresh } from '@/assets/icons/Icon';
+import { BsArrowsCollapse, BsArrowsExpand, Close, HideOff, HideOn, Refresh } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
@@ -437,7 +437,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             pToolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                             pToolTipId={pBlockInfo.id + '-block-expand'}
                             pDisabled={sSelectedTableType !== 'tag'}
-                            pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <HideOn size={18} /> : <HideOff size={18} style={{ transform: 'rotate(90deg)' }} />}
+                            // BsArrowsExpand, BsArrowsCollapse
+                            pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={18} /> : <BsArrowsExpand size={18} />}
                             onClick={sSelectedTableType !== 'tag' ? () => {} : () => HandleFold()}
                         />
                         <IconButton
