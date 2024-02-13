@@ -149,7 +149,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                       if (aKey === 'useTyping' && aData.target.value && bItem.useFilter) {
                                           // Check varchar type
                                           const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)[1] === 5;
-                                          const sValue = sUseQuote ? `"${bItem.value}"` : bItem.value;
+                                          const sValue = sUseQuote ? `"${bItem.value.includes(',') ? bItem.value.split(',').join('","') : bItem.value}"` : bItem.value;
                                           const sTypingValue =
                                               bItem.column === 'NAME' && bItem.operator === 'in'
                                                   ? `${bItem.column} ${bItem.operator} (${sValue})`

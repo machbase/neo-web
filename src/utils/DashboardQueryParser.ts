@@ -75,7 +75,7 @@ const getInterval = (aType: string, aValue: number) => {
 };
 /** @return use filterList */
 const UseFilter = (aFilterList: any) => {
-    return aFilterList.filter((aFilter: any) => aFilter.useFilter);
+    return aFilterList.filter((aFilter: any) => aFilter.useFilter || aFilter.useTyping);
 };
 /** @return use valueList */
 const UseValue = (aValueList: any) => {
@@ -146,15 +146,18 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
         if (aFilter.useTyping && aUseCustom) {
             return aFilter.valueList[0].replaceAll('"', "'");
         } else {
-            if (aFilter.operator === 'in') return `${aFilter.column} ${aFilter.operator} ('${aFilter.valueList.join("','")}')`;
+            if (aFilter.useTyping) return aFilter.valueList;
             else {
-                // Check varchar type
-                const sUseQuote = aQuery.tableInfo.find((aTable: any) => aTable[0] === aFilter.column)[1] === 5;
-                return aFilter.valueList
-                    .map((aValue: any) => {
-                        return `${aFilter.column} ${aFilter.operator} ${sUseQuote ? `'${aValue}'` : aValue}`;
-                    })
-                    .join(' AND ');
+                if (aFilter.operator === 'in') return `${aFilter.column} ${aFilter.operator} ('${aFilter.valueList.join("','")}')`;
+                else {
+                    // Check varchar type
+                    const sUseQuote = aQuery.tableInfo.find((aTable: any) => aTable[0] === aFilter.column)[1] === 5;
+                    return aFilter.valueList
+                        .map((aValue: any) => {
+                            return `${aFilter.column} ${aFilter.operator} ${sUseQuote ? `'${aValue}'` : aValue}`;
+                        })
+                        .join(' AND ');
+                }
             }
         }
     });
