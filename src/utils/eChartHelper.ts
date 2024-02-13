@@ -1,5 +1,6 @@
 import { generateUUID } from '@/utils';
 import { ChartTheme, ChartType } from '@/type/eChart';
+import { ChartTypeList } from './constants';
 
 // use create common chart option (createCommonOption)
 export const DefaultCommonOption = {
@@ -18,6 +19,11 @@ export const DefaultCommonOption = {
     gridRight: 35 as number,
     gridTop: 50 as number,
     gridBottom: 50 as number,
+};
+
+export const chartTypeConverter = (aType: string): string => {
+    const sResult = ChartTypeList.filter((aTypeObj: { key: string; value: string }) => aTypeObj.key === aType)[0];
+    return sResult.value;
 };
 
 export const DefaultXAxisOption = {
@@ -141,7 +147,7 @@ export const DefaultGaugeChartOption = {
 export const DefaultChartOption = {
     id: undefined as string | undefined,
     title: 'Chart title' as string,
-    type: 'line' as ChartType,
+    type: 'Line' as ChartType,
     theme: 'dark' as ChartTheme,
     timeRange: {
         start: '' as string | undefined,

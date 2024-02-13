@@ -19,6 +19,7 @@ import { DashboardQueryParser } from '@/utils/DashboardQueryParser';
 import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
 import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
 import { Select } from '@/components/inputs/Select';
+import { chartTypeConverter } from '@/utils/eChartHelper';
 
 export interface SaveDashboardModalProps {
     setIsOpen: any;
@@ -53,7 +54,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         const sStartTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.start ?? '') : setUnitTime(pDashboardTime.start);
         const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.end ?? '') : setUnitTime(pDashboardTime.end);
         const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, pPanelInfo.w * 50);
-        const [sParsedQuery, sAliasList] = await DashboardQueryParser(pPanelInfo.type, pPanelInfo.blockList, sRollupTableList, {
+        const [sParsedQuery, sAliasList] = await DashboardQueryParser(chartTypeConverter(pPanelInfo.type), pPanelInfo.blockList, sRollupTableList, {
             interval: sIntervalInfo,
             start: sStartTime,
             end: sEndTime,
@@ -64,7 +65,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     const GetSaveChartText = async () => {
         const [sParsedQuery, sAliasList] = await GetQuery();
         const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo, sAliasList);
-        const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, pPanelInfo.type, sParsedQuery);
+        const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
         const sUsePlg: boolean = !!pPanelInfo.plg;
         let sResult: string = `FAKE(linspace(0, 1, 1))\n` + `CHART(\n`;
         if (sUsePlg) sResult += `\tplugins('${pPanelInfo.plg}'),\n`;

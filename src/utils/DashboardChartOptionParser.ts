@@ -1,6 +1,7 @@
 import { isEmpty, isObjectEmpty } from '.';
 import { SqlResDataType } from './DashboardQueryParser';
 import { ChartItemTooltipFormatter, ChartAxisTooltipFormatter, ChartSeriesColorList } from './constants';
+import { chartTypeConverter } from './eChartHelper';
 // structure of chart common option
 const StructureOfCommonOption = `{
     "legend": {
@@ -283,15 +284,16 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
 };
 
 export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any) => {
-    const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, SqlResDataType(aOptionInfo.type));
+    const sConvertedChartType = chartTypeConverter(aOptionInfo.type);
+    const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, SqlResDataType(sConvertedChartType));
     const sTypeOpt = ReplaceTypeOpt(
-        aOptionInfo.type,
-        SqlResDataType(aOptionInfo.type),
+        sConvertedChartType,
+        SqlResDataType(sConvertedChartType),
         aTagList.map((aTagInfo: any) => aTagInfo.name),
         aOptionInfo.chartOptions,
         aOptionInfo.xAxisOptions,
         CheckYAxisMinMax(aOptionInfo.yAxisOptions)
     );
-    const sParsedOpt = ParseOpt(aOptionInfo.type, SqlResDataType(aOptionInfo.type), aTagList, sCommonOpt, sTypeOpt);
+    const sParsedOpt = ParseOpt(sConvertedChartType, SqlResDataType(sConvertedChartType), aTagList, sCommonOpt, sTypeOpt);
     return sParsedOpt;
 };

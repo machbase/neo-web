@@ -23,6 +23,7 @@ import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
+import { chartTypeConverter } from '@/utils/eChartHelper';
 
 const LineChart = ({
     pLoopMode,
@@ -73,13 +74,13 @@ any) => {
         // The variable below is used to adjust its value to a multiple of the number of tags.
         // const sTakeCount = sTake % sTagList.length === 0 ? sTake : sTake + (sTagList.length - (sTake % sTagList.length));
 
-        const [sParsedQuery, sAliasList] = await DashboardQueryParser(pPanelInfo.type, pPanelInfo.blockList, sRollupTableList, {
+        const [sParsedQuery, sAliasList] = await DashboardQueryParser(chartTypeConverter(pPanelInfo.type), pPanelInfo.blockList, sRollupTableList, {
             interval: sIntervalInfo,
             start: sStartTime,
             end: sEndTime,
         });
         const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo, sAliasList);
-        const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, pPanelInfo.type, sParsedQuery);
+        const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
 
         const sResult: any = await getTqlChart(
             `FAKE(linspace(0, 1, 1))
