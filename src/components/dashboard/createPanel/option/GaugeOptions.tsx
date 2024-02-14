@@ -106,13 +106,13 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                 />
                 <div style={{ height: '10px' }} />
                 <CheckBox
-                    pText="Setting line colors"
+                    pText="Setting line colors (0 ~ 1)"
                     pDefaultChecked={pPanelOption.chartOptions?.isAxisLineStyleColor ?? false}
                     onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAxisLineStyleColor')}
                 />
                 {pPanelOption.chartOptions?.isAxisLineStyleColor && (
                     <>
-                        <div style={{ height: '10px' }} />
+                        <div style={{ height: '10px', marginRight: '0 !important' }} />
                         {pPanelOption.chartOptions?.axisLineStyleColor.map((aAxisColor: any, aIdx: number) => {
                             return (
                                 <LineStyleValue

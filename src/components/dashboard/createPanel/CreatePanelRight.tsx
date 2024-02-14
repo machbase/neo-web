@@ -68,7 +68,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                 <div className="divider" />
                 <div className="content" style={{ height: '100%' }}>
                     <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />
-                    {isTimeSeriesChart(pPanelOption.type) && pPanelOption.xAxisOptions && (
+                    {isTimeSeriesChart(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption.xAxisOptions && (
                         <>
                             <div className="divider" />
                             <XAxisOptions
@@ -79,7 +79,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                             />
                         </>
                     )}
-                    {isTimeSeriesChart(pPanelOption.type) && pPanelOption.yAxisOptions && (
+                    {isTimeSeriesChart(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption.yAxisOptions && (
                         <>
                             <div className="divider" />
                             <YAxisOptions pYAxis={pPanelOption.yAxisOptions} pSetPanelOption={pSetPanelOption} />

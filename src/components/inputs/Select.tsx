@@ -63,10 +63,11 @@ export const Select = (props: SelectProps) => {
                 minWidth: pIsFullWidth ? '100%' : pWidth + 'px',
                 height: pHeight + 'px',
                 opacity: pIsDisabled ? 0.6 : 1,
+                cursor: 'pointer',
             }}
         >
             <div className="select-input" onClick={handleClick}>
-                <input readOnly={pIsReadonly} value={selectValue} disabled={pIsDisabled} style={{ fontSize: pFontSize }} placeholder="Select..." />
+                <input readOnly={pIsReadonly} value={selectValue} disabled={pIsDisabled} style={{ fontSize: pFontSize, cursor: 'pointer' }} placeholder="Select..." />
                 <ArrowDown />
             </div>
             <div

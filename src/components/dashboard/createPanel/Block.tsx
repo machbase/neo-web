@@ -438,7 +438,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             pToolTipId={pBlockInfo.id + '-block-expand'}
                             pDisabled={sSelectedTableType !== 'tag'}
                             // BsArrowsExpand, BsArrowsCollapse
-                            pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={18} /> : <BsArrowsExpand size={18} />}
+                            pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={16} /> : <BsArrowsExpand size={16} />}
                             onClick={sSelectedTableType !== 'tag' ? () => {} : () => HandleFold()}
                         />
                         <IconButton
