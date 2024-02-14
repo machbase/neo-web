@@ -146,7 +146,7 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
         .map((aFilter: any) => {
             const sUseInOperator = aFilter.operator === 'in';
             // Check varchar type
-            const sTargetColumnInfo = aQuery.tableInfo.find((aTable: any) => aTable[0] === aFilter.column);
+            const sTargetColumnInfo = aQuery.tableInfo && aQuery.tableInfo.find((aTable: any) => aTable[0] === aFilter.column);
             const sUseQuote = sTargetColumnInfo ? (sTargetColumnInfo[1] === 5 ? "'" : '') : '';
             // Expand mode
             if (aUseCustom) {
