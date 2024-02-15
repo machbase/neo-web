@@ -81,6 +81,7 @@ export const LineOptions = (props: LineOptionProps) => {
                     <div className="menu-style">
                         <span>Opacity (0 ~ 1)</span>
                         <Input
+                            pType="number"
                             pWidth={100}
                             pHeight={25}
                             pMin={0}
