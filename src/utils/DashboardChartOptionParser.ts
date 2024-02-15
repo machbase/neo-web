@@ -186,7 +186,9 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
     // Set opt
     sChartOptList.map((aOpt: string) => {
         if (aOpt === 'markLine') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
-        else if (aOpt === 'areaStyle') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, !aChartOption[aOpt] && 'null');
+        // else if (aOpt === 'areaStyle') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, !aChartOption[aOpt] && 'null');
+        else if (aOpt === 'areaStyle')
+            sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, aChartOption[aOpt] ? `{"opacity": ${aChartOption['fillOpacity']}}` : 'null');
         else if (aOpt === 'isPolar' && aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "coordinateSystem": "polar"`;
         else if (aOpt === 'isSampling' && !aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "sampling": "lttb"`;
         else if (aOpt === 'symbol') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, aChartOption['isSymbol'] ? aChartOption[aOpt] : 'none');

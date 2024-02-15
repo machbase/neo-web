@@ -64,6 +64,7 @@ export const DefaultLineChartOption = {
     symbol: 'circle' as string,
     symbolSize: 4 as number,
     isSampling: false as boolean,
+    fillOpacity: 0.5 as number,
     markLine: {
         symbol: ['none', 'none'],
         label: {
@@ -260,6 +261,7 @@ export const StructureOfLineSeriesOption = {
     step: false as boolean | string,
     stack: null as null | string,
     connectNulls: true as boolean,
+    fillOpacity: 0.5 as number,
     // use lineStyle for markline option
     lineStyle: null as null | Object,
     // if you markline option required visualMap option

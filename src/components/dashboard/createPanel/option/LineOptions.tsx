@@ -76,6 +76,25 @@ export const LineOptions = (props: LineOptionProps) => {
         <div>
             <CheckBox pText="Fill area" pDefaultChecked={pPanelOption.chartOptions?.areaStyle ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'areaStyle', true)} />
             <div style={{ height: '10px' }} />
+            {pPanelOption.chartOptions?.areaStyle ? (
+                <>
+                    <div className="menu-style">
+                        <span>Opacity (0 ~ 1)</span>
+                        <Input
+                            pWidth={100}
+                            pHeight={25}
+                            pMin={0}
+                            pMax={1}
+                            pBorderRadius={4}
+                            pValue={pPanelOption.chartOptions?.fillOpacity}
+                            onChange={(aEvent: any) => handleLineOption(aEvent, 'fillOpacity', false)}
+                        />
+                    </div>
+                    <div style={{ height: '10px' }} />
+                </>
+            ) : (
+                <></>
+            )}
             <CheckBox pText="Smooth line" pDefaultChecked={pPanelOption.chartOptions?.smooth ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'smooth', true)} />
             <div style={{ height: '10px' }} />
             <CheckBox pText="Step line" pDefaultChecked={pPanelOption.chartOptions?.isStep ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStep', true)} />
