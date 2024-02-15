@@ -7,6 +7,7 @@ export {
     AiOutlineSnippets,
     AiOutlineFileMarkdown,
     AiFillGithub,
+    AiOutlineDashboard,
 } from 'react-icons/ai';
 
 export {
@@ -51,7 +52,6 @@ export {
     MdDownload as Download,
     MdCenterFocusStrong,
     MdMonitorHeart,
-    MdOutlineDashboard as MdDashboard,
     MdOutlineKeyboardArrowDown as ArrowDown,
     MdOutlineKeyboardArrowLeft as ArrowLeft,
     MdOutlineKeyboardArrowRight as ArrowRight,

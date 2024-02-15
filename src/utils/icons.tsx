@@ -12,7 +12,7 @@ import {
     GoDatabase,
     VscVm,
     VscTerminalCmd,
-    MdDashboard,
+    AiOutlineDashboard,
     FaDesktop,
     FaLaptop,
 } from '@/assets/icons/Icon';
@@ -58,7 +58,7 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'csv':
             return <MuiCsv />;
         case 'dsh':
-            return aIsHome ? <MdDashboard /> : <MdDashboard color="fc7676" />;
+            return aIsHome ? <AiOutlineDashboard /> : <AiOutlineDashboard color="fc7676" />;
         case 'png':
         case 'jpg':
         case 'jpeg':
