@@ -150,7 +150,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                 </div>
             </Collapse>
             <div className="divider" />
-            <Collapse title="Value">
+            <Collapse title="Display value">
                 <div className="menu-style">
                     <div>Font size</div>
                     <Input

@@ -60,8 +60,8 @@ export const DefaultLineChartOption = {
     isStep: false as boolean,
     isStack: false as boolean,
     connectNulls: true as boolean,
-    isSymbol: true as boolean,
-    symbol: 'none' as string,
+    isSymbol: false as boolean,
+    symbol: 'circle' as string,
     symbolSize: 4 as number,
     isSampling: false as boolean,
     markLine: {

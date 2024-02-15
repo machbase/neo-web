@@ -1,7 +1,7 @@
 import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
-import { ChartLineSymbolList } from '@/utils/constants';
+import { ChartSymbolList } from '@/utils/constants';
 
 interface ScatterOptionProps {
     pPanelOption: any;
@@ -42,7 +42,7 @@ export const ScatterOptions = (props: ScatterOptionProps) => {
                     pFontSize={12}
                     pInitValue={pPanelOption.chartOptions?.symbol}
                     onChange={(aEvent: any) => handleScatterOption(aEvent, 'symbol', false)}
-                    pOptions={ChartLineSymbolList.filter((aItem: string) => aItem !== 'none')}
+                    pOptions={ChartSymbolList}
                 />
             </div>
             <div className="menu-style">

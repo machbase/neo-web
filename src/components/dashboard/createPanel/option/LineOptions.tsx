@@ -4,7 +4,7 @@ import CheckBox from '@/components/inputs/CheckBox';
 // import { MarkLineOption } from './MarkLineOption';
 // import { isEmpty } from '@/utils';
 import { Select } from '@/components/inputs/Select';
-import { ChartLineSymbolList } from '@/utils/constants';
+import { ChartSymbolList } from '@/utils/constants';
 import { Input } from '@/components/inputs/Input';
 
 interface LineOptionProps {
@@ -27,21 +27,6 @@ export const LineOptions = (props: LineOptionProps) => {
                 },
             };
         });
-    };
-
-    const handleSymbolCheckbox = (aEvent: any) => {
-        handleLineOption(aEvent, 'isSymbol', true);
-        if (!aEvent.target.checked) {
-            pSetPanelOption((aPrev: any) => {
-                return {
-                    ...aPrev,
-                    chartOptions: {
-                        ...aPrev.chartOptions,
-                        symbol: 'none',
-                    },
-                };
-            });
-        }
     };
 
     // const addMarkLine = () => {
@@ -103,7 +88,7 @@ export const LineOptions = (props: LineOptionProps) => {
                 onChange={(aEvent: any) => handleLineOption(aEvent, 'isSampling', true)}
             />
             <div className="divider" />
-            <CheckBox pText="Symbol" pDefaultChecked={pPanelOption.chartOptions?.isSymbol ?? true} onChange={(aEvent: any) => handleSymbolCheckbox(aEvent)} />
+            <CheckBox pText="Symbol" pDefaultChecked={pPanelOption.chartOptions?.isSymbol ?? true} onChange={(aEvent: any) => handleLineOption(aEvent, 'isSymbol', true)} />
             <div style={{ height: '10px' }} />
             <div className="menu-style">
                 <span>Type</span>
@@ -115,7 +100,7 @@ export const LineOptions = (props: LineOptionProps) => {
                     pInitValue={pPanelOption.chartOptions?.symbol}
                     pIsDisabled={!pPanelOption.chartOptions?.isSymbol}
                     onChange={(aEvent: any) => handleLineOption(aEvent, 'symbol', false)}
-                    pOptions={ChartLineSymbolList}
+                    pOptions={ChartSymbolList}
                 />
             </div>
             <div className="menu-style">
