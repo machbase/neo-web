@@ -190,7 +190,11 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
             sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, aChartOption[aOpt] ? `{"opacity": ${aChartOption['fillOpacity']}}` : 'null');
         else if (aOpt === 'isPolar' && aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "coordinateSystem": "polar"`;
         else if (aOpt === 'isSampling' && !aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "sampling": "lttb"`;
-        else if (aOpt === 'symbol') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, aChartOption['isSymbol'] ? aChartOption[aOpt] : 'none');
+        else if (aOpt === 'symbol')
+            sChartSeriesStructure = sChartSeriesStructure.replaceAll(
+                `$${aOpt}$`,
+                aChartOption['isSymbol'] ? aChartOption[aOpt] : aChartType === 'scatter' ? aChartOption['symbol'] : 'none'
+            );
         else if (aOpt == 'isLarge') {
             if (aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, false);
             else sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, true) + `, "largeThreshold": 2000`;
