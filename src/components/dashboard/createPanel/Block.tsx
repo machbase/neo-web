@@ -375,18 +375,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 )}
                             </div>
                             <div className="series-table">
-                                <span className="series-title"> Alias </span>
-                                <Input
-                                    pBorderRadius={4}
-                                    pWidth={175}
-                                    pHeight={26}
-                                    pType="text"
-                                    pValue={pBlockInfo.alias}
-                                    pSetValue={() => null}
-                                    onChange={(aEvent: any) => changedOption('alias', aEvent)}
-                                />
-                            </div>
-                            <div className="series-table">
                                 <span className="series-title"> Aggregator </span>
                                 {pBlockInfo.aggregator && (
                                     <Select
@@ -400,6 +388,18 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                         pOptions={tagAggregatorList}
                                     />
                                 )}
+                            </div>
+                            <div className="series-table">
+                                <span className="series-title"> Alias </span>
+                                <Input
+                                    pBorderRadius={4}
+                                    pWidth={175}
+                                    pHeight={26}
+                                    pType="text"
+                                    pValue={pBlockInfo.alias}
+                                    pSetValue={() => null}
+                                    onChange={(aEvent: any) => changedOption('alias', aEvent)}
+                                />
                             </div>
                         </div>
                     )}
