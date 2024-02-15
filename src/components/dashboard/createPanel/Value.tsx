@@ -38,18 +38,6 @@ any) => {
             </div>
 
             <div className="series-table">
-                <span className="series-title"> Alias </span>
-                <Input
-                    pBorderRadius={4}
-                    pWidth={175}
-                    pHeight={26}
-                    pType="text"
-                    pValue={pValue.alias}
-                    pSetValue={() => null}
-                    onChange={(aEvent: any) => pChangeValueOption('alias', aEvent, pValue.id, 'values')}
-                />
-            </div>
-            <div className="series-table">
                 <span className="series-title"> Aggregator </span>
                 <Select
                     pFontSize={12}
@@ -59,6 +47,18 @@ any) => {
                     pHeight={26}
                     onChange={(aEvent: any) => pChangeValueOption('aggregator', aEvent, pValue.id, 'values')}
                     pOptions={tagAggregatorList}
+                />
+            </div>
+            <div className="series-table">
+                <span className="series-title"> Alias </span>
+                <Input
+                    pBorderRadius={4}
+                    pWidth={175}
+                    pHeight={26}
+                    pType="text"
+                    pValue={pValue.alias}
+                    pSetValue={() => null}
+                    onChange={(aEvent: any) => pChangeValueOption('alias', aEvent, pValue.id, 'values')}
                 />
             </div>
         </div>

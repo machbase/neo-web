@@ -44,20 +44,18 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
     return (
         <>
             <Collapse title="Panel option" isOpen>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginRight: '10px', alignItems: 'center' }}>
-                    <div className="panel-name-wrap">Title</div>
-                    <div style={{ width: '100px' }}>
-                        <Input
-                            pType="text"
-                            pIsFullWidth
-                            pHeight={30}
-                            pValue={pPanelOption.title}
-                            pSetValue={() => null}
-                            pBorderRadius={4}
-                            onChange={(aEvent: any) => handleTitle(aEvent)}
-                        />
-                    </div>
+                <div className="panel-name-wrap" style={{ marginBottom: '4px' }}>
+                    Title
                 </div>
+                <Input
+                    pType="text"
+                    pIsFullWidth
+                    pHeight={30}
+                    pValue={pPanelOption.title}
+                    pSetValue={() => null}
+                    pBorderRadius={4}
+                    onChange={(aEvent: any) => handleTitle(aEvent)}
+                />
                 <div style={{ height: '10px' }} />
                 <CheckBox
                     pText="Display inside title"

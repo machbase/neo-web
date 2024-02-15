@@ -374,7 +374,7 @@ export const ChartTypeList = [
     { key: 'Scatter', value: 'scatter' },
     { key: 'Gauge', value: 'gauge' },
     { key: 'Pie', value: 'pie' },
-    { key: 'Liquidfill', value: 'liquidFill' },
+    { key: 'Liquid fill', value: 'liquidFill' },
 ];
 export const ChartThemeList = ['dark', 'white', 'vintage', 'macarons', 'infographic', 'shine', 'roma'];
 export const ChartThemeBackgroundColor = {

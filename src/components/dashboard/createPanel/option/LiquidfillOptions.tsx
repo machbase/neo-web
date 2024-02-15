@@ -120,7 +120,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
             </div>
             <div style={{ height: '10px' }} />
             <div style={sMenuStyle}>
-                <span>Amplitude</span>
+                <span>Wave amplitude</span>
                 <Input
                     pType="number"
                     pWidth={100}
