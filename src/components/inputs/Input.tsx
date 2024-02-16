@@ -9,13 +9,19 @@ export interface InputProps {
     pIsFullWidth: boolean;
     pBorderRadius: number;
     pIsDisabled: boolean;
+    pMin?: number;
+    pMax?: number;
     onChange: React.ChangeEventHandler<HTMLInputElement>;
 }
 
 export const Input = (props: InputProps) => {
-    const { pWidth, pBorderRadius, pHeight, pIsFullWidth, pValue, pSetValue, pType, pIsDisabled, onChange } = props;
+    const { pWidth, pBorderRadius, pHeight, pIsFullWidth, pValue, pSetValue, pType, pIsDisabled, pMin = undefined, pMax = undefined, onChange } = props;
 
     const handleChange = (aEvent: React.ChangeEvent<HTMLInputElement>) => {
+        if (pType === 'number') {
+            if (pMin !== undefined && Number(aEvent.target.value) < pMin) aEvent.target.value = pMin.toString();
+            if (pMax !== undefined && Number(aEvent.target.value) > pMax) aEvent.target.value = pMax.toString();
+        }
         pSetValue && pSetValue(aEvent.target.value);
         onChange(aEvent);
     };

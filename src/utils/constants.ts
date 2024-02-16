@@ -295,7 +295,7 @@ export const DEFAULT_CHART = {
     drilldown_zoom: 'Y',
     use_normalize: 'N',
     border_color: '',
-    chart_title: 'Chart Title',
+    chart_title: 'New chart',
     use_custom_min: 'N',
     custom_min: 0,
     use_custom_max: 'N',
@@ -368,7 +368,14 @@ export const DB_NUMBER_TYPE = ['SHORT', 'INTEGER', 'LONG', 'FLOAT', 'DOUBLE', 'U
 
 // dashboard e-chart setting value
 // export type SeriesType = 'line' | 'bar' | 'scatter' | 'pie' | 'radar' | 'candlestick' | 'heatmap' | 'sankey' | 'gauge' | 'liquidFill' | 'wordCloud';
-export const ChartTypeList = ['line', 'bar', 'scatter', 'gauge', 'pie', 'liquidFill'];
+export const ChartTypeList = [
+    { key: 'Line', value: 'line' },
+    { key: 'Bar', value: 'bar' },
+    { key: 'Scatter', value: 'scatter' },
+    { key: 'Gauge', value: 'gauge' },
+    { key: 'Pie', value: 'pie' },
+    { key: 'Liquid fill', value: 'liquidFill' },
+];
 export const ChartThemeList = ['dark', 'white', 'vintage', 'macarons', 'infographic', 'shine', 'roma'];
 export const ChartThemeBackgroundColor = {
     dark: '#100B2A',
@@ -385,7 +392,7 @@ export const ChartTooltipTriggerList = ['item', 'axis'];
 export const ChartLegendTopList = ['top', 'center', 'bottom'];
 export const ChartLegendLeftList = ['left', 'center', 'right'];
 export const ChartLegendOrientList = ['horizontal', 'vertical'];
-export const ChartLineSymbolList = ['circle', 'rect', 'roundRect', 'triangle', 'diamond', 'pin', 'arrow', 'none'];
+export const ChartSymbolList = ['circle', 'rect', 'roundRect', 'triangle', 'diamond', 'pin', 'arrow'];
 
 export const ChartAxisTooltipFormatter =
     `function (params) {` +

@@ -68,8 +68,8 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                 <div>Min</div>
                 <Input
                     pType="number"
+                    pWidth={100}
                     pHeight={25}
-                    pWidth={50}
                     pBorderRadius={4}
                     pValue={pPanelOption.chartOptions?.min}
                     onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'min')}
@@ -79,8 +79,8 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                 <div>Max</div>
                 <Input
                     pType="number"
+                    pWidth={100}
                     pHeight={25}
-                    pWidth={50}
                     pBorderRadius={4}
                     pValue={pPanelOption.chartOptions?.max}
                     onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'max')}
@@ -88,31 +88,31 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
             </div>
             <div className="divider" />
             <Collapse title="Axis">
-                <CheckBox
-                    pText="Show Axis Tick"
-                    pDefaultChecked={pPanelOption.chartOptions?.isAxisTick ?? false}
-                    onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAxisTick')}
-                />
-                <div style={{ height: '10px' }} />
                 <div className="menu-style">
-                    <div>Axis Label Distance</div>
+                    <div>Label distance</div>
                     <Input
                         pType="number"
                         pHeight={25}
-                        pWidth={50}
+                        pWidth={100}
                         pBorderRadius={4}
                         pValue={pPanelOption.chartOptions?.axisLabelDistance}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'axisLabelDistance')}
                     />
                 </div>
                 <CheckBox
-                    pText="Show axis line style"
+                    pText="Show axis tick"
+                    pDefaultChecked={pPanelOption.chartOptions?.isAxisTick ?? false}
+                    onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAxisTick')}
+                />
+                <div style={{ height: '10px' }} />
+                <CheckBox
+                    pText="Setting line colors (0 ~ 1)"
                     pDefaultChecked={pPanelOption.chartOptions?.isAxisLineStyleColor ?? false}
                     onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAxisLineStyleColor')}
                 />
                 {pPanelOption.chartOptions?.isAxisLineStyleColor && (
                     <>
-                        <div style={{ height: '10px' }} />
+                        <div style={{ height: '10px', marginRight: '0 !important' }} />
                         {pPanelOption.chartOptions?.axisLineStyleColor.map((aAxisColor: any, aIdx: number) => {
                             return (
                                 <LineStyleValue
@@ -131,17 +131,17 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
             <div className="divider" />
             <Collapse title="Anchor">
                 <CheckBox
-                    pText="Show Anchor"
+                    pText="Show anchor"
                     pDefaultChecked={pPanelOption.chartOptions?.isAnchor ?? false}
                     onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAnchor')}
                 />
                 <div style={{ height: '10px' }} />
                 <div className="menu-style">
-                    <div>Anchor Size</div>
+                    <div>Size</div>
                     <Input
                         pType="number"
                         pHeight={25}
-                        pWidth={50}
+                        pWidth={100}
                         pBorderRadius={4}
                         pIsDisabled={!pPanelOption.chartOptions?.isAnchor}
                         pValue={pPanelOption.chartOptions?.anchorSize}
@@ -150,42 +150,42 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                 </div>
             </Collapse>
             <div className="divider" />
-            <Collapse title="Value">
+            <Collapse title="Display value">
                 <div className="menu-style">
-                    <div>Font Size</div>
+                    <div>Font size</div>
                     <Input
                         pType="number"
                         pHeight={25}
-                        pWidth={50}
+                        pWidth={100}
                         pBorderRadius={4}
                         pValue={pPanelOption.chartOptions?.valueFontSize}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'valueFontSize')}
                     />
                 </div>
                 <div className="menu-style">
-                    <div>Value Center Offset</div>
+                    <div>Offset form center</div>
                     <Input
                         pType="number"
                         pHeight={25}
-                        pWidth={50}
+                        pWidth={100}
                         pBorderRadius={4}
                         pValue={pPanelOption.chartOptions?.alignCenter}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'alignCenter')}
                     />
                 </div>
                 <div className="menu-style">
-                    <div>Decimal Places</div>
+                    <div>Decimal places</div>
                     <Input
                         pType="number"
                         pHeight={25}
-                        pWidth={50}
+                        pWidth={100}
                         pBorderRadius={4}
                         pValue={pPanelOption.chartOptions?.gaugeValueLimit}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'gaugeValueLimit')}
                     />
                 </div>
                 <CheckBox
-                    pText="Active Animation"
+                    pText="Active animation"
                     pDefaultChecked={pPanelOption.chartOptions?.valueAnimation ?? false}
                     onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'valueAnimation')}
                 />
@@ -214,9 +214,11 @@ const LineStyleValue = (props: LineStyle) => {
                     <div style={{ marginRight: '10px' }}>
                         <Input
                             pType="number"
+                            pWidth={100}
                             pHeight={25}
-                            pWidth={40}
                             pBorderRadius={4}
+                            pMin={0}
+                            pMax={1}
                             pValue={aAxisColor[0] as string}
                             onChange={(aEvent) => HandleItemColor('l', aEvent.target.value, aIdx)}
                         />

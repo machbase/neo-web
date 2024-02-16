@@ -67,26 +67,29 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                         />
                     </div>
                     <div className="divider" />
+                    <CheckBox
+                        pText="Custom min max"
+                        pDefaultChecked={aItem.useMinMax ?? false}
+                        onChange={(aEvent: any) => HandleMinMax('useMinMax', aEvent.target.checked, aIndex)}
+                    />
+                    <div style={{ height: '10px' }} />
                     <div className="menu-style">
-                        <CheckBox
-                            pText="Use min max"
-                            pDefaultChecked={aItem.useMinMax ?? false}
-                            onChange={(aEvent: any) => HandleMinMax('useMinMax', aEvent.target.checked, aIndex)}
-                        />
                         <div>Min</div>
                         <Input
                             pType="number"
-                            pWidth={50}
+                            pWidth={100}
                             pHeight={25}
                             pBorderRadius={4}
                             pIsDisabled={!aItem.useMinMax}
                             pValue={aItem?.min ?? 0}
                             onChange={(aEvent: any) => HandleMinMax('min', aEvent.target.value, aIndex)}
                         />
+                    </div>
+                    <div className="menu-style">
                         <div>Max</div>
                         <Input
                             pType="number"
-                            pWidth={50}
+                            pWidth={100}
                             pHeight={25}
                             pBorderRadius={4}
                             pIsDisabled={!aItem.useMinMax}

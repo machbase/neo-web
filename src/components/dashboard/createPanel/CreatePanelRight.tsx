@@ -3,7 +3,7 @@ import { Select } from '@/components/inputs/Select';
 import { ChangeEvent } from 'react';
 import { ChartTypeList } from '@/utils/constants';
 import { ChartCommonOptions } from './option/ChartCommonOptions';
-import { CheckPlgChart, DefaultCommonOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
+import { CheckPlgChart, DefaultCommonOption, chartTypeConverter, getDefaultSeriesOption } from '@/utils/eChartHelper';
 import { Collapse } from '@/components/collapse/Collapse';
 import { PieOptions } from './option/PieOptions';
 import { LineOptions } from './option/LineOptions';
@@ -27,9 +27,10 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
     const sPieLegendValue = { legendTop: 'top', legendLeft: 'right', legendOrient: 'vertical' };
 
     const changeTypeOfSeriesOption = (aEvent: ChangeEvent<HTMLInputElement>) => {
-        const sIsPlgChart = CheckPlgChart(aEvent.target.value as ChartType);
-        const sChangeChartOption = getDefaultSeriesOption(aEvent.target.value as ChartType);
-        const sIsPie = aEvent.target.value === 'pie';
+        const sConvertedChartType = chartTypeConverter(aEvent.target.value);
+        const sIsPlgChart = CheckPlgChart(sConvertedChartType as ChartType);
+        const sChangeChartOption = getDefaultSeriesOption(sConvertedChartType as ChartType);
+        const sIsPie = sConvertedChartType === 'pie';
         pSetPanelOption((aPrev: any) => {
             const sResVal = {
                 ...aPrev,
@@ -62,12 +63,12 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     pInitValue={pPanelOption.type}
                     pHeight={30}
                     onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
-                    pOptions={ChartTypeList}
+                    pOptions={ChartTypeList.map((aType: { key: string; value: string }) => aType.key) as string[]}
                 />
                 <div className="divider" />
                 <div className="content" style={{ height: '100%' }}>
                     <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />
-                    {isTimeSeriesChart(pPanelOption.type) && pPanelOption.xAxisOptions && (
+                    {isTimeSeriesChart(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption.xAxisOptions && (
                         <>
                             <div className="divider" />
                             <XAxisOptions
@@ -78,20 +79,20 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                             />
                         </>
                     )}
-                    {isTimeSeriesChart(pPanelOption.type) && pPanelOption.yAxisOptions && (
+                    {isTimeSeriesChart(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption.yAxisOptions && (
                         <>
                             <div className="divider" />
                             <YAxisOptions pYAxis={pPanelOption.yAxisOptions} pSetPanelOption={pSetPanelOption} />
                         </>
                     )}
                     <div className="divider" />
-                    <Collapse title="Chart Option" isOpen>
-                        {pPanelOption.type === 'line' ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {pPanelOption.type === 'bar' ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {pPanelOption.type === 'scatter' ? <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {pPanelOption.type === 'pie' ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {pPanelOption.type === 'gauge' ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {pPanelOption.type === 'liquidFill' ? <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                    <Collapse title="Chart option" isOpen>
+                        {chartTypeConverter(pPanelOption.type) === 'line' ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {chartTypeConverter(pPanelOption.type) === 'bar' ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {chartTypeConverter(pPanelOption.type) === 'scatter' ? <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {chartTypeConverter(pPanelOption.type) === 'pie' ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {chartTypeConverter(pPanelOption.type) === 'gauge' ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {chartTypeConverter(pPanelOption.type) === 'liquidFill' ? <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                     </Collapse>
                     <div className="divider" />
                 </div>

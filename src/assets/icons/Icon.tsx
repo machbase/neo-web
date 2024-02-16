@@ -7,6 +7,7 @@ export {
     AiOutlineSnippets,
     AiOutlineFileMarkdown,
     AiFillGithub,
+    AiOutlineDashboard,
 } from 'react-icons/ai';
 
 export {
@@ -51,7 +52,6 @@ export {
     MdDownload as Download,
     MdCenterFocusStrong,
     MdMonitorHeart,
-    MdOutlineDashboard as MdDashboard,
     MdOutlineKeyboardArrowDown as ArrowDown,
     MdOutlineKeyboardArrowLeft as ArrowLeft,
     MdOutlineKeyboardArrowRight as ArrowRight,
@@ -97,7 +97,7 @@ export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calend
 
 export { FaFolderOpen as FolderOpen, FaFolder as Folder, FaArrowRotateRight as Refresh, FaGear as GearFill, FaDatabase } from 'react-icons/fa6';
 
-export { BsGit, BsTable } from 'react-icons/bs';
+export { BsGit, BsTable, BsArrowsExpand, BsArrowsCollapse } from 'react-icons/bs';
 
 export { CgRename as Rename } from 'react-icons/cg';
 

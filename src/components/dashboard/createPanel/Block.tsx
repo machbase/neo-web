@@ -1,6 +1,6 @@
 import { getTableInfo } from '@/api/repository/api';
 import { fetchTags, getRollupTableList } from '@/api/repository/machiot';
-import { Close, Refresh, VscSync } from '@/assets/icons/Icon';
+import { BsArrowsCollapse, BsArrowsExpand, Close, Refresh } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
@@ -138,7 +138,29 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                         ? {
                               ...aItem,
                               [aChangedKey]: aItem?.[aChangedKey].map((bItem: any) => {
-                                  return bItem.id === aId ? { ...bItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value } : bItem;
+                                  if (bItem.id === aId && aChangedKey === 'filter') {
+                                      let sUseFilter: boolean = false;
+                                      if (aKey === 'column' || aKey === 'value' || aKey === 'operator') {
+                                          // column | operator | value
+                                          aKey === 'column' && bItem.value !== '' && bItem.operator !== '' && aData.target.value !== '' && (sUseFilter = true);
+                                          aKey === 'value' && bItem.column !== '' && bItem.operator !== '' && aData.target.value !== '' && (sUseFilter = true);
+                                          aKey === 'operator' && bItem.column !== '' && bItem.value !== '' && aData.target.value !== '' && (sUseFilter = true);
+                                      } else sUseFilter = bItem.useFilter;
+                                      if (aKey === 'useTyping' && aData.target.value && bItem.useFilter) {
+                                          // Check varchar type
+                                          const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)[1] === 5;
+                                          const sValue = sUseQuote ? `"${bItem.value.includes(',') ? bItem.value.split(',').join('","') : bItem.value}"` : bItem.value;
+                                          const sTypingValue =
+                                              bItem.column === 'NAME' && bItem.operator === 'in'
+                                                  ? `${bItem.column} ${bItem.operator} (${sValue})`
+                                                  : `${bItem.column} ${bItem.operator} ${sValue}`;
+                                          return { ...bItem, useFilter: sUseFilter, typingValue: sTypingValue, [aKey]: aData.target.value };
+                                      }
+                                      return { ...bItem, useFilter: sUseFilter, [aKey]: aData.target.value };
+                                  } else
+                                      return bItem.id === aId
+                                          ? { ...bItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value }
+                                          : bItem;
                               }),
                           }
                         : aItem;
@@ -163,7 +185,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                 ...aPrev,
                 blockList: aPrev.blockList.map((aItem: any) => {
                     return aItem.id === pBlockInfo.id
-                        ? { ...aItem, filter: [...aItem.filter, { id: generateUUID(), value: '', operator: '=', useFilter: true, useTyping: false }] }
+                        ? { ...aItem, filter: [...aItem.filter, { id: generateUUID(), value: '', operator: '=', useFilter: false, useTyping: false, typingValue: '' }] }
                         : aItem;
                 }),
             };
@@ -199,6 +221,39 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             };
         });
     };
+
+    const HandleFold = () => {
+        const sChangedBlockInfo = JSON.parse(JSON.stringify(pBlockInfo));
+        sChangedBlockInfo.useCustom = !pBlockInfo.useCustom;
+        if (pBlockInfo.useCustom) {
+            sChangedBlockInfo.alias = sChangedBlockInfo.values[0].alias;
+            sChangedBlockInfo.aggregator = sChangedBlockInfo.values[0].aggregator;
+            sChangedBlockInfo.tag = '';
+        } else {
+            sChangedBlockInfo.tag = '';
+            sChangedBlockInfo.values = [{ ...sChangedBlockInfo.values[0], aggregator: pBlockInfo.aggregator, alias: pBlockInfo.alias }];
+            sChangedBlockInfo.filter = [
+                {
+                    ...sChangedBlockInfo.filter[0],
+                    column: 'NAME',
+                    useFilter: pBlockInfo.tag !== '' ? true : false,
+                    operator: 'in',
+                    value: pBlockInfo.tag && pBlockInfo.tag !== '' ? pBlockInfo.tag : '',
+                    typingValue: pBlockInfo.tag !== '' ? `NAME in ("${pBlockInfo.tag}")` : '',
+                },
+            ];
+        }
+
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                blockList: aPrev.blockList.map((aItem: any) => {
+                    return aItem.id === pBlockInfo.id ? sChangedBlockInfo : aItem;
+                }),
+            };
+        });
+    };
+
     /** Update Table + Rollup */
     const HandleTable = async () => {
         setIsLoadingRollup(() => true);
@@ -266,7 +321,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             </div>
                             <div className="details">
                                 <div className="series-table">
-                                    <span className="series-title"> TimeField </span>
+                                    <span className="series-title"> Time field </span>
                                     {sTimeList[0] && (
                                         <Select
                                             pFontSize={12}
@@ -320,18 +375,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 )}
                             </div>
                             <div className="series-table">
-                                <span className="series-title"> Alias </span>
-                                <Input
-                                    pBorderRadius={4}
-                                    pWidth={175}
-                                    pHeight={26}
-                                    pType="text"
-                                    pValue={pBlockInfo.alias}
-                                    pSetValue={() => null}
-                                    onChange={(aEvent: any) => changedOption('alias', aEvent)}
-                                />
-                            </div>
-                            <div className="series-table">
                                 <span className="series-title"> Aggregator </span>
                                 {pBlockInfo.aggregator && (
                                     <Select
@@ -346,6 +389,18 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                     />
                                 )}
                             </div>
+                            <div className="series-table">
+                                <span className="series-title"> Alias </span>
+                                <Input
+                                    pBorderRadius={4}
+                                    pWidth={175}
+                                    pHeight={26}
+                                    pType="text"
+                                    pValue={pBlockInfo.alias}
+                                    pSetValue={() => null}
+                                    onChange={(aEvent: any) => changedOption('alias', aEvent)}
+                                />
+                            </div>
                         </div>
                     )}
                     <div className="row-header-right">
@@ -353,6 +408,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             <IconButton
                                 pWidth={20}
                                 pHeight={20}
+                                pIsToopTip
+                                pToolTipContent={'Color'}
+                                pToolTipId={pBlockInfo.id + '-block-color'}
                                 pIcon={
                                     <div
                                         style={{ width: '14px', cursor: 'pointer', height: '14px', marginRight: '4px', borderRadius: '50%', backgroundColor: pBlockInfo.color }}
@@ -375,10 +433,13 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                         <IconButton
                             pWidth={20}
                             pHeight={20}
-                            pIsActive={pBlockInfo.useCustom}
+                            pIsToopTip
+                            pToolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
+                            pToolTipId={pBlockInfo.id + '-block-expand'}
                             pDisabled={sSelectedTableType !== 'tag'}
-                            pIcon={<VscSync />}
-                            onClick={sSelectedTableType !== 'tag' ? () => {} : () => setOption('useCustom', !pBlockInfo.useCustom)}
+                            // BsArrowsExpand, BsArrowsCollapse
+                            pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={16} /> : <BsArrowsExpand size={16} />}
+                            onClick={sSelectedTableType !== 'tag' ? () => {} : () => HandleFold()}
                         />
                         <IconButton
                             pDisabled={pPanelOption.blockList.length === 1}

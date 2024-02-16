@@ -4,7 +4,7 @@ import CheckBox from '@/components/inputs/CheckBox';
 // import { MarkLineOption } from './MarkLineOption';
 // import { isEmpty } from '@/utils';
 import { Select } from '@/components/inputs/Select';
-import { ChartLineSymbolList } from '@/utils/constants';
+import { ChartSymbolList } from '@/utils/constants';
 import { Input } from '@/components/inputs/Input';
 
 interface LineOptionProps {
@@ -74,43 +74,62 @@ export const LineOptions = (props: LineOptionProps) => {
 
     return (
         <div>
+            <CheckBox pText="Fill area" pDefaultChecked={pPanelOption.chartOptions?.areaStyle ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'areaStyle', true)} />
+            <div style={{ height: '10px' }} />
+            {pPanelOption.chartOptions?.areaStyle ? (
+                <>
+                    <div className="menu-style">
+                        <span>Opacity (0 ~ 1)</span>
+                        <Input
+                            pType="number"
+                            pWidth={100}
+                            pHeight={25}
+                            pMin={0}
+                            pMax={1}
+                            pBorderRadius={4}
+                            pValue={pPanelOption.chartOptions?.fillOpacity}
+                            onChange={(aEvent: any) => handleLineOption(aEvent, 'fillOpacity', false)}
+                        />
+                    </div>
+                    <div style={{ height: '10px' }} />
+                </>
+            ) : (
+                <></>
+            )}
+            <CheckBox pText="Smooth line" pDefaultChecked={pPanelOption.chartOptions?.smooth ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'smooth', true)} />
+            <div style={{ height: '10px' }} />
+            <CheckBox pText="Step line" pDefaultChecked={pPanelOption.chartOptions?.isStep ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStep', true)} />
+            <div style={{ height: '10px' }} />
+            <CheckBox pText="Stack mode" pDefaultChecked={pPanelOption.chartOptions?.isStack ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStack', true)} />
+            <div style={{ height: '10px' }} />
             <CheckBox
-                pText="Fill Area Style"
-                pDefaultChecked={pPanelOption.chartOptions?.areaStyle ?? false}
-                onChange={(aEvent: any) => handleLineOption(aEvent, 'areaStyle', true)}
-            />
-            <div style={{ height: '10px' }} />
-            <CheckBox pText="Smooth Line" pDefaultChecked={pPanelOption.chartOptions?.smooth ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'smooth', true)} />
-            <div style={{ height: '10px' }} />
-            <CheckBox pText="Step Line" pDefaultChecked={pPanelOption.chartOptions?.isStep ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStep', true)} />
-            <div style={{ height: '10px' }} />
-            <CheckBox pText="Stack Mode" pDefaultChecked={pPanelOption.chartOptions?.isStack ?? false} onChange={(aEvent: any) => handleLineOption(aEvent, 'isStack', true)} />
-            <div style={{ height: '10px' }} />
-            <CheckBox
-                pText="Large Data Mode"
+                pText="Large data mode"
                 pDefaultChecked={pPanelOption.chartOptions?.isSampling ?? false}
                 onChange={(aEvent: any) => handleLineOption(aEvent, 'isSampling', true)}
             />
+            <div className="divider" />
+            <CheckBox pText="Symbol" pDefaultChecked={pPanelOption.chartOptions?.isSymbol ?? true} onChange={(aEvent: any) => handleLineOption(aEvent, 'isSymbol', true)} />
             <div style={{ height: '10px' }} />
             <div className="menu-style">
-                <span>Symbol</span>
+                <span>Type</span>
                 <Select
-                    pFontSize={12}
                     pWidth={100}
-                    pBorderRadius={4}
-                    pInitValue={pPanelOption.chartOptions?.symbol}
                     pHeight={25}
+                    pBorderRadius={4}
+                    pFontSize={12}
+                    pInitValue={pPanelOption.chartOptions?.symbol}
+                    pIsDisabled={!pPanelOption.chartOptions?.isSymbol}
                     onChange={(aEvent: any) => handleLineOption(aEvent, 'symbol', false)}
-                    pOptions={ChartLineSymbolList}
+                    pOptions={ChartSymbolList}
                 />
             </div>
             <div className="menu-style">
-                <span>Symbol Size</span>
+                <span>Size</span>
                 <Input
                     pWidth={100}
                     pHeight={25}
                     pBorderRadius={4}
-                    pIsDisabled={pPanelOption.chartOptions?.symbol === 'none'}
+                    pIsDisabled={pPanelOption.chartOptions?.symbol === 'none' || !pPanelOption.chartOptions?.isSymbol}
                     pValue={pPanelOption.chartOptions?.symbolSize}
                     onChange={(aEvent: any) => handleLineOption(aEvent, 'symbolSize', false)}
                 />

@@ -26,6 +26,28 @@
             display: flex;
             font-size: 13px;
             gap: 8px;
+            .move-timerange-wrapper {
+                display: flex;
+                .set-global-option-btn {
+                    &:hover {
+                        color: #f8f8f8;
+                    }
+                    color: #939498;
+                    display: flex;
+                    align-items: center;
+                    background-color: transparent;
+                    border: 0.5px solid rgba(255, 255, 255, 0.5);
+                    height: 26px;
+                    font-size: 13px;
+                    border-radius: 6px;
+                    padding: 0 8px;
+
+                    svg {
+                        margin-right: 4px;
+                        height: 16px;
+                    }
+                }
+            }
         }
     }
     .body {

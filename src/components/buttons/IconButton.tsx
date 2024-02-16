@@ -1,4 +1,5 @@
 import './IconButton.scss';
+import { Tooltip } from 'react-tooltip';
 
 export interface IconButtonProps {
     pIcon: React.ReactNode;
@@ -7,12 +8,14 @@ export interface IconButtonProps {
     pWidth: number;
     pHeight: number;
     pDisabled: boolean;
+    pIsToopTip?: boolean;
+    pToolTipContent?: string;
+    pToolTipId?: string;
     onClick: React.MouseEventHandler<HTMLDivElement>;
 }
 
 export const IconButton = (props: IconButtonProps) => {
-    const { pIcon, pIsActive, onClick, pWidth, pHeight, pDisabled, pIsActiveHover } = props;
-
+    const { pIcon, pIsActive, onClick, pWidth, pHeight, pDisabled, pIsActiveHover, pIsToopTip, pToolTipContent, pToolTipId } = props;
     const sDisabledClass = pDisabled ? 'icon-btn-disabled' : '';
     const sIsActiveHoverClass = pIsActiveHover ? 'icon-btn-active-hover' : '';
 
@@ -22,7 +25,16 @@ export const IconButton = (props: IconButtonProps) => {
             style={{ width: pWidth + 'px', minWidth: pWidth + 'px', height: pHeight + 'px', backgroundColor: pIsActive ? '#52535A' : '' }}
             onClick={!pDisabled ? onClick : () => null}
         >
-            {pIcon}
+            {pIsToopTip ? (
+                <>
+                    <a className={`tooltip-${pToolTipId}`} style={{ display: 'flex' }}>
+                        {pIcon}
+                    </a>
+                    <Tooltip anchorSelect={`.tooltip-${pToolTipId}`} content={pToolTipContent} />
+                </>
+            ) : (
+                pIcon
+            )}
         </div>
     );
 };

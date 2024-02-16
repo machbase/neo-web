@@ -1,6 +1,7 @@
 import { isEmpty, isObjectEmpty } from '.';
 import { SqlResDataType } from './DashboardQueryParser';
 import { ChartItemTooltipFormatter, ChartAxisTooltipFormatter, ChartSeriesColorList } from './constants';
+import { chartTypeConverter } from './eChartHelper';
 // structure of chart common option
 const StructureOfCommonOption = `{
     "legend": {
@@ -49,7 +50,8 @@ const StructureSeriesOption: any = {
     `,
     scatter: `
         "large": $isLarge$,
-        "symbolSize": $symbolSize$
+        "symbolSize": $symbolSize$,
+        "symbol": "$symbol$"
     `,
     pie: `
         "radius": ["$doughnutRatio$", "70%"],
@@ -184,9 +186,15 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
     // Set opt
     sChartOptList.map((aOpt: string) => {
         if (aOpt === 'markLine') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
-        else if (aOpt === 'areaStyle') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, !aChartOption[aOpt] && 'null');
+        else if (aOpt === 'areaStyle')
+            sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, aChartOption[aOpt] ? `{"opacity": ${aChartOption['fillOpacity']}}` : 'null');
         else if (aOpt === 'isPolar' && aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "coordinateSystem": "polar"`;
         else if (aOpt === 'isSampling' && !aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "sampling": "lttb"`;
+        else if (aOpt === 'symbol')
+            sChartSeriesStructure = sChartSeriesStructure.replaceAll(
+                `$${aOpt}$`,
+                aChartOption['isSymbol'] ? aChartOption[aOpt] : aChartType === 'scatter' ? aChartOption['symbol'] : 'none'
+            );
         else if (aOpt == 'isLarge') {
             if (aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, false);
             else sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, true) + `, "largeThreshold": 2000`;
@@ -231,6 +239,7 @@ const ReplaceCommonOpt = (aCommonOpt: any, aDataType: string) => {
     const sResult = JSON.parse(sParsedOpt);
     if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis' && aDataType === 'TIME_VALUE') sResult.tooltip.formatter = ChartAxisTooltipFormatter;
     if (sResult.tooltip.show && sResult.tooltip.trigger === 'item' && aDataType === 'TIME_VALUE') sResult.tooltip.formatter = ChartItemTooltipFormatter;
+    if (sResult.legend.left !== 'center') sResult.legend.padding = [30, 0, 0, 0];
     return sResult;
 };
 
@@ -282,15 +291,16 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
 };
 
 export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any) => {
-    const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, SqlResDataType(aOptionInfo.type));
+    const sConvertedChartType = chartTypeConverter(aOptionInfo.type);
+    const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, SqlResDataType(sConvertedChartType));
     const sTypeOpt = ReplaceTypeOpt(
-        aOptionInfo.type,
-        SqlResDataType(aOptionInfo.type),
+        sConvertedChartType,
+        SqlResDataType(sConvertedChartType),
         aTagList.map((aTagInfo: any) => aTagInfo.name),
         aOptionInfo.chartOptions,
         aOptionInfo.xAxisOptions,
         CheckYAxisMinMax(aOptionInfo.yAxisOptions)
     );
-    const sParsedOpt = ParseOpt(aOptionInfo.type, SqlResDataType(aOptionInfo.type), aTagList, sCommonOpt, sTypeOpt);
+    const sParsedOpt = ParseOpt(sConvertedChartType, SqlResDataType(sConvertedChartType), aTagList, sCommonOpt, sTypeOpt);
     return sParsedOpt;
 };

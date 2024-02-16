@@ -1,5 +1,6 @@
 import { generateUUID } from '@/utils';
 import { ChartTheme, ChartType } from '@/type/eChart';
+import { ChartTypeList } from './constants';
 
 // use create common chart option (createCommonOption)
 export const DefaultCommonOption = {
@@ -12,12 +13,17 @@ export const DefaultCommonOption = {
     tooltipBgColor: '#FFFFFF' as string,
     tooltipTxtColor: '#333' as string,
     isDataZoom: false as boolean,
-    title: 'chart Title' as string,
+    title: 'New chart' as string,
     isInsideTitle: false as boolean,
     gridLeft: 35 as number,
     gridRight: 35 as number,
     gridTop: 50 as number,
     gridBottom: 50 as number,
+};
+
+export const chartTypeConverter = (aType: string): string => {
+    const sResult = ChartTypeList.filter((aTypeObj: { key: string; value: string }) => aTypeObj.key === aType)[0];
+    return sResult.value;
 };
 
 export const DefaultXAxisOption = {
@@ -54,9 +60,11 @@ export const DefaultLineChartOption = {
     isStep: false as boolean,
     isStack: false as boolean,
     connectNulls: true as boolean,
-    symbol: 'none' as string,
+    isSymbol: false as boolean,
+    symbol: 'circle' as string,
     symbolSize: 4 as number,
     isSampling: false as boolean,
+    fillOpacity: 0.3 as number,
     markLine: {
         symbol: ['none', 'none'],
         label: {
@@ -104,6 +112,7 @@ export const DefaultLiquidfillChartOption = {
 
 export const DefaultScatterChartOption = {
     isLarge: false as boolean,
+    symbol: 'circle' as string,
     symbolSize: 4 as number,
     tagLimit: 12 as number,
 };
@@ -138,12 +147,12 @@ export const DefaultGaugeChartOption = {
 
 export const DefaultChartOption = {
     id: undefined as string | undefined,
-    title: 'chart Title' as string,
-    type: 'line' as ChartType,
+    title: 'New chart' as string,
+    type: 'Line' as ChartType,
     theme: 'dark' as ChartTheme,
     timeRange: {
-        start: 'now-1y' as string | undefined,
-        end: 'now' as string | undefined,
+        start: '' as string | undefined,
+        end: '' as string | undefined,
         refresh: 'Off' as any,
     },
     isAxisInterval: false as boolean,
@@ -174,7 +183,7 @@ export const DefaultTagTableOption = {
     userName: undefined as string | undefined,
     color: '#73BF69',
     type: 'tag',
-    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false }],
+    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: 'VALUE', aggregator: 'avg' }],
     useRollup: false,
     name: '',
@@ -192,7 +201,7 @@ export const DefaultLogTableOption = {
     userName: undefined as string | undefined,
     color: '#73BF69',
     type: 'log',
-    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false }],
+    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: '', aggregator: 'avg' }],
     useRollup: false,
     name: '',
@@ -252,6 +261,7 @@ export const StructureOfLineSeriesOption = {
     step: false as boolean | string,
     stack: null as null | string,
     connectNulls: true as boolean,
+    fillOpacity: 0.3 as number,
     // use lineStyle for markline option
     lineStyle: null as null | Object,
     // if you markline option required visualMap option

@@ -1,5 +1,5 @@
 import './CreatePanel.scss';
-import { IoArrowBackOutline } from '@/assets/icons/Icon';
+import { Calendar, IoArrowBackOutline, VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { TextButton } from '@/components/buttons/TextButton';
 import SplitPane, { Pane } from 'split-pane-react';
@@ -25,6 +25,8 @@ const CreatePanel = ({
     pSetType,
     pModifyState,
     pSetModifyState,
+    pMoveTimeRange,
+    pSetTimeRangeModal,
 }: {
     pLoopMode: boolean;
     pPanelId: string;
@@ -34,6 +36,8 @@ const CreatePanel = ({
     pSetType: any;
     pModifyState: { id: string; state: boolean };
     pSetModifyState: any;
+    pMoveTimeRange: any;
+    pSetTimeRangeModal: (aValue: boolean) => void;
 }) => {
     const [sSideSizes, setSideSizes] = useState<any>(['75%', '25%']);
     const [sBottomSizes, setBottomSizes] = useState<any>(['50%', '50%']);
@@ -184,10 +188,31 @@ const CreatePanel = ({
             <div className="header">
                 <div className="left">
                     <IconButton pWidth={20} pHeight={32} pIcon={<IoArrowBackOutline />} onClick={handleClose} />
-                    <span>Create Panel</span>
+                    <span>Create panel</span>
                 </div>
 
                 <div className="right">
+                    <div className="move-timerange-wrapper">
+                        <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => pMoveTimeRange('l')} />
+                        <button onClick={() => pSetTimeRangeModal(true)} className="set-global-option-btn">
+                            <Calendar />
+                            {pBoardInfo && pBoardInfo.dashboard.timeRange.start ? (
+                                <span>
+                                    {(typeof pBoardInfo.dashboard.timeRange.start === 'string' && pBoardInfo.dashboard.timeRange.start.includes('now')
+                                        ? pBoardInfo.dashboard.timeRange.start
+                                        : moment(pBoardInfo.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
+                                        '~' +
+                                        (typeof pBoardInfo.dashboard.timeRange.end === 'string' && pBoardInfo.dashboard.timeRange.end.includes('now')
+                                            ? pBoardInfo.dashboard.timeRange.end
+                                            : moment(pBoardInfo.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
+                                </span>
+                            ) : (
+                                <span>Time range not set</span>
+                            )}
+                            , Refresh : {pBoardInfo.dashboard.timeRange.refresh}
+                        </button>
+                        <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight />} onClick={() => pMoveTimeRange('r')} />
+                    </div>
                     <TextButton
                         pHeight={28}
                         pWidth={75}

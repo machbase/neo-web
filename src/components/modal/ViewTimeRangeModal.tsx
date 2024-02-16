@@ -7,6 +7,7 @@ import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 import { Error } from '../toast/Toast';
 import { Select } from '../inputs/Select';
 import { refreshTimeList } from '@/utils/dashboardUtil';
+import './ViewTimeRangeModal.scss';
 
 interface ViewTimeRangeModalProps {
     pSetTimeRangeModal: React.Dispatch<React.SetStateAction<boolean>>;
@@ -104,7 +105,7 @@ const ViewTimeRangeModal = (props: ViewTimeRangeModalProps) => {
     return (
         <div>
             <div onClick={() => pSetTimeRangeModal(false)} className="time-range-cover"></div>
-            <div className="modal-time-range">
+            <div className="view-timerange-modal">
                 <div className="time-range-header">
                     <div className="time-range-title">
                         <Calendar></Calendar>

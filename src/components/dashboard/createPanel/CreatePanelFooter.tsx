@@ -1,15 +1,15 @@
 import './CreatePanelFooter.scss';
 import { Block } from './Block';
 import { useState } from 'react';
-import { PlusCircle } from '@/assets/icons/Icon';
+import { PlusCircle, VscTrash } from '@/assets/icons/Icon';
 import { refreshTimeList } from '@/utils/dashboardUtil';
 import DatePicker from '@/components/datePicker/DatePicker';
 
 import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
-import CheckBox from '@/components/inputs/CheckBox';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
 import { TagColorList } from '@/utils/constants';
+import { IconButton } from '@/components/buttons/IconButton';
 
 const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
     const [sTab, setTab] = useState('Query');
@@ -22,14 +22,25 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
     };
 
     const handleTime = (aKey: string, aEvent: any) => {
+        let sUseCustomTime: boolean = false;
+        let sTimeRange: any = null;
+        if (aKey === 'start') {
+            sUseCustomTime = aEvent !== '' && pPanelOption.timeRange.end !== '';
+            sTimeRange = { ...pPanelOption.timeRange, [aKey]: aEvent };
+        } else if (aKey === 'end') {
+            sUseCustomTime = aEvent !== '' && pPanelOption.timeRange.start !== '';
+            sTimeRange = { ...pPanelOption.timeRange, [aKey]: aEvent };
+        } else {
+            sTimeRange = { ...pPanelOption.timeRange, start: '', end: '' };
+        }
         pSetPanelOption((aPrev: any) => {
-            return { ...aPrev, timeRange: { ...aPrev.timeRange, [aKey]: aEvent.target.value } };
+            return { ...aPrev, useCustomTime: sUseCustomTime, timeRange: sTimeRange };
         });
     };
 
     const handleQuickTime = (aValue: any) => {
         pSetPanelOption((aPrev: any) => {
-            return { ...aPrev, timeRange: { ...aPrev.timeRange, start: aValue.value[0], end: aValue.value[1] } };
+            return { ...aPrev, useCustomTime: true, timeRange: { ...aPrev.timeRange, start: aValue.value[0], end: aValue.value[1] } };
         });
     };
 
@@ -107,25 +118,16 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                 </div>
                 <div style={sTab === 'Query' ? { display: 'none' } : {}} className="body time-wrap">
                     <div className="time-form">
-                        <div className="time-header">Time</div>
+                        <div className="time-header">Custom time range</div>
                         <div className="time-set-form">
                             <div className="date-picker">
-                                <CheckBox
-                                    onChange={(aEvent: any) => {
-                                        pSetPanelOption((aPrev: any) => {
-                                            return { ...aPrev, useCustomTime: Object.keys(aEvent.target).includes('checked') ? aEvent.target.checked : aEvent.target.value };
-                                        });
-                                    }}
-                                    pDefaultChecked={pPanelOption.useCustomTime}
-                                    pText={'use Custom Time'}
-                                />
                                 <div>
                                     From
                                     <DatePicker
                                         pTopPixel={55}
                                         pTimeValue={pPanelOption.timeRange.start ?? ''}
-                                        onChange={(date: any) => handleTime('start', date)}
-                                        pSetApply={(date: any) => setUseTimePicker('start', date)}
+                                        onChange={(date: any) => handleTime('start', date.target.value)}
+                                        pSetApply={(date: any) => handleTime('start', date)}
                                     />
                                 </div>
                                 <div>
@@ -133,8 +135,21 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                     <DatePicker
                                         pTopPixel={55}
                                         pTimeValue={pPanelOption.timeRange.end ?? ''}
-                                        onChange={(date: any) => handleTime('end', date)}
-                                        pSetApply={(date: any) => setUseTimePicker('end', date)}
+                                        onChange={(date: any) => handleTime('end', date.target.value)}
+                                        pSetApply={(date: any) => handleTime('end', date)}
+                                    />
+                                </div>
+                                <div className="icon-btn-wrapper" style={{ marginTop: '24px', display: 'flex', justifyContent: 'start' }}>
+                                    <IconButton
+                                        pWidth={50}
+                                        pHeight={20}
+                                        pIcon={
+                                            <>
+                                                <VscTrash size="70px" />
+                                                <span style={{ cursor: 'pointer' }}>Clear</span>
+                                            </>
+                                        }
+                                        onClick={() => handleTime('', '')}
                                     />
                                 </div>
                             </div>
