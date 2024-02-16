@@ -239,6 +239,7 @@ const ReplaceCommonOpt = (aCommonOpt: any, aDataType: string) => {
     const sResult = JSON.parse(sParsedOpt);
     if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis' && aDataType === 'TIME_VALUE') sResult.tooltip.formatter = ChartAxisTooltipFormatter;
     if (sResult.tooltip.show && sResult.tooltip.trigger === 'item' && aDataType === 'TIME_VALUE') sResult.tooltip.formatter = ChartItemTooltipFormatter;
+    if (sResult.legend.left !== 'center') sResult.legend.padding = [30, 0, 0, 0];
     return sResult;
 };
 

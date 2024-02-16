@@ -169,7 +169,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                     pType === undefined ? 'cursor-grab' : ''
                 }`}
             >
-                <div>{pPanelInfo.title}</div>
+                <div style={{ textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>{pPanelInfo.title}</div>
                 <div className={`panel-header-navigator ${pType !== undefined ? 'display-none' : ''}`}>
                     <a data-tooltip-place="bottom" className={`panel-header-time-range ${!pPanelInfo.useCustomTime ? 'display-none' : ''}`} id={sHeaderId}>
                         <VscRecord color="#339900" />
