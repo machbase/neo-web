@@ -139,8 +139,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
         <>
             <div className={`draggable-panel-header ${pIsHeader || pType !== undefined ? 'display-none' : ''}`}>
                 <div ref={sMenuRef}>
-                    <div onClick={handleContextMenu} style={{ backgroundColor: 'none' }}>
-                        <GoGrabber className="draggable-panel-header-menu-icon" size={20} color={pPanelInfo.theme !== 'dark' ? 'black' : ''} style={{ cursor: 'pointer' }} />
+                    <div className="draggable-panel-header-menu-icon" onClick={handleContextMenu} style={{ backgroundColor: 'none', cursor: 'pointer' }}>
+                        <GoGrabber size={20} color={pPanelInfo.theme !== 'dark' ? 'black' : ''} />
                     </div>
                     <div className="hidden-header-menu" style={{ cursor: 'pointer' }}>
                         <Menu isOpen={sIsContextMenu}>
