@@ -295,7 +295,7 @@ export const DEFAULT_CHART = {
     drilldown_zoom: 'Y',
     use_normalize: 'N',
     border_color: '',
-    chart_title: 'Chart Title',
+    chart_title: 'New chart',
     use_custom_min: 'N',
     custom_min: 0,
     use_custom_max: 'N',

@@ -13,7 +13,7 @@ export const DefaultCommonOption = {
     tooltipBgColor: '#FFFFFF' as string,
     tooltipTxtColor: '#333' as string,
     isDataZoom: false as boolean,
-    title: 'chart Title' as string,
+    title: 'New chart' as string,
     isInsideTitle: false as boolean,
     gridLeft: 35 as number,
     gridRight: 35 as number,
