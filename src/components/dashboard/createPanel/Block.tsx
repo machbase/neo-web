@@ -1,6 +1,6 @@
 import { getTableInfo } from '@/api/repository/api';
 import { fetchTags, getRollupTableList } from '@/api/repository/machiot';
-import { BsArrowsCollapse, BsArrowsExpand, Close, HideOff, HideOn, Refresh } from '@/assets/icons/Icon';
+import { BsArrowsCollapse, BsArrowsExpand, Close, Refresh } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
