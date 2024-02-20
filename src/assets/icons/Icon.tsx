@@ -93,7 +93,7 @@ export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase, GoGrabbe
 
 export { LuFlipVertical, LuMonitorSpeaker, LuTimerReset } from 'react-icons/lu';
 
-export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calendar, FaFolderPlus, FaUser } from 'react-icons/fa';
+export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calendar, FaFolderPlus, FaUser, FaHtml5 } from 'react-icons/fa';
 
 export { FaFolderOpen as FolderOpen, FaFolder as Folder, FaArrowRotateRight as Refresh, FaGear as GearFill, FaDatabase } from 'react-icons/fa6';
 

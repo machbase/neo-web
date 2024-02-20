@@ -56,6 +56,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
             case 'json':
             case 'csv':
             case 'md':
+            case 'html':
             case 'txt':
                 setIsSaved(aBoard.code === pBoard.savedCode);
                 break;
