@@ -2,10 +2,11 @@ import { useState, Dispatch, SetStateAction, useEffect } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import { IconButton } from '@/components/buttons/IconButton';
-import { Save, SaveAs, BiSolidEdit } from '@/assets/icons/Icon';
+import { Save, SaveAs, BiSolidEdit, MdLink } from '@/assets/icons/Icon';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { Markdown } from '@/components/worksheet/Markdown';
 import './TextExtension.scss';
+import { ClipboardCopy } from '@/utils/ClipboardCopy';
 
 type EditorLangType = 'json' | 'go' | 'typescript' | 'markdown' | 'css' | 'html';
 
@@ -43,12 +44,19 @@ export const TextExtension = (props: TextExtensionProps) => {
         );
     };
 
+    const handleCopyLink = () => {
+        const sTargetBoard = sBoardList.find((aBoard) => aBoard.id === sSelectedTab);
+        const sTargetPath = `http://${window.location.host + '/db/tql' + sTargetBoard!.path + sTargetBoard!.name}`;
+        ClipboardCopy(sTargetPath);
+    };
+
     return (
         <div className="textextension-editor">
             <div className="textextension-editor-header">
                 {pLang === 'markdown' ? <IconButton pIcon={<BiSolidEdit size={18} />} pIsActive={!sIsPreview} onClick={() => setIsPreView(!sIsPreview)} /> : null}
                 <IconButton pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
                 <IconButton pIcon={<SaveAs size={18} />} onClick={() => setIsOpenModal(true)} />
+                {pLang === 'html' && <IconButton pIcon={<MdLink />} onClick={handleCopyLink} />}
             </div>
             <div className="textextension-editor-content" style={{ padding: sIsPreview ? '0 1rem' : '', backgroundColor: sIsPreview ? '#1B1C21' : '' }}>
                 {!sIsPreview ? <MonacoEditor pText={sText} pLang={sCurrentLang} onSelectLine={() => null} onChange={handleChangeText} onRunCode={() => null} /> : null}

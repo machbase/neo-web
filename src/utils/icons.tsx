@@ -15,6 +15,7 @@ import {
     AiOutlineDashboard,
     FaDesktop,
     FaLaptop,
+    FaHtml5,
 } from '@/assets/icons/Icon';
 import {
     MuiCsv,
@@ -57,6 +58,8 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <MuiDocument />;
         case 'csv':
             return <MuiCsv />;
+        case 'html':
+            return <FaHtml5 color="fc7976" />;
         case 'dsh':
             return aIsHome ? <AiOutlineDashboard /> : <AiOutlineDashboard color="fc7676" />;
         case 'png':
