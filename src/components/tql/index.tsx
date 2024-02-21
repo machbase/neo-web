@@ -179,7 +179,7 @@ const Tql = (props: TqlProps) => {
 
     const handleCopyLink = () => {
         const sTargetBoard = sBoardList.find((aBoard) => aBoard.id === sSelectedTab);
-        const sTargetPath = `http://${window.location.host + '/db/tql' + sTargetBoard!.path + sTargetBoard!.name}`;
+        const sTargetPath = `${window.location.origin + '/db/tql' + sTargetBoard!.path + sTargetBoard!.name}`;
         ClipboardCopy(sTargetPath);
     };
 
