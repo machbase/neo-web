@@ -569,7 +569,6 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
         sPanelRange.startTime && pGetChartInfo && pGetChartInfo(sPanelRange.startTime, sPanelRange.endTime, pPanelInfo, sIsRaw, 'changed');
         sPanelRange.startTime &&
             sChartRef.current?.chart &&
-            pPanelInfo.use_time_keeper === 'Y' &&
             pSaveKeepData &&
             pSaveKeepData(
                 pPanelInfo.index_key,
