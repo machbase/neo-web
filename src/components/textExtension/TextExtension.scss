@@ -8,8 +8,17 @@
         width: 100%;
         height: 40px;
         display: flex;
+        justify-content: space-between;
         align-items: center;
         padding: 0 1rem;
+
+        &-l {
+            display: flex;
+        }
+        &-r {
+            display: flex;
+            align-items: center;
+        }
     }
 
     .textextension-editor-content {
