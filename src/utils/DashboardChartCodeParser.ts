@@ -43,7 +43,7 @@ export const DashboardChartCodeParser = async (aChartOptions: any, aChartType: s
 
     // GEN func
     const sFunction = `function getData(aTql, aIdx) {
-        \tfetch("http://${window.location.hostname}:5654/db/tql", {
+        \tfetch("${window.location.origin}/db/tql", {
             \tmethod: "POST",
             \tbody: aTql
         \t})

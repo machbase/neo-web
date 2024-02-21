@@ -74,6 +74,11 @@ export default defineConfig({
                 secure: false,
                 ws: true,
             },
+            '/db/tql': {
+                target: `http://${TestTarget}`,
+                changeOrigin: true,
+                secure: false,
+            },
         },
     },
 });
