@@ -1,6 +1,6 @@
 import { getId } from '.';
 
-export const FileType = ['sql', 'tql', 'json', 'csv', 'md', 'txt', 'wrk', 'taz', 'dsh', 'html'];
+export const FileType = ['sql', 'tql', 'json', 'csv', 'md', 'txt', 'wrk', 'taz', 'dsh', 'html', 'css', 'js'];
 // validator file name n extension
 export const FileNameAndExtensionValidator = (aTxt: string): boolean => {
     const FileRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9_-]+\\.{1}(${FileType.join('|')}){1}$`, 'gm');

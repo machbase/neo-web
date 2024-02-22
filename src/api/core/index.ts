@@ -31,6 +31,8 @@ request.interceptors.request.use(
         const sFileCsv = sUrlSplit[0].indexOf('.csv');
         const sFileText = sUrlSplit[0].indexOf('.txt');
         const sFileHtml = sUrlSplit[0].indexOf('.html');
+        const sFileCss = sUrlSplit[0].indexOf('.css');
+        const sFileJs = sUrlSplit[0].indexOf('.js');
         const sFileImg = isImage(sUrlSplit[0]);
 
         if (!config.url.includes('login') && !config.url.includes('logout') && !config.url.includes('relogin') && !config.url.includes('check')) {
@@ -56,6 +58,12 @@ request.interceptors.request.use(
         }
         if ((sFileMd !== -1 || sFileCsv !== -1 || sFileText !== -1 || sFileHtml !== -1) && config.method === 'post') {
             sHeaders['Content-Type'] = 'text/html';
+        }
+        if (sFileCss !== -1 && config.method === 'post') {
+            sHeaders['Content-Type'] = 'text/css';
+        }
+        if (sFileJs !== -1 && config.method === 'post') {
+            sHeaders['Content-Type'] = 'text/javascript';
         }
         if (sHeaders && (config.url === '/api/md?darkMode=false' || config.url === '/api/md?darkMode=true')) {
             sHeaders['Content-Type'] = 'text/plain';
