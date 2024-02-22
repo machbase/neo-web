@@ -58,6 +58,8 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
             case 'md':
             case 'html':
             case 'txt':
+            case 'css':
+            case 'js':
                 setIsSaved(aBoard.code === pBoard.savedCode);
                 break;
             case 'wrk':

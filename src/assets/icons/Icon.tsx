@@ -77,7 +77,7 @@ export { RiArrowUpDoubleFill as ArrowUpDouble, RiMergeCellsVertical as HideOn, R
 
 export { FcFolder as TreeFolder, FcOpenedFolder as TreeFolderOpen } from 'react-icons/fc';
 
-export { IoArrowBackOutline, IoLogOutOutline as Logout, IoPlayForwardSharp } from 'react-icons/io5';
+export { IoArrowBackOutline, IoLogOutOutline as Logout, IoPlayForwardSharp, IoLogoJavascript } from 'react-icons/io5';
 
 export { PiFileCsvThin, PiSelectionPlusBold } from 'react-icons/pi';
 
@@ -93,7 +93,7 @@ export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase, GoGrabbe
 
 export { LuFlipVertical, LuMonitorSpeaker, LuTimerReset } from 'react-icons/lu';
 
-export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calendar, FaFolderPlus, FaUser, FaHtml5 } from 'react-icons/fa';
+export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calendar, FaFolderPlus, FaUser, FaHtml5, FaCss3 } from 'react-icons/fa';
 
 export { FaFolderOpen as FolderOpen, FaFolder as Folder, FaArrowRotateRight as Refresh, FaGear as GearFill, FaDatabase } from 'react-icons/fa6';
 

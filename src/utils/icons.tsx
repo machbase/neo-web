@@ -16,6 +16,8 @@ import {
     FaDesktop,
     FaLaptop,
     FaHtml5,
+    FaCss3,
+    IoLogoJavascript,
 } from '@/assets/icons/Icon';
 import {
     MuiCsv,
@@ -60,6 +62,10 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <MuiCsv />;
         case 'html':
             return <FaHtml5 color="fc7976" />;
+        case 'css':
+            return <FaCss3 color="399af6" />;
+        case 'js':
+            return <IoLogoJavascript color="fdda19" />;
         case 'dsh':
             return aIsHome ? <AiOutlineDashboard /> : <AiOutlineDashboard color="fc7676" />;
         case 'png':

@@ -100,7 +100,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
 
     const isSaveCheck = () => {
         const sType = sFilterBoard.type;
-        const saveList = ['sql', 'tql', 'wrk', 'taz', 'json', 'md', 'csv', 'txt', 'dsh', 'html'];
+        const saveList = ['sql', 'tql', 'wrk', 'taz', 'json', 'md', 'csv', 'txt', 'dsh', 'html', 'js', 'css'];
         if (saveList.some((aType) => aType === sType)) {
             return true;
         } else {
@@ -246,6 +246,10 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                             )}
                             {aItem.type === 'txt' && <TextExtension pLang="go" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
                             {aItem.type === 'html' && <TextExtension pLang="html" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
+                            {aItem.type === 'css' && <TextExtension pLang="css" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
+                            {aItem.type === 'js' && (
+                                <TextExtension pLang="javascript" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />
+                            )}
                             {isImage(aItem.name) && <ImageBox pBase64Code={aItem.code} pType={aItem.type} />}
                         </div>
                     );

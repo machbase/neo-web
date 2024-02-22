@@ -53,6 +53,8 @@ export const SaveModal = (props: SaveModalProps) => {
         aValue === 'csv' ||
         aValue === 'md' ||
         aValue === 'html' ||
+        aValue === 'css' ||
+        aValue === 'js' ||
         aValue === 'txt';
 
     useEffect(() => {

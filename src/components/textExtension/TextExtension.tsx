@@ -8,7 +8,7 @@ import { Markdown } from '@/components/worksheet/Markdown';
 import './TextExtension.scss';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 
-type EditorLangType = 'json' | 'go' | 'typescript' | 'markdown' | 'css' | 'html';
+type EditorLangType = 'json' | 'go' | 'typescript' | 'markdown' | 'css' | 'html' | 'javascript';
 
 export interface TextExtensionProps {
     pLang: EditorLangType;
