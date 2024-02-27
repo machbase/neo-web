@@ -72,7 +72,9 @@ const DashboardView = () => {
     }, []);
 
     return sNotfound ? (
-        <span>404 not found file name</span>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'fixed', inset: '16px' }}>
+            <span>404 not found file name</span>
+        </div>
     ) : (
         <>
             <div ref={sLayoutRef} style={{ width: '100vw', height: '100vh' }}>
@@ -84,7 +86,7 @@ const DashboardView = () => {
                         </div>
                         <div className="calendar-group">
                             <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')} />
-                            <button onClick={() => setIsTimeRangeModal(true)} className="calendar">
+                            <button onClick={() => setIsTimeRangeModal(true)} className="calendar" style={{ height: 'auto' }}>
                                 <Calendar />
                                 {sBoardInformation && sBoardInformation.dashboard.timeRange.start ? (
                                     <span>

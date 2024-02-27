@@ -34,8 +34,9 @@ request.interceptors.request.use(
         const sFileCss = sUrlSplit[0].indexOf('.css');
         const sFileJs = sUrlSplit[0].indexOf('.js');
         const sFileImg = isImage(sUrlSplit[0]);
+        const sViewMode = window.location.pathname.includes('/web/ui/view');
 
-        if (!config.url.includes('login') && !config.url.includes('logout') && !config.url.includes('relogin') && !config.url.includes('check')) {
+        if (!config.url.includes('login') && !config.url.includes('logout') && !config.url.includes('relogin') && !config.url.includes('check') && !sViewMode) {
             sHeaders['X-Console-Id'] = localStorage.getItem('consoleId');
         }
 
