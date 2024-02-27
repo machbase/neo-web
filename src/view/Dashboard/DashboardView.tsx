@@ -72,7 +72,9 @@ const DashboardView = () => {
     }, []);
 
     return sNotfound ? (
-        <span>404 not found file name</span>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'fixed', inset: '16px' }}>
+            <span>404 not found file name</span>
+        </div>
     ) : (
         <>
             <div ref={sLayoutRef} style={{ width: '100vw', height: '100vh' }}>
