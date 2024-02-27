@@ -4,7 +4,7 @@ import { BsArrowsCollapse, BsArrowsExpand, Close, Refresh } from '@/assets/icons
 import { IconButton } from '@/components/buttons/IconButton';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
-import { createDefaultTagTableOption, getTableType, isNumberTypeColumn, tagAggregatorList } from '@/utils/dashboardUtil';
+import { DIFF_LIST, SEPARATE_DIFF, createDefaultTagTableOption, getTableType, isNumberTypeColumn, tagAggregatorList } from '@/utils/dashboardUtil';
 import { useEffect, useState } from 'react';
 import Filter from './Filter';
 import './Block.scss';
@@ -55,6 +55,16 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                 };
             });
             getColumnList(aData.target.value);
+        } else if (aKey === 'aggregator' && !SEPARATE_DIFF) {
+            const sDiffVal: boolean = aData.target.value.includes('diff');
+            pSetPanelOption((aPrev: any) => {
+                return {
+                    ...aPrev,
+                    blockList: aPrev.blockList.map((aItem: any) => {
+                        return aItem.id === pBlockInfo.id ? { ...aItem, aggregator: aData.target.value, diff: sDiffVal ? aData.target.value : 'none' } : aItem;
+                    }),
+                };
+            });
         } else {
             pSetPanelOption((aPrev: any) => {
                 return {
@@ -157,6 +167,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                           return { ...bItem, useFilter: sUseFilter, typingValue: sTypingValue, [aKey]: aData.target.value };
                                       }
                                       return { ...bItem, useFilter: sUseFilter, [aKey]: aData.target.value };
+                                  } else if (bItem.id === aId && aChangedKey === 'values' && aKey === 'aggregator' && !SEPARATE_DIFF) {
+                                      const sDiffVal: boolean = aData.target.value.includes('diff');
+                                      return { ...bItem, aggregator: aData.target.value, diff: sDiffVal ? aData.target.value : 'none' };
                                   } else
                                       return bItem.id === aId
                                           ? { ...bItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value }
@@ -385,8 +398,23 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                         pInitValue={pBlockInfo.aggregator}
                                         pHeight={26}
                                         onChange={(aEvent: any) => changedOption('aggregator', aEvent)}
-                                        pOptions={tagAggregatorList}
+                                        pOptions={SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST)}
                                     />
+                                )}
+                                {SEPARATE_DIFF && (
+                                    <div className="series-table">
+                                        <span className="series-title"> Diff </span>
+                                        <Select
+                                            pFontSize={12}
+                                            pAutoChanged={true}
+                                            pWidth={175}
+                                            pBorderRadius={4}
+                                            pInitValue={pBlockInfo?.diff || 'none'}
+                                            pHeight={26}
+                                            onChange={(aEvent: any) => changedOption('diff', aEvent)}
+                                            pOptions={['none'].concat(DIFF_LIST)}
+                                        />
+                                    </div>
                                 )}
                             </div>
                             <div className="series-table">

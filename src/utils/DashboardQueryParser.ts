@@ -88,8 +88,11 @@ const GetValues = (aTable: any) => {
     return [
         {
             id: aTable.id,
-            alias: `${aTable.alias !== '' ? aTable.alias : aTable.aggregator !== 'none' ? aTable.tag + '(' + aTable.aggregator + ')' : aTable.tag}`,
+            alias: `${
+                aTable.alias !== '' ? aTable.alias : aTable.aggregator !== 'value' && aTable.aggregator !== 'none' ? aTable.tag + '(' + aTable.aggregator + ')' : aTable.tag
+            }`,
             value: aTable.value,
+            diff: aTable.diff,
             aggregator: aTable.aggregator,
         },
     ];
@@ -102,9 +105,9 @@ const GetFilter = (aTableInfo: any) => {
     else return [];
 };
 
-const GetValueColumn = (aValueList: any) => {
+const GetValueColumn = (aDiff: boolean, aValueList: any) => {
     return aValueList.map((aValue: any) => {
-        if (aValue.aggregator === 'none') return `${aValue.value} as VALUE`;
+        if (aValue.aggregator === 'none' || aValue.aggregator === 'value' || aDiff) return `${aValue.value} as VALUE`;
         else return `${aValue.aggregator}(${aValue.value}) as VALUE`;
     });
 };
@@ -174,14 +177,14 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
 };
 const UseGroupByTime = (aValueList: any) => {
     const sUseGroupBy = aValueList.reduce((preV: boolean, aValue: any) => {
-        return preV || aValue.aggregator !== 'none' ? true : false;
+        return preV || (aValue.aggregator !== 'value' && aValue.aggregator !== 'none') ? true : false;
     }, false);
     if (sUseGroupBy) return '';
     else return ', VALUE';
 };
 const GetAlias = (aValue: any) => {
     if (aValue.alias && aValue.alias !== '') return aValue.alias;
-    else return `${aValue.value}${aValue.aggregator !== 'none' ? '(' + aValue.aggregator + ')' : ''}`;
+    else return `${aValue.value}${aValue.aggregator !== 'value' && aValue.aggregator !== 'none' ? '(' + aValue.aggregator + ')' : ''}`;
 };
 const UseCountAll = (aValueList: any) => {
     const sUseCountAll = aValueList.reduce((preV: boolean, aValue: any) => {
@@ -189,13 +192,26 @@ const UseCountAll = (aValueList: any) => {
     }, false);
     return sUseCountAll;
 };
+const changeDiffText = (aDiff: string) => {
+    switch (aDiff) {
+        case 'diff':
+            return 'DIFF';
+        case 'diff (abs)':
+            return 'ABSDIFF';
+        case 'diff (no-negative)':
+            return 'NONEGDIFF';
+        default:
+            return 'DIFF';
+    }
+};
 
 const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string) => {
     const sAliasList: any[] = [];
     const sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
-        const sUseAgg = aQuery.valueList[0].aggregator !== 'none';
+        const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
+        const sUseAgg: boolean = aQuery.valueList[0].aggregator !== 'value' && aQuery.valueList[0].aggregator !== 'none' && !sUseDiff;
         const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval);
-        const sValueColumn = GetValueColumn(aQuery.valueList)[0];
+        const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList)[0];
         const sTimeWhere = GetTimeWhere(aQuery.time, aTime);
         const sFilterWhere = GetFilterWhere(aQuery.filterList, aQuery.useCustom, aQuery);
         const sGroupBy = `GROUP BY TIME ${UseGroupByTime(aQuery.valueList)}`;
@@ -213,6 +229,7 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
             } WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''} ${sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''} ${
                 sUseCountAll ? '' : sOrderBy
             }`;
+            if (sUseDiff) sTql = `MAP_${changeDiffText(aQuery.valueList[0]?.diff)}(1, value(1))`;
         }
         // PIE | GAUGE | LIQUIDFILL
         if (aResDataType === 'NAME_VALUE') {
