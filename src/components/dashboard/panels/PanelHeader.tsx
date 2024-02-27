@@ -137,33 +137,35 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
 
     return (
         <>
-            <div className={`draggable-panel-header ${pIsHeader || pType !== undefined ? 'display-none' : ''}`}>
-                <div ref={sMenuRef}>
-                    <div className="draggable-panel-header-menu-icon" onClick={handleContextMenu} style={{ backgroundColor: 'none', cursor: 'pointer' }}>
-                        <GoGrabber size={20} color={pPanelInfo.theme !== 'dark' ? 'black' : ''} />
-                    </div>
-                    <div className="hidden-header-menu" style={{ cursor: 'pointer' }}>
-                        <Menu isOpen={sIsContextMenu}>
-                            <Menu.Item onClick={(aEvent: any) => handleMoveEditOnMenu(aEvent, pPanelInfo.id)}>
-                                <GearFill />
-                                <span>Setting</span>
-                            </Menu.Item>
-                            <Menu.Item onClick={handleMoveTagz}>
-                                <MuiTagAnalyzerGray className="mui-svg-hover" width={13} />
-                                <span>Show Taganalyer</span>
-                            </Menu.Item>
-                            <Menu.Item onClick={handleDeleteOnMenu}>
-                                <Delete />
-                                <span>Delete</span>
-                            </Menu.Item>
-                            <Menu.Item onClick={HandleDownload}>
-                                <VscGraphScatter />
-                                <span>Save to tql</span>
-                            </Menu.Item>
-                        </Menu>
+            {!pIsView && (
+                <div className={`draggable-panel-header ${pIsHeader || pType !== undefined ? 'display-none' : ''}`}>
+                    <div ref={sMenuRef}>
+                        <div className="draggable-panel-header-menu-icon" onClick={handleContextMenu} style={{ backgroundColor: 'none', cursor: 'pointer' }}>
+                            <GoGrabber size={20} color={pPanelInfo.theme !== 'dark' ? 'black' : ''} />
+                        </div>
+                        <div className="hidden-header-menu" style={{ cursor: 'pointer' }}>
+                            <Menu isOpen={sIsContextMenu}>
+                                <Menu.Item onClick={(aEvent: any) => handleMoveEditOnMenu(aEvent, pPanelInfo.id)}>
+                                    <GearFill />
+                                    <span>Setting</span>
+                                </Menu.Item>
+                                <Menu.Item onClick={handleMoveTagz}>
+                                    <MuiTagAnalyzerGray className="mui-svg-hover" width={13} />
+                                    <span>Show Taganalyer</span>
+                                </Menu.Item>
+                                <Menu.Item onClick={handleDeleteOnMenu}>
+                                    <Delete />
+                                    <span>Delete</span>
+                                </Menu.Item>
+                                <Menu.Item onClick={HandleDownload}>
+                                    <VscGraphScatter />
+                                    <span>Save to tql</span>
+                                </Menu.Item>
+                            </Menu>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
             <div
                 className={`board-panel-header ${!pIsHeader ? 'display-none' : ''} ${pPanelInfo.theme !== 'dark' ? 'panel-theme-white' : ''} ${
                     pType === undefined ? 'cursor-grab' : ''

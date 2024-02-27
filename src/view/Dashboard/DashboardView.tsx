@@ -86,7 +86,7 @@ const DashboardView = () => {
                         </div>
                         <div className="calendar-group">
                             <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')} />
-                            <button onClick={() => setIsTimeRangeModal(true)} className="calendar">
+                            <button onClick={() => setIsTimeRangeModal(true)} className="calendar" style={{ height: 'auto' }}>
                                 <Calendar />
                                 {sBoardInformation && sBoardInformation.dashboard.timeRange.start ? (
                                     <span>
