@@ -2,7 +2,7 @@
 // import { IconButton } from '@/components/buttons/IconButton';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
-import { tagAggregatorList } from '@/utils/dashboardUtil';
+import { DIFF_LIST, SEPARATE_DIFF, tagAggregatorList } from '@/utils/dashboardUtil';
 
 const Value = ({
     pValue,
@@ -46,9 +46,24 @@ any) => {
                     pInitValue={pValue.aggregator ?? 'avg'}
                     pHeight={26}
                     onChange={(aEvent: any) => pChangeValueOption('aggregator', aEvent, pValue.id, 'values')}
-                    pOptions={tagAggregatorList}
+                    pOptions={SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST)}
                 />
             </div>
+            {SEPARATE_DIFF && (
+                <div className="series-table">
+                    <span className="series-title"> Diff </span>
+                    <Select
+                        pFontSize={12}
+                        pAutoChanged={true}
+                        pWidth={175}
+                        pBorderRadius={4}
+                        pInitValue={pValue?.diff ?? 'none'}
+                        pHeight={26}
+                        onChange={(aEvent: any) => pChangeValueOption('diff', aEvent, pValue.id, 'values')}
+                        pOptions={['none'].concat(DIFF_LIST)}
+                    />
+                </div>
+            )}
             <div className="series-table">
                 <span className="series-title"> Alias </span>
                 <Input
