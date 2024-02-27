@@ -293,8 +293,8 @@ export const tagTableValue = () => {
     };
 };
 
-export const tagAggregatorList = ['none', 'count(*)', 'count', 'sum', 'min', 'max', 'avg', 'sumsq'];
-export const DIFF_LIST = ['diff', 'absdiff', 'nonegdiff'];
+export const tagAggregatorList = ['value', 'count(*)', 'count', 'sum', 'min', 'max', 'avg', 'sumsq'];
+export const DIFF_LIST = ['diff', 'diff (abs)', 'diff (no-negative)'];
 export const SEPARATE_DIFF: boolean = false;
 
 export const refreshTimeList = ['Off', '3 seconds', '5 seconds', '10 seconds', '30 seconds', '1 minute', '5 minutes', '10 minutes', '1 hour'];
