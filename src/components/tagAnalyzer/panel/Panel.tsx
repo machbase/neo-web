@@ -38,7 +38,7 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
     const [sFFTMaxTime, setFFTMaxTime] = useState<number>(0);
     const [sIsMinMaxMenu, setIsMinMaxMenu] = useState<boolean>(false);
     const [sSaveEditedInfo, setSaveEditedInfo] = useState<boolean>(false);
-
+    const sDataFetchHandler = useRef<boolean>(false);
     const sStarted = useRef(false);
 
     const fetchNavigatorData = async (aTimeRange: any) => {
@@ -121,17 +121,17 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
         setNavigatorData({ datasets: sDatasets });
     };
 
-    const setExtremes = (aEvent: any) => {
+    const setExtremes = async (aEvent: any) => {
         if (aEvent.min) {
             const sRatio = 1 - ((aEvent.max - aEvent.min) * 100) / (sNavigatorRange.endTime - sNavigatorRange.startTime);
-
             if ((sNavigatorRange.endTime - sNavigatorRange.startTime) / 100 > aEvent.max - aEvent.min) {
                 sChartRef.current.chart.navigator.xAxis.setExtremes(
                     sNavigatorRange.startTime + (aEvent.min - sNavigatorRange.startTime) * sRatio,
                     sNavigatorRange.endTime + (aEvent.max - sNavigatorRange.endTime) * sRatio
                 );
             }
-            fetchPanelData({ startTime: aEvent.min, endTime: aEvent.max });
+            if (!sDataFetchHandler.current) await fetchPanelData({ startTime: aEvent.min, endTime: aEvent.max });
+            else sDataFetchHandler.current = false;
             setPanelRange({ startTime: aEvent.min, endTime: aEvent.max });
         }
     };
@@ -307,6 +307,8 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
                 : { IntervalType: convertInterType(pPanelInfo.interval_type?.toLowerCase()), IntervalValue: 0 };
 
         setRangeOption(sIntervalTime);
+        let sCheckDataLimit: boolean = false;
+        let sChangeLimitEnd: number = 0;
         for (let index = 0; index < sTagSet.length; index++) {
             const sTagSetElement = sTagSet[index];
             let sFetchResult: any = [];
@@ -324,9 +326,9 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
                 });
 
                 if (sFetchResult && sFetchResult.data.rows.length === sCount) {
-                    sChartRef.current &&
-                        sChartRef.current.chart &&
-                        sChartRef.current.chart.xAxis[0].setExtremes(sFetchResult.data.rows[0][0], sFetchResult.data.rows[sFetchResult.data.rows.length - 2][0] - 1);
+                    sCheckDataLimit = true;
+                    if (sChangeLimitEnd) sChangeLimitEnd = Math.sign(sChangeLimitEnd - sFetchResult.data.rows.at(-1)[0]) ? sFetchResult.data.rows.at(-1)[0] : sChangeLimitEnd;
+                    else sChangeLimitEnd = sFetchResult.data.rows.at(-2)[0];
                 }
             } else {
                 sFetchResult = await fetchCalculationData({
@@ -355,6 +357,11 @@ const Panel = ({ pPanelInfo, pResetCount, pPanelsInfo, pGetChartInfo, pBoardInfo
             });
         }
         setChartData({ datasets: sDatasets });
+        if (sCheckDataLimit) {
+            sDataFetchHandler.current = true;
+            setPanelRange({ startTime: sDatasets[0].data[0][0], endTime: sChangeLimitEnd });
+            sChartRef && sChartRef.current && sChartRef.current.chart.xAxis[0].setExtremes(sDatasets[0].data[0][0], sChangeLimitEnd);
+        }
     };
 
     const calcInterval = (aBgn: number, aEnd: number, aWidth: number): { IntervalType: string; IntervalValue: number } => {
