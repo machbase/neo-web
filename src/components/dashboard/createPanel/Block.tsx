@@ -1,6 +1,6 @@
 import { getTableInfo } from '@/api/repository/api';
-import { fetchTags, getRollupTableList } from '@/api/repository/machiot';
-import { BsArrowsCollapse, BsArrowsExpand, Close, Refresh } from '@/assets/icons/Icon';
+import { fetchTags, getRollupTableList, getTqlChart } from '@/api/repository/machiot';
+import { BsArrowsCollapse, BsArrowsExpand, Close, Refresh, TbMath, TbMathOff } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
@@ -16,6 +16,7 @@ import useOutsideClick from '@/hooks/useOutsideClick';
 import { useRef } from 'react';
 import { Input } from '@/components/inputs/Input';
 import { TagColorList } from '@/utils/constants';
+import { SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser';
 
 export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
     const [sTagList, setTagList] = useState<any>([]);
@@ -25,8 +26,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     const [sIsLoadingRollup, setIsLoadingRollup] = useState<boolean>(false);
     const [sColumnList, setColumnList] = useState<any>([]);
     const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
+    const [sIsMath, setIsMath] = useState<boolean>(false);
     const sColorPickerRef = useRef<any>(null);
-
+    const sMathRef = useRef<any>(null);
     const setOption = (aKey: string, aData: any) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -267,6 +269,28 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         });
     };
 
+    const validationFormula = async (aFormula: string): Promise<boolean> => {
+        const sResult: any = await getTqlChart(
+            `FAKE(json({[1709779542, 1]}))\nMAPVALUE(2, ${mathValueConverter(SqlResDataType(pPanelOption.type) === 'TIME_VALUE' ? '1' : '2', aFormula)})\nJSON()`
+        );
+        if (!sResult?.data?.success || !sResult?.data?.data?.rows?.length) return false;
+        else return true;
+    };
+
+    const handleExitFormulaField = async () => {
+        if (!pBlockInfo?.math || pBlockInfo?.math === '') return setIsMath(false);
+        const sResValidation = await validationFormula(pBlockInfo?.math);
+        if (sResValidation) setIsMath(false);
+        else {
+            changedOption('math', { target: { value: '' } });
+            setIsMath(false);
+        }
+    };
+
+    const handleEnterKey = (e: React.KeyboardEvent) => {
+        if (e.key === 'Escape' || e.key === 'Enter') handleExitFormulaField();
+    };
+
     /** Update Table + Rollup */
     const HandleTable = async () => {
         setIsLoadingRollup(() => true);
@@ -310,6 +334,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     }, [sTagList]);
 
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
+    useOutsideClick(sMathRef, () => handleExitFormulaField());
 
     return (
         <div className="series">
@@ -393,7 +418,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                     <Select
                                         pFontSize={12}
                                         pAutoChanged={true}
-                                        pWidth={175}
+                                        pWidth={140}
                                         pBorderRadius={4}
                                         pInitValue={pBlockInfo.aggregator}
                                         pHeight={26}
@@ -421,7 +446,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 <span className="series-title"> Alias </span>
                                 <Input
                                     pBorderRadius={4}
-                                    pWidth={175}
+                                    pWidth={140}
                                     pHeight={26}
                                     pType="text"
                                     pValue={pBlockInfo.alias}
@@ -432,6 +457,37 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                         </div>
                     )}
                     <div className="row-header-right">
+                        <div ref={sMathRef} style={{ position: 'relative', marginRight: '4px' }}>
+                            <IconButton
+                                pWidth={20}
+                                pHeight={20}
+                                pIsToopTip
+                                pIsActive={pBlockInfo?.math && pBlockInfo?.math !== ''}
+                                pToolTipContent={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'Enter formula' : pBlockInfo?.math}
+                                pToolTipId={pBlockInfo.id + '-block-math'}
+                                pIcon={<div style={{ width: '16px', height: '16px' }}>{pBlockInfo?.math && pBlockInfo?.math !== '' ? <TbMath /> : <TbMathOff />}</div>}
+                                onClick={() => setIsMath(!sIsMath)}
+                            />
+                            {sIsMath && (
+                                <div
+                                    className="math-typing-wrap"
+                                    style={{ width: '200px', height: '26px', position: 'absolute', top: '20px', left: '-200px', backgroundColor: '#FFFFFF', borderRadius: '5px' }}
+                                    onKeyDown={handleEnterKey}
+                                >
+                                    <Input
+                                        pBorderRadius={4}
+                                        pWidth={200}
+                                        pHeight={26}
+                                        pType="text"
+                                        pAutoFocus
+                                        pValue={pBlockInfo?.math}
+                                        pPlaceHolder={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'value * 1.0' : ''}
+                                        pSetValue={() => null}
+                                        onChange={(aEvent: any) => changedOption('math', aEvent)}
+                                    />
+                                </div>
+                            )}
+                        </div>
                         <div ref={sColorPickerRef} style={{ position: 'relative' }}>
                             <IconButton
                                 pWidth={20}

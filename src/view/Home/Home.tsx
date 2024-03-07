@@ -16,7 +16,7 @@ import DBExplorer from '@/components/side/DBExplorer/DBExplorer';
 import { UncaughtErrorObserver } from '@/utils/UncaughtErrorHelper';
 
 const Home = () => {
-    const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['20%', '80%']);
+    const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);
     const [sTerminalSizes, setTerminalSizes] = useState<string[] | number[]>(['72%', '28%']);
     const [sTabList, setTabList] = useState<any>([]);
     const [sDraged, setDraged] = useState<any>(false);

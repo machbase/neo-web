@@ -394,26 +394,36 @@ export const ChartLegendLeftList = ['left', 'center', 'right'];
 export const ChartLegendOrientList = ['horizontal', 'vertical'];
 export const ChartSymbolList = ['circle', 'rect', 'roundRect', 'triangle', 'diamond', 'pin', 'arrow'];
 
-export const ChartAxisTooltipFormatter =
-    `function (params) {` +
-    `const d = new Date(0);` +
-    `d.setUTCSeconds(params[0].name / 1000);` +
-    `let output = params[0].name === '' ? params[0].axisValueLabel : d.toLocaleString('en-GB', { timezone: 'UTC' }) + '<br/>';` +
-    `output += '<table>';` +
-    `params.reverse().forEach(function (param) {` +
-    `output += '<tr><td>' + param.marker + '</td><td>' + param.seriesName + '&ensp;</td><td><b>' + param.data[1] + '</b></td></tr>';` +
-    `});` +
-    `return output + '</table>';` +
-    `}`;
+export const ChartAxisTooltipFormatter = (aUnit?: string, aDecimals?: number) => {
+    return (
+        `function (params) {` +
+        `const d = new Date(0);` +
+        `d.setUTCSeconds(params[0].name / 1000);` +
+        `let output = params[0].name === '' ? params[0].axisValueLabel : d.toLocaleString('en-GB', { timezone: 'UTC' }) + '<br/>';` +
+        `output += '<table>';` +
+        `params.reverse().forEach(function (param) {` +
+        `output += '<tr><td>' + param.marker + '</td><td>' + param.seriesName + '&ensp;</td><td><b>' + param.data[1]${aDecimals ? '.toFixed(' + aDecimals + ')' : ''} ${
+            aUnit ? "+ ' " + aUnit + "'" : ''
+        } + '</b></td></tr>';` +
+        `});` +
+        `return output + '</table>';` +
+        `}`
+    );
+};
 
-export const ChartItemTooltipFormatter =
-    `function (params) {` +
-    `let d = new Date(0);` +
-    `d.setUTCSeconds(params.data[0] / 1000);` +
-    `let output = d.toLocaleString('en-GB', { timezone: 'UTC' }) + '<br/>';` +
-    `output += '<table>'; ` +
-    `output += '<tr><td>'+params.marker+'</td><td>' + params.seriesName + '&ensp;</td><td><b>' + params.data[1]+'&ensp;</b>` +
-    `</tr>'; return output + '</table>';}`;
+export const ChartItemTooltipFormatter = (aUnit?: string, aDecimals?: number) => {
+    return (
+        `function (params) {` +
+        `let d = new Date(0);` +
+        `d.setUTCSeconds(params.data[0] / 1000);` +
+        `let output = d.toLocaleString('en-GB', { timezone: 'UTC' }) + '<br/>';` +
+        `output += '<table>'; ` +
+        `output += '<tr><td>'+params.marker+'</td><td>' + params.seriesName + '&ensp;</td><td><b>' + params.data[1]${aDecimals ? '.toFixed(' + aDecimals + ')' : ''} ${
+            aUnit ? "+ ' " + aUnit + "'" : ''
+        } +'&ensp;</b>` +
+        `</tr>'; return output + '</table>';}`
+    );
+};
 
 // react grid layout value
 export const GRID_LAYOUT_COLS = 36;

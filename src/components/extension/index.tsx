@@ -27,7 +27,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
             pSetSideSizes([0, '100%']);
         } else {
             if (!pIsSidebar) {
-                pSetSideSizes(['20%', '80%']);
+                pSetSideSizes(['15%', '85%']);
                 pHandleSideBar(true);
             }
             setSelectedExtension(aItem.id);

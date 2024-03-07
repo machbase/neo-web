@@ -188,6 +188,32 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         pOptions={ChartTooltipTriggerList}
                     />
                 </div>
+                <div className="menu-style">
+                    <div>Unit</div>
+                    <Input
+                        pType="text"
+                        pWidth={100}
+                        pHeight={25}
+                        pPlaceHolder="none"
+                        pIsDisabled={!pPanelOption.commonOptions.isTooltip}
+                        pBorderRadius={4}
+                        pValue={pPanelOption.commonOptions?.tooltipUnit ?? ''}
+                        onChange={(aEvent) => handleCommonOption(aEvent.target.value, 'tooltipUnit')}
+                    />
+                </div>
+                <div className="menu-style">
+                    <div>Decimals</div>
+                    <Input
+                        pType="number"
+                        pWidth={100}
+                        pHeight={25}
+                        pPlaceHolder="auto"
+                        pBorderRadius={4}
+                        pIsDisabled={!pPanelOption.commonOptions.isTooltip}
+                        pValue={pPanelOption.commonOptions?.tooltipDecimals ?? ''}
+                        onChange={(aEvent) => handleCommonOption(aEvent.target.value, 'tooltipDecimals')}
+                    />
+                </div>
             </Collapse>
         </>
     );

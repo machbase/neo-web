@@ -237,8 +237,10 @@ const ReplaceCommonOpt = (aCommonOpt: any, aDataType: string) => {
         else sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt[aOpt]);
     });
     const sResult = JSON.parse(sParsedOpt);
-    if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis' && aDataType === 'TIME_VALUE') sResult.tooltip.formatter = ChartAxisTooltipFormatter;
-    if (sResult.tooltip.show && sResult.tooltip.trigger === 'item' && aDataType === 'TIME_VALUE') sResult.tooltip.formatter = ChartItemTooltipFormatter;
+    if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis' && aDataType === 'TIME_VALUE')
+        sResult.tooltip.formatter = ChartAxisTooltipFormatter(aCommonOpt['tooltipUnit'], aCommonOpt['tooltipDecimals']);
+    if (sResult.tooltip.show && sResult.tooltip.trigger === 'item' && aDataType === 'TIME_VALUE')
+        sResult.tooltip.formatter = ChartItemTooltipFormatter(aCommonOpt['tooltipUnit'], aCommonOpt['tooltipDecimals']);
     if (sResult.legend.left !== 'center') sResult.legend.padding = [30, 0, 0, 0];
     return sResult;
 };
@@ -278,9 +280,39 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
 
 const CheckYAxisMinMax = (yAxisOptions: any) => {
     const sResult = yAxisOptions.map((aYAxis: any) => {
-        if (aYAxis.useMinMax) return aYAxis;
+        const sReturn: any = JSON.parse(JSON.stringify(aYAxis));
+        if (sReturn?.title !== '') sReturn.name = aYAxis?.label?.title;
+        else delete sReturn.name;
+        if (sReturn?.label) {
+            if (aYAxis.label.name === 'byte') {
+                sReturn['axisLabel'] = {
+                    formatter:
+                        `function (params) {` +
+                        `const sSquared =  Math.abs(Math.trunc(params)).toString().length - 1;` +
+                        `const sOverflow = params.toString().includes('+');` +
+                        `if (sOverflow || sSquared >= 15) return (params / Math.pow(1000, 5))${
+                            aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''
+                        } + ' P';` +
+                        `if (sSquared === 0) return (params);` +
+                        `if (sSquared < 3) return (params)${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''};` +
+                        `if (sSquared < 6) return (params / 1000)${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' K';` +
+                        `if (sSquared < 9) return (params / Math.pow(1000, 2))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' M';` +
+                        `if (sSquared < 12) return (params / Math.pow(1000, 3))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' G';` +
+                        `if (sSquared < 15) return (params / Math.pow(1000, 4))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' T';` +
+                        `}`,
+                };
+            } else {
+                const sSign = Math.sign(aYAxis.label.squared) === -1 ? '*' : '/';
+                sReturn['axisLabel'] = {
+                    formatter: `function (params) { return (params ${sSign} ${Math.pow(10, Math.abs(aYAxis.label.squared))})${
+                        aYAxis?.label?.decimals ? `.toFixed(${aYAxis?.label?.decimals})` : ''
+                    }${aYAxis?.label?.unit ? " + '" + aYAxis?.label?.unit + "'" : ''}}`,
+                };
+            }
+            delete sReturn.label;
+        }
+        if (sReturn.useMinMax) return sReturn;
         else {
-            const sReturn = JSON.parse(JSON.stringify(aYAxis));
             delete sReturn.useMinMax;
             delete sReturn.min;
             delete sReturn.max;
