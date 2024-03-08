@@ -17,6 +17,7 @@ import { useRef } from 'react';
 import { Input } from '@/components/inputs/Input';
 import { TagColorList } from '@/utils/constants';
 import { SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser';
+import { Error } from '@/components/toast/Toast';
 
 export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
     const [sTagList, setTagList] = useState<any>([]);
@@ -27,6 +28,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     const [sColumnList, setColumnList] = useState<any>([]);
     const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
     const [sIsMath, setIsMath] = useState<boolean>(false);
+    const [sFormulaSelection, setFormulaSelection] = useState<boolean>(false);
     const sColorPickerRef = useRef<any>(null);
     const sMathRef = useRef<any>(null);
     const setOption = (aKey: string, aData: any) => {
@@ -277,13 +279,21 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         else return true;
     };
 
-    const handleExitFormulaField = async () => {
+    const handleFormulaIconBtn = () => {
+        if (sIsMath) handleExitFormulaField();
+        else setIsMath(() => true);
+    };
+
+    const handleExitFormulaField = async (aIsOutside?: boolean) => {
+        if (aIsOutside && sFormulaSelection) return setFormulaSelection(() => false);
+        if (!sIsMath) return;
         if (!pBlockInfo?.math || pBlockInfo?.math === '') return setIsMath(false);
         const sResValidation = await validationFormula(pBlockInfo?.math);
         if (sResValidation) setIsMath(false);
         else {
-            changedOption('math', { target: { value: '' } });
-            setIsMath(false);
+            Error('Please check the entered formula.');
+            // reset
+            // changedOption('math', { target: { value: '' } });
         }
     };
 
@@ -334,7 +344,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     }, [sTagList]);
 
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
-    useOutsideClick(sMathRef, () => handleExitFormulaField());
+    useOutsideClick(sMathRef, () => handleExitFormulaField(true));
 
     return (
         <div className="series">
@@ -466,13 +476,15 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 pToolTipContent={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'Enter formula' : pBlockInfo?.math}
                                 pToolTipId={pBlockInfo.id + '-block-math'}
                                 pIcon={<div style={{ width: '16px', height: '16px' }}>{pBlockInfo?.math && pBlockInfo?.math !== '' ? <TbMath /> : <TbMathOff />}</div>}
-                                onClick={() => setIsMath(!sIsMath)}
+                                onClick={handleFormulaIconBtn}
                             />
                             {sIsMath && (
                                 <div
                                     className="math-typing-wrap"
                                     style={{ width: '200px', height: '26px', position: 'absolute', top: '20px', left: '-200px', backgroundColor: '#FFFFFF', borderRadius: '5px' }}
                                     onKeyDown={handleEnterKey}
+                                    onMouseDown={() => setFormulaSelection(() => true)}
+                                    onMouseUp={() => setFormulaSelection(() => false)}
                                 >
                                     <Input
                                         pBorderRadius={4}

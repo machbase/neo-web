@@ -13,7 +13,7 @@ export const DefaultCommonOption = {
     tooltipBgColor: '#FFFFFF' as string,
     tooltipTxtColor: '#333' as string,
     tooltipUnit: '' as string,
-    tooltipDecimals: undefined as number | undefined,
+    tooltipDecimals: 3 as number | undefined,
     isDataZoom: false as boolean,
     title: 'New chart' as string,
     isInsideTitle: false as boolean,

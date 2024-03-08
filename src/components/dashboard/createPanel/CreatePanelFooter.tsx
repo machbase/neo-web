@@ -54,6 +54,9 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                         ...aPrev.blockList.at(-1),
                         id: generateUUID(),
                         color: TagColorList[aPrev.blockList.length],
+                        math: '',
+                        alias: '',
+                        values: [{ id: generateUUID(), alias: '', value: aPrev.blockList.at(-1).values.at(-1).value, aggregator: aPrev.blockList.at(-1).values.at(-1).aggregator }],
                     },
                 ],
             };
