@@ -1,6 +1,6 @@
 // import { TextButton } from '@/components/buttons/TextButton';
 import { Collapse } from '@/components/collapse/Collapse';
-import CheckBox from '@/components/inputs/CheckBox';
+// import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 // import { DefaultYAxisOption } from '@/utils/eChartHelper';
@@ -86,9 +86,12 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
     //     });
     // };
 
-    const HandleMinMax = (aTarget: string, aValue: number, aIndex: number) => {
+    const HandleMinMax = (aTarget: string, aValue: number | string, aIndex: number) => {
         const sCurrentYAxis = JSON.parse(JSON.stringify(pYAxis));
         sCurrentYAxis[aIndex][aTarget] = aValue;
+        if (sCurrentYAxis[aIndex]['min'] && sCurrentYAxis[aIndex]['min'] !== '' && sCurrentYAxis[aIndex]['max'] && sCurrentYAxis[aIndex]['max'] !== '')
+            sCurrentYAxis[aIndex]['useMinMax'] = true;
+        else sCurrentYAxis[aIndex]['useMinMax'] = false;
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
@@ -165,40 +168,38 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                         />
                     </div>
                     <div className="divider" />
-                    <CheckBox
+                    {/* <CheckBox
                         pText="Custom min max"
                         pDefaultChecked={aItem.useMinMax ?? false}
                         onChange={(aEvent: any) => HandleMinMax('useMinMax', aEvent.target.checked, aIndex)}
-                    />
+                    /> */}
                     <div style={{ height: '10px' }} />
-                    {aItem.useMinMax && (
-                        <>
-                            <div className="menu-style">
-                                <div>Min</div>
-                                <Input
-                                    pType="number"
-                                    pWidth={110}
-                                    pHeight={25}
-                                    pBorderRadius={4}
-                                    pIsDisabled={!aItem.useMinMax}
-                                    pValue={aItem?.min ?? 0}
-                                    onChange={(aEvent: any) => HandleMinMax('min', aEvent.target.value, aIndex)}
-                                />
-                            </div>
-                            <div className="menu-style">
-                                <div>Max</div>
-                                <Input
-                                    pType="number"
-                                    pWidth={110}
-                                    pHeight={25}
-                                    pBorderRadius={4}
-                                    pIsDisabled={!aItem.useMinMax}
-                                    pValue={aItem?.max ?? 0}
-                                    onChange={(aEvent: any) => HandleMinMax('max', aEvent.target.value, aIndex)}
-                                />
-                            </div>
-                        </>
-                    )}
+                    <div className="menu-style">
+                        <div>Min</div>
+                        <Input
+                            pType="number"
+                            pWidth={110}
+                            pHeight={25}
+                            pBorderRadius={4}
+                            // pIsDisabled={!aItem.useMinMax}
+                            pPlaceHolder={'auto'}
+                            pValue={aItem?.min ?? ''}
+                            onChange={(aEvent: any) => HandleMinMax('min', aEvent.target.value, aIndex)}
+                        />
+                    </div>
+                    <div className="menu-style">
+                        <div>Max</div>
+                        <Input
+                            pType="number"
+                            pWidth={110}
+                            pHeight={25}
+                            pBorderRadius={4}
+                            // pIsDisabled={!aItem.useMinMax}
+                            pPlaceHolder={'auto'}
+                            pValue={aItem?.max ?? ''}
+                            onChange={(aEvent: any) => HandleMinMax('max', aEvent.target.value, aIndex)}
+                        />
+                    </div>
                 </div>
             ))}
 

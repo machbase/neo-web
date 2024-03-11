@@ -10,7 +10,17 @@ import { gBoardList, gRollupTableList } from '@/recoil/recoil';
 import Panel from './panels/Panel';
 import CreatePanel from './createPanel/CreatePanel';
 import { IconButton } from '../buttons/IconButton';
-import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, MdDevicesFold, VscSync, MdLink } from '@/assets/icons/Icon';
+import {
+    VscChevronLeft,
+    Calendar,
+    TbSquarePlus,
+    VscChevronRight,
+    Save,
+    SaveAs,
+    // MdDevicesFold,
+    VscSync,
+    MdLink,
+} from '@/assets/icons/Icon';
 import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
 import moment from 'moment';
 import { setUnitTime } from '@/utils/dashboardUtil';
@@ -20,7 +30,7 @@ import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Input } from '../inputs/Input';
 
-const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveModal, pIsSave }: any) => {
+const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpen, setIsSaveModal, pIsSave }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const setRollupTabls = useSetRecoilState(gRollupTableList);
@@ -65,19 +75,19 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
         }
         setCreateModal(!sCreateModal);
     };
-    const HandlePanelHeader = () => {
-        setBoardList(
-            sBoardList.map((aItem: any) => {
-                return aItem.id === pInfo.id
-                    ? {
-                          ...aItem,
-                          panelHeader: !sIsPanelHeader,
-                      }
-                    : aItem;
-            })
-        );
-        setIsPanelHeader(!sIsPanelHeader);
-    };
+    // const HandlePanelHeader = () => {
+    //     setBoardList(
+    //         sBoardList.map((aItem: any) => {
+    //             return aItem.id === pInfo.id
+    //                 ? {
+    //                       ...aItem,
+    //                       panelHeader: !sIsPanelHeader,
+    //                   }
+    //                 : aItem;
+    //         })
+    //     );
+    //     setIsPanelHeader(!sIsPanelHeader);
+    // };
 
     const draging = (aValue: any, aEvent: any) => {
         !aValue && changeLayout(aEvent);
@@ -150,7 +160,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                     </div>
                     <div className="board-header-r">
                         <IconButton pIcon={<TbSquarePlus />} onClick={() => showEditPanel('create')}></IconButton>
-                        <IconButton pIcon={<MdDevicesFold style={{ transform: 'rotate(-90deg)' }} />} pIsActive={!sIsPanelHeader} onClick={HandlePanelHeader} />
+                        {/* <IconButton pIcon={<MdDevicesFold style={{ transform: 'rotate(-90deg)' }} />} pIsActive={!sIsPanelHeader} onClick={HandlePanelHeader} /> */}
                         <IconButton pIcon={<VscSync />} onClick={HandleRefresh} />
                         <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')} />
                         <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
@@ -236,6 +246,8 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, setIsSaveMo
                         pSetModifyState={setModifyState}
                         pMoveTimeRange={moveTimeRange}
                         pSetTimeRangeModal={setTimeRangeModal}
+                        pHandleSaveModalOpen={pHandleSaveModalOpen}
+                        pIsSaveModal={pIsSaveModal}
                     />
                 )}
             </div>

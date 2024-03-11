@@ -1,5 +1,5 @@
 import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter } from '@/assets/icons/Icon';
-import { IconButton } from '@/components/buttons/IconButton';
+// import { IconButton } from '@/components/buttons/IconButton';
 import { gBoardList, GBoardListType, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import './PanelHeader.scss';
@@ -138,7 +138,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
     return (
         <>
             {!pIsView && (
-                <div className={`draggable-panel-header ${pIsHeader || pType !== undefined ? 'display-none' : ''}`}>
+                // <div className={`draggable-panel-header ${pIsHeader || pType !== undefined ? 'display-none' : ''}`}>
+                <div className={`draggable-panel-header ${pType !== undefined ? 'display-none' : ''}`}>
                     <div ref={sMenuRef}>
                         <div className="draggable-panel-header-menu-icon" onClick={handleContextMenu} style={{ backgroundColor: 'none', cursor: 'pointer' }}>
                             <GoGrabber size={20} color={pPanelInfo.theme !== 'dark' ? 'black' : ''} />
@@ -171,7 +172,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                     pType === undefined ? 'cursor-grab' : ''
                 }`}
             >
-                <div style={{ textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>{pPanelInfo.title}</div>
+                {/* <div style={{ textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>{pPanelInfo.title}</div> */}
                 <div className={`panel-header-navigator ${pType !== undefined ? 'display-none' : ''}`}>
                     <a data-tooltip-place="bottom" className={`panel-header-time-range ${!pPanelInfo.useCustomTime ? 'display-none' : ''}`} id={sHeaderId}>
                         <VscRecord color="#339900" />
@@ -181,7 +182,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                             content={`${pPanelInfo.timeRange.start} ~ ${pPanelInfo.timeRange.end} , ${pPanelInfo.timeRange.refresh}`}
                         />
                     </a>
-                    {!pIsView && (
+                    {/* {!pIsView && (
                         <>
                             <IconButton pWidth={25} pIcon={<VscGraphScatter className="mui-svg-hover" width={16} />} onClick={HandleDownload} />
                             <IconButton pWidth={25} pIcon={<MuiTagAnalyzerGray className="mui-svg-hover" width={16} />} onClick={handleMoveTagz} />
@@ -195,7 +196,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                             />
                             <IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />
                         </>
-                    )}
+                    )} */}
                 </div>
             </div>
             {sDownloadModal && (

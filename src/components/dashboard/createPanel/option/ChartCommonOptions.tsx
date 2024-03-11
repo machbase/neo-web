@@ -31,6 +31,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                 commonOptions: {
                     ...aPrev.commonOptions,
                     [aKey]: aValue,
+                    isInsideTitle: true,
                 },
             };
         });
@@ -57,11 +58,11 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                     onChange={(aEvent: any) => handleTitle(aEvent)}
                 />
                 <div style={{ height: '10px' }} />
-                <CheckBox
+                {/* <CheckBox
                     pText="Display inside title"
                     pDefaultChecked={pPanelOption.commonOptions.isInsideTitle}
                     onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isInsideTitle')}
-                />
+                /> */}
                 <div style={{ height: '10px' }} />
                 <div className="menu-style">
                     <span>Theme</span>
