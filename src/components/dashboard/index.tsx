@@ -207,7 +207,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
                                     return (
                                         <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
                                             <Panel
-                                                pLoopMode={pInfo.dashboard.timeRange.refresh === 'Off' ? false : true}
+                                                pLoopMode={pInfo.dashboard.timeRange.refresh !== 'Off' || aItem.timeRange.refresh !== 'Off' ? true : false}
                                                 pRefresh={sRefresh}
                                                 pSetRefresh={setRefresh}
                                                 pDragStat={pDragStat}
