@@ -91,7 +91,8 @@ any) => {
                 size('${sRefClientWidth}px','${sRefClientHeight}px'),
                 chartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption))}),
                 chartJSCode(${sParsedChartCode})
-            )`
+            )`,
+            'dsh'
         );
         if (!sResult.data.reason) {
             setChartData(sResult.data);

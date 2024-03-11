@@ -5,10 +5,10 @@ import { ADMIN_ID } from '@/utils/constants';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
 // import { getTimeZoneValue } from '@/utils/utils';
 
-const getTqlChart = (aData: string) => {
+const getTqlChart = (aData: string, aType?: 'dsh') => {
     return request({
         method: 'POST',
-        url: `/api/tql`,
+        url: `/api/tql${aType ? '/' + aType : ''}`,
         data: aData,
     });
 };
