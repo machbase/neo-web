@@ -285,22 +285,41 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
         else delete sReturn.name;
         if (sReturn?.label) {
             if (aYAxis.label.name === 'byte') {
-                sReturn['axisLabel'] = {
-                    formatter:
-                        `function (params) {` +
-                        `const sSquared =  Math.abs(Math.trunc(params)).toString().length - 1;` +
-                        `const sOverflow = params.toString().includes('+');` +
-                        `if (sOverflow || sSquared >= 15) return (params / Math.pow(1000, 5))${
-                            aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''
-                        } + ' P';` +
-                        `if (sSquared === 0) return (params);` +
-                        `if (sSquared < 3) return (params)${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''};` +
-                        `if (sSquared < 6) return (params / 1000)${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' K';` +
-                        `if (sSquared < 9) return (params / Math.pow(1000, 2))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' M';` +
-                        `if (sSquared < 12) return (params / Math.pow(1000, 3))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' G';` +
-                        `if (sSquared < 15) return (params / Math.pow(1000, 4))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' T';` +
-                        `}`,
-                };
+                // SI
+                aYAxis.label.unit === 'SI' &&
+                    (sReturn['axisLabel'] = {
+                        formatter:
+                            `function (params) {` +
+                            `const sSquared =  Math.abs(Math.trunc(params)).toString().length - 1;` +
+                            `const sOverflow = params.toString().includes('+');` +
+                            `if (sOverflow || sSquared >= 15) return (params / Math.pow(1000, 5))${
+                                aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''
+                            } + ' PB';` +
+                            `if (params === 0) return (params);` +
+                            `if (sSquared === 0) return (params) + ' B';` +
+                            `if (sSquared < 3) return (params)${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' B';` +
+                            `if (sSquared < 6) return (params / 1000)${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' kB';` +
+                            `if (sSquared < 9) return (params / Math.pow(1000, 2))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' MB';` +
+                            `if (sSquared < 12) return (params / Math.pow(1000, 3))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' GB';` +
+                            `if (sSquared < 15) return (params / Math.pow(1000, 4))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' TB';` +
+                            `}`,
+                    });
+                // IEC
+                aYAxis.label.unit === 'IEC' &&
+                    (sReturn['axisLabel'] = {
+                        formatter:
+                            `function (params) {` +
+                            `if (!+params) return 0;` +
+                            `const k = 1024;` +
+                            `const sign = Math.sign(params) === -1 ? '-' : '';` +
+                            `const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];` +
+                            `const abs = Math.abs(params);` +
+                            `const i = Math.floor(Math.log(abs) / Math.log(k));` +
+                            `return ('' + sign + (parseFloat((abs / Math.pow(k, (i > 5 ? 5 : i)))${
+                                aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''
+                            })).toString() + sizes[(i > 5 ? 5 : i)]);` +
+                            `}`,
+                    });
             } else {
                 const sSign = Math.sign(aYAxis.label.squared) === -1 ? '*' : '/';
                 sReturn['axisLabel'] = {

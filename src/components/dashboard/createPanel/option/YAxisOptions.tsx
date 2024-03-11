@@ -22,8 +22,10 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
         { name: 'temperature', key: 'temperature', title: 'Temperature (°C)', unit: '', decimals: 0, squared: 0 },
         // %H
         { name: 'humidity', key: 'humidity', title: 'Humidity (%H)', unit: '', decimals: 0, squared: 0 },
-
-        { name: 'byte', key: 'byte', title: 'byte', unit: '', decimals: undefined, squared: 0 },
+        // International Electrotechnical Commission
+        { name: 'byte', key: 'byte (IEC)', title: 'byte (IEC)', unit: 'IEC', decimals: undefined, squared: 0 },
+        // International System Units
+        { name: 'byte', key: 'byte (SI)', title: 'byte (SI)', unit: 'SI', decimals: undefined, squared: 0 },
 
         { name: 'milli', key: 'milli (m)', title: '', unit: 'm', decimals: undefined, squared: -3 },
         { name: 'micro', key: 'micro (μ)', title: '', unit: 'μ', decimals: undefined, squared: -6 },
