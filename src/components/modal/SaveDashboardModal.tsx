@@ -304,7 +304,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
 
     useEffect(() => {
         SetBlockAliasList();
-        setSaveFileName(`${pPanelInfo.title}.tql`);
+        setSaveFileName(`${pPanelInfo.title !== '' ? pPanelInfo.title : 'New chart'}.tql`);
         setFileType('tql');
         getFiles('tql');
     }, []);

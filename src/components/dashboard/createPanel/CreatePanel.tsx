@@ -7,8 +7,8 @@ import { useEffect, useState } from 'react';
 import CreatePanelBody from './CreatePanelBody';
 import CreatePanelFooter from './CreatePanelFooter';
 import CreatePanelRight from './CreatePanelRight';
-import { useRecoilState } from 'recoil';
-import { gBoardList } from '@/recoil/recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { gBoardList, gSelectedBoard } from '@/recoil/recoil';
 import { createDefaultTagTableOption, getTableType } from '@/utils/dashboardUtil';
 import { getTableList } from '@/api/repository/api';
 import moment from 'moment';
@@ -27,6 +27,8 @@ const CreatePanel = ({
     pSetModifyState,
     pMoveTimeRange,
     pSetTimeRangeModal,
+    pHandleSaveModalOpen,
+    pIsSaveModal,
 }: {
     pLoopMode: boolean;
     pPanelId: string;
@@ -38,6 +40,8 @@ const CreatePanel = ({
     pSetModifyState: any;
     pMoveTimeRange: any;
     pSetTimeRangeModal: (aValue: boolean) => void;
+    pHandleSaveModalOpen: any;
+    pIsSaveModal: boolean;
 }) => {
     const [sSideSizes, setSideSizes] = useState<any>(['75%', '25%']);
     const [sBottomSizes, setBottomSizes] = useState<any>(['50%', '50%']);
@@ -46,6 +50,24 @@ const CreatePanel = ({
     const [sAppliedPanelOption, setAppliedPanelOption] = useState<any>({});
     const [sTableList, setTableList] = useState<any>([]);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
+    const sSelectedBoardInfo = useRecoilValue(gSelectedBoard);
+    const [sSaveState, setSaveState] = useState<boolean>(false);
+
+    useEffect(() => {
+        if (sSelectedBoardInfo?.dashboard?.panels?.length > 0 && sPanelOption && sPanelOption?.id) {
+            !sSaveState && pHandleSaveModalOpen();
+            setSaveState(() => true);
+            // already save
+            if (sSelectedBoardInfo.path !== '') handleClose();
+        }
+    }, [sBoardList]);
+
+    useEffect(() => {
+        if (sSaveState && !pIsSaveModal) {
+            handleClose();
+            setSaveState(() => false);
+        }
+    }, [pIsSaveModal]);
 
     const addPanel = () => {
         if (sPanelOption.useCustomTime) {
@@ -76,7 +98,6 @@ const CreatePanel = ({
             })
         );
         pSetModifyState({ id: sPanelOption.id, state: true });
-        handleClose();
     };
 
     const editPanel = () => {
@@ -97,7 +118,6 @@ const CreatePanel = ({
             });
         });
         pSetModifyState({ id: sNewPanelId, state: true });
-        handleClose();
     };
 
     const applyPanel = () => {

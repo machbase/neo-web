@@ -230,6 +230,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     pDragStat={pDragStat}
                                     pWidth={sBodyWidth}
                                     pHandleSaveModalOpen={handleSaveModalOpen}
+                                    pIsSaveModal={sIsSaveModal}
                                     pInfo={aItem}
                                     setIsSaveModal={setIsSaveModal}
                                     pDraged={pDraged}
