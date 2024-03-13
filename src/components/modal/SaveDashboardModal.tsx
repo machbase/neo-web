@@ -72,7 +72,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         sResult +=
             `\ttheme("${pPanelInfo.theme}"),\n` +
             `\tsize("${pPanelInfo.w * 50}px","${pPanelInfo.h * 40}px"),\n` +
-            `\tchartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption, null, '\t\t'))}),\n` +
+            `\tchartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption, null, '\t'))}),\n` +
             `\tchartJSCode(${sParsedChartCode})\n` +
             `)`;
         return sResult;
