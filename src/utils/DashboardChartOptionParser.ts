@@ -325,7 +325,7 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
                 sReturn['axisLabel'] = {
                     formatter: `function (params) { return (params ${sSign} ${Math.pow(10, Math.abs(aYAxis.label.squared))})${
                         aYAxis?.label?.decimals ? `.toFixed(${aYAxis?.label?.decimals})` : ''
-                    }${aYAxis?.label?.unit ? " + '" + aYAxis?.label?.unit + "'" : ''}}`,
+                    }${aYAxis?.label?.unit ? " + '" + aYAxis?.label?.unit.replaceAll("'", '"') + "'" : ''}}`,
                 };
             }
             delete sReturn.label;

@@ -403,7 +403,7 @@ export const ChartAxisTooltipFormatter = (aUnit?: string, aDecimals?: number) =>
         `output += '<table>';` +
         `params.reverse().forEach(function (param) {` +
         `output += '<tr><td>' + param.marker + '</td><td>' + param.seriesName + '&ensp;</td><td><b>' + param.data[1]${aDecimals ? '.toFixed(' + aDecimals + ')' : ''} ${
-            aUnit ? "+ ' " + aUnit + "'" : ''
+            aUnit ? "+ ' " + aUnit.replaceAll("'", '"') + "'" : ''
         } + '</b></td></tr>';` +
         `});` +
         `return output + '</table>';` +
@@ -419,7 +419,7 @@ export const ChartItemTooltipFormatter = (aUnit?: string, aDecimals?: number) =>
         `let output = d.toLocaleString('en-GB', { timezone: 'UTC' }) + '<br/>';` +
         `output += '<table>'; ` +
         `output += '<tr><td>'+params.marker+'</td><td>' + params.seriesName + '&ensp;</td><td><b>' + params.data[1]${aDecimals ? '.toFixed(' + aDecimals + ')' : ''} ${
-            aUnit ? "+ ' " + aUnit + "'" : ''
+            aUnit ? "+ ' " + aUnit.replaceAll("'", '"') + "'" : ''
         } +'&ensp;</b>` +
         `</tr>'; return output + '</table>';}`
     );
