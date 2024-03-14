@@ -23,9 +23,9 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
         // %H
         { name: 'humidity', key: 'humidity', title: 'Humidity (%H)', unit: '', decimals: 0, squared: 0 },
         // International Electrotechnical Commission
-        { name: 'byte', key: 'byte (IEC)', title: 'byte (IEC)', unit: 'IEC', decimals: undefined, squared: 0 },
+        { name: 'byte', key: 'byte (IEC)', title: 'byte (IEC)', unit: '', decimals: undefined, squared: 0 },
         // International System Units
-        { name: 'byte', key: 'byte (SI)', title: 'byte (SI)', unit: 'SI', decimals: undefined, squared: 0 },
+        { name: 'byte', key: 'byte (SI)', title: 'byte (SI)', unit: '', decimals: undefined, squared: 0 },
 
         { name: 'milli', key: 'milli (m)', title: '', unit: 'm', decimals: undefined, squared: -3 },
         { name: 'micro', key: 'micro (μ)', title: '', unit: 'μ', decimals: undefined, squared: -6 },
@@ -131,20 +131,19 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                             })}
                         />
                     </div>
-                    {/* {aItem?.label && aItem?.label?.name == 'value' && (
-                        <div className="menu-style">
-                            <div>Unit</div>
-                            <Input
-                                pType="text"
-                                pWidth={110}
-                                pHeight={25}
-                                pPlaceHolder="none"
-                                pBorderRadius={4}
-                                pValue={aItem?.label?.unit ?? ''}
-                                onChange={(aEvent) => handleYAxisOption('unit', aEvent, aIndex)}
-                            />
-                        </div>
-                    )} */}
+                    <div className="menu-style">
+                        <div>Unit</div>
+                        <Input
+                            pType="text"
+                            pWidth={110}
+                            pHeight={25}
+                            pIsDisabled={aItem?.label?.name !== 'value'}
+                            pPlaceHolder={aItem?.label?.name === 'byte' ? 'auto' : 'none'}
+                            pBorderRadius={4}
+                            pValue={aItem?.label?.unit ?? ''}
+                            onChange={(aEvent) => handleYAxisOption('unit', aEvent, aIndex)}
+                        />
+                    </div>
                     <div className="menu-style">
                         <div>Decimals</div>
                         <Input
