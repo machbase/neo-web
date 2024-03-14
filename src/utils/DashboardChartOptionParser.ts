@@ -286,7 +286,7 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
         if (sReturn?.label) {
             if (aYAxis.label.name === 'byte') {
                 // SI
-                aYAxis.label.unit === 'SI' &&
+                aYAxis.label.key.includes('SI') &&
                     (sReturn['axisLabel'] = {
                         formatter:
                             `function (params) {` +
@@ -305,7 +305,7 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
                             `}`,
                     });
                 // IEC
-                aYAxis.label.unit === 'IEC' &&
+                aYAxis.label.key.includes('IEC') &&
                     (sReturn['axisLabel'] = {
                         formatter:
                             `function (params) {` +
@@ -315,9 +315,9 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
                             `const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];` +
                             `const abs = Math.abs(params);` +
                             `const i = Math.floor(Math.log(abs) / Math.log(k));` +
-                            `return ('' + sign + (parseFloat((abs / Math.pow(k, (i > 5 ? 5 : i)))${
+                            `return ('' + sign + (parseFloat((abs / Math.pow(k, (i > 5 ? 5 : i < 0 ? 0 : i))))${
                                 aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''
-                            })).toString() + sizes[(i > 5 ? 5 : i)]);` +
+                            }).toString() + sizes[(i > 5 ? 5 : i < 0 ? 0 : i)]);` +
                             `}`,
                     });
             } else {
@@ -344,6 +344,8 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
 export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any) => {
     const sConvertedChartType = chartTypeConverter(aOptionInfo.type);
     const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, SqlResDataType(sConvertedChartType));
+    // Animation false (TIME_VALUE TYPE)
+    if (SqlResDataType(sConvertedChartType) === 'TIME_VALUE') sCommonOpt.animation = false;
     const sTypeOpt = ReplaceTypeOpt(
         sConvertedChartType,
         SqlResDataType(sConvertedChartType),
