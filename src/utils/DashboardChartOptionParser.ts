@@ -237,8 +237,10 @@ const ReplaceCommonOpt = (aCommonOpt: any, aDataType: string) => {
         else sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt[aOpt]);
     });
     const sResult = JSON.parse(sParsedOpt);
-    if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis' && aDataType === 'TIME_VALUE') sResult.tooltip.formatter = ChartAxisTooltipFormatter;
-    if (sResult.tooltip.show && sResult.tooltip.trigger === 'item' && aDataType === 'TIME_VALUE') sResult.tooltip.formatter = ChartItemTooltipFormatter;
+    if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis' && aDataType === 'TIME_VALUE')
+        sResult.tooltip.formatter = ChartAxisTooltipFormatter(aCommonOpt['tooltipUnit'], aCommonOpt['tooltipDecimals']);
+    if (sResult.tooltip.show && sResult.tooltip.trigger === 'item' && aDataType === 'TIME_VALUE')
+        sResult.tooltip.formatter = ChartItemTooltipFormatter(aCommonOpt['tooltipUnit'], aCommonOpt['tooltipDecimals']);
     if (sResult.legend.left !== 'center') sResult.legend.padding = [30, 0, 0, 0];
     return sResult;
 };
@@ -278,9 +280,58 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
 
 const CheckYAxisMinMax = (yAxisOptions: any) => {
     const sResult = yAxisOptions.map((aYAxis: any) => {
-        if (aYAxis.useMinMax) return aYAxis;
+        const sReturn: any = JSON.parse(JSON.stringify(aYAxis));
+        if (sReturn?.title !== '') sReturn.name = aYAxis?.label?.title;
+        else delete sReturn.name;
+        if (sReturn?.label) {
+            if (aYAxis.label.name === 'byte') {
+                // SI
+                aYAxis.label.key.includes('SI') &&
+                    (sReturn['axisLabel'] = {
+                        formatter:
+                            `function (params) {` +
+                            `const sSquared =  Math.abs(Math.trunc(params)).toString().length - 1;` +
+                            `const sOverflow = params.toString().includes('+');` +
+                            `if (sOverflow || sSquared >= 15) return (params / Math.pow(1000, 5))${
+                                aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''
+                            } + ' PB';` +
+                            `if (params === 0) return (params);` +
+                            `if (sSquared === 0) return (params) + ' B';` +
+                            `if (sSquared < 3) return (params)${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' B';` +
+                            `if (sSquared < 6) return (params / 1000)${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' kB';` +
+                            `if (sSquared < 9) return (params / Math.pow(1000, 2))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' MB';` +
+                            `if (sSquared < 12) return (params / Math.pow(1000, 3))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' GB';` +
+                            `if (sSquared < 15) return (params / Math.pow(1000, 4))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' TB';` +
+                            `}`,
+                    });
+                // IEC
+                aYAxis.label.key.includes('IEC') &&
+                    (sReturn['axisLabel'] = {
+                        formatter:
+                            `function (params) {` +
+                            `if (!+params) return 0;` +
+                            `const k = 1024;` +
+                            `const sign = Math.sign(params) === -1 ? '-' : '';` +
+                            `const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];` +
+                            `const abs = Math.abs(params);` +
+                            `const i = Math.floor(Math.log(abs) / Math.log(k));` +
+                            `return ('' + sign + (parseFloat((abs / Math.pow(k, (i > 5 ? 5 : i < 0 ? 0 : i))))${
+                                aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''
+                            }).toString() + sizes[(i > 5 ? 5 : i < 0 ? 0 : i)]);` +
+                            `}`,
+                    });
+            } else {
+                const sSign = Math.sign(aYAxis.label.squared) === -1 ? '*' : '/';
+                sReturn['axisLabel'] = {
+                    formatter: `function (params) { return (params ${sSign} ${Math.pow(10, Math.abs(aYAxis.label.squared))})${
+                        aYAxis?.label?.decimals ? `.toFixed(${aYAxis?.label?.decimals})` : ''
+                    }${aYAxis?.label?.unit ? " + '" + aYAxis?.label?.unit.replaceAll("'", '"') + "'" : ''}}`,
+                };
+            }
+            delete sReturn.label;
+        }
+        if (sReturn.useMinMax) return sReturn;
         else {
-            const sReturn = JSON.parse(JSON.stringify(aYAxis));
             delete sReturn.useMinMax;
             delete sReturn.min;
             delete sReturn.max;
@@ -293,6 +344,8 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
 export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any) => {
     const sConvertedChartType = chartTypeConverter(aOptionInfo.type);
     const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, SqlResDataType(sConvertedChartType));
+    // Animation false (TIME_VALUE TYPE)
+    if (SqlResDataType(sConvertedChartType) === 'TIME_VALUE') sCommonOpt.animation = false;
     const sTypeOpt = ReplaceTypeOpt(
         sConvertedChartType,
         SqlResDataType(sConvertedChartType),

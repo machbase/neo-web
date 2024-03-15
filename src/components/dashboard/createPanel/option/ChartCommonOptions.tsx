@@ -31,6 +31,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                 commonOptions: {
                     ...aPrev.commonOptions,
                     [aKey]: aValue,
+                    isInsideTitle: true,
                 },
             };
         });
@@ -57,11 +58,11 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                     onChange={(aEvent: any) => handleTitle(aEvent)}
                 />
                 <div style={{ height: '10px' }} />
-                <CheckBox
+                {/* <CheckBox
                     pText="Display inside title"
                     pDefaultChecked={pPanelOption.commonOptions.isInsideTitle}
                     onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isInsideTitle')}
-                />
+                /> */}
                 <div style={{ height: '10px' }} />
                 <div className="menu-style">
                     <span>Theme</span>
@@ -186,6 +187,32 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         pInitValue={pPanelOption.commonOptions.tooltipTrigger}
                         onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'tooltipTrigger')}
                         pOptions={ChartTooltipTriggerList}
+                    />
+                </div>
+                <div className="menu-style">
+                    <div>Unit</div>
+                    <Input
+                        pType="text"
+                        pWidth={100}
+                        pHeight={25}
+                        pPlaceHolder="none"
+                        pIsDisabled={!pPanelOption.commonOptions.isTooltip}
+                        pBorderRadius={4}
+                        pValue={pPanelOption.commonOptions?.tooltipUnit ?? ''}
+                        onChange={(aEvent) => handleCommonOption(aEvent.target.value, 'tooltipUnit')}
+                    />
+                </div>
+                <div className="menu-style">
+                    <div>Decimals</div>
+                    <Input
+                        pType="number"
+                        pWidth={100}
+                        pHeight={25}
+                        pPlaceHolder="auto"
+                        pBorderRadius={4}
+                        pIsDisabled={!pPanelOption.commonOptions.isTooltip}
+                        pValue={pPanelOption.commonOptions?.tooltipDecimals ?? ''}
+                        onChange={(aEvent) => handleCommonOption(aEvent.target.value, 'tooltipDecimals')}
                     />
                 </div>
             </Collapse>

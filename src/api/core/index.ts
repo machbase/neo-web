@@ -35,10 +35,13 @@ request.interceptors.request.use(
         const sFileJs = sUrlSplit[0].indexOf('.js');
         const sFileImg = isImage(sUrlSplit[0]);
         const sViewMode = window.location.pathname.includes('/web/ui/view');
+        const sDshFetch = config.url.includes('/api/tql/dsh');
 
-        if (!config.url.includes('login') && !config.url.includes('logout') && !config.url.includes('relogin') && !config.url.includes('check') && !sViewMode) {
+        if (!sDshFetch && !config.url.includes('login') && !config.url.includes('logout') && !config.url.includes('relogin') && !config.url.includes('check') && !sViewMode) {
             sHeaders['X-Console-Id'] = localStorage.getItem('consoleId');
         }
+
+        if (sDshFetch) config.url = '/api/tql';
 
         if (config.url.includes('/api/files') && config.method === 'put') {
             sHeaders['Content-Type'] = 'application/json';

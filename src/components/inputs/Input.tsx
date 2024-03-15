@@ -1,3 +1,4 @@
+import React from 'react';
 import './Input.scss';
 
 export interface InputProps {
@@ -11,11 +12,13 @@ export interface InputProps {
     pIsDisabled: boolean;
     pMin?: number;
     pMax?: number;
+    pAutoFocus?: boolean;
+    pPlaceHolder?: string;
     onChange: React.ChangeEventHandler<HTMLInputElement>;
 }
 
 export const Input = (props: InputProps) => {
-    const { pWidth, pBorderRadius, pHeight, pIsFullWidth, pValue, pSetValue, pType, pIsDisabled, pMin = undefined, pMax = undefined, onChange } = props;
+    const { pWidth, pBorderRadius, pHeight, pIsFullWidth, pValue, pSetValue, pAutoFocus, pType, pIsDisabled, pPlaceHolder, pMin = undefined, pMax = undefined, onChange } = props;
 
     const handleChange = (aEvent: React.ChangeEvent<HTMLInputElement>) => {
         if (pType === 'number') {
@@ -36,7 +39,7 @@ export const Input = (props: InputProps) => {
                 borderRadius: pBorderRadius + 'px',
             }}
         >
-            <input type={pType} value={pValue} onChange={handleChange} disabled={pIsDisabled} />
+            <input placeholder={pPlaceHolder ?? ''} type={pType} value={pValue} onChange={handleChange} disabled={pIsDisabled} autoFocus={pAutoFocus} />
         </div>
     );
 };
@@ -48,4 +51,5 @@ Input.defaultProps = {
     pIsFullWidth: false,
     pIsDisabled: false,
     pBorderRadius: 8,
+    pAutoFocus: false,
 };

@@ -72,7 +72,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         sResult +=
             `\ttheme("${pPanelInfo.theme}"),\n` +
             `\tsize("${pPanelInfo.w * 50}px","${pPanelInfo.h * 40}px"),\n` +
-            `\tchartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption))}),\n` +
+            `\tchartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption, null, '\t'))}),\n` +
             `\tchartJSCode(${sParsedChartCode})\n` +
             `)`;
         return sResult;
@@ -304,7 +304,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
 
     useEffect(() => {
         SetBlockAliasList();
-        setSaveFileName(`${pPanelInfo.title}.tql`);
+        setSaveFileName(`${pPanelInfo.title !== '' ? pPanelInfo.title : 'New chart'}.tql`);
         setFileType('tql');
         getFiles('tql');
     }, []);

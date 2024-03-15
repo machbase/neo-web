@@ -68,7 +68,7 @@ any) => {
                 <span className="series-title"> Alias </span>
                 <Input
                     pBorderRadius={4}
-                    pWidth={175}
+                    pWidth={140}
                     pHeight={26}
                     pType="text"
                     pValue={pValue.alias}

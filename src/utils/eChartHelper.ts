@@ -9,12 +9,14 @@ export const DefaultCommonOption = {
     legendLeft: 'center' as 'left' | 'center' | 'right',
     legendOrient: 'horizontal' as 'horizontal' | 'vertical',
     isTooltip: true as boolean,
-    tooltipTrigger: 'item' as 'item' | 'axis' | 'none',
+    tooltipTrigger: 'axis' as 'item' | 'axis' | 'none',
     tooltipBgColor: '#FFFFFF' as string,
     tooltipTxtColor: '#333' as string,
+    tooltipUnit: '' as string,
+    tooltipDecimals: 3 as number | undefined,
     isDataZoom: false as boolean,
     title: 'New chart' as string,
-    isInsideTitle: false as boolean,
+    isInsideTitle: true as boolean,
     gridLeft: 35 as number,
     gridRight: 35 as number,
     gridTop: 50 as number,
@@ -45,8 +47,16 @@ export const DefaultYAxisOption = {
     alignTicks: true,
     scale: true,
     useMinMax: false,
-    min: 0 as number,
-    max: 100 as number,
+    min: undefined as number | undefined,
+    max: undefined as number | undefined,
+    label: {
+        name: 'value' as string,
+        key: 'value' as string,
+        title: '' as string,
+        unit: '' as string,
+        decimals: undefined as number | undefined,
+        squared: 0 as number,
+    },
     // axisLine: {
     //     lineStyle: {
     //         color: '#fff'
@@ -157,8 +167,8 @@ export const DefaultChartOption = {
     },
     isAxisInterval: false as boolean,
     axisInterval: {
-        IntervalType: 'sec' as string,
-        IntervalValue: 1 as number,
+        IntervalType: '' as string,
+        IntervalValue: '' as string,
     },
     blockList: undefined as any,
     useCustomTime: false as boolean,
@@ -194,6 +204,7 @@ export const DefaultTagTableOption = {
     tag: '',
     value: 'VALUE',
     alias: '',
+    math: '',
 };
 
 export const DefaultLogTableOption = {
@@ -213,6 +224,7 @@ export const DefaultLogTableOption = {
     tag: '',
     value: '',
     alias: '',
+    math: '',
 };
 
 export const getDefaultSeriesOption = (aChartType: ChartType) => {

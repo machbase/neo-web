@@ -55,6 +55,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             useCustom: bBlock.useCustom,
             color: bBlock.color,
             tableInfo: bBlock.tableInfo,
+            math: bBlock?.math ?? '',
         };
     });
     return sParsedBlock;
@@ -79,7 +80,10 @@ const UseFilter = (aFilterList: any) => {
 };
 /** @return use valueList */
 const UseValue = (aValueList: any) => {
-    return aValueList.filter((aValue: any) => aValue.value !== '' || aValue.aggregator === 'count(*)');
+    return aValueList.filter((aValue: any) => {
+        if (!aValue?.diff || aValue?.diff === '') aValue.diff = 'none';
+        if (aValue.value !== '' || aValue.aggregator === 'count(*)') return aValue;
+    });
 };
 /** Create value list for collapsed block
  * @return ({ value: value, alias: '', aggregator: "aggregator"})
@@ -205,6 +209,19 @@ const changeDiffText = (aDiff: string) => {
     }
 };
 
+export const mathValueConverter = (aTargetValueIndex: string, aMath: string): string => {
+    // check pattern => value1 value 1
+    const pattern = /(value)(\s*[1-9]*)*\s/gi;
+    if (pattern.test(aMath)) return aMath.replace(pattern, `value(${aTargetValueIndex}) `);
+    // check pattern => value(1), value (1), value(0), value (0)
+    const pattern1 = /(value)(\s)?\(*[1-2]*\)/gi;
+    if (pattern1.test(aMath)) return aMath;
+    // check pattern => value\s, value
+    const pattern2 = /(value)(\s)[e\s]*/gi;
+    if (pattern2.test(aMath)) return aMath.replace(pattern2, `value(${aTargetValueIndex}) `);
+    return aMath;
+};
+
 const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string) => {
     const sAliasList: any[] = [];
     const sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
@@ -226,17 +243,17 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
         if (aResDataType === 'TIME_VALUE') {
             sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.userName}.${
                 aQuery.tableName
-            } WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''} ${sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''} ${
-                sUseCountAll ? '' : sOrderBy
-            }`;
-            if (sUseDiff) sTql = `MAP_${changeDiffText(aQuery.valueList[0]?.diff)}(1, value(1))`;
+            } WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''} ${sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''} ${sOrderBy}`;
+            if (sUseDiff) sTql += `MAP_${changeDiffText(aQuery.valueList[0]?.diff)}(1, value(1))`;
+            if (aQuery?.math && aQuery?.math !== '') sTql += `${sUseDiff ? `\n` : ''}MAPVALUE(2, ${mathValueConverter('1', aQuery?.math)}, "VALUE")\nPOPVALUE(1)`;
         }
         // PIE | GAUGE | LIQUIDFILL
         if (aResDataType === 'NAME_VALUE') {
             sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.userName}.${aQuery.tableName} WHERE ${sTimeWhere} ${
                 sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''
             }`;
-            sTql = `MAPVALUE(1, dict("name", "${sAlias}", "value", value(0)))\nPOPVALUE(0)`;
+            if (aQuery?.math && aQuery?.math !== '') sTql += `MAPVALUE(1, ${mathValueConverter('2', aQuery?.math)}, "VALUE")\nPOPVALUE(0)\n`;
+            sTql += `MAPVALUE(1, dict("name", "${sAlias}", "value", value(0)))\nPOPVALUE(0)`;
         }
 
         return {

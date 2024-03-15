@@ -133,7 +133,7 @@ const DashboardView = () => {
                                         pIsHeader={false}
                                         pRefresh={sRefresh}
                                         pSetRefresh={setRefresh}
-                                        pLoopMode={sBoardInformation?.dashboard.timeRange.refresh === 'Off' ? false : true}
+                                        pLoopMode={sBoardInformation?.dashboard.timeRange.refresh !== 'Off' || aItem?.timeRange?.refresh !== 'Off' ? true : false}
                                     />
                                 </div>
                             );

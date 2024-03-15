@@ -1,6 +1,6 @@
 // import { TextButton } from '@/components/buttons/TextButton';
 import { Collapse } from '@/components/collapse/Collapse';
-import CheckBox from '@/components/inputs/CheckBox';
+// import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 import { ChartXAxisTypeList } from '@/utils/constants';
@@ -14,8 +14,13 @@ interface XAxisOptionProps {
 }
 
 export const XAxisOptions = (props: XAxisOptionProps) => {
-    const { pXAxis, pSetPanelOption, pAxisInterval, pIsAxisInterval } = props;
-    const sIntervalTypeList = ['sec', 'min', 'hour'];
+    const {
+        pXAxis,
+        pSetPanelOption,
+        pAxisInterval,
+        // pIsAxisInterval
+    } = props;
+    const sIntervalTypeList = ['none', 'sec', 'min', 'hour'];
 
     const handleXAxisOption = (aEvent: any, aIndex: number) => {
         const sCurrentXAxis = JSON.parse(JSON.stringify(pXAxis));
@@ -28,26 +33,29 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
         });
     };
 
-    const handleAxisInterval = (aType: string, aValue: number) => {
+    const handleAxisInterval = (aType: string, aValue: number | string) => {
         pSetPanelOption((aPrev: any) => {
-            return {
+            const sResult = {
                 ...aPrev,
                 axisInterval: {
-                    IntervalType: aType,
+                    IntervalType: aType === 'none' ? '' : aType,
                     IntervalValue: aValue,
                 },
             };
+            if (sResult.axisInterval.Interval !== '' && sResult.axisInterval.IntervalValue !== '') sResult.isAxisInterval = true;
+            else sResult.isAxisInterval = false;
+            return sResult;
         });
     };
 
-    const changeAxisInterval = (aValue: boolean) => {
-        pSetPanelOption((aPrev: any) => {
-            return {
-                ...aPrev,
-                isAxisInterval: aValue,
-            };
-        });
-    };
+    // const changeAxisInterval = (aValue: boolean) => {
+    //     pSetPanelOption((aPrev: any) => {
+    //         return {
+    //             ...aPrev,
+    //             isAxisInterval: aValue,
+    //         };
+    //     });
+    // };
 
     // const addRemoveXAixs = () => {
     //     const sCurrentXAxis = JSON.parse(JSON.stringify(pXAxis));
@@ -85,30 +93,32 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
             {pXAxis[0].type === 'time' ? (
                 <>
                     <div className="divider" />
-                    <CheckBox onChange={(aEvent: any) => changeAxisInterval(aEvent.target.checked)} pDefaultChecked={pIsAxisInterval} pText={'Custom time interval'} />
-                    <div style={{ height: '10px' }} />
+                    {/* <CheckBox onChange={(aEvent: any) => changeAxisInterval(aEvent.target.checked)} pDefaultChecked={pIsAxisInterval} pText={'Custom time interval'} /> */}
+                    {/* <div style={{ height: '10px' }} /> */}
                     <div className="menu-style">
-                        <span>Type</span>
+                        <span>Interval type</span>
                         <Select
                             pWidth={100}
                             pHeight={25}
                             pBorderRadius={4}
-                            pIsDisabled={!pIsAxisInterval}
+                            pNoneValue="none"
+                            // pIsDisabled={!pIsAxisInterval}
                             pInitValue={pAxisInterval.IntervalType}
                             onChange={(aEvent) => handleAxisInterval(aEvent.target.value, pAxisInterval.IntervalValue)}
                             pOptions={sIntervalTypeList}
                         />
                     </div>
                     <div className="menu-style">
-                        <span>Value</span>
+                        <span>Interval value</span>
                         <Input
                             pType="number"
                             pWidth={100}
                             pHeight={25}
                             pBorderRadius={4}
-                            pIsDisabled={!pIsAxisInterval}
-                            pValue={pAxisInterval.IntervalValue.toString()}
-                            onChange={(aEvent) => handleAxisInterval(pAxisInterval.IntervalType, Number(aEvent.target.value))}
+                            pPlaceHolder={'auto'}
+                            // pIsDisabled={!pIsAxisInterval}
+                            pValue={pAxisInterval.IntervalValue.toString() ?? ''}
+                            onChange={(aEvent) => handleAxisInterval(pAxisInterval.IntervalType, aEvent.target.value)}
                         />
                     </div>
                 </>

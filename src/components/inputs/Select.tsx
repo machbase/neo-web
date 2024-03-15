@@ -14,17 +14,19 @@ export interface SelectProps {
     pFontSize: number;
     pIsDisabled: boolean;
     pAutoChanged: boolean;
+    pNoneValue?: string;
     onChange: React.ChangeEventHandler<HTMLInputElement>;
 }
 
 export const Select = (props: SelectProps) => {
-    const { pWidth, pAutoChanged, pIsDisabled, pFontSize, pHeight, pOptions, pIsFullWidth, pBorderRadius, pIsReadonly, pInitValue, onChange } = props;
+    const { pWidth, pNoneValue, pAutoChanged, pIsDisabled, pFontSize, pHeight, pOptions, pIsFullWidth, pBorderRadius, pIsReadonly, pInitValue, onChange } = props;
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [selectValue, setSelectValue] = useState<string>(pInitValue);
     const optionRef = useRef<HTMLDivElement>(null);
     const isMounted = useRef(false);
     const handleSelect = (aValue: string) => {
-        setSelectValue(aValue);
+        if (pNoneValue && pNoneValue === aValue) setSelectValue('');
+        else setSelectValue(aValue);
         setIsOpen(false);
 
         const changeEvent = {
