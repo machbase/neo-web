@@ -158,10 +158,12 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                                     <Delete />
                                     <span>Delete</span>
                                 </Menu.Item>
-                                <Menu.Item onClick={HandleDownload}>
-                                    <VscGraphScatter />
-                                    <span>Save to tql</span>
-                                </Menu.Item>
+                                {localStorage.getItem('experimentMode') && (
+                                    <Menu.Item onClick={HandleDownload}>
+                                        <VscGraphScatter />
+                                        <span>Save to tql</span>
+                                    </Menu.Item>
+                                )}
                             </Menu>
                         </div>
                     </div>

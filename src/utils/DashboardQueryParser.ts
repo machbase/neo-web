@@ -252,7 +252,7 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
             sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.userName}.${aQuery.tableName} WHERE ${sTimeWhere} ${
                 sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''
             }`;
-            if (aQuery?.math && aQuery?.math !== '') sTql += `MAPVALUE(1, ${mathValueConverter('2', aQuery?.math)}, "VALUE")\nPOPVALUE(0)\n`;
+            if (aQuery?.math && aQuery?.math !== '') sTql += `MAPVALUE(1, ${mathValueConverter('0', aQuery?.math)}, "VALUE")\nPOPVALUE(0)\n`;
             sTql += `MAPVALUE(1, dict("name", "${sAlias}", "value", value(0)))\nPOPVALUE(0)`;
         }
 
