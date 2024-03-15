@@ -90,7 +90,9 @@ const Home = () => {
 
     const getInfo = async () => {
         const sResult: any = await getLogin();
-
+        // set experiment option
+        if (sResult && sResult?.experimentMode) localStorage.setItem('experimentMode', sResult.experimentMode);
+        else localStorage.removeItem('experimentMode');
         setServer(sResult.server);
         const sortAttributes = (aItem: string, bItem: string) => {
             const sOrder = ['editable', 'cloneable', 'removable'];
