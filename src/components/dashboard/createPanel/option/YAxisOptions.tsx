@@ -16,12 +16,11 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
 
     const sUnitList: { [key: string]: number | string | undefined; name: string; key: string; title: string; unit: string; decimals: number | undefined; squared: number }[] = [
         { name: 'value', key: 'value', title: '', unit: '', decimals: undefined, squared: 0 },
-
-        { name: 'percent', key: 'percent', title: '%', unit: '', decimals: undefined, squared: 0 },
         // °C
         { name: 'temperature', key: 'temperature', title: 'Temperature (°C)', unit: '', decimals: 0, squared: 0 },
         // %H
         { name: 'humidity', key: 'humidity', title: 'Humidity (%H)', unit: '', decimals: 0, squared: 0 },
+        { name: 'percent', key: 'percent', title: '%', unit: '%', decimals: undefined, squared: -2 },
         // International Electrotechnical Commission
         { name: 'byte', key: 'byte (IEC)', title: 'byte (IEC)', unit: '', decimals: undefined, squared: 0 },
         // International System Units
@@ -138,7 +137,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                             pWidth={110}
                             pHeight={25}
                             pIsDisabled={aItem?.label?.name !== 'value'}
-                            pPlaceHolder={aItem?.label?.name === 'byte' ? 'auto' : 'none'}
+                            pPlaceHolder={aItem?.label?.name === 'byte' || aItem?.label?.name === 'percent' ? 'auto' : 'none'}
                             pBorderRadius={4}
                             pValue={aItem?.label?.unit ?? ''}
                             onChange={(aEvent) => handleYAxisOption('unit', aEvent, aIndex)}
