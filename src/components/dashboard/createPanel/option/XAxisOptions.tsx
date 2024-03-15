@@ -14,7 +14,12 @@ interface XAxisOptionProps {
 }
 
 export const XAxisOptions = (props: XAxisOptionProps) => {
-    const { pXAxis, pSetPanelOption, pAxisInterval, pIsAxisInterval } = props;
+    const {
+        pXAxis,
+        pSetPanelOption,
+        pAxisInterval,
+        // pIsAxisInterval
+    } = props;
     const sIntervalTypeList = ['none', 'sec', 'min', 'hour'];
 
     const handleXAxisOption = (aEvent: any, aIndex: number) => {

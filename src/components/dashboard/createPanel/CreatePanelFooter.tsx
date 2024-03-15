@@ -8,7 +8,7 @@ import DatePicker from '@/components/datePicker/DatePicker';
 import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
-import { TagColorList } from '@/utils/constants';
+// import { TagColorList } from '@/utils/constants';
 import { IconButton } from '@/components/buttons/IconButton';
 
 const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
