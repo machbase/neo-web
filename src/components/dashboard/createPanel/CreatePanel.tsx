@@ -52,8 +52,10 @@ const CreatePanel = ({
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedBoardInfo = useRecoilValue(gSelectedBoard);
     const [sSaveState, setSaveState] = useState<boolean>(false);
+    const [sTimeRangeStatus, setTimeRangeStatus] = useState<boolean>(false);
 
     useEffect(() => {
+        if (sTimeRangeStatus) return setTimeRangeStatus(() => false);
         if (sSelectedBoardInfo?.dashboard?.panels?.length > 0 && sPanelOption && sPanelOption?.id) {
             !sSaveState && pHandleSaveModalOpen();
             setSaveState(() => true);
@@ -194,6 +196,10 @@ const CreatePanel = ({
         pSetType(undefined);
         pSetCreateModal(false);
     };
+    const handleTimeRange = () => {
+        setTimeRangeStatus(() => true);
+        pSetTimeRangeModal(true);
+    };
 
     const init = async () => {
         getTables(true);
@@ -214,7 +220,7 @@ const CreatePanel = ({
                 <div className="right">
                     <div className="move-timerange-wrapper">
                         <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => pMoveTimeRange('l')} />
-                        <button onClick={() => pSetTimeRangeModal(true)} className="set-global-option-btn">
+                        <button onClick={handleTimeRange} className="set-global-option-btn">
                             <Calendar />
                             {pBoardInfo && pBoardInfo.dashboard.timeRange.start ? (
                                 <span>
