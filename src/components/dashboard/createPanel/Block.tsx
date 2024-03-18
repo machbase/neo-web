@@ -246,9 +246,10 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             sChangedBlockInfo.alias = sChangedBlockInfo.values[0].alias;
             sChangedBlockInfo.aggregator = sChangedBlockInfo.values[0].aggregator;
             sChangedBlockInfo.tag = '';
+            sChangedBlockInfo.diff = pBlockInfo.values[0]?.diff ?? 'none';
         } else {
             sChangedBlockInfo.tag = '';
-            sChangedBlockInfo.values = [{ ...sChangedBlockInfo.values[0], aggregator: pBlockInfo.aggregator, alias: pBlockInfo.alias }];
+            sChangedBlockInfo.values = [{ ...sChangedBlockInfo.values[0], aggregator: pBlockInfo.aggregator, alias: pBlockInfo.alias, diff: pBlockInfo?.diff ?? 'none' }];
             sChangedBlockInfo.filter = [
                 {
                     ...sChangedBlockInfo.filter[0],
