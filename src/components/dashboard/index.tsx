@@ -127,7 +127,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
 
     const handleCopyLink = () => {
         const sTargetBoard = sBoardList.find((aBoard) => aBoard.id === pInfo.id);
-        const sTargetPath = `${window.location.origin + '/web/ui/view/' + sTargetBoard!.name.split('.')[0]}`;
+        const sTargetPath = `${window.location.origin + '/web/ui/view' + sTargetBoard?.path + sTargetBoard!.name.split('.')[0]}`;
         ClipboardCopy(sTargetPath);
     };
 
