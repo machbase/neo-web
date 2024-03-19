@@ -67,8 +67,8 @@ const DashboardView = () => {
 
     useEffect(() => {
         const sIsLogin = localStorage.getItem('accessToken');
-        if (!sIsLogin) localStorage.setItem('view', JSON.stringify({ path: '/view/' + sParams.file }));
-        getDshFile(sParams.file);
+        if (!sIsLogin) localStorage.setItem('view', JSON.stringify({ path: '/view/' + sParams['*'] }));
+        getDshFile(sParams['*']);
     }, []);
 
     return sNotfound ? (

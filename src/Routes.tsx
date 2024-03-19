@@ -19,7 +19,7 @@ export const Routes = () => {
         <Switch>
             <Route path={'/login'} element={!sIsLogin ? <Login /> : <Navigate replace to="/" />} />
             <Route path={'/'} element={<Home />} />
-            <Route path={'/view/:file'} element={<DashboardView />} />
+            <Route path={'/view/*'} element={<DashboardView />} />
             <Route path={'/*'} element={<Navigate replace to="/" />} />
         </Switch>
     );
