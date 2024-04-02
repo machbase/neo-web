@@ -42,14 +42,17 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
 
     const setExtremes = async (aEvent: any) => {
         if (aEvent.min) {
-            // ??
-            // const sRatio = 1 - ((aEvent.max - aEvent.min) * 100) / (sNavigatorRange.endTime - sNavigatorRange.startTime);
-            // if ((sNavigatorRange.endTime - sNavigatorRange.startTime) / 100 > aEvent.max - aEvent.min) {
-            //     sChartRef.current.chart.navigator.xAxis.setExtremes(
-            //         sNavigatorRange.startTime + (aEvent.min - sNavigatorRange.startTime) * sRatio,
-            //         sNavigatorRange.endTime + (aEvent.max - sNavigatorRange.endTime) * sRatio
-            //     );
-            // }
+            const sRatio = 1 - ((aEvent.max - aEvent.min) * 100) / (sNavigatorRange.endTime - sNavigatorRange.startTime);
+            if (
+                (sNavigatorRange.endTime - sNavigatorRange.startTime) / 100 > aEvent.max - aEvent.min &&
+                aEvent?.trigger &&
+                (aEvent.trigger === 'zoom' || aEvent.trigger === 'navigator')
+            ) {
+                sChartRef.current.chart.navigator.xAxis.setExtremes(
+                    sNavigatorRange.startTime + (aEvent.min - sNavigatorRange.startTime) * sRatio,
+                    sNavigatorRange.endTime + (aEvent.max - sNavigatorRange.endTime) * sRatio
+                );
+            }
             if (!sDataFetchHandler.current) await fetchPanelData({ startTime: aEvent.min, endTime: aEvent.max });
             else sDataFetchHandler.current = false;
             if (pPanelInfo.use_time_keeper === 'Y' && pSaveKeepData && sChartRef.current?.chart) {
