@@ -507,14 +507,8 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                 if (pIsEdit) {
                     sData = { startTime: pBgnEndTimeRange.bgn_min, endTime: pBgnEndTimeRange.end_max };
                 }
-                sChartRef.current.chart.xAxis[0].setExtremes(
-                    sData.startTime + (sData.endTime - sData.startTime) * 0.001,
-                    sData.endTime - (sData.endTime - sData.startTime) * 0.001
-                );
-                sChartRef.current.chart.navigator.xAxis.setExtremes(
-                    sData.startTime + (sData.endTime - sData.startTime) * 0.001,
-                    sData.endTime - (sData.endTime - sData.startTime) * 0.001
-                );
+                sChartRef.current.chart.xAxis[0].setExtremes(sData.startTime, sData.endTime);
+                sChartRef.current.chart.navigator.xAxis.setExtremes(sData.startTime, sData.endTime);
             }
         }
     };
@@ -567,14 +561,14 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
             fetchPanelData({
                 // startTime: sData.startTime + (sData.endTime - sData.startTime) * 0.4,
                 // endTime: sData.startTime + (sData.endTime - sData.startTime) * 0.6,
-                startTime: sData.startTime + (sData.endTime - sData.startTime) * 0.001,
-                endTime: sData.endTime - (sData.endTime - sData.startTime) * 0.001,
+                startTime: sData.startTime,
+                endTime: sData.endTime,
             });
             setPanelRange({
                 // startTime: sData.startTime + (sData.endTime - sData.startTime) * 0.4,
                 // endTime: sData.startTime + (sData.endTime - sData.startTime) * 0.6,
-                startTime: sData.startTime + (sData.endTime - sData.startTime) * 0.001,
-                endTime: sData.endTime - (sData.endTime - sData.startTime) * 0.001,
+                startTime: sData.startTime,
+                endTime: sData.endTime,
             });
             fetchNavigatorData({
                 startTime: sData.startTime,
