@@ -309,6 +309,22 @@ const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
     return sData;
 };
 
+export const fetchVirtualStatTable = async (aTable: string, aTagList: string[]) => {
+    const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
+    const sData = await request({
+        method: 'GET',
+        url: `/machbase?q=` + encodeURIComponent(`select min_time, max_time from ${sCurrentUserName}.V$${aTable}_STAT WHERE NAME IN ('${aTagList.join("','")}')`),
+    });
+    if (sData.status >= 400) {
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
+    }
+    return sData.data.rows;
+};
+
 const fetchRollupData = async (params: any) => {
     const { Table } = params;
 

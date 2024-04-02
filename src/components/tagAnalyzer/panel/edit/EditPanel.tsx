@@ -12,27 +12,54 @@ import { GearFill, Close } from '@/assets/icons/Icon';
 import { TextButton } from '@/components/buttons/TextButton';
 import { deepEqual } from '@/utils/index';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
+import { convertTimeToFullDate } from '@/utils/helpers/date';
 
 const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, pNavigatorRange }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
     const [sGlobalSelectedTab] = useRecoilState<any>(gSelectedTab);
-
+    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<any>(undefined);
     const [sSelectedTab, setSelectedTab] = useState('General');
     const [sPanelInfo, setPanelInfo] = useState<any>({});
     const [sCopyPanelInfo, setCopyPanelInfo] = useState<any>({});
     const [sIsConfirmModal, setIsConfirmModal] = useState<boolean>(false);
-
     const [sLoading] = useState<boolean>(false);
+    const [sData] = useState<any>(['General', 'Data', 'Axes', 'Display', 'TimeRange']);
 
-    useEffect(() => {
-        setPanelInfo(pPanelInfo);
-        setCopyPanelInfo(pPanelInfo);
-    }, []);
-
-    const apply = () => {
+    const apply = async () => {
+        let sData: any = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
+        // Set last
+        if (typeof sCopyPanelInfo.range_bgn === 'string' && sCopyPanelInfo.range_bgn.includes('last')) {
+            const sLastRange = await getBgnEndTimeRange(sCopyPanelInfo.tag_set, { bgn: sCopyPanelInfo.range_bgn, end: sCopyPanelInfo.range_end }, { bgn: '', end: '' });
+            sData = {
+                bgn_min: subtractTime(sLastRange.end_max as number, sCopyPanelInfo.range_bgn),
+                bgn_max: subtractTime(sLastRange.end_max as number, sCopyPanelInfo.range_bgn),
+                end_min: (sLastRange.end_max as number) / 1000000,
+                end_max: (sLastRange.end_max as number) / 1000000,
+            };
+        }
+        // Set now
+        if (typeof sCopyPanelInfo.range_bgn === 'string' && sCopyPanelInfo.range_bgn.includes('now')) {
+            const sNowTimeBgn = convertTimeToFullDate(sCopyPanelInfo.range_bgn);
+            const sNowTimeEnd = convertTimeToFullDate(sCopyPanelInfo.range_end);
+            sData = { bgn_min: sNowTimeBgn, bgn_max: sNowTimeBgn, end_min: sNowTimeEnd, end_max: sNowTimeEnd };
+        }
+        // Set range
+        if (typeof sCopyPanelInfo.range_bgn === 'number') {
+            sData = { bgn_min: sCopyPanelInfo.range_end, bgn_max: sCopyPanelInfo.range_end, end_min: sCopyPanelInfo.range_end, end_max: sCopyPanelInfo.range_end };
+        }
+        // Set defulat ('')
+        if (sCopyPanelInfo.range_bgn === '' || sCopyPanelInfo.range_end === '') {
+            sData = {
+                bgn_min: pNavigatorRange.startTime,
+                bgn_max: pNavigatorRange.startTime,
+                end_min: pNavigatorRange.endTime,
+                end_max: pNavigatorRange.endTime,
+            };
+        }
+        setBgnEndTimeRange(() => sData);
         setPanelInfo(sCopyPanelInfo);
     };
-
     const save = () => {
         setBoardList(
             sBoardList.map((aItem: any) => {
@@ -49,7 +76,6 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
         pSetSaveEditedInfo(true);
         pSetEditPanel(false);
     };
-
     const checkSameWithConfirmModal = () => {
         const sIsSame = deepEqual(sPanelInfo, sCopyPanelInfo);
         if (!sIsSame) {
@@ -61,7 +87,10 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
         }
     };
 
-    const [sData] = useState<any>(['General', 'Data', 'Axes', 'Display', 'TimeRange']);
+    useEffect(() => {
+        setPanelInfo(pPanelInfo);
+        setCopyPanelInfo(pPanelInfo);
+    }, []);
     return (
         <div className="edit-modal">
             <div className="modal-header">
@@ -73,7 +102,9 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
             </div>
             <div className="modal-body">
                 <div className="chart">
-                    {sPanelInfo.index_key && !sLoading && <Panel pFooterRange={pNavigatorRange} pBoardInfo={pBoardInfo} pPanelInfo={sPanelInfo} pIsEdit={true}></Panel>}
+                    {sPanelInfo.index_key && !sLoading && (
+                        <Panel pBgnEndTimeRange={sBgnEndTimeRange} pNavigatorRange={pNavigatorRange} pBoardInfo={pBoardInfo} pPanelInfo={sPanelInfo} pIsEdit={true} />
+                    )}
                 </div>
                 <div className="edit-form">
                     <div className="edit-form-tabs">
@@ -108,7 +139,7 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
                             {sCopyPanelInfo.index_key && <Display pSetCopyPanelInfo={setCopyPanelInfo} pPanelInfo={sCopyPanelInfo}></Display>}
                         </div>
                         <div style={sSelectedTab === 'TimeRange' ? { height: '100%' } : { display: 'none' }}>
-                            {sCopyPanelInfo.index_key && <TimeRange pPanelInfo={sCopyPanelInfo} pSetCopyPanelInfo={setCopyPanelInfo}></TimeRange>}
+                            {sCopyPanelInfo.index_key && <TimeRange pPanelInfo={sCopyPanelInfo} pSetCopyPanelInfo={setCopyPanelInfo} />}
                         </div>
                     </div>
                 </div>

@@ -1,7 +1,7 @@
 import CreateChart from './CreateChart';
 import Panel from './panel/Panel';
 import './ChartBoard.scss';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ModalTimeRange from './ModalTimeRange';
 import moment from 'moment';
 import { Calendar, Save, Refresh, SaveAs, MdOutlineStackedLineChart, LuTimerReset } from '@/assets/icons/Icon';
@@ -9,15 +9,15 @@ import { IconButton } from '../buttons/IconButton';
 import OverlapModal from './OverlapModal';
 import { gBoardList } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
+import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 
 const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sIsModal, setIsModal] = useState<boolean>(false);
     const [sPanelsInfo, setPanelsInfo] = useState<any>([]);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
-
     const [sRefreshCount, setRefreshCount] = useState(0);
-    const [sResetCount, setResetCount] = useState(0);
+    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<any>(undefined);
 
     const getChartInfo = (aStart: any, aEnd: any, aBoard: any, aIsRaw: any, aIsChanged?: string) => {
         if (aIsChanged === 'delete') {
@@ -38,7 +38,6 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
             }
         }
     };
-
     const savekeepData = (aTargetPanel: string, aTimeInfo: { endNaviTime: number; endPanelTime: number; startNaviTime: number; startPanelTime: number }, aRaw: boolean) => {
         // UPDATE - time (panel & navigator) && raw
         const tmpBoardInfo: any = JSON.parse(JSON.stringify(pInfo));
@@ -60,6 +59,21 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
             })
         );
     };
+    const handleRefreshData = () => {
+        setRefreshCount((aPrev: any) => aPrev + 1);
+    };
+    const handleRefreshTime = async () => {
+        await getToplevelBgnEndTime();
+    };
+    const getToplevelBgnEndTime = async (aStart?: any, aEnd?: any) => {
+        const sTimeRange = await getBgnEndTimeRange(pInfo.panels[0].tag_set, { bgn: aStart || pInfo.range_bgn, end: aEnd || pInfo.range_end }, { bgn: '', end: '' });
+        setBgnEndTimeRange(() => sTimeRange);
+    };
+
+    useEffect(() => {
+        if (pInfo?.panels[0]?.tag_set) getToplevelBgnEndTime();
+        else setBgnEndTimeRange({});
+    }, []);
 
     return (
         <div className="board-list">
@@ -68,41 +82,47 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                     <Calendar />
                     {pInfo && pInfo.range_bgn ? (
                         <span>
-                            {(typeof pInfo.range_bgn === 'string' && pInfo.range_bgn.includes('now') ? pInfo.range_bgn : moment(pInfo.range_bgn).format('yyyy-MM-DD HH:mm:ss')) +
+                            {(typeof pInfo.range_bgn === 'string' && (pInfo?.range_bgn?.includes('now') || pInfo?.range_bgn?.includes('last'))
+                                ? pInfo.range_bgn
+                                : moment(pInfo.range_bgn).format('yyyy-MM-DD HH:mm:ss')) +
                                 '~' +
-                                (typeof pInfo.range_end === 'string' && pInfo.range_end.includes('now') ? pInfo.range_end : moment(pInfo.range_end).format('yyyy-MM-DD HH:mm:ss'))}
+                                (typeof pInfo.range_end === 'string' && (pInfo?.range_end?.includes('now') || pInfo?.range_bgn?.includes('last'))
+                                    ? pInfo.range_end
+                                    : moment(pInfo.range_end).format('yyyy-MM-DD HH:mm:ss'))}
                         </span>
                     ) : (
                         <span>Time range not set</span>
                     )}
                 </button>
-                <IconButton pIcon={<Refresh />} onClick={() => setRefreshCount((aPrev: any) => aPrev + 1)} />
-                <IconButton pIcon={<LuTimerReset />} onClick={() => setResetCount((aPrev: any) => aPrev + 1)} />
+                <IconButton pIcon={<Refresh />} onClick={handleRefreshData} />
+                <IconButton pIcon={<LuTimerReset />} onClick={handleRefreshTime} />
                 <div className="border"></div>
                 <IconButton pIcon={<Save />} onClick={pSetHandleSaveModalOpen} />
                 <IconButton pIcon={<SaveAs />} onClick={pHandleSaveModalOpen} />
                 <IconButton pIcon={<MdOutlineStackedLineChart />} pDisabled={sPanelsInfo.length === 0} onClick={sPanelsInfo.length === 0 ? () => {} : () => setIsModal(true)} />
             </div>
             <div className="panel-list">
-                {pInfo &&
+                {sBgnEndTimeRange &&
+                    pInfo &&
                     pInfo.panels &&
                     pInfo.panels.map((aItem: any) => {
                         return (
                             <Panel
-                                pResetCount={sResetCount}
                                 pRefreshCount={sRefreshCount}
                                 key={aItem.index_key}
                                 pPanelsInfo={sPanelsInfo}
+                                pBgnEndTimeRange={sBgnEndTimeRange}
                                 pGetChartInfo={getChartInfo}
                                 pBoardInfo={pInfo}
                                 pPanelInfo={aItem}
                                 pSaveKeepData={savekeepData}
+                                pGetBgnEndTime={getToplevelBgnEndTime}
                             />
                         );
                     })}
-                <CreateChart></CreateChart>
-                {sIsModal && <OverlapModal pPanelsInfo={sPanelsInfo} pSetIsModal={setIsModal}></OverlapModal>}
-                {sTimeRangeModal && <ModalTimeRange pType={'tagAnalyzer'} pSetTimeRangeModal={setTimeRangeModal}></ModalTimeRange>}
+                <CreateChart />
+                {sIsModal && <OverlapModal pPanelsInfo={sPanelsInfo} pSetIsModal={setIsModal} />}
+                {sTimeRangeModal && <ModalTimeRange pType={'tagAnalyzer'} pSetTimeRangeModal={setTimeRangeModal} pSaveCallback={getToplevelBgnEndTime} />}
             </div>
         </div>
     );

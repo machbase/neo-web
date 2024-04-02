@@ -11,10 +11,9 @@ import { Error } from '../toast/Toast';
 import { Select } from '../inputs/Select';
 import { refreshTimeList } from '@/utils/dashboardUtil';
 
-const ModalTimeRange = ({ pType, pSetTimeRangeModal }: any) => {
+const ModalTimeRange = ({ pType, pSetTimeRangeModal, pSaveCallback }: any) => {
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
-
     const [sStartTime, setStartTime] = useState<any>('');
     const [sEndTime, setEndTime] = useState<any>('');
     const [sRefresh, setRefresh] = useState<any>('');
@@ -35,14 +34,14 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal }: any) => {
         setStartTime(
             sBoardStartTime === '' || sBoardStartTime === undefined
                 ? ''
-                : typeof sBoardStartTime === 'string' && sBoardStartTime.includes('now')
+                : typeof sBoardStartTime === 'string' && (sBoardStartTime.includes('now') || sBoardStartTime.includes('last'))
                 ? sBoardStartTime
                 : moment.unix(sBoardStartTime / 1000).format('YYYY-MM-DD HH:mm:ss')
         );
         setEndTime(
             sBoardEndTime === '' || sBoardEndTime === undefined
                 ? ''
-                : typeof sBoardEndTime === 'string' && sBoardEndTime.includes('now')
+                : typeof sBoardEndTime === 'string' && (sBoardEndTime.includes('now') || sBoardStartTime.includes('last'))
                 ? sBoardEndTime
                 : moment.unix(sBoardEndTime / 1000).format('YYYY-MM-DD HH:mm:ss')
         );
@@ -64,7 +63,8 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal }: any) => {
     const setGlobalTime = () => {
         let sStart: any;
         let sEnd: any;
-        if (typeof sStartTime === 'string' && sStartTime.includes('now')) {
+
+        if (typeof sStartTime === 'string' && (sStartTime.includes('now') || sStartTime.includes('last'))) {
             sStart = sStartTime;
         } else {
             sStart = moment(sStartTime).unix() * 1000;
@@ -73,7 +73,7 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal }: any) => {
                 return;
             }
         }
-        if (typeof sEndTime === 'string' && sEndTime.includes('now')) {
+        if (typeof sEndTime === 'string' && (sEndTime.includes('now') || sStartTime.includes('last'))) {
             sEnd = sEndTime;
         } else {
             sEnd = moment(sEndTime).unix() * 1000;
@@ -96,7 +96,7 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal }: any) => {
                 })
             );
         }
-
+        if (pSaveCallback) pSaveCallback(sStart, sEnd);
         pSetTimeRangeModal(false);
     };
 
