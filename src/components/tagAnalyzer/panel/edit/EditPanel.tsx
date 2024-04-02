@@ -47,7 +47,7 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
         }
         // Set range
         if (typeof aTargetTime.range_bgn === 'number') {
-            sData = { bgn_min: aTargetTime.range_end, bgn_max: aTargetTime.range_end, end_min: aTargetTime.range_end, end_max: aTargetTime.range_end };
+            sData = { bgn_min: aTargetTime.range_bgn, bgn_max: aTargetTime.range_bgn, end_min: aTargetTime.range_end, end_max: aTargetTime.range_end };
         }
         // Set defulat ('')
         if (aTargetTime.range_bgn === '' || aTargetTime.range_end === '') {

@@ -42,13 +42,14 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
 
     const setExtremes = async (aEvent: any) => {
         if (aEvent.min) {
-            const sRatio = 1 - ((aEvent.max - aEvent.min) * 100) / (sNavigatorRange.endTime - sNavigatorRange.startTime);
-            if ((sNavigatorRange.endTime - sNavigatorRange.startTime) / 100 > aEvent.max - aEvent.min) {
-                sChartRef.current.chart.navigator.xAxis.setExtremes(
-                    sNavigatorRange.startTime + (aEvent.min - sNavigatorRange.startTime) * sRatio,
-                    sNavigatorRange.endTime + (aEvent.max - sNavigatorRange.endTime) * sRatio
-                );
-            }
+            // ??
+            // const sRatio = 1 - ((aEvent.max - aEvent.min) * 100) / (sNavigatorRange.endTime - sNavigatorRange.startTime);
+            // if ((sNavigatorRange.endTime - sNavigatorRange.startTime) / 100 > aEvent.max - aEvent.min) {
+            //     sChartRef.current.chart.navigator.xAxis.setExtremes(
+            //         sNavigatorRange.startTime + (aEvent.min - sNavigatorRange.startTime) * sRatio,
+            //         sNavigatorRange.endTime + (aEvent.max - sNavigatorRange.endTime) * sRatio
+            //     );
+            // }
             if (!sDataFetchHandler.current) await fetchPanelData({ startTime: aEvent.min, endTime: aEvent.max });
             else sDataFetchHandler.current = false;
             if (pPanelInfo.use_time_keeper === 'Y' && pSaveKeepData && sChartRef.current?.chart) {
@@ -487,7 +488,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                     sStartTime = subtractTime(pBgnEndTimeRange.end_max, pBoardInfo.range_bgn);
                     sLastTime = pBgnEndTimeRange.end_max / 1000000; // Set milli sec
                 }
-                // Set panel-level last
+                // Set panel-level last & now
                 if (sSaveEditedInfo && !pIsEdit && typeof pPanelInfo.range_end === 'string') {
                     if (pPanelInfo.range_end.includes('last')) {
                         const sTimeRange = await getBgnEndTimeRange(
@@ -509,8 +510,10 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                     sData.startTime = sStartTime;
                     sData.endTime = sLastTime;
                 } else {
+                    // Set top-level now
                     sData = !pIsEdit && getDateRange({}, pBoardInfo);
                 }
+                // Set edit mode
                 if (pIsEdit) {
                     sData = { startTime: pBgnEndTimeRange.bgn_min, endTime: pBgnEndTimeRange.end_max };
                 }
