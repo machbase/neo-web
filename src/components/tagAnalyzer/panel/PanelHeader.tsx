@@ -51,8 +51,8 @@ const PanelHeader = ({
         );
     };
     const handleRefreshTime = async () => {
-        await pGetBgnEndTime();
-        pResetData();
+        !pIsEdit && (await pGetBgnEndTime());
+        pIsEdit && pResetData();
     };
 
     useEffect(() => {

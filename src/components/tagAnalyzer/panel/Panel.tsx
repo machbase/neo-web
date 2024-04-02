@@ -488,21 +488,28 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                     sLastTime = pBgnEndTimeRange.end_max / 1000000; // Set milli sec
                 }
                 // Set panel-level last
-                if (sSaveEditedInfo && !pIsEdit && typeof pPanelInfo.range_end === 'string' && pPanelInfo.range_end.includes('last')) {
-                    const sTimeRange = await getBgnEndTimeRange(
-                        pPanelInfo.tag_set,
-                        { bgn: pBoardInfo.range_bgn, end: pBoardInfo.range_end },
-                        { bgn: pPanelInfo.range_bgn, end: pPanelInfo.range_end }
-                    );
-                    sStartTime = subtractTime(sTimeRange.end_max as number, pPanelInfo.range_bgn);
-                    sLastTime = (sTimeRange.end_max as number) / 1000000; // Set milli sec
+                if (sSaveEditedInfo && !pIsEdit && typeof pPanelInfo.range_end === 'string') {
+                    if (pPanelInfo.range_end.includes('last')) {
+                        const sTimeRange = await getBgnEndTimeRange(
+                            pPanelInfo.tag_set,
+                            { bgn: pBoardInfo.range_bgn, end: pBoardInfo.range_end },
+                            { bgn: pPanelInfo.range_bgn, end: pPanelInfo.range_end }
+                        );
+                        sStartTime = subtractTime(sTimeRange.end_max as number, pPanelInfo.range_bgn);
+                        sLastTime = (sTimeRange.end_max as number) / 1000000; // Set milli sec
+                    }
+                    if (pPanelInfo.range_end.includes('now')) {
+                        const sTimeRange = getDateRange(pPanelInfo, pBoardInfo);
+                        sStartTime = sTimeRange.startTime;
+                        sLastTime = sTimeRange.endTime;
+                    }
                 }
 
                 if (!pIsEdit && sStartTime && sLastTime) {
                     sData.startTime = sStartTime;
                     sData.endTime = sLastTime;
                 } else {
-                    sData = !pIsEdit && getDateRange(pPanelInfo, pBoardInfo);
+                    sData = !pIsEdit && getDateRange({}, pBoardInfo);
                 }
                 if (pIsEdit) {
                     sData = { startTime: pBgnEndTimeRange.bgn_min, endTime: pBgnEndTimeRange.end_max };
@@ -519,8 +526,13 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
         let sLastTime = null;
         // Set top-level last
         if (pBgnEndTimeRange && pBgnEndTimeRange.end_max && typeof pBoardInfo.range_bgn === 'string' && pBoardInfo.range_bgn?.includes('last')) {
-            sStartTime = subtractTime(pBgnEndTimeRange.end_max, pBoardInfo.range_bgn);
-            sLastTime = pBgnEndTimeRange.end_max / 1000000; // Set milli sec
+            if (pIsEdit) {
+                sStartTime = pBgnEndTimeRange.bgn_max;
+                sLastTime = pBgnEndTimeRange.end_max; // Set milli sec
+            } else {
+                sStartTime = subtractTime(pBgnEndTimeRange.end_max, pBoardInfo.range_bgn);
+                sLastTime = pBgnEndTimeRange.end_max / 1000000; // Set milli sec
+            }
         }
         // Set panel-level last
         if (typeof pPanelInfo.range_end === 'string' && pPanelInfo.range_end.includes('last')) {

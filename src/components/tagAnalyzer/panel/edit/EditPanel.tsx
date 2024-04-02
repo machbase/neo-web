@@ -105,11 +105,11 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
     };
     const setInit = async () => {
         let sData: any = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
-        if (sCopyPanelInfo.range_bgn !== '') sData = await timeConverter(sCopyPanelInfo);
-        else if (pBoardInfo.range_bgn !== '')
+        if (pPanelInfo.range_bgn !== '') sData = await timeConverter(pPanelInfo);
+        else if (pBoardInfo.range_bgn !== '') {
             sData = await timeConverter({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].tag_set });
-        else {
-            const sVirtualStatInfo = await fetchVirtualStatTable(sCopyPanelInfo.tag_set[0].table, [sCopyPanelInfo.tag_set[0].tagName]);
+        } else {
+            const sVirtualStatInfo = await fetchVirtualStatTable(pPanelInfo.tag_set[0].table, [pPanelInfo.tag_set[0].tagName]);
             sData = {
                 bgn_min: sVirtualStatInfo[0][0] / 1000000,
                 bgn_max: sVirtualStatInfo[0][0] / 1000000,
@@ -125,6 +125,7 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
     useEffect(() => {
         setInit();
     }, []);
+
     return (
         <div className="edit-modal">
             <div className="modal-header">
