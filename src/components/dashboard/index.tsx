@@ -10,25 +10,17 @@ import { gBoardList, gRollupTableList } from '@/recoil/recoil';
 import Panel from './panels/Panel';
 import CreatePanel from './createPanel/CreatePanel';
 import { IconButton } from '../buttons/IconButton';
-import {
-    VscChevronLeft,
-    Calendar,
-    TbSquarePlus,
-    VscChevronRight,
-    Save,
-    SaveAs,
-    // MdDevicesFold,
-    VscSync,
-    MdLink,
-} from '@/assets/icons/Icon';
+import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, VscSync, MdLink } from '@/assets/icons/Icon';
 import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
 import moment from 'moment';
-import { setUnitTime } from '@/utils/dashboardUtil';
-import { getRollupTableList } from '@/api/repository/machiot';
+import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
+import { fetchTimeMinMax, getRollupTableList } from '@/api/repository/machiot';
 import { getId, isEmpty } from '@/utils';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Input } from '../inputs/Input';
+import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
+import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpen, setIsSaveModal, pIsSave }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
@@ -41,8 +33,8 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
     const [sThisPanelStatus, setThisPanelStatus] = useState<'create' | 'edit' | undefined>(undefined);
     const [sModifyState, setModifyState] = useState<any>({ id: '', state: false });
     const [sIsPanelHeader, setIsPanelHeader] = useState<boolean>(true);
-    const [sRefresh, setRefresh] = useState<number>(0);
     const [sChartVariableId, setChartVariableId] = useState<string>('');
+    const [sBoardTimeMinMax, setBoardTimeMinMax] = useState<any>(undefined);
 
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
@@ -52,11 +44,18 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
             sStartTimeBeforeStart = setUnitTime(sStartTimeBeforeStart);
             sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
         }
+        if (String(sStartTimeBeforeStart).includes('last') || String(sStartTimeBeforeEnd).includes('last')) {
+            sStartTimeBeforeStart = sBoardTimeMinMax.min;
+            sStartTimeBeforeEnd = sBoardTimeMinMax.max;
+        }
+        if (String(sStartTimeBeforeStart) === '' || String(sStartTimeBeforeEnd) === '') {
+            sStartTimeBeforeStart = sBoardTimeMinMax.min;
+            sStartTimeBeforeEnd = sBoardTimeMinMax.max;
+        }
 
         const sCalcTime = (Number(sStartTimeBeforeEnd) - Number(sStartTimeBeforeStart)) / 2;
         const sStartTime = aItem === 'l' ? Math.round(sStartTimeBeforeStart - sCalcTime) : Math.round(sStartTimeBeforeStart + sCalcTime);
         const sEndTime = aItem === 'l' ? Math.round(sStartTimeBeforeEnd - sCalcTime) : Math.round(sStartTimeBeforeEnd + sCalcTime);
-
         setBoardList(
             sBoardList.map((aItem: any) => {
                 return aItem.id === pInfo.id
@@ -67,6 +66,8 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
                     : aItem;
             })
         );
+
+        handleDashboardTimeRange(sStartTime, sEndTime);
     };
     const showEditPanel = (aType: 'create' | 'edit' | undefined, aId?: string) => {
         setThisPanelStatus(aType);
@@ -88,7 +89,6 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
     //     );
     //     setIsPanelHeader(!sIsPanelHeader);
     // };
-
     const draging = (aValue: any, aEvent: any) => {
         !aValue && changeLayout(aEvent);
     };
@@ -109,28 +109,19 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
         });
         setBoardList(sTempBoardList);
     };
-
     const GetRollupTables = async () => {
         const sResult: any = await getRollupTableList();
         setRollupTabls(sResult);
         setLoadedRollupTable(true);
     };
-
     const GenChartVariableId = () => {
         setChartVariableId(getId());
     };
-
-    const HandleRefresh = () => {
-        GenChartVariableId();
-        setRefresh(sRefresh + 1);
-    };
-
     const handleCopyLink = () => {
         const sTargetBoard = sBoardList.find((aBoard) => aBoard.id === pInfo.id);
         const sTargetPath = `${window.location.origin + '/web/ui/view' + sTargetBoard?.path + sTargetBoard!.name.split('.')[0]}`;
         ClipboardCopy(sTargetPath);
     };
-
     const changeDashboardName = (e: any) => {
         setBoardList(
             sBoardList.map((aItem: any) => {
@@ -143,12 +134,48 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
             })
         );
     };
-
-    useEffect(() => {
+    const HandleRefresh = async (aTimeRange: any) => {
+        if (pInfo.dashboard.panels.length < 1) return;
+        const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
+        const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrRes);
+        sTimeMinMax.refresh = true;
+        setBoardTimeMinMax(() => sTimeMinMax);
+        GenChartVariableId();
+    };
+    const handleDashboardTimeRange = async (sStart: any, sEnd: any) => {
+        if (pInfo.dashboard.panels.length < 1) return;
+        const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
+        const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes);
+        setBoardTimeMinMax(() => sTimeMinMax);
+    };
+    const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
+        const sTargetPanel = pInfo.dashboard.panels[0];
+        const sTargetTag = sTargetPanel.blockList[0];
+        const sSvrResult = await fetchTimeMinMax(sTargetTag);
+        const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
+        return sResult;
+    };
+    // Set initial value
+    const initDashboard = async () => {
+        if (pInfo.dashboard.panels.length > 0) await handleDashboardTimeRange(pInfo.dashboard.timeRange.start, pInfo.dashboard.timeRange.end);
         GenChartVariableId();
         GetRollupTables();
         setIsPanelHeader(pInfo.panelHeader);
+    };
+
+    useEffect(() => {
+        initDashboard();
     }, []);
+
+    const sSetIntervalTime = () => {
+        if (sThisPanelStatus === 'create' || sThisPanelStatus === 'edit') return null;
+        if (pInfo.dashboard.timeRange.refresh !== 'Off') return calcRefreshTime(pInfo.dashboard.timeRange.refresh);
+        return null;
+    };
+
+    useOverlapTimeout(() => {
+        handleDashboardTimeRange(pInfo.dashboard.timeRange.start, pInfo.dashboard.timeRange.end);
+    }, sSetIntervalTime());
 
     return (
         // Render after rollup info load
@@ -161,17 +188,19 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
                     <div className="board-header-r">
                         <IconButton pIcon={<TbSquarePlus />} onClick={() => showEditPanel('create')}></IconButton>
                         {/* <IconButton pIcon={<MdDevicesFold style={{ transform: 'rotate(-90deg)' }} />} pIsActive={!sIsPanelHeader} onClick={HandlePanelHeader} /> */}
-                        <IconButton pIcon={<VscSync />} onClick={HandleRefresh} />
+                        <IconButton pIcon={<VscSync />} onClick={() => HandleRefresh(pInfo.dashboard.timeRange)} />
                         <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')} />
                         <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
                             <Calendar />
                             {pInfo && pInfo.dashboard.timeRange.start ? (
                                 <span>
-                                    {(typeof pInfo.dashboard.timeRange.start === 'string' && pInfo.dashboard.timeRange.start.includes('now')
+                                    {(typeof pInfo.dashboard.timeRange.start === 'string' &&
+                                    (pInfo.dashboard.timeRange.start.includes('now') || pInfo.dashboard.timeRange.start.includes('last'))
                                         ? pInfo.dashboard.timeRange.start
                                         : moment(pInfo.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
                                         '~' +
-                                        (typeof pInfo.dashboard.timeRange.end === 'string' && pInfo.dashboard.timeRange.end.includes('now')
+                                        (typeof pInfo.dashboard.timeRange.end === 'string' &&
+                                        (pInfo.dashboard.timeRange.end.includes('now') || pInfo.dashboard.timeRange.start.includes('last'))
                                             ? pInfo.dashboard.timeRange.end
                                             : moment(pInfo.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
                                 </span>
@@ -208,8 +237,6 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
                                         <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
                                             <Panel
                                                 pLoopMode={pInfo.dashboard.timeRange.refresh !== 'Off' || aItem.timeRange.refresh !== 'Off' ? true : false}
-                                                pRefresh={sRefresh}
-                                                pSetRefresh={setRefresh}
                                                 pDragStat={pDragStat}
                                                 pType={sThisPanelStatus}
                                                 pShowEditPanel={showEditPanel}
@@ -220,6 +247,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
                                                 pParentWidth={pWidth}
                                                 pIsHeader={sIsPanelHeader}
                                                 pChartVariableId={sChartVariableId}
+                                                pBoardTimeMinMax={sBoardTimeMinMax}
                                             />
                                         </div>
                                     );
@@ -233,7 +261,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
                         )}
                     </div>
                 )}
-                {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal} />}
+                {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal} pSaveCallback={handleDashboardTimeRange} />}
                 {sCreateModal && (
                     <CreatePanel
                         pLoopMode={false}
@@ -248,6 +276,8 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
                         pSetTimeRangeModal={setTimeRangeModal}
                         pHandleSaveModalOpen={pHandleSaveModalOpen}
                         pIsSaveModal={pIsSaveModal}
+                        pBoardTimeMinMax={sBoardTimeMinMax}
+                        pSetBoardTimeMinMax={setBoardTimeMinMax}
                     />
                 )}
             </div>

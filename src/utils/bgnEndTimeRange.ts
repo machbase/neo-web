@@ -7,6 +7,7 @@ interface TIME_RANGE_TYPE {
 }
 
 /**
+ * For taganalyzer
  * @TIME_RANGE_TYPE { bgn: string | number; end: string | number; }
  * @param boardTime TIME_RANGE_TYPE
  * @param panelTime TIME_RANGE_TYPE
@@ -43,6 +44,7 @@ export const getBgnEndTimeRange = async (baseTable: any, boardTime: TIME_RANGE_T
 };
 
 /**
+ * For taganalyzer & dashboard
  * @param aTime number
  * @param aSubtract string (ex - 1m, 1h, 1d...)
  * @returns time - subtract (milli sec)
@@ -59,4 +61,18 @@ export const subtractTime = (aTime: number, aSubtract: string) => {
                 .unix() * 1000;
     }
     return sResult;
+};
+
+export const timeMinMaxConverter = (aStart: string | number, aEnd: string | number, aSvrRes: { min: number; max: number }) => {
+    let sTimeMinMax: any = undefined;
+    if (typeof aStart === 'string') {
+        if (aStart === '') sTimeMinMax = aSvrRes;
+        if (aStart.includes('last')) sTimeMinMax = { min: subtractTime(aSvrRes.max * 1000000, aStart), max: aSvrRes.max };
+        if (aStart.includes('now')) {
+            const sNowTime = moment().unix() * 1000;
+            sTimeMinMax = { min: subtractTime(sNowTime * 1000000, aStart), max: sNowTime };
+        }
+    }
+    if (typeof aStart === 'number') sTimeMinMax = { min: aStart, max: aEnd };
+    return sTimeMinMax;
 };

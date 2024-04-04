@@ -64,7 +64,7 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal, pSaveCallback }: any) => {
         let sStart: any;
         let sEnd: any;
 
-        if (typeof sStartTime === 'string' && (sStartTime.includes('now') || sStartTime.includes('last'))) {
+        if (typeof sStartTime === 'string' && (sStartTime.includes('now') || sStartTime.includes('last') || sStartTime === '')) {
             sStart = sStartTime;
         } else {
             sStart = moment(sStartTime).unix() * 1000;
@@ -73,7 +73,7 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal, pSaveCallback }: any) => {
                 return;
             }
         }
-        if (typeof sEndTime === 'string' && (sEndTime.includes('now') || sStartTime.includes('last'))) {
+        if (typeof sEndTime === 'string' && (sEndTime.includes('now') || sStartTime.includes('last') || sEndTime === '')) {
             sEnd = sEndTime;
         } else {
             sEnd = moment(sEndTime).unix() * 1000;

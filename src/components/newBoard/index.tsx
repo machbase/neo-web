@@ -125,9 +125,14 @@ const NewBoard = (props: NewBoardProps) => {
                           savedCode: false,
                           shell: { icon: aValue.icon, theme: aValue.theme ? aValue.theme : '', id: aValue.id ? aValue.id : 'SHELL' },
                           dashboard: {
+                              //   timeRange: {
+                              //       start: 'now-30m',
+                              //       end: 'now',
+                              //       refresh: 'Off',
+                              //   },
                               timeRange: {
-                                  start: 'now-30m',
-                                  end: 'now',
+                                  start: '',
+                                  end: '',
                                   refresh: 'Off',
                               },
                               title: 'New dashboard',

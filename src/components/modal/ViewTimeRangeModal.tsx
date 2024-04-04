@@ -15,10 +15,11 @@ interface ViewTimeRangeModalProps {
     pEndTime: string | number;
     pRefresh: any;
     pSetTime: any;
+    pSaveCallback: any;
 }
 
 const ViewTimeRangeModal = (props: ViewTimeRangeModalProps) => {
-    const { pSetTimeRangeModal, pStartTime, pEndTime, pRefresh, pSetTime } = props;
+    const { pSetTimeRangeModal, pStartTime, pEndTime, pRefresh, pSetTime, pSaveCallback } = props;
 
     const [sStartTime, setStartTime] = useState<any>('');
     const [sEndTime, setEndTime] = useState<any>('');
@@ -52,7 +53,7 @@ const ViewTimeRangeModal = (props: ViewTimeRangeModalProps) => {
     const setGlobalTime = () => {
         let sStart: any;
         let sEnd: any;
-        if (typeof sStartTime === 'string' && sStartTime.includes('now')) {
+        if (typeof sStartTime === 'string' && (sStartTime.includes('now') || sStartTime.includes('last'))) {
             sStart = sStartTime;
         } else {
             sStart = moment(sStartTime).unix() * 1000;
@@ -61,7 +62,7 @@ const ViewTimeRangeModal = (props: ViewTimeRangeModalProps) => {
                 return;
             }
         }
-        if (typeof sEndTime === 'string' && sEndTime.includes('now')) {
+        if (typeof sEndTime === 'string' && (sEndTime.includes('now') || sEndTime.includes('last'))) {
             sEnd = sEndTime;
         } else {
             sEnd = moment(sEndTime).unix() * 1000;
@@ -85,19 +86,7 @@ const ViewTimeRangeModal = (props: ViewTimeRangeModalProps) => {
             };
         });
 
-        // if (pType === 'dashboard') {
-        //     setBoardList((aPrev: any) =>
-        //         aPrev.map((aItem: any) => {
-        //             return aItem.id === sSelectedTab ? { ...aItem, dashboard: { ...aItem.dashboard, timeRange: { start: sStart, end: sEnd, refresh: sRefresh } } } : aItem;
-        //         })
-        //     );
-        // } else {
-        //     setBoardList((aPrev: any) =>
-        //         aPrev.map((aItem: any) => {
-        //             return aItem.id === sSelectedTab ? { ...aItem, range_bgn: sStart, range_end: sEnd } : aItem;
-        //         })
-        //     );
-        // }
+        if (pSaveCallback) pSaveCallback(sStart, sEnd);
 
         pSetTimeRangeModal(false);
     };
