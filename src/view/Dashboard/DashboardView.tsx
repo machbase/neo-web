@@ -3,36 +3,53 @@ import Panel from '@/components/dashboard/panels/Panel';
 import { useEffect, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
 import { useParams } from 'react-router-dom';
-import './DashboardView.scss';
 import moment from 'moment';
 import { Calendar, VscChevronLeft, VscChevronRight, VscSync } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
-import { setUnitTime } from '@/utils/dashboardUtil';
+import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { isMobile } from '@/utils';
 import ViewTimeRangeModal from '@/components/modal/ViewTimeRangeModal';
+import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
+import { fetchTimeMinMax } from '@/api/repository/machiot';
+import './DashboardView.scss';
 
 const DashboardView = () => {
     const sParams = useParams();
     const sLayoutRef = useRef<HTMLDivElement>(null);
     const [sBoardInformation, setBoardInformation] = useState<{ dashboard: any; name: string; id: string; panelHeader: boolean }>();
     const [sNotfound, setNotFound] = useState<boolean>(false);
-    // const [sIsPanelHeader, setIsPanelHeader] = useState<boolean>(true);
-    const [sRefresh, setRefresh] = useState<number>(0);
     const [sIsTimeRangeModal, setIsTimeRangeModal] = useState<boolean>(false);
     const sIsMobile = isMobile();
+    const [sBoardTimeMinMax, setBoardTimeMinMax] = useState<any>(undefined);
+    const sBoardRef = useRef<any>(undefined);
 
     const getDshFile = async (aFileName: string | undefined) => {
         if (!aFileName) return;
         const sResult: any = await getFiles('/' + aFileName + '.dsh');
         if (typeof sResult === 'string') {
-            setBoardInformation(JSON.parse(sResult));
+            const sParsedRes = JSON.parse(sResult);
+            await handleDashboardTimeRange(sParsedRes.dashboard.timeRange.start, sParsedRes.dashboard.timeRange.end, sParsedRes);
+            setBoardInformation(sParsedRes);
             setNotFound(false);
         } else {
             setNotFound(true);
         }
     };
-
+    const handleDashboardTimeRange = async (sStart: any, sEnd: any, aBoardInfo?: any) => {
+        const sBoard: any = aBoardInfo ?? sBoardInformation;
+        const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax(sBoard);
+        const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes);
+        setBoardTimeMinMax(() => sTimeMinMax);
+        return;
+    };
+    const fetchTableTimeMinMax = async (aBoardInfo: any): Promise<{ min: number; max: number }> => {
+        const sTargetPanel = aBoardInfo.dashboard.panels[0];
+        const sTargetTag = sTargetPanel.blockList[0];
+        const sSvrResult = await fetchTimeMinMax(sTargetTag);
+        const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
+        return sResult;
+    };
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = sBoardInformation?.dashboard.timeRange.start;
         let sStartTimeBeforeEnd = sBoardInformation?.dashboard.timeRange.end;
@@ -40,6 +57,14 @@ const DashboardView = () => {
         if (String(sStartTimeBeforeStart).includes('now') || String(sStartTimeBeforeEnd).includes('now')) {
             sStartTimeBeforeStart = setUnitTime(sStartTimeBeforeStart);
             sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
+        }
+        if (String(sStartTimeBeforeStart).includes('last') || String(sStartTimeBeforeEnd).includes('last')) {
+            sStartTimeBeforeStart = sBoardTimeMinMax.min;
+            sStartTimeBeforeEnd = sBoardTimeMinMax.max;
+        }
+        if (String(sStartTimeBeforeStart) === '' || String(sStartTimeBeforeEnd) === '') {
+            sStartTimeBeforeStart = sBoardTimeMinMax.min;
+            sStartTimeBeforeEnd = sBoardTimeMinMax.max;
         }
 
         const sCalcTime = (Number(sStartTimeBeforeEnd) - Number(sStartTimeBeforeStart)) / 2;
@@ -59,11 +84,33 @@ const DashboardView = () => {
                 },
             };
         });
+
+        handleDashboardTimeRange(sStartTime, sEndTime);
+    };
+    const handleRefresh = async () => {
+        const sTimeRange = sBoardInformation?.dashboard.timeRange;
+        const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax(sBoardInformation);
+        const sTimeMinMax = timeMinMaxConverter(sTimeRange.start, sTimeRange.end, sSvrRes);
+        setBoardTimeMinMax(() => {
+            return { min: sTimeMinMax.min, max: sTimeMinMax.max, refresh: true };
+        });
+        return;
+    };
+    const setIntervalTime = (aTimeRange: any): number => {
+        return calcRefreshTime(aTimeRange.refresh);
+    };
+    const ctrBoardInterval = (aTimeRange: any) => {
+        clearInterval(sBoardRef.current);
+        sBoardRef.current = setInterval(() => {
+            handleDashboardTimeRange(aTimeRange.start, aTimeRange.end);
+        }, setIntervalTime(aTimeRange));
     };
 
-    const handleRefresh = () => {
-        setRefresh((aPrev) => aPrev + 1);
-    };
+    useEffect(() => {
+        if (sBoardInformation && sBoardInformation.dashboard.timeRange && sBoardInformation.dashboard.timeRange.refresh !== 'Off')
+            ctrBoardInterval(sBoardInformation.dashboard.timeRange);
+        else sBoardRef && clearInterval(sBoardRef.current);
+    }, [sBoardInformation]);
 
     useEffect(() => {
         const sIsLogin = localStorage.getItem('accessToken');
@@ -90,11 +137,13 @@ const DashboardView = () => {
                                 <Calendar />
                                 {sBoardInformation && sBoardInformation.dashboard.timeRange.start ? (
                                     <span>
-                                        {(typeof sBoardInformation.dashboard.timeRange.start === 'string' && sBoardInformation.dashboard.timeRange.start.includes('now')
+                                        {(typeof sBoardInformation.dashboard.timeRange.start === 'string' &&
+                                        (sBoardInformation.dashboard.timeRange.start.includes('now') || sBoardInformation.dashboard.timeRange.start.includes('last'))
                                             ? sBoardInformation.dashboard.timeRange.start
                                             : moment(sBoardInformation.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
                                             '~' +
-                                            (typeof sBoardInformation.dashboard.timeRange.end === 'string' && sBoardInformation.dashboard.timeRange.end.includes('now')
+                                            (typeof sBoardInformation.dashboard.timeRange.end === 'string' &&
+                                            (sBoardInformation.dashboard.timeRange.end.includes('now') || sBoardInformation.dashboard.timeRange.end.includes('last'))
                                                 ? sBoardInformation.dashboard.timeRange.end
                                                 : moment(sBoardInformation.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
                                     </span>
@@ -131,9 +180,8 @@ const DashboardView = () => {
                                         pModifyState={{ id: '', state: false }}
                                         pSetModifyState={() => null}
                                         pIsHeader={false}
-                                        pRefresh={sRefresh}
-                                        pSetRefresh={setRefresh}
                                         pLoopMode={sBoardInformation?.dashboard.timeRange.refresh !== 'Off' || aItem?.timeRange?.refresh !== 'Off' ? true : false}
+                                        pBoardTimeMinMax={sBoardTimeMinMax}
                                     />
                                 </div>
                             );
@@ -147,6 +195,7 @@ const DashboardView = () => {
                     pEndTime={sBoardInformation?.dashboard.timeRange.end}
                     pSetTime={setBoardInformation}
                     pRefresh={sBoardInformation?.dashboard.timeRange.refresh}
+                    pSaveCallback={handleDashboardTimeRange}
                 />
             )}
         </>

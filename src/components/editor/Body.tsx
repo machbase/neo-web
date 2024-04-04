@@ -237,7 +237,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     pId={aItem.id}
                                     pSideSizes={pSideSizes}
                                     pIsSave={aItem.path}
-                                ></Dashboard>
+                                />
                             )}
                             {aItem.type === 'wrk' && <WorkSheet pId={aItem.id} pSheet={aItem.sheet} pHandleSaveModalOpen={handleSaveModalOpen} setIsSaveModal={setIsSaveModal} />}
                             {aItem.type === 'json' && <TextExtension pLang="json" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}

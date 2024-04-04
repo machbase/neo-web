@@ -309,6 +309,45 @@ const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
     return sData;
 };
 
+export const fetchTimeMinMax = async (aTargetInfo: any) => {
+    let sQuery: string | undefined = undefined;
+    // Query tag table
+    if (aTargetInfo.type === 'tag') sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${aTargetInfo.table}_STAT where name in ('${aTargetInfo.tag}')`;
+    // Query log table
+    if (aTargetInfo.type === 'log') sQuery = `select min(_ARRIVAL_TIME) as min_time, max(_ARRIVAL_TIME) as max_time from ${aTargetInfo.userName}.${aTargetInfo.table}`;
+    if (!sQuery) return;
+
+    const sData = await request({
+        method: 'GET',
+        url: `/machbase?q=` + encodeURIComponent(sQuery),
+    });
+
+    if (sData.status >= 400) {
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
+    }
+    return sData.data.rows;
+};
+
+export const fetchVirtualStatTable = async (aTable: string, aTagList: string[]) => {
+    const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
+    const sData = await request({
+        method: 'GET',
+        url: `/machbase?q=` + encodeURIComponent(`select min_time, max_time from ${sCurrentUserName}.V$${aTable}_STAT WHERE NAME IN ('${aTagList.join("','")}')`),
+    });
+    if (sData.status >= 400) {
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
+    }
+    return sData.data.rows;
+};
+
 const fetchRollupData = async (params: any) => {
     const { Table } = params;
 

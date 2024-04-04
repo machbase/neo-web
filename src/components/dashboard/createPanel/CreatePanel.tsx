@@ -14,7 +14,8 @@ import { getTableList } from '@/api/repository/api';
 import moment from 'moment';
 import { decodeJwt, generateUUID, isValidJSON } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
-import { fetchTags } from '@/api/repository/machiot';
+import { fetchTags, fetchTimeMinMax } from '@/api/repository/machiot';
+import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 
 const CreatePanel = ({
     pLoopMode,
@@ -29,6 +30,8 @@ const CreatePanel = ({
     pSetTimeRangeModal,
     pHandleSaveModalOpen,
     pIsSaveModal,
+    pBoardTimeMinMax,
+    pSetBoardTimeMinMax,
 }: {
     pLoopMode: boolean;
     pPanelId: string;
@@ -42,6 +45,8 @@ const CreatePanel = ({
     pSetTimeRangeModal: (aValue: boolean) => void;
     pHandleSaveModalOpen: any;
     pIsSaveModal: boolean;
+    pBoardTimeMinMax: any;
+    pSetBoardTimeMinMax: (aTimeRange: { min: number; max: number }) => void;
 }) => {
     const [sSideSizes, setSideSizes] = useState<any>(['75%', '25%']);
     const [sBottomSizes, setBottomSizes] = useState<any>(['50%', '50%']);
@@ -53,6 +58,7 @@ const CreatePanel = ({
     const sSelectedBoardInfo = useRecoilValue(gSelectedBoard);
     const [sSaveState, setSaveState] = useState<boolean>(false);
     const [sTimeRangeStatus, setTimeRangeStatus] = useState<boolean>(false);
+    const [sCreateModeTimeMinMax, setCreateModeTimeMinMax] = useState<any>(undefined);
 
     useEffect(() => {
         if (sTimeRangeStatus) return setTimeRangeStatus(() => false);
@@ -75,7 +81,7 @@ const CreatePanel = ({
         if (sPanelOption.useCustomTime) {
             let sStart: any;
             let sEnd: any;
-            if (typeof sPanelOption.timeRange.start === 'string' && sPanelOption.timeRange.start.includes('now')) {
+            if (typeof sPanelOption.timeRange.start === 'string' && (sPanelOption.timeRange.start.includes('now') || sPanelOption.timeRange.start.includes('last'))) {
                 sStart = sPanelOption.timeRange.start;
             } else {
                 sStart = moment(sPanelOption.timeRange.start).unix() * 1000;
@@ -84,7 +90,7 @@ const CreatePanel = ({
                     return;
                 }
             }
-            if (typeof sPanelOption.timeRange.end === 'string' && sPanelOption.timeRange.end.includes('now')) {
+            if (typeof sPanelOption.timeRange.end === 'string' && (sPanelOption.timeRange.end.includes('now') || sPanelOption.timeRange.start.includes('last'))) {
                 sEnd = sPanelOption.timeRange.end;
             } else {
                 sEnd = moment(sPanelOption.timeRange.end).unix() * 1000;
@@ -99,6 +105,7 @@ const CreatePanel = ({
                 return aItem.id === pBoardInfo.id ? { ...aItem, dashboard: { ...aItem.dashboard, panels: [...aItem.dashboard.panels, sPanelOption] } } : aItem;
             })
         );
+        sCreateModeTimeMinMax && pSetBoardTimeMinMax(sCreateModeTimeMinMax);
         pSetModifyState({ id: sPanelOption.id, state: true });
     };
 
@@ -128,7 +135,7 @@ const CreatePanel = ({
         if (sTmpPanelOption.useCustomTime) {
             let sStart: any;
             let sEnd: any;
-            if (typeof sTmpPanelOption.timeRange.start === 'string' && sTmpPanelOption.timeRange.start.includes('now')) {
+            if (typeof sTmpPanelOption.timeRange.start === 'string' && (sTmpPanelOption.timeRange.start.includes('now') || sTmpPanelOption.timeRange.start.includes('last'))) {
                 sStart = sTmpPanelOption.timeRange.start;
             } else {
                 sStart = moment(sTmpPanelOption.timeRange.start).unix() * 1000;
@@ -137,7 +144,7 @@ const CreatePanel = ({
                     return;
                 }
             }
-            if (typeof sTmpPanelOption.timeRange.end === 'string' && sTmpPanelOption.timeRange.end.includes('now')) {
+            if (typeof sTmpPanelOption.timeRange.end === 'string' && (sTmpPanelOption.timeRange.end.includes('now') || sTmpPanelOption.timeRange.end.includes('last'))) {
                 sEnd = sTmpPanelOption.timeRange.end;
             } else {
                 sEnd = moment(sTmpPanelOption.timeRange.end).unix() * 1000;
@@ -154,9 +161,21 @@ const CreatePanel = ({
         } else {
             if (isValidJSON(JSON.stringify(sTmpPanelOption))) {
                 setAppliedPanelOption(sTmpPanelOption);
-                pSetModifyState({ id: sTmpPanelOption.id, state: true });
             }
+            if (pType === 'create' && !pBoardTimeMinMax) {
+                getTimeMinMax(pBoardInfo.dashboard.timeRange);
+            } else pSetModifyState({ id: sTmpPanelOption.id, state: true });
         }
+    };
+
+    const getTimeMinMax = async (aTimeRange: any) => {
+        const sTargetPanel = sPanelOption;
+        const sTargetTag = sTargetPanel.blockList[0];
+        const sSvrResult = await fetchTimeMinMax(sTargetTag);
+        const sSvrMinMax: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
+        const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrMinMax);
+        setCreateModeTimeMinMax(() => sTimeMinMax);
+        return;
     };
 
     const getTables = async (aStatus: boolean) => {
@@ -224,11 +243,13 @@ const CreatePanel = ({
                             <Calendar />
                             {pBoardInfo && pBoardInfo.dashboard.timeRange.start ? (
                                 <span>
-                                    {(typeof pBoardInfo.dashboard.timeRange.start === 'string' && pBoardInfo.dashboard.timeRange.start.includes('now')
+                                    {(typeof pBoardInfo.dashboard.timeRange.start === 'string' &&
+                                    (pBoardInfo.dashboard.timeRange.start.includes('now') || pBoardInfo.dashboard.timeRange.start.includes('last'))
                                         ? pBoardInfo.dashboard.timeRange.start
                                         : moment(pBoardInfo.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
                                         '~' +
-                                        (typeof pBoardInfo.dashboard.timeRange.end === 'string' && pBoardInfo.dashboard.timeRange.end.includes('now')
+                                        (typeof pBoardInfo.dashboard.timeRange.end === 'string' &&
+                                        (pBoardInfo.dashboard.timeRange.end.includes('now') || pBoardInfo.dashboard.timeRange.end.includes('last'))
                                             ? pBoardInfo.dashboard.timeRange.end
                                             : moment(pBoardInfo.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
                                 </span>
@@ -273,7 +294,6 @@ const CreatePanel = ({
                     />
                 </div>
             </div>
-
             <div className="body">
                 <SplitPane
                     className="split-side"
@@ -304,6 +324,7 @@ const CreatePanel = ({
                                         pPanelInfo={sAppliedPanelOption}
                                         pModifyState={pModifyState}
                                         pSetModifyState={pSetModifyState}
+                                        pBoardTimeMinMax={pType === 'create' && !pBoardTimeMinMax ? sCreateModeTimeMinMax : pBoardTimeMinMax}
                                     />
                                 )}
                             </Pane>

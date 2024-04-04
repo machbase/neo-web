@@ -17,7 +17,6 @@ const Chart = ({
     pPanelRange,
     pNavigatorRange,
     pChartWrap,
-    pIsMinMaxPopup,
     pViewMinMaxPopup,
     pIsUpdate,
 }: any) => {
@@ -76,7 +75,6 @@ const Chart = ({
         }
         return yAxis;
     };
-
     const setValue = () => {
         setOptions({
             accessibility: {
@@ -92,7 +90,7 @@ const Chart = ({
                 lineWidth: 1,
                 width: pAreaChart?.current?.clientWidth,
                 events: {
-                    selection: pIsMinMaxPopup ? pViewMinMaxPopup : false,
+                    selection: pIsUpdate ? pViewMinMaxPopup : false,
                 },
                 zooming: {
                     mouseWheel: {
@@ -379,7 +377,7 @@ const Chart = ({
 
     useEffect(() => {
         setValue();
-    }, [pChartData, pNavigatorData, pPanelInfo, pIsRaw, pIsMinMaxPopup, pIsUpdate]);
+    }, [pChartData, pNavigatorData, pPanelInfo, pIsRaw, pIsUpdate]);
 
     return pNavigatorData && pNavigatorData.datasets && <HighchartsReact ref={pChartWrap} highcharts={Highcharts} constructorType={'stockChart'} options={options} />;
 };

@@ -33,7 +33,6 @@ const setTimeRange = (aPanelInfo: any, aDashboard: any) => {
     }
     const startTime = convertTimeToFullDate(aPanelInfo.range_bgn || aDashboard.range_bgn || timeRange.startTime);
     const endTime = convertTimeToFullDate(aPanelInfo.range_end || aDashboard.range_end || timeRange.endTime);
-
     return { startTime, endTime };
 };
 const getDateRange = (aPanelInfo: any, aDashboard: any, aCustomRange = undefined as any | undefined) => {

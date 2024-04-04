@@ -15,14 +15,14 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
         setStartTime(
             sBoardStartTime === ''
                 ? ''
-                : typeof sBoardStartTime === 'string' && sBoardStartTime.includes('now')
+                : typeof sBoardStartTime === 'string' && (sBoardStartTime.includes('now') || sBoardStartTime.includes('last'))
                 ? sBoardStartTime
                 : moment.unix(sBoardStartTime / 1000).format('YYYY-MM-DD HH:mm:ss')
         );
         setEndTime(
             sBoardEndTime === ''
                 ? ''
-                : typeof sBoardEndTime === 'string' && sBoardEndTime.includes('now')
+                : typeof sBoardEndTime === 'string' && (sBoardEndTime.includes('now') || sBoardStartTime.includes('last'))
                 ? sBoardEndTime
                 : moment.unix(sBoardEndTime / 1000).format('YYYY-MM-DD HH:mm:ss')
         );
@@ -36,7 +36,7 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
 
         if (typeof aEvent === 'object') {
             let sStart: any;
-            if (aEvent.target.value.toLowerCase().includes('now')) sStart = aEvent.target.value;
+            if (aEvent.target.value.toLowerCase().includes('now') || aEvent.target.value.toLowerCase().includes('last')) sStart = aEvent.target.value;
             else {
                 const tmpTime = moment(aEvent.target.value).unix() * 1000;
                 sStart = tmpTime > 0 ? tmpTime : aEvent.target.value;
@@ -55,7 +55,7 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
 
         if (typeof aEvent === 'object') {
             let sEnd: any;
-            if (aEvent.target.value.toLowerCase().includes('now')) sEnd = aEvent.target.value;
+            if (aEvent.target.value.toLowerCase().includes('now') || aEvent.target.value.toLowerCase().includes('last')) sEnd = aEvent.target.value;
             else {
                 const tmpTime = moment(aEvent.target.value).unix() * 1000;
                 sEnd = tmpTime > 0 ? tmpTime : aEvent.target.value;

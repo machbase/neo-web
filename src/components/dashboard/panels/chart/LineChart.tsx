@@ -1,21 +1,7 @@
-import { getTqlChart } from '@/api/repository/machiot';
+import { fetchTimeMinMax, getTqlChart } from '@/api/repository/machiot';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
-import {
-    calcInterval,
-    calcRefreshTime,
-    decodeFormatterFunction,
-    // createQuery,
-    // removeColumnQuotes,
-    // createMapValueForTag,
-    // createGaugeQuery,
-    // createPieQuery,
-    // createMapValueForPie,
-    // createSeriesOption, createQuery, removeColumnQuotes,
-    // createMapValueForTag,
-    setUnitTime,
-} from '@/utils/dashboardUtil';
+import { calcInterval, calcRefreshTime, decodeFormatterFunction } from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
-import './LineChart.scss';
 import { ShowChart } from '@/components/tql/ShowChart';
 import { DashboardQueryParser } from '@/utils/DashboardQueryParser';
 import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
@@ -24,23 +10,10 @@ import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { chartTypeConverter } from '@/utils/eChartHelper';
+import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
+import './LineChart.scss';
 
-const LineChart = ({
-    pLoopMode,
-    pChartVariableId,
-    pRefresh,
-    pSetRefresh,
-    pPanelInfo,
-    pBoardInfo,
-    pType,
-    pInsetDraging,
-    pDragStat,
-    pModifyState,
-    pSetModifyState,
-    pParentWidth,
-    pIsHeader,
-}: // pIsView,
-any) => {
+const LineChart = ({ pLoopMode, pChartVariableId, pPanelInfo, pType, pInsetDraging, pDragStat, pModifyState, pSetModifyState, pParentWidth, pIsHeader, pBoardTimeMinMax }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
     const [sChartData, setChartData] = useState<any>({});
     const [sIsMessage, setIsMessage] = useState<any>('Please set up a Query.');
@@ -65,15 +38,18 @@ any) => {
         if (sRefClientWidth === 0) sRefClientWidth = Math.floor(pParentWidth / GRID_LAYOUT_COLS) * pPanelInfo.w - 10;
         if (sRefClientHeight === 0) sRefClientHeight = (GRID_LAYOUT_ROW_HEIGHT + 10) * (pPanelInfo.h - 1) - (pIsHeader ? 5 : -25);
 
-        const sPanelTimeRange = pPanelInfo.timeRange;
-        const sBoardTimeRange = pBoardInfo.dashboard.timeRange;
-        const sStartTime = pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.start ?? '') : setUnitTime(sBoardTimeRange.start);
-        const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(sPanelTimeRange.end ?? '') : setUnitTime(sBoardTimeRange.end);
-        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
-        // const sTake = Number((sRefClientWidth / 3).toFixed());
-        // The variable below is used to adjust its value to a multiple of the number of tags.
-        // const sTakeCount = sTake % sTagList.length === 0 ? sTake : sTake + (sTagList.length - (sTake % sTagList.length));
+        let sStartTime = undefined;
+        let sEndTime = undefined;
+        if (pPanelInfo.useCustomTime) {
+            const sTimeMinMax = await handlePanelTimeRange(pPanelInfo.timeRange.start, pPanelInfo.timeRange.end);
+            sStartTime = sTimeMinMax.min;
+            sEndTime = sTimeMinMax.max;
+        } else {
+            sStartTime = pBoardTimeMinMax.min;
+            sEndTime = pBoardTimeMinMax.max;
+        }
 
+        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
         const [sParsedQuery, sAliasList] = await DashboardQueryParser(chartTypeConverter(pPanelInfo.type), pPanelInfo.blockList, sRollupTableList, {
             interval: sIntervalInfo,
             start: sStartTime,
@@ -106,31 +82,31 @@ any) => {
         setIsLoading(false);
         pSetModifyState({ id: '', state: false });
     };
-
     const sSetIntervalTime = () => {
         if (pType === 'create' || pType === 'edit') return null;
         if (pPanelInfo.timeRange.refresh !== 'Off') return calcRefreshTime(pPanelInfo.timeRange.refresh);
-        if (pBoardInfo.dashboard.timeRange.refresh !== 'Off') return calcRefreshTime(pBoardInfo.dashboard.timeRange.refresh);
         return null;
+    };
+    const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
+        const sTargetPanel = pPanelInfo;
+        const sTargetTag = sTargetPanel.blockList[0];
+        const sSvrResult = await fetchTimeMinMax(sTargetTag);
+        const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
+        return sResult;
+    };
+    const handlePanelTimeRange = async (sStart: any, sEnd: any) => {
+        const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
+        return timeMinMaxConverter(sStart, sEnd, sSvrRes);
     };
 
     useEffect(() => {
-        if (pRefresh) {
-            executeTqlChart();
-            pSetRefresh(0);
-        }
-    }, [pRefresh]);
-
+        if (sIsMounted && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh)) executeTqlChart();
+    }, [pBoardTimeMinMax]);
     useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
-    useEffect(() => {
-        if ((pModifyState.state, pModifyState.id === pPanelInfo.id)) {
+        if (pModifyState.state && pModifyState.id === pPanelInfo.id) {
             executeTqlChart();
         }
     }, [pModifyState]);
-
     useEffect(() => {
         if (pType !== 'create' && !pModifyState.state) {
             executeTqlChart();
@@ -140,28 +116,22 @@ any) => {
             }
         }
     }, [pPanelInfo.w, pPanelInfo.h, pIsHeader]);
-
-    useEffect(() => {
-        if (sIsMounted && !pPanelInfo.useCustomTime) {
-            executeTqlChart();
-        }
-    }, [pBoardInfo.dashboard.timeRange.start, pBoardInfo.dashboard.timeRange.end]);
-
     useEffect(() => {
         if (sIsMounted && !pInsetDraging) {
             executeTqlChart();
         }
     }, [pInsetDraging]);
-
     useEffect(() => {
         if (sIsMounted && !pDragStat) {
             executeTqlChart();
         }
     }, [pDragStat]);
-
     useEffect(() => {
         if (sIsMounted && !pDragStat && !pInsetDraging) executeTqlChart(pParentWidth);
     }, [pParentWidth]);
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     useOverlapTimeout(() => {
         !sIsLoading && executeTqlChart();

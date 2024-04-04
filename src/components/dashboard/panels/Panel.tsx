@@ -7,8 +7,6 @@ import { ChartThemeBackgroundColor } from '@/utils/constants';
 const Panel = ({
     pLoopMode,
     pChartVariableId,
-    pRefresh,
-    pSetRefresh,
     pBoardInfo,
     pShowEditPanel,
     pType,
@@ -20,6 +18,7 @@ const Panel = ({
     pSetModifyState,
     pParentWidth,
     pIsHeader,
+    pBoardTimeMinMax,
 }: any) => {
     const [sRefreshCount, setRefreshCount] = useState<number>(0);
 
@@ -34,12 +33,10 @@ const Panel = ({
                 pPanelInfo={pPanelInfo}
                 pIsView={pIsView}
                 pIsHeader={pIsHeader}
-            ></PanelHeader>
+            />
             {pPanelInfo && (
                 <LineChart
                     pLoopMode={pLoopMode}
-                    pRefresh={pRefresh}
-                    pSetRefresh={pSetRefresh}
                     pDragStat={pDragStat}
                     pInsetDraging={pInsetDraging}
                     pBoardInfo={pBoardInfo}
@@ -51,7 +48,8 @@ const Panel = ({
                     pIsHeader={pIsHeader}
                     pChartVariableId={pChartVariableId}
                     pIsView={pIsView}
-                ></LineChart>
+                    pBoardTimeMinMax={pBoardTimeMinMax}
+                />
             )}
         </div>
     );

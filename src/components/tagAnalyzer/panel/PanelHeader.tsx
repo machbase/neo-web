@@ -21,28 +21,22 @@ const PanelHeader = ({
     pIsRaw,
     pFetchPanelData,
     pIsEdit,
-    pIsMinMaxPopup,
-    pSetIsMinMaxPopup,
+    pCtrMinMaxPopupModal,
     pSetIsFFTModal,
     pIsUpdate,
-    pSetIsUpdate,
     pSetSaveEditedInfo,
     pNavigatorRange,
+    pGetBgnEndTime,
 }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sPanelRange, setPanelRage] = useState<any>({ startTime: 0, endTime: 0 });
     const [sEditPanel, setEditPanel] = useState<boolean>(false);
 
-    useEffect(() => {
-        pPanelRange.startTime && setPanelRage({ startTime: changeUtcToText(pPanelRange.startTime), endTime: changeUtcToText(pPanelRange.endTime) });
-    }, [pPanelRange]);
-
     const clickHeader = () => {
         pGetChartInfo(pPanelRange.startTime, pPanelRange.endTime, pPanelInfo, pIsRaw);
         pSetSelectedChart(!pSelectedChart);
     };
-
     const removePanel = () => {
         pGetChartInfo(pPanelRange.startTime, pPanelRange.endTime, pPanelInfo, pIsRaw, 'delete');
         pSetSelectedChart(!pSelectedChart);
@@ -56,18 +50,19 @@ const PanelHeader = ({
             })
         );
     };
-
-    const handleSelection = () => {
-        pSetIsMinMaxPopup(!pIsMinMaxPopup);
-        if (!pIsMinMaxPopup === false) {
-            pSetIsUpdate(false);
-        }
+    const handleRefreshTime = async () => {
+        !pIsEdit && (await pGetBgnEndTime());
+        pIsEdit && pResetData();
     };
+
+    useEffect(() => {
+        pPanelRange.startTime && setPanelRage({ startTime: changeUtcToText(pPanelRange.startTime), endTime: changeUtcToText(pPanelRange.endTime) });
+    }, [pPanelRange]);
 
     return (
         <div className="panel-header">
             <div onClick={() => pPanelInfo.tag_set.length === 1 && clickHeader()} className="title">
-                {pPanelsInfo && pPanelsInfo.length > 0 && pPanelsInfo[0].board.index_key === pPanelInfo.index_key && <MdFlagCircle></MdFlagCircle>}
+                {pPanelsInfo && pPanelsInfo.length > 0 && pPanelsInfo[0].board.index_key === pPanelInfo.index_key && <MdFlagCircle />}
                 {pPanelInfo.chart_title}
             </div>
             <div className="time">
@@ -76,7 +71,7 @@ const PanelHeader = ({
             </div>
             <div className="options">
                 <div className="raw">
-                    <IconButton pWidth={38} pHeight={32} pIcon={<MdRawOn style={{ color: pIsRaw ? '#fdb532 ' : '' }} />} onClick={() => pSetIsRaw(!pIsRaw)} />
+                    <IconButton pWidth={38} pHeight={32} pIcon={<MdRawOn style={{ color: pIsRaw ? '#fdb532 ' : '' }} />} onClick={pSetIsRaw} />
                 </div>
                 {!pIsEdit ? (
                     <>
@@ -84,29 +79,23 @@ const PanelHeader = ({
                         <IconButton
                             pWidth={25}
                             pHeight={25}
-                            pIsActive={pIsMinMaxPopup}
-                            pIcon={<PiSelectionPlusBold style={{ color: pIsMinMaxPopup ? '#f8f8f8' : '' }} />}
-                            onClick={() => handleSelection()}
+                            pIsActive={pIsUpdate}
+                            pIcon={<PiSelectionPlusBold style={{ color: pIsUpdate ? '#f8f8f8' : '' }} />}
+                            onClick={pCtrMinMaxPopupModal}
                         />
-                        <div style={{ display: pIsMinMaxPopup && pIsUpdate ? 'initial' : 'none' }}>
+                        <div style={{ display: pIsUpdate ? 'initial' : 'none' }}>
                             <IconButton pWidth={25} pHeight={25} pIcon={<LineChart />} onClick={() => pSetIsFFTModal(true)} />
                         </div>
                     </>
                 ) : null}
                 <div className="divider" />
                 <IconButton pWidth={25} pIcon={<Refresh />} onClick={() => pFetchPanelData(pPanelRange)} />
-                <IconButton pWidth={25} pIcon={<LuTimerReset />} onClick={() => pResetData()} />
+                <IconButton pWidth={25} pIcon={<LuTimerReset />} onClick={handleRefreshTime} />
                 {!pIsEdit && <IconButton pWidth={25} pIcon={<GearFill />} onClick={() => setEditPanel(true)} />}
                 {!pIsEdit && <IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}
             </div>
             {sEditPanel && (
-                <EditPanel
-                    pBoardInfo={pBoardInfo}
-                    pPanelInfo={pPanelInfo}
-                    pSetEditPanel={setEditPanel}
-                    pNavigatorRange={pNavigatorRange}
-                    pSetSaveEditedInfo={pSetSaveEditedInfo}
-                ></EditPanel>
+                <EditPanel pBoardInfo={pBoardInfo} pPanelInfo={pPanelInfo} pSetEditPanel={setEditPanel} pNavigatorRange={pNavigatorRange} pSetSaveEditedInfo={pSetSaveEditedInfo} />
             )}
         </div>
     );

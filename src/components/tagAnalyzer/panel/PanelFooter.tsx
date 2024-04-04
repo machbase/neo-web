@@ -12,9 +12,6 @@ const PanelFooter = ({ pSetButtonRange, pPanelInfo, pNavigatorRange, pMoveNaviga
     };
     return (
         <div className="footer-form">
-            <div></div>
-            <div></div>
-
             <div
                 style={
                     pPanelInfo.show_legend === 'Y'
