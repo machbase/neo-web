@@ -77,7 +77,7 @@ const CreatePanel = ({
         }
     }, [pIsSaveModal]);
 
-    const addPanel = () => {
+    const addPanel = async () => {
         if (sPanelOption.useCustomTime) {
             let sStart: any;
             let sEnd: any;
@@ -106,10 +106,12 @@ const CreatePanel = ({
             })
         );
         sCreateModeTimeMinMax && pSetBoardTimeMinMax(sCreateModeTimeMinMax);
+        if (!sCreateModeTimeMinMax && !pBoardTimeMinMax)
+            pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
         pSetModifyState({ id: sPanelOption.id, state: true });
     };
 
-    const editPanel = () => {
+    const editPanel = async () => {
         const sNewPanelId = generateUUID();
         setBoardList((aPrev: any) => {
             return aPrev.map((aItem: any) => {
@@ -126,10 +128,11 @@ const CreatePanel = ({
                     : aItem;
             });
         });
-        pSetModifyState({ id: sNewPanelId, state: true });
+        if (!sCreateModeTimeMinMax) pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
+        else pSetModifyState({ id: sNewPanelId, state: true });
     };
 
-    const applyPanel = () => {
+    const applyPanel = async () => {
         const sTmpPanelOption = JSON.parse(JSON.stringify(sPanelOption));
 
         if (sTmpPanelOption.useCustomTime) {
@@ -164,6 +167,8 @@ const CreatePanel = ({
             }
             if (pType === 'create' && !pBoardTimeMinMax) {
                 getTimeMinMax(pBoardInfo.dashboard.timeRange);
+            } else if (pType === 'edit') {
+                pSetBoardTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange));
             } else pSetModifyState({ id: sTmpPanelOption.id, state: true });
         }
     };
@@ -171,11 +176,23 @@ const CreatePanel = ({
     const getTimeMinMax = async (aTimeRange: any) => {
         const sTargetPanel = sPanelOption;
         const sTargetTag = sTargetPanel.blockList[0];
-        const sSvrResult = await fetchTimeMinMax(sTargetTag);
-        const sSvrMinMax: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
-        const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrMinMax);
-        setCreateModeTimeMinMax(() => sTimeMinMax);
-        return;
+        const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
+        const sCustomTag = sTargetTag.filter.filter((aFilter: any) => {
+            if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
+        })[0]?.value;
+
+        if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
+            const sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
+            const sSvrMinMax: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
+            const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrMinMax);
+            setCreateModeTimeMinMax(() => sTimeMinMax);
+            return sTimeMinMax;
+        } else {
+            const sNowTime = moment().unix() * 1000;
+            const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
+            setCreateModeTimeMinMax(() => sNowTimeMinMax);
+            return sNowTimeMinMax;
+        }
     };
 
     const getTables = async (aStatus: boolean) => {
