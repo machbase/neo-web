@@ -226,7 +226,7 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
     const sAliasList: any[] = [];
     const sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
-        const sUseAgg: boolean = aQuery.valueList[0].aggregator !== 'value' && aQuery.valueList[0].aggregator !== 'none' && !sUseDiff;
+        const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
         const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval);
         const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList)[0];
         const sTimeWhere = GetTimeWhere(aQuery.time, aTime);
@@ -235,6 +235,7 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
         const sOrderBy = 'ORDER BY TIME';
         const sAlias = GetAlias(aQuery.valueList[0]);
         const sUseCountAll = UseCountAll(aQuery.valueList);
+        const sIsVirtualTable = aQuery.tableName.includes('V$');
         let sSql: string = '';
         let sTql: string = '';
 
@@ -249,9 +250,13 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
         }
         // PIE | GAUGE | LIQUIDFILL
         if (aResDataType === 'NAME_VALUE') {
-            sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.userName}.${aQuery.tableName} WHERE ${sTimeWhere} ${
-                sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''
-            }`;
+            if (sIsVirtualTable) {
+                sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''}`;
+            } else {
+                sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.userName}.${aQuery.tableName} WHERE ${sTimeWhere} ${
+                    sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''
+                }`;
+            }
             if (aQuery?.math && aQuery?.math !== '') sTql += `MAPVALUE(1, ${mathValueConverter('0', aQuery?.math)}, "VALUE")\nPOPVALUE(0)\n`;
             sTql += `MAPVALUE(1, dict("name", "${sAlias}", "value", value(0)))\nPOPVALUE(0)`;
         }

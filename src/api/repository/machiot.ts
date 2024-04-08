@@ -3,6 +3,7 @@ import { Error } from '@/components/toast/Toast';
 import { createMinMaxQuery, createTableTagMap, decodeJwt } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
+import moment from 'moment';
 // import { getTimeZoneValue } from '@/utils/utils';
 
 const getTqlChart = (aData: string, aType?: 'dsh') => {
@@ -312,7 +313,12 @@ const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
 export const fetchTimeMinMax = async (aTargetInfo: any) => {
     let sQuery: string | undefined = undefined;
     // Query tag table
-    if (aTargetInfo.type === 'tag') sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${aTargetInfo.table}_STAT where name in ('${aTargetInfo.tag}')`;
+    if (aTargetInfo.type === 'tag') {
+        const sIsVirtualTable = aTargetInfo.table.includes('V$');
+        const reg = /(?<=V\$)(.*?)(?=_STAT)/g;
+        const sTableName = sIsVirtualTable ? aTargetInfo.table.match(reg) : aTargetInfo.table;
+        sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
+    }
     // Query log table
     if (aTargetInfo.type === 'log') sQuery = `select min(_ARRIVAL_TIME) as min_time, max(_ARRIVAL_TIME) as max_time from ${aTargetInfo.userName}.${aTargetInfo.table}`;
     if (!sQuery) return;
@@ -329,6 +335,13 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
             Error(sData.data);
         }
     }
+
+    if (sData.data.rows.length === 0) {
+        const sNowTime = moment().unix() * 1000000;
+        const sNowTimeMinMax = [moment(sNowTime).subtract(1, 'h').unix() * 1000000, sNowTime];
+        return sNowTimeMinMax;
+    }
+
     return sData.data.rows;
 };
 

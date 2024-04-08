@@ -14,7 +14,10 @@ import { getTableList } from '@/api/repository/api';
 import moment from 'moment';
 import { decodeJwt, generateUUID, isValidJSON } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
-import { fetchTags, fetchTimeMinMax } from '@/api/repository/machiot';
+import {
+    // fetchTags,
+    fetchTimeMinMax,
+} from '@/api/repository/machiot';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 
 const CreatePanel = ({
@@ -29,7 +32,7 @@ const CreatePanel = ({
     pMoveTimeRange,
     pSetTimeRangeModal,
     pHandleSaveModalOpen,
-    pIsSaveModal,
+    pSetIsSaveModal,
     pBoardTimeMinMax,
     pSetBoardTimeMinMax,
 }: {
@@ -44,7 +47,7 @@ const CreatePanel = ({
     pMoveTimeRange: any;
     pSetTimeRangeModal: (aValue: boolean) => void;
     pHandleSaveModalOpen: any;
-    pIsSaveModal: boolean;
+    pSetIsSaveModal: any;
     pBoardTimeMinMax: any;
     pSetBoardTimeMinMax: (aTimeRange: { min: number; max: number }) => void;
 }) => {
@@ -59,24 +62,9 @@ const CreatePanel = ({
     const [sSaveState, setSaveState] = useState<boolean>(false);
     const [sTimeRangeStatus, setTimeRangeStatus] = useState<boolean>(false);
     const [sCreateModeTimeMinMax, setCreateModeTimeMinMax] = useState<any>(undefined);
+    const [sIsPreview, setIsPreview] = useState<boolean>(false);
 
-    useEffect(() => {
-        if (sTimeRangeStatus) return setTimeRangeStatus(() => false);
-        if (sSelectedBoardInfo?.dashboard?.panels?.length > 0 && sPanelOption && sPanelOption?.id) {
-            !sSaveState && pHandleSaveModalOpen();
-            setSaveState(() => true);
-            // already save
-            if (sSelectedBoardInfo.path !== '') handleClose();
-        }
-    }, [sBoardList]);
-
-    useEffect(() => {
-        if (sSaveState && !pIsSaveModal) {
-            handleClose();
-            setSaveState(() => false);
-        }
-    }, [pIsSaveModal]);
-
+    // Create
     const addPanel = async () => {
         if (sPanelOption.useCustomTime) {
             let sStart: any;
@@ -105,12 +93,17 @@ const CreatePanel = ({
                 return aItem.id === pBoardInfo.id ? { ...aItem, dashboard: { ...aItem.dashboard, panels: [...aItem.dashboard.panels, sPanelOption] } } : aItem;
             })
         );
-        sCreateModeTimeMinMax && pSetBoardTimeMinMax(sCreateModeTimeMinMax);
-        if (!sCreateModeTimeMinMax && !pBoardTimeMinMax)
-            pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
-        pSetModifyState({ id: sPanelOption.id, state: true });
-    };
 
+        if (pBoardInfo.dashboard.panels.length === 0) {
+            pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
+            pSetModifyState({ id: sPanelOption.id, state: true });
+        } else {
+            if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
+            else pSetModifyState({ id: sPanelOption.id, state: true });
+        }
+        handleClose();
+    };
+    // Edit
     const editPanel = async () => {
         const sNewPanelId = generateUUID();
         setBoardList((aPrev: any) => {
@@ -128,10 +121,14 @@ const CreatePanel = ({
                     : aItem;
             });
         });
-        if (!sCreateModeTimeMinMax) pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
-        else pSetModifyState({ id: sNewPanelId, state: true });
+        // if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
+        // else pSetModifyState({ id: sPanelOption.id, state: true });
+        // pSetModifyState({ id: sNewPanelId, state: true });
+        if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
+        else pSetBoardTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange));
+        handleClose();
     };
-
+    // Preview
     const applyPanel = async () => {
         const sTmpPanelOption = JSON.parse(JSON.stringify(sPanelOption));
 
@@ -168,11 +165,11 @@ const CreatePanel = ({
             if (pType === 'create' && !pBoardTimeMinMax) {
                 getTimeMinMax(pBoardInfo.dashboard.timeRange);
             } else if (pType === 'edit') {
-                pSetBoardTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange));
+                setCreateModeTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange));
+                setIsPreview(() => true);
             } else pSetModifyState({ id: sTmpPanelOption.id, state: true });
         }
     };
-
     const getTimeMinMax = async (aTimeRange: any) => {
         const sTargetPanel = sPanelOption;
         const sTargetTag = sTargetPanel.blockList[0];
@@ -194,7 +191,6 @@ const CreatePanel = ({
             return sNowTimeMinMax;
         }
     };
-
     const getTables = async (aStatus: boolean) => {
         const sResult: any = await getTableList();
         if (sResult.success) {
@@ -207,14 +203,14 @@ const CreatePanel = ({
                     if (sToken) {
                         let sOption = DefaultChartOption;
                         const sTableType = getTableType(newTable[0][4]);
-                        let sData: any = null;
-                        let sTag: string = '';
-                        if (sTableType === 'tag') sData = await fetchTags(newTable[0][3]);
-                        if (sData && sData.success && sData.data && sData.data.rows && sData.data.rows.length > 0) sTag = sData.data.rows[0][1];
+                        // let sData: any = null;
+                        // let sTag: string = '';
+                        // if (sTableType === 'tag') sData = await fetchTags(newTable[0][3]);
+                        // if (sData && sData.success && sData.data && sData.data.rows && sData.data.rows.length > 0) sTag = sData.data.rows[0][1];
                         sOption = {
                             ...sOption,
                             id: generateUUID(),
-                            blockList: createDefaultTagTableOption(decodeJwt(sToken).sub, newTable[0], sTableType, sTag),
+                            blockList: createDefaultTagTableOption(decodeJwt(sToken).sub, newTable[0], sTableType, ''),
                         };
                         sOption.chartOptions = getDefaultSeriesOption(sOption.type);
                         setPanelOption(sOption);
@@ -227,20 +223,28 @@ const CreatePanel = ({
             }
         }
     };
-
     const handleClose = () => {
         pSetType(undefined);
         pSetCreateModal(false);
+        pSetIsSaveModal(true);
     };
     const handleTimeRange = () => {
         setTimeRangeStatus(() => true);
         pSetTimeRangeModal(true);
     };
-
     const init = async () => {
         getTables(true);
     };
 
+    useEffect(() => {
+        if (sTimeRangeStatus) return setTimeRangeStatus(() => false);
+        if (sSelectedBoardInfo?.dashboard?.panels?.length > 0 && sPanelOption && sPanelOption?.id) {
+            !sSaveState && pHandleSaveModalOpen();
+            setSaveState(() => true);
+            // already save
+            if (sSelectedBoardInfo.path !== '') handleClose();
+        }
+    }, [sBoardList]);
     useEffect(() => {
         init();
     }, []);
@@ -341,7 +345,7 @@ const CreatePanel = ({
                                         pPanelInfo={sAppliedPanelOption}
                                         pModifyState={pModifyState}
                                         pSetModifyState={pSetModifyState}
-                                        pBoardTimeMinMax={pType === 'create' && !pBoardTimeMinMax ? sCreateModeTimeMinMax : pBoardTimeMinMax}
+                                        pBoardTimeMinMax={(pType === 'create' && !pBoardTimeMinMax) || sIsPreview ? sCreateModeTimeMinMax : pBoardTimeMinMax}
                                     />
                                 )}
                             </Pane>

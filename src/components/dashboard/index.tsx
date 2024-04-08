@@ -22,7 +22,15 @@ import { Input } from '../inputs/Input';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 
-const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpen, setIsSaveModal, pIsSave }: any) => {
+const Dashboard = ({
+    pDragStat,
+    pInfo,
+    pWidth,
+    // pIsSaveModal,
+    pHandleSaveModalOpen,
+    pSetIsSaveModal,
+    pIsSave,
+}: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const setRollupTabls = useSetRecoilState(gRollupTableList);
@@ -221,7 +229,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
                         </button>
                         <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight />} onClick={() => moveTimeRange('r')} />
                         <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
-                        <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
+                        <IconButton pIcon={<SaveAs />} onClick={() => pSetIsSaveModal(true)} />
                         {pIsSave ? <IconButton pIcon={<MdLink size={18} />} onClick={handleCopyLink} /> : null}
                     </div>
                 </div>
@@ -285,7 +293,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
                         pMoveTimeRange={moveTimeRange}
                         pSetTimeRangeModal={setTimeRangeModal}
                         pHandleSaveModalOpen={pHandleSaveModalOpen}
-                        pIsSaveModal={pIsSaveModal}
+                        pSetIsSaveModal={pSetIsSaveModal}
                         pBoardTimeMinMax={sBoardTimeMinMax}
                         pSetBoardTimeMinMax={setBoardTimeMinMax}
                     />

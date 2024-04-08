@@ -76,6 +76,13 @@ const getTableInfo = async (aDataBaseId: string, aTableId: string) => {
         url: queryString,
     });
 };
+export const getVirtualTableInfo = async (aDataBaseId: string, aTableName: string) => {
+    const queryString = `/machbase?q=select * from v$columns WHERE DATABASE_ID = ${aDataBaseId} AND ID > 0 AND ID < 65534 AND TABLE_ID = (select ID from v$tables where name = '${aTableName}') ORDER BY ID`;
+    return await request({
+        method: 'GET',
+        url: queryString,
+    });
+};
 const getColumnIndexInfo = async (aDataBaseId: string, aTableId: string) => {
     const queryString = `/machbase?q=select c.name as col_name, i.name as index_name, i.type as index_type from m$sys_index_columns c inner join m$sys_indexes i on c.database_id=i.database_id and c.table_id=i.table_id and c.index_id=i.id where c.database_id=${aDataBaseId} and c.table_id=${aTableId}`;
     return await request({

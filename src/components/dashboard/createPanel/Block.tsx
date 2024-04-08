@@ -1,11 +1,11 @@
-import { getTableInfo } from '@/api/repository/api';
+import { getTableInfo, getVirtualTableInfo } from '@/api/repository/api';
 import { fetchTags, getRollupTableList, getTqlChart } from '@/api/repository/machiot';
 import { BsArrowsCollapse, BsArrowsExpand, Close, Refresh, TbMath, TbMathOff } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
 import { DIFF_LIST, SEPARATE_DIFF, createDefaultTagTableOption, getTableType, isNumberTypeColumn, tagAggregatorList } from '@/utils/dashboardUtil';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Filter from './Filter';
 import './Block.scss';
 import Value from './Value';
@@ -18,8 +18,17 @@ import { Input } from '@/components/inputs/Input';
 import { TagColorList } from '@/utils/constants';
 import { SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser';
 import { Error } from '@/components/toast/Toast';
+import { chartTypeConverter } from '@/utils/eChartHelper';
 
-export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
+export const Block = ({
+    pBlockInfo,
+    pPanelOption,
+    pTableList,
+    // pType,
+    pGetTables,
+    pSetPanelOption,
+    pValueLimit,
+}: any) => {
     const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
@@ -31,6 +40,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     const [sFormulaSelection, setFormulaSelection] = useState<boolean>(false);
     const sColorPickerRef = useRef<any>(null);
     const sMathRef = useRef<any>(null);
+
     const setOption = (aKey: string, aData: any) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -41,14 +51,23 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             };
         });
     };
-
     const changedOption = async (aKey: string, aData: any) => {
         if (aKey === 'table') {
-            const sTargetTable = pTableList.find((aItem: any) => aItem[3] === aData.target.value);
-            setSelectedTableType(getTableType(sTargetTable[4]));
-            let sTagList: any = [];
-            if (getTableType(sTargetTable[4]) === 'tag') sTagList = await getTagList(aData.target.value);
-            const sDefaultBlockOption = createDefaultTagTableOption(sTargetTable[1], sTargetTable, getTableType(sTargetTable[4]), sTagList[0]);
+            const sTargetTable = pTableList.find((aItem: any) => aItem[3] === aData.target.value || aData.target.value.includes(aItem[3]));
+            const sIsVirtualTable = aData.target.value.includes('V$');
+
+            if (sIsVirtualTable) setSelectedTableType('vir_tag');
+            else setSelectedTableType(getTableType(sTargetTable[4]));
+
+            // let sSvrResTagList: any = [];
+            // if (!sIsVirtualTable && getTableType(sTargetTable[4]) === 'tag') sSvrResTagList = await getTagList(sTargetTable[3]);
+            // sSvrResTagList[0]
+            const sDefaultBlockOption = createDefaultTagTableOption(sTargetTable[1], sTargetTable, getTableType(sTargetTable[4]), '');
+            if (sIsVirtualTable) {
+                sDefaultBlockOption[0].useCustom = true;
+                sDefaultBlockOption[0].table = aData.target.value;
+                sDefaultBlockOption[0].values = [{ id: sDefaultBlockOption[0].values[0].id, aggregator: 'count', value: '', alias: '' }];
+            }
             const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any, aIdx: number) => {
                 return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID(), color: TagColorList[aIdx] } : aTable;
             });
@@ -58,7 +77,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                     blockList: sTempTableList,
                 };
             });
-            getColumnList(aData.target.value);
+            // getColumnList(aData.target.value);
         } else if (aKey === 'aggregator' && !SEPARATE_DIFF) {
             const sDiffVal: boolean = aData.target.value.includes('diff');
             pSetPanelOption((aPrev: any) => {
@@ -80,13 +99,11 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             });
         }
     };
-
     const getColumnList = async (aTable: string) => {
-        const sTable = pTableList.find((aItem: any) => aItem[3] === aTable);
-        const sData = await getTableInfo(sTable[6], sTable[2]);
-
+        const sTable = pTableList.find((aItem: any) => aItem[3] === aTable || aTable.includes(aItem[3]));
+        const sIsVirtualTable = aTable.includes('V$');
+        const sData = sIsVirtualTable ? await getVirtualTableInfo(sTable[6], aTable) : await getTableInfo(sTable[6], sTable[2]);
         setTimeList(sData.data.rows.filter((aItem: any) => aItem[1] === 6));
-
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
@@ -97,47 +114,47 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         });
 
         setColumnList(sData.data.rows);
-        if (pType === 'create') {
-            pSetPanelOption((aPrev: any) => {
-                return {
-                    ...aPrev,
-                    blockList: aPrev.blockList.map((aItem: any) => {
-                        return aItem.id === pBlockInfo.id
-                            ? {
-                                  ...aItem,
-                                  time: sData.data.rows.filter((aItem: any) => {
-                                      return aItem[1] === 6;
-                                  })[0][0],
-                                  value: sData.data.rows.filter((aItem: any) => {
-                                      return isNumberTypeColumn(aItem[1]);
-                                  })[0][0],
-                                  name: sData.data.rows.filter((aItem: any) => {
-                                      return aItem[1] === 5;
-                                  }),
-                                  values: aItem.values.map((aItem: any) => {
-                                      return {
-                                          ...aItem,
-                                          value: sData.data.rows.filter((aItem: any) => {
-                                              return isNumberTypeColumn(aItem[1]);
-                                          })[0][0],
-                                      };
-                                  }),
-                              }
-                            : aItem;
-                    }),
-                };
-            });
-        }
+        // if (pType === 'create') {
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                blockList: aPrev.blockList.map((aItem: any) => {
+                    return aItem.id === pBlockInfo.id
+                        ? {
+                              ...aItem,
+                              time: sData.data.rows.filter((aItem: any) => {
+                                  return aItem[1] === 6;
+                              })[0][0],
+                              value: sData.data.rows.filter((aItem: any) => {
+                                  return isNumberTypeColumn(aItem[1]);
+                              })[0][0],
+                              name: sData.data.rows.filter((aItem: any) => {
+                                  return aItem[1] === 5;
+                              }),
+                              values: aItem.values.map((aItem: any) => {
+                                  return {
+                                      ...aItem,
+                                      value: sData.data.rows.filter((aItem: any) => {
+                                          return isNumberTypeColumn(aItem[1]);
+                                      })[0][0],
+                                  };
+                              }),
+                          }
+                        : aItem;
+                }),
+            };
+        });
+        // }
     };
-
     const getTagList = async (aTable: any) => {
         const sData: any = await fetchTags(aTable);
         if (sData && sData.success && sData.data && sData.data.rows && sData.data.rows.length > 0) {
-            const sTagList = sData.data.rows.map((aItem: any) => {
+            const sSvrResTagList = sData.data.rows.map((aItem: any) => {
                 return aItem[1];
             });
-            setTagList(sTagList);
-            return sTagList;
+            // setOption('tag', sSvrResTagList[0]);
+            setTagList(sSvrResTagList);
+            return sSvrResTagList;
         } else {
             setTagList([]);
             return [];
@@ -185,7 +202,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             };
         });
     };
-
     const addValue = () => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -208,7 +224,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             };
         });
     };
-
     const deleteSeries = () => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -227,7 +242,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             };
         });
     };
-
     const removeFilter = (aId: string) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -238,7 +252,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             };
         });
     };
-
     const HandleFold = () => {
         const sChangedBlockInfo = JSON.parse(JSON.stringify(pBlockInfo));
         sChangedBlockInfo.useCustom = !pBlockInfo.useCustom;
@@ -271,7 +284,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             };
         });
     };
-
     const validationFormula = async (aFormula: string): Promise<boolean> => {
         const sResult: any = await getTqlChart(
             `FAKE(json({[1709779542, 1]}))\nMAPVALUE(2, ${mathValueConverter(SqlResDataType(pPanelOption.type) === 'TIME_VALUE' ? '1' : '2', aFormula)})\nJSON()`
@@ -279,12 +291,10 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         if (!sResult?.data?.success || !sResult?.data?.data?.rows?.length) return false;
         else return true;
     };
-
     const handleFormulaIconBtn = () => {
         if (sIsMath) handleExitFormulaField();
         else setIsMath(() => true);
     };
-
     const handleExitFormulaField = async (aIsOutside?: boolean) => {
         if (aIsOutside && sFormulaSelection) return setFormulaSelection(() => false);
         if (!sIsMath) return;
@@ -297,11 +307,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             // changedOption('math', { target: { value: '' } });
         }
     };
-
     const handleEnterKey = (e: React.KeyboardEvent) => {
         if (e.key === 'Escape' || e.key === 'Enter') handleExitFormulaField();
     };
-
     /** Update Table + Rollup */
     const HandleTable = async () => {
         setIsLoadingRollup(() => true);
@@ -311,44 +319,51 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         await pGetTables();
         setIsLoadingRollup(() => false);
     };
-
-    useEffect(() => {
-        sSelectedTableType === 'log' && setOption('useCustom', true);
-        sSelectedTableType === 'tag' &&
-            pSetPanelOption({
-                ...pPanelOption,
-                blockList: pPanelOption.blockList.map((aItem: any) => {
-                    return aItem.id === pBlockInfo.id
-                        ? {
-                              ...aItem,
-                              values: aItem.values.filter((aItem: any, aIdx: number) => {
-                                  aItem;
-                                  return aIdx === 0;
-                              }),
-                          }
-                        : aItem;
-                }),
-            });
-    }, [sSelectedTableType]);
-
-    useEffect(() => {
-        const sTable = pTableList.find((aItem: any) => aItem[3] === pBlockInfo.table);
+    /** return table list + virtual table list */
+    const getTableList = useMemo((): string[] => {
+        const sTableList = pTableList.map((aItem: any) => aItem[3]);
+        if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
+            const sTagTableList = JSON.parse(JSON.stringify(pTableList)).filter((aTable: any) => getTableType(aTable[4]) === 'tag');
+            sTagTableList.filter((aTagTable: any) => aTagTable.splice(3, 0, `V$${aTagTable[3]}_STAT`));
+            const sResult = sTableList.concat(sTagTableList.map((bTagTable: any) => bTagTable[3]));
+            return sResult;
+        } else {
+            // Time_value data chart reset
+            const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type)) === 'TIME_VALUE';
+            const sTargetChart = pPanelOption.blockList[0].table.includes('V$');
+            if (sTargetChart && sChartDataType) {
+                pSetPanelOption((aPrev: any) => {
+                    return {
+                        ...aPrev,
+                        blockList: createDefaultTagTableOption(pTableList[0][1], pTableList[0], getTableType(pTableList[0][4]), ''),
+                    };
+                });
+            }
+            return sTableList;
+        }
+    }, [pPanelOption.type]);
+    /** init */
+    const init = async () => {
+        const sTable = pTableList.find((aItem: any) => aItem[3] === pBlockInfo.table || pBlockInfo.table.includes(aItem[3]));
+        const sIsVirtualTable = pBlockInfo.table.includes('V$');
         const sTableType = getTableType(sTable[4]);
-        setSelectedTableType(sTableType);
-
+        const sSelectedType = sIsVirtualTable ? 'vir_tag' : sTableType;
+        let sResTagList: any = [];
+        setSelectedTableType(sSelectedType);
         getColumnList(pBlockInfo.table);
-        if (sTableType === 'tag') getTagList(pBlockInfo.table);
-    }, []);
-
+        if (!sIsVirtualTable && sTableType === 'tag') sResTagList = await getTagList(pBlockInfo.table);
+        // Set default value
+        setOption(sTableType, pBlockInfo.tag !== '' ? pBlockInfo.tag : sResTagList[0]);
+    };
     useEffect(() => {
-        if (pBlockInfo.type === 'tag') setOption('tag', pBlockInfo.tag !== '' ? pBlockInfo.tag : sTagList[0]);
-    }, [sTagList]);
+        init();
+    }, []);
 
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
     useOutsideClick(sMathRef, () => handleExitFormulaField(true));
 
     return (
-        <div className="series">
+        <div className="series" id={Date()}>
             <div className="row">
                 <div className="row-header">
                     {pBlockInfo.useCustom && (
@@ -365,28 +380,30 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                     pInitValue={pBlockInfo.table}
                                     pHeight={26}
                                     onChange={(aEvent: any) => changedOption('table', aEvent)}
-                                    pOptions={pTableList.map((aItem: any) => aItem[3])}
+                                    pOptions={getTableList}
                                 />
                             </div>
-                            <div className="details">
-                                <div className="series-table">
-                                    <span className="series-title"> Time field </span>
-                                    {sTimeList[0] && (
-                                        <Select
-                                            pFontSize={12}
-                                            pAutoChanged={true}
-                                            pWidth={175}
-                                            pBorderRadius={4}
-                                            pInitValue={sTimeList[0] && sTimeList[0][0]}
-                                            pHeight={26}
-                                            onChange={(aEvent: any) => changedOption('time', aEvent)}
-                                            pOptions={sTimeList.map((aItem: any) => {
-                                                return aItem[0];
-                                            })}
-                                        />
-                                    )}
+                            {sSelectedTableType !== 'vir_tag' && (
+                                <div className="details">
+                                    <div className="series-table">
+                                        <span className="series-title">Time field</span>
+                                        {sTimeList[0] && (
+                                            <Select
+                                                pFontSize={12}
+                                                pAutoChanged={true}
+                                                pWidth={175}
+                                                pBorderRadius={4}
+                                                pInitValue={sTimeList[0] && sTimeList[0][0]}
+                                                pHeight={26}
+                                                onChange={(aEvent: any) => changedOption('time', aEvent)}
+                                                pOptions={sTimeList.map((aItem: any) => {
+                                                    return aItem[0];
+                                                })}
+                                            />
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     )}
                     {!pBlockInfo.useCustom && (
@@ -402,9 +419,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                     pInitValue={pBlockInfo.table}
                                     pHeight={26}
                                     onChange={(aEvent: any) => changedOption('table', aEvent)}
-                                    pOptions={pTableList.map((aItem: any) => {
-                                        return aItem[3];
-                                    })}
+                                    pOptions={getTableList}
                                 />
                             </div>
                             <div className="series-table">
@@ -482,7 +497,15 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             {sIsMath && (
                                 <div
                                     className="math-typing-wrap"
-                                    style={{ width: '200px', height: '26px', position: 'absolute', top: '20px', left: '-200px', backgroundColor: '#FFFFFF', borderRadius: '5px' }}
+                                    style={{
+                                        width: '200px',
+                                        height: '26px',
+                                        position: 'absolute',
+                                        top: '20px',
+                                        left: '-200px',
+                                        backgroundColor: '#FFFFFF',
+                                        borderRadius: '5px',
+                                    }}
                                     onKeyDown={handleEnterKey}
                                     onMouseDown={() => setFormulaSelection(() => true)}
                                     onMouseUp={() => setFormulaSelection(() => false)}
@@ -562,7 +585,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                     pIdx={aIdx}
                                     pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
                                     pValueLimit={pValueLimit}
-                                ></Value>
+                                />
                             );
                         })}
                     </div>
