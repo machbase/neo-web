@@ -8,6 +8,7 @@ const Value = ({
     pValue,
     pColumnList,
     pChangeValueOption,
+    pAggList,
 }: // pBlockInfo,
 // pIdx, pAddValue, pRemoveValue,
 // ,pValueLimit
@@ -46,7 +47,7 @@ any) => {
                     pInitValue={pValue.aggregator ?? 'avg'}
                     pHeight={26}
                     onChange={(aEvent: any) => pChangeValueOption('aggregator', aEvent, pValue.id, 'values')}
-                    pOptions={SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST)}
+                    pOptions={pAggList}
                 />
             </div>
             {SEPARATE_DIFF && (

@@ -109,10 +109,14 @@ const GetFilter = (aTableInfo: any) => {
     else return [];
 };
 
-const GetValueColumn = (aDiff: boolean, aValueList: any) => {
+const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: 'tag' | 'log') => {
     return aValueList.map((aValue: any) => {
         if (aValue.aggregator === 'none' || aValue.aggregator === 'value' || aDiff) return `${aValue.value} as VALUE`;
-        else return `${aValue.aggregator}(${aValue.value}) as VALUE`;
+        else {
+            if (aValue.aggregator.includes('last') || aValue.aggregator.includes('first'))
+                return `${changeAggText(aValue.aggregator)}(${aTableType === 'tag' ? 'TIME' : '_ARRIVAL_TIME'} ,${aValue.value}) as VALUE`;
+            else return `${changeAggText(aValue.aggregator)}(${aValue.value}) as VALUE`;
+        }
     });
 };
 
@@ -208,6 +212,20 @@ const changeDiffText = (aDiff: string) => {
             return 'DIFF';
     }
 };
+const changeAggText = (agg: string) => {
+    switch (agg) {
+        case 'first value':
+            return 'first';
+        case 'last value':
+            return 'last';
+        case 'stddev (pop)':
+            return 'stddev_pop';
+        case 'variance (pop)':
+            return 'var_pop';
+        default:
+            return agg;
+    }
+};
 
 export const mathValueConverter = (aTargetValueIndex: string, aMath: string): string => {
     // check pattern => value1 value 1
@@ -228,7 +246,7 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
         const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval);
-        const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList)[0];
+        const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type)[0];
         const sTimeWhere = GetTimeWhere(aQuery.time, aTime);
         const sFilterWhere = GetFilterWhere(aQuery.filterList, aQuery.useCustom, aQuery);
         const sGroupBy = `GROUP BY TIME ${UseGroupByTime(aQuery.valueList)}`;

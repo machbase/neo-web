@@ -4,7 +4,16 @@ import { BsArrowsCollapse, BsArrowsExpand, Close, Refresh, TbMath, TbMathOff } f
 import { IconButton } from '@/components/buttons/IconButton';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
-import { DIFF_LIST, SEPARATE_DIFF, createDefaultTagTableOption, getTableType, isNumberTypeColumn, tagAggregatorList } from '@/utils/dashboardUtil';
+import {
+    DIFF_LIST,
+    SEPARATE_DIFF,
+    createDefaultTagTableOption,
+    getTableType,
+    isNumberTypeColumn,
+    nameValueAggregatorList,
+    nameValueVirtualAggList,
+    tagAggregatorList,
+} from '@/utils/dashboardUtil';
 import { useEffect, useMemo, useState } from 'react';
 import Filter from './Filter';
 import './Block.scss';
@@ -59,9 +68,6 @@ export const Block = ({
             if (sIsVirtualTable) setSelectedTableType('vir_tag');
             else setSelectedTableType(getTableType(sTargetTable[4]));
 
-            // let sSvrResTagList: any = [];
-            // if (!sIsVirtualTable && getTableType(sTargetTable[4]) === 'tag') sSvrResTagList = await getTagList(sTargetTable[3]);
-            // sSvrResTagList[0]
             const sDefaultBlockOption = createDefaultTagTableOption(sTargetTable[1], sTargetTable, getTableType(sTargetTable[4]), '');
             if (sIsVirtualTable) {
                 sDefaultBlockOption[0].useCustom = true;
@@ -319,8 +325,45 @@ export const Block = ({
         await pGetTables();
         setIsLoadingRollup(() => false);
     };
+    /** return agg list based on chart type */
+    const getAggregatorList = useMemo((): string[] => {
+        const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
+        if (sChartDataType === 'TIME_VALUE') {
+            return SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
+        }
+        if (sChartDataType === 'NAME_VALUE') {
+            if (pBlockInfo.table.includes('V$')) return nameValueVirtualAggList;
+            else return nameValueAggregatorList;
+        }
+        return [];
+    }, [pPanelOption.type]);
     /** return table list + virtual table list */
     const getTableList = useMemo((): string[] => {
+        const sUseCustom = pBlockInfo.useCustom;
+        const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
+        let sAggList: string[] = [];
+        if (sChartDataType === 'TIME_VALUE') {
+            sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
+        }
+        if (sChartDataType === 'NAME_VALUE') {
+            if (pBlockInfo.table.includes('V$')) sAggList = nameValueVirtualAggList;
+            else sAggList = nameValueAggregatorList;
+        }
+        const sIsVaildAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0].aggregator : pBlockInfo.aggregator);
+
+        // Set vaild agg
+        if (!sIsVaildAgg) {
+            const sTempBlockList = JSON.parse(JSON.stringify(pPanelOption.blockList));
+            sTempBlockList[0].aggregator && (sTempBlockList[0].aggregator = 'count');
+            sTempBlockList[0].values[0]?.aggregator && (sTempBlockList[0].values[0].aggregator = 'count');
+            pSetPanelOption((aPrev: any) => {
+                return {
+                    ...aPrev,
+                    blockList: sTempBlockList,
+                };
+            });
+        }
+
         const sTableList = pTableList.map((aItem: any) => aItem[3]);
         if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
             const sTagTableList = JSON.parse(JSON.stringify(pTableList)).filter((aTable: any) => getTableType(aTable[4]) === 'tag');
@@ -449,7 +492,7 @@ export const Block = ({
                                         pInitValue={pBlockInfo.aggregator}
                                         pHeight={26}
                                         onChange={(aEvent: any) => changedOption('aggregator', aEvent)}
-                                        pOptions={SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST)}
+                                        pOptions={getAggregatorList}
                                     />
                                 )}
                                 {SEPARATE_DIFF && (
@@ -585,6 +628,7 @@ export const Block = ({
                                     pIdx={aIdx}
                                     pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
                                     pValueLimit={pValueLimit}
+                                    pAggList={getAggregatorList}
                                 />
                             );
                         })}
