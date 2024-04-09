@@ -121,11 +121,8 @@ const CreatePanel = ({
                     : aItem;
             });
         });
-        // if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
-        // else pSetModifyState({ id: sPanelOption.id, state: true });
-        // pSetModifyState({ id: sNewPanelId, state: true });
         if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
-        else pSetBoardTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange));
+        // else pSetBoardTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange));
         handleClose();
     };
     // Preview

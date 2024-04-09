@@ -115,14 +115,9 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                     range_end: aTime.end ?? '',
                     shell: { icon: 'chart-line', theme: '', id: 'TAZ' },
                     dashboard: {
-                        // timeRange: {
-                        //     start: 'now-30m',
-                        //     end: 'now',
-                        //     refresh: 'Off',
-                        // },
                         timeRange: {
-                            start: '',
-                            end: '',
+                            start: 'now-3h',
+                            end: 'now',
                             refresh: 'Off',
                         },
                         panels: [],
