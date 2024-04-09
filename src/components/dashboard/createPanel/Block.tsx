@@ -72,7 +72,7 @@ export const Block = ({
             if (sIsVirtualTable) {
                 sDefaultBlockOption[0].useCustom = true;
                 sDefaultBlockOption[0].table = aData.target.value;
-                sDefaultBlockOption[0].values = [{ id: sDefaultBlockOption[0].values[0].id, aggregator: 'count', value: '', alias: '' }];
+                sDefaultBlockOption[0].values = [{ id: sDefaultBlockOption[0].values[0].id, aggregator: 'sum', value: '', alias: '' }];
             }
             const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any, aIdx: number) => {
                 return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID(), color: TagColorList[aIdx] } : aTable;
@@ -342,28 +342,22 @@ export const Block = ({
         const sUseCustom = pBlockInfo.useCustom;
         const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
         let sAggList: string[] = [];
-        if (sChartDataType === 'TIME_VALUE') {
-            sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
-        }
-        if (sChartDataType === 'NAME_VALUE') {
-            if (pBlockInfo.table.includes('V$')) sAggList = nameValueVirtualAggList;
-            else sAggList = nameValueAggregatorList;
-        }
+        if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
+        if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
         const sIsVaildAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0].aggregator : pBlockInfo.aggregator);
-
         // Set vaild agg
         if (!sIsVaildAgg) {
-            const sTempBlockList = JSON.parse(JSON.stringify(pPanelOption.blockList));
-            sTempBlockList[0].aggregator && (sTempBlockList[0].aggregator = 'count');
-            sTempBlockList[0].values[0]?.aggregator && (sTempBlockList[0].values[0].aggregator = 'count');
+            const sTempBlockList = JSON.parse(JSON.stringify(pBlockInfo));
+            sTempBlockList.aggregator = 'count';
+            sTempBlockList.values[0]?.aggregator && (sTempBlockList.values[0].aggregator = 'count');
+            // Set option
             pSetPanelOption((aPrev: any) => {
                 return {
                     ...aPrev,
-                    blockList: sTempBlockList,
+                    blockList: [sTempBlockList],
                 };
             });
         }
-
         const sTableList = pTableList.map((aItem: any) => aItem[3]);
         if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
             const sTagTableList = JSON.parse(JSON.stringify(pTableList)).filter((aTable: any) => getTableType(aTable[4]) === 'tag');
@@ -486,7 +480,7 @@ export const Block = ({
                                 {pBlockInfo.aggregator && (
                                     <Select
                                         pFontSize={12}
-                                        pAutoChanged={true}
+                                        pAutoChanged={false}
                                         pWidth={140}
                                         pBorderRadius={4}
                                         pInitValue={pBlockInfo.aggregator}
