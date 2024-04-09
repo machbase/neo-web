@@ -138,7 +138,7 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
             <div className="modal-body">
                 <div className="chart">
                     {sPanelInfo.index_key && !sLoading && (
-                        <Panel pBgnEndTimeRange={sBgnEndTimeRange} pNavigatorRange={pNavigatorRange} pBoardInfo={pBoardInfo} pPanelInfo={sPanelInfo} pIsEdit={true} />
+                        <Panel pBgnEndTimeRange={sBgnEndTimeRange} pNavigatorRange={pNavigatorRange} pBoardInfo={pBoardInfo} pPanelInfo={sCopyPanelInfo} pIsEdit={true} />
                     )}
                 </div>
                 <div className="edit-form">

@@ -26,7 +26,6 @@ const PanelHeader = ({
     pIsUpdate,
     pSetSaveEditedInfo,
     pNavigatorRange,
-    pGetBgnEndTime,
 }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
@@ -51,8 +50,7 @@ const PanelHeader = ({
         );
     };
     const handleRefreshTime = async () => {
-        !pIsEdit && (await pGetBgnEndTime());
-        pIsEdit && pResetData();
+        pResetData();
     };
 
     useEffect(() => {

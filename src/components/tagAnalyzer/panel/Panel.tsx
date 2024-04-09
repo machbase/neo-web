@@ -17,7 +17,18 @@ import Menu from '@/components/contextMenu/Menu';
 import moment from 'moment';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 
-const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pSaveKeepData, pRefreshCount, pFooterRange, pBgnEndTimeRange, pGetBgnEndTime }: any) => {
+const Panel = ({
+    pPanelInfo,
+    pPanelsInfo,
+    pGetChartInfo,
+    pBoardInfo,
+    pIsEdit,
+    pSaveKeepData,
+    pRefreshCount,
+    pFooterRange,
+    pBgnEndTimeRange,
+}: // pGetBgnEndTime
+any) => {
     const sAreaChart = useRef<any>();
     const sChartRef = useRef<any>();
     const sMenuRef = useRef<any>();
@@ -519,7 +530,7 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                     sData.endTime = sLastTime;
                 } else {
                     // Set top-level now
-                    sData = !pIsEdit && getDateRange({}, pBoardInfo);
+                    sData = !pIsEdit && getDateRange({}, pBoardInfo?.range_end ? pBoardInfo : { range_bgn: pPanelInfo.default_range.min, range_end: pPanelInfo.default_range.max });
                 }
                 // Set edit mode
                 if (pIsEdit) {
@@ -645,12 +656,12 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
     }, [pRefreshCount]);
     // save edit info
     useEffect(() => {
-        if ((pBoardInfo.id === sSelectedTab && sSaveEditedInfo) || pIsEdit) {
-            sSaveEditedInfo && resetData();
+        if (pBoardInfo.id === sSelectedTab && sSaveEditedInfo) {
+            sSaveEditedInfo && setRange();
             sSaveEditedInfo && setSaveEditedInfo(false);
         }
     }, [pPanelInfo]);
-    // update time range
+    // update time range & preview
     useEffect(() => {
         sChartRef.current && resetData();
     }, [pBgnEndTimeRange]);
@@ -678,7 +689,8 @@ const Panel = ({ pPanelInfo, pPanelsInfo, pGetChartInfo, pBoardInfo, pIsEdit, pS
                 pIsUpdate={sIsUpdate}
                 pSetSaveEditedInfo={setSaveEditedInfo}
                 pNavigatorRange={sNavigatorRange}
-                pGetBgnEndTime={pGetBgnEndTime}
+                // pGetBgnEndTime={pGetBgnEndTime}
+                // pGetBgnEndTime={resetData}
                 pCtrMinMaxPopupModal={ctrMinMaxPopupModal}
             />
             <div className="chart">
