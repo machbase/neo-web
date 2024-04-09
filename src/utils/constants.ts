@@ -1,6 +1,7 @@
 export const FORMAT_FULL_DATE = 'YYYY-MM-DD HH:mm:ss';
 export const LENGTH_LIST = 10;
 export const NOW = 'now';
+export const LAST = 'last';
 export const DAY = 'd';
 export const HOUR = 'h';
 export const MINUTE = 'm';
@@ -48,86 +49,126 @@ export const TIME_RANGE = [
     [
         {
             key: 1,
-            name: 'Last 2 days',
-            value: [`${NOW}-2${DAY}`, `${NOW}`],
+            name: 'Last 5 minutes',
+            value: [`${NOW}-5${MINUTE}`, `${NOW}`],
         },
         {
             key: 2,
+            name: 'Last 10 minutes',
+            value: [`${NOW}-10${MINUTE}`, `${NOW}`],
+        },
+        {
+            key: 3,
+            name: 'Last 30 minutes',
+            value: [`${NOW}-30${MINUTE}`, `${NOW}`],
+        },
+        {
+            key: 4,
+            name: 'Last 1 hour',
+            value: [`${NOW}-1${HOUR}`, `${NOW}`],
+        },
+        {
+            key: 5,
+            name: 'Last 3 hour',
+            value: [`${NOW}-3${HOUR}`, `${NOW}`],
+        },
+        {
+            key: 6,
+            name: 'Last 6 hour',
+            value: [`${NOW}-6${HOUR}`, `${NOW}`],
+        },
+        {
+            key: 7,
+            name: 'Last 1 days',
+            value: [`${NOW}-1${DAY}`, `${NOW}`],
+        },
+        {
+            key: 8,
+            name: 'Last 3 days',
+            value: [`${NOW}-3${DAY}`, `${NOW}`],
+        },
+        {
+            key: 9,
             name: 'Last 7 days',
             value: [`${NOW}-7${DAY}`, `${NOW}`],
         },
         {
-            key: 3,
+            key: 10,
             name: 'Last 30 days',
             value: [`${NOW}-30${DAY}`, `${NOW}`],
         },
         {
-            key: 4,
-            name: 'Last 90 days',
-            value: [`${NOW}-90${DAY}`, `${NOW}`],
+            key: 11,
+            name: 'Last 3 months',
+            value: [`${NOW}-3${MONTH}`, `${NOW}`],
         },
         {
-            key: 5,
-            name: 'Last 6 months',
-            value: [`${NOW}-6${MONTH}`, `${NOW}`],
-        },
-        {
-            key: 6,
+            key: 12,
             name: 'Last 1 year',
             value: [`${NOW}-1${YEAR}`, `${NOW}`],
-        },
-        {
-            key: 7,
-            name: 'Last 2 years',
-            value: [`${NOW}-2${YEAR}`, `${NOW}`],
-        },
-        {
-            key: 8,
-            name: 'Last 5 years',
-            value: [`${NOW}-5${YEAR}`, `${NOW}`],
         },
     ],
 
     [
         {
-            key: 23,
-            name: 'Last 5 minutes',
-            value: [`${NOW}-5${MINUTE}`, `${NOW}`],
+            key: 50,
+            name: 'Last 5 minutes of data',
+            value: [`${LAST}-5${MINUTE}`, `${LAST}`],
         },
         {
-            key: 24,
-            name: 'Last 15 minutes',
-            value: [`${NOW}-15${MINUTE}`, `${NOW}`],
+            key: 51,
+            name: 'Last 10 minutes of data',
+            value: [`${LAST}-10${MINUTE}`, `${LAST}`],
         },
         {
-            key: 25,
-            name: 'Last 30 minutes',
-            value: [`${NOW}-30${MINUTE}`, `${NOW}`],
+            key: 52,
+            name: 'Last 30 minutes of data',
+            value: [`${LAST}-30${MINUTE}`, `${LAST}`],
         },
         {
-            key: 26,
-            name: 'Last 1 hour',
-            value: [`${NOW}-1${HOUR}`, `${NOW}`],
+            key: 53,
+            name: 'Last 1 hour of data',
+            value: [`${LAST}-1${HOUR}`, `${LAST}`],
         },
         {
-            key: 27,
-            name: 'Last 3 hour',
-            value: [`${NOW}-3${HOUR}`, `${NOW}`],
+            key: 54,
+            name: 'Last 3 hour of data',
+            value: [`${LAST}-3${HOUR}`, `${LAST}`],
         },
         {
-            key: 28,
-            name: 'Last 6 hour',
-            value: [`${NOW}-6${HOUR}`, `${NOW}`],
+            key: 55,
+            name: 'Last 6 hour of data',
+            value: [`${LAST}-6${HOUR}`, `${LAST}`],
         },
         {
-            key: 29,
-            name: 'Last 12 hour',
-            value: [`${NOW}-12${HOUR}`, `${NOW}`],
+            key: 56,
+            name: 'Last 1 days of data',
+            value: [`${LAST}-1${DAY}`, `${LAST}`],
         },
         {
-            key: 30,
-            name: 'Last 24 hour',
-            value: [`${NOW}-24${HOUR}`, `${NOW}`],
+            key: 57,
+            name: 'Last 3 days of data',
+            value: [`${LAST}-3${DAY}`, `${LAST}`],
+        },
+        {
+            key: 58,
+            name: 'Last 7 days of data',
+            value: [`${LAST}-7${DAY}`, `${LAST}`],
+        },
+        {
+            key: 59,
+            name: 'Last 30 days of data',
+            value: [`${LAST}-30${DAY}`, `${LAST}`],
+        },
+        {
+            key: 60,
+            name: 'Last 3 months of data',
+            value: [`${LAST}-3${MONTH}`, `${LAST}`],
+        },
+        {
+            key: 61,
+            name: 'Last 1 year of data',
+            value: [`${LAST}-1${YEAR}`, `${LAST}`],
         },
     ],
 ];

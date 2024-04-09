@@ -103,12 +103,11 @@
             }
         }
         .bottom {
-            padding: 50px;
+            padding: 15px;
             height: 60%;
             border-top: 0.5px solid rgba(255, 255, 255, 0.5);
-
             display: flex;
-            justify-content: center;
+            // justify-content: center;
             .quick-range {
                 width: 100px;
             }
@@ -124,12 +123,13 @@
                 }
                 display: flex;
                 color: #4199ff;
-                width: 210px;
+                width: 300px;
+                justify-content: space-between;
             }
         }
     }
     .time-range-footer {
-        height: 20%;
+        height: 15%;
         border-top: 0.5px solid rgba(255, 255, 255, 0.5);
         display: flex;
         justify-content: center;
