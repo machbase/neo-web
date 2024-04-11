@@ -72,11 +72,11 @@ export const TIME_RANGE = [
             name: 'Last 3 hour',
             value: [`${NOW}-3${HOUR}`, `${NOW}`],
         },
-        {
-            key: 6,
-            name: 'Last 6 hour',
-            value: [`${NOW}-6${HOUR}`, `${NOW}`],
-        },
+        // {
+        //     key: 6,
+        //     name: 'Last 6 hour',
+        //     value: [`${NOW}-6${HOUR}`, `${NOW}`],
+        // },
         {
             key: 7,
             name: 'Last 1 days',
@@ -87,11 +87,11 @@ export const TIME_RANGE = [
             name: 'Last 3 days',
             value: [`${NOW}-3${DAY}`, `${NOW}`],
         },
-        {
-            key: 9,
-            name: 'Last 7 days',
-            value: [`${NOW}-7${DAY}`, `${NOW}`],
-        },
+        // {
+        //     key: 9,
+        //     name: 'Last 7 days',
+        //     value: [`${NOW}-7${DAY}`, `${NOW}`],
+        // },
         {
             key: 10,
             name: 'Last 30 days',
@@ -135,11 +135,11 @@ export const TIME_RANGE = [
             name: 'Last 3 hour of data',
             value: [`${LAST}-3${HOUR}`, `${LAST}`],
         },
-        {
-            key: 55,
-            name: 'Last 6 hour of data',
-            value: [`${LAST}-6${HOUR}`, `${LAST}`],
-        },
+        // {
+        //     key: 55,
+        //     name: 'Last 6 hour of data',
+        //     value: [`${LAST}-6${HOUR}`, `${LAST}`],
+        // },
         {
             key: 56,
             name: 'Last 1 days of data',
@@ -150,11 +150,11 @@ export const TIME_RANGE = [
             name: 'Last 3 days of data',
             value: [`${LAST}-3${DAY}`, `${LAST}`],
         },
-        {
-            key: 58,
-            name: 'Last 7 days of data',
-            value: [`${LAST}-7${DAY}`, `${LAST}`],
-        },
+        // {
+        //     key: 58,
+        //     name: 'Last 7 days of data',
+        //     value: [`${LAST}-7${DAY}`, `${LAST}`],
+        // },
         {
             key: 59,
             name: 'Last 30 days of data',
