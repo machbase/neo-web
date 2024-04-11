@@ -62,14 +62,9 @@ export const FileDshDfltVal = {
         id: 'dsh',
     },
     dashboard: {
-        // timeRange: {
-        //     start: 'now-30m',
-        //     end: 'now',
-        //     refresh: 'Off',
-        // },
         timeRange: {
-            start: '',
-            end: '',
+            start: 'now-3h',
+            end: 'now',
             refresh: 'Off',
         },
         panels: [],

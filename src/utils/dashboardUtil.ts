@@ -293,9 +293,28 @@ export const tagTableValue = () => {
     };
 };
 
+// Time value agg list
 export const tagAggregatorList = ['value', 'count(*)', 'count', 'sum', 'min', 'max', 'avg', 'sumsq'];
 export const DIFF_LIST = ['diff', 'diff (abs)', 'diff (no-negative)'];
 export const SEPARATE_DIFF: boolean = false;
+// Name value agg list
+export const nameValueAggregatorList = [
+    'first value',
+    'last value',
+    'count(*)',
+    'count',
+    'sum',
+    'min',
+    'max',
+    'avg',
+    'sumsq',
+    'stddev',
+    'stddev (pop)',
+    'variance',
+    'variance (pop)',
+];
+// Name value agg + Virtual table
+export const nameValueVirtualAggList = ['count', 'sum', 'min', 'max', 'avg'];
 
 export const refreshTimeList = ['Off', '3 seconds', '5 seconds', '10 seconds', '30 seconds', '1 minute', '5 minutes', '10 minutes', '1 hour'];
 

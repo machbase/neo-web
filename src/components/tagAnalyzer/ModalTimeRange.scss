@@ -33,7 +33,7 @@
         }
     }
     .time-range-body {
-        height: 75%;
+        height: 80%;
         display: flex;
 
         color: rgba(255, 255, 255, 0.5);
@@ -103,12 +103,9 @@
             }
         }
         .bottom {
-            padding: 50px;
+            padding: 25px 0px 0px 95px;
             height: 60%;
             border-top: 0.5px solid rgba(255, 255, 255, 0.5);
-
-            display: flex;
-            justify-content: center;
             .quick-range {
                 width: 100px;
             }
@@ -122,14 +119,16 @@
                         opacity: 0.5;
                     }
                 }
+                padding-top: 10px;
                 display: flex;
                 color: #4199ff;
-                width: 210px;
+                width: 325px;
+                justify-content: space-between;
             }
         }
     }
     .time-range-footer {
-        height: 20%;
+        height: 15%;
         border-top: 0.5px solid rgba(255, 255, 255, 0.5);
         display: flex;
         justify-content: center;

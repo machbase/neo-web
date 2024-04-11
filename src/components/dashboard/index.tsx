@@ -22,7 +22,15 @@ import { Input } from '../inputs/Input';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 
-const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpen, setIsSaveModal, pIsSave }: any) => {
+const Dashboard = ({
+    pDragStat,
+    pInfo,
+    pWidth,
+    // pIsSaveModal,
+    pHandleSaveModalOpen,
+    pSetIsSaveModal,
+    pIsSave,
+}: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const setRollupTabls = useSetRecoilState(gRollupTableList);
@@ -151,9 +159,19 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetPanel = pInfo.dashboard.panels[0];
         const sTargetTag = sTargetPanel.blockList[0];
-        const sSvrResult = await fetchTimeMinMax(sTargetTag);
-        const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
-        return sResult;
+        const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
+        const sCustomTag = sTargetTag.filter.filter((aFilter: any) => {
+            if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
+        })[0]?.value;
+        if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
+            const sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
+            const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
+            return sResult;
+        } else {
+            const sNowTime = moment().unix() * 1000;
+            const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
+            return sNowTimeMinMax;
+        }
     };
     // Set initial value
     const initDashboard = async () => {
@@ -211,7 +229,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
                         </button>
                         <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight />} onClick={() => moveTimeRange('r')} />
                         <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
-                        <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
+                        <IconButton pIcon={<SaveAs />} onClick={() => pSetIsSaveModal(true)} />
                         {pIsSave ? <IconButton pIcon={<MdLink size={18} />} onClick={handleCopyLink} /> : null}
                     </div>
                 </div>
@@ -275,7 +293,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pIsSaveModal, pHandleSaveModalOpe
                         pMoveTimeRange={moveTimeRange}
                         pSetTimeRangeModal={setTimeRangeModal}
                         pHandleSaveModalOpen={pHandleSaveModalOpen}
-                        pIsSaveModal={pIsSaveModal}
+                        pSetIsSaveModal={pSetIsSaveModal}
                         pBoardTimeMinMax={sBoardTimeMinMax}
                         pSetBoardTimeMinMax={setBoardTimeMinMax}
                     />

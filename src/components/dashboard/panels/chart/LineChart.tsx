@@ -100,7 +100,9 @@ const LineChart = ({ pLoopMode, pChartVariableId, pPanelInfo, pType, pInsetDragi
     };
 
     useEffect(() => {
-        if (sIsMounted && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh)) executeTqlChart();
+        if (!pModifyState.state && sIsMounted && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh)) {
+            executeTqlChart();
+        }
     }, [pBoardTimeMinMax]);
     useEffect(() => {
         if (pModifyState.state && pModifyState.id === pPanelInfo.id) {
