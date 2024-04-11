@@ -10,7 +10,7 @@ import CreatePanelRight from './CreatePanelRight';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { gBoardList, gSelectedBoard } from '@/recoil/recoil';
 import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType } from '@/utils/dashboardUtil';
-import { getTableList } from '@/api/repository/api';
+import { getTableList, postFileList } from '@/api/repository/api';
 import moment from 'moment';
 import { decodeJwt, generateUUID, isValidJSON } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
@@ -31,7 +31,6 @@ const CreatePanel = ({
     pSetModifyState,
     pMoveTimeRange,
     pSetTimeRangeModal,
-    pHandleSaveModalOpen,
     pSetIsSaveModal,
     pBoardTimeMinMax,
     pSetBoardTimeMinMax,
@@ -46,7 +45,6 @@ const CreatePanel = ({
     pSetModifyState: any;
     pMoveTimeRange: any;
     pSetTimeRangeModal: (aValue: boolean) => void;
-    pHandleSaveModalOpen: any;
     pSetIsSaveModal: any;
     pBoardTimeMinMax: any;
     pSetBoardTimeMinMax: (aTimeRange: { min: number; max: number }) => void;
@@ -59,7 +57,6 @@ const CreatePanel = ({
     const [sTableList, setTableList] = useState<any>([]);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedBoardInfo = useRecoilValue(gSelectedBoard);
-    const [sSaveState, setSaveState] = useState<boolean>(false);
     const [sTimeRangeStatus, setTimeRangeStatus] = useState<boolean>(false);
     const [sCreateModeTimeMinMax, setCreateModeTimeMinMax] = useState<any>(undefined);
     const [sIsPreview, setIsPreview] = useState<boolean>(false);
@@ -88,20 +85,22 @@ const CreatePanel = ({
                 }
             }
         }
-        setBoardList(
-            sBoardList.map((aItem: any) => {
-                return aItem.id === pBoardInfo.id
-                    ? {
-                          ...aItem,
-                          dashboard: {
-                              ...aItem.dashboard,
-                              panels: [...aItem.dashboard.panels, { ...sPanelOption, w: getChartDefaultWidthSize(sPanelOption.type, !!sPanelOption.chartOptions?.isPolar) }],
-                          },
-                      }
-                    : aItem;
-            })
-        );
-
+        sPanelOption.w = getChartDefaultWidthSize(sPanelOption.type, !!sPanelOption.chartOptions?.isPolar);
+        let sSaveTarget: any = undefined;
+        const sTabList = sBoardList.map((aItem) => {
+            if (aItem.id === pBoardInfo.id) {
+                sSaveTarget = {
+                    ...aItem,
+                    dashboard: {
+                        ...aItem.dashboard,
+                        panels: [...aItem.dashboard.panels, sPanelOption],
+                    },
+                };
+                return sSaveTarget;
+            } else aItem;
+        });
+        sSelectedBoardInfo.path !== '' && (await postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name));
+        setBoardList(sTabList);
         if (pBoardInfo.dashboard.panels.length === 0) {
             pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
             pSetModifyState({ id: sPanelOption.id, state: true });
@@ -114,23 +113,24 @@ const CreatePanel = ({
     // Edit
     const editPanel = async () => {
         const sNewPanelId = generateUUID();
-        setBoardList((aPrev: any) => {
-            return aPrev.map((aItem: any) => {
-                return aItem.id === pBoardInfo.id
-                    ? {
-                          ...aItem,
-                          dashboard: {
-                              ...aItem.dashboard,
-                              panels: aItem.dashboard.panels.map((bItem: any) => {
-                                  return bItem.id === pPanelId ? { ...sPanelOption, id: sNewPanelId } : bItem;
-                              }),
-                          },
-                      }
-                    : aItem;
-            });
+        let sSaveTarget: any = undefined;
+        const sTabList = sBoardList.map((aItem) => {
+            if (aItem.id === pBoardInfo.id) {
+                sSaveTarget = {
+                    ...aItem,
+                    dashboard: {
+                        ...aItem.dashboard,
+                        panels: aItem.dashboard.panels.map((bItem: any) => {
+                            return bItem.id === pPanelId ? { ...sPanelOption, id: sNewPanelId } : bItem;
+                        }),
+                    },
+                };
+                return sSaveTarget;
+            } else aItem;
         });
+        sSelectedBoardInfo.path !== '' && (await postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name));
+        setBoardList(sTabList);
         if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
-        // else pSetBoardTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange));
         handleClose();
     };
     // Preview
@@ -231,7 +231,8 @@ const CreatePanel = ({
     const handleClose = () => {
         pSetType(undefined);
         pSetCreateModal(false);
-        pSetIsSaveModal(true);
+        if (sTimeRangeStatus) return setTimeRangeStatus(() => false);
+        if (sSelectedBoardInfo.path === '') pSetIsSaveModal(true);
     };
     const handleTimeRange = () => {
         setTimeRangeStatus(() => true);
@@ -242,15 +243,6 @@ const CreatePanel = ({
     };
 
     useEffect(() => {
-        if (sTimeRangeStatus) return setTimeRangeStatus(() => false);
-        if (sSelectedBoardInfo?.dashboard?.panels?.length > 0 && sPanelOption && sPanelOption?.id) {
-            !sSaveState && pHandleSaveModalOpen();
-            setSaveState(() => true);
-            // already save
-            if (sSelectedBoardInfo.path !== '') handleClose();
-        }
-    }, [sBoardList]);
-    useEffect(() => {
         init();
     }, []);
 
@@ -258,7 +250,7 @@ const CreatePanel = ({
         <div className="create-panel-form">
             <div className="header">
                 <div className="left">
-                    <IconButton pWidth={20} pHeight={32} pIcon={<IoArrowBackOutline />} onClick={handleClose} />
+                    <IconButton pWidth={20} pHeight={32} pIcon={<IoArrowBackOutline />} onClick={() => pSetCreateModal(false)} />
                     <span>Create panel</span>
                 </div>
 
@@ -290,7 +282,7 @@ const CreatePanel = ({
                         pHeight={28}
                         pWidth={75}
                         pIsDisabled={false}
-                        onClick={handleClose}
+                        onClick={() => pSetCreateModal(false)}
                         pFontColor="rgb(231 65 131)"
                         pText="Discard"
                         pBorderColor="rgb(231 65 131)"

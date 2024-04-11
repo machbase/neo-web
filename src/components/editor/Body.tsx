@@ -236,7 +236,6 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     pWidth={sBodyWidth}
                                     pHandleSaveModalOpen={handleSaveModalOpen}
                                     pSetConsoleMinimize={setConsoleMinimize}
-                                    // pIsSaveModal={sIsSaveModal}
                                     pInfo={aItem}
                                     pSetIsSaveModal={setIsSaveModal}
                                     pDraged={pDraged}
