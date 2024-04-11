@@ -15,10 +15,12 @@ import {
     StructureOfScatterSeriesOption,
     StructureOfLineVisualMapOption,
     DefaultLogTableOption,
+    chartTypeConverter,
 } from '@/utils/eChartHelper';
 import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartAxisTooltipFormatter } from '@/utils/constants';
 import { ChartType } from '@/type/eChart';
 import moment from 'moment';
+import { SqlResDataType } from './DashboardQueryParser';
 
 export const convertToMachbaseIntervalMs = (intervalMs: number) => {
     let ms = '';
@@ -859,4 +861,10 @@ export const isTimeSeriesChart = (aType: ChartType) => {
         default:
             return false;
     }
+};
+
+export const getChartDefaultWidthSize = (aType: string, isPolar: any): number => {
+    const sChartDataType = SqlResDataType(chartTypeConverter(aType));
+    if (sChartDataType === 'TIME_VALUE' && !isPolar) return 17;
+    return 7;
 };

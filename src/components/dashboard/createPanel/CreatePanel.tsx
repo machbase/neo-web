@@ -9,7 +9,7 @@ import CreatePanelFooter from './CreatePanelFooter';
 import CreatePanelRight from './CreatePanelRight';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { gBoardList, gSelectedBoard } from '@/recoil/recoil';
-import { createDefaultTagTableOption, getTableType } from '@/utils/dashboardUtil';
+import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType } from '@/utils/dashboardUtil';
 import { getTableList } from '@/api/repository/api';
 import moment from 'moment';
 import { decodeJwt, generateUUID, isValidJSON } from '@/utils';
@@ -90,7 +90,15 @@ const CreatePanel = ({
         }
         setBoardList(
             sBoardList.map((aItem: any) => {
-                return aItem.id === pBoardInfo.id ? { ...aItem, dashboard: { ...aItem.dashboard, panels: [...aItem.dashboard.panels, sPanelOption] } } : aItem;
+                return aItem.id === pBoardInfo.id
+                    ? {
+                          ...aItem,
+                          dashboard: {
+                              ...aItem.dashboard,
+                              panels: [...aItem.dashboard.panels, { ...sPanelOption, w: getChartDefaultWidthSize(sPanelOption.type, !!sPanelOption.chartOptions?.isPolar) }],
+                          },
+                      }
+                    : aItem;
             })
         );
 
