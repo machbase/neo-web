@@ -81,7 +81,20 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
             </div>
             <div style={{ height: '10px' }} />
             <div style={sMenuStyle}>
-                <span>Min</span>
+                <span>Font size</span>
+                <Input
+                    pType="number"
+                    pWidth={100}
+                    pHeight={25}
+                    pBorderRadius={4}
+                    pValue={pPanelOption.chartOptions?.fontSize ?? 50}
+                    pSetValue={() => null}
+                    onChange={(aEvent: any) => HandleOption(aEvent, 'fontSize')}
+                />
+            </div>
+            <div style={{ height: '10px' }} />
+            <div style={sMenuStyle}>
+                <span>Wave min</span>
                 <Input
                     pType="number"
                     pWidth={100}
@@ -94,7 +107,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
             </div>
             <div style={{ height: '10px' }} />
             <div style={sMenuStyle}>
-                <span>Max</span>
+                <span>Wave max</span>
                 <Input
                     pType="number"
                     pWidth={100}
@@ -103,19 +116,6 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                     pValue={pPanelOption.chartOptions?.maxData ?? 100}
                     pSetValue={() => null}
                     onChange={(aEvent: any) => HandleOption(aEvent, 'maxData')}
-                />
-            </div>
-            <div style={{ height: '10px' }} />
-            <div style={sMenuStyle}>
-                <span>Font size</span>
-                <Input
-                    pType="number"
-                    pWidth={100}
-                    pHeight={25}
-                    pBorderRadius={4}
-                    pValue={pPanelOption.chartOptions?.fontSize ?? 50}
-                    pSetValue={() => null}
-                    onChange={(aEvent: any) => HandleOption(aEvent, 'fontSize')}
                 />
             </div>
             <div style={{ height: '10px' }} />
