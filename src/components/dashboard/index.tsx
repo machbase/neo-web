@@ -26,6 +26,7 @@ const Dashboard = ({
     pDragStat,
     pInfo,
     pWidth,
+    pSetConsoleMinimize,
     // pIsSaveModal,
     pHandleSaveModalOpen,
     pSetIsSaveModal,
@@ -182,6 +183,7 @@ const Dashboard = ({
     };
 
     useEffect(() => {
+        pSetConsoleMinimize();
         initDashboard();
     }, []);
 

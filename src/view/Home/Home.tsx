@@ -188,11 +188,12 @@ const Home = () => {
                                         pSetDragStat={setDragStat}
                                         pExtentionList={sTabList}
                                         pTerminalSizes={sTerminalSizes}
+                                        pSetTerminalSize={setTerminalSizes}
                                         pSideSizes={sSideSizes}
                                         pDraged={sDraged}
                                         pGetInfo={getInfo}
                                         pGetPath={getPath}
-                                    ></Body>
+                                    />
                                 </Pane>
                                 <Pane minSize={40}>
                                     <div
@@ -206,7 +207,7 @@ const Home = () => {
                                             pExtentionList={sTabList.filter((aItem: any) => aItem.type === 'term')}
                                             pTerminalSizes={sTerminalSizes}
                                             pSetTerminalSizes={setTerminalSizes}
-                                        ></Console>
+                                        />
                                     </div>
                                 </Pane>
                             </SplitPane>

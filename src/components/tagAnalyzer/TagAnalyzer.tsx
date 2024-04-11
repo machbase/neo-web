@@ -5,7 +5,7 @@ import { useSetRecoilState } from 'recoil';
 import ChartBoard from './ChartBoard';
 import { parseTables } from '@/utils';
 
-const TagAnalyzer = ({ pInfo, pHandleSaveModalOpen, pSetIsSaveModal, pSetIsOpenModal }: any) => {
+const TagAnalyzer = ({ pInfo, pHandleSaveModalOpen, pSetIsSaveModal, pSetIsOpenModal, pSetConsoleMinimize }: any) => {
     const setTables = useSetRecoilState(gTables);
     const setRollupTabls = useSetRecoilState(gRollupTableList);
     const [sIsLoadRollupTable, setIsLoadRollupTable] = useState<boolean>(true);
@@ -32,6 +32,7 @@ const TagAnalyzer = ({ pInfo, pHandleSaveModalOpen, pSetIsSaveModal, pSetIsOpenM
     };
 
     useEffect(() => {
+        pSetConsoleMinimize();
         setIsLoadRollupTable(true);
         getTables();
         getRollupTables();
