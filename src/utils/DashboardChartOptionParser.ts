@@ -158,7 +158,7 @@ const VisualMapOption = {
     list: ['seriesIndex', 'pieces'],
 };
 /** replace type opt */
-const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aChartOption: any, aXAxis: any, aYAxis: any) => {
+const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aChartOption: any, aXAxis: any, aYAxis: any, aTime: { startTime: number; endTime: number }) => {
     let sChartSeriesStructure: any = StructureSeriesOption[aChartType];
     let sChartOptList: string[] = Object.keys(aChartOption);
     let sPolarStructure: any = `{}`;
@@ -176,7 +176,11 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
     }
     // Set xAxis | yAxis
     if (aDataType === 'TIME_VALUE' && !aChartOption['isPolar']) {
-        sXAxis = JSON.stringify({ xAxis: aXAxis });
+        // Set min max time
+        const sTempXAxis: any = JSON.parse(JSON.stringify(aXAxis[0]));
+        sTempXAxis.min = aTime.startTime;
+        sTempXAxis.max = aTime.endTime;
+        sXAxis = JSON.stringify({ xAxis: [sTempXAxis] });
         sYAxis = JSON.stringify({ yAxis: aYAxis });
     }
     if (aDataType === 'NAME_VALUE' || (aDataType === 'TIME_VALUE' && aChartOption['isPolar'])) {
@@ -341,7 +345,7 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
     return sResult;
 };
 
-export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any) => {
+export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any, aTime: { startTime: number; endTime: number }) => {
     const sConvertedChartType = chartTypeConverter(aOptionInfo.type);
     const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, SqlResDataType(sConvertedChartType));
     // Animation false (TIME_VALUE TYPE)
@@ -352,7 +356,8 @@ export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any
         aTagList.map((aTagInfo: any) => aTagInfo.name),
         aOptionInfo.chartOptions,
         aOptionInfo.xAxisOptions,
-        CheckYAxisMinMax(aOptionInfo.yAxisOptions)
+        CheckYAxisMinMax(aOptionInfo.yAxisOptions),
+        aTime
     );
     const sParsedOpt = ParseOpt(sConvertedChartType, SqlResDataType(sConvertedChartType), aTagList, sCommonOpt, sTypeOpt);
     return sParsedOpt;

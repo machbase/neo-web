@@ -55,7 +55,7 @@ const LineChart = ({ pLoopMode, pChartVariableId, pPanelInfo, pType, pInsetDragi
             start: sStartTime,
             end: sEndTime,
         });
-        const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo, sAliasList);
+        const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
         const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
 
         const sResult: any = await getTqlChart(

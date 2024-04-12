@@ -64,7 +64,9 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     };
     const GetSaveChartText = async () => {
         const [sParsedQuery, sAliasList] = await GetQuery();
-        const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo, sAliasList);
+        const sStartTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.start ?? '') : setUnitTime(pDashboardTime.start);
+        const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.end ?? '') : setUnitTime(pDashboardTime.end);
+        const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
         const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
         const sUsePlg: boolean = !!pPanelInfo.plg;
         let sResult: string = `FAKE(linspace(0, 1, 1))\n` + `CHART(\n`;
