@@ -7,18 +7,15 @@ import { useEffect, useState } from 'react';
 import CreatePanelBody from './CreatePanelBody';
 import CreatePanelFooter from './CreatePanelFooter';
 import CreatePanelRight from './CreatePanelRight';
-import { useRecoilState, useRecoilValue } from 'recoil';
-import { gBoardList, gSelectedBoard } from '@/recoil/recoil';
+import { useRecoilState } from 'recoil';
+import { gBoardList } from '@/recoil/recoil';
 import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType } from '@/utils/dashboardUtil';
 import { getTableList, postFileList } from '@/api/repository/api';
-import moment from 'moment';
 import { decodeJwt, generateUUID, isValidJSON } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
-import {
-    // fetchTags,
-    fetchTimeMinMax,
-} from '@/api/repository/machiot';
+import { fetchTimeMinMax } from '@/api/repository/machiot';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
+import moment from 'moment';
 
 const CreatePanel = ({
     pLoopMode,
@@ -56,7 +53,6 @@ const CreatePanel = ({
     const [sAppliedPanelOption, setAppliedPanelOption] = useState<any>({});
     const [sTableList, setTableList] = useState<any>([]);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
-    const sSelectedBoardInfo = useRecoilValue(gSelectedBoard);
     const [sTimeRangeStatus, setTimeRangeStatus] = useState<boolean>(false);
     const [sCreateModeTimeMinMax, setCreateModeTimeMinMax] = useState<any>(undefined);
     const [sIsPreview, setIsPreview] = useState<boolean>(false);
@@ -97,10 +93,10 @@ const CreatePanel = ({
                     },
                 };
                 return sSaveTarget;
-            } else aItem;
+            } else return aItem;
         });
-        sSelectedBoardInfo.path !== '' && (await postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name));
-        setBoardList(sTabList);
+        setBoardList(() => sTabList);
+        if (sSaveTarget.path !== '') postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
         if (pBoardInfo.dashboard.panels.length === 0) {
             pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
             pSetModifyState({ id: sPanelOption.id, state: true });
@@ -111,7 +107,7 @@ const CreatePanel = ({
         handleClose();
     };
     // Edit
-    const editPanel = async () => {
+    const editPanel = () => {
         const sNewPanelId = generateUUID();
         let sSaveTarget: any = undefined;
         const sTabList = sBoardList.map((aItem) => {
@@ -126,10 +122,10 @@ const CreatePanel = ({
                     },
                 };
                 return sSaveTarget;
-            } else aItem;
+            } else return aItem;
         });
-        sSelectedBoardInfo.path !== '' && (await postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name));
-        setBoardList(sTabList);
+        setBoardList(() => sTabList);
+        if (sSaveTarget.path !== '') postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
         if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
         handleClose();
     };
@@ -232,7 +228,7 @@ const CreatePanel = ({
         pSetType(undefined);
         pSetCreateModal(false);
         if (sTimeRangeStatus) return setTimeRangeStatus(() => false);
-        if (sSelectedBoardInfo.path === '') pSetIsSaveModal(true);
+        if (pBoardInfo.path === '') pSetIsSaveModal(true);
     };
     const handleTimeRange = () => {
         setTimeRangeStatus(() => true);

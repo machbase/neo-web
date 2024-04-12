@@ -475,21 +475,21 @@ any) => {
                         }}
                         className="side-sub-title editors-title"
                     >
-                        <div className="collapse-icon">{sSideSizes[0] !== 22 ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
+                        <div className="collapse-icon">{sSideSizes[0] !== 22 ? <VscChevronDown /> : <VscChevronRight />}</div>
                         <span className="title-text">OPEN EDITORS</span>
                     </div>
                     {
                         <div className="editors-form">
                             {sBoardList.length !== 0 &&
                                 sBoardList.map((aBoard: any, aIdx: any) => {
-                                    return <OpenFile pBoard={aBoard} pSetSelectedTab={setSelectedTab} pIdx={aIdx} key={aBoard.id}></OpenFile>;
+                                    return <OpenFile pBoard={aBoard} pSetSelectedTab={setSelectedTab} pIdx={aIdx} key={aBoard.id} />;
                                 })}
                         </div>
                     }
                 </Pane>
                 <Pane minSize={22}>
                     <div className="side-sub-title editors-title" onClick={() => setCollapseTree(!sCollapseTree)}>
-                        <div className="collapse-icon">{sCollapseTree ? <VscChevronDown></VscChevronDown> : <VscChevronRight></VscChevronRight>}</div>
+                        <div className="collapse-icon">{sCollapseTree ? <VscChevronDown /> : <VscChevronRight />}</div>
                         <div className="files-open-option">
                             <div>EXPLORER</div>
                             <div style={{ display: 'flex', alignItems: 'center' }}>
