@@ -161,6 +161,7 @@ const Chart = ({
                 outlineWidth: 1,
                 outlineColor: '#323333',
                 xAxis: {
+                    width: pAreaChart?.current?.clientWidth - 55,
                     left: 28,
                     type: 'datetime',
                     min: pNavigatorRange.startTime,
