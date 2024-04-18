@@ -52,14 +52,14 @@ export const gExtensionList = atom<any>({
             label: 'DBEXPLORER',
         },
         {
-            id: 'REFERENCE',
-            type: 'REFERENCE',
-            label: 'REFERENCE',
-        },
-        {
             id: 'KEY',
             type: 'KEY',
             label: 'KEY',
+        },
+        {
+            id: 'REFERENCE',
+            type: 'REFERENCE',
+            label: 'REFERENCE',
         },
     ],
 });

@@ -1,4 +1,4 @@
-import { BiDownload, Copy, LuFlipVertical, VscWarning } from '@/assets/icons/Icon';
+import { Copy, LuFlipVertical, VscWarning } from '@/assets/icons/Icon';
 import { useEffect, useRef, useState } from 'react';
 import { IconButton } from '@/components/buttons/IconButton';
 import { CreatePayloadType, GenKeyResType, KeyItemType, genKey, getKeyList } from '@/api/repository/key';
@@ -7,13 +7,12 @@ import { ExtensionTab } from '../extension/ExtensionTab';
 import { gKeyList } from '@/recoil/recoil';
 import { useSetRecoilState } from 'recoil';
 import { Pane, SashContent } from 'split-pane-react';
-import useRunCommand from '@/hooks/useRunCommand';
 import moment from 'moment';
 import SplitPane from 'split-pane-react/esm/SplitPane';
 import './createKey.scss';
 
 export const CreateKey = () => {
-    const DOWNLOAD_LIST: string[] = ['certificate', 'privateKey', 'token'];
+    const DOWNLOAD_LIST: string[] = ['certificate', 'privateKey', 'token', 'serverKey'];
     const RES_CAUTION: string = 'Caution: This is the last chance to copy and store PRIVATE KEY and TOKEN. It can not be redo';
     const [sGenKeyInfo, setGenKeyInfo] = useState<GenKeyResType | undefined>(undefined);
     const [sResErrMessage, setResErrMessage] = useState<string | undefined>(undefined);
@@ -40,8 +39,8 @@ export const CreateKey = () => {
     const createKey = async () => {
         const sPayload = {
             name: sCreatePayload.name,
-            notBefore: isTimeFormat(sStartTime) ? moment(sStartTime).unix() : 0,
-            notAfter: isTimeFormat(sEndTime) ? moment(sEndTime).unix() : 0,
+            notBefore: isTimeFormat(sStartTime + ' 00:00:00') ? moment(sStartTime + ' 00:00:00').unix() : 0,
+            notAfter: isTimeFormat(sEndTime + ' 00:00:00') ? moment(sEndTime + ' 00:00:00').unix() : 0,
         };
         const sRes = await genKey(sPayload);
         if (sRes.success) {
@@ -102,17 +101,28 @@ export const CreateKey = () => {
                 return `${aFileName}_cert.pem`;
             case 'privateKey':
                 return `${aFileName}_key.pem`;
+            case 'serverKey':
+                return `${aFileName}_key.crt`;
             default:
                 return `${aFileName}_token`;
         }
     };
-    /** set timea */
+    /** Handle time */
     const handleTime = (aKey: string, aValue: any) => {
         if (aKey === 'startTime') sSetStartTime(aValue);
-        else sSetEndTime(aValue);
+        else {
+            console.log('end time', aValue);
+            sSetEndTime(aValue);
+        }
     };
     const Resizer = () => {
         return <SashContent className={`security-key-sash-style`} />;
+    };
+    /** Set init time */
+    const init = () => {
+        const sDate = new Date();
+        sSetStartTime(moment(sDate).format('YYYY-MM-DD'));
+        sSetEndTime(moment(sDate).add(3, 'y').format('YYYY-MM-DD'));
     };
 
     useEffect(() => {
@@ -120,8 +130,9 @@ export const CreateKey = () => {
             setGroupWidth([sBodyRef.current.offsetWidth / 2, sBodyRef.current.offsetWidth / 2]);
         }
     }, [sBodyRef]);
-
-    useRunCommand(createKey);
+    useEffect(() => {
+        init();
+    }, []);
 
     return (
         <ExtensionTab pRef={sBodyRef}>
@@ -136,16 +147,18 @@ export const CreateKey = () => {
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
                                 </ExtensionTab.ContentDesc>
                             </ExtensionTab.DpRow>
-
                             <ExtensionTab.ContentDesc>Used to generate keys</ExtensionTab.ContentDesc>
                             <ExtensionTab.Input pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
                         </ExtensionTab.ContentBlock>
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentTitle>Expiry date</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>
-                                    <span style={{ fontStyle: 'italic', fontFamily: 'math', marginLeft: '4px' }}>Optional</span>
-                                </ExtensionTab.ContentDesc>
+                                <ExtensionTab.ContentTitle>valid date</ExtensionTab.ContentTitle>
+                            </ExtensionTab.DpRow>
+                            <ExtensionTab.DatePicker pTime={sStartTime} pSetApply={(e: any) => handleTime('startTime', e)} />
+                        </ExtensionTab.ContentBlock>
+                        <ExtensionTab.ContentBlock>
+                            <ExtensionTab.DpRow>
+                                <ExtensionTab.ContentTitle>expiry date</ExtensionTab.ContentTitle>
                             </ExtensionTab.DpRow>
                             <ExtensionTab.DatePicker pTime={sEndTime} pSetApply={(e: any) => handleTime('endTime', e)} />
                         </ExtensionTab.ContentBlock>
@@ -164,19 +177,7 @@ export const CreateKey = () => {
                 </Pane>
                 <Pane>
                     <ExtensionTab.Header>
-                        {sGenKeyInfo && sGenKeyInfo.success ? (
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent={'Download files'}
-                                pToolTipId={'shell-key-download' + '-block-math'}
-                                pWidth={25}
-                                pHeight={25}
-                                pIcon={<BiDownload />}
-                                onClick={handleDownloadFile}
-                            />
-                        ) : (
-                            <div />
-                        )}
+                        <div />
                         <div style={{ display: 'flex' }}>
                             <IconButton pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />} pIsActive={isVertical} onClick={() => setIsVertical(true)} />
                             <IconButton pIcon={<LuFlipVertical />} pIsActive={!isVertical} onClick={() => setIsVertical(false)} />
@@ -193,7 +194,13 @@ export const CreateKey = () => {
                                     </div>
                                 </ExtensionTab.ContentDesc>
                             </ExtensionTab.ContentBlock>
-
+                            <ExtensionTab.ContentBlock>
+                                <ExtensionTab.DpRow>
+                                    <div style={{ marginRight: '4px' }}>
+                                        <ExtensionTab.TextButton pWidth="150px" pText={`Download *.zip`} pType="CREATE" pCallback={handleDownloadFile} />
+                                    </div>
+                                </ExtensionTab.DpRow>
+                            </ExtensionTab.ContentBlock>
                             {DOWNLOAD_LIST.map((aTxt: string) => {
                                 return (
                                     <ExtensionTab.ContentBlock key={aTxt}>

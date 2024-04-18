@@ -3,6 +3,7 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { useRef, useState } from 'react';
 import { DateCalendar, LocalizationProvider, MultiSectionDigitalClock } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import moment from 'moment';
 import './index.scss';
@@ -60,7 +61,7 @@ const ContentDesc = ({ children }: { children: React.ReactNode }) => {
         </div>
     );
 };
-const TextButton = ({ pText, pType, pCallback }: { pText: string; pType: string; pCallback: (e: React.MouseEvent) => void }) => {
+const TextButton = ({ pText, pType, pCallback, pWidth }: { pText: string; pType: string; pCallback: (e: React.MouseEvent) => void; pWidth?: string }) => {
     const getColor = () => {
         switch (pType) {
             case 'DELETE':
@@ -70,7 +71,7 @@ const TextButton = ({ pText, pType, pCallback }: { pText: string; pType: string;
         }
     };
     return (
-        <button className="extension-tab-text-button" style={{ backgroundColor: getColor() }} onClick={pCallback}>
+        <button className="extension-tab-text-button" style={{ backgroundColor: getColor(), width: pWidth }} onClick={pCallback}>
             {pText}
         </button>
     );
@@ -109,7 +110,7 @@ const Group = ({ children }: { children: React.ReactNode }) => {
     return <div className="extension-tab-group">{children}</div>;
 };
 
-const DatePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTime: any }) => {
+const DateTimePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTime: any }) => {
     const [sOpenDate, setOpenDate] = useState<boolean>(false);
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sHours, setHours] = useState<any>(0);
@@ -132,8 +133,8 @@ const DatePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTime: 
     useOutsideClick(sOptionRef, () => setOpenDate(false));
 
     return (
-        <div ref={sOptionRef} className="extention-tab-date-picker-wrapper">
-            <div className="extention-tab-date-picker-input">
+        <div ref={sOptionRef} className="extention-tab-date-time-picker-wrapper">
+            <div className="extention-tab-date-time-picker-input">
                 <ExtensionTab.Input
                     pValue={pTime}
                     pCallback={(event: React.FormEvent<HTMLInputElement>) => {
@@ -150,9 +151,9 @@ const DatePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTime: 
                 />
             </div>
             {sOpenDate && (
-                <div className="extention-tab-date-picker">
+                <div className="extention-tab-date-time-picker">
                     <LocalizationProvider dateAdapter={AdapterDayjs}>
-                        <div className={`extention-tab-date-picker-content${isVertical ? '-verti' : ''}`}>
+                        <div className={`extention-tab-date-time-picker-content${isVertical ? '-verti' : ''}`}>
                             <div
                                 style={{
                                     display: 'flex',
@@ -213,6 +214,66 @@ const DatePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTime: 
     );
 };
 
+const DatePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTime: any }) => {
+    const [sOpenDate, setOpenDate] = useState<boolean>(false);
+    const sOptionRef = useRef(null);
+
+    const HandleDate = (aDate: any) => {
+        const sNewDate = new Date(aDate._d);
+        const sMomentDay = moment(sNewDate).format('YYYY-MM-DD');
+        const sPTimeDay = pTime.split('-')[2];
+        const sChangeDay = sMomentDay.split('-')[2];
+        // Auto apply when click day.
+        if (sPTimeDay !== sChangeDay) {
+            pSetApply(sMomentDay);
+            setOpenDate(false);
+        }
+    };
+
+    useOutsideClick(sOptionRef, () => setOpenDate(false));
+
+    return (
+        <div ref={sOptionRef} className="extention-tab-date-picker-wrapper">
+            <div className="extention-tab-date-picker-input">
+                <ExtensionTab.Input
+                    pValue={pTime}
+                    pCallback={(event: React.FormEvent<HTMLInputElement>) => {
+                        pSetApply((event.target as HTMLInputElement).value);
+                    }}
+                />
+                <IconButton
+                    pWidth={20}
+                    pHeight={20}
+                    pIcon={<Calendar />}
+                    onClick={() => {
+                        setOpenDate(!sOpenDate);
+                    }}
+                />
+            </div>
+            {sOpenDate && (
+                <div className="extention-tab-date-picker">
+                    <LocalizationProvider dateAdapter={AdapterMoment}>
+                        <div className={`extention-tab-date-picker-content`}>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    minWidth: '323px',
+                                    maxWidth: '323px',
+                                    border: 'solid 1px rgba(255, 255, 255, 0.13)',
+                                    backgroundColor: '#1c1c21',
+                                }}
+                            >
+                                <DateCalendar className="date-calendar" defaultValue={moment(pTime)} onChange={HandleDate} />
+                            </div>
+                        </div>
+                    </LocalizationProvider>
+                </div>
+            )}
+        </div>
+    );
+};
+
 ExtensionTab.Group = Group;
 ExtensionTab.Header = Header;
 ExtensionTab.Body = Body;
@@ -228,3 +289,4 @@ ExtensionTab.ContentDesc = ContentDesc;
 ExtensionTab.ContentText = ContentText;
 ExtensionTab.Hr = Hr;
 ExtensionTab.DatePicker = DatePicker;
+ExtensionTab.DateTimePicker = DateTimePicker;

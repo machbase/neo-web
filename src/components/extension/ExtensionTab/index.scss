@@ -45,6 +45,116 @@
         }
     }
 
+    .extention-tab-date-time-picker-wrapper {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        .extention-tab-date-time-picker-input {
+            width: 200px;
+            height: 28px;
+            padding: 0 4px;
+            display: flex;
+            align-items: center;
+            border-radius: 3px;
+            background-color: rgba(255, 255, 255, 0.13);
+            border: solid 1px #f1f1f125;
+            color: #f1f1f1;
+
+            input {
+                border: none;
+                background-color: transparent;
+                height: 100%;
+            }
+        }
+        .extention-tab-date-time-picker {
+            display: flex;
+            flex-direction: column;
+
+            .extention-tab-date-time-picker-content {
+                background-color: #1c1c21;
+                display: flex;
+                flex-direction: column;
+                margin-top: 12px;
+                min-width: 323px;
+                max-width: 323px;
+                .date-calendar {
+                    padding: 20;
+                    margin: 0;
+                    max-height: 320px;
+                    .MuiTypography-root {
+                        color: #c4c4c4;
+                    }
+                    .MuiButtonBase-root {
+                        color: #c4c4c4;
+                    }
+                    .Mui-selected {
+                        background-color: #005fb8;
+                    }
+                }
+                .time-clock {
+                    padding: 0;
+                    margin: 0;
+                    font-size: 12px;
+                    display: flex;
+                    justify-content: center;
+                    .MuiList-root {
+                        color: #c4c4c4;
+                    }
+                    .Mui-selected {
+                        border-radius: 3px;
+                        background-color: #005fb8;
+                    }
+                }
+                .action {
+                    display: flex;
+                    justify-content: end;
+                    padding: 10px;
+                }
+            }
+            .extention-tab-date-time-picker-content-verti {
+                margin-top: 12px;
+                display: flex;
+                .date-calendar {
+                    padding: 20;
+                    margin: 0;
+                    max-height: 320px;
+                    .MuiTypography-root {
+                        color: #c4c4c4;
+                    }
+                    .MuiButtonBase-root {
+                        color: #c4c4c4;
+                    }
+                    .Mui-selected {
+                        background-color: #005fb8;
+                    }
+                }
+                .time-clock {
+                    padding: 0;
+                    margin: 0;
+                    font-size: 12px;
+                    display: flex;
+                    justify-content: center;
+
+                    .MuiList-root {
+                        color: #c4c4c4;
+                        height: 100%;
+                        max-height: 320px;
+                    }
+                    .Mui-selected {
+                        border-radius: 3px;
+                        background-color: #005fb8;
+                    }
+                }
+                .action {
+                    height: 45px;
+                    display: flex;
+                    justify-content: end;
+                    padding: 10px;
+                }
+            }
+        }
+    }
     .extention-tab-date-picker-wrapper {
         display: flex;
         flex-direction: column;
@@ -92,69 +202,15 @@
                         background-color: #005fb8;
                     }
                 }
-                .time-clock {
-                    padding: 0;
-                    margin: 0;
-                    font-size: 12px;
-                    display: flex;
-                    justify-content: center;
-                    .MuiList-root {
-                        color: #c4c4c4;
-                    }
-                    .Mui-selected {
-                        border-radius: 3px;
-                        background-color: #005fb8;
-                    }
-                }
                 .action {
                     display: flex;
-                    justify-content: end;
-                    padding: 10px;
-                }
-            }
-            .extention-tab-date-picker-content-verti {
-                margin-top: 12px;
-                display: flex;
-                .date-calendar {
-                    padding: 20;
-                    margin: 0;
-                    max-height: 320px;
-                    .MuiTypography-root {
-                        color: #c4c4c4;
-                    }
-                    .MuiButtonBase-root {
-                        color: #c4c4c4;
-                    }
-                    .Mui-selected {
-                        background-color: #005fb8;
-                    }
-                }
-                .time-clock {
-                    padding: 0;
-                    margin: 0;
-                    font-size: 12px;
-                    display: flex;
-                    justify-content: center;
-
-                    .MuiList-root {
-                        color: #c4c4c4;
-                        height: 100%;
-                        max-height: 320px;
-                    }
-                    .Mui-selected {
-                        border-radius: 3px;
-                        background-color: #005fb8;
-                    }
-                }
-                .action {
-                    height: 45px;
-                    display: flex;
-                    justify-content: end;
+                    justify-content: left;
                     padding: 10px;
                 }
             }
         }
     }
+
     .extension-tab-text-area-wrapper {
         textarea {
             text-align: center;

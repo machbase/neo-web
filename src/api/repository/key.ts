@@ -22,6 +22,7 @@ export interface GenKeyResType {
     // TOKEN_INFO
     certificate: string;
     privateKey: string;
+    serverKey: string;
     token: string;
     name?: string | undefined;
 }
