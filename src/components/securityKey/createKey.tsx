@@ -13,7 +13,7 @@ import './createKey.scss';
 
 export const CreateKey = () => {
     const DOWNLOAD_LIST: string[] = ['certificate', 'privateKey', 'token', 'serverKey'];
-    const RES_CAUTION: string = 'Caution: This is the last chance to copy and store PRIVATE KEY and TOKEN. It can not be redo';
+    const RES_CAUTION: string = 'Caution: This is the last chance to copy and store PRIVATE KEY and TOKEN. It can not be redo.';
     const [sGenKeyInfo, setGenKeyInfo] = useState<GenKeyResType | undefined>(undefined);
     const [sResErrMessage, setResErrMessage] = useState<string | undefined>(undefined);
     const setSecurityKeyList = useSetRecoilState<KeyItemType[] | undefined>(gKeyList);
