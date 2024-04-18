@@ -61,19 +61,22 @@ export const CreateKey = () => {
         sTempPayload[aTarget] = sTarget.value;
         setCreatePayload(sTempPayload);
     };
-    /** download file (cert, key, token) */
+    /** download zip file (cert, key, token, pubkey) */
     const handleDownloadFile = async () => {
-        for await (const aTarget of DOWNLOAD_LIST) {
-            if (sGenKeyInfo) {
-                const blob = new Blob([sGenKeyInfo[aTarget] as string], { type: getFileType(sGenKeyInfo.name as string) });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = getFileName(aTarget, sGenKeyInfo.name as string);
-                a.click();
-                a.remove();
-                window.URL.revokeObjectURL(url);
+        if (sGenKeyInfo) {
+            const byteCharacters = atob(sGenKeyInfo.zip as string);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
             }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/zip' });
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.setAttribute('download', `${sGenKeyInfo.name as string}.zip`);
+            document.body.appendChild(link);
+            link.click();
         }
     };
     /** copy clipboard */
@@ -83,29 +86,6 @@ export const CreateKey = () => {
         setTimeout(() => {
             setTooltipTxt('Copy');
         }, 600);
-    };
-    /** return file type */
-    const getFileType = (aKey: string): string => {
-        switch (aKey) {
-            case 'certificate':
-            case 'privateKey':
-                return 'text/plain';
-            default:
-                return 'application/octet-stream';
-        }
-    };
-    /** return file name */
-    const getFileName = (aKey: string, aFileName: string): string => {
-        switch (aKey) {
-            case 'certificate':
-                return `${aFileName}_cert.pem`;
-            case 'privateKey':
-                return `${aFileName}_key.pem`;
-            case 'serverKey':
-                return `${aFileName}_key.crt`;
-            default:
-                return `${aFileName}_token`;
-        }
     };
     /** Handle time */
     const handleTime = (aKey: string, aValue: any) => {

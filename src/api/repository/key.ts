@@ -24,6 +24,7 @@ export interface GenKeyResType {
     privateKey: string;
     serverKey: string;
     token: string;
+    zip: string;
     name?: string | undefined;
 }
 export interface CreatePayloadType {
