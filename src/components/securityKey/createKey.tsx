@@ -177,7 +177,7 @@ export const CreateKey = () => {
                             <ExtensionTab.ContentBlock>
                                 <ExtensionTab.DpRow>
                                     <div style={{ marginRight: '4px' }}>
-                                        <ExtensionTab.TextButton pWidth="150px" pText={`Download *.zip`} pType="CREATE" pCallback={handleDownloadFile} />
+                                        <ExtensionTab.TextButton pWidth="120px" pText={`Download *.zip`} pType="CREATE" pCallback={handleDownloadFile} />
                                     </div>
                                 </ExtensionTab.DpRow>
                             </ExtensionTab.ContentBlock>
