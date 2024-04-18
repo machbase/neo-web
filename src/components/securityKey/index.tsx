@@ -3,11 +3,9 @@ import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { CreateKey } from '@/components/securityKey/createKey';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gActiveKey, gBoardList, gKeyList } from '@/recoil/recoil';
-import { Delete } from '@/assets/icons/Icon';
-import { IconButton } from '../buttons/IconButton';
 import { changeUtcToText } from '@/utils/helpers/date';
-import SplitPane from 'split-pane-react/esm/SplitPane';
 import { Pane, SashContent } from 'split-pane-react';
+import SplitPane from 'split-pane-react/esm/SplitPane';
 
 export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
     const [sSecurityKeyList, setSecurityKeyList] = useRecoilState<KeyItemType[] | undefined>(gKeyList);
@@ -79,18 +77,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
                 <ExtensionTab>
                     <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={['50', '50']} onChange={() => {}}>
                         <Pane minSize={400}>
-                            <ExtensionTab.Header>
-                                <div />
-                                <IconButton
-                                    pIsToopTip
-                                    pToolTipContent={'Delete'}
-                                    pToolTipId={'shell-key-download' + '-block-math'}
-                                    pWidth={25}
-                                    pHeight={25}
-                                    pIcon={<Delete />}
-                                    onClick={deleteKey}
-                                />
-                            </ExtensionTab.Header>
+                            <ExtensionTab.Header />
                             <ExtensionTab.Body>
                                 <ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentTitle>Client id</ExtensionTab.ContentTitle>
@@ -104,12 +91,13 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
                                     <ExtensionTab.ContentTitle>Expire</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>{getTime(pCode.notAfter)}</ExtensionTab.ContentDesc>
                                 </ExtensionTab.ContentBlock>
+                                <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={deleteKey} />
+                                </ExtensionTab.ContentBlock>
                             </ExtensionTab.Body>
                         </Pane>
                         <Pane minSize={400}>
-                            <ExtensionTab.Header>
-                                <></>
-                            </ExtensionTab.Header>
+                            <ExtensionTab.Header />
                         </Pane>
                     </SplitPane>
                 </ExtensionTab>

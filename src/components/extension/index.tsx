@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase, PiKeyBold } from '@/assets/icons/Icon';
+import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase, VscKey } from '@/assets/icons/Icon';
 
 import ExtensionBtn from '@/components/extension/ExtensionBtn';
 import './index.scss';
@@ -62,7 +62,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
             case 'REFERENCE':
                 return <VscLibrary />;
             case 'KEY':
-                return <PiKeyBold />;
+                return <VscKey />;
             default:
                 return <Cmd />;
         }

@@ -1,4 +1,4 @@
-import { BiDownload, Copy, LuFlipVertical, Play, VscWarning } from '@/assets/icons/Icon';
+import { BiDownload, Copy, LuFlipVertical, VscWarning } from '@/assets/icons/Icon';
 import { useEffect, useRef, useState } from 'react';
 import { IconButton } from '@/components/buttons/IconButton';
 import { CreatePayloadType, GenKeyResType, KeyItemType, genKey, getKeyList } from '@/api/repository/key';
@@ -127,9 +127,7 @@ export const CreateKey = () => {
         <ExtensionTab pRef={sBodyRef}>
             <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                 <Pane minSize={400}>
-                    <ExtensionTab.Header>
-                        <IconButton pIcon={<Play />} onClick={createKey} />
-                    </ExtensionTab.Header>
+                    <ExtensionTab.Header />
                     <ExtensionTab.Body>
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.DpRow>
@@ -150,6 +148,9 @@ export const CreateKey = () => {
                                 </ExtensionTab.ContentDesc>
                             </ExtensionTab.DpRow>
                             <ExtensionTab.DatePicker pTime={sEndTime} pSetApply={(e: any) => handleTime('endTime', e)} />
+                        </ExtensionTab.ContentBlock>
+                        <ExtensionTab.ContentBlock>
+                            <ExtensionTab.TextButton pText="Generate" pType="CREATE" pCallback={createKey} />
                         </ExtensionTab.ContentBlock>
                         {!sGenKeyInfo && sResErrMessage && (
                             <ExtensionTab.ContentBlock>

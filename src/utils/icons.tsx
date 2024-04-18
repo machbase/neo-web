@@ -18,7 +18,7 @@ import {
     FaHtml5,
     FaCss3,
     IoLogoJavascript,
-    PiKeyBold,
+    VscKey,
 } from '@/assets/icons/Icon';
 import {
     MuiCsv,
@@ -110,11 +110,9 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'gitOpenDirectory':
             return <MuiFolderGitOpen />;
         case 'key':
-            return <PiKeyBold />;
+            return <VscKey />;
         default:
             return <GoTerminal />;
     }
-
-    return;
 };
 export default icons;

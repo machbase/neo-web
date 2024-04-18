@@ -15,7 +15,7 @@ export const ExtensionTab = ({ children, pRef }: { children: React.ReactNode; pR
     );
 };
 
-const Header = ({ children }: { children: React.ReactNode }) => {
+const Header = ({ children }: { children?: React.ReactNode }) => {
     return <div className="extension-tab-header-wrapper">{children}</div>;
 };
 const Body = ({ children, pSpyder, pSpyderChildren }: { children: React.ReactNode; pSpyder?: boolean; pSpyderChildren?: React.ReactNode }) => {

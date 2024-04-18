@@ -39,6 +39,7 @@ export {
     VscAdd,
     VscNewFile,
     VscJson,
+    VscKey,
 } from 'react-icons/vsc';
 
 export {
@@ -79,7 +80,7 @@ export { FcFolder as TreeFolder, FcOpenedFolder as TreeFolderOpen } from 'react-
 
 export { IoArrowBackOutline, IoLogOutOutline as Logout, IoPlayForwardSharp, IoLogoJavascript } from 'react-icons/io5';
 
-export { PiFileCsvThin, PiSelectionPlusBold, PiKeyBold } from 'react-icons/pi';
+export { PiFileCsvThin, PiSelectionPlusBold } from 'react-icons/pi';
 
 export { BiLineChart as LineChart, BiDownload, BiLink, BiPlay as Play, BiSolidDownArrow, BiSolidChart, BiSolidEdit } from 'react-icons/bi';
 

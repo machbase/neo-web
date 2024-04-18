@@ -184,8 +184,6 @@ const NewBoard = (props: NewBoardProps) => {
                 {pExtentionList.map((aItem: any) => {
                     return <ShellMenu key={aItem.id} pInfo={aItem} pChangeTabOption={changeTabOption} pSetIcon={setIcon} pGetInfo={pGetInfo} />;
                 })}
-                {/* Security key */}
-                {/* {defaultMenuStyleDiv(icons('key', true) as JSX.Element, 'Security key', changeTabOption, { icon: 'key', id: 'KEY', label: 'Security key', type: 'key' })} */}
                 {/* Drop & Open */}
                 <label
                     onDragEnter={() => setFileUploadStyle(true)}
