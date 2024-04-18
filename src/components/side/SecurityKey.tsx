@@ -71,11 +71,13 @@ export const SecurityKey = ({ pServer }: any) => {
         setActiveKeyName('');
         if (sExistKeyTab) {
             const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'key');
+            const sId = getId();
             setBoardList((aBoardList: any) => {
                 return aBoardList.map((aBoard: any) => {
                     if (aBoard.id === aTarget.id) {
                         return {
-                            ...aTarget,
+                            id: sId,
+                            type: 'key',
                             name: `KEY: create`,
                             code: undefined,
                             savedCode: true,
@@ -84,7 +86,7 @@ export const SecurityKey = ({ pServer }: any) => {
                     return aBoard;
                 });
             });
-            setSelectedTab(aTarget.id);
+            setSelectedTab(sId);
             return;
         } else {
             const sId = getId();
