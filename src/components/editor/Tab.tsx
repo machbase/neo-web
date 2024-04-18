@@ -84,6 +84,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
             case 'dsh':
             case 'new':
             case 'term':
+            case 'key':
                 setIsSaved(aBoard.savedCode === pBoard.savedCode);
                 break;
             default:

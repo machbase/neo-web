@@ -21,6 +21,7 @@ import { Error } from '@/components/toast/Toast';
 import { useNavigate } from 'react-router-dom';
 import { ImageBox } from '@/components/imageBox/ImageBox';
 import { TextExtension } from '@/components/textExtension/TextExtension';
+import { SecurityKey } from '@/components/securityKey';
 
 const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -245,6 +246,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                             {aItem.type === 'js' && (
                                 <TextExtension pLang="javascript" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />
                             )}
+                            {aItem.type === 'key' && <SecurityKey pCode={aItem.code} />}
                             {isImage(aItem.name) && <ImageBox pBase64Code={aItem.code} pType={aItem.type} />}
                         </div>
                     );

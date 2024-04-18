@@ -79,7 +79,7 @@ export { FcFolder as TreeFolder, FcOpenedFolder as TreeFolderOpen } from 'react-
 
 export { IoArrowBackOutline, IoLogOutOutline as Logout, IoPlayForwardSharp, IoLogoJavascript } from 'react-icons/io5';
 
-export { PiFileCsvThin, PiSelectionPlusBold } from 'react-icons/pi';
+export { PiFileCsvThin, PiSelectionPlusBold, PiKeyBold } from 'react-icons/pi';
 
 export { BiLineChart as LineChart, BiDownload, BiLink, BiPlay as Play, BiSolidDownArrow, BiSolidChart, BiSolidEdit } from 'react-icons/bi';
 
@@ -89,7 +89,7 @@ export { TbSquarePlus, TbParachute, TbRowInsertTop as InsertRowTop, TbFolderPlus
 
 export { IoIosCopy as Copy, IoIosArrowForward } from 'react-icons/io';
 
-export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase, GoGrabber } from 'react-icons/go';
+export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase, GoGrabber, GoPlus } from 'react-icons/go';
 
 export { LuFlipVertical, LuMonitorSpeaker, LuTimerReset } from 'react-icons/lu';
 

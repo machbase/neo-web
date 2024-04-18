@@ -56,6 +56,11 @@ export const gExtensionList = atom<any>({
             type: 'REFERENCE',
             label: 'REFERENCE',
         },
+        {
+            id: 'KEY',
+            type: 'KEY',
+            label: 'KEY',
+        },
     ],
 });
 
@@ -94,4 +99,14 @@ export const gSelectedBoard = selector<any>({
 
         return sBoardList.filter((aBoard) => aBoard.id === sSelectedTab)[0];
     },
+});
+
+export const gKeyList = atom<any>({
+    key: 'gKeyList',
+    default: [] as any,
+});
+
+export const gActiveKey = atom<any>({
+    key: 'gActiveKey',
+    default: '' as string,
 });

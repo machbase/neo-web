@@ -1,0 +1,265 @@
+.extension-tab-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: #1c1c21;
+
+    span {
+        cursor: default;
+
+        svg {
+            min-width: 15px;
+            min-height: 15px;
+        }
+    }
+    .extension-tab-block-hr {
+        border-bottom: 1px inset rgba(255, 255, 255, 0.13);
+        width: 100%;
+    }
+    .extension-tab-text-button {
+        width: 80px;
+        height: 25px;
+        color: #f1f1f1;
+        border-radius: 2px;
+        font-size: 13px;
+        padding: 4px;
+
+        &:hover {
+            border: 1px solid rgba(255, 255, 255, 0.13);
+        }
+    }
+    .extension-tab-input-wrapper {
+        display: flex;
+        height: 27px;
+        width: 200px;
+
+        input {
+            height: 25px;
+            width: 100%;
+            padding: 0 8px;
+            border-radius: 3px;
+            border: solid 1px #f1f1f125;
+            background-color: rgba(255, 255, 255, 0.13);
+            color: #f1f1f1;
+        }
+    }
+
+    .extention-tab-date-picker-wrapper {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        .extention-tab-date-picker-input {
+            width: 200px;
+            height: 28px;
+            padding: 0 4px;
+            display: flex;
+            align-items: center;
+            border-radius: 3px;
+            background-color: rgba(255, 255, 255, 0.13);
+            border: solid 1px #f1f1f125;
+            color: #f1f1f1;
+
+            input {
+                border: none;
+                background-color: transparent;
+                height: 100%;
+            }
+        }
+        .extention-tab-date-picker {
+            display: flex;
+            flex-direction: column;
+
+            .extention-tab-date-picker-content {
+                background-color: #1c1c21;
+                display: flex;
+                flex-direction: column;
+                margin-top: 12px;
+                min-width: 323px;
+                max-width: 323px;
+                .date-calendar {
+                    padding: 20;
+                    margin: 0;
+                    max-height: 320px;
+                    .MuiTypography-root {
+                        color: #c4c4c4;
+                    }
+                    .MuiButtonBase-root {
+                        color: #c4c4c4;
+                    }
+                    .Mui-selected {
+                        background-color: #005fb8;
+                    }
+                }
+                .time-clock {
+                    padding: 0;
+                    margin: 0;
+                    font-size: 12px;
+                    display: flex;
+                    justify-content: center;
+                    .MuiList-root {
+                        color: #c4c4c4;
+                    }
+                    .Mui-selected {
+                        border-radius: 3px;
+                        background-color: #005fb8;
+                    }
+                }
+                .action {
+                    display: flex;
+                    justify-content: end;
+                    padding: 10px;
+                }
+            }
+            .extention-tab-date-picker-content-verti {
+                margin-top: 12px;
+                display: flex;
+                .date-calendar {
+                    padding: 20;
+                    margin: 0;
+                    max-height: 320px;
+                    .MuiTypography-root {
+                        color: #c4c4c4;
+                    }
+                    .MuiButtonBase-root {
+                        color: #c4c4c4;
+                    }
+                    .Mui-selected {
+                        background-color: #005fb8;
+                    }
+                }
+                .time-clock {
+                    padding: 0;
+                    margin: 0;
+                    font-size: 12px;
+                    display: flex;
+                    justify-content: center;
+
+                    .MuiList-root {
+                        color: #c4c4c4;
+                        height: 100%;
+                        max-height: 320px;
+                    }
+                    .Mui-selected {
+                        border-radius: 3px;
+                        background-color: #005fb8;
+                    }
+                }
+                .action {
+                    height: 45px;
+                    display: flex;
+                    justify-content: end;
+                    padding: 10px;
+                }
+            }
+        }
+    }
+    .extension-tab-text-area-wrapper {
+        textarea {
+            text-align: center;
+            resize: none;
+            cursor: default;
+            padding: 8px;
+            border-radius: 3px;
+            border: solid 1px #f1f1f125;
+            background-color: rgba(255, 255, 255, 0.13);
+            color: #f1f1f1;
+        }
+    }
+    .extension-tab-dp-row {
+        display: flex;
+        justify-content: start;
+        align-items: center;
+    }
+    .extension-tab-dp-row-tl {
+        display: flex;
+        justify-content: start;
+        align-items: start;
+    }
+
+    .extension-tab-group {
+        width: 50%;
+        overflow: hidden;
+    }
+    .extension-tab-header-wrapper {
+        padding: 0 1rem;
+        width: 100%;
+        height: 40px;
+        min-height: 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #262831;
+        position: static;
+
+        &-l {
+            display: flex;
+        }
+        &-r {
+            display: flex;
+            align-items: center;
+        }
+    }
+    .extension-tab-body-wrapper {
+        display: flex;
+        width: 100%;
+        height: calc(100% - 40px);
+
+        .extension-tab-scroll-spyder-wrapper {
+            padding: 10px 20px;
+            width: 150px;
+            height: 100%;
+            border-right: 1px inset rgba(255, 255, 255, 0.13);
+            color: #aaaaaa;
+        }
+
+        .extension-tab-body-content {
+            width: 100%;
+            overflow: auto;
+        }
+    }
+
+    .extension-tab-block-wrapper {
+        margin: 10px 20px;
+    }
+
+    .extension-tab-content-block {
+        padding: 12px 16px;
+        &:hover {
+            background-color: #262831;
+        }
+        &:visited {
+            color: red;
+        }
+
+        &-title {
+            color: #f1f1f1;
+            font-size: 17px;
+            text-transform: capitalize;
+        }
+        &-desc {
+            color: #aaaaaa;
+            font-size: 14px;
+        }
+        &-text {
+            margin-top: 4px;
+            width: 100%;
+            font-size: 13px;
+            white-space: break-spaces;
+            overflow-wrap: break-word;
+            color: #c5c4c4;
+            overflow: hidden;
+        }
+
+        .extension-tab-sub-title {
+            color: #f1f1f1;
+            font-family: initial;
+            font-weight: 600;
+            font-size: 30px;
+        }
+    }
+    .active-content-block {
+        border: solid 2px #005fb8;
+    }
+}

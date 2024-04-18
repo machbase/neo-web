@@ -1,0 +1,11 @@
+.security-key-sash-style {
+    width: 4px;
+    margin-top: 40px;
+    height: calc(100% - 40px);
+    border-right: inset 2px rgba(255, 255, 255, 0.13);
+
+    &-none {
+        width: 4px;
+        cursor: default;
+    }
+}

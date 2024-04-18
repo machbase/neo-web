@@ -154,6 +154,26 @@ const NewBoard = (props: NewBoardProps) => {
             handleChange(aEvent.target.files[0]);
         }
     };
+    // return default menu style div
+    const defaultMenuStyleDiv = (aIcon: JSX.Element, aTxt: string, aClickCallback?: any, aCallbackItem?: any): JSX.Element => {
+        return (
+            <div
+                style={
+                    sFileUploadStyle
+                        ? {
+                              border: '1px dashed rgba(255, 255, 255, 0.16)',
+                              backgroundColor: 'rgba(200, 200, 200, 0.24)',
+                          }
+                        : {}
+                }
+                className="home_btn_box"
+                onClick={aClickCallback ? (event: any) => aClickCallback(event, aCallbackItem) : undefined}
+            >
+                <div className="home_btn">{aIcon}</div>
+                <p>{aTxt}</p>
+            </div>
+        );
+    };
 
     return (
         <div className="inner">
@@ -162,9 +182,11 @@ const NewBoard = (props: NewBoardProps) => {
             </div>
             <div className="btn_wrap">
                 {pExtentionList.map((aItem: any) => {
-                    return <ShellMenu key={aItem.id} pInfo={aItem} pChangeTabOption={changeTabOption} pSetIcon={setIcon} pGetInfo={pGetInfo}></ShellMenu>;
+                    return <ShellMenu key={aItem.id} pInfo={aItem} pChangeTabOption={changeTabOption} pSetIcon={setIcon} pGetInfo={pGetInfo} />;
                 })}
-
+                {/* Security key */}
+                {/* {defaultMenuStyleDiv(icons('key', true) as JSX.Element, 'Security key', changeTabOption, { icon: 'key', id: 'KEY', label: 'Security key', type: 'key' })} */}
+                {/* Drop & Open */}
                 <label
                     onDragEnter={() => setFileUploadStyle(true)}
                     onDragOver={(aEvent) => handleDragOver(aEvent)}
@@ -173,22 +195,7 @@ const NewBoard = (props: NewBoardProps) => {
                     style={{ position: 'relative' }}
                 >
                     <input onChange={(aEvent: any) => updateFile(aEvent, 'click')} accept=".wrk,.sql,.tql,.taz,.dsh" className="uploader" type="file" />
-                    <div
-                        style={
-                            sFileUploadStyle
-                                ? {
-                                      border: '1px dashed rgba(255, 255, 255, 0.16)',
-                                      backgroundColor: 'rgba(200, 200, 200, 0.24)',
-                                  }
-                                : {}
-                        }
-                        className="home_btn_box"
-                    >
-                        <div className="home_btn">
-                            <TbParachute></TbParachute>
-                        </div>
-                        <p>{sFileUploadStyle ? 'Drop here' : 'Drop & Open'}</p>
-                    </div>
+                    {defaultMenuStyleDiv(<TbParachute />, sFileUploadStyle ? 'Drop here' : 'Drop & Open')}
                 </label>
             </div>
         </div>
