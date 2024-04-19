@@ -36,6 +36,7 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { renameManager } from '@/utils/file-manager';
 import { FileModal } from '../modal/FileModal';
 import { UrlDownloadModal } from '../modal/UrlDownloadModal';
+import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 
 const Side = ({
     pGetInfo,
@@ -169,7 +170,7 @@ any) => {
                     sTmpBoard.savedCode = JSON.stringify(sTmpData);
                 }
             } else if (sFileExtension === 'dsh') {
-                const sTmpData: any = JSON.parse(sContentResult);
+                const sTmpData: any = CheckDataCompatibility(sContentResult, sFileExtension);
                 sTmpBoard = {
                     ...sTmpData,
                     id: sTmpBoard.id,

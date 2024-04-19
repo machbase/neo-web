@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase } from '@/assets/icons/Icon';
+import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase, VscKey } from '@/assets/icons/Icon';
 
 import ExtensionBtn from '@/components/extension/ExtensionBtn';
 import './index.scss';
@@ -46,32 +46,25 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const setIcon = (aId: any) => {
         switch (aId) {
             case 'SQL':
-                return <VscSymbolFile></VscSymbolFile>;
-                break;
+                return <VscSymbolFile />;
             case 'TQL':
-                return <VscNote></VscNote>;
-                break;
+                return <VscNote />;
             case 'WRK':
-                return <VscThreeBars></VscThreeBars>;
-                break;
+                return <VscThreeBars />;
             case 'TERM':
-                return <Cmd></Cmd>;
-                break;
+                return <Cmd />;
             case 'TAZ':
-                return <VscGraphLine></VscGraphLine>;
-                break;
+                return <VscGraphLine />;
             case 'EXPLORER':
-                return <VscFiles></VscFiles>;
-                break;
+                return <VscFiles />;
             case 'DBEXPLORER':
-                return <GoDatabase></GoDatabase>;
-                break;
+                return <GoDatabase />;
             case 'REFERENCE':
-                return <VscLibrary></VscLibrary>;
-                break;
+                return <VscLibrary />;
+            case 'KEY':
+                return <VscKey />;
             default:
-                return <Cmd></Cmd>;
-                break;
+                return <Cmd />;
         }
     };
 

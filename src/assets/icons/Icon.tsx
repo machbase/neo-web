@@ -39,6 +39,7 @@ export {
     VscAdd,
     VscNewFile,
     VscJson,
+    VscKey,
 } from 'react-icons/vsc';
 
 export {
@@ -89,7 +90,7 @@ export { TbSquarePlus, TbParachute, TbRowInsertTop as InsertRowTop, TbFolderPlus
 
 export { IoIosCopy as Copy, IoIosArrowForward } from 'react-icons/io';
 
-export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase, GoGrabber } from 'react-icons/go';
+export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase, GoGrabber, GoPlus } from 'react-icons/go';
 
 export { LuFlipVertical, LuMonitorSpeaker, LuTimerReset } from 'react-icons/lu';
 
