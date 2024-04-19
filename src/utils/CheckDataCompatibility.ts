@@ -4,7 +4,6 @@ import { chartTypeConverter } from './eChartHelper';
 
 const DashboardCompatibility = (aData: any) => {
     const sDashboardInfo = JSON.parse(aData);
-    const DEFAULT_AGGREGATOR = 'count';
 
     if (sDashboardInfo?.dashboard.panels.length > 0) {
         const sPanelList = sDashboardInfo.dashboard.panels;
@@ -16,13 +15,19 @@ const DashboardCompatibility = (aData: any) => {
 
             const sVaildBlockList = sBlockList.map((aBlock: any) => {
                 const sResult: any = aBlock;
+                let DEFAULT_AGGREGATOR: string = 'count';
                 let sAggList: string[] = [];
                 if (sResDataType === 'TIME_VALUE') {
                     sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
                 }
                 if (sResDataType === 'NAME_VALUE') {
-                    if (aBlock.table.includes('V$')) sAggList = nameValueVirtualAggList;
-                    else sAggList = nameValueAggregatorList;
+                    if (aBlock.table.includes('V$')) {
+                        DEFAULT_AGGREGATOR = 'sum';
+                        sAggList = nameValueVirtualAggList;
+                    } else {
+                        DEFAULT_AGGREGATOR = 'last value';
+                        sAggList = nameValueAggregatorList;
+                    }
                 }
 
                 if (aBlock.useCustom) {
