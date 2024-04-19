@@ -17,9 +17,9 @@
     display: flex;
     justify-content: center;
     flex-direction: column;
-    margin: 0 auto;
-    width: 80%;
+    width: 100%;
     background-color: #fff;
+    padding: 30px 0 0 0;
 
     input {
         padding-left: 60px;
@@ -49,10 +49,35 @@
         background-repeat: no-repeat;
         background-position: 8px 6px;
     }
-    margin-bottom: -10%;
+
+    &-response-wrapper {
+        display: flex;
+        width: 100%;
+        justify-content: center;
+        padding: 0 0 16px 0;
+
+        .input-form-response {
+            width: 280px;
+            display: flex;
+            flex-direction: row;
+            align-items: end;
+
+            svg {
+                width: 20px;
+                height: 20px;
+                fill: rgb(255, 83, 83);
+            }
+
+            pre {
+                margin-left: 4px;
+                font-family: 'Pretendard';
+                font-size: 14px;
+                color: rgb(255, 83, 83);
+            }
+        }
+    }
 }
 .login-card {
-    height: 380px;
     width: 420px;
     background-color: #fff;
     flex-direction: column;
@@ -71,38 +96,46 @@
         margin: 0 auto;
         margin-top: 60px;
     }
-    .input-checkboxwrap {
-        div {
-            margin: 3px 4px;
-            width: 16px;
-            height: 16px;
-            border: 0.5px solid #a7a7a7;
-            border-radius: 2px;
-            box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.18);
-        }
-        input {
-            accent-color: #286ade;
-        }
-        margin-top: 12px;
-        margin-left: 70px;
+
+    .input-cehck-wrapper {
+        width: 100%;
         display: flex;
-        .checkbox {
-            margin-right: 4px;
-            width: 16px;
-            height: 16px;
-            border: 0;
-            box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.18);
-        }
-        .input-checkbox-p {
-            margin-top: 4px;
-            margin-left: 2px;
-            font-family: 'Pretendard';
-            font-size: 12px;
-            color: #a7a7a7;
+        justify-content: center;
+
+        .input-checkboxwrap {
+            width: 280px;
+            justify-content: left;
+            display: flex;
+            align-items: center;
+
+            div {
+                margin: 3px 4px;
+                width: 16px;
+                height: 16px;
+                border: 0.5px solid #a7a7a7;
+                border-radius: 2px;
+                box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.18);
+            }
+            input {
+                accent-color: #286ade;
+            }
+            .checkbox {
+                margin-right: 4px;
+                width: 16px;
+                height: 16px;
+                border: 0;
+                box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.18);
+            }
+            .input-checkbox-p {
+                font-family: 'Pretendard';
+                font-size: 12px;
+                color: #a7a7a7;
+            }
         }
     }
     .button-form {
         width: 100%;
+        padding: 30px 0 0 0;
         display: flex;
         align-items: center;
         justify-content: center;
