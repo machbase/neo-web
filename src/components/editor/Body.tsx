@@ -22,7 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { ImageBox } from '@/components/imageBox/ImageBox';
 import { TextExtension } from '@/components/textExtension/TextExtension';
 
-const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat, pSetTerminalSize }: any) => {
+const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState<any>(gSelectedTab);
     const sFilterBoard = useRecoilValue<any>(gSelectedBoard);
@@ -50,10 +50,6 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
 
     const setSelectTab = (aBoardId: string) => {
         setSelectedTab(aBoardId);
-    };
-
-    const setConsoleMinimize = () => {
-        pSetTerminalSize(['', 40]);
     };
 
     const handleSaveModalOpen = async () => {
@@ -221,13 +217,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                 />
                             )}
                             {aItem.type === 'taz' && (
-                                <TagAnalyzer
-                                    pSetConsoleMinimize={setConsoleMinimize}
-                                    pHandleSaveModalOpen={handleSaveModalOpen}
-                                    pInfo={aItem}
-                                    pSetIsOpenModal={setIsOpenModal}
-                                    pSetIsSaveModal={setIsSaveModal}
-                                />
+                                <TagAnalyzer pHandleSaveModalOpen={handleSaveModalOpen} pInfo={aItem} pSetIsOpenModal={setIsOpenModal} pSetIsSaveModal={setIsSaveModal} />
                             )}
                             {aItem.type === 'term' && <Shell pSelectedTab={sSelectedTab} pInfo={aItem} pId={aItem.id}></Shell>}
                             {aItem.type === 'dsh' && (
@@ -235,7 +225,6 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     pDragStat={pDragStat}
                                     pWidth={sBodyWidth}
                                     pHandleSaveModalOpen={handleSaveModalOpen}
-                                    pSetConsoleMinimize={setConsoleMinimize}
                                     pInfo={aItem}
                                     pSetIsSaveModal={setIsSaveModal}
                                     pDraged={pDraged}
