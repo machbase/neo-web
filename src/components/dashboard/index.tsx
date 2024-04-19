@@ -22,7 +22,7 @@ import { Input } from '../inputs/Input';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 
-const Dashboard = ({ pDragStat, pInfo, pWidth, pSetConsoleMinimize, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
+const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const setRollupTabls = useSetRecoilState(gRollupTableList);
@@ -174,7 +174,6 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pSetConsoleMinimize, pHandleSaveM
     };
 
     useEffect(() => {
-        pSetConsoleMinimize();
         initDashboard();
     }, []);
 

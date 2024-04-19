@@ -188,7 +188,6 @@ const Home = () => {
                                         pSetDragStat={setDragStat}
                                         pExtentionList={sTabList}
                                         pTerminalSizes={sTerminalSizes}
-                                        pSetTerminalSize={setTerminalSizes}
                                         pSideSizes={sSideSizes}
                                         pDraged={sDraged}
                                         pGetInfo={getInfo}
