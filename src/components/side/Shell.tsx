@@ -1,7 +1,7 @@
 import { getLogin as getShellList } from '@/api/repository/login';
 import { MouseEvent, useEffect, useState } from 'react';
 import { MdRefresh } from 'react-icons/md';
-import { VscChevronDown, VscChevronRight } from 'react-icons/vsc';
+import { VscChevronDown, VscChevronRight, VscCopy } from 'react-icons/vsc';
 import { IconButton } from '../buttons/IconButton';
 import { gActiveShellManage, gBoardList, gSelectedTab, gShellList, gShowShellList } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
@@ -68,16 +68,16 @@ export const Shell = ({ pServer }: any) => {
             return;
         }
     };
-    /** Handle shell mode (info, create) */
-    const handleShellMode = async (aEvent?: MouseEvent) => {
+    /** Handle create shell */
+    const handleCreateShell = async (aEvent?: MouseEvent, aShell?: any) => {
         if (aEvent) aEvent.stopPropagation();
-        const sTempTarget = sShellList.find((aShell: any) => aShell.id === 'SHELL');
+        const sTempTarget = aShell || sShellList.find((aShell: any) => aShell.id === 'SHELL');
         const sCopyRes: any = await copyShell(sTempTarget.id);
 
         if (sCopyRes.success) {
             const sTargetItem = sCopyRes.data;
             sTargetItem.id = sTargetItem.id.toUpperCase();
-            sTargetItem.icon = 'console-network-outline';
+            sTargetItem.icon = sTempTarget.icon === 'console' ? 'console-network-outline' : sTempTarget.icon;
             await shellList();
 
             const sExistShellManageTab = sBoardList.reduce((prev: boolean, cur: any) => {
@@ -136,7 +136,7 @@ export const Shell = ({ pServer }: any) => {
                     <span className="title-text">SHELL</span>
                     <span className="sub-title-navi">
                         {/* Create shell */}
-                        <IconButton pWidth={20} pHeight={20} pIcon={<GoPlus size={15} />} onClick={(aEvent: MouseEvent) => handleShellMode(aEvent)} />
+                        <IconButton pWidth={20} pHeight={20} pIcon={<GoPlus size={15} />} onClick={(aEvent: MouseEvent) => handleCreateShell(aEvent)} />
                         {/* GET shell list */}
                         <IconButton pWidth={20} pHeight={20} pIcon={<MdRefresh size={15} />} onClick={(aEvent: MouseEvent) => shellList(aEvent)} />
                     </span>
@@ -154,6 +154,11 @@ export const Shell = ({ pServer }: any) => {
                                         {icons(aShell.icon)}
                                     </span>
                                     <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{aShell.label}</span>
+                                </div>
+                                <div>
+                                    <span className="icons" style={{ width: '14px' }}>
+                                        <IconButton pWidth={20} pHeight={20} pIcon={<VscCopy size={15} />} onClick={(aEvent: MouseEvent) => handleCreateShell(aEvent, aShell)} />
+                                    </span>
                                 </div>
                             </div>
                         );
