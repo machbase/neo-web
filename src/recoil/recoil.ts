@@ -57,6 +57,11 @@ export const gExtensionList = atom<any>({
             label: 'KEY',
         },
         {
+            id: 'SHELL',
+            type: 'SHELL',
+            label: 'SHELL',
+        },
+        {
             id: 'REFERENCE',
             type: 'REFERENCE',
             label: 'REFERENCE',
@@ -109,4 +114,20 @@ export const gKeyList = atom<any>({
 export const gActiveKey = atom<any>({
     key: 'gActiveKey',
     default: '' as string,
+});
+
+export const gShellList = atom<any>({
+    key: 'gShellList',
+    default: [] as any,
+});
+export const gActiveShellManage = atom<any>({
+    key: 'gActiveShellManage',
+    default: '' as string,
+});
+export const gShowShellList = selector<any>({
+    key: 'gShowShellList',
+    get: ({ get }) => {
+        const sShellList = get(gShellList);
+        return sShellList.filter((aTermTypeItem: any) => aTermTypeItem.attributes.some((aAttr: any) => aAttr.editable));
+    },
 });

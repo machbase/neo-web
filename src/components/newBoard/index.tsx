@@ -1,11 +1,11 @@
 import './index.scss';
 import { useRecoilState } from 'recoil';
-import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { gBoardList, gSelectedTab, gShellList } from '@/recoil/recoil';
 import icons from '@/utils/icons';
 import ShellMenu from './ShellMenu';
 import { TbParachute } from '@/assets/icons/Icon';
 import { extractionExtension } from '@/utils';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 interface NewBoardProps {
     pExtentionList: any;
@@ -18,6 +18,7 @@ const NewBoard = (props: NewBoardProps) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sSelectedTab] = useRecoilState<any>(gSelectedTab);
     const [sFileUploadStyle, setFileUploadStyle] = useState(false);
+    const [sShellList] = useRecoilState<any>(gShellList);
 
     const readFile = async (aItem: any) => {
         return (await new Promise((resolve) => {
@@ -174,6 +175,11 @@ const NewBoard = (props: NewBoardProps) => {
             </div>
         );
     };
+    /** return shell list */
+    const getShellList = useMemo((): any[] => {
+        const sExtensionListWithoutTerm = pExtentionList.filter((aExtension: any) => aExtension.type !== 'term');
+        return sExtensionListWithoutTerm.concat(sShellList);
+    }, [sShellList, pGetInfo]);
 
     return (
         <div className="inner">
@@ -181,8 +187,8 @@ const NewBoard = (props: NewBoardProps) => {
                 <p className="main_title">New...</p>
             </div>
             <div className="btn_wrap">
-                {pExtentionList.map((aItem: any) => {
-                    return <ShellMenu key={aItem.id} pInfo={aItem} pChangeTabOption={changeTabOption} pSetIcon={setIcon} pGetInfo={pGetInfo} />;
+                {getShellList.map((aItem: any) => {
+                    return <ShellMenu key={aItem.id} pInfo={aItem} pChangeTabOption={changeTabOption} pSetIcon={setIcon} />;
                 })}
                 {/* Drop & Open */}
                 <label
