@@ -29,15 +29,7 @@ import { SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser
 import { Error } from '@/components/toast/Toast';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 
-export const Block = ({
-    pBlockInfo,
-    pPanelOption,
-    pTableList,
-    // pType,
-    pGetTables,
-    pSetPanelOption,
-    pValueLimit,
-}: any) => {
+export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
     const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
@@ -120,37 +112,37 @@ export const Block = ({
         });
 
         setColumnList(sData.data.rows);
-        // if (pType === 'create') {
-        pSetPanelOption((aPrev: any) => {
-            return {
-                ...aPrev,
-                blockList: aPrev.blockList.map((aItem: any) => {
-                    return aItem.id === pBlockInfo.id
-                        ? {
-                              ...aItem,
-                              time: sData.data.rows.filter((aItem: any) => {
-                                  return aItem[1] === 6;
-                              })[0][0],
-                              value: sData.data.rows.filter((aItem: any) => {
-                                  return isNumberTypeColumn(aItem[1]);
-                              })[0][0],
-                              name: sData.data.rows.filter((aItem: any) => {
-                                  return aItem[1] === 5;
-                              }),
-                              values: aItem.values.map((aItem: any) => {
-                                  return {
-                                      ...aItem,
-                                      value: sData.data.rows.filter((aItem: any) => {
-                                          return isNumberTypeColumn(aItem[1]);
-                                      })[0][0],
-                                  };
-                              }),
-                          }
-                        : aItem;
-                }),
-            };
-        });
-        // }
+        if (pType === 'create') {
+            pSetPanelOption((aPrev: any) => {
+                return {
+                    ...aPrev,
+                    blockList: aPrev.blockList.map((aItem: any) => {
+                        return aItem.id === pBlockInfo.id
+                            ? {
+                                  ...aItem,
+                                  time: sData.data.rows.filter((aItem: any) => {
+                                      return aItem[1] === 6;
+                                  })[0][0],
+                                  value: sData.data.rows.filter((aItem: any) => {
+                                      return isNumberTypeColumn(aItem[1]);
+                                  })[0][0],
+                                  name: sData.data.rows.filter((aItem: any) => {
+                                      return aItem[1] === 5;
+                                  }),
+                                  values: aItem.values.map((aItem: any) => {
+                                      return {
+                                          ...aItem,
+                                          value: sData.data.rows.filter((aItem: any) => {
+                                              return isNumberTypeColumn(aItem[1]);
+                                          })[0][0],
+                                      };
+                                  }),
+                              }
+                            : aItem;
+                    }),
+                };
+            });
+        }
     };
     const getTagList = async (aTable: any) => {
         const sData: any = await fetchTags(aTable);
@@ -427,10 +419,9 @@ export const Block = ({
                                         {sTimeList[0] && (
                                             <Select
                                                 pFontSize={12}
-                                                pAutoChanged={true}
                                                 pWidth={175}
                                                 pBorderRadius={4}
-                                                pInitValue={sTimeList[0] && sTimeList[0][0]}
+                                                pInitValue={pBlockInfo.time}
                                                 pHeight={26}
                                                 onChange={(aEvent: any) => changedOption('time', aEvent)}
                                                 pOptions={sTimeList.map((aItem: any) => {
