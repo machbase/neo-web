@@ -255,8 +255,13 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setSqlReason(sQueryReslutList.at(-1).data.reason);
         }
         if (sQueryReslutList.at(-1).status === 200 && aParsedQuery.length === sQueryReslutList.length) {
-            setSqlReason('');
-            setSql(sQueryReslutList.at(-1).data);
+            const sLastQueryResult = sQueryReslutList.at(-1);
+            if (sLastQueryResult.headers['content-type'] === 'application/json') {
+                setSql('');
+                setSqlReason(sLastQueryResult.data.reason);
+            } else {
+                setSql(sLastQueryResult.data);
+            }
             if (pAllRunCodeStatus) pAllRunCodeCallback(true);
         } else {
             if (pAllRunCodeStatus) pAllRunCodeCallback(false);
