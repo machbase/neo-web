@@ -1,7 +1,7 @@
 import './index.scss';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRecoilState } from 'recoil';
-import { gConsoleSelector } from '@/recoil/recoil';
+import { gConsoleSelector, gShellList } from '@/recoil/recoil';
 import { VscAdd, VscChevronDown, VscTrash, VscChevronUp } from '@/assets/icons/Icon';
 import { getId, isEmpty } from '@/utils';
 import Shell from '../shell/Shell';
@@ -21,6 +21,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
     const MenuRef = useRef<HTMLDivElement>(null);
     const sFiledRef = useRef<HTMLDivElement>(null);
     const consoleRef = useRef<any>(null);
+    const [sShellList] = useRecoilState<any>(gShellList);
     const [sNewLog, setNewLog] = useState(false);
     const onContextMenu = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -113,6 +114,12 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
         } else return moment().format('YYYY-MM-DD HH:mm:ss SSS');
     };
 
+    /** return shell list */
+    const getShellList = useMemo((): any[] => {
+        const sExtensionListWithoutTerm = pExtentionList.filter((aExtension: any) => aExtension.type !== 'term');
+        return sExtensionListWithoutTerm.concat(sShellList);
+    }, [sShellList]);
+
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
     useOutsideClick(sFiledRef, () => setSelectTask('none'));
 
@@ -140,7 +147,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                         <VscChevronDown />
                         <div className="extension-menu">
                             <Menu isOpen={sIsContextMenu}>
-                                {pExtentionList.map((aItem: any) => {
+                                {getShellList.map((aItem: any) => {
                                     return (
                                         <Menu.Item onClick={(aEvent: any) => addConsoleTab(aEvent, aItem)} key={aItem.id}>
                                             {icons(aItem.icon)}
