@@ -1,7 +1,7 @@
 import { getLogin as getShellList } from '@/api/repository/login';
 import { MouseEvent, useEffect, useState } from 'react';
 import { MdRefresh } from 'react-icons/md';
-import { VscChevronDown, VscChevronRight, VscCopy } from 'react-icons/vsc';
+import { VscChevronDown, VscChevronRight } from 'react-icons/vsc';
 import { IconButton } from '../buttons/IconButton';
 import { gActiveShellManage, gBoardList, gSelectedTab, gShellList, gShowShellList } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
@@ -154,11 +154,6 @@ export const Shell = ({ pServer }: any) => {
                                         {icons(aShell.icon)}
                                     </span>
                                     <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{aShell.label}</span>
-                                </div>
-                                <div>
-                                    <span className="icons" style={{ width: '14px' }}>
-                                        <IconButton pWidth={20} pHeight={20} pIcon={<VscCopy size={15} />} onClick={(aEvent: MouseEvent) => handleCreateShell(aEvent, aShell)} />
-                                    </span>
                                 </div>
                             </div>
                         );

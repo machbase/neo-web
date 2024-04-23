@@ -4,7 +4,7 @@ import { getLogin as getShellList } from '@/api/repository/login';
 import { gActiveShellManage, gBoardList, gSelectedTab, gShellList, gShowShellList } from '@/recoil/recoil';
 import { Pane, SashContent } from 'split-pane-react';
 import { useEffect, useState } from 'react';
-import { postShell, removeShell } from '@/api/repository/api';
+import { copyShell, postShell, removeShell } from '@/api/repository/api';
 import icons from '@/utils/icons';
 import SplitPane from 'split-pane-react/esm/SplitPane';
 
@@ -29,6 +29,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sPayload, setPayload] = useState<any>(pCode);
     const [sResMessage, setResMessage] = useState<string | undefined>(undefined);
+    // const [sShellList, setaShellList] = useRecoilState<any>(gShellList);
     const sIconList = ['console-network-outline', 'monitor-small', 'console-line', 'powershell', 'laptop', 'database', 'database-outline'];
     const sThemeList = ['default', 'white', 'dark', 'indigo', 'gray', 'galaxy'];
 
@@ -129,6 +130,56 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
             });
         });
     };
+    /** Handle create shell */
+    const handleCreateShell = async () => {
+        const sTempTarget = pCode;
+        const sCopyRes: any = await copyShell(sTempTarget.id);
+
+        if (sCopyRes.success) {
+            const sTargetItem = sCopyRes.data;
+            sTargetItem.id = sTargetItem.id.toUpperCase();
+            sTargetItem.icon = sTempTarget.icon === 'console' ? 'console-network-outline' : sTempTarget.icon;
+            await shellList();
+
+            const sExistShellManageTab = sBoardList.reduce((prev: boolean, cur: any) => {
+                return prev || cur.type === 'shell-manage';
+            }, false);
+
+            if (sExistShellManageTab) {
+                const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'shell-manage');
+                setBoardList((aBoardList: any) => {
+                    return aBoardList.map((aBoard: any) => {
+                        if (aBoard.id === aTarget.id) {
+                            return {
+                                id: sTargetItem.id,
+                                type: 'shell-manage',
+                                name: `SHELL: ${sTargetItem.label}`,
+                                code: sTargetItem,
+                                savedCode: sTargetItem,
+                            };
+                        }
+                        return aBoard;
+                    });
+                });
+            } else {
+                setBoardList([
+                    ...sBoardList,
+                    {
+                        id: sTargetItem.id,
+                        type: 'shell-manage',
+                        name: `SHELL: ${sTargetItem.label}`,
+                        code: sTargetItem,
+                        savedCode: sTargetItem,
+                    },
+                ]);
+            }
+            setSelectedTab(sTargetItem.id);
+            setActiveShellName(sTargetItem.id);
+            return;
+        } else {
+            setActiveShellName(undefined);
+        }
+    };
     const Resizer = () => {
         return <SashContent className={`security-key-sash-style security-key-sash-style-none`} />;
     };
@@ -191,9 +242,14 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                     </ExtensionTab.DpRow>
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={deleteShell} />
-                                    <ExtensionTab.TextButton pText="Save" pType="CREATE" pCallback={editShell} />
-                                    {sResMessage && <ExtensionTab.TextResErr pText={sResMessage} />}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <ExtensionTab.DpRow>
+                                            <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={deleteShell} />
+                                            <ExtensionTab.TextButton pText="Save" pType="CREATE" pCallback={editShell} />
+                                            {sResMessage && <ExtensionTab.TextResErr pText={sResMessage} />}
+                                        </ExtensionTab.DpRow>
+                                        <ExtensionTab.TextButton pText="Make a copy" pType="COPY" pCallback={handleCreateShell} pWidth={'120px'} />
+                                    </div>
                                 </ExtensionTab.ContentBlock>
                             </ExtensionTab.Body>
                         </Pane>

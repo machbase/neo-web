@@ -68,6 +68,8 @@ const TextButton = ({ pText, pType, pCallback, pWidth }: { pText: string; pType:
                 return '#ff4747';
             case 'CREATE':
                 return '#005fb8';
+            case 'COPY':
+                return '#6f7173';
         }
     };
     return (
