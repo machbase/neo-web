@@ -177,7 +177,7 @@ any) => {
                     name: sTmpBoard.name,
                     type: sFileExtension,
                     path: sTmpBoard.path,
-                    savedCode: JSON.stringify(sContentResult.dashboard),
+                    savedCode: JSON.stringify(JSON.parse(sContentResult).dashboard),
                 };
             } else if (sFileExtension === 'taz') {
                 const sTmpData: any = JSON.parse(sContentResult);

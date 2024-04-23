@@ -44,7 +44,7 @@ export const Shell = ({ pServer }: any) => {
                             ...aTarget,
                             name: `SHELL: ${aValue.label}`,
                             code: aValue,
-                            savedCode: true,
+                            savedCode: aValue,
                         };
                     }
                     return aBoard;
@@ -61,7 +61,7 @@ export const Shell = ({ pServer }: any) => {
                     type: 'shell-manage',
                     name: `SHELL: ${aValue.label}`,
                     code: aValue,
-                    savedCode: true,
+                    savedCode: aValue,
                 },
             ]);
             setSelectedTab(sId);
@@ -94,7 +94,7 @@ export const Shell = ({ pServer }: any) => {
                                 type: 'shell-manage',
                                 name: `SHELL: ${sTargetItem.label}`,
                                 code: sTargetItem,
-                                savedCode: true,
+                                savedCode: sTargetItem,
                             };
                         }
                         return aBoard;
@@ -108,7 +108,7 @@ export const Shell = ({ pServer }: any) => {
                         type: 'shell-manage',
                         name: `SHELL: ${sTargetItem.label}`,
                         code: sTargetItem,
-                        savedCode: true,
+                        savedCode: sTargetItem,
                     },
                 ]);
             }

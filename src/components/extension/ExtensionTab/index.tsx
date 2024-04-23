@@ -83,9 +83,9 @@ const IconBtn = ({ children, pCallback, pActive }: { children: React.ReactNode; 
         </div>
     );
 };
-const Input = ({ pCallback, pValue }: { pCallback?: (e: React.FormEvent<HTMLInputElement>) => void; pValue?: any }) => {
+const Input = ({ pCallback, pValue, pWidth }: { pCallback?: (e: React.FormEvent<HTMLInputElement>) => void; pValue?: any; pWidth?: any }) => {
     return (
-        <div className="extension-tab-input-wrapper">
+        <div className="extension-tab-input-wrapper" style={{ width: pWidth }}>
             <input onChange={pCallback} value={pValue} />
         </div>
     );

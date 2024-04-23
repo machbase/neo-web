@@ -38,7 +38,7 @@ export const SecurityKey = ({ pServer }: any) => {
                             ...aTarget,
                             name: `KEY: ${aValue.id}`,
                             code: aValue,
-                            savedCode: true,
+                            savedCode: aValue,
                         };
                     }
                     return aBoard;
@@ -55,7 +55,7 @@ export const SecurityKey = ({ pServer }: any) => {
                     type: 'key',
                     name: `KEY: ${aValue.id}`,
                     code: aValue,
-                    savedCode: true,
+                    savedCode: aValue,
                 },
             ]);
             setSelectedTab(sId);
@@ -80,7 +80,7 @@ export const SecurityKey = ({ pServer }: any) => {
                             type: 'key',
                             name: `KEY: create`,
                             code: undefined,
-                            savedCode: true,
+                            savedCode: false,
                         };
                     }
                     return aBoard;
@@ -97,7 +97,7 @@ export const SecurityKey = ({ pServer }: any) => {
                     type: 'key',
                     name: `KEY: create`,
                     code: undefined,
-                    savedCode: true,
+                    savedCode: false,
                 },
             ]);
             setSelectedTab(sId);

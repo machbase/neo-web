@@ -35,7 +35,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
     /** delete shell */
     const deleteShell = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (window.confirm('Do You Really Want To Delete This Key?')) {
+        if (window.confirm('Do You Really Want To Delete This Shell?')) {
             const sRes: any = await removeShell(sPayload.id);
             if (sRes.success) {
                 await shellList();
@@ -50,7 +50,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                     ...aTarget,
                                     name: `SHELL: ${sShellList[0].label}`,
                                     code: sShellList[0],
-                                    savedCode: true,
+                                    savedCode: sShellList[0],
                                 };
                             }
                             return aBoard;
@@ -90,7 +90,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                             ...aTarget,
                             name: `SHELL: ${sPayload.label}`,
                             code: sPayload,
-                            savedCode: true,
+                            savedCode: sPayload,
                         };
                     }
                     return aBoard;
@@ -121,7 +121,13 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
         const sTarget = aEvent.target as HTMLInputElement;
         const sTempPayload = JSON.parse(JSON.stringify(sPayload));
         sTempPayload[aKey] = sTarget.value;
-        setPayload(sTempPayload);
+        setBoardList((curBoardList: any) => {
+            return curBoardList.map((aBoard: any) => {
+                if (aBoard.type === 'shell-manage') {
+                    return { ...aBoard, code: sTempPayload };
+                } else return aBoard;
+            });
+        });
     };
     const Resizer = () => {
         return <SashContent className={`security-key-sash-style security-key-sash-style-none`} />;
@@ -142,12 +148,20 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                 <ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentTitle>name</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>Display name</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.Input pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('label', event)} pValue={sPayload.label} />
+                                    <ExtensionTab.Input
+                                        pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('label', event)}
+                                        pValue={sPayload.label}
+                                        pWidth={'300px'}
+                                    />
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentTitle>command</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>Any executable command in full path with arguments</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.Input pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('command', event)} pValue={sPayload.command} />
+                                    <ExtensionTab.Input
+                                        pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('command', event)}
+                                        pValue={sPayload.command}
+                                        pWidth={'100%'}
+                                    />
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentTitle>theme</ExtensionTab.ContentTitle>
@@ -177,8 +191,8 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                     </ExtensionTab.DpRow>
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.TextButton pText="Save" pType="CREATE" pCallback={editShell} />
                                     <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={deleteShell} />
+                                    <ExtensionTab.TextButton pText="Save" pType="CREATE" pCallback={editShell} />
                                     {sResMessage && <ExtensionTab.TextResErr pText={sResMessage} />}
                                 </ExtensionTab.ContentBlock>
                             </ExtensionTab.Body>

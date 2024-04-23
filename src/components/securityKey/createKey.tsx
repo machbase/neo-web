@@ -4,7 +4,7 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { CreatePayloadType, GenKeyResType, KeyItemType, genKey, getKeyList } from '@/api/repository/key';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { ExtensionTab } from '../extension/ExtensionTab';
-import { gKeyList } from '@/recoil/recoil';
+import { gBoardList, gKeyList } from '@/recoil/recoil';
 import { useSetRecoilState } from 'recoil';
 import { Pane, SashContent } from 'split-pane-react';
 import moment from 'moment';
@@ -18,6 +18,7 @@ export const CreateKey = () => {
     const [sResErrMessage, setResErrMessage] = useState<string | undefined>(undefined);
     const setSecurityKeyList = useSetRecoilState<KeyItemType[] | undefined>(gKeyList);
     const [sStartTime, sSetStartTime] = useState<any>('');
+    const setBoardList = useSetRecoilState<any[]>(gBoardList);
     const [sEndTime, sSetEndTime] = useState<any>('');
     const [sTooltipTxt, setTooltipTxt] = useState<string>('Copy');
     const sBodyRef: any = useRef(null);
@@ -48,6 +49,7 @@ export const CreateKey = () => {
             const sKeyList = await getKeyList();
             if (sKeyList.success) setSecurityKeyList(sKeyList.list);
             else setSecurityKeyList(undefined);
+            handleSavedCode(true);
             setResErrMessage(undefined);
         } else {
             setGenKeyInfo(undefined);
@@ -60,6 +62,22 @@ export const CreateKey = () => {
         const sTempPayload = sCreatePayload;
         sTempPayload[aTarget] = sTarget.value;
         setCreatePayload(sTempPayload);
+        handleSavedCode(false);
+    };
+    /** Saved status */
+    const handleSavedCode = (aSavedStatus: boolean) => {
+        setBoardList((aBoardList: any) => {
+            return aBoardList.map((aBoard: any) => {
+                if (aBoard.type === 'key') {
+                    return {
+                        ...aBoard,
+                        name: `KEY: create`,
+                        savedCode: aSavedStatus,
+                    };
+                }
+                return aBoard;
+            });
+        });
     };
     /** download zip file (cert, key, token, pubkey) */
     const handleDownloadFile = async () => {
@@ -89,11 +107,9 @@ export const CreateKey = () => {
     };
     /** Handle time */
     const handleTime = (aKey: string, aValue: any) => {
+        handleSavedCode(false);
         if (aKey === 'startTime') sSetStartTime(aValue);
-        else {
-            console.log('end time', aValue);
-            sSetEndTime(aValue);
-        }
+        else sSetEndTime(aValue);
     };
     const Resizer = () => {
         return <SashContent className={`security-key-sash-style`} />;
