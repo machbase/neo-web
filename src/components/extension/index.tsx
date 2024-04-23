@@ -1,21 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import {
-    Cmd,
-    VscSymbolFile,
-    VscThreeBars,
-    VscNote,
-    VscGraphLine,
-    Gear,
-    VscFiles,
-    Logout,
-    Key,
-    VscLibrary,
-    GoDatabase,
-    VscKey,
-    Powershell,
-    VscTerminal,
-    GoTerminal,
-} from '@/assets/icons/Icon';
+import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase, VscKey, GoTerminal } from '@/assets/icons/Icon';
 import ExtensionBtn from '@/components/extension/ExtensionBtn';
 import { useRecoilState } from 'recoil';
 import { gExtensionList, gSelectedExtension } from '@/recoil/recoil';
