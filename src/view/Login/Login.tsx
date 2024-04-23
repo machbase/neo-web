@@ -67,7 +67,7 @@ const Login = () => {
             }
         } else {
             if (sReturn?.data && sReturn?.data.reason) setIsLogin(sReturn?.data.reason);
-            else setIsLogin(sReturn.statusText);
+            else setIsLogin('Cannot connect to server');
         }
     };
 
