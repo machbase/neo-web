@@ -275,6 +275,10 @@ const CreatePanel = ({
         if (sTimeRangeStatus) return setTimeRangeStatus(() => false);
         if (pBoardInfo.path === '') pSetIsSaveModal(true);
     };
+    const handleDiscard = () => {
+        pSetType(undefined);
+        pSetCreateModal(false);
+    };
     const handleTimeRange = () => {
         setTimeRangeStatus(() => true);
         pSetTimeRangeModal(true);
@@ -323,7 +327,7 @@ const CreatePanel = ({
                         pHeight={28}
                         pWidth={75}
                         pIsDisabled={false}
-                        onClick={() => pSetCreateModal(false)}
+                        onClick={handleDiscard}
                         pFontColor="rgb(231 65 131)"
                         pText="Discard"
                         pBorderColor="rgb(231 65 131)"
