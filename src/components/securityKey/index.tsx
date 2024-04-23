@@ -15,7 +15,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
     /** delete key */
     const deleteKey = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (window.confirm('Do You Really Want To Delete This Key?')) {
+        if (window.confirm(`Do you want to delete the key "${pCode.id}"?`)) {
             const sRes = await delKey(pCode.id);
             if (sRes.success) {
                 const sKeyList = await getKeyList();

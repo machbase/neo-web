@@ -36,7 +36,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
     /** delete shell */
     const deleteShell = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (window.confirm('Do You Really Want To Delete This Shell?')) {
+        if (window.confirm(`Do you want to delete the shell "${sPayload.label}"?`)) {
             const sRes: any = await removeShell(sPayload.id);
             if (sRes.success) {
                 await shellList();
