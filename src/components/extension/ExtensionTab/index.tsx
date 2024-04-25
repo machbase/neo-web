@@ -7,7 +7,7 @@ import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import moment from 'moment';
 import './index.scss';
-import { VscCheck } from 'react-icons/vsc';
+import { VscCheck, VscCircleFilled } from 'react-icons/vsc';
 import { generateUUID } from '@/utils';
 
 export const ExtensionTab = ({ children, pRef }: { children: React.ReactNode; pRef?: React.MutableRefObject<any> }) => {
@@ -295,13 +295,14 @@ const Checkbox = ({ pCallback, pValue }: { pCallback?: (value: any) => void; pVa
     );
 };
 
-const Table = ({ pList }: { pList: any }) => {
+const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
     return (
         <div className="extension-tab-table-wrapper">
             <table className="extension-tab-table">
                 <thead className="extension-tab-table-header">
                     {pList && pList.columns ? (
                         <tr>
+                            {dotted && <th style={{ cursor: 'default' }}></th>}
                             {pList.columns.map((aColumn: string, aIdx: number) => {
                                 return (
                                     <th key={aColumn + '-' + aIdx} style={{ cursor: 'default' }}>
@@ -319,6 +320,13 @@ const Table = ({ pList }: { pList: any }) => {
                         ? pList.rows.map((aRowList: any, aIdx: number) => {
                               return (
                                   <tr key={'tbody-row' + aIdx} className={Number(aIdx) % 2 === 0 ? 'result-body-tr' : 'result-body-tr dark-odd'}>
+                                      {dotted && (
+                                          <td className="result-table-item" style={{ cursor: 'default' }}>
+                                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                  <VscCircleFilled />
+                                              </div>
+                                          </td>
+                                      )}
                                       {aRowList.map((aRowData: any) => {
                                           return (
                                               <td className="result-table-item" key={generateUUID()}>

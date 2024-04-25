@@ -8,7 +8,7 @@ import { gBoardList, gTimerList } from '@/recoil/recoil';
 import { VscWarning } from 'react-icons/vsc';
 import { IconButton } from '../buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
-import { CRON_EXPRESSION, INTERVAL, PREDEFINED_SCHEDULES, TIMER_SPEC } from './content';
+import { CRON_EXPRESSION, CRON_EXPRESSION_HINT, INTERVAL, PREDEFINED_SCHEDULES, TIMER_SPEC } from './content';
 
 export const EditTimer = () => {
     const setTimerList = useSetRecoilState<TimerItemType[]>(gTimerList);
@@ -183,35 +183,23 @@ export const EditTimer = () => {
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.ContentTitle>{'timer spec '}</ExtensionTab.ContentTitle>
                             <ExtensionTab.ContentDesc>{'There three possible examples)'}</ExtensionTab.ContentDesc>
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.Table pList={TIMER_SPEC} />
-                            </ExtensionTab.ContentBlock>
+                            <div style={{ margin: '10px 20px', padding: '12px 16px 12px 0' }}>
+                                <ExtensionTab.Table pList={TIMER_SPEC} dotted />
+                            </div>
                         </ExtensionTab.ContentBlock>
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.ContentTitle>CRON expression</ExtensionTab.ContentTitle>
                             <ExtensionTab.ContentBlock>
                                 <ExtensionTab.Table pList={CRON_EXPRESSION} />
                             </ExtensionTab.ContentBlock>
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentDesc>{'Asterisk *'}</ExtensionTab.ContentDesc>
-                                <ExtensionTab.ContentText pContent="The asterisk indicates that the cron expression will match for all values of the field; e.g., using an asterisk in the 5th field (month) would indicate every month." />
-                            </ExtensionTab.ContentBlock>
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentDesc>{'Slash /'}</ExtensionTab.ContentDesc>
-                                <ExtensionTab.ContentText pContent="Slashes are used to describe increments of ranges. For example 3-59/15 in the 1st field (minutes) would indicate the 3rd minute of the hour and every 15 minutes thereafter. The form “*/…” is equivalent to the form “first-last/…”, that is, an increment over the largest possible range of the field. The form “N/…” is accepted as meaning “N-MAX/…”, that is, starting at N, use the increment until the end of that specific range. It does not wrap around." />
-                            </ExtensionTab.ContentBlock>
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentDesc>{'Comma ,'}</ExtensionTab.ContentDesc>
-                                <ExtensionTab.ContentText pContent="Commas are used to separate items of a list. For example, using “MON,WED,FRI” in the 5th field (day of week) would mean Mondays, Wednesdays and Fridays." />
-                            </ExtensionTab.ContentBlock>
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentDesc>{'Hyphen -'}</ExtensionTab.ContentDesc>
-                                <ExtensionTab.ContentText pContent="Hyphens are used to define ranges. For example, 9-17 would indicate every hour between 9am and 5pm inclusive." />
-                            </ExtensionTab.ContentBlock>
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentDesc>{'Question mark ?'}</ExtensionTab.ContentDesc>
-                                <ExtensionTab.ContentText pContent="Question mark may be used instead of * for leaving either day-of-month or day-of-week blank." />
-                            </ExtensionTab.ContentBlock>
+                            {CRON_EXPRESSION_HINT.map((aHint) => {
+                                return (
+                                    <ExtensionTab.ContentBlock>
+                                        <ExtensionTab.ContentDesc>{aHint.name}</ExtensionTab.ContentDesc>
+                                        <ExtensionTab.ContentText pContent={aHint.content} />
+                                    </ExtensionTab.ContentBlock>
+                                );
+                            })}
                         </ExtensionTab.ContentBlock>
 
                         <ExtensionTab.ContentBlock>
