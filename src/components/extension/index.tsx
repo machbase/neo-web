@@ -11,6 +11,7 @@ import useOutsideClick from '@/hooks/useOutsideClick';
 import { LicenseModal } from '@/components/modal/LicenseModal';
 import { logOut } from '@/api/repository/login';
 import { useNavigate } from 'react-router-dom';
+import { RxLapTimer } from 'react-icons/rx';
 
 const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const sNavigate = useNavigate();
@@ -63,6 +64,8 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                 return <VscLibrary />;
             case 'KEY':
                 return <VscKey />;
+            case 'TIMER':
+                return <RxLapTimer />;
             default:
                 return <Cmd />;
         }

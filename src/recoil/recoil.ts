@@ -57,6 +57,11 @@ export const gExtensionList = atom<any>({
             label: 'KEY',
         },
         {
+            id: 'TIMER',
+            type: 'TIMER',
+            label: 'TIMER',
+        },
+        {
             id: 'REFERENCE',
             type: 'REFERENCE',
             label: 'REFERENCE',
@@ -108,5 +113,14 @@ export const gKeyList = atom<any>({
 
 export const gActiveKey = atom<any>({
     key: 'gActiveKey',
+    default: '' as string,
+});
+
+export const gTimerList = atom<any>({
+    key: 'gTimerList',
+    default: [] as any,
+});
+export const gActiveTimer = atom<any>({
+    key: 'gActiveTimer',
     default: '' as string,
 });

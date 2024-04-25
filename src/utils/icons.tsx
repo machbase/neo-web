@@ -38,6 +38,7 @@ import {
     MuiFolder,
     MuiFolderOpen,
 } from '@/assets/icons/Mui';
+import { RxLapTimer } from 'react-icons/rx';
 
 const icons = (aType: string, aIsHome?: boolean) => {
     switch (aType) {
@@ -111,6 +112,8 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <MuiFolderGitOpen />;
         case 'key':
             return <VscKey />;
+        case 'timer':
+            return <RxLapTimer />;
         default:
             return <GoTerminal />;
     }
