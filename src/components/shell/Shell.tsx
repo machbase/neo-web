@@ -24,11 +24,8 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     let sWebSoc: any = null;
     // fitter
     let sFitter: any = null;
-    // term
-    // let sTerm: any = null;
     // temr id
     let sTermId: any = null;
-
     let sTheme: any = Theme['dark'];
     if (pInfo.shell.theme && pInfo.shell.theme !== 'default') {
         const sData: 'gray' | 'indigo' | 'ollie' | 'warmNeon' | 'galaxy' | 'white' | 'dark' = pInfo.shell.theme;
@@ -41,13 +38,11 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
         allowProposedApi: true,
         fontSize: 14,
     });
-
     const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
         if (aSize.cols > 11 && aSize.rows > 5) {
             await postTerminalSize(sTermId, aSize);
         }
     };
-
     const sResizeObserver = new ResizeObserver(() => {
         try {
             if (pSelectedTab === pId) {
@@ -57,7 +52,6 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
             console.log(err);
         }
     });
-
     const init = async () => {
         const sResult: any = await getLogin();
 
@@ -96,6 +90,20 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                     onSendReSizeInfo(aSize);
                 });
 
+                // Socket connection lost (client side)
+                sWebSoc.addEventListener('close', () => {
+                    if (sTerm) {
+                        !sWebSoc['CUSTOM_CLOSE_CEHCK'] && sTerm.writeln('closed.');
+                    }
+                });
+                // Socket connection lost (server side)
+                sWebSoc.addEventListener('message', (message: any) => {
+                    if (typeof message.data === 'string') {
+                        const sParsedMsg = message.data.replace(/\n|\r|\s*/g, '');
+                        if (sParsedMsg === 'closed.') sWebSoc['CUSTOM_CLOSE_CEHCK'] = true;
+                    }
+                });
+
                 setTimeout(() => {
                     try {
                         sFitter && sFitter.fit();
@@ -107,6 +115,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
             }
         }
     };
+
     useEffect(() => {
         init();
 
