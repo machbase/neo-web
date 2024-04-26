@@ -138,8 +138,8 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                             <ExtensionTab.TextResErr pText={pCode.state} />
                                         </ExtensionTab.ContentDesc>
                                     ) : (
-                                        <div style={{ marginTop: '16px' }}>
-                                            <ExtensionTab.Switch pState={pCode.state === 'RUNNING'} pCallback={handleCommand} />
+                                        <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'row' }}>
+                                            <ExtensionTab.Switch pState={pCode.state === 'RUNNING'} pCallback={handleCommand} pBadge={pCode.state} />
                                         </div>
                                     )}
                                     {sCommandRes && (

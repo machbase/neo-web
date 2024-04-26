@@ -394,13 +394,14 @@ const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
         </div>
     );
 };
-const Switch = ({ pState, pCallback }: { pState: boolean; pCallback: () => void }) => {
+const Switch = ({ pState, pCallback, pBadge }: { pState: boolean; pCallback: () => void; pBadge?: string }) => {
     return (
         <div className="extension-tab-switch-wrapper">
             <input type="checkbox" id="switch" className="extension-tab-switch-input" readOnly checked={pState} />
             <label htmlFor="switch" className="extension-tab-switch-label" onClick={pCallback}>
                 <span className="extension-tab-switch-label-btn" />
             </label>
+            {!!pBadge && <span className={`extension-tab-badge ${!pBadge ? '' : 'extension-tab-badge-active'}`}>{pBadge}</span>}
         </div>
     );
 };
