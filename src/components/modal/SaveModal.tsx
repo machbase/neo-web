@@ -213,7 +213,14 @@ export const SaveModal = (props: SaveModalProps) => {
                         const sSaveData = {
                             ...aItem,
                             name: sFileName,
-                            savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : sFileType === 'taz' ? JSON.stringify(aItem.panels) : aItem.code,
+                            savedCode:
+                                sFileType === 'wrk'
+                                    ? JSON.stringify(aItem.sheet)
+                                    : sFileType === 'taz'
+                                    ? JSON.stringify(aItem.panels)
+                                    : sFileType === 'dsh'
+                                    ? JSON.stringify(aItem.dashboard)
+                                    : aItem.code,
                             path: sPath,
                         };
                         return sSaveData;

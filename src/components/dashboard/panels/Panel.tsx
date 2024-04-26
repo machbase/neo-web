@@ -21,7 +21,6 @@ const Panel = ({
     pBoardTimeMinMax,
 }: any) => {
     const [sRefreshCount, setRefreshCount] = useState<number>(0);
-
     return (
         <div className="panel-wrap" style={{ backgroundColor: ChartThemeBackgroundColor[pPanelInfo.theme] }}>
             <PanelHeader

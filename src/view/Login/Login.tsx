@@ -4,8 +4,8 @@ import LoginLogo from '../../assets/image/logo_machbaseNeo_general_a.png';
 import './Login.scss';
 import { postLogin } from '../../api/repository/login';
 import { useNavigate } from 'react-router-dom';
-import { Error } from '@/components/toast/Toast';
 import LOGIN_BG_IMG from '@/assets/image/neow_img_login_bg.webp';
+import { VscWarning } from 'react-icons/vsc';
 
 const Login = () => {
     const sNavigate = useNavigate();
@@ -15,6 +15,7 @@ const Login = () => {
     const [sRememberId, setRememberId] = useState(false);
     const sIdRef = useRef<HTMLInputElement>(null);
     const sPasswordRef = useRef<HTMLInputElement>(null);
+    const [sIsLogin, setIsLogin] = useState<any>(undefined);
 
     const handleLoginId = (aEvent: ChangeEvent<HTMLInputElement>) => {
         setLoginId(aEvent.target.value);
@@ -48,6 +49,7 @@ const Login = () => {
         const sReturn: any = await postLogin(sParams);
 
         if (sReturn && sReturn.success) {
+            setIsLogin(undefined);
             if (sRememberId) {
                 localStorage.setItem('rememberId', sLoginId);
             } else {
@@ -64,7 +66,8 @@ const Login = () => {
                 sNavigate('/');
             }
         } else {
-            Error('Login fail');
+            if (sReturn?.data && sReturn?.data.reason) setIsLogin(sReturn?.data.reason);
+            else setIsLogin('Cannot connect to server');
         }
     };
 
@@ -91,14 +94,23 @@ const Login = () => {
                         type="password"
                     />
                 </div>
-                <div className="input-checkboxwrap">
-                    {sRememberId ? (
-                        <input checked={sRememberId} onChange={handleRememberId} className="checkbox" type="checkbox" />
-                    ) : (
-                        <div onClick={() => setRememberId(true)}></div>
-                    )}
-
-                    <p className="input-checkbox-p">Remember User ID</p>
+                {sIsLogin && (
+                    <div className="input-form-response-wrapper">
+                        <div className="input-form-response">
+                            <VscWarning />
+                            <pre>{sIsLogin}</pre>
+                        </div>
+                    </div>
+                )}
+                <div className="input-cehck-wrapper">
+                    <div className="input-checkboxwrap">
+                        {sRememberId ? (
+                            <input checked={sRememberId} onChange={handleRememberId} className="checkbox" type="checkbox" />
+                        ) : (
+                            <div onClick={() => setRememberId(true)}></div>
+                        )}
+                        <p className="input-checkbox-p">Remember User ID</p>
+                    </div>
                 </div>
                 <div className="button-form">
                     <button className="login-button" type="submit" onKeyDown={keyDownLogin} onClick={login}>

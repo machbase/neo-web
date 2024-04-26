@@ -1,8 +1,8 @@
-import { gBoardList } from '@/recoil/recoil';
+import { gActiveKey, gActiveShellManage, gBoardList } from '@/recoil/recoil';
 import { deepEqual, getId, isValidJSON } from '@/utils';
 import icons from '@/utils/icons';
 import { useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useSetRecoilState } from 'recoil';
 import { SaveCricle } from '@/assets/icons/Icon';
 import './Tab.scss';
 
@@ -11,6 +11,8 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sIsSaved, setIsSaved] = useState<boolean>(false);
     const [sDragOver, setDragOver] = useState<NodeJS.Timeout | any>(null);
+    const setActiveShellName = useSetRecoilState<any>(gActiveShellManage);
+    const setActiveKeyName = useSetRecoilState<any>(gActiveKey);
 
     useEffect(() => {
         compareValue(pBoard);
@@ -36,8 +38,11 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
                 sBoardList[pIdx + 1] && pSetSelectedTab(sBoardList[pIdx + 1].id);
             }
         }
-        sArray.splice(pIdx, 1);
 
+        const sEtc = sArray.splice(pIdx, 1);
+
+        if (sEtc[0].type === 'shell-manage') setActiveShellName(undefined);
+        if (sEtc[0].type === 'key') setActiveKeyName(undefined);
         setBoardList(sArray);
 
         if (sArray.length === 0) {
@@ -70,6 +75,17 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
                     setIsSaved(JSON.stringify(aBoard.sheet) === pBoard.savedCode);
                 }
                 break;
+            case 'dsh':
+                if (aBoard.savedCode && typeof aBoard.savedCode === 'string' && isValidJSON(aBoard.savedCode)) {
+                    if (JSON.stringify(pBoard.dashboard) === aBoard.savedCode) {
+                        setIsSaved(true);
+                    } else {
+                        setIsSaved(false);
+                    }
+                } else {
+                    setIsSaved(false);
+                }
+                break;
             case 'taz':
                 if (aBoard.savedCode && typeof aBoard.savedCode === 'string' && isValidJSON(aBoard.savedCode)) {
                     if (deepEqual(pBoard.panels, JSON.parse(aBoard.savedCode))) {
@@ -81,11 +97,15 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
                     setIsSaved(false);
                 }
                 break;
-            case 'dsh':
             case 'new':
             case 'term':
-            case 'key':
                 setIsSaved(aBoard.savedCode === pBoard.savedCode);
+                break;
+            case 'key':
+                setIsSaved(pBoard.savedCode);
+                break;
+            case 'shell-manage':
+                setIsSaved(JSON.stringify(aBoard.code) === JSON.stringify(pBoard.savedCode));
                 break;
             default:
                 setIsSaved(aBoard.code === pBoard.savedCode);

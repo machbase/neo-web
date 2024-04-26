@@ -1,7 +1,7 @@
 import { KeyItemType, delKey, getKeyList } from '@/api/repository/key';
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { CreateKey } from '@/components/securityKey/createKey';
-import { useRecoilState, useSetRecoilState } from 'recoil';
+import { useRecoilState } from 'recoil';
 import { gActiveKey, gBoardList, gKeyList } from '@/recoil/recoil';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { Pane, SashContent } from 'split-pane-react';
@@ -10,12 +10,12 @@ import SplitPane from 'split-pane-react/esm/SplitPane';
 export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
     const [sSecurityKeyList, setSecurityKeyList] = useRecoilState<KeyItemType[] | undefined>(gKeyList);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
-    const setActiveKeyName = useSetRecoilState<any>(gActiveKey);
+    const [sActiveKeyName, setActiveKeyName] = useRecoilState<any>(gActiveKey);
 
     /** delete key */
     const deleteKey = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (window.confirm('Do You Really Want To Delete This Key?')) {
+        if (window.confirm(`Do you want to delete the key "${pCode.id}"?`)) {
             const sRes = await delKey(pCode.id);
             if (sRes.success) {
                 const sKeyList = await getKeyList();
@@ -33,7 +33,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
                                     ...aTarget,
                                     name: `KEY: ${sTempKeyList[0].id}`,
                                     code: sTempKeyList[0],
-                                    savedCode: true,
+                                    savedCode: sTempKeyList[0],
                                 };
                             }
                             return aBoard;
@@ -49,7 +49,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
                                     ...aTarget,
                                     name: `KEY: create`,
                                     code: undefined,
-                                    savedCode: true,
+                                    savedCode: undefined,
                                 };
                             }
                             return aBoard;
@@ -73,7 +73,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
     return (
         <>
             {/* Show info */}
-            {pCode && (
+            {sActiveKeyName && sActiveKeyName !== '' && (
                 <ExtensionTab>
                     <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={['50', '50']} onChange={() => {}}>
                         <Pane minSize={400}>
@@ -103,7 +103,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
                 </ExtensionTab>
             )}
             {/* Show create */}
-            {!pCode && <CreateKey />}
+            {!sActiveKeyName && <CreateKey />}
         </>
     );
 };
