@@ -4,9 +4,8 @@ import { gActiveTimer, gBoardList, gTimerList } from '@/recoil/recoil';
 import { Pane, SashContent } from 'split-pane-react';
 import { EditTimer } from './editTimer';
 import { TimerItemType, delTimer, getTimer, sendTimerCommand } from '@/api/repository/timer';
-import { VscWarning } from 'react-icons/vsc';
+import { useState, useEffect } from 'react';
 import SplitPane from 'split-pane-react/esm/SplitPane';
-import { useState } from 'react';
 
 export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -104,6 +103,10 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         return <SashContent className={`security-key-sash-style security-key-sash-style-none`} />;
     };
 
+    useEffect(() => {
+        setCommandRes(undefined);
+    }, [pCode]);
+
     return (
         <>
             {/* Show info */}
@@ -132,17 +135,18 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                     <ExtensionTab.ContentTitle>Timer state</ExtensionTab.ContentTitle>
                                     {!(pCode.state.includes('STOP') || pCode.state.includes('RUNNING')) ? (
                                         <ExtensionTab.ContentDesc>
-                                            <ExtensionTab.DpRow>
-                                                <VscWarning style={{ fill: 'rgb(236 118 118)' }} />
-                                                <span style={{ margin: '8px', color: 'rgb(236 118 118)' }}>{pCode.state}</span>
-                                            </ExtensionTab.DpRow>
+                                            <ExtensionTab.TextResErr pText={pCode.state} />
                                         </ExtensionTab.ContentDesc>
                                     ) : (
-                                        <div style={{ marginTop: '8px' }}>
+                                        <div style={{ marginTop: '16px' }}>
                                             <ExtensionTab.Switch pState={pCode.state === 'RUNNING'} pCallback={handleCommand} />
                                         </div>
                                     )}
-                                    {sCommandRes && <ExtensionTab.TextResErr pText={sCommandRes} />}
+                                    {sCommandRes && (
+                                        <ExtensionTab.ContentDesc>
+                                            <ExtensionTab.TextResErr pText={sCommandRes} />
+                                        </ExtensionTab.ContentDesc>
+                                    )}
                                 </ExtensionTab.ContentBlock>
 
                                 <ExtensionTab.ContentBlock>
