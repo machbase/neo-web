@@ -53,7 +53,7 @@ export const CreateKey = () => {
             setResErrMessage(undefined);
         } else {
             setGenKeyInfo(undefined);
-            setResErrMessage(sRes?.data ? (sRes as any).data.reason : (sRes.statusTex as string));
+            setResErrMessage(sRes?.data ? (sRes as any).data.reason : (sRes.statusText as string));
         }
     };
     /** handle key info */

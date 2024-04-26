@@ -57,6 +57,11 @@ export const gExtensionList = atom<any>({
             label: 'KEY',
         },
         {
+            id: 'TIMER',
+            type: 'TIMER',
+            label: 'TIMER',
+        },
+        {
             id: 'SHELL',
             type: 'SHELL',
             label: 'SHELL',
@@ -116,6 +121,14 @@ export const gActiveKey = atom<any>({
     default: '' as string,
 });
 
+export const gTimerList = atom<any>({
+    key: 'gTimerList',
+    default: [] as any,
+});
+export const gActiveTimer = atom<any>({
+    key: 'gActiveTimer',
+    default: '' as string,
+});
 export const gShellList = atom<any>({
     key: 'gShellList',
     default: [] as any,

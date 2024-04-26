@@ -7,6 +7,8 @@ import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import moment from 'moment';
 import './index.scss';
+import { VscCheck, VscCircleFilled } from 'react-icons/vsc';
+import { generateUUID } from '@/utils';
 
 export const ExtensionTab = ({ children, pRef }: { children: React.ReactNode; pRef?: React.MutableRefObject<any> }) => {
     return (
@@ -282,6 +284,25 @@ const DatePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTime: 
         </div>
     );
 };
+const Checkbox = ({ pCallback, pValue }: { pCallback?: (value: any) => void; pValue?: boolean }) => {
+    const [sIsCheck, setIsCheck] = useState<boolean>(pValue || false);
+
+    const handleCheck = () => {
+        if (pCallback) {
+            const sApplyValue = !sIsCheck;
+            setIsCheck(sApplyValue);
+            pCallback(sApplyValue);
+        }
+    };
+
+    return (
+        <div className="extension-tab-check-box-wrarpper">
+            <div className="extension-tab-check-box" onClick={handleCheck}>
+                {sIsCheck && <VscCheck />}
+            </div>
+        </div>
+    );
+};
 const Selector = ({ pList, pSelectedItem, pCallback }: { pList: any; pSelectedItem: any; pCallback: (eTarget: string) => void }) => {
     const [sIsOpen, setIsOpen] = useState<boolean>(false);
 
@@ -325,6 +346,66 @@ const TextResErr = ({ pText }: { pText: string }) => {
     );
 };
 
+const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
+    return (
+        <div className="extension-tab-table-wrapper">
+            <table className="extension-tab-table">
+                <thead className="extension-tab-table-header">
+                    {pList && pList.columns ? (
+                        <tr>
+                            {dotted && <th style={{ cursor: 'default' }}></th>}
+                            {pList.columns.map((aColumn: string, aIdx: number) => {
+                                return (
+                                    <th key={aColumn + '-' + aIdx} style={{ cursor: 'default' }}>
+                                        <span>{aColumn}</span>
+                                    </th>
+                                );
+                            })}
+                        </tr>
+                    ) : (
+                        <></>
+                    )}
+                </thead>
+                <tbody className="extension-tab-table-body">
+                    {pList && pList.rows
+                        ? pList.rows.map((aRowList: any, aIdx: number) => {
+                              return (
+                                  <tr key={'tbody-row' + aIdx} className={Number(aIdx) % 2 === 0 ? 'result-body-tr' : 'result-body-tr dark-odd'}>
+                                      {dotted && (
+                                          <td className="result-table-item" style={{ cursor: 'default' }}>
+                                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                  <VscCircleFilled />
+                                              </div>
+                                          </td>
+                                      )}
+                                      {aRowList.map((aRowData: any) => {
+                                          return (
+                                              <td className="result-table-item" key={generateUUID()}>
+                                                  <span>{aRowData}</span>
+                                              </td>
+                                          );
+                                      })}
+                                  </tr>
+                              );
+                          })
+                        : null}
+                </tbody>
+            </table>
+        </div>
+    );
+};
+const Switch = ({ pState, pCallback }: { pState: boolean; pCallback: () => void }) => {
+    return (
+        <div className="extension-tab-switch-wrapper">
+            <input type="checkbox" id="switch" className="extension-tab-switch-input" readOnly checked={pState} />
+            <label htmlFor="switch" className="extension-tab-switch-label" onClick={pCallback}>
+                <span className="extension-tab-switch-label-btn" />
+            </label>
+        </div>
+    );
+};
+
+ExtensionTab.Checkbox = Checkbox;
 ExtensionTab.Group = Group;
 ExtensionTab.Header = Header;
 ExtensionTab.Body = Body;
@@ -341,6 +422,8 @@ ExtensionTab.ContentText = ContentText;
 ExtensionTab.Hr = Hr;
 ExtensionTab.DatePicker = DatePicker;
 ExtensionTab.DateTimePicker = DateTimePicker;
+ExtensionTab.Table = Table;
+ExtensionTab.Switch = Switch;
 ExtensionTab.IconBtn = IconBtn;
 ExtensionTab.Selector = Selector;
 ExtensionTab.TextResErr = TextResErr;

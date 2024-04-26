@@ -15,6 +15,7 @@ import ReferenceList from '@/components/side/ReferenceList';
 import DBExplorer from '@/components/side/DBExplorer/DBExplorer';
 import { SecurityKey } from '@/components/side/SecurityKey';
 import { UncaughtErrorObserver } from '@/utils/UncaughtErrorHelper';
+import { TimerSide } from '@/components/side/Timer';
 import { Shell } from '@/components/side/Shell';
 
 const Home = () => {
@@ -161,6 +162,7 @@ const Home = () => {
                                         {aItem.id === 'REFERENCE' && <ReferenceList pServer={sServer} />}
                                         {aItem.id === 'DBEXPLORER' && <DBExplorer pServer={sServer} />}
                                         {aItem.id === 'KEY' && <SecurityKey pServer={sServer} />}
+                                        {aItem.id === 'TIMER' && <TimerSide pServer={sServer} />}
                                         {aItem.id === 'SHELL' && <Shell pServer={sServer} />}
                                     </div>
                                 );

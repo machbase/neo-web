@@ -1,4 +1,4 @@
-import { gActiveKey, gActiveShellManage, gBoardList } from '@/recoil/recoil';
+import { gActiveKey, gActiveTimer, gActiveShellManage, gBoardList } from '@/recoil/recoil';
 import { deepEqual, getId, isValidJSON } from '@/utils';
 import icons from '@/utils/icons';
 import { useEffect, useState } from 'react';
@@ -11,6 +11,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sIsSaved, setIsSaved] = useState<boolean>(false);
     const [sDragOver, setDragOver] = useState<NodeJS.Timeout | any>(null);
+    const setActiveTimer = useSetRecoilState<any>(gActiveTimer);
     const setActiveShellName = useSetRecoilState<any>(gActiveShellManage);
     const setActiveKeyName = useSetRecoilState<any>(gActiveKey);
 
@@ -41,6 +42,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
 
         const sEtc = sArray.splice(pIdx, 1);
 
+        if (sEtc[0].type === 'timer') setActiveTimer(undefined);
         if (sEtc[0].type === 'shell-manage') setActiveShellName(undefined);
         if (sEtc[0].type === 'key') setActiveKeyName(undefined);
         setBoardList(sArray);
@@ -101,6 +103,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
             case 'term':
                 setIsSaved(aBoard.savedCode === pBoard.savedCode);
                 break;
+            case 'timer':
             case 'key':
                 setIsSaved(pBoard.savedCode);
                 break;
