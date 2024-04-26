@@ -55,7 +55,7 @@ export const getTimer = (): Promise<TimerListResType> => {
 export const genTimer = (aData: CreatePayloadType, aTimerId: string): Promise<GenTimerResType> => {
     return request({
         method: 'POST',
-        url: `/api/timers/${aTimerId}/add`,
+        url: `/api/timers`,
         data: { ...aData, name: aTimerId },
     });
 };
