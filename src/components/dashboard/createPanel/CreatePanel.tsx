@@ -295,7 +295,7 @@ const CreatePanel = ({
         <div className="create-panel-form">
             <div className="header">
                 <div className="left">
-                    <IconButton pWidth={20} pHeight={32} pIcon={<IoArrowBackOutline />} onClick={() => pSetCreateModal(false)} />
+                    <IconButton pWidth={20} pHeight={32} pIcon={<IoArrowBackOutline />} onClick={handleDiscard} />
                     <span>Create panel</span>
                 </div>
 
