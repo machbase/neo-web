@@ -21,7 +21,7 @@ export const EditTimer = () => {
     const [sCreatePayload, setCreatePayload] = useState<CreatePayloadType>({
         autoStart: false,
         spec: '', //@every 1h30m
-        tqlPath: '', ///sql_select_log.tql
+        path: '', ///sql_select_log.tql
     });
 
     /** create timer */
@@ -152,9 +152,9 @@ export const EditTimer = () => {
                             </ExtensionTab.DpRow>
                             <ExtensionTab.ContentDesc>The tql script as a task</ExtensionTab.ContentDesc>
                             <ExtensionTab.Input
-                                pValue={sCreatePayload.tqlPath}
+                                pValue={sCreatePayload.path}
                                 pWidth={'400px'}
-                                pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('tqlPath', event)}
+                                pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('path', event)}
                             />
                         </ExtensionTab.ContentBlock>
 
@@ -192,9 +192,9 @@ export const EditTimer = () => {
                             <ExtensionTab.ContentBlock>
                                 <ExtensionTab.Table pList={CRON_EXPRESSION} />
                             </ExtensionTab.ContentBlock>
-                            {CRON_EXPRESSION_HINT.map((aHint) => {
+                            {CRON_EXPRESSION_HINT.map((aHint, aIdx: number) => {
                                 return (
-                                    <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.ContentBlock key={aHint.name + aIdx + ''}>
                                         <ExtensionTab.ContentDesc>{aHint.name}</ExtensionTab.ContentDesc>
                                         <ExtensionTab.ContentText pContent={aHint.content} />
                                     </ExtensionTab.ContentBlock>

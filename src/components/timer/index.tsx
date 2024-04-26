@@ -4,13 +4,14 @@ import { gActiveTimer, gBoardList, gTimerList } from '@/recoil/recoil';
 import { Pane, SashContent } from 'split-pane-react';
 import { EditTimer } from './editTimer';
 import { TimerItemType, delTimer, getTimer, sendTimerCommand } from '@/api/repository/timer';
-import { VscWarning } from 'react-icons/vsc';
+import { useState, useEffect } from 'react';
 import SplitPane from 'split-pane-react/esm/SplitPane';
 
 export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const setResTimerList = useSetRecoilState<TimerItemType[] | undefined>(gTimerList);
     const [sActiveTimer, setActiveTimer] = useRecoilState<any>(gActiveTimer);
+    const [sCommandRes, setCommandRes] = useState<string | undefined>(undefined);
 
     /** delete timer */
     const deleteTimer = async (e: React.MouseEvent) => {
@@ -64,6 +65,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const handleCommand = async () => {
         const sResCommand = await sendTimerCommand(commandConverter(pCode.state).toLowerCase(), pCode.name);
         if (sResCommand.success) {
+            setCommandRes(undefined);
             const sTimerList = await getTimer();
             if (sTimerList.success) setResTimerList(sTimerList.list);
             else setResTimerList([]);
@@ -83,6 +85,8 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                     });
                 });
             }
+        } else {
+            setCommandRes(sResCommand?.data?.reason || 'Cannot connect to server');
         }
     };
     const commandConverter = (aCommand: string) => {
@@ -98,6 +102,10 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const Resizer = () => {
         return <SashContent className={`security-key-sash-style security-key-sash-style-none`} />;
     };
+
+    useEffect(() => {
+        setCommandRes(undefined);
+    }, [pCode]);
 
     return (
         <>
@@ -127,15 +135,17 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                     <ExtensionTab.ContentTitle>Timer state</ExtensionTab.ContentTitle>
                                     {!(pCode.state.includes('STOP') || pCode.state.includes('RUNNING')) ? (
                                         <ExtensionTab.ContentDesc>
-                                            <ExtensionTab.DpRow>
-                                                <VscWarning style={{ fill: 'rgb(236 118 118)' }} />
-                                                <span style={{ margin: '8px', color: 'rgb(236 118 118)' }}>{pCode.state}</span>
-                                            </ExtensionTab.DpRow>
+                                            <ExtensionTab.TextResErr pText={pCode.state} />
                                         </ExtensionTab.ContentDesc>
                                     ) : (
-                                        <div style={{ marginTop: '8px' }}>
+                                        <div style={{ marginTop: '16px' }}>
                                             <ExtensionTab.Switch pState={pCode.state === 'RUNNING'} pCallback={handleCommand} />
                                         </div>
+                                    )}
+                                    {sCommandRes && (
+                                        <ExtensionTab.ContentDesc>
+                                            <ExtensionTab.TextResErr pText={sCommandRes} />
+                                        </ExtensionTab.ContentDesc>
                                     )}
                                 </ExtensionTab.ContentBlock>
 
