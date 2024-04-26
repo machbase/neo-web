@@ -7,7 +7,6 @@ export interface TimerItemType {
     state: string;
     task: string;
     type: string;
-    autoStart: boolean;
 }
 interface TimerListResType {
     list: TimerItemType[];
@@ -25,7 +24,7 @@ export interface CreatePayloadType {
     [key: string]: string | boolean;
     autoStart: boolean;
     spec: string;
-    tqlPath: string;
+    path: string; // tqlPath
 }
 interface DelTimerResType {
     elapse: string;
@@ -47,17 +46,17 @@ export const getTimer = (): Promise<TimerListResType> => {
 /**
  * Gen timer
  * @TimerId         string
- * @Data            {AutoStart, Spec, TqlPath}
+ * @Data            {AutoStart, Spec, path}
  * @AutoStart       bool    json:"autoStart"
  * @Spec            string  json:"spec"
- * @TqlPath         string  json:"tqlPath"
+ * @Path         string  json:"path"
  * @returns         gen timer info
  */
 export const genTimer = (aData: CreatePayloadType, aTimerId: string): Promise<GenTimerResType> => {
     return request({
         method: 'POST',
         url: `/api/timers/${aTimerId}/add`,
-        data: aData,
+        data: { ...aData, name: aTimerId },
     });
 };
 
@@ -70,8 +69,8 @@ export const genTimer = (aData: CreatePayloadType, aTimerId: string): Promise<Ge
 export const sendTimerCommand = (aCommand: string, aTimerId: string): Promise<any> => {
     return request({
         method: 'POST',
-        url: `/api/timers/${aTimerId}`,
-        data: { action: aCommand },
+        url: `/api/timers/${aTimerId}/state`,
+        data: { state: aCommand },
     });
 };
 

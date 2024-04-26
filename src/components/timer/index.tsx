@@ -6,11 +6,13 @@ import { EditTimer } from './editTimer';
 import { TimerItemType, delTimer, getTimer, sendTimerCommand } from '@/api/repository/timer';
 import { VscWarning } from 'react-icons/vsc';
 import SplitPane from 'split-pane-react/esm/SplitPane';
+import { useState } from 'react';
 
 export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const setResTimerList = useSetRecoilState<TimerItemType[] | undefined>(gTimerList);
     const [sActiveTimer, setActiveTimer] = useRecoilState<any>(gActiveTimer);
+    const [sCommandRes, setCommandRes] = useState<string | undefined>(undefined);
 
     /** delete timer */
     const deleteTimer = async (e: React.MouseEvent) => {
@@ -64,6 +66,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const handleCommand = async () => {
         const sResCommand = await sendTimerCommand(commandConverter(pCode.state).toLowerCase(), pCode.name);
         if (sResCommand.success) {
+            setCommandRes(undefined);
             const sTimerList = await getTimer();
             if (sTimerList.success) setResTimerList(sTimerList.list);
             else setResTimerList([]);
@@ -83,6 +86,8 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                     });
                 });
             }
+        } else {
+            setCommandRes(sResCommand?.data?.reason || 'Cannot connect to server');
         }
     };
     const commandConverter = (aCommand: string) => {
@@ -137,6 +142,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                             <ExtensionTab.Switch pState={pCode.state === 'RUNNING'} pCallback={handleCommand} />
                                         </div>
                                     )}
+                                    {sCommandRes && <ExtensionTab.TextResErr pText={sCommandRes} />}
                                 </ExtensionTab.ContentBlock>
 
                                 <ExtensionTab.ContentBlock>
