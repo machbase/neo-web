@@ -1,6 +1,5 @@
 // ref: https://github.com/machbase/neo-server/blob/31b78eb95325d4690d178f9a56da2df396d4d5a9/mods/service/httpd/httpd.go#L211
 import request from '@/api/core';
-import { decodeJwt } from '@/utils';
 
 export interface KeyItemType {
     id: string;
@@ -44,10 +43,9 @@ interface DelKeyResType {
  * @returns key list
  */
 export const getKeyList = (): Promise<KeyListResType> => {
-    const sUserName: string = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
     return request({
         method: 'GET',
-        url: `/api/keys/${sUserName}`,
+        url: `/api/keys`,
     });
 };
 
