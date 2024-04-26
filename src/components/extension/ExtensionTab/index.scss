@@ -134,6 +134,7 @@
         border-radius: 2px;
         font-size: 13px;
         padding: 4px;
+        margin-right: 16px;
 
         &:hover {
             border: 1px solid rgba(255, 255, 255, 0.13);
@@ -154,7 +155,33 @@
             color: #f1f1f1;
         }
     }
+    .extension-tab-icon-button-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 40px;
+        height: 40px;
+        padding: 4px;
+        margin: 4px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        cursor: pointer;
 
+        svg {
+            display: flex;
+            justify-self: center;
+            align-items: center;
+        }
+
+        &:hover {
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            background-color: #005fb8;
+        }
+    }
+    .extension-tab-icon-button-active {
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        background-color: #005fb8;
+    }
     .extention-tab-date-time-picker-wrapper {
         display: flex;
         flex-direction: column;
@@ -407,6 +434,7 @@
         &-desc {
             color: #aaaaaa;
             font-size: 14px;
+            // margin: 4px 0;
         }
         &-text {
             margin-top: 4px;
@@ -427,5 +455,69 @@
     }
     .active-content-block {
         border: solid 2px #005fb8;
+    }
+
+    .extension-tab-selector-wrapper {
+        width: 300px;
+        font-size: 13px;
+        text-transform: capitalize;
+
+        .extension-tab-selector-header {
+            height: 27px;
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.13);
+            padding: 0 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+
+            span {
+                cursor: pointer;
+            }
+        }
+
+        .extension-tab-selector-body {
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            background-color: #1c1c21;
+
+            &-item {
+                display: flex;
+                align-items: center;
+                padding: 0 8px;
+                cursor: pointer;
+
+                span {
+                    cursor: pointer;
+                }
+            }
+            &-item:hover {
+                background-color: #005fb8;
+            }
+            &-item-selected {
+                background-color: #005fb8;
+            }
+        }
+    }
+    .extension-tab-res-err {
+        display: flex;
+        flex-direction: row;
+        padding: 20px 0 0 0;
+
+        svg {
+            margin-top: 4px;
+            min-width: 16px;
+            min-height: 16px;
+            width: 16px;
+            height: 16px;
+            fill: rgb(255, 83, 83);
+        }
+        span {
+            margin-left: 4px;
+            font-family: 'Pretendard';
+            font-size: 14px;
+            color: rgb(255, 83, 83);
+        }
     }
 }

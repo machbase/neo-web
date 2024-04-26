@@ -1,4 +1,4 @@
-import { Calendar, LuFlipVertical } from '@/assets/icons/Icon';
+import { ArrowDown, Calendar, LuFlipVertical, VscWarning } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { useRef, useState } from 'react';
 import { DateCalendar, LocalizationProvider, MultiSectionDigitalClock } from '@mui/x-date-pickers';
@@ -70,12 +70,21 @@ const TextButton = ({ pText, pType, pCallback, pWidth }: { pText: string; pType:
                 return '#ff4747';
             case 'CREATE':
                 return '#005fb8';
+            case 'COPY':
+                return '#6f7173';
         }
     };
     return (
         <button className="extension-tab-text-button" style={{ backgroundColor: getColor(), width: pWidth }} onClick={pCallback}>
             {pText}
         </button>
+    );
+};
+const IconBtn = ({ children, pCallback, pActive }: { children: React.ReactNode; pCallback: (e: React.MouseEvent) => void; pActive?: boolean }) => {
+    return (
+        <div className={pActive ? 'extension-tab-icon-button-wrapper extension-tab-icon-button-active' : `extension-tab-icon-button-wrapper`} onClick={pCallback}>
+            {children}
+        </div>
     );
 };
 const Input = ({ pCallback, pValue, pWidth }: { pCallback?: (e: React.FormEvent<HTMLInputElement>) => void; pValue?: any; pWidth?: any }) => {
@@ -294,6 +303,48 @@ const Checkbox = ({ pCallback, pValue }: { pCallback?: (value: any) => void; pVa
         </div>
     );
 };
+const Selector = ({ pList, pSelectedItem, pCallback }: { pList: any; pSelectedItem: any; pCallback: (eTarget: string) => void }) => {
+    const [sIsOpen, setIsOpen] = useState<boolean>(false);
+
+    const handleCallback = (aItem: string) => {
+        pCallback(aItem);
+        setIsOpen(false);
+    };
+
+    return (
+        <div className="extension-tab-selector-wrapper">
+            <div className="extension-tab-selector-header" onClick={() => setIsOpen(!sIsOpen)}>
+                <span>{pSelectedItem}</span>
+                <ArrowDown />
+            </div>
+            {sIsOpen && (
+                <div className="extension-tab-selector-body">
+                    {pList.map((pItem: string, aIdx: number) => {
+                        return (
+                            <div
+                                key={pItem + aIdx + ''}
+                                className={
+                                    pSelectedItem === pItem ? 'extension-tab-selector-body-item extension-tab-selector-body-item-selected' : 'extension-tab-selector-body-item'
+                                }
+                                onClick={() => handleCallback(pItem)}
+                            >
+                                <span>{pItem}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
+const TextResErr = ({ pText }: { pText: string }) => {
+    return (
+        <div className="extension-tab-res-err">
+            <VscWarning />
+            <span>{pText}</span>
+        </div>
+    );
+};
 
 const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
     return (
@@ -373,3 +424,6 @@ ExtensionTab.DatePicker = DatePicker;
 ExtensionTab.DateTimePicker = DateTimePicker;
 ExtensionTab.Table = Table;
 ExtensionTab.Switch = Switch;
+ExtensionTab.IconBtn = IconBtn;
+ExtensionTab.Selector = Selector;
+ExtensionTab.TextResErr = TextResErr;

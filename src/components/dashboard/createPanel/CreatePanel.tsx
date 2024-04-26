@@ -82,21 +82,43 @@ const CreatePanel = ({
             }
         }
         sPanelOption.w = getChartDefaultWidthSize(sPanelOption.type, !!sPanelOption.chartOptions?.isPolar);
-        let sSaveTarget: any = undefined;
-        const sTabList = sBoardList.map((aItem) => {
-            if (aItem.id === pBoardInfo.id) {
-                sSaveTarget = {
-                    ...aItem,
-                    dashboard: {
+
+        let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+        if (sSaveTarget?.path !== '') {
+            const sTabList = sBoardList.map((aItem) => {
+                if (aItem.id === pBoardInfo.id) {
+                    const sTmpDashboard = {
                         ...aItem.dashboard,
                         panels: [...aItem.dashboard.panels, sPanelOption],
-                    },
-                };
-                return sSaveTarget;
-            } else return aItem;
-        });
-        setBoardList(() => sTabList);
-        if (sSaveTarget.path !== '') postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
+                    };
+                    sSaveTarget = {
+                        ...aItem,
+                        dashboard: sTmpDashboard,
+                        savedCode: JSON.stringify(sTmpDashboard),
+                    };
+                    return sSaveTarget;
+                } else return aItem;
+            });
+            setBoardList(() => sTabList);
+            postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
+        } else {
+            const sTabList = sBoardList.map((aItem) => {
+                if (aItem.id === pBoardInfo.id) {
+                    const sTmpDashboard = {
+                        ...aItem.dashboard,
+                        panels: [...aItem.dashboard.panels, sPanelOption],
+                    };
+                    sSaveTarget = {
+                        ...aItem,
+                        dashboard: sTmpDashboard,
+                    };
+                    return sSaveTarget;
+                } else return aItem;
+            });
+
+            setBoardList(() => sTabList);
+        }
+
         if (pBoardInfo.dashboard.panels.length === 0) {
             pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
             pSetModifyState({ id: sPanelOption.id, state: true });
@@ -108,24 +130,47 @@ const CreatePanel = ({
     };
     // Edit
     const editPanel = () => {
-        const sNewPanelId = generateUUID();
-        let sSaveTarget: any = undefined;
-        const sTabList = sBoardList.map((aItem) => {
-            if (aItem.id === pBoardInfo.id) {
-                sSaveTarget = {
-                    ...aItem,
-                    dashboard: {
+        let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+
+        if (sSaveTarget.path !== '') {
+            const sNewPanelId = generateUUID();
+            const sTabList = sBoardList.map((aItem) => {
+                if (aItem.id === pBoardInfo.id) {
+                    const sTmpDashboard = {
                         ...aItem.dashboard,
                         panels: aItem.dashboard.panels.map((bItem: any) => {
                             return bItem.id === pPanelId ? { ...sPanelOption, id: sNewPanelId } : bItem;
                         }),
-                    },
-                };
-                return sSaveTarget;
-            } else return aItem;
-        });
-        setBoardList(() => sTabList);
-        if (sSaveTarget.path !== '') postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
+                    };
+                    sSaveTarget = {
+                        ...aItem,
+                        dashboard: sTmpDashboard,
+                        savedCode: JSON.stringify(sTmpDashboard),
+                    };
+                    return sSaveTarget;
+                } else return aItem;
+            });
+            setBoardList(() => sTabList);
+            postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
+        } else {
+            const sNewPanelId = generateUUID();
+            const sTabList = sBoardList.map((aItem) => {
+                if (aItem.id === pBoardInfo.id) {
+                    const sTmpDashboard = {
+                        ...aItem.dashboard,
+                        panels: aItem.dashboard.panels.map((bItem: any) => {
+                            return bItem.id === pPanelId ? { ...sPanelOption, id: sNewPanelId } : bItem;
+                        }),
+                    };
+                    sSaveTarget = {
+                        ...aItem,
+                        dashboard: sTmpDashboard,
+                    };
+                    return sSaveTarget;
+                } else return aItem;
+            });
+            setBoardList(() => sTabList);
+        }
         if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
         handleClose();
     };
@@ -230,6 +275,10 @@ const CreatePanel = ({
         if (sTimeRangeStatus) return setTimeRangeStatus(() => false);
         if (pBoardInfo.path === '') pSetIsSaveModal(true);
     };
+    const handleDiscard = () => {
+        pSetType(undefined);
+        pSetCreateModal(false);
+    };
     const handleTimeRange = () => {
         setTimeRangeStatus(() => true);
         pSetTimeRangeModal(true);
@@ -246,7 +295,7 @@ const CreatePanel = ({
         <div className="create-panel-form">
             <div className="header">
                 <div className="left">
-                    <IconButton pWidth={20} pHeight={32} pIcon={<IoArrowBackOutline />} onClick={() => pSetCreateModal(false)} />
+                    <IconButton pWidth={20} pHeight={32} pIcon={<IoArrowBackOutline />} onClick={handleDiscard} />
                     <span>Create panel</span>
                 </div>
 
@@ -278,7 +327,7 @@ const CreatePanel = ({
                         pHeight={28}
                         pWidth={75}
                         pIsDisabled={false}
-                        onClick={() => pSetCreateModal(false)}
+                        onClick={handleDiscard}
                         pFontColor="rgb(231 65 131)"
                         pText="Discard"
                         pBorderColor="rgb(231 65 131)"

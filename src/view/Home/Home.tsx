@@ -16,6 +16,7 @@ import DBExplorer from '@/components/side/DBExplorer/DBExplorer';
 import { SecurityKey } from '@/components/side/SecurityKey';
 import { UncaughtErrorObserver } from '@/utils/UncaughtErrorHelper';
 import { TimerSide } from '@/components/side/Timer';
+import { Shell } from '@/components/side/Shell';
 
 const Home = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);
@@ -162,6 +163,7 @@ const Home = () => {
                                         {aItem.id === 'DBEXPLORER' && <DBExplorer pServer={sServer} />}
                                         {aItem.id === 'KEY' && <SecurityKey pServer={sServer} />}
                                         {aItem.id === 'TIMER' && <TimerSide pServer={sServer} />}
+                                        {aItem.id === 'SHELL' && <Shell pServer={sServer} />}
                                     </div>
                                 );
                             })}

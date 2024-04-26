@@ -228,15 +228,15 @@ const changeAggText = (agg: string) => {
 };
 
 export const mathValueConverter = (aTargetValueIndex: string, aMath: string): string => {
-    // check pattern => value1 value 1
-    const pattern = /(value)(\s*[1-9]*)*\s/gi;
-    if (pattern.test(aMath)) return aMath.replace(pattern, `value(${aTargetValueIndex}) `);
     // check pattern => value(1), value (1), value(0), value (0)
-    const pattern1 = /(value)(\s)?\(*[1-2]*\)/gi;
-    if (pattern1.test(aMath)) return aMath;
-    // check pattern => value\s, value
-    const pattern2 = /(value)(\s)[e\s]*/gi;
-    if (pattern2.test(aMath)) return aMath.replace(pattern2, `value(${aTargetValueIndex}) `);
+    const pattern3 = /(value)(?:\s)*\((\s)*[0-9](\s)*\)?/gi;
+    if (pattern3.test(aMath)) return aMath.replace(pattern3, `value(${aTargetValueIndex}) `);
+    // check pattern => value1 value 1
+    const pattern4 = /(value)(?:\s)*[0-9]*[0-9]/gi;
+    if (pattern4.test(aMath)) return aMath.replace(pattern4, `value(${aTargetValueIndex}) `);
+    // check pattern => value\s, value, valuetest...
+    const pattern5 = /(value)(?:\s)*(?![a-zAZ])/gi;
+    if (pattern5.test(aMath)) return aMath.replace(pattern5, `value(${aTargetValueIndex}) `);
     return aMath;
 };
 

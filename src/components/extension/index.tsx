@@ -1,9 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-
-import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase, VscKey } from '@/assets/icons/Icon';
-
+import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase, VscKey, GoTerminal } from '@/assets/icons/Icon';
 import ExtensionBtn from '@/components/extension/ExtensionBtn';
-import './index.scss';
 import { useRecoilState } from 'recoil';
 import { gExtensionList, gSelectedExtension } from '@/recoil/recoil';
 import Menu from '../contextMenu/Menu';
@@ -12,6 +9,7 @@ import { LicenseModal } from '@/components/modal/LicenseModal';
 import { logOut } from '@/api/repository/login';
 import { useNavigate } from 'react-router-dom';
 import { RxLapTimer } from 'react-icons/rx';
+import './index.scss';
 
 const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const sNavigate = useNavigate();
@@ -66,6 +64,8 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                 return <VscKey />;
             case 'TIMER':
                 return <RxLapTimer />;
+            case 'SHELL':
+                return <GoTerminal />;
             default:
                 return <Cmd />;
         }
