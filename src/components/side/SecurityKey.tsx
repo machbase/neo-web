@@ -20,7 +20,7 @@ export const SecurityKey = ({ pServer }: any) => {
     const keyList = async (aEvent?: MouseEvent) => {
         if (aEvent) aEvent.stopPropagation();
         const sKeyList = await getKeyList();
-        if (sKeyList.success) setSecurityKeyList(sKeyList.list);
+        if (sKeyList.success) setSecurityKeyList(sKeyList.data);
         else setSecurityKeyList(undefined);
     };
     /** Update global tab list & board list */

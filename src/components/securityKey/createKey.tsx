@@ -47,7 +47,7 @@ export const CreateKey = () => {
         if (sRes.success) {
             setGenKeyInfo({ ...sRes, name: sCreatePayload.name });
             const sKeyList = await getKeyList();
-            if (sKeyList.success) setSecurityKeyList(sKeyList.list);
+            if (sKeyList.success) setSecurityKeyList(sKeyList.data);
             else setSecurityKeyList(undefined);
             handleSavedCode(true);
             setResErrMessage(undefined);

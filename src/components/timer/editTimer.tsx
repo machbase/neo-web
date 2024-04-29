@@ -45,7 +45,7 @@ export const EditTimer = () => {
             });
 
             const sResTimerList = await getTimer();
-            if (sResTimerList.success) setTimerList(sResTimerList.list);
+            if (sResTimerList.success) setTimerList(sResTimerList.data);
             else setTimerList([]);
             setResErrMessage(undefined);
         } else {

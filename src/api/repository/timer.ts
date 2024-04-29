@@ -10,7 +10,7 @@ export interface TimerItemType {
     autoStart: boolean;
 }
 interface TimerListResType {
-    list: TimerItemType[];
+    data: TimerItemType[];
     elapse: string;
     reason: string;
     success: boolean;

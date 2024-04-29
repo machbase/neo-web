@@ -22,10 +22,10 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
             const sRes = await delTimer(pCode.name);
             if (sRes.success) {
                 const sTimerList = await getTimer();
-                if (sTimerList.success) setResTimerList(sTimerList.list);
+                if (sTimerList.success) setResTimerList(sTimerList.data);
                 else setResTimerList([]);
 
-                const sTempTimerList = sTimerList.list.filter((aKeyInfo: any) => aKeyInfo.name !== pCode.name);
+                const sTempTimerList = sTimerList.data.filter((aKeyInfo: any) => aKeyInfo.name !== pCode.name);
                 if (sTempTimerList && sTempTimerList.length > 0) {
                     setActiveTimer(sTempTimerList[0].name);
                     const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
@@ -95,8 +95,8 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         if (aEvent) aEvent.stopPropagation();
         const sResList: any = await getTimer();
         if (sResList.success) {
-            setResTimerList(sResList.list || []);
-            return sResList.list || [];
+            setResTimerList(sResList.data || []);
+            return sResList.data || [];
         } else {
             setResTimerList(undefined);
             return [];
@@ -107,9 +107,9 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         if (sResCommand.success) {
             setCommandRes(undefined);
             const sTimerList = await getTimer();
-            if (sTimerList.success) setResTimerList(sTimerList.list);
+            if (sTimerList.success) setResTimerList(sTimerList.data);
             else setResTimerList([]);
-            const sTargetTimer = sTimerList.list.find((aKeyInfo: any) => aKeyInfo.name === pCode.name);
+            const sTargetTimer = sTimerList.data.find((aKeyInfo: any) => aKeyInfo.name === pCode.name);
             if (sTargetTimer) {
                 const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
                 setBoardList((aBoardList: any) => {
@@ -117,7 +117,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                         if (aBoard.id === aTarget.id) {
                             return {
                                 ...aTarget,
-                                code: sTargetTimer,
+                                code: { ...sPayload, state: sTargetTimer.state },
                                 savedCode: sTargetTimer,
                             };
                         }
