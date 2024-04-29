@@ -1,6 +1,6 @@
 import { ArrowDown, Calendar, LuFlipVertical, VscWarning } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DateCalendar, LocalizationProvider, MultiSectionDigitalClock } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
@@ -295,6 +295,10 @@ const Checkbox = ({ pCallback, pValue }: { pCallback?: (value: any) => void; pVa
         }
     };
 
+    useEffect(() => {
+        setIsCheck(pValue || false);
+    }, [pValue]);
+
     return (
         <div className="extension-tab-check-box-wrarpper">
             <div className="extension-tab-check-box" onClick={handleCheck}>
@@ -394,13 +398,14 @@ const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
         </div>
     );
 };
-const Switch = ({ pState, pCallback }: { pState: boolean; pCallback: () => void }) => {
+const Switch = ({ pState, pCallback, pBadge }: { pState: boolean; pCallback: () => void; pBadge?: string }) => {
     return (
         <div className="extension-tab-switch-wrapper">
             <input type="checkbox" id="switch" className="extension-tab-switch-input" readOnly checked={pState} />
             <label htmlFor="switch" className="extension-tab-switch-label" onClick={pCallback}>
                 <span className="extension-tab-switch-label-btn" />
             </label>
+            {!!pBadge && <span className={`extension-tab-badge ${!pBadge ? '' : 'extension-tab-badge-active'}`}>{pBadge}</span>}
         </div>
     );
 };

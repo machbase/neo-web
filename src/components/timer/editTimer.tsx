@@ -20,7 +20,7 @@ export const EditTimer = () => {
     const [sCreateName, setCreateName] = useState<string>('');
     const [sCreatePayload, setCreatePayload] = useState<CreatePayloadType>({
         autoStart: false,
-        spec: '', //@every 1h30m
+        schedule: '', //@every 1h30m
         path: '', ///sql_select_log.tql
     });
 
@@ -137,9 +137,9 @@ export const EditTimer = () => {
                                 <span style={{ marginLeft: '8px', color: 'dodgerblue', fontSize: '12px' }}>Check the example on the right</span>
                             </ExtensionTab.ContentDesc>
                             <ExtensionTab.Input
-                                pValue={sCreatePayload.spec}
+                                pValue={sCreatePayload.schedule}
                                 pWidth={'400px'}
-                                pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('spec', event)}
+                                pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('schedule', event)}
                             />
                         </ExtensionTab.ContentBlock>
 
