@@ -1,6 +1,6 @@
 import { ArrowDown, Calendar, LuFlipVertical, VscWarning } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DateCalendar, LocalizationProvider, MultiSectionDigitalClock } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
@@ -294,6 +294,10 @@ const Checkbox = ({ pCallback, pValue }: { pCallback?: (value: any) => void; pVa
             pCallback(sApplyValue);
         }
     };
+
+    useEffect(() => {
+        setIsCheck(pValue || false);
+    }, [pValue]);
 
     return (
         <div className="extension-tab-check-box-wrarpper">

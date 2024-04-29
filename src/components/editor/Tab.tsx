@@ -103,10 +103,10 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
             case 'term':
                 setIsSaved(aBoard.savedCode === pBoard.savedCode);
                 break;
-            case 'timer':
             case 'key':
                 setIsSaved(pBoard.savedCode);
                 break;
+            case 'timer':
             case 'shell-manage':
                 setIsSaved(JSON.stringify(aBoard.code) === JSON.stringify(pBoard.savedCode));
                 break;
