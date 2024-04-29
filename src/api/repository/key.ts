@@ -8,7 +8,7 @@ export interface KeyItemType {
     notBefore: number;
 }
 interface KeyListResType {
-    list: KeyItemType[];
+    data: KeyItemType[];
     elapse: string;
     reason: string;
     success: boolean;

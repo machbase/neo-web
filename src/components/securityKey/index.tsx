@@ -19,7 +19,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
             const sRes = await delKey(pCode.id);
             if (sRes.success) {
                 const sKeyList = await getKeyList();
-                if (sKeyList.success) setSecurityKeyList(sKeyList.list);
+                if (sKeyList.success) setSecurityKeyList(sKeyList.data);
                 else setSecurityKeyList(undefined);
 
                 const sTempKeyList = sSecurityKeyList?.filter((aKeyInfo) => aKeyInfo.id !== pCode.id);

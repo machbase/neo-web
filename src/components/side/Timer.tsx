@@ -18,7 +18,7 @@ export const TimerSide = ({ pServer }: any) => {
 
     const getTimerList = async () => {
         const sResTimer = await getTimer();
-        if (sResTimer.success) setTimerList(sResTimer.list);
+        if (sResTimer.success) setTimerList(sResTimer.data);
         else setTimerList([]);
     };
     const openInfo = (aTimerInfo: TimerItemType) => {
