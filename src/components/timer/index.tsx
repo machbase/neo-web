@@ -156,14 +156,15 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
 
     useEffect(() => {
         setCommandRes(undefined);
-        setPayload({
-            name: pCode.name || '',
-            type: pCode.type || 'TIMER',
-            state: pCode.state || 'STOP',
-            task: pCode.task || '',
-            schedule: pCode.schedule || '',
-            autoStart: pCode?.autoStart || false,
-        });
+        pCode &&
+            setPayload({
+                name: pCode.name || '',
+                type: pCode.type || 'TIMER',
+                state: pCode.state || 'STOP',
+                task: pCode.task || '',
+                schedule: pCode.schedule || '',
+                autoStart: pCode?.autoStart || false,
+            });
     }, [pCode]);
 
     return (
