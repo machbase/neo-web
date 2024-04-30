@@ -107,6 +107,28 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
                 setIsSaved(pBoard.savedCode);
                 break;
             case 'timer':
+                if (aBoard.code && pBoard.savedCode) {
+                    setIsSaved(
+                        JSON.stringify(
+                            Object.keys(aBoard.code)
+                                .sort()
+                                .reduce((obj: any, key) => {
+                                    obj[key] = aBoard.code[key];
+                                    return obj;
+                                }, {})
+                        ) ===
+                            JSON.stringify(
+                                Object.keys(pBoard.savedCode)
+                                    .sort()
+                                    .reduce((obj: any, key) => {
+                                        obj[key] = pBoard.savedCode[key];
+                                        return obj;
+                                    }, {})
+                            )
+                    );
+                } else setIsSaved(false);
+
+                break;
             case 'shell-manage':
                 setIsSaved(JSON.stringify(aBoard.code) === JSON.stringify(pBoard.savedCode));
                 break;
