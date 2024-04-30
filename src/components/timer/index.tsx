@@ -103,7 +103,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         }
     };
     const handleCommand = async () => {
-        const sResCommand = await sendTimerCommand(commandConverter(pCode.state).toLowerCase(), pCode.name);
+        const sResCommand = await sendTimerCommand(commandConverter(pCode.state.includes('STOP') ? 'STOP' : 'RUNNING').toLowerCase(), pCode.name);
         if (sResCommand.success) {
             setCommandRes(undefined);
             const sTimerList = await getTimer();
@@ -118,7 +118,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                             return {
                                 ...aTarget,
                                 code: { ...sPayload, state: sTargetTimer.state },
-                                savedCode: sTargetTimer,
+                                savedCode: { ...aTarget.savedCode, state: sTargetTimer.state, autoStart: sPayload.autoStart },
                             };
                         }
                         return aBoard;
@@ -156,6 +156,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
 
     useEffect(() => {
         setCommandRes(undefined);
+        setResMessage(undefined);
         pCode &&
             setPayload({
                 name: pCode.name || '',
@@ -210,7 +211,11 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                         </ExtensionTab.ContentDesc>
                                     ) : (
                                         <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'row' }}>
-                                            <ExtensionTab.Switch pState={sPayload.state === 'RUNNING'} pCallback={handleCommand} pBadge={sPayload.state} />
+                                            <ExtensionTab.Switch
+                                                pState={sPayload.state === 'RUNNING'}
+                                                pCallback={handleCommand}
+                                                pBadge={sPayload.state.includes('STOP') ? 'STOP' : 'RUNNING'}
+                                            />
                                         </div>
                                     )}
                                     {sCommandRes && (
@@ -224,8 +229,8 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                     <ExtensionTab.DpRow>
                                         <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={deleteTimer} />
                                         <ExtensionTab.TextButton pText="Save" pType="CREATE" pCallback={editItem} />
-                                        {sResMessage && <ExtensionTab.TextResErr pText={sResMessage} />}
                                     </ExtensionTab.DpRow>
+                                    {sResMessage && <ExtensionTab.TextResErr pText={sResMessage} />}
                                 </ExtensionTab.ContentBlock>
                             </ExtensionTab.Body>
                         </Pane>
