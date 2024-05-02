@@ -6,6 +6,7 @@ import { EditTimer } from './editTimer';
 import { TimerItemType, delTimer, getTimer, modTimer, sendTimerCommand } from '@/api/repository/timer';
 import { useState, useEffect } from 'react';
 import SplitPane from 'split-pane-react/esm/SplitPane';
+import { AUTO_START_DESC } from './content';
 
 export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -189,7 +190,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                             pValue={sPayload.autoStart}
                                             pCallback={(value: boolean) => handlePayload('autoStart', { target: { value } } as any)}
                                         />
-                                        <ExtensionTab.ContentDesc>Makes the task will start automatically when machbase-neo starts.</ExtensionTab.ContentDesc>
+                                        <ExtensionTab.ContentDesc>{AUTO_START_DESC}</ExtensionTab.ContentDesc>
                                     </ExtensionTab.DpRow>
                                 </ExtensionTab.ContentBlock>
 
