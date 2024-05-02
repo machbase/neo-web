@@ -1,5 +1,5 @@
-import { useRecoilValue } from 'recoil';
-import { gRecentDirectory } from '@/recoil/fileTree';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { gRecentDirectory, gUpdateFileTree } from '@/recoil/fileTree';
 import { BsGit, Close } from '@/assets/icons/Icon';
 import { TextButton } from '../buttons/TextButton';
 import { useState, useEffect, useRef } from 'react';
@@ -9,22 +9,23 @@ import './FolderModal.scss';
 import { postFileList } from '@/api/repository/api';
 import useDebounce from '@/hooks/useDebounce';
 import { FileNameValidator } from '@/utils/FileExtansion';
+import { UpdateTree } from '@/utils/UpdateTree';
 
 export interface FolderModalProps {
     setIsOpen: any;
     pIsGit: boolean;
     pIsDarkMode?: boolean;
-    pCallback: () => void;
 }
 
 export const FolderModal = (props: FolderModalProps) => {
-    const { setIsOpen, pIsDarkMode, pIsGit, pCallback } = props;
+    const { setIsOpen, pIsDarkMode, pIsGit } = props;
     const [sGitUrl, setGitUrl] = useState<string>('');
     const sRecentDirectory = useRecoilValue(gRecentDirectory);
     const [sFolderPath, setFolderPath] = useState<string>('');
     const sGitUrlRef: any = useRef(null);
     const sInputRef = useRef<HTMLInputElement>(null);
     const [sValResult, setValResut] = useState<boolean>(true);
+    const updateTree = useSetRecoilState(gUpdateFileTree);
 
     const handleClose = () => {
         setIsOpen(false);
@@ -44,7 +45,9 @@ export const FolderModal = (props: FolderModalProps) => {
         const sResult: any = await postFileList(sPayload, sFolderPath, '');
         if (sResult && sResult.success) {
             setValResut(true);
-            pCallback();
+            // pCallback();
+            const sRes = await UpdateTree({ path: sFolderPath, name: sFolderPath.split('/').at(-1) ?? '/' });
+            updateTree({ path: sFolderPath, type: 1, name: sFolderPath.split('/').at(-1), gitClone: pIsGit, gitUrl: sGitUrl, dirInfo: sRes });
             handleClose();
         } else {
             setValResut(false);

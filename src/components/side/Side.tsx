@@ -1,5 +1,5 @@
 import { GBoardListType, gBoardList, gConsoleSelector, gSelectedTab } from '@/recoil/recoil';
-import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
+import { gDeleteFileList, gDeleteFileTree, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
 import {
@@ -86,6 +86,7 @@ any) => {
     const [sIsFetch, setIsFetch] = useState<boolean>(false);
     const [sIsFileModal, setIsFileModal] = useState<boolean>(false);
     const sFileTreeRef = useRef(null);
+    const DeleteFileTree = useSetRecoilState(gDeleteFileTree);
 
     useEffect(() => {
         getFileTree();
@@ -284,8 +285,10 @@ any) => {
         const sReslutList: any = [];
         for (const aItem of aDelList) {
             const aResult: any = await deleteContextFile(aItem.path, aItem.query);
-            if (aResult.success || (isImage(aItem.name) && binaryCodeEncodeBase64(aResult))) sReslutList.push(aItem);
-            else {
+            if (aResult.success || (isImage(aItem.name) && binaryCodeEncodeBase64(aResult))) {
+                sReslutList.push(aItem);
+                DeleteFileTree(aItem);
+            } else {
                 setConsoleList((prev: any) => [
                     ...prev,
                     {
@@ -315,7 +318,7 @@ any) => {
             }
             setBoardList(updateBoardList);
         }
-        getFileTree();
+        // getFileTree();
         setRecentDirectory('/');
     };
 
@@ -328,6 +331,7 @@ any) => {
                     query: isRecursive && aDelFile.type === 1 ? aDelFile.name + '?recursive=true' : aDelFile.name,
                     name: aDelFile.name,
                     type: aDelFile.type,
+                    depth: aDelFile.depth,
                 };
             });
             if (selectedContextFile && selectedContextFile.path && selectedContextFile.name) {
@@ -363,7 +367,8 @@ any) => {
                         } else setBoardList(updateBoardList);
                         if (updateBoardList.length > 0) setSelectedTab(updateBoardList[0].id);
                     }
-                    getFileTree();
+                    // getFileTree();
+                    DeleteFileTree(selectedContextFile);
                     setRecentDirectory('/');
                 } else {
                     setConsoleList((prev: any) => [
@@ -586,8 +591,8 @@ any) => {
                 </Pane>
             </SplitPane>
             {sIsOpenModal ? <SaveModal pIsDarkMode pIsSave={false} setIsOpen={handleIsOpenModal} /> : null}
-            {sIsFileModal ? <FileModal pIsDarkMode={true} setIsOpen={setIsFileModal} pCallback={handleRefresh} /> : null}
-            {sIsFolderModal ? <FolderModal pIsGit={sIsGit} pIsDarkMode={true} setIsOpen={handleFolder} pCallback={handleRefresh} /> : null}
+            {sIsFileModal ? <FileModal pIsDarkMode={true} setIsOpen={setIsFileModal} /> : null}
+            {sIsFolderModal ? <FolderModal pIsGit={sIsGit} pIsDarkMode={true} setIsOpen={handleFolder} /> : null}
             {sIsDeleteModal ? <DeleteModal pIsDarkMode setIsOpen={setIsDeleteModal} pFileInfo={selectedContextFile} pCallback={handleDeleteFile} /> : null}
             {sIsUrlDownloadModal && <UrlDownloadModal setIsOpen={setIsUrlDownloadModal} pCallback={handleRefresh} />}
         </div>
