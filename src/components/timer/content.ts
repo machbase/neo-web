@@ -52,3 +52,6 @@ export const CRON_EXPRESSION_HINT = [
     { name: 'Hyphen -', content: 'Hyphens are used to define ranges. For example, 9-17 would indicate every hour between 9am and 5pm inclusive.' },
     { name: 'Question mark ?', content: 'Question mark may be used instead of * for leaving either day-of-month or day-of-week blank.' },
 ];
+export const AUTO_START_DESC = 'Makes the task to start automatically when machbase-neo starts';
+export const INTERVAL_DESC =
+    '@every <duration> where “duration” is a string that is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix, such as “300ms”, “-1.5h” or “2h45m”. Valid time units are “ms”, “s”, “m”, “h”.';

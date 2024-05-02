@@ -8,7 +8,7 @@ import { gBoardList, gTimerList } from '@/recoil/recoil';
 import { VscWarning } from 'react-icons/vsc';
 import { IconButton } from '../buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
-import { CRON_EXPRESSION, CRON_EXPRESSION_HINT, INTERVAL, PREDEFINED_SCHEDULES, TIMER_SPEC } from './content';
+import { AUTO_START_DESC, CRON_EXPRESSION, CRON_EXPRESSION_HINT, INTERVAL, INTERVAL_DESC, PREDEFINED_SCHEDULES, TIMER_SPEC } from './content';
 
 export const EditTimer = () => {
     const setTimerList = useSetRecoilState<TimerItemType[]>(gTimerList);
@@ -121,7 +121,7 @@ export const EditTimer = () => {
                             <ExtensionTab.ContentTitle>Auto start</ExtensionTab.ContentTitle>
                             <ExtensionTab.DpRow>
                                 <ExtensionTab.Checkbox pValue={sCreatePayload.autoStart} pCallback={(value: boolean) => handlePayload('autoStart', { target: { value } } as any)} />
-                                <ExtensionTab.ContentDesc>Makes the task will start automatically when machbase-neo starts.</ExtensionTab.ContentDesc>
+                                <ExtensionTab.ContentDesc>{AUTO_START_DESC}</ExtensionTab.ContentDesc>
                             </ExtensionTab.DpRow>
                         </ExtensionTab.ContentBlock>
 
@@ -181,7 +181,7 @@ export const EditTimer = () => {
                     </ExtensionTab.Header>
                     <ExtensionTab.Body>
                         <ExtensionTab.ContentBlock>
-                            <ExtensionTab.ContentTitle>{'timer spec '}</ExtensionTab.ContentTitle>
+                            <ExtensionTab.ContentTitle>{'timer spec'}</ExtensionTab.ContentTitle>
                             <ExtensionTab.ContentDesc>{'There three possible examples)'}</ExtensionTab.ContentDesc>
                             <div style={{ margin: '10px 20px', padding: '12px 16px 12px 0' }}>
                                 <ExtensionTab.Table pList={TIMER_SPEC} dotted />
@@ -212,11 +212,7 @@ export const EditTimer = () => {
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.ContentTitle>Intervals</ExtensionTab.ContentTitle>
                             <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentDesc>
-                                    {
-                                        '@every <duration> where “duration” is a string that is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix, such as “300ms”, “-1.5h” or “2h45m”. Valid time units are “ms”, “s”, “m”, “h”.'
-                                    }
-                                </ExtensionTab.ContentDesc>
+                                <ExtensionTab.ContentDesc>{INTERVAL_DESC}</ExtensionTab.ContentDesc>
                                 <ExtensionTab.Table pList={INTERVAL} />
                             </ExtensionTab.ContentBlock>
                         </ExtensionTab.ContentBlock>
