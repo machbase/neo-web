@@ -469,6 +469,47 @@ const getRollupTableList = async () => {
     }
 };
 
+/**
+ * getTagList
+ * @param aTable target table
+ * @param aFilter search text
+ * @param aPage pagination num [1 ~ 9999....]
+ * @returns
+ */
+export const getTagPagination = async (aTable: string, aFilter: string, aPage: number) => {
+    const DEFAULT_LIMIT = 10;
+    const sFilter = aFilter ? `name like '%${aFilter}%'` : '';
+    const sLimit = `${(aPage - 1) * DEFAULT_LIMIT}, ${DEFAULT_LIMIT}`;
+    const sData = await request({
+        method: 'GET',
+        url: `/machbase?q=` + encodeURIComponent(`select * from _${aTable}_META${sFilter !== '' ? ' where ' + sFilter + ' ORDER BY NAME ' : ' ORDER BY NAME '} LIMIT ${sLimit}`),
+    });
+    if (sData.status >= 400) {
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
+    }
+    return sData;
+};
+
+export const getTagTotal = async (aTable: string, aFilter: string) => {
+    const sFilter = aFilter ? `name like '%${aFilter}%'` : '';
+    const sData = await request({
+        method: 'GET',
+        url: `/machbase?q=` + encodeURIComponent(`select count(*) from _${aTable}_META${sFilter !== '' ? ' where ' + sFilter : ''}`),
+    });
+    if (sData.status >= 400) {
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
+    }
+    return sData;
+};
+
 export {
     fetchCalculationData,
     fetchRawData,
