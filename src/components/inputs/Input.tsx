@@ -15,10 +15,26 @@ export interface InputProps {
     pAutoFocus?: boolean;
     pPlaceHolder?: string;
     onChange: React.ChangeEventHandler<HTMLInputElement>;
+    onEnter?: () => void;
 }
 
 export const Input = (props: InputProps) => {
-    const { pWidth, pBorderRadius, pHeight, pIsFullWidth, pValue, pSetValue, pAutoFocus, pType, pIsDisabled, pPlaceHolder, pMin = undefined, pMax = undefined, onChange } = props;
+    const {
+        pWidth,
+        pBorderRadius,
+        pHeight,
+        pIsFullWidth,
+        pValue,
+        pSetValue,
+        pAutoFocus,
+        pType,
+        pIsDisabled,
+        pPlaceHolder,
+        pMin = undefined,
+        pMax = undefined,
+        onChange,
+        onEnter,
+    } = props;
 
     const handleChange = (aEvent: React.ChangeEvent<HTMLInputElement>) => {
         if (pType === 'number') {
@@ -27,6 +43,11 @@ export const Input = (props: InputProps) => {
         }
         pSetValue && pSetValue(aEvent.target.value);
         onChange(aEvent);
+    };
+
+    const handleEnterCommand = (aEvent: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!onEnter) return;
+        if (aEvent.keyCode === 13) onEnter();
     };
 
     return (
@@ -39,7 +60,15 @@ export const Input = (props: InputProps) => {
                 borderRadius: pBorderRadius + 'px',
             }}
         >
-            <input placeholder={pPlaceHolder ?? ''} type={pType} value={pValue} onChange={handleChange} disabled={pIsDisabled} autoFocus={pAutoFocus} />
+            <input
+                placeholder={pPlaceHolder ?? ''}
+                type={pType}
+                value={pValue}
+                onChange={handleChange}
+                disabled={pIsDisabled}
+                autoFocus={pAutoFocus}
+                onKeyDown={handleEnterCommand}
+            />
         </div>
     );
 };

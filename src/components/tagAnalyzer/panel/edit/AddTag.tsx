@@ -1,8 +1,8 @@
 import './AddTag.scss';
-import { useEffect, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { gTables } from '@/recoil/recoil';
-import { fetchTableName, fetchTags } from '@/api/repository/machiot';
+import { fetchTableName, getTagPagination, getTagTotal } from '@/api/repository/machiot';
 import { convertTagChartType } from '@/utils/utils';
 import { getId } from '@/utils';
 import { BiSolidChart, Close, ArrowLeft, ArrowRight, Search } from '@/assets/icons/Icon';
@@ -10,17 +10,22 @@ import { Error } from '@/components/toast/Toast';
 import { Select } from '@/components/inputs/Select';
 import { TextButton } from '@/components/buttons/TextButton';
 import { Input } from '@/components/inputs/Input';
+import { MdKeyboardDoubleArrowLeft, MdOutlineKeyboardDoubleArrowRight } from 'react-icons/md';
+import useDebounce from '@/hooks/useDebounce';
+import useOutsideClick from '@/hooks/useOutsideClick';
+import { Tooltip } from 'react-tooltip';
 
 const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
     const [sTables] = useRecoilState(gTables);
-
     const [sSelectedTable, setSelectedTable] = useState<string>(sTables[0]);
     const [sTagList, setTagList] = useState<string[]>([]);
-    const [sTagPagination, setTagPagination] = useState(-1);
-    const [sCalcTagList, setCalcTagList] = useState<string[]>([]);
+    const [sTagPagination, setTagPagination] = useState(1);
     const [sSelectedTag, setSelectedTag] = useState<any[]>([]);
+    const [sKeepPageNum, setKeepPageNum] = useState<any>(1);
     const [sTagInputValue, setTagInputValue] = useState<string>('');
-
+    const [sSearchText, setSearchText] = useState<string>('');
+    const [sTagTotal, setTagTotal] = useState<number>(0);
+    const pageRef = useRef(null);
     const avgMode = [
         { key: 'Min', value: 'min' },
         { key: 'Max', value: 'max' },
@@ -29,40 +34,21 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
         { key: 'Average', value: 'avg' },
     ];
 
-    useEffect(() => {
-        getTagList();
-    }, [sSelectedTable]);
-
-    useEffect(() => {
-        setPagination();
-    }, [sTagPagination, sTagList]);
-
-    const setPagination = () => {
-        const sData = [];
-        for (let i = (sTagPagination - 1) * 10; i < sTagPagination * 10; i++) {
-            if (sTagList[i]) {
-                sData.push(sTagList[i][1]);
-            }
-        }
-        setCalcTagList(sData);
-    };
-
     const getTagList = async () => {
-        const sResult: any = await fetchTags(sSelectedTable);
+        const sTotalRes: any = await getTagTotal(sSelectedTable, sSearchText);
+        const sResult: any = await getTagPagination(sSelectedTable, sSearchText, sTagPagination);
         if (sResult.success) {
+            setTotal(sTotalRes.data.rows[0]);
             setTagList(sResult.data.rows);
-            setTagPagination(1);
-        }
+            // setTagPagination(1);
+        } else setTagList([]);
+    };
+    const setTotal = (aTotal: number) => {
+        sTagTotal !== aTotal && setTagTotal(aTotal);
     };
 
     const filterTag = (aEvent: any) => {
-        setCalcTagList(
-            sTagList
-                .filter((aItem) => {
-                    return aItem[1].includes(aEvent.target.value);
-                })
-                .map((aItem) => aItem[1])
-        );
+        setSearchText(aEvent.target.value);
     };
 
     const removeSelectedTag = (aIdx: any) => {
@@ -87,7 +73,7 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
             Error('please select tag.');
             return;
         }
-        if (sSelectedTag.length > 12) {
+        if (sSelectedTag.length > 12 - pPanelInfo.tag_set.length) {
             Error('The maximum number of tags in a chart is 12.');
             return;
         }
@@ -97,8 +83,14 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
         pSetCopyPanelInfo({ ...pPanelInfo, tag_set: pPanelInfo.tag_set.concat(tagSet) });
         pCloseModal();
     };
-
+    const handleSearch = () => {
+        if (sTagPagination > 1) {
+            setTagPagination(1);
+            setKeepPageNum(1);
+        } else getTagList();
+    };
     const setTag = async (aValue: any) => {
+        if (sSelectedTag.length === 12 - pPanelInfo.tag_set.length) return;
         const sResult: any = await fetchTableName(sSelectedTable);
         const sData = sResult.data;
         setSelectedTag([
@@ -114,25 +106,55 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
             },
         ]);
     };
-
+    const handlePaginationInput = (aEvent: any) => {
+        setKeepPageNum(aEvent.target.value);
+    };
+    const handleApplyPagenationInput = (aEvent: any) => {
+        if (sKeepPageNum === sTagPagination) return;
+        if (aEvent.keyCode === 13 || aEvent === 'outsideClick') {
+            if (!Number(sKeepPageNum)) {
+                setKeepPageNum(1);
+                setTagPagination(1);
+                return;
+            }
+            if (getMaxPageNum < sKeepPageNum) {
+                setKeepPageNum(getMaxPageNum);
+                setTagPagination(getMaxPageNum);
+                return;
+            }
+            setTagPagination(sKeepPageNum);
+        }
+    };
     const setpagination = (aStatus: boolean) => {
         setTagPagination(aStatus ? sTagPagination + 1 : sTagPagination - 1);
+        setKeepPageNum(aStatus ? sTagPagination + 1 : sTagPagination - 1);
     };
-
-    const changedTable = async (aEvent: any) => {
+    const changedTable = (aEvent: any) => {
         setSelectedTable(aEvent.target.value);
+        setSearchText('');
+        setTagInputValue('');
+        setTagPagination(1);
+        setKeepPageNum(1);
     };
+    const getMaxPageNum = useMemo(() => {
+        return Math.ceil(sTagTotal / 10);
+    }, [sTagTotal]);
+
+    console.log('pPanelInfo', pPanelInfo);
+
+    useDebounce([sTagPagination, sSelectedTable], getTagList, 200);
+    useOutsideClick(pageRef, () => handleApplyPagenationInput('outsideClick'));
 
     return (
         <div className="modal-form-tag">
             <div className="inner-form">
                 <div className="header">
                     <div className="header-title">
-                        <BiSolidChart></BiSolidChart>
+                        <BiSolidChart />
                         New Tag
                     </div>
                     <div className="header-close">
-                        <Close onClick={pCloseModal} color="#f8f8f8"></Close>
+                        <Close onClick={pCloseModal} color="#f8f8f8" />
                     </div>
                 </div>
                 <div className="body">
@@ -148,19 +170,19 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                         <div className="tag-form">
                             <div className="filter-form-tag">
                                 <div className="tag-input-form">
-                                    <Input pValue={sTagInputValue} pSetValue={setTagInputValue} pIsFullWidth pHeight={36} onChange={filterTag} />
-                                    <button className="search">
-                                        <Search></Search>
+                                    <Input pValue={sTagInputValue} pSetValue={setTagInputValue} pIsFullWidth pHeight={36} onChange={filterTag} onEnter={handleSearch} />
+                                    <button className="search" onClick={handleSearch}>
+                                        <Search size={18} />
                                     </button>
                                 </div>
                             </div>
                             <div className="select-tag-form">
                                 <div className="select-tag-wrap">
-                                    <div className="select-tab">
-                                        {sCalcTagList.map((aItem: string) => {
+                                    <div className="select-tab" style={{ overflow: 'hidden' }}>
+                                        {sTagList.map((aItem: string) => {
                                             return (
-                                                <button key={aItem} onClick={() => setTag(aItem)}>
-                                                    {aItem}
+                                                <button key={aItem[1]} onClick={() => setTag(aItem[1])} style={{ margin: '1px' }}>
+                                                    {aItem[1]}
                                                 </button>
                                             );
                                         })}
@@ -170,21 +192,45 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                                             <button
                                                 disabled={sTagPagination === 1}
                                                 style={sTagPagination === 1 ? { opacity: 0.4, cursor: 'default' } : {}}
+                                                onClick={() => {
+                                                    setTagPagination(1);
+                                                    setKeepPageNum(1);
+                                                }}
+                                            >
+                                                <MdKeyboardDoubleArrowLeft />
+                                            </button>
+                                            <button
+                                                disabled={sTagPagination === 1}
+                                                style={sTagPagination === 1 ? { opacity: 0.4, cursor: 'default' } : {}}
                                                 onClick={() => setpagination(false)}
                                             >
-                                                <ArrowLeft></ArrowLeft>
+                                                <ArrowLeft />
                                             </button>
-                                            <div>{sTagPagination}</div>
+                                            <div ref={pageRef} className="custom-input-wrapper" style={{ height: '20px' }}>
+                                                <input
+                                                    value={sKeepPageNum ?? ''}
+                                                    style={{ width: '45px', textAlign: 'center' }}
+                                                    onChange={handlePaginationInput}
+                                                    onKeyDown={handleApplyPagenationInput}
+                                                />
+                                            </div>
                                             <button
-                                                disabled={sTagList.length <= sTagPagination * 10}
-                                                style={sTagList.length <= sTagPagination * 10 ? { opacity: 0.4, cursor: 'default' } : {}}
+                                                disabled={sTagPagination >= getMaxPageNum}
+                                                style={sTagPagination >= getMaxPageNum ? { opacity: 0.4, cursor: 'default' } : {}}
                                                 onClick={() => setpagination(true)}
                                             >
-                                                <ArrowRight></ArrowRight>
+                                                <ArrowRight />
                                             </button>
-                                        </div>
-                                        <div>
-                                            Total {sCalcTagList.length}/{sTagList.length}
+                                            <button
+                                                disabled={sTagPagination >= getMaxPageNum}
+                                                style={sTagPagination >= getMaxPageNum ? { opacity: 0.4, cursor: 'default' } : {}}
+                                                onClick={() => {
+                                                    setTagPagination(getMaxPageNum);
+                                                    setKeepPageNum(getMaxPageNum);
+                                                }}
+                                            >
+                                                <MdOutlineKeyboardDoubleArrowRight />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -198,7 +244,8 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                                                     }}
                                                     key={aItem.key}
                                                 >
-                                                    <div>{aItem.tagName}</div>
+                                                    <Tooltip anchorSelect={`.tooltip-${aIdx}`} content={aItem.tagName} />
+                                                    <div className={`select-text tooltip-${aIdx}`}>{aItem.tagName}</div>
                                                     <Select
                                                         pWidth={70}
                                                         pHeight={25}
@@ -212,7 +259,9 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                                     </div>
                                     <div className="bottom-page">
                                         <div></div>
-                                        <div>Select : {sSelectedTag.length}</div>
+                                        <div>
+                                            Select : {sSelectedTag.length} / {12 - pPanelInfo.tag_set.length}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
