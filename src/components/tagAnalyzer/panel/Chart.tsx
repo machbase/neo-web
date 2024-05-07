@@ -328,13 +328,20 @@ const Chart = ({
                 backgroundColor: '#1f1d1d',
                 borderColor: '#292929',
                 borderWidth: 1,
-                xDateFormat: '%Y-%m-%d %H:%M:%S.%L',
-                headerFormat: `<div style="minWidth:0px; paddingLeft:10px; fontSize:10px"><div style="color: #afb5bc">{point.key}</div>`,
-                pointFormat:
-                    '<br/><div style="display: flex; justifyContent: space-between"><p style="color: {se' +
-                    `ries.color}">{series.name} </p><p style="color: {series.color}">{point.y}</p><` +
-                    '/div>',
-                footerFormat: '<div></div>',
+                formatter: function () {
+                    return `<div>
+                    <div style="minWidth:0px; paddingLeft:10px; fontSize:10px"><div style="color: #afb5bc">${
+                        String((this as any).x).includes('.')
+                            ? new Date((this as any).x).toISOString().replace('T', ' ').replace('Z', '') + '.' + String((this as any).x).split('.')[1]
+                            : new Date((this as any).x).toISOString().replace('T', ' ').replace('Z', '')
+                    }</div></div>
+                    <br/>
+                    <div style="display: flex; justifyContent: space-between">
+                    <p style="color: ${(this as any).color}">${(this as any).series.name}</p>
+                    <p style="color: ${(this as any).color}">${(this as any).y}</p>
+                    </div>
+                    </div>`;
+                },
             },
             legend: {
                 enabled: pPanelInfo.show_legend === 'Y',
