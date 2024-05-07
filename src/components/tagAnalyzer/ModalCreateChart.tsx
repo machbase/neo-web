@@ -48,7 +48,6 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
     const getTagList = async () => {
         if (sSelectedTable) {
             let sTotalRes: any = undefined;
-            console.log('sTagTotal', sSkipTagTotal);
             if (!sSkipTagTotal) sTotalRes = await getTagTotal(sSelectedTable, sSearchText);
             const sResult: any = await getTagPagination(sSelectedTable, sSearchText, sTagPagination);
             if (sResult.success) {

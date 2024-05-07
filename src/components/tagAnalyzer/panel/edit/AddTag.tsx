@@ -140,8 +140,6 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
         return Math.ceil(sTagTotal / 10);
     }, [sTagTotal]);
 
-    console.log('pPanelInfo', pPanelInfo);
-
     useDebounce([sTagPagination, sSelectedTable], getTagList, 200);
     useOutsideClick(pageRef, () => handleApplyPagenationInput('outsideClick'));
 
