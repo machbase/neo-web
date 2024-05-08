@@ -2,11 +2,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
-
     border-radius: 8px;
     cursor: pointer;
 
     svg,
+    img,
     div {
         color: rgba(255, 255, 255, 0.5);
     }
@@ -22,9 +22,13 @@
 .icon-btn-disabled {
     cursor: auto;
     svg,
-    div {
+    .tooltip-icon {
         color: rgba(255, 255, 255, 0.205) !important;
     }
+}
+
+.tooltip-div {
+    color: rgba(255, 255, 255, 1) !important;
 }
 
 .icon-btn-active-hover {

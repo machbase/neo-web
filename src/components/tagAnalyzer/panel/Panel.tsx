@@ -16,6 +16,7 @@ import { Error } from '@/components/toast/Toast';
 import Menu from '@/components/contextMenu/Menu';
 import moment from 'moment';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
+import { IconButton } from '@/components/buttons/IconButton';
 
 const Panel = ({
     pPanelInfo,
@@ -694,8 +695,22 @@ any) => {
                 pCtrMinMaxPopupModal={ctrMinMaxPopupModal}
             />
             <div className="chart">
-                <div className="left" onClick={() => moveTimRange('l')}>
-                    <ArrowLeft />
+                <div style={{ height: '100px', display: 'flex' }}>
+                    <div className="left">
+                        <IconButton
+                            pWidth={20}
+                            pHeight={20}
+                            pIsToopTip
+                            pToolTipContent={'Move range'}
+                            pToolTipId={'move-time-panel-left' + pPanelInfo.index_key + JSON.stringify(pIsEdit)}
+                            pIcon={
+                                <div style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <ArrowLeft style={{ width: '16px', height: '16px' }} />
+                                </div>
+                            }
+                            onClick={() => moveTimRange('l')}
+                        />
+                    </div>
                 </div>
                 <div className="chart-body" ref={sAreaChart}>
                     <Chart
@@ -714,8 +729,22 @@ any) => {
                         pMinMaxList={sMinMaxList}
                     />
                 </div>
-                <div className="right" onClick={() => moveTimRange('r')}>
-                    <ArrowRight />
+                <div style={{ height: '100px', display: 'flex' }}>
+                    <div className="right">
+                        <IconButton
+                            pWidth={20}
+                            pHeight={20}
+                            pIsToopTip
+                            pToolTipContent={'Move range'}
+                            pToolTipId={'move-time-panel-right' + pPanelInfo.index_key + JSON.stringify(pIsEdit)}
+                            pIcon={
+                                <div style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <ArrowRight style={{ width: '16px', height: '16px' }} />
+                                </div>
+                            }
+                            onClick={() => moveTimRange('r')}
+                        />
+                    </div>
                 </div>
             </div>
             <PanelFooter

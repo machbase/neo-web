@@ -250,10 +250,7 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
     };
 
     const handleRefresh = () => {
-        if (sChartRef.current) {
-            const sChart = sChartRef.current.chart;
-            sChart.xAxis[0].setExtremes(undefined, undefined);
-        }
+        if (sChartRef.current) setData('true');
     };
 
     return (
@@ -268,7 +265,7 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
                     </div>
                     <div style={{ display: 'flex' }}>
                         <div className="zoom-tooltip">
-                            <Tooltip anchorSelect=".zoom-tooltip" content="unzoom" />
+                            <Tooltip anchorSelect=".zoom-tooltip" content="Refresh data" />
                             <IconButton pIcon={<Refresh size={13} />} onClick={() => handleRefresh()} />
                         </div>
                         <IconButton pIcon={<Close size={17} />} onClick={() => pSetIsModal(false)} />
@@ -283,10 +280,10 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
                             pAllInfo={sPanelsInfo}
                             pPanelInfo={sPanelsInfo[0].board}
                             pChartRef={sChartRef}
-                        ></OverlapChart>
+                        />
                     )}
                     {sPanelsInfo.map((aItem: any, aIdx: number) => {
-                        return <OverlapButtonList pIdx={aIdx} key={aItem.board.index_key} pPanelsInfo={sPanelsInfo} pSetTime={setTime} pPanelInfo={aItem}></OverlapButtonList>;
+                        return <OverlapButtonList pIdx={aIdx} key={aItem.board.index_key} pPanelsInfo={sPanelsInfo} pSetTime={setTime} pPanelInfo={aItem} />;
                     })}
                 </div>
             </div>

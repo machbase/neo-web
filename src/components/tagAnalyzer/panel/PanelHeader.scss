@@ -12,12 +12,18 @@
         svg {
             margin-right: 4px;
         }
+        &:hover {
+            svg {
+                fill: #f8f8f8 !important;
+            }
+        }
     }
     .time {
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
+        cursor: default;
         span {
             opacity: 0.8;
             font-size: 11px;
