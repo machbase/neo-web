@@ -1,36 +1,48 @@
 import './IconButton.scss';
-import { Tooltip } from 'react-tooltip';
+import { Tooltip, PlacesType } from 'react-tooltip';
 
 export interface IconButtonProps {
     pIcon: React.ReactNode;
     pIsActive: boolean;
     pIsActiveHover: boolean;
-    pWidth: number;
+    pWidth: number | string;
     pHeight: number;
     pDisabled: boolean;
     pIsToopTip?: boolean;
     pToolTipContent?: string;
     pToolTipId?: string;
+    pPlace?: PlacesType | undefined;
     onClick: React.MouseEventHandler<HTMLDivElement>;
 }
 
 export const IconButton = (props: IconButtonProps) => {
-    const { pIcon, pIsActive, onClick, pWidth, pHeight, pDisabled, pIsActiveHover, pIsToopTip, pToolTipContent, pToolTipId } = props;
+    const { pIcon, pIsActive, pPlace, onClick, pWidth, pHeight, pDisabled, pIsActiveHover, pIsToopTip, pToolTipContent, pToolTipId } = props;
     const sDisabledClass = pDisabled ? 'icon-btn-disabled' : '';
     const sIsActiveHoverClass = pIsActiveHover ? 'icon-btn-active-hover' : '';
 
     return (
         <div
             className={`${sDisabledClass} ${sIsActiveHoverClass} icon-btn-wrapper`}
-            style={{ width: pWidth + 'px', minWidth: pWidth + 'px', height: pHeight + 'px', backgroundColor: pIsActive ? '#52535A' : '' }}
+            style={{
+                width: Number(pWidth) ? pWidth + 'px' : pWidth,
+                minWidth: Number(pWidth) ? pWidth + 'px' : pWidth,
+                height: pHeight + 'px',
+                backgroundColor: pIsActive ? '#52535A' : '',
+            }}
             onClick={!pDisabled ? onClick : () => null}
         >
             {pIsToopTip ? (
                 <>
-                    <a className={`tooltip-${pToolTipId}`} style={{ display: 'flex' }}>
+                    <div className={`tooltip-${pToolTipId} tooltip-icon`} style={{ display: 'flex' }}>
                         {pIcon}
-                    </a>
-                    <Tooltip anchorSelect={`.tooltip-${pToolTipId}`} content={pToolTipContent} />
+                    </div>
+                    <Tooltip
+                        className={'tooltip-div'}
+                        place={pPlace ?? 'top'}
+                        anchorSelect={`.tooltip-${pToolTipId}`}
+                        content={pToolTipContent}
+                        style={{ zIndex: 9999, fontSize: '12px', color: 'whitesmoke' }}
+                    />
                 </>
             ) : (
                 pIcon

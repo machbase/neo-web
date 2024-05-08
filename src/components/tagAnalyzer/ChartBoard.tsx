@@ -94,12 +94,68 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                         <span>Time range not set</span>
                     )}
                 </button>
-                <IconButton pIcon={<Refresh />} onClick={handleRefreshData} />
-                <IconButton pIcon={<LuTimerReset />} onClick={handleRefreshTime} />
+                <div style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <IconButton
+                        pWidth={16}
+                        pHeight={16}
+                        pIsToopTip
+                        pPlace={'bottom'}
+                        pToolTipContent={'Refresh data'}
+                        pToolTipId={'refresh-taz-tab-data'}
+                        pIcon={<Refresh />}
+                        onClick={handleRefreshData}
+                    />
+                </div>
+                <div style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <IconButton
+                        pWidth={16}
+                        pHeight={16}
+                        pIsToopTip
+                        pPlace={'bottom'}
+                        pToolTipContent={'Refresh time'}
+                        pToolTipId={'refresh-taz-tab-time'}
+                        pIcon={<LuTimerReset />}
+                        onClick={handleRefreshTime}
+                    />
+                </div>
                 <div className="border"></div>
-                <IconButton pIcon={<Save />} onClick={pSetHandleSaveModalOpen} />
-                <IconButton pIcon={<SaveAs />} onClick={pHandleSaveModalOpen} />
-                <IconButton pIcon={<MdOutlineStackedLineChart />} pDisabled={sPanelsInfo.length === 0} onClick={sPanelsInfo.length === 0 ? () => {} : () => setIsModal(true)} />
+                <div style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <IconButton
+                        pWidth={16}
+                        pHeight={16}
+                        pIsToopTip
+                        pPlace={'bottom'}
+                        pToolTipContent={'Save'}
+                        pToolTipId={'save-taz-tab-'}
+                        pIcon={<Save />}
+                        onClick={pSetHandleSaveModalOpen}
+                    />
+                </div>
+                <div style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <IconButton
+                        pWidth={16}
+                        pHeight={16}
+                        pIsToopTip
+                        pPlace={'bottom'}
+                        pToolTipContent={'Save as'}
+                        pToolTipId={'save-as-taz-tab-'}
+                        pIcon={<SaveAs />}
+                        onClick={pHandleSaveModalOpen}
+                    />
+                </div>
+                <div style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <IconButton
+                        pWidth={16}
+                        pHeight={16}
+                        pIsToopTip
+                        pDisabled={sPanelsInfo.length === 0}
+                        pPlace={'bottom'}
+                        pToolTipContent={'Overlap chart'}
+                        pToolTipId={'overlap-taz-tab-'}
+                        pIcon={<MdOutlineStackedLineChart />}
+                        onClick={sPanelsInfo.length === 0 ? () => {} : () => setIsModal(true)}
+                    />
+                </div>
             </div>
             <div className="panel-list">
                 {sBgnEndTimeRange &&

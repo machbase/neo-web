@@ -59,17 +59,40 @@ const PanelHeader = ({
 
     return (
         <div className="panel-header">
-            <div onClick={() => pPanelInfo.tag_set.length === 1 && clickHeader()} className="title">
-                {pPanelsInfo && pPanelsInfo.length > 0 && pPanelsInfo[0].board.index_key === pPanelInfo.index_key && <MdFlagCircle />}
-                {pPanelInfo.chart_title}
-            </div>
+            <IconButton
+                pWidth={'auto'}
+                pHeight={25}
+                pIsToopTip={!pIsEdit}
+                pToolTipContent={pSelectedChart ? 'Disable overlap mode' : 'Enable overlap mode'}
+                pToolTipId={'overlap-data-range-taz-panel-' + JSON.stringify(pIsEdit)}
+                pIsActive={pIsUpdate}
+                pIcon={
+                    <div className="title">
+                        {pPanelsInfo && pPanelsInfo.length > 0 && pPanelsInfo[0].board.index_key === pPanelInfo.index_key && <MdFlagCircle style={{ color: '#fdb532' }} />}
+                        {pPanelInfo.chart_title}
+                    </div>
+                }
+                onClick={() => pPanelInfo.tag_set.length === 1 && clickHeader()}
+            />
             <div className="time">
                 {sPanelRange.startTime} ~ {sPanelRange.endTime}
                 <span> {!pIsRaw && ` ( interval : ${pRangeOption.IntervalValue}${pRangeOption.IntervalType} )`}</span>
             </div>
             <div className="options">
-                <div className="raw">
-                    <IconButton pWidth={38} pHeight={32} pIcon={<MdRawOn style={{ color: pIsRaw ? '#fdb532 ' : '' }} />} onClick={pSetIsRaw} />
+                <div className="raw" style={{ display: 'flex' }}>
+                    <IconButton
+                        pWidth={32}
+                        pHeight={25}
+                        pIsToopTip
+                        pToolTipContent={!pIsRaw ? 'Enable raw data mode' : 'Disable raw data mode'}
+                        pToolTipId={'raw-data-taz-panel' + JSON.stringify(pIsEdit)}
+                        pIcon={
+                            <div style={{ height: '15px', display: 'flex' }}>
+                                <MdRawOn style={{ color: pIsRaw ? '#fdb532 ' : '', height: '32px', width: '32px', marginTop: '-7px' }} />
+                            </div>
+                        }
+                        onClick={pSetIsRaw}
+                    />
                 </div>
                 {!pIsEdit ? (
                     <>
@@ -77,20 +100,67 @@ const PanelHeader = ({
                         <IconButton
                             pWidth={25}
                             pHeight={25}
+                            pIsToopTip
+                            pToolTipContent={'Drag data range'}
+                            pToolTipId={'drag-data-range-taz-panel-' + JSON.stringify(pIsEdit)}
                             pIsActive={pIsUpdate}
                             pIcon={<PiSelectionPlusBold style={{ color: pIsUpdate ? '#f8f8f8' : '' }} />}
                             onClick={pCtrMinMaxPopupModal}
                         />
                         <div style={{ display: pIsUpdate ? 'initial' : 'none' }}>
-                            <IconButton pWidth={25} pHeight={25} pIcon={<LineChart />} onClick={() => pSetIsFFTModal(true)} />
+                            <IconButton
+                                pWidth={25}
+                                pHeight={25}
+                                pIsToopTip
+                                pToolTipContent={'FFT chart'}
+                                pToolTipId={'fft-taz-panel-' + JSON.stringify(pIsEdit)}
+                                pIcon={<LineChart />}
+                                onClick={() => pSetIsFFTModal(true)}
+                            />
                         </div>
                     </>
                 ) : null}
                 <div className="divider" />
-                <IconButton pWidth={25} pIcon={<Refresh />} onClick={() => pFetchPanelData(pPanelRange)} />
-                <IconButton pWidth={25} pIcon={<LuTimerReset />} onClick={handleRefreshTime} />
-                {!pIsEdit && <IconButton pWidth={25} pIcon={<GearFill />} onClick={() => setEditPanel(true)} />}
-                {!pIsEdit && <IconButton pWidth={25} pIcon={<Delete size={18} />} onClick={() => removePanel()} />}
+                <IconButton
+                    pWidth={25}
+                    pHeight={25}
+                    pIsToopTip
+                    pToolTipContent={'Refresh data'}
+                    pToolTipId={'refresh-taz-panel-data-' + JSON.stringify(pIsEdit)}
+                    pIcon={<Refresh />}
+                    onClick={() => pFetchPanelData(pPanelRange)}
+                />
+                <IconButton
+                    pWidth={25}
+                    pHeight={25}
+                    pIsToopTip
+                    pToolTipContent={'Refresh time'}
+                    pToolTipId={'refresh-taz-panel-time-' + JSON.stringify(pIsEdit)}
+                    pIcon={<LuTimerReset />}
+                    onClick={handleRefreshTime}
+                />
+                {!pIsEdit && (
+                    <IconButton
+                        pWidth={25}
+                        pHeight={25}
+                        pIsToopTip
+                        pToolTipContent={'Edit'}
+                        pToolTipId={'edit-taz-panel-' + JSON.stringify(pIsEdit)}
+                        pIcon={<GearFill />}
+                        onClick={() => setEditPanel(true)}
+                    />
+                )}
+                {!pIsEdit && (
+                    <IconButton
+                        pWidth={25}
+                        pHeight={25}
+                        pIsToopTip
+                        pToolTipContent={'Delete'}
+                        pToolTipId={'delete-taz-panel-' + JSON.stringify(pIsEdit)}
+                        pIcon={<Delete size={18} />}
+                        onClick={() => removePanel()}
+                    />
+                )}
             </div>
             {sEditPanel && (
                 <EditPanel pBoardInfo={pBoardInfo} pPanelInfo={pPanelInfo} pSetEditPanel={setEditPanel} pNavigatorRange={pNavigatorRange} pSetSaveEditedInfo={pSetSaveEditedInfo} />
