@@ -17,6 +17,7 @@ import { SecurityKey } from '@/components/side/SecurityKey';
 import { UncaughtErrorObserver } from '@/utils/UncaughtErrorHelper';
 import { TimerSide } from '@/components/side/Timer';
 import { Shell } from '@/components/side/Shell';
+import { useToken } from '@/hooks/useToken';
 
 const Home = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);
@@ -31,7 +32,7 @@ const Home = () => {
     const [sSelectedExtension] = useRecoilState<string>(gSelectedExtension);
     const [sExtensionList] = useRecoilState<any>(gExtensionList);
     const [sDragStat, setDragStat] = useState<boolean>(false);
-
+    const [sHome, setHome] = useState<boolean>(false);
     const timer: any = useRef();
     const sWebSoc: any = useRef(null);
 
@@ -102,14 +103,15 @@ const Home = () => {
             return sOrder.indexOf(aItem) - sOrder.indexOf(bItem);
         };
 
-        sResult.shells.length !== 0 &&
+        sHome &&
+            sResult.shells.length !== 0 &&
             sResult.shells.forEach((aItem: any) => {
                 if (aItem.attributes && Array.isArray(aItem.attributes)) {
                     aItem.attributes.sort((aItem: string, bItem: string) => sortAttributes(Object.keys(aItem)[0], Object.keys(bItem)[0]));
                 }
             });
 
-        setTabList(sResult.shells);
+        sHome && setTabList(sResult.shells);
     };
 
     const setStatus = () => {
@@ -125,10 +127,9 @@ const Home = () => {
 
     useEffect(() => {
         getInfo();
-    }, []);
-
+    }, [sHome]);
     useEffect(() => {
-        init();
+        sHome && init();
         window.onbeforeunload = function () {
             return false;
         };
@@ -137,11 +138,13 @@ const Home = () => {
             clearInterval(timer.current);
             sWebSoc.current && sWebSoc.current.close();
         };
-    }, []);
+    }, [sHome]);
+
+    useToken(setHome);
 
     return (
         <div className={sDragStat ? 'check-draged home-form' : 'home-form'}>
-            <Extension pSetSideSizes={setSideSizes} pIsSidebar={sIsSidebar} pHandleSideBar={setIsSidebar}></Extension>
+            <Extension pSetSideSizes={setSideSizes} pIsSidebar={sIsSidebar} pHandleSideBar={setIsSidebar} />
             <div className="body-form">
                 <SplitPane
                     sashRender={() => <></>}
@@ -153,7 +156,8 @@ const Home = () => {
                     onDragStart={setStatus}
                 >
                     <Pane minSize={0} maxSize="50%">
-                        {sExtensionList &&
+                        {sHome &&
+                            sExtensionList &&
                             sExtensionList.length !== 0 &&
                             sExtensionList.map((aItem: any) => {
                                 return (
