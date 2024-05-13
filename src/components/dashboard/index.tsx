@@ -149,21 +149,29 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         setBoardTimeMinMax(() => sTimeMinMax);
     };
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
-        const sTargetPanel = pInfo.dashboard.panels[0];
-        const sTargetTag = sTargetPanel.blockList[0];
+        const sTargetPanel = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql')[0];
+        const sTargetTag = sTargetPanel?.blockList ? sTargetPanel.blockList[0] : { tag: '' };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
-        const sCustomTag = sTargetTag.filter.filter((aFilter: any) => {
-            if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
-        })[0]?.value;
+        const sCustomTag =
+            sIsTagName &&
+            sTargetTag.filter.filter((aFilter: any) => {
+                if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
+            })[0]?.value;
+
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
             const sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
             const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
-            return sResult;
+            if (!Number(sResult.min) || !Number(sResult.max)) return getNowMinMax();
+            else return sResult;
         } else {
-            const sNowTime = moment().unix() * 1000;
-            const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
-            return sNowTimeMinMax;
+            return getNowMinMax();
         }
+    };
+
+    const getNowMinMax = () => {
+        const sNowTime = moment().unix() * 1000;
+        const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
+        return sNowTimeMinMax;
     };
     // Set initial value
     const initDashboard = async () => {

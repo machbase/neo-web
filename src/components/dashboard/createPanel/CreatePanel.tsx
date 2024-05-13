@@ -123,8 +123,14 @@ const CreatePanel = ({
             pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
             pSetModifyState({ id: sPanelOption.id, state: true });
         } else {
-            if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
-            else pSetModifyState({ id: sPanelOption.id, state: true });
+            const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql');
+            if (sChartPanelList.length === 0) {
+                pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
+                pSetModifyState({ id: sPanelOption.id, state: true });
+            } else {
+                if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
+                else pSetModifyState({ id: sPanelOption.id, state: true });
+            }
         }
         handleClose();
     };
@@ -171,6 +177,7 @@ const CreatePanel = ({
             });
             setBoardList(() => sTabList);
         }
+
         if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
         handleClose();
     };
@@ -237,11 +244,16 @@ const CreatePanel = ({
                     pSetModifyState({ id: sTempOption.id, state: true });
                 }
             } else {
+                const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql');
                 if (isValidJSON(JSON.stringify(sTmpPanelOption))) {
                     setAppliedPanelOption(sTmpPanelOption);
                 }
-                if (pType === 'create' && !pBoardTimeMinMax) {
-                    getTimeMinMax(pBoardInfo.dashboard.timeRange);
+                if (pType === 'create' && (!pBoardTimeMinMax || sChartPanelList.length === 0)) {
+                    const sTime = await getTimeMinMax(pBoardInfo.dashboard.timeRange);
+                    if (sChartPanelList.length === 0) {
+                        setCreateModeTimeMinMax(sTime);
+                        setIsPreview(() => true);
+                    }
                 } else if (pType === 'edit') {
                     setCreateModeTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange));
                     setIsPreview(() => true);
@@ -257,11 +269,13 @@ const CreatePanel = ({
     };
     const getTimeMinMax = async (aTimeRange: any) => {
         const sTargetPanel = sPanelOption;
-        const sTargetTag = sTargetPanel.blockList[0];
+        const sTargetTag = sTargetPanel?.blockList ? sTargetPanel.blockList[0] : { tag: '' };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
-        const sCustomTag = sTargetTag.filter.filter((aFilter: any) => {
-            if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
-        })[0]?.value;
+        const sCustomTag =
+            sIsTagName &&
+            sTargetTag.filter.filter((aFilter: any) => {
+                if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
+            })[0]?.value;
 
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
             const sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
