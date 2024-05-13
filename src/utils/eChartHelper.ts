@@ -64,6 +64,10 @@ export const DefaultYAxisOption = {
     // }
 };
 
+export const DefaultTqlChartOption = {
+    theme: 'white' as string,
+};
+
 export const DefaultLineChartOption = {
     areaStyle: false as boolean,
     smooth: false as boolean,
@@ -172,6 +176,7 @@ export const DefaultChartOption = {
     },
     blockList: undefined as any,
     useCustomTime: false as boolean,
+    tqlInfo: undefined as any,
 
     commonOptions: DefaultCommonOption,
 
@@ -241,6 +246,8 @@ export const getDefaultSeriesOption = (aChartType: ChartType) => {
             return DefaultPieChartOption;
         case 'liquidFill':
             return DefaultLiquidfillChartOption;
+        case 'tql':
+            return DefaultTqlChartOption;
         default:
             return DefaultLineChartOption;
     }

@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import './Modal.scss';
+import useEsc from '@/hooks/useEsc';
 interface ChildProps {
     children: React.ReactNode;
 }
@@ -13,6 +14,9 @@ export const Modal = (props: ModalProps) => {
     const { children, className, pIsDarkMode, onOutSideClose } = props;
     const [sIsStartInner, setIsStartInner] = useState<any>(null);
     const ModalRef = useRef<HTMLDivElement>(null);
+
+    // Escape key press
+    useEsc(() => onOutSideClose && onOutSideClose());
 
     useEffect(() => {
         document.addEventListener('mousedown', handleInner);

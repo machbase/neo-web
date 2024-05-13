@@ -15,6 +15,7 @@ import { ScatterOptions } from './option/ScatterOptions';
 import { GaugeOptions } from './option/GaugeOptions';
 import { ChartType } from '@/type/eChart';
 import { LiquidfillOptions } from './option/LiquidfillOptions';
+import { TqlOptions } from './option/TqlOptions';
 
 interface CreatePanelRightProps {
     pPanelOption: any;
@@ -45,6 +46,13 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                 };
                 sResVal.commonOptions = sIsPie ? sPieLegendOption : DefaultCommonOption;
             }
+            if (sConvertedChartType === 'tql') {
+                sResVal.tqlInfo = { path: '', params: '', chart_id: '' };
+                sResVal.theme = 'white';
+            } else {
+                sResVal.tqlInfo = { path: '', params: '', chart_id: '' };
+                sResVal.theme = 'dark';
+            }
             if (sResVal.chartOptions?.tagLimit) sResVal.blockList = sResVal.blockList.slice(0, sResVal.chartOptions?.tagLimit);
             if (sIsPlgChart) sResVal.plg = sIsPlgChart.plg;
             else sResVal.plg = undefined;
@@ -65,9 +73,11 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
                     pOptions={ChartTypeList.map((aType: { key: string; value: string }) => aType.key) as string[]}
                 />
-                <div className="divider" />
+
+                {pPanelOption.type !== 'Tql' && <div className="divider" />}
                 <div className="content" style={{ height: '100%' }}>
-                    <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />
+                    {pPanelOption.type !== 'Tql' && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
+
                     {isTimeSeriesChart(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption.xAxisOptions && (
                         <>
                             <div className="divider" />
@@ -86,14 +96,18 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                         </>
                     )}
                     <div className="divider" />
-                    <Collapse title="Chart option" isOpen>
-                        {chartTypeConverter(pPanelOption.type) === 'line' ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {chartTypeConverter(pPanelOption.type) === 'bar' ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {chartTypeConverter(pPanelOption.type) === 'scatter' ? <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {chartTypeConverter(pPanelOption.type) === 'pie' ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {chartTypeConverter(pPanelOption.type) === 'gauge' ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {chartTypeConverter(pPanelOption.type) === 'liquidFill' ? <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                    </Collapse>
+                    {chartTypeConverter(pPanelOption.type) !== 'tql' && (
+                        <Collapse title="Chart option" isOpen>
+                            {chartTypeConverter(pPanelOption.type) === 'line' ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {chartTypeConverter(pPanelOption.type) === 'bar' ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {chartTypeConverter(pPanelOption.type) === 'scatter' ? <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {chartTypeConverter(pPanelOption.type) === 'pie' ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {chartTypeConverter(pPanelOption.type) === 'gauge' ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {chartTypeConverter(pPanelOption.type) === 'liquidFill' ? <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        </Collapse>
+                    )}
+
+                    {chartTypeConverter(pPanelOption.type) === 'tql' ? <TqlOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                     <div className="divider" />
                 </div>
             </div>

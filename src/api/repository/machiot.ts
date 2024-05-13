@@ -14,6 +14,15 @@ const getTqlChart = (aData: string, aType?: 'dsh') => {
     });
 };
 
+export const getTqlScripts = (aFullPath: string) => {
+    const sTargetPath = aFullPath.split('/').filter((aPath: string) => aPath !== '');
+    return request({
+        method: 'GET',
+        url: `/api/tql/${sTargetPath.join('/')}`,
+        headers: { 'X-Chart-Output': 'json' },
+    });
+};
+
 const getChartMinMaxData = async (aTable: string, aTag: string) => {
     return await request({
         method: 'GET',

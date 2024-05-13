@@ -1,0 +1,50 @@
+.tql-block-wrapper {
+    height: 100%;
+
+    .tql-block-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 2px 8px;
+        font-size: 13px;
+
+        .active-tab {
+            cursor: pointer;
+            padding: 0 8px;
+            border-bottom: 2px solid #005fb8;
+        }
+        .inactive-tab {
+            cursor: pointer;
+            padding: 0 8px;
+            border-bottom: 2px solid transparent;
+            opacity: 0.8;
+
+            &:hover {
+                opacity: 1 !important;
+            }
+        }
+    }
+
+    .tql-block-body {
+        border-radius: 4px;
+        border: 1px solid #b8c8da41;
+        background-color: #141518;
+        padding: 6px;
+        height: calc(100% - 24px);
+        overflow: hidden;
+
+        .tql-block-item-wrapper {
+            display: flex;
+            padding: 10px;
+            width: 100%;
+
+            .tql-block-item-label {
+                width: 100px;
+            }
+        }
+
+        .tql-block-time {
+            height: calc(100% + 24px);
+        }
+    }
+}

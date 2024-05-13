@@ -1,6 +1,6 @@
-import { fetchTimeMinMax, getTqlChart } from '@/api/repository/machiot';
+import { fetchTimeMinMax, getTqlChart, getTqlScripts } from '@/api/repository/machiot';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
-import { calcInterval, calcRefreshTime, decodeFormatterFunction } from '@/utils/dashboardUtil';
+import { calcInterval, calcRefreshTime, decodeFormatterFunction, setUnitTime } from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
 import { ShowChart } from '@/components/tql/ShowChart';
 import { DashboardQueryParser } from '@/utils/DashboardQueryParser';
@@ -12,6 +12,7 @@ import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import './LineChart.scss';
+import { TqlChartParser } from '@/utils/DashboardTqlChartParser';
 
 const LineChart = ({ pLoopMode, pChartVariableId, pPanelInfo, pType, pInsetDraging, pDragStat, pModifyState, pSetModifyState, pParentWidth, pIsHeader, pBoardTimeMinMax }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
@@ -20,64 +21,87 @@ const LineChart = ({ pLoopMode, pChartVariableId, pPanelInfo, pType, pInsetDragi
     const [sIsError, setIsError] = useState<boolean>(false);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
     const [sIsMounted, setIsMounted] = useState<boolean>(false);
-    const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sIsChartData, setIsChartData] = useState<boolean>(false);
+    const sRollupTableList = useRecoilValue(gRollupTableList);
     let sRefClientWidth = 0;
     let sRefClientHeight = 0;
+
+    const calculateTimeRange = () => {
+        let sStartTimeBeforeStart = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.start : pBoardTimeMinMax.min;
+        let sStartTimeBeforeEnd = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.end : pBoardTimeMinMax.max;
+        if (String(sStartTimeBeforeStart).includes('now') && String(sStartTimeBeforeEnd).includes('now')) {
+            sStartTimeBeforeStart = setUnitTime(sStartTimeBeforeStart);
+            sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
+        }
+        return { start: sStartTimeBeforeStart, end: sStartTimeBeforeEnd };
+    };
 
     const executeTqlChart = async (aWidth?: number) => {
         setIsLoading(true);
         !pLoopMode && setChartData({});
-        if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
-            sRefClientWidth = ChartRef.current.clientWidth;
-        }
-        if (ChartRef.current && ChartRef.current.clientHeight !== 0 && !aWidth) {
-            sRefClientHeight = ChartRef.current.clientHeight;
-        }
-        // width, height when display none
-        if (sRefClientWidth === 0) sRefClientWidth = Math.floor(pParentWidth / GRID_LAYOUT_COLS) * pPanelInfo.w - 10;
-        if (sRefClientHeight === 0) sRefClientHeight = (GRID_LAYOUT_ROW_HEIGHT + 10) * (pPanelInfo.h - 1) - (pIsHeader ? 5 : -25);
-
-        let sStartTime = undefined;
-        let sEndTime = undefined;
-        if (pPanelInfo.useCustomTime) {
-            const sTimeMinMax = await handlePanelTimeRange(pPanelInfo.timeRange.start, pPanelInfo.timeRange.end);
-            sStartTime = sTimeMinMax.min;
-            sEndTime = sTimeMinMax.max;
+        if (pPanelInfo.type === 'Tql') {
+            const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange()));
+            if (!sResult?.data?.reason) {
+                setChartData(sResult);
+                setIsError(false);
+                setIsChartData(true);
+            } else {
+                setIsMessage(sResult?.data?.reason ?? '');
+                setIsError(true);
+                setIsChartData(false);
+            }
         } else {
-            sStartTime = pBoardTimeMinMax.min;
-            sEndTime = pBoardTimeMinMax.max;
-        }
+            if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
+                sRefClientWidth = ChartRef.current.clientWidth;
+            }
+            if (ChartRef.current && ChartRef.current.clientHeight !== 0 && !aWidth) {
+                sRefClientHeight = ChartRef.current.clientHeight;
+            }
+            // width, height when display none
+            if (sRefClientWidth === 0) sRefClientWidth = Math.floor(pParentWidth / GRID_LAYOUT_COLS) * pPanelInfo.w - 10;
+            if (sRefClientHeight === 0) sRefClientHeight = (GRID_LAYOUT_ROW_HEIGHT + 10) * (pPanelInfo.h - 1) - (pIsHeader ? 5 : -25);
 
-        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
-        const [sParsedQuery, sAliasList] = await DashboardQueryParser(chartTypeConverter(pPanelInfo.type), pPanelInfo.blockList, sRollupTableList, {
-            interval: sIntervalInfo,
-            start: sStartTime,
-            end: sEndTime,
-        });
-        const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
-        const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
+            let sStartTime = undefined;
+            let sEndTime = undefined;
+            if (pPanelInfo.useCustomTime) {
+                const sTimeMinMax = await handlePanelTimeRange(pPanelInfo.timeRange.start, pPanelInfo.timeRange.end);
+                sStartTime = sTimeMinMax.min;
+                sEndTime = sTimeMinMax.max;
+            } else {
+                sStartTime = pBoardTimeMinMax.min;
+                sEndTime = pBoardTimeMinMax.max;
+            }
 
-        const sResult: any = await getTqlChart(
-            `FAKE(linspace(0, 1, 1))
-             CHART(
-                ${`chartID('${pChartVariableId + '-' + pPanelInfo.id}'),`}
-                ${pPanelInfo.plg ? `plugins('${pPanelInfo.plg}'),` : ''}
-                theme('${pPanelInfo.theme}'),
-                size('${sRefClientWidth}px','${sRefClientHeight}px'),
-                chartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption))}),
-                chartJSCode(${sParsedChartCode})
-            )`,
-            'dsh'
-        );
-        if (!sResult.data.reason) {
-            setChartData(sResult.data);
-            setIsError(false);
-            setIsChartData(true);
-        } else {
-            setIsMessage(sResult.data.reason);
-            setIsError(true);
-            setIsChartData(false);
+            const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
+            const [sParsedQuery, sAliasList] = await DashboardQueryParser(chartTypeConverter(pPanelInfo.type), pPanelInfo.blockList, sRollupTableList, {
+                interval: sIntervalInfo,
+                start: sStartTime,
+                end: sEndTime,
+            });
+            const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
+            const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
+
+            const sResult: any = await getTqlChart(
+                `FAKE(linspace(0, 1, 1))
+                 CHART(
+                    ${`chartID('${pChartVariableId + '-' + pPanelInfo.id}'),`}
+                    ${pPanelInfo.plg ? `plugins('${pPanelInfo.plg}'),` : ''}
+                    theme('${pPanelInfo.theme}'),
+                    size('${sRefClientWidth}px','${sRefClientHeight}px'),
+                    chartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption))}),
+                    chartJSCode(${sParsedChartCode})
+                )`,
+                'dsh'
+            );
+            if (!sResult.data.reason) {
+                setChartData(sResult.data);
+                setIsError(false);
+                setIsChartData(true);
+            } else {
+                setIsMessage(sResult.data.reason);
+                setIsError(true);
+                setIsChartData(false);
+            }
         }
         setIsLoading(false);
         pSetModifyState({ id: '', state: false });
@@ -144,7 +168,16 @@ const LineChart = ({ pLoopMode, pChartVariableId, pPanelInfo, pType, pInsetDragi
             {sIsLoading && !sIsChartData ? <div className="loading">Loading...</div> : null}
             {!sIsLoading && sIsError && sIsMessage ? <div>{sIsMessage}</div> : null}
             {!sIsLoading && !sIsError && !sIsChartData ? <div>{sIsMessage}</div> : null}
-            {sIsChartData ? <ShowChart pLoopMode={pLoopMode} pData={sChartData} /> : null}
+            {sIsChartData ? (
+                <ShowChart
+                    pLoopMode={pLoopMode}
+                    pData={sChartData}
+                    pPanelType={pPanelInfo.type === 'Tql'}
+                    pPanelId={pChartVariableId + '-' + pPanelInfo.id}
+                    pPanelSize={ChartRef}
+                    pTheme={pPanelInfo.theme}
+                />
+            ) : null}
         </div>
     );
 };
