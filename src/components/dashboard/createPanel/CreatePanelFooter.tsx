@@ -9,6 +9,7 @@ import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
 // import { TagColorList } from '@/utils/constants';
 import { IconButton } from '@/components/buttons/IconButton';
+import { TqlBlock } from './TqlBlock';
 
 const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
     const [sTab, setTab] = useState('Query');
@@ -65,120 +66,125 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
 
     return (
         <div className="chart-footer-form">
-            <div className="chart-footer-tab">
-                <div className={sTab === 'Query' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Query')}>
-                    Query
-                    <span className="series-count">{`${Number(pPanelOption.blockList.length)} / ${
-                        pPanelOption.chartOptions?.tagLimit ? pPanelOption.chartOptions?.tagLimit : '12'
-                    }`}</span>
-                </div>
-                {pTableList.length !== 0 && (
-                    <div className={sTab === 'Time' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Time')}>
-                        Time
+            {pPanelOption.type !== 'Tql' && (
+                <>
+                    <div className="chart-footer-tab">
+                        <div className={sTab === 'Query' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Query')}>
+                            Query
+                            <span className="series-count">{`${Number(pPanelOption.blockList.length)} / ${
+                                pPanelOption.chartOptions?.tagLimit ? pPanelOption.chartOptions?.tagLimit : '12'
+                            }`}</span>
+                        </div>
+                        {pTableList.length !== 0 && (
+                            <div className={sTab === 'Time' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Time')}>
+                                Time
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
-            <div className="chart-footer">
-                <div style={{ display: sTab === 'Time' ? 'none' : '' }} className="body">
-                    {/* SET Block */}
-                    {pTableList.length !== 0 &&
-                        pPanelOption.blockList.map((aItem: any) => {
-                            return (
-                                <Block
-                                    key={aItem.id}
-                                    pType={pType}
-                                    pPanelOption={pPanelOption}
-                                    pTableList={pTableList}
-                                    pGetTables={pGetTables}
-                                    pBlockInfo={aItem}
-                                    pSetPanelOption={pSetPanelOption}
-                                    pValueLimit={VALUE_LIMIT}
-                                />
-                            );
-                        })}
-                    {/* ADD Block */}
-                    {pTableList.length !== 0 && (
-                        <div
-                            onClick={HandleAddBlock}
-                            className="plus-wrap"
-                            style={pPanelOption.chartOptions?.tagLimit <= pPanelOption.blockList.length ? { opacity: 0.7, pointerEvents: 'none' } : {}}
-                        >
-                            <PlusCircle color="#FDB532" />
-                        </div>
-                    )}
-                    {pTableList.length === 0 && (
-                        <div
-                            style={{
-                                height: '100%',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                            }}
-                        >
-                            Please create a table.
-                        </div>
-                    )}
-                </div>
-                <div style={sTab === 'Query' ? { display: 'none' } : {}} className="body time-wrap">
-                    <div className="time-form">
-                        <div className="time-header">Custom time range</div>
-                        <div className="time-set-form">
-                            <div className="date-picker">
-                                <div>
-                                    From
-                                    <DatePicker
-                                        pTopPixel={55}
-                                        pTimeValue={pPanelOption.timeRange.start ?? ''}
-                                        onChange={(date: any) => handleTime('start', date.target.value)}
-                                        pSetApply={(date: any) => handleTime('start', date)}
-                                    />
+                    <div className="chart-footer">
+                        <div style={{ display: sTab === 'Time' ? 'none' : '' }} className="body">
+                            {/* SET Block */}
+                            {pTableList.length !== 0 &&
+                                pPanelOption.blockList.map((aItem: any) => {
+                                    return (
+                                        <Block
+                                            key={aItem.id}
+                                            pType={pType}
+                                            pPanelOption={pPanelOption}
+                                            pTableList={pTableList}
+                                            pGetTables={pGetTables}
+                                            pBlockInfo={aItem}
+                                            pSetPanelOption={pSetPanelOption}
+                                            pValueLimit={VALUE_LIMIT}
+                                        />
+                                    );
+                                })}
+                            {/* ADD Block */}
+                            {pTableList.length !== 0 && (
+                                <div
+                                    onClick={HandleAddBlock}
+                                    className="plus-wrap"
+                                    style={pPanelOption.chartOptions?.tagLimit <= pPanelOption.blockList.length ? { opacity: 0.7, pointerEvents: 'none' } : {}}
+                                >
+                                    <PlusCircle color="#FDB532" />
                                 </div>
-                                <div>
-                                    To
-                                    <DatePicker
-                                        pTopPixel={55}
-                                        pTimeValue={pPanelOption.timeRange.end ?? ''}
-                                        onChange={(date: any) => handleTime('end', date.target.value)}
-                                        pSetApply={(date: any) => handleTime('end', date)}
-                                    />
+                            )}
+                            {pTableList.length === 0 && (
+                                <div
+                                    style={{
+                                        height: '100%',
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                    }}
+                                >
+                                    Please create a table.
                                 </div>
-                                <div className="icon-btn-wrapper" style={{ marginTop: '24px', display: 'flex', justifyContent: 'start' }}>
-                                    <IconButton
-                                        pWidth={50}
-                                        pHeight={20}
-                                        pIcon={
-                                            <>
-                                                <VscTrash size="70px" />
-                                                <span style={{ cursor: 'pointer' }}>Clear</span>
-                                            </>
-                                        }
-                                        onClick={() => handleTime('', '')}
-                                    />
+                            )}
+                        </div>
+                        <div style={sTab === 'Query' ? { display: 'none' } : {}} className="body time-wrap">
+                            <div className="time-form">
+                                <div className="time-header">Custom time range</div>
+                                <div className="time-set-form">
+                                    <div className="date-picker">
+                                        <div>
+                                            From
+                                            <DatePicker
+                                                pTopPixel={55}
+                                                pTimeValue={pPanelOption.timeRange.start ?? ''}
+                                                onChange={(date: any) => handleTime('start', date.target.value)}
+                                                pSetApply={(date: any) => handleTime('start', date)}
+                                            />
+                                        </div>
+                                        <div>
+                                            To
+                                            <DatePicker
+                                                pTopPixel={55}
+                                                pTimeValue={pPanelOption.timeRange.end ?? ''}
+                                                onChange={(date: any) => handleTime('end', date.target.value)}
+                                                pSetApply={(date: any) => handleTime('end', date)}
+                                            />
+                                        </div>
+                                        <div className="icon-btn-wrapper" style={{ marginTop: '24px', display: 'flex', justifyContent: 'start' }}>
+                                            <IconButton
+                                                pWidth={50}
+                                                pHeight={20}
+                                                pIcon={
+                                                    <>
+                                                        <VscTrash size="70px" />
+                                                        <span style={{ cursor: 'pointer' }}>Clear</span>
+                                                    </>
+                                                }
+                                                onClick={() => handleTime('', '')}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="select-time-range">
+                                        <SelectTimeRanges onClick={handleQuickTime} />
+                                    </div>
                                 </div>
                             </div>
-                            <div className="select-time-range">
-                                <SelectTimeRanges onClick={handleQuickTime} />
-                            </div>
-                        </div>
-                    </div>
-                    <div className="time-divider" />
-                    <div className="refresh-form">
-                        <div className="time-header">Refresh</div>
+                            <div className="time-divider" />
+                            <div className="refresh-form">
+                                <div className="time-header">Refresh</div>
 
-                        <div className="refresh-set-form">
-                            <Select
-                                pInitValue={pPanelOption.timeRange.refresh}
-                                pFontSize={12}
-                                pWidth={200}
-                                pBorderRadius={4}
-                                pHeight={30}
-                                onChange={(aEvent: any) => setUseTimePicker('refresh', aEvent.target.value)}
-                                pOptions={refreshTimeList}
-                            />
+                                <div className="refresh-set-form">
+                                    <Select
+                                        pInitValue={pPanelOption.timeRange.refresh}
+                                        pFontSize={12}
+                                        pWidth={200}
+                                        pBorderRadius={4}
+                                        pHeight={30}
+                                        onChange={(aEvent: any) => setUseTimePicker('refresh', aEvent.target.value)}
+                                        pOptions={refreshTimeList}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
+                </>
+            )}
+            {pPanelOption.type === 'Tql' && <TqlBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
         </div>
     );
 };

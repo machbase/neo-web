@@ -283,11 +283,7 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
 
                 <div className="addition-input-form">
                     <div style={pPanelInfo.use_right_y2 !== 'Y' ? { opacity: '0.6' } : {}} className="addition-select-box">
-                        <select
-                            style={pPanelInfo.use_right_y2 !== 'Y' ? { opacity: '0.6' } : {}}
-                            onChange={setY2TagList}
-                            disabled={pPanelInfo.use_right_y2 !== 'Y'}
-                        >
+                        <select style={pPanelInfo.use_right_y2 !== 'Y' ? { opacity: '0.6' } : {}} onChange={setY2TagList} disabled={pPanelInfo.use_right_y2 !== 'Y'}>
                             <option value="none">Select a tag for the additional Y-axis.</option>
                             {pPanelInfo.tag_set.filter((aItem: any) => aItem.use_y2 === 'N').length > 0 &&
                                 pPanelInfo.tag_set

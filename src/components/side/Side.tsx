@@ -421,9 +421,9 @@ any) => {
         setIsFoldermodal(aHandle);
     };
 
-    const HandleUrlDownload = () => {
-        setIsUrlDownloadModal(true);
-    };
+    // const HandleUrlDownload = () => {
+    //     setIsUrlDownloadModal(true);
+    // };
 
     const handleRefresh = (e?: MouseEvent) => {
         if (e) e.stopPropagation();
@@ -558,10 +558,10 @@ any) => {
                                                     <TbCloudDown size={12} />
                                                     <span>Git Clone...</span>
                                                 </Menu.Item>
-                                                <Menu.Item onClick={HandleUrlDownload}>
+                                                {/* <Menu.Item onClick={HandleUrlDownload}>
                                                     <TbCloudDown size={12} />
                                                     <span>Url Download...</span>
-                                                </Menu.Item>
+                                                </Menu.Item> */}
                                             </>
                                         ) : null}
                                         <Menu.Item onClick={handleRename}>

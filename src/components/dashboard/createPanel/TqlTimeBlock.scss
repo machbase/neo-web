@@ -1,0 +1,134 @@
+.tql-panel-time-wrap {
+    font-size: 13px;
+    height: 100%;
+
+    .time-divider {
+        width: 1px;
+        height: 100%;
+        margin: auto 8px;
+        background-color: #3a3b44;
+    }
+    .time-header {
+        padding-left: 8px;
+        display: flex;
+        font-size: 15px;
+        height: 10%;
+        font-weight: 600;
+        align-items: center;
+    }
+    .time-form {
+        height: 100%;
+        width: 70%;
+        justify-content: space-evenly;
+        .time-set-form {
+            height: 90%;
+            padding-top: 2%;
+            justify-content: space-evenly;
+            display: flex;
+        }
+        .date-picker {
+            display: flex;
+        }
+    }
+    .refresh-form {
+        width: 30%;
+        height: 100%;
+        .refresh-set-form {
+            display: flex;
+            height: 90%;
+            padding-top: 5%;
+            justify-content: center;
+        }
+    }
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    .date-picker {
+        display: flex;
+
+        flex-direction: column;
+        .modal-date-picker {
+            z-index: 8;
+            input {
+                filter: invert(1);
+            }
+        }
+        .date-picker {
+            flex-direction: row;
+            display: inline-block;
+            width: 200px;
+            padding: 0 4px;
+            display: flex;
+            align-items: center;
+            height: 28px;
+            background-color: #323644;
+            border: 0.5px solid rgba(255, 255, 255, 0.5);
+            color: rgba(255, 255, 255, 0.5) !important;
+            border-radius: 4px;
+            input {
+                background-color: transparent;
+                border: none;
+                height: 100%;
+                color: #f8f8f8;
+            }
+
+            .react-datepicker {
+                background-color: #2a2d37 !important;
+                td,
+                th {
+                    padding: 0 !important;
+                    width: unset;
+                    min-width: unset;
+                }
+                .rdtPrev:hover,
+                .rdtNext:hover,
+                .rdtTimeToggle:hover,
+                .rdtBtn:hover,
+                .rdtSwitch:hover,
+                .rdtDay:hover {
+                    opacity: 0.5 !important;
+                    background: #464b5c !important;
+                }
+            }
+        }
+    }
+    .select-time-range {
+        display: flex;
+        flex-direction: column;
+
+        div {
+            margin-left: 4px;
+            span {
+                cursor: pointer;
+            }
+            span:hover {
+                opacity: 0.5;
+            }
+        }
+        display: flex;
+        color: #4199ff;
+        // width: 210px;
+    }
+    .react-datepicker__input-container {
+        width: 210px !important;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: 0.3rem 0.5rem;
+        background-color: rgba(38, 40, 49, 0.5);
+        border: solid 0.5px rgba(255, 255, 255, 0.5);
+        border-radius: 8px;
+
+        input {
+            color: #f8f8f8;
+            width: 100%;
+            height: 100%;
+
+            outline: none;
+            border: none;
+            background-color: transparent;
+        }
+    }
+}

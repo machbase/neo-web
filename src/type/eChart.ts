@@ -1,5 +1,5 @@
 // import type { EChartOption } from 'echarts'
-export type ChartType = 'line' | 'bar' | 'scatter' | 'pie' | 'radar' | 'candlestick' | 'heatmap' | 'sankey' | 'gauge' | 'liquidFill' | 'wordCloud';
+export type ChartType = 'line' | 'bar' | 'scatter' | 'pie' | 'radar' | 'candlestick' | 'heatmap' | 'sankey' | 'gauge' | 'liquidFill' | 'wordCloud' | 'tql';
 export type ChartTheme =
     | 'dark'
     | 'chalk'

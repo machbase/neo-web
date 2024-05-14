@@ -123,8 +123,14 @@ const CreatePanel = ({
             pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
             pSetModifyState({ id: sPanelOption.id, state: true });
         } else {
-            if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
-            else pSetModifyState({ id: sPanelOption.id, state: true });
+            const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql');
+            if (sChartPanelList.length === 0) {
+                pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
+                pSetModifyState({ id: sPanelOption.id, state: true });
+            } else {
+                if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
+                else pSetModifyState({ id: sPanelOption.id, state: true });
+            }
         }
         handleClose();
     };
@@ -171,58 +177,105 @@ const CreatePanel = ({
             });
             setBoardList(() => sTabList);
         }
+
         if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
         handleClose();
     };
     // Preview
     const applyPanel = async () => {
         const sTmpPanelOption = JSON.parse(JSON.stringify(sPanelOption));
-
-        if (sTmpPanelOption.useCustomTime) {
-            let sStart: any;
-            let sEnd: any;
-            if (typeof sTmpPanelOption.timeRange.start === 'string' && (sTmpPanelOption.timeRange.start.includes('now') || sTmpPanelOption.timeRange.start.includes('last'))) {
-                sStart = sTmpPanelOption.timeRange.start;
-            } else {
-                sStart = moment(sTmpPanelOption.timeRange.start).unix() * 1000;
-                if (sStart < 0 || isNaN(sStart)) {
-                    Error('Please check the entered time.');
-                    return;
+        if (sPanelOption.type === 'Tql') {
+            if (sTmpPanelOption.useCustomTime) {
+                let sStart: any;
+                let sEnd: any;
+                if (typeof sTmpPanelOption.timeRange.start === 'string' && sTmpPanelOption.timeRange.start.includes('now')) {
+                    sStart = sTmpPanelOption.timeRange.start;
+                } else {
+                    sStart = moment(sTmpPanelOption.timeRange.start).unix() * 1000;
+                    if (sStart < 0 || isNaN(sStart)) {
+                        Error('Please check the entered time.');
+                        return;
+                    }
                 }
-            }
-            if (typeof sTmpPanelOption.timeRange.end === 'string' && (sTmpPanelOption.timeRange.end.includes('now') || sTmpPanelOption.timeRange.end.includes('last'))) {
-                sEnd = sTmpPanelOption.timeRange.end;
-            } else {
-                sEnd = moment(sTmpPanelOption.timeRange.end).unix() * 1000;
-                if (sEnd < 0 || isNaN(sEnd)) {
-                    Error('Please check the entered time.');
-                    return;
+                if (typeof sTmpPanelOption.timeRange.end === 'string' && sTmpPanelOption.timeRange.end.includes('now')) {
+                    sEnd = sTmpPanelOption.timeRange.end;
+                } else {
+                    sEnd = moment(sTmpPanelOption.timeRange.end).unix() * 1000;
+                    if (sEnd < 0 || isNaN(sEnd)) {
+                        Error('Please check the entered time.');
+                        return;
+                    }
                 }
-            }
-            if (isValidJSON(JSON.stringify(sTmpPanelOption))) {
-                const sTempOption = { ...sTmpPanelOption, timeRange: { ...sTmpPanelOption.timeRange, start: sStart, end: sEnd } };
-                setAppliedPanelOption(sTempOption);
-                pSetModifyState({ id: sTempOption.id, state: true });
+                if (isValidJSON(JSON.stringify(sTmpPanelOption))) {
+                    const sTempOption = { ...sTmpPanelOption, timeRange: { ...sTmpPanelOption.timeRange, start: sStart, end: sEnd } };
+                    setAppliedPanelOption(sTempOption);
+                    pSetModifyState({ id: sTempOption.id, state: true });
+                }
+            } else {
+                setAppliedPanelOption(sPanelOption);
+                setCreateModeTimeMinMax((preTime: any) => JSON.parse(JSON.stringify(preTime ?? defaultMinMax())));
+                setIsPreview(() => true);
             }
         } else {
-            if (isValidJSON(JSON.stringify(sTmpPanelOption))) {
-                setAppliedPanelOption(sTmpPanelOption);
+            if (sTmpPanelOption.useCustomTime) {
+                let sStart: any;
+                let sEnd: any;
+                if (typeof sTmpPanelOption.timeRange.start === 'string' && (sTmpPanelOption.timeRange.start.includes('now') || sTmpPanelOption.timeRange.start.includes('last'))) {
+                    sStart = sTmpPanelOption.timeRange.start;
+                } else {
+                    sStart = moment(sTmpPanelOption.timeRange.start).unix() * 1000;
+                    if (sStart < 0 || isNaN(sStart)) {
+                        Error('Please check the entered time.');
+                        return;
+                    }
+                }
+                if (typeof sTmpPanelOption.timeRange.end === 'string' && (sTmpPanelOption.timeRange.end.includes('now') || sTmpPanelOption.timeRange.end.includes('last'))) {
+                    sEnd = sTmpPanelOption.timeRange.end;
+                } else {
+                    sEnd = moment(sTmpPanelOption.timeRange.end).unix() * 1000;
+                    if (sEnd < 0 || isNaN(sEnd)) {
+                        Error('Please check the entered time.');
+                        return;
+                    }
+                }
+                if (isValidJSON(JSON.stringify(sTmpPanelOption))) {
+                    const sTempOption = { ...sTmpPanelOption, timeRange: { ...sTmpPanelOption.timeRange, start: sStart, end: sEnd } };
+                    setAppliedPanelOption(sTempOption);
+                    pSetModifyState({ id: sTempOption.id, state: true });
+                }
+            } else {
+                const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql');
+                if (isValidJSON(JSON.stringify(sTmpPanelOption))) {
+                    setAppliedPanelOption(sTmpPanelOption);
+                }
+                if (pType === 'create' && (!pBoardTimeMinMax || sChartPanelList.length === 0)) {
+                    const sTime = await getTimeMinMax(pBoardInfo.dashboard.timeRange);
+                    if (sChartPanelList.length === 0) {
+                        setCreateModeTimeMinMax(sTime);
+                        setIsPreview(() => true);
+                    }
+                } else if (pType === 'edit') {
+                    setCreateModeTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange));
+                    setIsPreview(() => true);
+                } else pSetModifyState({ id: sTmpPanelOption.id, state: true });
             }
-            if (pType === 'create' && !pBoardTimeMinMax) {
-                getTimeMinMax(pBoardInfo.dashboard.timeRange);
-            } else if (pType === 'edit') {
-                setCreateModeTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange));
-                setIsPreview(() => true);
-            } else pSetModifyState({ id: sTmpPanelOption.id, state: true });
         }
+    };
+    const defaultMinMax = () => {
+        const sNowTime = moment().unix() * 1000;
+        const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
+        setCreateModeTimeMinMax(() => sNowTimeMinMax);
+        return sNowTimeMinMax;
     };
     const getTimeMinMax = async (aTimeRange: any) => {
         const sTargetPanel = sPanelOption;
-        const sTargetTag = sTargetPanel.blockList[0];
+        const sTargetTag = sTargetPanel?.blockList ? sTargetPanel.blockList[0] : { tag: '' };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
-        const sCustomTag = sTargetTag.filter.filter((aFilter: any) => {
-            if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
-        })[0]?.value;
+        const sCustomTag =
+            sIsTagName &&
+            sTargetTag.filter.filter((aFilter: any) => {
+                if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
+            })[0]?.value;
 
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
             const sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
@@ -231,10 +284,7 @@ const CreatePanel = ({
             setCreateModeTimeMinMax(() => sTimeMinMax);
             return sTimeMinMax;
         } else {
-            const sNowTime = moment().unix() * 1000;
-            const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
-            setCreateModeTimeMinMax(() => sNowTimeMinMax);
-            return sNowTimeMinMax;
+            return defaultMinMax();
         }
     };
     const getTables = async (aStatus: boolean) => {

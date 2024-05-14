@@ -1,0 +1,60 @@
+.drop-box-btn-wrapper {
+    display: flex;
+    position: relative;
+    justify-items: center;
+    align-items: center;
+
+    .drop-box-btn-icon {
+        button {
+            border-radius: 4px;
+            border-top-left-radius: 0px;
+            border-bottom-left-radius: 0px;
+            border-left: 0px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 12px;
+            height: 26px;
+            width: 26px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #dbdbdb;
+            background: rgba(255, 255, 255, 0.13);
+            border: 1px solid rgb(117, 117, 117);
+
+            svg {
+                width: 20px;
+                height: 20px;
+            }
+        }
+        &:hover {
+            background: #262831;
+        }
+    }
+
+    .drop-box-btn-item-wrapper {
+        position: absolute;
+        top: 0px;
+        left: 30px;
+        border: 1px solid rgb(68, 68, 68);
+        border-radius: 8px;
+        overflow: hidden;
+        z-index: 999;
+
+        button {
+            background-color: #323336;
+            display: flex;
+            justify-content: start;
+            margin: 0 !important;
+            padding: 2px !important;
+            font-size: 14px;
+            width: 100%;
+            color: #dbdbdb;
+            border-radius: 0;
+
+            &:hover {
+                background-color: #262831;
+            }
+        }
+    }
+}

@@ -21,6 +21,7 @@ import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Input } from '../inputs/Input';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
+import { Error } from '../toast/Toast';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
@@ -148,22 +149,37 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes);
         setBoardTimeMinMax(() => sTimeMinMax);
     };
+    const handleSaveTimeRange = (sStart: any, sEnd: any) => {
+        const sChartpanelList = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql');
+        if (sChartpanelList.length === 0 && ((!Number(sStart) && sStart.includes('last')) || (!Number(sEnd) && sEnd.includes('last'))))
+            Error('Apply now time range when using only tql panel.');
+
+        handleDashboardTimeRange(sStart, sEnd);
+    };
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
-        const sTargetPanel = pInfo.dashboard.panels[0];
-        const sTargetTag = sTargetPanel.blockList[0];
+        const sTargetPanel = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql')[0];
+        const sTargetTag = sTargetPanel?.blockList ? sTargetPanel.blockList[0] : { tag: '' };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
-        const sCustomTag = sTargetTag.filter.filter((aFilter: any) => {
-            if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
-        })[0]?.value;
+        const sCustomTag =
+            sIsTagName &&
+            sTargetTag.filter.filter((aFilter: any) => {
+                if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
+            })[0]?.value;
+
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
             const sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
             const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
-            return sResult;
+            if (!Number(sResult.min) || !Number(sResult.max)) return getNowMinMax();
+            else return sResult;
         } else {
-            const sNowTime = moment().unix() * 1000;
-            const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
-            return sNowTimeMinMax;
+            return getNowMinMax();
         }
+    };
+
+    const getNowMinMax = () => {
+        const sNowTime = moment().unix() * 1000;
+        const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
+        return sNowTimeMinMax;
     };
     // Set initial value
     const initDashboard = async () => {
@@ -271,7 +287,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         )}
                     </div>
                 )}
-                {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal} pSaveCallback={handleDashboardTimeRange} />}
+                {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal} pSaveCallback={handleSaveTimeRange} />}
                 {sCreateModal && (
                     <CreatePanel
                         pLoopMode={false}

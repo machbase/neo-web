@@ -45,6 +45,69 @@ export const COMBO_BOX_TIME = [
         value: '1h',
     },
 ];
+
+export const TIME_RANGE_NOW = [
+    {
+        key: 1,
+        name: 'Last 5 minutes',
+        value: [`${NOW}-5${MINUTE}`, `${NOW}`],
+    },
+    {
+        key: 2,
+        name: 'Last 10 minutes',
+        value: [`${NOW}-10${MINUTE}`, `${NOW}`],
+    },
+    {
+        key: 3,
+        name: 'Last 30 minutes',
+        value: [`${NOW}-30${MINUTE}`, `${NOW}`],
+    },
+    {
+        key: 4,
+        name: 'Last 1 hour',
+        value: [`${NOW}-1${HOUR}`, `${NOW}`],
+    },
+    {
+        key: 5,
+        name: 'Last 3 hour',
+        value: [`${NOW}-3${HOUR}`, `${NOW}`],
+    },
+    // {
+    //     key: 6,
+    //     name: 'Last 6 hour',
+    //     value: [`${NOW}-6${HOUR}`, `${NOW}`],
+    // },
+    {
+        key: 7,
+        name: 'Last 1 days',
+        value: [`${NOW}-1${DAY}`, `${NOW}`],
+    },
+    {
+        key: 8,
+        name: 'Last 3 days',
+        value: [`${NOW}-3${DAY}`, `${NOW}`],
+    },
+    // {
+    //     key: 9,
+    //     name: 'Last 7 days',
+    //     value: [`${NOW}-7${DAY}`, `${NOW}`],
+    // },
+    {
+        key: 10,
+        name: 'Last 30 days',
+        value: [`${NOW}-30${DAY}`, `${NOW}`],
+    },
+    {
+        key: 11,
+        name: 'Last 3 months',
+        value: [`${NOW}-3${MONTH}`, `${NOW}`],
+    },
+    {
+        key: 12,
+        name: 'Last 1 year',
+        value: [`${NOW}-1${YEAR}`, `${NOW}`],
+    },
+];
 export const TIME_RANGE = [
     [
         {
@@ -416,6 +479,7 @@ export const ChartTypeList = [
     { key: 'Gauge', value: 'gauge' },
     { key: 'Pie', value: 'pie' },
     { key: 'Liquid fill', value: 'liquidFill' },
+    { key: 'Tql', value: 'tql' },
 ];
 export const ChartThemeList = ['dark', 'white', 'vintage', 'macarons', 'infographic', 'shine', 'roma'];
 export const ChartThemeBackgroundColor = {
