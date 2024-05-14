@@ -19,6 +19,9 @@ export const TqlTimeBlock = ({ pPanelOption, pSetPanelOption }: { pPanelOption: 
         } else {
             sTimeRange = { ...pPanelOption.timeRange, start: '', end: '' };
         }
+
+        if (sTimeRange.start.toLowerCase().includes('last')) sTimeRange.start = sTimeRange.start.toLowerCase().replace('last', 'now');
+        if (sTimeRange.end.toLowerCase().includes('last')) sTimeRange.end = sTimeRange.end.toLowerCase().replace('last', 'now');
         pSetPanelOption((aPrev: any) => {
             return { ...aPrev, useCustomTime: sUseCustomTime, timeRange: sTimeRange };
         });

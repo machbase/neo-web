@@ -21,6 +21,7 @@ import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Input } from '../inputs/Input';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
+import { Error } from '../toast/Toast';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
@@ -147,6 +148,13 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
         const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes);
         setBoardTimeMinMax(() => sTimeMinMax);
+    };
+    const handleSaveTimeRange = (sStart: any, sEnd: any) => {
+        const sChartpanelList = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql');
+        if (sChartpanelList.length === 0 && ((!Number(sStart) && sStart.includes('last')) || (!Number(sEnd) && sEnd.includes('last'))))
+            Error('Apply now time range when using only tql panel.');
+
+        handleDashboardTimeRange(sStart, sEnd);
     };
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetPanel = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql')[0];
@@ -279,7 +287,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         )}
                     </div>
                 )}
-                {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal} pSaveCallback={handleDashboardTimeRange} />}
+                {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal} pSaveCallback={handleSaveTimeRange} />}
                 {sCreateModal && (
                     <CreatePanel
                         pLoopMode={false}

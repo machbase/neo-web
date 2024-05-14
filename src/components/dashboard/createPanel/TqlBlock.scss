@@ -31,7 +31,7 @@
         background-color: #141518;
         padding: 6px;
         height: calc(100% - 24px);
-        overflow: hidden;
+        overflow: auto;
 
         .tql-block-item-wrapper {
             display: flex;
@@ -40,6 +40,61 @@
 
             .tql-block-item-label {
                 width: 100px;
+                display: flex;
+                font-size: 14px;
+
+                &-title {
+                    margin-right: 4px;
+                }
+                &-content {
+                    border-radius: 40%;
+                    width: 30px;
+                    height: 15px;
+                    font-size: 11px;
+                    margin-top: 4px;
+                    padding-top: 2px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    background-color: #a4a4a46e;
+                    color: #e4e4e4;
+                }
+            }
+
+            .tql-block-item-param {
+                padding: 0 2px 4px 0;
+                display: flex;
+                flex-direction: row;
+                &-equal {
+                    cursor: default;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    width: 28px;
+                    font-size: 12px;
+                }
+
+                &-icon {
+                    margin: 0 8px;
+                    cursor: pointer;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+
+                    svg {
+                        margin: 0 2px;
+                        &:hover {
+                            color: #ffffffa9;
+                        }
+                    }
+                }
+
+                &-custom-style {
+                    .custom-input-wrapper {
+                        border-top-right-radius: 0px !important;
+                        border-bottom-right-radius: 0px !important;
+                    }
+                }
             }
         }
 

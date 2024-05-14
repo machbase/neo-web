@@ -3,6 +3,10 @@ import { useState } from 'react';
 import { SelectFileBtn } from '@/components/buttons/SelectFileBtn';
 import { TqlTimeBlock } from './TqlTimeBlock';
 import { OpenFileBtn } from '@/components/buttons/OpenFileBtn';
+import { PlusCircle } from '@/assets/icons/Icon';
+import { AiFillMinusCircle } from 'react-icons/ai';
+import { DropBoxBtn } from '@/components/buttons/DropBoxBtn';
+import { PARAM_LIST } from '@/utils/DashboardTqlChartParser';
 import './TqlBlock.scss';
 
 export const TqlBlock = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any; pSetPanelOption: any }) => {
@@ -46,16 +50,11 @@ export const TqlBlock = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any;
                         <OpenFileBtn pType="tql" pFileInfo={pPanelOption.tqlInfo} btnWidth={'100px'} btnHeight="26px" />
                     </div>
                     <div className="tql-block-item-wrapper">
-                        <span className="tql-block-item-label">Params</span>
-                        <Input
-                            pBorderRadius={4}
-                            pWidth={'500px'}
-                            pHeight={26}
-                            pType="text"
-                            pValue={pPanelOption.tqlInfo?.params ?? ''}
-                            pSetValue={() => null}
-                            onChange={(aEvent: any) => ChangeOption('params', aEvent)}
-                        />
+                        <div className="tql-block-item-label">
+                            <span className="tql-block-item-label-title">Params</span>
+                            <span className="tql-block-item-label-content">{pPanelOption?.tqlInfo.params.length}/12</span>{' '}
+                        </div>
+                        {paramForm(pPanelOption?.tqlInfo.params ?? [], ChangeOption)}
                     </div>
                 </div>
 
@@ -63,6 +62,67 @@ export const TqlBlock = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any;
                     <TqlTimeBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />
                 </div>
             </div>
+        </div>
+    );
+};
+
+const paramForm = (aParamList: any, aChange: (key: string, value: any) => void) => {
+    const INIT_DATA = { name: '', value: '', format: '' };
+
+    const handleChange = (aKey: string, event: any, aIdx: number) => {
+        const sTmpParamList = JSON.parse(JSON.stringify(aParamList));
+        sTmpParamList.splice(aIdx, 1, { ...sTmpParamList[aIdx], [aKey]: event.target.value });
+        aChange('params', { target: { value: sTmpParamList } });
+    };
+    const addParam = () => {
+        if (aParamList.length === 12) return;
+        const sTmpParamList = JSON.parse(JSON.stringify(aParamList));
+        sTmpParamList.push(INIT_DATA);
+        aChange('params', { target: { value: sTmpParamList } });
+    };
+    const delParam = (aIdx: number) => {
+        const sTmpParamList = JSON.parse(JSON.stringify(aParamList));
+        sTmpParamList.splice(aIdx, 1);
+        aChange('params', { target: { value: sTmpParamList } });
+    };
+
+    return (
+        <div className="tql-block-item-param-wrapper">
+            {aParamList &&
+                aParamList.map((aParam: any, aIdx: number) => {
+                    return (
+                        <div className={'tql-block-item-param'} key={'tql-block-item-param-' + aIdx}>
+                            <div className="tql-block-item-param">
+                                <Input
+                                    pBorderRadius={4}
+                                    pWidth={'140px'}
+                                    pHeight={26}
+                                    pType="text"
+                                    pValue={aParam.value}
+                                    pSetValue={() => null}
+                                    onChange={(aEvent: any) => handleChange('value', aEvent, aIdx)}
+                                />
+                                <div className="tql-block-item-param-equal">=</div>
+                                <div className="tql-block-item-param-custom-style">
+                                    <Input
+                                        pBorderRadius={4}
+                                        pWidth={'220px'}
+                                        pHeight={26}
+                                        pType="text"
+                                        pValue={aParam.name}
+                                        pSetValue={() => null}
+                                        onChange={(aEvent: any) => handleChange('name', aEvent, aIdx)}
+                                    />
+                                </div>
+                                <DropBoxBtn pList={PARAM_LIST} pCallback={(aTarget: string) => handleChange('name', { target: { value: aTarget } }, aIdx)} />
+                                <div className="tql-block-item-param-icon">
+                                    {aParamList.length > 1 && <AiFillMinusCircle onClick={() => delParam(aIdx)} />}
+                                    {aIdx === aParamList.length - 1 && aParamList.length !== 12 && <PlusCircle onClick={addParam} />}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
         </div>
     );
 };

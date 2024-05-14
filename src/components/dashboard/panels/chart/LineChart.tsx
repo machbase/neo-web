@@ -39,8 +39,30 @@ const LineChart = ({ pLoopMode, pChartVariableId, pPanelInfo, pType, pInsetDragi
     const executeTqlChart = async (aWidth?: number) => {
         setIsLoading(true);
         !pLoopMode && setChartData({});
+        if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
+            sRefClientWidth = ChartRef.current.clientWidth;
+        }
+        if (ChartRef.current && ChartRef.current.clientHeight !== 0 && !aWidth) {
+            sRefClientHeight = ChartRef.current.clientHeight;
+        }
+        // width, height when display none
+        if (sRefClientWidth === 0) sRefClientWidth = Math.floor(pParentWidth / GRID_LAYOUT_COLS) * pPanelInfo.w - 10;
+        if (sRefClientHeight === 0) sRefClientHeight = (GRID_LAYOUT_ROW_HEIGHT + 10) * (pPanelInfo.h - 1) - (pIsHeader ? 5 : -25);
+
+        let sStartTime = undefined;
+        let sEndTime = undefined;
+        if (pPanelInfo.useCustomTime) {
+            const sTimeMinMax = await handlePanelTimeRange(pPanelInfo.timeRange.start, pPanelInfo.timeRange.end);
+            sStartTime = sTimeMinMax.min;
+            sEndTime = sTimeMinMax.max;
+        } else {
+            sStartTime = pBoardTimeMinMax.min;
+            sEndTime = pBoardTimeMinMax.max;
+        }
+
+        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
         if (pPanelInfo.type === 'Tql') {
-            const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange()));
+            const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange(), sIntervalInfo));
             if (!sResult?.data?.reason) {
                 setChartData(sResult);
                 setIsError(false);
@@ -51,28 +73,6 @@ const LineChart = ({ pLoopMode, pChartVariableId, pPanelInfo, pType, pInsetDragi
                 setIsChartData(false);
             }
         } else {
-            if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
-                sRefClientWidth = ChartRef.current.clientWidth;
-            }
-            if (ChartRef.current && ChartRef.current.clientHeight !== 0 && !aWidth) {
-                sRefClientHeight = ChartRef.current.clientHeight;
-            }
-            // width, height when display none
-            if (sRefClientWidth === 0) sRefClientWidth = Math.floor(pParentWidth / GRID_LAYOUT_COLS) * pPanelInfo.w - 10;
-            if (sRefClientHeight === 0) sRefClientHeight = (GRID_LAYOUT_ROW_HEIGHT + 10) * (pPanelInfo.h - 1) - (pIsHeader ? 5 : -25);
-
-            let sStartTime = undefined;
-            let sEndTime = undefined;
-            if (pPanelInfo.useCustomTime) {
-                const sTimeMinMax = await handlePanelTimeRange(pPanelInfo.timeRange.start, pPanelInfo.timeRange.end);
-                sStartTime = sTimeMinMax.min;
-                sEndTime = sTimeMinMax.max;
-            } else {
-                sStartTime = pBoardTimeMinMax.min;
-                sEndTime = pBoardTimeMinMax.max;
-            }
-
-            const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
             const [sParsedQuery, sAliasList] = await DashboardQueryParser(chartTypeConverter(pPanelInfo.type), pPanelInfo.blockList, sRollupTableList, {
                 interval: sIntervalInfo,
                 start: sStartTime,

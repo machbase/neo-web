@@ -37,6 +37,30 @@ export const TqlOptions = (props: GaugeOptionProps) => {
                     />
                 </div>
             </Collapse>
+            <div className="divider" />
+            <Collapse title="Parameter variables" isOpen>
+                <div style={{ display: 'flex', flexDirection: 'column', cursor: 'default' }}>
+                    <span>Time range</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', color: '#b6b6b6' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
+                            <span style={{ color: 'white' }}>From</span>
+                            <span>$from_str: date string (YYYY-MM-DD HH:MI:SS)</span>
+                            <span>$from_s: unix timestamp </span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
+                            <span style={{ color: 'white' }}>To</span>
+                            <span>$to_str: date string (YYYY-MM-DD HH:MI:SS)</span>
+                            <span>$to_s: unix timestamp</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
+                            <span style={{ color: 'white' }}>Period</span>
+                            <span>$period: duration expression (ex: 10s) </span>
+                            <span>$period_value: period value (ex: 10)</span>
+                            <span>$period_unit: period unit (ex: sec)</span>
+                        </div>
+                    </div>
+                </div>
+            </Collapse>
         </div>
     );
 };

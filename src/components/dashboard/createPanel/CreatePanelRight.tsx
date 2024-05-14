@@ -47,10 +47,10 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                 sResVal.commonOptions = sIsPie ? sPieLegendOption : DefaultCommonOption;
             }
             if (sConvertedChartType === 'tql') {
-                sResVal.tqlInfo = { path: '', params: '', chart_id: '' };
+                sResVal.tqlInfo = { path: '', params: [{ name: '', value: '', format: '' }], chart_id: '' };
                 sResVal.theme = 'white';
             } else {
-                sResVal.tqlInfo = { path: '', params: '', chart_id: '' };
+                sResVal.tqlInfo = { path: '', params: [{ name: '', value: '', format: '' }], chart_id: '' };
                 sResVal.theme = 'dark';
             }
             if (sResVal.chartOptions?.tagLimit) sResVal.blockList = sResVal.blockList.slice(0, sResVal.chartOptions?.tagLimit);
