@@ -290,7 +290,6 @@ const CreatePanel = ({
     const getTables = async (aStatus: boolean) => {
         const sResult: any = await getTableList();
         if (sResult.success) {
-            // TODO 만약 나중에 다른 테이블 추가하면 설정해줘야함
             const newTable = sResult.data.rows.filter((aItem: any) => getTableType(aItem[4]) === 'log' || getTableType(aItem[4]) === 'tag');
             setTableList(newTable);
             if (aStatus) {
@@ -298,11 +297,18 @@ const CreatePanel = ({
                     const sToken = localStorage.getItem('accessToken');
                     if (sToken) {
                         let sOption = DefaultChartOption;
+                        // no table
+                        if (newTable.length === 0) {
+                            sOption = {
+                                ...sOption,
+                                id: generateUUID(),
+                                blockList: createDefaultTagTableOption(decodeJwt(sToken).sub, newTable[0], 'none', ''),
+                            };
+                            setPanelOption(sOption);
+                            setAppliedPanelOption(JSON.parse(JSON.stringify(sOption)));
+                            return;
+                        }
                         const sTableType = getTableType(newTable[0][4]);
-                        // let sData: any = null;
-                        // let sTag: string = '';
-                        // if (sTableType === 'tag') sData = await fetchTags(newTable[0][3]);
-                        // if (sData && sData.success && sData.data && sData.data.rows && sData.data.rows.length > 0) sTag = sData.data.rows[0][1];
                         sOption = {
                             ...sOption,
                             id: generateUUID(),
