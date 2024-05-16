@@ -170,10 +170,40 @@ export function renameManager(rootDir: Directory, aUniqueKey: string, rename: st
         });
         rootDir.dirs = rootDir.dirs.map((dir: any) => {
             if (dir.path + dir.name + '-' + dir.depth === aKey) {
-                return { ...dir, id: rename, name: rename, dirs: [], files: [], isOpen: false };
+                return {
+                    ...dir,
+                    id: rename,
+                    name: rename,
+                    dirs: dir.dirs.length > 0 ? setSubDirectoryPath(dir.dirs, { depth: dir.depth, path: dir.path, name: rename }) : [],
+                    files: dir.files.length > 0 ? setSubFilePath(dir.files, { depth: dir.depth, path: dir.path, name: rename }) : [],
+                };
             } else return findTarget(dir, aKey, rename);
         });
         return rootDir;
     }
     return findTarget(sResult, aUniqueKey, rename);
 }
+
+export const setSubDirectoryPath = (aDirList: any, aParentDirInfo: { depth: number; path: string; name: string }) => {
+    const sTmpDirList = JSON.parse(JSON.stringify(aDirList));
+    const sTargetPath = aParentDirInfo.path + aParentDirInfo.name + '/';
+    const resDirList = sTmpDirList.map((aDir: any) => {
+        return {
+            ...aDir,
+            path: sTargetPath,
+            parentId: aParentDirInfo.name,
+            dirs: aDir.dirs.length > 0 ? setSubDirectoryPath(aDir.dirs, { depth: aParentDirInfo.depth + 1, path: sTargetPath, name: aDir.name }) : [],
+            files: aDir.files.length > 0 ? setSubFilePath(aDir.files, { depth: aParentDirInfo.depth + 1, path: sTargetPath, name: aDir.name }) : [],
+        };
+    });
+    return resDirList;
+};
+
+export const setSubFilePath = (aFileList: any, aParentDirInfo: { depth: number; path: string; name: string }) => {
+    const sTmpFileList = JSON.parse(JSON.stringify(aFileList));
+    const sTargetPath = aParentDirInfo.path + aParentDirInfo.name + '/';
+    const resFileLIst = sTmpFileList.map((aFile: any) => {
+        return { ...aFile, path: sTargetPath, parentId: aParentDirInfo.name };
+    });
+    return resFileLIst;
+};
