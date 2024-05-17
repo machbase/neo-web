@@ -150,15 +150,17 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                                     <GearFill />
                                     <span>Setting</span>
                                 </Menu.Item>
-                                <Menu.Item onClick={handleMoveTagz}>
-                                    <MuiTagAnalyzerGray className="mui-svg-hover" width={13} />
-                                    <span>Show Taganalyer</span>
-                                </Menu.Item>
+                                {pPanelInfo.type !== 'Tql' && (
+                                    <Menu.Item onClick={handleMoveTagz}>
+                                        <MuiTagAnalyzerGray className="mui-svg-hover" width={13} />
+                                        <span>Show Taganalyer</span>
+                                    </Menu.Item>
+                                )}
                                 <Menu.Item onClick={handleDeleteOnMenu}>
                                     <Delete />
                                     <span>Delete</span>
                                 </Menu.Item>
-                                {localStorage.getItem('experimentMode') && (
+                                {localStorage.getItem('experimentMode') && pPanelInfo.type !== 'Tql' && (
                                     <Menu.Item onClick={HandleDownload}>
                                         <VscGraphScatter />
                                         <span>Save to tql</span>
