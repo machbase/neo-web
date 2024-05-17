@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getFileList, postFileList } from '@/api/repository/api';
 import Modal from './Modal';
-import { gFileTree } from '@/recoil/fileTree';
+import { gFileTree, gRecentModalPath } from '@/recoil/fileTree';
 import './SaveModal.scss';
 import { gBoardList, gSelectedBoard, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -43,6 +43,7 @@ export const SaveModal = (props: SaveModalProps) => {
     const sSaveWorkSheet = useRecoilValue(gSaveWorkSheets);
     const [sFileTree, setFileTree] = useRecoilState(gFileTree);
     const sSelectedBoard = useRecoilValue(gSelectedBoard);
+    const [sModalPath, setModalPath] = useRecoilState(gRecentModalPath);
 
     const sCheckType = (aValue: string) =>
         aValue === 'sql' ||
@@ -63,7 +64,12 @@ export const SaveModal = (props: SaveModalProps) => {
         setSaveFileName(
             sSelectedBoard ? (sCheckType(extractionExtension(sSelectedBoard.name)) ? sSelectedBoard.name : sSelectedBoard.name + `.${sSelectedBoard.type}`) : `new.${sFileType}`
         );
-        getFiles(sSelectedBoard.type ?? '');
+        const sInitPath = sSelectedBoard.path !== '' ? sSelectedBoard.path : sModalPath;
+        setSelectedDir(sInitPath.split('/').filter((aPath: string) => !!aPath));
+        getFiles(
+            sSelectedBoard.type ?? '',
+            sInitPath.split('/').filter((aPath: string) => !!aPath)
+        );
     }, []);
 
     const handleClose = () => {
@@ -200,6 +206,7 @@ export const SaveModal = (props: SaveModalProps) => {
         const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
         const sSameFile: any = sTab && sPath === sTab.path.replace('//', '/') && sFileName === sTab.name;
         const sResult: any = await postFileList(sSaveData, sPath, sFileName);
+        setModalPath(sPath);
         if (sResult.success) {
             handleClose();
             if (sSameFile) {
