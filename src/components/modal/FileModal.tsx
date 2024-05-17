@@ -1,5 +1,5 @@
-import { useRecoilValue } from 'recoil';
-import { gRecentDirectory } from '@/recoil/fileTree';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { gFileTree, gRecentDirectory } from '@/recoil/fileTree';
 import { Close } from '@/assets/icons/Icon';
 import { TextButton } from '../buttons/TextButton';
 import { useState, useEffect, useRef } from 'react';
@@ -7,9 +7,7 @@ import Modal from './Modal';
 import { postFileList } from '@/api/repository/api';
 import useDebounce from '@/hooks/useDebounce';
 import { FileNameAndExtensionValidator, FileTazDfltVal, FileDshDfltVal, FileWrkDfltVal, PathRootValidator } from '@/utils/FileExtansion';
-import { UpdateTree } from '@/utils/UpdateTree';
-import { gUpdateFileTree } from '@/recoil/fileTree';
-import { useSetRecoilState } from 'recoil';
+import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import './FileModal.scss';
 
 export interface FileModalProps {
@@ -22,8 +20,8 @@ export const FileModal = (props: FileModalProps) => {
     const sRecentDirectory = useRecoilValue(gRecentDirectory);
     const [sFilePath, setFilePath] = useState<string>('');
     const [sValResult, setValResut] = useState<boolean>(true);
+    const [sFileTree, setFileTree] = useRecoilState(gFileTree);
     const sInputRef = useRef<HTMLInputElement>(null);
-    const gUpdateTree = useSetRecoilState(gUpdateFileTree);
 
     const handleClose = () => {
         setIsOpen(false);
@@ -41,9 +39,8 @@ export const FileModal = (props: FileModalProps) => {
 
         const sResult: any = await postFileList(sPayload, '', sFilePath);
         if (sResult && sResult.success) {
-            // pCallback();
-            const sRes = await UpdateTree({ path: sFilePath, name: sFilePath.split('/').at(-1) ?? '/' });
-            gUpdateTree({ path: sFilePath, type: 0, name: sFilePath.split('/').at(-1), dirInfo: sRes });
+            const sDrillRes = await TreeFetchDrilling(sFileTree, sFilePath, true);
+            setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
             handleClose();
         } else {
             setValResut(false);
