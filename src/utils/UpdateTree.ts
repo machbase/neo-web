@@ -45,16 +45,13 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
                 const sReslut: any = await getFileList('', aDir.path + aDir.name, '');
                 if (sReslut.success) {
                     const sParsedRes = fileTreeParser(sReslut.data, aDir.path + aDir.name + '/', aDepth + 1, sReslut.data.name);
-                    if (sParsedRes.dirs.length === 0) return;
-                    else {
-                        const sDirs: any = {
-                            ...aDir,
-                            dirs: await DirDrill(sParsedRes.dirs, aFullPath, aDepth + 1),
-                            files: aIsFile && sDepth - 1 === aDir.depth ? sParsedRes.files : aDir.files,
-                            isOpen: CheckFullPath(aDir.path + aDir.name),
-                        };
-                        aTargetDir.splice(aIdx, 1, sDirs);
-                    }
+                    const sDirs: any = {
+                        ...aDir,
+                        dirs: await DirDrill(sParsedRes.dirs, aFullPath, aDepth + 1),
+                        files: aIsFile && sDepth - 1 === aDir.depth ? sParsedRes.files : aDir.files,
+                        isOpen: CheckFullPath(aDir.path + aDir.name),
+                    };
+                    aTargetDir.splice(aIdx, 1, sDirs);
                 }
             }
         }

@@ -166,3 +166,38 @@ export const gReplaceTree = selector({
         set(gFileTree, sTmpTree);
     },
 });
+/** copy file */
+export const gCopyFileTree = selector({
+    key: 'gCopyFileTree',
+    get: () => {},
+    set: ({ set, get }, newValue: any) => {
+        const sTmp = JSON.parse(JSON.stringify(get(gFileTree)));
+
+        if (newValue.path === '/' && newValue.depth === 1 && newValue.parentId === '0') {
+            sTmp.files.push(newValue);
+        } else {
+            const addTargetFile = (aOriginDir: FileTreeType, aParedData: FileTreeType, aAddTargetPath: string): any => {
+                return aOriginDir.dirs.map((aDir: any) => {
+                    if (aDir.depth + 1 === aParedData.depth && aDir.path + aDir.name + '/' === aParedData.path) {
+                        return {
+                            ...aDir,
+                            files: [
+                                ...aDir.files,
+                                {
+                                    ...aParedData,
+                                    depth: aParedData.type === 0 ? aParedData.depth : aParedData.depth + 1,
+                                    parentId: aParedData.type === 0 ? aParedData.parentId : aDir.id,
+                                    path: aParedData.type === 0 ? aParedData.path : aParedData.path + aParedData.name + '/',
+                                },
+                            ],
+                        };
+                    } else if (aParedData.path.includes(aDir.name)) {
+                        return { ...aDir, dirs: addTargetFile(aDir, aParedData, aAddTargetPath) };
+                    } else return aDir;
+                });
+            };
+            sTmp.dirs = addTargetFile(sTmp, newValue, newValue.path);
+        }
+        set(gFileTree, sTmp);
+    },
+});
