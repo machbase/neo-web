@@ -15,6 +15,7 @@ import { Error } from '@/components/toast/Toast';
 import { Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLeft, ArrowRight, NewFolder, FolderOpen } from '@/assets/icons/Icon';
 import icons from '@/utils/icons';
 import { TextButton } from '../buttons/TextButton';
+import EnterCallback from '@/hooks/useEnter';
 
 export interface SaveModalProps {
     setIsOpen: any;
@@ -483,7 +484,8 @@ export const SaveModal = (props: SaveModalProps) => {
                         <div className="file-name">
                             <span>File Name</span>
                             <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark' : ''}`}>
-                                <input onChange={changeSaveFileName} value={sSaveFileName}></input>
+                                {/* // onKeyDown={(e: any) => useEnter(e, saveFile)} */}
+                                <input autoFocus onChange={changeSaveFileName} value={sSaveFileName} onKeyDown={(e: any) => EnterCallback(e, saveFile)} />
                             </div>
                         </div>
                     ) : null}

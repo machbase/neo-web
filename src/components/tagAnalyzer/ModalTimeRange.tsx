@@ -10,6 +10,7 @@ import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 import { Error } from '../toast/Toast';
 import { Select } from '../inputs/Select';
 import { refreshTimeList } from '@/utils/dashboardUtil';
+import useEsc from '@/hooks/useEsc';
 
 const ModalTimeRange = ({ pType, pSetTimeRangeModal, pSaveCallback }: any) => {
     const [sSelectedTab] = useRecoilState(gSelectedTab);
@@ -100,6 +101,8 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal, pSaveCallback }: any) => {
         pSetTimeRangeModal(false);
     };
 
+    useEsc(() => pSetTimeRangeModal && pSetTimeRangeModal(false));
+
     return (
         <div>
             <div onClick={() => pSetTimeRangeModal(false)} className="time-range-cover"></div>
@@ -123,11 +126,12 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal, pSaveCallback }: any) => {
                                 pTimeValue={sStartTime}
                                 onChange={(date: any) => handleStartTime(date)}
                                 pSetApply={(date: any) => setStartTime(date)}
-                            ></DatePicker>
+                                pAutoFocus
+                            />
                         </div>
                         <div className="to">
                             <span className="span-to">To </span>
-                            <DatePicker pTopPixel={32} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date)} pSetApply={(date: any) => setEndTime(date)}></DatePicker>
+                            <DatePicker pTopPixel={32} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date)} pSetApply={(date: any) => setEndTime(date)} />
                         </div>
                         {pType === 'dashboard' && (
                             <div className="to">
