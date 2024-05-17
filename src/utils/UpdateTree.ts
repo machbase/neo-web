@@ -1,5 +1,6 @@
-import { getFileList } from '@/api/repository/api';
+import { getFileList, postFileList } from '@/api/repository/api';
 import { fileTreeParser } from './fileTreeParser';
+import { isJsonString } from './utils';
 
 export const UpdateTree = async ({ path, name }: { path: string; name: string }) => {
     const sPath = path.replace(name, '');
@@ -44,16 +45,13 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
                 const sReslut: any = await getFileList('', aDir.path + aDir.name, '');
                 if (sReslut.success) {
                     const sParsedRes = fileTreeParser(sReslut.data, aDir.path + aDir.name + '/', aDepth + 1, sReslut.data.name);
-                    if (sParsedRes.dirs.length === 0) return;
-                    else {
-                        const sDirs: any = {
-                            ...aDir,
-                            dirs: await DirDrill(sParsedRes.dirs, aFullPath, aDepth + 1),
-                            files: aIsFile && sDepth - 1 === aDir.depth ? sParsedRes.files : aDir.files,
-                            isOpen: CheckFullPath(aDir.path + aDir.name),
-                        };
-                        aTargetDir.splice(aIdx, 1, sDirs);
-                    }
+                    const sDirs: any = {
+                        ...aDir,
+                        dirs: await DirDrill(sParsedRes.dirs, aFullPath, aDepth + 1),
+                        files: aIsFile && sDepth - 1 === aDir.depth ? sParsedRes.files : aDir.files,
+                        isOpen: CheckFullPath(aDir.path + aDir.name),
+                    };
+                    aTargetDir.splice(aIdx, 1, sDirs);
                 }
             }
         }
@@ -99,4 +97,37 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
 
     // ERROR
     return { tree: aOriginTree, exist: sAlreadyExist };
+};
+
+export const FileCopy = async (aTargetFile: any) => {
+    const sTargetFolderInfo = await getFileList('', aTargetFile.path, '');
+    const sTargetFileInfo: any = await getFileList('', aTargetFile.path, aTargetFile.name);
+    const sParsedTargetFolder = fileTreeParser(sTargetFolderInfo.data, aTargetFile.path, aTargetFile.depth - 1, aTargetFile.parentId);
+    const sTargetFileList = sParsedTargetFolder.files;
+    const sExt = aTargetFile.name.split('.');
+    const sDuplList = sTargetFileList.filter(
+        (aFile: any) =>
+            aFile.path === aTargetFile.path &&
+            aFile.depth === aTargetFile.depth &&
+            aFile.parentId === aTargetFile.parentId &&
+            (aFile.path + aFile.name).includes(aTargetFile.path + sExt[0])
+    );
+    const sCopyName = `${sExt[0]} (${sDuplList.length}).${sExt[1]}`;
+    let payload = undefined;
+
+    if (isJsonString(sTargetFileInfo)) {
+        payload = JSON.parse(sTargetFileInfo);
+    } else {
+        payload = sTargetFileInfo;
+    }
+
+    const sResult: any = await postFileList(payload, aTargetFile.path, sCopyName);
+    if (sResult.success) {
+        const sCopyFile = JSON.parse(JSON.stringify(aTargetFile));
+        sCopyFile.name = sCopyName;
+        sCopyFile.id = sCopyName;
+
+        return sCopyFile;
+    }
+    return undefined;
 };

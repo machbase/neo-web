@@ -1,5 +1,5 @@
 import { GBoardListType, gBoardList, gConsoleSelector, gSelectedTab } from '@/recoil/recoil';
-import { gDeleteFileList, gDeleteFileTree, gFileTree, gRecentDirectory, gRenameFile, gReplaceTree } from '@/recoil/fileTree';
+import { gCopyFileTree, gDeleteFileList, gDeleteFileTree, gFileTree, gRecentDirectory, gRenameFile, gReplaceTree } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
 import {
@@ -37,6 +37,8 @@ import { renameManager } from '@/utils/file-manager';
 import { FileModal } from '../modal/FileModal';
 import { UrlDownloadModal } from '../modal/UrlDownloadModal';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
+import { VscCopy } from 'react-icons/vsc';
+import { FileCopy } from '@/utils/UpdateTree';
 
 const Side = ({
     pGetInfo,
@@ -88,6 +90,7 @@ any) => {
     const sFileTreeRef = useRef(null);
     const DeleteFileTree = useSetRecoilState(gDeleteFileTree);
     const ReplaceTree = useSetRecoilState(gReplaceTree);
+    const CopyFileTree = useSetRecoilState(gCopyFileTree);
 
     useEffect(() => {
         getFileTree();
@@ -270,7 +273,7 @@ any) => {
         }
         setIsContextMenu(true);
         setSelectedContextFile(file);
-        setRecentDirectory(`${file.path + file.name}/`);
+        setRecentDirectory(`${file.path}`);
     };
 
     const closeContextMenu = () => {
@@ -463,6 +466,15 @@ any) => {
         closeContextMenu();
     };
 
+    const handleCopy = async () => {
+        const sCopiedFile = await FileCopy(selectedContextFile);
+        if (sCopiedFile) {
+            CopyFileTree(sCopiedFile);
+            setRename(sCopiedFile);
+        }
+        closeContextMenu();
+    };
+
     const handleFile = (aEvent: any) => {
         if (aEvent) {
             aEvent.stopPropagation();
@@ -572,6 +584,12 @@ any) => {
                                                 </Menu.Item> */}
                                             </>
                                         ) : null}
+                                        {(selectedContextFile as any)?.type === 0 && (
+                                            <Menu.Item onClick={handleCopy}>
+                                                <VscCopy />
+                                                <span>Copy</span>
+                                            </Menu.Item>
+                                        )}
                                         <Menu.Item onClick={handleRename}>
                                             <Rename />
                                             <span>Rename</span>

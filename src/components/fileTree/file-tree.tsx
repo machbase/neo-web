@@ -675,7 +675,7 @@ const FileDiv = ({
     };
 
     useEffect(() => {
-        if (sRenameItem === file) {
+        if (!!sRenameItem && (sRenameItem as any)?.name === file.name && (sRenameItem as any)?.path === file.path && (sRenameItem as any)?.depth === file.depth) {
             setIsRename(true);
         } else if (sIsRename) setIsRename(false);
     }, [sRenameItem]);
