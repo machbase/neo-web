@@ -8,7 +8,7 @@ export const FileNameAndExtensionValidator = (aTxt: string): boolean => {
 };
 // validator file name
 export const FileNameValidator = (aTxt: string): boolean => {
-    const FileRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\-\\_]*$`, 'gm');
+    const FileRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\-\\_\\(\\)\\s]*$`, 'gm');
     return FileRegExp.test(aTxt);
 };
 // validator path root '/'
