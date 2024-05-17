@@ -19,6 +19,11 @@ export const gRecentDirectory = atom({
     default: '/',
 });
 
+export const gRecentModalPath = atom({
+    key: 'gRecentModalPath',
+    default: '/',
+});
+
 export const gRenameFile = atom({
     key: 'gRename',
     default: undefined,
@@ -29,14 +34,6 @@ export const gDeleteFileList = atom({
     default: undefined,
 });
 
-/** dir */
-// dirs
-// files
-// gitClone
-// isOpen
-// virtual
-
-/** file */
 // content
 const DEFAULT_TREE_VALUE = {
     depth: 0,

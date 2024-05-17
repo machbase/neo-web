@@ -5,6 +5,8 @@ import { elapsedSize, elapsedTime } from '@/utils';
 import { getFileList } from '@/api/repository/api';
 import Modal from '../modal/Modal';
 import icons from '@/utils/icons';
+import { useRecoilState } from 'recoil';
+import { gRecentModalPath } from '@/recoil/fileTree';
 import './SelectFileBtn.scss';
 
 export const SelectFileBtn = ({
@@ -24,6 +26,7 @@ export const SelectFileBtn = ({
     const [sSelectedDir, setSelectedDir] = useState<string[]>([]);
     const [sSelectedFile, setSelectedFile] = useState<any>();
     const [sFileList, setFileList] = useState<any[]>([]);
+    const [sModalPath, setModalPath] = useRecoilState(gRecentModalPath);
 
     const getFiles = async () => {
         const sData = await getFileList(`?filter=*.${pType}`, sSelectedDir.join('/'), '');
@@ -36,6 +39,7 @@ export const SelectFileBtn = ({
             .filter((aPath: string) => aPath !== '')
             .join('/');
         pCallback(fullPath);
+        setModalPath('/' + sSelectedDir.join('/') + '/');
         setOpen(false);
     };
     const handleSelectFile = (aItem: any) => {
@@ -54,7 +58,7 @@ export const SelectFileBtn = ({
         setSelectedDir([...currentPath]);
     };
     const initPathNFile = () => {
-        setSelectedDir([]);
+        setSelectedDir(sModalPath.split('/').filter((aPath: string) => !!aPath));
         setSelectedFile('');
     };
 
