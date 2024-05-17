@@ -10,6 +10,7 @@ import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 import { Error } from '../toast/Toast';
 import { Select } from '../inputs/Select';
 import { refreshTimeList } from '@/utils/dashboardUtil';
+import useEsc from '@/hooks/useEsc';
 
 const ModalTimeRange = ({ pType, pSetTimeRangeModal, pSaveCallback }: any) => {
     const [sSelectedTab] = useRecoilState(gSelectedTab);
@@ -99,6 +100,8 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal, pSaveCallback }: any) => {
         if (pSaveCallback) pSaveCallback(sStart, sEnd);
         pSetTimeRangeModal(false);
     };
+
+    useEsc(() => pSetTimeRangeModal && pSetTimeRangeModal(false));
 
     return (
         <div>

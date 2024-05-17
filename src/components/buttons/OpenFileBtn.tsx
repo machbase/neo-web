@@ -24,6 +24,7 @@ export const OpenFileBtn = ({
         return sBoardList.filter((aBoard: GBoardListType) => aBoard.name === aTargetFile.name && aBoard.path === aTargetFile.path)[0];
     };
     const handleOpen = async () => {
+        if (!pFileInfo.path) return;
         const sSplitPath = pFileInfo.path.split('/').filter((aPath: string) => aPath !== '');
         const sFileName = sSplitPath.at(-1).includes(`.${pType}`) ? sSplitPath.at(-1) : '';
         const sFilePath = '/' + sSplitPath.slice(0, sSplitPath.length - 1).join('/');
