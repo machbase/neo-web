@@ -126,11 +126,12 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal, pSaveCallback }: any) => {
                                 pTimeValue={sStartTime}
                                 onChange={(date: any) => handleStartTime(date)}
                                 pSetApply={(date: any) => setStartTime(date)}
-                            ></DatePicker>
+                                pAutoFocus
+                            />
                         </div>
                         <div className="to">
                             <span className="span-to">To </span>
-                            <DatePicker pTopPixel={32} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date)} pSetApply={(date: any) => setEndTime(date)}></DatePicker>
+                            <DatePicker pTopPixel={32} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date)} pSetApply={(date: any) => setEndTime(date)} />
                         </div>
                         {pType === 'dashboard' && (
                             <div className="to">

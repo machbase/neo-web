@@ -483,7 +483,7 @@ export const SaveModal = (props: SaveModalProps) => {
                         <div className="file-name">
                             <span>File Name</span>
                             <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark' : ''}`}>
-                                <input onChange={changeSaveFileName} value={sSaveFileName}></input>
+                                <input autoFocus onChange={changeSaveFileName} value={sSaveFileName}></input>
                             </div>
                         </div>
                     ) : null}

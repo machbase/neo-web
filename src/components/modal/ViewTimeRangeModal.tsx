@@ -110,11 +110,12 @@ const ViewTimeRangeModal = (props: ViewTimeRangeModalProps) => {
                         <div className="from">
                             <span className="span-from">From</span>
                             <DatePicker
+                                pAutoFocus
                                 pTopPixel={32}
                                 pTimeValue={sStartTime}
                                 onChange={(date: any) => handleStartTime(date)}
                                 pSetApply={(date: any) => setStartTime(date)}
-                            ></DatePicker>
+                            />
                         </div>
                         <div className="to">
                             <span className="span-to">To </span>

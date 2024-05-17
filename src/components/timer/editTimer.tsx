@@ -114,7 +114,7 @@ export const EditTimer = () => {
                                 </ExtensionTab.ContentDesc>
                             </ExtensionTab.DpRow>
                             <ExtensionTab.ContentDesc>Task’s name</ExtensionTab.ContentDesc>
-                            <ExtensionTab.Input pValue={sCreateName} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
+                            <ExtensionTab.Input pAutoFocus pValue={sCreateName} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
                         </ExtensionTab.ContentBlock>
 
                         <ExtensionTab.ContentBlock>

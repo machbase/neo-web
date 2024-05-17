@@ -144,7 +144,7 @@ export const CreateKey = () => {
                                 </ExtensionTab.ContentDesc>
                             </ExtensionTab.DpRow>
                             <ExtensionTab.ContentDesc>Used to generate keys</ExtensionTab.ContentDesc>
-                            <ExtensionTab.Input pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
+                            <ExtensionTab.Input pAutoFocus pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
                         </ExtensionTab.ContentBlock>
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.DpRow>

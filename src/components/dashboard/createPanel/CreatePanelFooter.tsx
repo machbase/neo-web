@@ -130,6 +130,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                         <div>
                                             From
                                             <DatePicker
+                                                pAutoFocus
                                                 pTopPixel={55}
                                                 pTimeValue={pPanelOption.timeRange.start ?? ''}
                                                 onChange={(date: any) => handleTime('start', date.target.value)}

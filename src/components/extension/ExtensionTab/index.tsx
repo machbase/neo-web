@@ -87,10 +87,10 @@ const IconBtn = ({ children, pCallback, pActive }: { children: React.ReactNode; 
         </div>
     );
 };
-const Input = ({ pCallback, pValue, pWidth }: { pCallback?: (e: React.FormEvent<HTMLInputElement>) => void; pValue?: any; pWidth?: any }) => {
+const Input = ({ pAutoFocus, pCallback, pValue, pWidth }: { pAutoFocus?: boolean; pCallback?: (e: React.FormEvent<HTMLInputElement>) => void; pValue?: any; pWidth?: any }) => {
     return (
         <div className="extension-tab-input-wrapper" style={{ width: pWidth }}>
-            <input onChange={pCallback} value={pValue} />
+            <input autoFocus={pAutoFocus} onChange={pCallback} value={pValue} />
         </div>
     );
 };
