@@ -1,5 +1,5 @@
 import { GBoardListType, gBoardList, gConsoleSelector, gSelectedTab } from '@/recoil/recoil';
-import { gDeleteFileList, gDeleteFileTree, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
+import { gDeleteFileList, gDeleteFileTree, gFileTree, gRecentDirectory, gRenameFile, gReplaceTree } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
 import {
@@ -27,7 +27,7 @@ import useOutsideClick from '@/hooks/useOutsideClick';
 import { SaveModal } from '../modal/SaveModal';
 import OpenFile from './OpenFile';
 import { FolderModal } from '../modal/FolderModal';
-import { postFileList } from '@/api/repository/api';
+import { getFileList, postFileList } from '@/api/repository/api';
 import { DeleteModal } from '../modal/DeleteModal';
 import SplitPane, { Pane } from 'split-pane-react';
 import { IconButton } from '@/components/buttons/IconButton';
@@ -87,6 +87,7 @@ any) => {
     const [sIsFileModal, setIsFileModal] = useState<boolean>(false);
     const sFileTreeRef = useRef(null);
     const DeleteFileTree = useSetRecoilState(gDeleteFileTree);
+    const ReplaceTree = useSetRecoilState(gReplaceTree);
 
     useEffect(() => {
         getFileTree();
@@ -404,7 +405,14 @@ any) => {
         if (selectedContextFile !== undefined) {
             const sResult: any = await postFileList({ url: (selectedContextFile as any).gitUrl, command: 'pull' }, `${selectedContextFile.path}${selectedContextFile.name}`, '');
             if (sResult && sResult.success) {
-                getFileTree();
+                const sTargetTree: any = await getFileList('', selectedContextFile.path + selectedContextFile.name + '/', '');
+                const sParsedTree = fileTreeParser(
+                    sTargetTree.data,
+                    selectedContextFile.path + selectedContextFile.name + '/',
+                    selectedContextFile.depth,
+                    selectedContextFile.name
+                );
+                ReplaceTree({ ...selectedContextFile, dirs: sParsedTree.dirs, files: sParsedTree.files, isOpen: true });
             } else {
                 console.error('');
             }

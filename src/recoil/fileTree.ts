@@ -147,3 +147,22 @@ export const gDeleteFileTree = selector({
         set(gFileTree, sNewTree);
     },
 });
+const replaceDir = (aOriginDir: any, aParedData: any) => {
+    return aOriginDir.dirs.map((aDir: FileTreeType) => {
+        if (aDir.depth === aParedData.depth && aDir.path === aParedData.path && aDir.name === aParedData.name) {
+            return aParedData;
+        } else if (aParedData.path.includes(aDir.name)) {
+            return { ...aDir, dirs: replaceDir(aDir, aParedData) };
+        } else return aDir;
+    });
+};
+/** replace */
+export const gReplaceTree = selector({
+    key: 'gReplaceTree',
+    get: () => {},
+    set: ({ set, get }, replaceValue: any) => {
+        const sTmpTree = JSON.parse(JSON.stringify(get(gFileTree)));
+        sTmpTree.dirs = replaceDir(sTmpTree, replaceValue);
+        set(gFileTree, sTmpTree);
+    },
+});
