@@ -13,10 +13,22 @@ export const TqlChartParser = (aTqlChartInfo: any, aTimeParams: { start: number 
                 return timeConverter(aTimeParams.start, true);
             case '$from_s':
                 return timeConverter(aTimeParams.start, false);
+            case '$from_ms':
+                return (timeConverter(aTimeParams.start, false) as number) * 1000;
+            case '$from_us':
+                return (timeConverter(aTimeParams.start, false) as number) * 1000000;
+            case '$from_ns':
+                return (timeConverter(aTimeParams.start, false) as number) * 1000000000;
             case '$to_str':
                 return timeConverter(aTimeParams.end, true);
             case '$to_s':
                 return timeConverter(aTimeParams.end, false);
+            case '$to_ms':
+                return (timeConverter(aTimeParams.end, false) as number) * 1000;
+            case '$to_us':
+                return (timeConverter(aTimeParams.end, false) as number) * 1000000;
+            case '$to_ns':
+                return (timeConverter(aTimeParams.end, false) as number) * 1000000000;
             case '$period':
                 return aInterval.IntervalValue + aInterval.IntervalType[0];
             case '$period_unit':
@@ -40,4 +52,18 @@ export const TqlChartParser = (aTqlChartInfo: any, aTimeParams: { start: number 
     return sResult;
 };
 
-export const PARAM_LIST = ['$from_str', '$from_s', '$to_str', '$to_s', '$period', '$period_unit', '$period_value'];
+export const PARAM_LIST = [
+    '$from_str',
+    '$from_s',
+    '$from_ms',
+    '$from_us',
+    '$from_ns',
+    '$to_str',
+    '$to_s',
+    '$to_ms',
+    '$to_us',
+    '$to_ns',
+    '$period',
+    '$period_unit',
+    '$period_value',
+];
