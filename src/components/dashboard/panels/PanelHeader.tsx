@@ -4,7 +4,7 @@ import { gBoardList, GBoardListType, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import './PanelHeader.scss';
 import { Tooltip } from 'react-tooltip';
-import { generateRandomString, getId, isEmpty } from '@/utils';
+import { generateRandomString, generateUUID, getId, isEmpty } from '@/utils';
 import Menu from '@/components/contextMenu/Menu';
 import { useState, useRef } from 'react';
 import useOutsideClick from '@/hooks/useOutsideClick';
@@ -13,8 +13,9 @@ import { DEFAULT_CHART } from '@/utils/constants';
 import { Error } from '@/components/toast/Toast';
 import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
 import { SaveDashboardModal } from '@/components/modal/SaveDashboardModal';
+import { HiMiniDocumentDuplicate } from 'react-icons/hi2';
 
-const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: any) => {
+const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo }: any) => {
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState(gSelectedTab);
@@ -37,18 +38,15 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
             })
         );
     };
-
     const handleContextMenu = (aEvent: React.MouseEvent) => {
         aEvent.preventDefault();
         setIsContextMenu(!sIsContextMenu);
     };
-
     const handleDeleteOnMenu = (aEvent: React.MouseEvent) => {
         aEvent.stopPropagation();
         removePanel();
         setIsContextMenu(false);
     };
-
     const handleMoveEditOnMenu = (aEvent: React.MouseEvent, aPanelId: string) => {
         aEvent.stopPropagation();
         pShowEditPanel('edit', aPanelId);
@@ -83,7 +81,6 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
         }
         setIsContextMenu(false);
     };
-
     const createTag = (aInfo: any) => {
         return {
             key: getId(),
@@ -96,7 +93,6 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
             colName: { name: aInfo.tableInfo[0][0], time: aInfo.tableInfo[1][0], value: aInfo.tableInfo[2][0] },
         };
     };
-
     const createTagzTab = (aName: string, aPanels: any, aTime: any) => {
         const sId = getId();
         setBoardList((aPrev: any) => {
@@ -127,10 +123,32 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
         });
         setSelectedTab(sId);
     };
-
     const HandleDownload = () => {
         setIsContextMenu(false);
         setDownloadModal(true);
+    };
+    const handleCopyPanel = (aPanelInfo: any) => {
+        const sTmpPanel = JSON.parse(JSON.stringify(aPanelInfo));
+        sTmpPanel.id = generateUUID();
+        sTmpPanel.x = 0;
+        sTmpPanel.y = 0;
+        let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+        const sTabList = sBoardList.map((aItem) => {
+            if (aItem.id === pBoardInfo.id) {
+                const sTmpDashboard = {
+                    ...aItem.dashboard,
+                    panels: [...aItem.dashboard.panels, sTmpPanel],
+                };
+                sSaveTarget = {
+                    ...aItem,
+                    dashboard: sTmpDashboard,
+                    savedCode: JSON.stringify(sTmpDashboard),
+                };
+                return sSaveTarget;
+            } else return aItem;
+        });
+        setBoardList(() => sTabList);
+        setIsContextMenu(false);
     };
 
     useOutsideClick(sMenuRef, () => setIsContextMenu(false));
@@ -150,10 +168,14 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader }: 
                                     <GearFill />
                                     <span>Setting</span>
                                 </Menu.Item>
+                                <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)}>
+                                    <HiMiniDocumentDuplicate />
+                                    <span>Duplicate</span>
+                                </Menu.Item>
                                 {pPanelInfo.type !== 'Tql' && (
                                     <Menu.Item onClick={handleMoveTagz}>
                                         <MuiTagAnalyzerGray className="mui-svg-hover" width={13} />
-                                        <span>Show Taganalyer</span>
+                                        <span>Show Taganalyzer</span>
                                     </Menu.Item>
                                 )}
                                 <Menu.Item onClick={handleDeleteOnMenu}>
