@@ -173,8 +173,8 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
     };
 
     useEffect(() => {
-        if (props.pTableType === 'tag' || props.pTableType === 'log' || sIsOpen) fetchRecordCount();
-    }, [props.pRefresh]);
+        if (props.pTableType === 'tag' || props.pTableType === 'log' || !props.pShowHiddenObj) fetchRecordCount();
+    }, [props.pRefresh, props.pShowHiddenObj]);
 
     return (
         <>
