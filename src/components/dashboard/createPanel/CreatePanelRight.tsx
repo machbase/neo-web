@@ -74,9 +74,9 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     pOptions={ChartTypeList.map((aType: { key: string; value: string }) => aType.key) as string[]}
                 />
 
-                {pPanelOption.type !== 'Tql' && <div className="divider" />}
+                {pPanelOption.type !== 'Tql chart' && <div className="divider" />}
                 <div className="content" style={{ height: '100%' }}>
-                    {pPanelOption.type !== 'Tql' && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
+                    {pPanelOption.type !== 'Tql chart' && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
 
                     {isTimeSeriesChart(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption.xAxisOptions && (
                         <>

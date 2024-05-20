@@ -150,14 +150,14 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         setBoardTimeMinMax(() => sTimeMinMax);
     };
     const handleSaveTimeRange = (sStart: any, sEnd: any) => {
-        const sChartpanelList = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql');
+        const sChartpanelList = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart');
         if (sChartpanelList.length === 0 && ((!Number(sStart) && sStart.includes('last')) || (!Number(sEnd) && sEnd.includes('last'))))
             Error('Apply now time range when using only tql panel.');
 
         handleDashboardTimeRange(sStart, sEnd);
     };
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
-        const sTargetPanel = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql')[0];
+        const sTargetPanel = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart')[0];
         const sTargetTag = sTargetPanel?.blockList ? sTargetPanel.blockList[0] : { tag: '' };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
         const sCustomTag =

@@ -123,7 +123,7 @@ const CreatePanel = ({
             pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
             pSetModifyState({ id: sPanelOption.id, state: true });
         } else {
-            const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql');
+            const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart');
             if (sChartPanelList.length === 0) {
                 pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
                 pSetModifyState({ id: sPanelOption.id, state: true });
@@ -184,7 +184,7 @@ const CreatePanel = ({
     // Preview
     const applyPanel = async () => {
         const sTmpPanelOption = JSON.parse(JSON.stringify(sPanelOption));
-        if (sPanelOption.type === 'Tql') {
+        if (sPanelOption.type === 'Tql chart') {
             if (sTmpPanelOption.useCustomTime) {
                 let sStart: any;
                 let sEnd: any;
@@ -244,7 +244,7 @@ const CreatePanel = ({
                     pSetModifyState({ id: sTempOption.id, state: true });
                 }
             } else {
-                const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql');
+                const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart');
                 if (isValidJSON(JSON.stringify(sTmpPanelOption))) {
                     setAppliedPanelOption(sTmpPanelOption);
                 }

@@ -479,7 +479,7 @@ export const ChartTypeList = [
     { key: 'Gauge', value: 'gauge' },
     { key: 'Pie', value: 'pie' },
     { key: 'Liquid fill', value: 'liquidFill' },
-    { key: 'Tql', value: 'tql' },
+    { key: 'Tql chart', value: 'tql' },
 ];
 export const ChartThemeList = ['dark', 'white', 'vintage', 'macarons', 'infographic', 'shine', 'roma'];
 export const ChartThemeBackgroundColor = {

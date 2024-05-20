@@ -8,6 +8,7 @@ const DashboardCompatibility = (aData: any) => {
     if (sDashboardInfo?.dashboard.panels.length > 0) {
         const sPanelList = sDashboardInfo.dashboard.panels;
         const sVaildPanelList = sPanelList.map((aPanel: any) => {
+            if (aPanel.type === 'Tql') aPanel.type = 'Tql chart';
             const sResultPanel = aPanel;
             const sBlockList: any = aPanel.blockList;
             const sChartType: string = chartTypeConverter(aPanel.type);
