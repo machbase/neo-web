@@ -2,18 +2,18 @@ import './TextButton.scss';
 
 export interface TextButtonProps {
     pText: string;
-    pWidth: number;
-    pHeight: number;
     pBackgroundColor: string;
-    pIsDisabled: boolean;
-    pFontColor: string;
-    pBorderColor: string;
-    pBorderRadius: number;
+    pWidth?: number;
+    pHeight?: number;
+    pIsDisabled?: boolean;
+    pFontColor?: string;
+    pBorderColor?: string;
+    pBorderRadius?: number;
     onClick: React.MouseEventHandler<HTMLDivElement>;
 }
 
 export const TextButton = (props: TextButtonProps) => {
-    const { onClick, pWidth, pBorderColor, pBorderRadius, pFontColor, pHeight, pText, pBackgroundColor, pIsDisabled } = props;
+    const { onClick, pWidth = 120, pBorderColor = '#f8f8f8', pBorderRadius = 8, pFontColor = '#f8f8f8', pHeight = 40, pText, pBackgroundColor, pIsDisabled = false } = props;
 
     return (
         <div
@@ -34,13 +34,4 @@ export const TextButton = (props: TextButtonProps) => {
             <span>{pText}</span>
         </div>
     );
-};
-
-TextButton.defaultProps = {
-    pWidth: 120,
-    pBorderColor: '#f8f8f8',
-    pBorderRadius: 8,
-    pHeight: 40,
-    pFontColor: '#f8f8f8',
-    pIsDisabled: false,
 };

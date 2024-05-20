@@ -4,22 +4,35 @@ import { ArrowDown } from '@/assets/icons/Icon';
 import useOutsideClick from '@/hooks/useOutsideClick';
 
 export interface SelectProps {
-    pWidth: number | string;
-    pHeight: number;
     pOptions: string[];
-    pIsFullWidth: boolean;
-    pBorderRadius: number;
-    pIsReadonly: boolean;
-    pInitValue: string;
-    pFontSize: number;
-    pIsDisabled: boolean;
-    pAutoChanged: boolean;
-    pNoneValue?: string;
     onChange: React.ChangeEventHandler<HTMLInputElement>;
+    pIsReadonly?: boolean;
+    pWidth?: number | string;
+    pHeight?: number;
+    pIsFullWidth?: boolean;
+    pBorderRadius?: number;
+    pInitValue?: string;
+    pFontSize?: number;
+    pIsDisabled?: boolean;
+    pAutoChanged?: boolean;
+    pNoneValue?: string;
 }
 
 export const Select = (props: SelectProps) => {
-    const { pWidth, pNoneValue, pAutoChanged, pIsDisabled, pFontSize, pHeight, pOptions, pIsFullWidth, pBorderRadius, pIsReadonly, pInitValue, onChange } = props;
+    const {
+        pWidth = 120,
+        pNoneValue,
+        pAutoChanged = false,
+        pIsDisabled = false,
+        pFontSize = 13,
+        pHeight = 40,
+        pOptions,
+        pIsFullWidth = false,
+        pBorderRadius = 8,
+        pIsReadonly = true,
+        pInitValue = '',
+        onChange,
+    } = props;
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [selectValue, setSelectValue] = useState<string>(pInitValue);
     const optionRef = useRef<HTMLDivElement>(null);
@@ -86,16 +99,4 @@ export const Select = (props: SelectProps) => {
             </div>
         </div>
     );
-};
-
-Select.defaultProps = {
-    pWidth: 120,
-    pHeight: 40,
-    pIsFullWidth: false,
-    pIsReadonly: true,
-    pInitValue: '',
-    pFontSize: 13,
-    pIsDisabled: false,
-    pAutoChanged: false,
-    pBorderRadius: 8,
 };

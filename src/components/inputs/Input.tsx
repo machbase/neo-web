@@ -2,14 +2,14 @@ import React from 'react';
 import './Input.scss';
 
 export interface InputProps {
-    pWidth: number | string;
-    pHeight: number;
+    pWidth?: number | string;
+    pHeight?: number;
     pValue?: string;
     pSetValue?: React.Dispatch<React.SetStateAction<string>>;
-    pType: 'text' | 'number';
-    pIsFullWidth: boolean;
-    pBorderRadius: number;
-    pIsDisabled: boolean;
+    pType?: 'text' | 'number';
+    pIsFullWidth?: boolean;
+    pBorderRadius?: number;
+    pIsDisabled?: boolean;
     pMin?: number;
     pMax?: number;
     pAutoFocus?: boolean;
@@ -20,18 +20,18 @@ export interface InputProps {
 
 export const Input = (props: InputProps) => {
     const {
-        pWidth,
-        pBorderRadius,
-        pHeight,
-        pIsFullWidth,
-        pValue,
-        pSetValue,
-        pAutoFocus,
-        pType,
-        pIsDisabled,
-        pPlaceHolder,
+        pWidth = 200,
+        pBorderRadius = 8,
+        pHeight = 40,
+        pIsFullWidth = false,
+        pAutoFocus = false,
+        pType = 'text',
+        pIsDisabled = false,
         pMin = undefined,
         pMax = undefined,
+        pValue,
+        pSetValue,
+        pPlaceHolder,
         onChange,
         onEnter,
     } = props;
@@ -71,14 +71,4 @@ export const Input = (props: InputProps) => {
             />
         </div>
     );
-};
-
-Input.defaultProps = {
-    pWidth: 200,
-    pHeight: 40,
-    pType: 'text',
-    pIsFullWidth: false,
-    pIsDisabled: false,
-    pBorderRadius: 8,
-    pAutoFocus: false,
 };
