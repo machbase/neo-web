@@ -1,9 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-import { TextEncoder, TextDecoder } from 'util';
-global.TextEncoder = TextEncoder;
-// @ts-ignore
-global.TextDecoder = TextDecoder;
-
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom'; //toBeInTheDocument() 를 사용하기 위해서 필요합니다!
 import Login from './Login';
