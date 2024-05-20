@@ -16,6 +16,7 @@ import { Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLef
 import icons from '@/utils/icons';
 import { TextButton } from '../buttons/TextButton';
 import EnterCallback from '@/hooks/useEnter';
+import { TreeFetchDrilling } from '@/utils/UpdateTree';
 
 export interface SaveModalProps {
     setIsOpen: any;
@@ -204,17 +205,12 @@ export const SaveModal = (props: SaveModalProps) => {
             } else return;
         }
         const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
-        const sSameFile: any = sTab && sPath === sTab.path.replace('//', '/') && sFileName === sTab.name;
         const sResult: any = await postFileList(sSaveData, sPath, sFileName);
         setModalPath(sPath);
         if (sResult.success) {
             handleClose();
-            if (sSameFile) {
-                updateFileTree('/');
-                return;
-            }
-            updateFileTree(sPath);
-
+            const sDrillRes = await TreeFetchDrilling(sFileTree, sPath + sFileName, true);
+            setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
             setBoardList(
                 sBoardList.map((aItem: any) => {
                     if (aItem.id === sSelectedTab) {
