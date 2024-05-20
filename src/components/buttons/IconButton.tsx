@@ -3,16 +3,16 @@ import { Tooltip, PlacesType } from 'react-tooltip';
 
 export interface IconButtonProps {
     pIcon: React.ReactNode;
+    onClick: React.MouseEventHandler<HTMLDivElement>;
     pIsActive?: boolean;
     pIsActiveHover?: boolean;
-    pWidth: number | string;
-    pHeight: number;
+    pWidth?: number | string;
+    pHeight?: number;
     pDisabled?: boolean;
     pIsToopTip?: boolean;
     pToolTipContent?: string;
     pToolTipId?: string;
     pPlace?: PlacesType | undefined;
-    onClick: React.MouseEventHandler<HTMLDivElement>;
 }
 
 export const IconButton = (props: IconButtonProps) => {

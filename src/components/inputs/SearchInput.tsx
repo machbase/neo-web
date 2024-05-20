@@ -4,9 +4,9 @@ import useDebounce from '@/hooks/useDebounce';
 import './Input.scss';
 
 export interface SearchInputProps {
-    pWidth: number;
-    pHeight: number;
-    pClickStopPropagation: boolean;
+    pWidth?: number;
+    pHeight?: number;
+    pClickStopPropagation?: boolean;
     pIsExpand: boolean;
     onChange: (value: string) => void;
     onResetFilter: () => void;
@@ -14,7 +14,7 @@ export interface SearchInputProps {
 }
 
 export const SearchInput = (props: SearchInputProps) => {
-    const { pWidth, pHeight, pClickStopPropagation, pIsExpand, onChange, onResetFilter, onChangeExpand } = props;
+    const { pWidth = 120, pHeight = 20, pClickStopPropagation = true, pIsExpand, onChange, onResetFilter, onChangeExpand } = props;
     const [sValue, setValue] = useState<string>('');
     const inputRef = useRef<any>(null);
 
@@ -48,10 +48,4 @@ export const SearchInput = (props: SearchInputProps) => {
             )}
         </div>
     );
-};
-
-SearchInput.defaultProps = {
-    pWidth: 120,
-    pHeight: 20,
-    pClickStopPropagation: true,
 };
