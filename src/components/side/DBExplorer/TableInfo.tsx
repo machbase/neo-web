@@ -1,10 +1,10 @@
 import { getTableInfo, getColumnIndexInfo, getRollupTable, getRecordCount } from '@/api/repository/api';
 import { useEffect, useState } from 'react';
 import { GoDotFill, FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser } from '@/assets/icons/Icon';
-import './TableInfo.scss';
 import { getUserName } from '@/utils';
 import { getColumnType } from '@/utils/dashboardUtil';
 import { IconButton } from '@/components/buttons/IconButton';
+import './TableInfo.scss';
 
 const TableInfo = ({ pShowHiddenObj, pValue, pRefresh }: any) => {
     const [sCollapseTree, setCollapseTree] = useState(true);
@@ -12,7 +12,6 @@ const TableInfo = ({ pShowHiddenObj, pValue, pRefresh }: any) => {
         return (
             <div className="db-folder-wrap">
                 <VscChevronRight className={`${aClassName}`} />
-                {/* style={{ color: '#f1c16b' }} */}
                 <span className="icons">{aIcon}</span>
                 <span className="db-folder-wrap-name">{aName}</span>
             </div>
@@ -83,7 +82,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
             case 'tag':
                 return 'rgb(92, 163, 220)';
             case 'keyValue':
-                return '#75b0e0';
+                return 'rgb(92, 226, 220)';
             case 'log':
                 return 'rgb(252, 121, 118)';
             case 'volatile':
@@ -108,7 +107,6 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                             <div key={`table-${aTableType}-${aIdx}`}>
                                 {props.pUserData.tableList[aTableType].map((aTable: any, bIdx: number) => {
                                     return (
-                                        // checkDisplay(aTable[5]) && (
                                         <div className="table-wrap-content" key={`table-${aTableType}-${aIdx}-${bIdx}`} style={{ display: checkDisplay(aTable[5]) ? '' : 'none' }}>
                                             <TableDiv
                                                 pShowHiddenObj={props.pShowHiddenObj}
@@ -121,7 +119,6 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                                 pRefresh={props.pRefresh}
                                             />
                                         </div>
-                                        // )
                                     );
                                 })}
                             </div>
