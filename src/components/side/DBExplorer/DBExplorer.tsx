@@ -10,6 +10,7 @@ const DBExplorer = ({ pServer }: any) => {
     const [sDBList, setDBList] = useState<any>([]);
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sShowHiddenObj, setShowHiddenObj] = useState(true);
+    const [sRefresh, setRefresh] = useState<number>(0);
 
     const TableTypeConverter = (aType: number): string => {
         switch (aType) {
@@ -33,6 +34,7 @@ const DBExplorer = ({ pServer }: any) => {
     const init = async (aEvent?: any) => {
         setDBList([]);
         if (aEvent) aEvent.stopPropagation();
+        setRefresh(sRefresh + 1);
         const sData = await getTableList();
         const U_NAME = getUserName();
         const DB_NAME_LIST: string[] = Array.from(
@@ -99,7 +101,7 @@ const DBExplorer = ({ pServer }: any) => {
                     sDBList &&
                     sDBList.length !== 0 &&
                     sDBList.map((aDB: any, aIdx: number) => {
-                        return <TableInfo pShowHiddenObj={sShowHiddenObj} key={aIdx} pValue={aDB} pDBList={sDBList} pSetDBList={setDBList} />;
+                        return <TableInfo pShowHiddenObj={sShowHiddenObj} key={aIdx} pValue={aDB} pDBList={sDBList} pSetDBList={setDBList} pRefresh={sRefresh} />;
                     })}
             </div>
         </div>

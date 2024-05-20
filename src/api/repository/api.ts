@@ -98,6 +98,13 @@ const getRollupTable = async (aTableName: string, aUserName: string) => {
         url: queryString,
     });
 };
+export const getRecordCount = (aTableName: string, aUserName: string) => {
+    const queryString = `/machbase?q=select count(*) from ${aUserName}.${aTableName}`;
+    return request({
+        method: 'GET',
+        url: queryString,
+    });
+};
 const getTutorial = (aUrl: any) => {
     return request({
         method: 'get',

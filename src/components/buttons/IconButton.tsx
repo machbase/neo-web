@@ -3,11 +3,11 @@ import { Tooltip, PlacesType } from 'react-tooltip';
 
 export interface IconButtonProps {
     pIcon: React.ReactNode;
-    pIsActive: boolean;
-    pIsActiveHover: boolean;
+    pIsActive?: boolean;
+    pIsActiveHover?: boolean;
     pWidth: number | string;
     pHeight: number;
-    pDisabled: boolean;
+    pDisabled?: boolean;
     pIsToopTip?: boolean;
     pToolTipContent?: string;
     pToolTipId?: string;
@@ -16,10 +16,9 @@ export interface IconButtonProps {
 }
 
 export const IconButton = (props: IconButtonProps) => {
-    const { pIcon, pIsActive, pPlace, onClick, pWidth, pHeight, pDisabled, pIsActiveHover, pIsToopTip, pToolTipContent, pToolTipId } = props;
+    const { pIcon, pIsActive = false, pPlace, onClick, pWidth = 30, pHeight = 30, pDisabled = false, pIsActiveHover = false, pIsToopTip, pToolTipContent, pToolTipId } = props;
     const sDisabledClass = pDisabled ? 'icon-btn-disabled' : '';
     const sIsActiveHoverClass = pIsActiveHover ? 'icon-btn-active-hover' : '';
-
     return (
         <div
             className={`${sDisabledClass} ${sIsActiveHoverClass} icon-btn-wrapper`}
@@ -49,12 +48,4 @@ export const IconButton = (props: IconButtonProps) => {
             )}
         </div>
     );
-};
-
-IconButton.defaultProps = {
-    pWidth: 30,
-    pHeight: 30,
-    pIsActive: false,
-    pDisabled: false,
-    pIsActiveHover: false,
 };

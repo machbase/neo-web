@@ -1,19 +1,19 @@
-import { getTableInfo, getColumnIndexInfo, getRollupTable } from '@/api/repository/api';
-import { useState } from 'react';
+import { getTableInfo, getColumnIndexInfo, getRollupTable, getRecordCount } from '@/api/repository/api';
+import { useEffect, useState } from 'react';
 import { GoDotFill, FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser } from '@/assets/icons/Icon';
 import './TableInfo.scss';
 import { getUserName } from '@/utils';
 import { getColumnType } from '@/utils/dashboardUtil';
+import { IconButton } from '@/components/buttons/IconButton';
 
-const TableInfo = ({ pShowHiddenObj, pValue }: any) => {
+const TableInfo = ({ pShowHiddenObj, pValue, pRefresh }: any) => {
     const [sCollapseTree, setCollapseTree] = useState(true);
     const DBDiv = (aIcon: React.ReactElement, aName: string, aClassName: string): JSX.Element => {
         return (
             <div className="db-folder-wrap">
                 <VscChevronRight className={`${aClassName}`} />
-                <span className="icons" style={{ color: '#f1c16b' }}>
-                    {aIcon}
-                </span>
+                {/* style={{ color: '#f1c16b' }} */}
+                <span className="icons">{aIcon}</span>
                 <span className="db-folder-wrap-name">{aName}</span>
             </div>
         );
@@ -30,7 +30,15 @@ const TableInfo = ({ pShowHiddenObj, pValue }: any) => {
             {pValue && sCollapseTree && (
                 <div className="user-wrap db-exp-comm">
                     {pValue.userList.map((aUser: { userName: string; total: number; tableList: any }) => {
-                        return <UserDiv key={aUser.userName + '-user'} pShowUserIcon={pValue.userList.length > 1} pUserData={aUser} pShowHiddenObj={pShowHiddenObj} />;
+                        return (
+                            <UserDiv
+                                key={aUser.userName + '-user'}
+                                pShowUserIcon={pValue.userList.length > 1}
+                                pUserData={aUser}
+                                pShowHiddenObj={pShowHiddenObj}
+                                pRefresh={pRefresh}
+                            />
+                        );
                     })}
                 </div>
             )}
@@ -42,6 +50,7 @@ interface UserDivPropsType {
     pUserData: { userName: string; total: number; tableList: any };
     pShowHiddenObj: boolean;
     pShowUserIcon: boolean;
+    pRefresh: number;
 }
 const UserDiv = (props: UserDivPropsType): JSX.Element => {
     const [sCollapseTree, setCollapseTree] = useState(true);
@@ -69,6 +78,22 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
             </div>
         );
     };
+    const getColor = (aTableType: string) => {
+        switch (aTableType) {
+            case 'tag':
+                return 'rgb(92, 163, 220)';
+            case 'keyValue':
+                return '#75b0e0';
+            case 'log':
+                return 'rgb(252, 121, 118)';
+            case 'volatile':
+                return 'rgb(255, 202, 40)';
+            case 'fixed':
+            case 'lookup':
+                return '#ffdc72';
+        }
+    };
+
     return (
         <>
             {props.pUserData && props.pShowUserIcon && (
@@ -83,19 +108,20 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                             <div key={`table-${aTableType}-${aIdx}`}>
                                 {props.pUserData.tableList[aTableType].map((aTable: any, bIdx: number) => {
                                     return (
-                                        checkDisplay(aTable[5]) && (
-                                            <div className="table-wrap-content" key={`table-${aTableType}-${aIdx}-${bIdx}`}>
-                                                <TableDiv
-                                                    pShowHiddenObj={props.pShowHiddenObj}
-                                                    pUserName={sUserName}
-                                                    pTableIcon={<TfiLayoutColumn3Alt style={{ color: '#5ca3dc', rotate: '90deg' }} />}
-                                                    pTable={aTable}
-                                                    pTableType={aTableType}
-                                                    onTableInfo={getTableInfoData}
-                                                    onColumnInfo={getColumnIndexInfoData}
-                                                />
-                                            </div>
-                                        )
+                                        // checkDisplay(aTable[5]) && (
+                                        <div className="table-wrap-content" key={`table-${aTableType}-${aIdx}-${bIdx}`} style={{ display: checkDisplay(aTable[5]) ? '' : 'none' }}>
+                                            <TableDiv
+                                                pShowHiddenObj={props.pShowHiddenObj}
+                                                pUserName={sUserName}
+                                                pTableIcon={<TfiLayoutColumn3Alt style={{ color: getColor(aTableType), rotate: '90deg' }} />}
+                                                pTable={aTable}
+                                                pTableType={aTableType}
+                                                onTableInfo={getTableInfoData}
+                                                onColumnInfo={getColumnIndexInfoData}
+                                                pRefresh={props.pRefresh}
+                                            />
+                                        </div>
+                                        // )
                                     );
                                 })}
                             </div>
@@ -113,6 +139,7 @@ interface TableDivPropsType {
     pTableType: string;
     pUserName: string;
     pTable: (string | number)[];
+    pRefresh: number;
     onTableInfo: (aDatabaseId: string, aTableId: string) => any;
     onColumnInfo: (aDatabaseId: string, atableId: string) => any;
 }
@@ -121,6 +148,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
     const [sColumnList, setColumnList] = useState<(string | number)[][]>([]);
     const [sIndexList, setIndexList] = useState<(string | number)[][]>([]);
     const [sRollupList, setRollupList] = useState<(string | number)[][]>([]);
+    const [sRecordCount, setRecordCount] = useState<number>(0);
 
     const handleDataFetch = async () => {
         if (sIsOpen) return setIsOpen(false);
@@ -141,19 +169,46 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
         const res = await getRollupTable(`${props.pTable[3].toString()}`, props.pTable[1].toString());
         setRollupList(res.data.rows);
     };
+    const fetchRecordCount = async () => {
+        const res: any = await getRecordCount(`${props.pTable[3].toString()}`, `${props.pTable[0] !== 'MACHBASEDB' ? props.pTable[0] + '.' : ''}${props.pTable[1].toString()}`);
+        if (res.success && res.data && res.data.rows[0][0]) setRecordCount(res.data.rows[0][0]);
+        else setRecordCount(0);
+    };
+
+    useEffect(() => {
+        if (props.pTableType === 'tag' || props.pTableType === 'log' || sIsOpen) fetchRecordCount();
+    }, [props.pRefresh]);
+
     return (
         <>
             <div className="table-column-wrap" onClick={handleDataFetch}>
                 <div className="table-column-l">
                     <VscChevronRight className={`${sIsOpen ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow'}`} />
-                    <span className="icons">{props.pTableIcon}</span>
-                    <span className="table-name">
-                        {(props.pTable[0] === 'MACHBASEDB' && props.pTable[1] === 'SYS') || (props.pTable[0] === 'MACHBASEDB' && props.pTable[1] === props.pUserName)
-                            ? props.pTable[3]
-                            : `${props.pTable[1]}.${props.pTable[3]}`}
-                    </span>
+                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <IconButton
+                            pWidth={'100%'}
+                            pHeight={20}
+                            pIsToopTip
+                            pToolTipContent={props.pTableType}
+                            pToolTipId={props.pTableType + props.pUserName + '-block-math'}
+                            pIcon={
+                                <>
+                                    <span className="icons">{props.pTableIcon}</span>
+                                    <span className="table-name">
+                                        {(props.pTable[0] === 'MACHBASEDB' && props.pTable[1] === 'SYS') ||
+                                        (props.pTable[0] === 'MACHBASEDB' && props.pTable[1] === props.pUserName)
+                                            ? props.pTable[3]
+                                            : `${props.pTable[1]}.${props.pTable[3]}`}
+                                    </span>
+                                </>
+                            }
+                            onClick={() => {}}
+                        />
+                    </div>
                 </div>
-                <span className="r-txt">{props.pTableType}</span>
+                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', justifyContent: 'end' }}>
+                    <span className="r-txt">{sRecordCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
+                </div>
             </div>
             {sIsOpen && sColumnList.length > 0 && (
                 <ColumnDiv pKey={props.pTable[0] as string} pShowHiddenObj={props.pShowHiddenObj} pColumnList={sColumnList} pIndexList={sIndexList} pRollupList={sRollupList} />

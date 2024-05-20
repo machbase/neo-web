@@ -105,6 +105,16 @@
             flex-direction: row;
             justify-content: space-between;
 
+            .icon-btn-wrapper {
+                justify-content: start;
+                .tooltip-icon {
+                    display: flex;
+                    justify-content: start;
+                    width: 100%;
+                    color: white;
+                }
+            }
+
             cursor: pointer;
 
             .table-column-l {
@@ -155,14 +165,15 @@
         }
     }
     .r-txt {
-        font-size: 14px;
+        font-size: 12px;
         color: #939498;
-        margin-right: 4px;
         white-space: nowrap;
         text-overflow: ellipsis;
         word-break: break-all;
         overflow: hidden;
-        margin-left: 10px;
+        min-width: 4px;
+        margin: 0;
+        padding-right: 8px;
     }
 }
 .db-exp-arrow {
