@@ -7,6 +7,8 @@ import { TimerItemType, delTimer, getTimer, modTimer, sendTimerCommand } from '@
 import { useState, useEffect } from 'react';
 import SplitPane from 'split-pane-react/esm/SplitPane';
 import { AUTO_START_DESC } from './content';
+import { SelectFileBtn } from '../buttons/SelectFileBtn';
+import { OpenFileBtn } from '../buttons/OpenFileBtn';
 
 export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -154,6 +156,9 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
             });
         });
     };
+    const handleTql = (aKey: string) => {
+        handlePayload('task', { target: { value: aKey } } as any);
+    };
 
     useEffect(() => {
         setCommandRes(undefined);
@@ -201,7 +206,11 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
 
                                 <ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentTitle>task</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.Input pValue={sPayload.task} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('task', event)} />
+                                    <ExtensionTab.DpRow>
+                                        <ExtensionTab.Input pValue={sPayload.task} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('task', event)} />
+                                        <SelectFileBtn pType="tql" pCallback={handleTql} btnWidth={'100px'} btnHeight="26px" />
+                                        <OpenFileBtn pType="tql" pFileInfo={{ path: sPayload.task }} btnWidth={'100px'} btnHeight="26px" />
+                                    </ExtensionTab.DpRow>
                                 </ExtensionTab.ContentBlock>
 
                                 <ExtensionTab.ContentBlock>
