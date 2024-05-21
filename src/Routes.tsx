@@ -6,13 +6,13 @@ import DashboardView from './view/Dashboard/DashboardView';
 import { useToken } from './hooks/useToken';
 
 export const Routes = () => {
-    const [sHome, setHome] = useState<boolean>(false);
+    const [sHome, setHome] = useState<boolean | undefined>(undefined);
     const sNavigate = useNavigate();
 
     useToken(setHome);
 
     useEffect(() => {
-        if (!sHome) {
+        if (sHome !== undefined && !sHome) {
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             sNavigate('/login');
