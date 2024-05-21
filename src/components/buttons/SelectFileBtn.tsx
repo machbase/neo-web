@@ -99,7 +99,7 @@ export const SelectFileBtn = ({
         }
     };
     const initPathNFile = () => {
-        setSelectedFile([]);
+        setDeletePath([]);
         setSelectedDir(sModalPath.split('/').filter((aPath: string) => !!aPath));
         setSelectedFile('');
     };
