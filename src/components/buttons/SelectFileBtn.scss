@@ -35,7 +35,7 @@
         &-tool-bar {
             display: flex;
             align-items: center;
-            padding: 0 2rem 0.75rem 2rem;
+            padding: 0 2rem 0.75rem 1.6rem;
 
             svg {
                 color: rgba(38, 40, 49, 0.5);
@@ -48,20 +48,69 @@
                 justify-content: center;
                 align-items: center;
                 margin-right: 10px;
-
+                border-radius: 5px;
+                border: 1px solid #5a5a5a;
                 svg {
                     font-size: 20px;
+                    color: #5a5a5a;
                 }
 
                 &-active {
                     cursor: pointer;
+                    border: 1px solid #838383;
                     svg {
-                        color: rgba(255, 255, 255, 0.5);
+                        color: #838383;
                     }
 
                     &:hover {
                         border-radius: 5px;
-                        border: 1px solid rgba(255, 255, 255, 0.5);
+                        border: 1px solid #b3b3b3;
+
+                        svg {
+                            color: #b3b3b3;
+                        }
+                    }
+                }
+            }
+
+            .select-input-modal-input-wrapper {
+                .select-input-modal-input-item-wrapper {
+                    display: flex;
+                    flex-direction: row;
+                    .select-input-modal-input-item {
+                        cursor: pointer;
+                        height: 20px;
+                        padding: 2px;
+                        margin-left: 4px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+
+                        svg {
+                            width: 15px;
+                            height: 15px;
+                            color: white;
+                        }
+
+                        &:hover {
+                            background-color: rgba(255, 255, 255, 0.5);
+                            border-radius: 5px;
+                        }
+
+                        &-split {
+                            margin-left: 4px;
+                            cursor: default;
+                        }
+                    }
+
+                    &:last-child {
+                        .select-input-modal-input-item {
+                            cursor: default;
+                            &:hover {
+                                background-color: rgba(38, 40, 49, 0.1);
+                                border-radius: 5px;
+                            }
+                        }
                     }
                 }
             }
