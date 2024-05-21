@@ -74,7 +74,7 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
 
     return (
         <Collapse title="xAxis">
-            {pXAxis.map((aItem: any, aIndex: number) => (
+            {/* {pXAxis.map((aItem: any, aIndex: number) => (
                 <div key={aItem.type + aIndex}>
                     <div className="menu-style">
                         <div>Type</div>
@@ -86,13 +86,12 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                             onChange={(aEvent) => handleXAxisOption(aEvent, aIndex)}
                             pOptions={ChartXAxisTypeList}
                         />
-                        {/* <div className="divider" /> */}
                     </div>
                 </div>
-            ))}
+            ))} */}
             {pXAxis[0].type === 'time' ? (
                 <>
-                    <div className="divider" />
+                    {/* <div className="divider" /> */}
                     {/* <CheckBox onChange={(aEvent: any) => changeAxisInterval(aEvent.target.checked)} pDefaultChecked={pIsAxisInterval} pText={'Custom time interval'} /> */}
                     {/* <div style={{ height: '10px' }} /> */}
                     <div className="menu-style">

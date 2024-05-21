@@ -9,6 +9,7 @@ const DashboardCompatibility = (aData: any) => {
         const sPanelList = sDashboardInfo.dashboard.panels;
         const sVaildPanelList = sPanelList.map((aPanel: any) => {
             if (aPanel.type === 'Tql') aPanel.type = 'Tql chart';
+            if (aPanel.xAxisOptions[0].type === 'category') aPanel.xAxisOptions[0].type = 'time';
             const sResultPanel = aPanel;
             const sBlockList: any = aPanel.blockList;
             const sChartType: string = chartTypeConverter(aPanel.type);

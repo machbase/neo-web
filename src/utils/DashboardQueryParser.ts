@@ -26,10 +26,11 @@ export const SqlResDataType = (aChartType: string): string => {
 };
 
 /** Dashboard QUERY PARSER */
-export const DashboardQueryParser = async (aChartType: string, aBlockList: any, aRollupList: any, aTime: BlockTimeType) => {
+export const DashboardQueryParser = async (aChartType: string, aBlockList: any, aRollupList: any, aXaxis: any, aTime: BlockTimeType) => {
     const sResDataType = SqlResDataType(aChartType);
+    const sTranspose = sResDataType === 'TIME_VALUE' && aXaxis[0].type === 'category';
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
-    const [sParsedQueryList, sAliasList] = QueryParser(sQueryBlock, aTime, sResDataType);
+    const [sParsedQueryList, sAliasList] = QueryParser(sTranspose, sQueryBlock, aTime, sResDataType);
     return [sParsedQueryList, sAliasList];
 };
 /** Block Parser */
@@ -240,7 +241,7 @@ export const mathValueConverter = (aTargetValueIndex: string, aMath: string): st
     return aMath;
 };
 
-const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string) => {
+const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string) => {
     const sAliasList: any[] = [];
     const sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
@@ -287,6 +288,5 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
             sql: sSql,
         };
     });
-
     return [sResultQuery, sAliasList];
 };
