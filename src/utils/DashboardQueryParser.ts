@@ -289,4 +289,5 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         };
     });
     return [sResultQuery, sAliasList];
+    aTranspose;
 };

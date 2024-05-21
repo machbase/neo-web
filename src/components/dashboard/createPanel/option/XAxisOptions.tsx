@@ -3,8 +3,8 @@ import { Collapse } from '@/components/collapse/Collapse';
 // import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
-import { ChartXAxisTypeList } from '@/utils/constants';
 // import { DefaultXAxisOption } from '@/utils/eChartHelper';
+// import { ChartXAxisTypeList } from '@/utils/constants';
 
 interface XAxisOptionProps {
     pXAxis: any;
@@ -22,16 +22,16 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
     } = props;
     const sIntervalTypeList = ['none', 'sec', 'min', 'hour'];
 
-    const handleXAxisOption = (aEvent: any, aIndex: number) => {
-        const sCurrentXAxis = JSON.parse(JSON.stringify(pXAxis));
-        sCurrentXAxis[aIndex].type = aEvent.target.value;
-        pSetPanelOption((aPrev: any) => {
-            return {
-                ...aPrev,
-                xAxisOptions: sCurrentXAxis,
-            };
-        });
-    };
+    // const handleXAxisOption = (aEvent: any, aIndex: number) => {
+    //     const sCurrentXAxis = JSON.parse(JSON.stringify(pXAxis));
+    //     sCurrentXAxis[aIndex].type = aEvent.target.value;
+    //     pSetPanelOption((aPrev: any) => {
+    //         return {
+    //             ...aPrev,
+    //             xAxisOptions: sCurrentXAxis,
+    //         };
+    //     });
+    // };
 
     const handleAxisInterval = (aType: string, aValue: number | string) => {
         pSetPanelOption((aPrev: any) => {
