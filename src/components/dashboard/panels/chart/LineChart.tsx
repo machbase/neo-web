@@ -61,7 +61,7 @@ const LineChart = ({ pLoopMode, pChartVariableId, pPanelInfo, pType, pInsetDragi
         }
 
         const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
-        if (pPanelInfo.type === 'Tql') {
+        if (pPanelInfo.type === 'Tql chart') {
             const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange(), sIntervalInfo));
             if (!sResult?.data?.reason) {
                 setChartData(sResult);
@@ -172,7 +172,7 @@ const LineChart = ({ pLoopMode, pChartVariableId, pPanelInfo, pType, pInsetDragi
                 <ShowChart
                     pLoopMode={pLoopMode}
                     pData={sChartData}
-                    pPanelType={pPanelInfo.type === 'Tql'}
+                    pPanelType={pPanelInfo.type === 'Tql chart'}
                     pPanelId={pChartVariableId + '-' + pPanelInfo.id}
                     pPanelSize={ChartRef}
                     pTheme={pPanelInfo.theme}

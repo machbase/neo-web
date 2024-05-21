@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Close, FolderOpen, TreeFolder } from '@/assets/icons/Icon';
+import { ArrowLeft, ArrowRight, Close, FolderOpen, Home, TreeFolder } from '@/assets/icons/Icon';
 import { TextButton } from './TextButton';
 import { elapsedSize, elapsedTime } from '@/utils';
 import { getFileList } from '@/api/repository/api';
-import Modal from '../modal/Modal';
-import icons from '@/utils/icons';
 import { useRecoilState } from 'recoil';
 import { gRecentModalPath } from '@/recoil/fileTree';
+import Modal from '../modal/Modal';
+import icons from '@/utils/icons';
 import './SelectFileBtn.scss';
 
 export const SelectFileBtn = ({
@@ -27,6 +27,7 @@ export const SelectFileBtn = ({
     const [sSelectedFile, setSelectedFile] = useState<any>();
     const [sFileList, setFileList] = useState<any[]>([]);
     const [sModalPath, setModalPath] = useRecoilState(gRecentModalPath);
+    const [sDeletePath, setDeletePath] = useState<string[]>([]);
 
     const getFiles = async () => {
         const sData = await getFileList(`?filter=*.${pType}`, sSelectedDir.join('/'), '');
@@ -42,22 +43,63 @@ export const SelectFileBtn = ({
         setModalPath('/' + sSelectedDir.join('/') + '/');
         setOpen(false);
     };
-    const handleSelectFile = (aItem: any) => {
+    const handleSelectFile = (aEvent: React.MouseEvent<HTMLDivElement>, aItem: any) => {
         const currentPath = JSON.parse(JSON.stringify(sSelectedDir));
-        switch (aItem.isDir) {
-            case true:
-                currentPath.push(aItem.name);
-                setSelectedDir([...currentPath]);
-                break;
-            case false:
-                setSelectedFile(aItem.name);
+
+        switch (aEvent.detail) {
+            // click
+            case 1: {
+                if (!aItem.isDir) setSelectedFile(aItem.name);
+                return;
+            }
+            // double click
+            case 2: {
+                // dir type
+                if (aItem.isDir) {
+                    setDeletePath([]);
+                    currentPath.push(aItem.name);
+                    setSelectedDir([...currentPath]);
+                    return;
+                }
+                // file type
+                else {
+                    handleSave();
+                    return;
+                }
+            }
         }
     };
     const handleBackPath = () => {
-        const currentPath = JSON.parse(JSON.stringify(sSelectedDir)).slice(0, sSelectedDir.length - 1);
-        setSelectedDir([...currentPath]);
+        if (sSelectedDir.length === 0) return;
+        const sOldPath = JSON.parse(JSON.stringify(sSelectedDir));
+        const sForwardPath = JSON.parse(JSON.stringify(sDeletePath));
+        const sBackItem = sOldPath.at(-1);
+        const sCurPath = sOldPath.slice(0, sSelectedDir.length - 1);
+        setDeletePath([...sForwardPath, sBackItem]);
+        setSelectedDir([...sCurPath]);
+    };
+    const handleForwardPath = async () => {
+        if (sDeletePath.length === 0) return;
+        const sOldForwardPath = JSON.parse(JSON.stringify(sDeletePath));
+        const sForwardItem = sOldForwardPath.pop();
+        const sOldPath = JSON.parse(JSON.stringify(sSelectedDir));
+        setDeletePath(sOldForwardPath);
+        setSelectedDir([...sOldPath, sForwardItem]);
+    };
+    const handleDirectPath = (aPath: string) => {
+        if (sSelectedDir.at(-1) === aPath) return;
+        const sOldPath = JSON.parse(JSON.stringify(sSelectedDir));
+        const sBackItemList = sOldPath.splice(sOldPath.findIndex((bPath: string) => aPath === bPath) + 1, sOldPath.length);
+        setDeletePath([...sBackItemList.reverse()]);
+        if (aPath === '') {
+            setSelectedDir([]);
+        } else {
+            const sCurPath = sOldPath.slice(0, sOldPath.findIndex((bPath: string) => aPath === bPath) + 1);
+            setSelectedDir([...sCurPath]);
+        }
     };
     const initPathNFile = () => {
+        setDeletePath([]);
         setSelectedDir(sModalPath.split('/').filter((aPath: string) => !!aPath));
         setSelectedFile('');
     };
@@ -102,7 +144,27 @@ export const SelectFileBtn = ({
                                 >
                                     <ArrowLeft />
                                 </div>
-                                <div className={`select-input-modal-input-wrapper`}>{'/ ' + sSelectedDir.join(' / ')}</div>
+                                <div
+                                    className={`select-input-modal-tool-bar-content ${sDeletePath.length > 0 ? 'select-input-modal-tool-bar-content-active' : ''}`}
+                                    onClick={() => handleForwardPath()}
+                                >
+                                    <ArrowRight />
+                                </div>
+                                <div className={`select-input-modal-input-wrapper`}>
+                                    <div className="select-input-modal-input-item-wrapper" onClick={() => handleDirectPath('')}>
+                                        <div className="select-input-modal-input-item">
+                                            <Home />
+                                        </div>
+                                    </div>
+                                    {sSelectedDir.map((aDir: string) => {
+                                        return (
+                                            <div className="select-input-modal-input-item-wrapper" key={aDir} onClick={() => handleDirectPath(aDir)}>
+                                                <div className="select-input-modal-input-item">{aDir}</div>
+                                                <span className="select-input-modal-input-item-split">/</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </Modal.Header>
                         <Modal.Body>
@@ -119,7 +181,7 @@ export const SelectFileBtn = ({
                                                 <div
                                                     key={aItem.name + aIdx}
                                                     className={`row ${sSelectedFile && sSelectedFile === aItem.name ? 'selected' : ''}`}
-                                                    onClick={() => handleSelectFile(aItem)}
+                                                    onClick={(aEvent) => handleSelectFile(aEvent, aItem)}
                                                 >
                                                     <div className="pl list-wrapper">
                                                         <div className="pl-icon">

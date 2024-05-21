@@ -66,7 +66,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
 
     return (
         <div className="chart-footer-form">
-            {pPanelOption.type !== 'Tql' && (
+            {pPanelOption.type !== 'Tql chart' && (
                 <>
                     <div className="chart-footer-tab">
                         <div className={sTab === 'Query' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Query')}>
@@ -185,7 +185,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                     </div>
                 </>
             )}
-            {pPanelOption.type === 'Tql' && <TqlBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
+            {pPanelOption.type === 'Tql chart' && <TqlBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
         </div>
     );
 };

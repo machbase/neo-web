@@ -65,7 +65,7 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
             const sParsedRes = fileTreeParser(sRootDirRes.data, '/', 0, sRootDirRes.data.name);
             // DIR
             if (!aIsFile) {
-                const sParsedTargetRes = fileTreeParser(sTargetDirInfo.data, sPath, 1, sTargetDirInfo.data.name);
+                const sParsedTargetRes = fileTreeParser(sTargetDirInfo.data, sPath + sTargetDirInfo.data.name + '/', 1, sTargetDirInfo.data.name);
                 if (sParsedRes.dirs.length !== 0) {
                     sTmp.dirs.map((bDir: any) => {
                         if (bDir.name === sName && bDir.id === sName && bDir.depth === sDepth) sAlreadyExist = true;
