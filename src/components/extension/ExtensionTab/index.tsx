@@ -63,7 +63,19 @@ const ContentDesc = ({ children }: { children: React.ReactNode }) => {
         </div>
     );
 };
-const TextButton = ({ pText, pType, pCallback, pWidth }: { pText: string; pType: string; pCallback: (e: React.MouseEvent) => void; pWidth?: string }) => {
+const TextButton = ({
+    pText,
+    pType,
+    pCallback,
+    pWidth,
+    pIsDisable = false,
+}: {
+    pText: string;
+    pType: string;
+    pCallback: (e: React.MouseEvent) => void;
+    pWidth?: string;
+    pIsDisable?: boolean;
+}) => {
     const getColor = () => {
         switch (pType) {
             case 'DELETE':
@@ -75,7 +87,7 @@ const TextButton = ({ pText, pType, pCallback, pWidth }: { pText: string; pType:
         }
     };
     return (
-        <button className="extension-tab-text-button" style={{ backgroundColor: getColor(), width: pWidth }} onClick={pCallback}>
+        <button className="extension-tab-text-button" style={{ backgroundColor: pIsDisable ? '#6f7173' : getColor(), width: pWidth }} onClick={pCallback}>
             {pText}
         </button>
     );

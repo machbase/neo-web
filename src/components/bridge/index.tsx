@@ -16,9 +16,11 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
     const sBodyRef: any = useRef(null);
     const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [isVertical, setIsVertical] = useState<boolean>(true);
-    const [sCommandRes, setCommandRes] = useState<{ exec: { message: string; data: any }; query: { message: string; data: any } }>({
-        exec: { message: '', data: [] },
-        query: { message: '', data: [] },
+    const [sIsRunCommand, setIsRunCommand] = useState<boolean>(false);
+    const [sCommandRes, setCommandRes] = useState<{ exec: { message: string; data: any }; query: { message: string; data: any }; test: { message: string; data: any } }>({
+        exec: { message: '', data: undefined },
+        query: { message: '', data: undefined },
+        test: { message: '', data: undefined },
     });
     const setResList = useSetRecoilState<BridgeItemType[] | undefined>(gBridgeList);
     const TYPE = 'bridge';
@@ -78,6 +80,8 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
         setPayload(sTmp);
     };
     const handleCommand = async (aState: CommandBridgeStateType) => {
+        if (sIsRunCommand) return;
+        setIsRunCommand(true);
         let sCommand: any = undefined;
         switch (aState) {
             case 'exec':
@@ -94,51 +98,25 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
         if (sResCommand.success) {
             sTmpRes[aState].data = sResCommand.data;
             sTmpRes[aState].message = '';
-
-            // const sBridgeList = await getBridge();
-            // if (sBridgeList.success) setResList(sBridgeList.data);
-            // else setResList([]);
-            // const sTarget = sBridgeList.data.find((aKeyInfo: any) => aKeyInfo.name === pCode.name);
-            // if (sTarget) {
-            //     const aTarget = sBoardList.find((aBoard: any) => aBoard.type === TYPE);
-            //     setBoardList((aBoardList: any) => {
-            //         return aBoardList.map((aBoard: any) => {
-            //             if (aBoard.id === aTarget.id) {
-            //                 return {
-            //                     ...aTarget,
-            //                     code: sTarget,
-            //                     savedCode: sTarget,
-            //                 };
-            //             }
-            //             return aBoard;
-            //         });
-            //     });
-            // }
         } else {
-            // sTmpRes[aState].data = [];
-            sTmpRes[aState].message = sResCommand.reason;
+            if (sResCommand.data && (sResCommand as any).data?.reason) {
+                sTmpRes[aState].data = (sResCommand as any).data;
+                sTmpRes[aState].message = (sResCommand as any).data?.reason;
+            } else {
+                sTmpRes[aState].data = (sResCommand as any).statusText;
+                sTmpRes[aState].message = (sResCommand as any).statusText;
+            }
         }
-        // example data
-        if (aState === 'query')
-            sTmpRes[aState].data = {
-                column: ['id', 'company', 'employee', 'discount', 'plan', 'code', 'valid', 'memo', 'created_on'],
-                rows: [
-                    [2, 'test-company', 10, 1.234, 2.3456, 'c2d29867-3d0b-d497-9191-18a9d8ee7830', true, 'test memo', '2023-08-09T14:20:00+09:00'],
-                    [3, 'test-company2', 10, 1.234, 2.3456, null, null, null, '2023-08-09T14:20:00+09:00'],
-                ],
-            };
-
-        console.log('sTmpRes', sTmpRes);
         setCommandRes(sTmpRes);
+        setIsRunCommand(false);
     };
     const Resizer = () => {
         return <SashContent className={`security-key-sash-style`} />;
     };
 
     useEffect(() => {
-        console.log('test', pCode);
         setPayload(pCode);
-        setCommandRes({ exec: { message: '', data: [] }, query: { message: '', data: [] } });
+        setCommandRes({ exec: { message: '', data: undefined }, query: { message: '', data: undefined }, test: { message: '', data: undefined } });
     }, [pCode]);
     useEffect(() => {
         if (sBodyRef && sBodyRef.current) {
@@ -167,16 +145,25 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                                     <ExtensionTab.ContentTitle>Path</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>{sPayload.path}</ExtensionTab.ContentDesc>
                                 </ExtensionTab.ContentBlock>
+                                {/* Test  */}
+                                <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.ContentTitle>bridge connection Test</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.TextButton pIsDisable={sIsRunCommand} pText="Test" pType="CREATE" pCallback={() => handleCommand('test')} />
+                                    {sCommandRes.test.message !== '' && <ExtensionTab.TextResErr pText={sCommandRes.test.message} />}
+                                </ExtensionTab.ContentBlock>
                                 {/* Exec  */}
                                 <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.ContentTitle>Exec</ExtensionTab.ContentTitle>
                                     <ExtensionTab.TextArea pContent={sPayload.exec} pHeight={100} pCallback={(event) => handlePayload('exec', event)} />
-                                    <ExtensionTab.TextButton pText="Exec" pType="COPY" pCallback={() => handleCommand('exec')} />
+                                    <ExtensionTab.TextButton pIsDisable={sIsRunCommand} pText="Exec" pType="CREATE" pCallback={() => handleCommand('exec')} />
                                     {sCommandRes.exec.message !== '' && <ExtensionTab.TextResErr pText={sCommandRes.exec.message} />}
                                 </ExtensionTab.ContentBlock>
                                 {/* Command */}
                                 <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.ContentTitle>Query</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentDesc>Only works with “SQL” type bridges</ExtensionTab.ContentDesc>
                                     <ExtensionTab.TextArea pContent={sPayload.query} pHeight={100} pCallback={(event) => handlePayload('query', event)} />
-                                    <ExtensionTab.TextButton pText="Query" pType="COPY" pCallback={() => handleCommand('query')} />
+                                    <ExtensionTab.TextButton pIsDisable={sIsRunCommand} pText="Query" pType="CREATE" pCallback={() => handleCommand('query')} />
                                     {sCommandRes.query.message !== '' && <ExtensionTab.TextResErr pText={sCommandRes.query.message} />}
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
@@ -192,12 +179,28 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                                 </div>
                             </ExtensionTab.Header>
                             <ExtensionTab.Body>
-                                {sCommandRes.query.data && sCommandRes.query.data.column && sCommandRes.query.data.rows && (
+                                {sCommandRes.test.data && (
+                                    <ExtensionTab.ContentBlock>
+                                        <ExtensionTab.ContentTitle>{'test response'}</ExtensionTab.ContentTitle>
+                                        <pre style={{ overflow: 'auto', whiteSpace: 'pre-wrap' }}>{JSON.stringify(sCommandRes.test.data, null, 4)}</pre>
+                                    </ExtensionTab.ContentBlock>
+                                )}
+                                {sCommandRes.exec.data && (
+                                    <ExtensionTab.ContentBlock>
+                                        <ExtensionTab.ContentTitle>{'exec response'}</ExtensionTab.ContentTitle>
+                                        <pre style={{ overflow: 'auto', whiteSpace: 'pre-wrap' }}>{JSON.stringify(sCommandRes.exec.data, null, 4)}</pre>
+                                    </ExtensionTab.ContentBlock>
+                                )}
+                                {sCommandRes.query.data && (
                                     <ExtensionTab.ContentBlock>
                                         <ExtensionTab.ContentTitle>{'query response'}</ExtensionTab.ContentTitle>
-                                        <div style={{ margin: '10px 20px', padding: '12px 16px 12px 0' }}>
-                                            <ExtensionTab.Table pList={{ columns: sCommandRes.query.data.column, rows: sCommandRes.query.data.rows }} />
-                                        </div>
+                                        {sCommandRes.query.data.column && sCommandRes.query.data.rows ? (
+                                            <div style={{ margin: '10px 20px', padding: '12px 16px 12px 0' }}>
+                                                <ExtensionTab.Table pList={{ columns: sCommandRes.query.data.column, rows: sCommandRes.query.data.rows }} />
+                                            </div>
+                                        ) : (
+                                            <pre style={{ overflow: 'auto', whiteSpace: 'pre-wrap' }}>{JSON.stringify(sCommandRes.query.data, null, 4)}</pre>
+                                        )}
                                     </ExtensionTab.ContentBlock>
                                 )}
                             </ExtensionTab.Body>
