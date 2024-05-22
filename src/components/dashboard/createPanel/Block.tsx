@@ -54,8 +54,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     };
     const changedOption = async (aKey: string, aData: any) => {
         if (aKey === 'table') {
-            const sTargetTable = pTableList.find((aItem: any) => aItem[3] === aData.target.value || aData.target.value.includes(aItem[3]));
             const sIsVirtualTable = aData.target.value.includes('V$');
+            const sTargetTableName = sIsVirtualTable ? aData.target.value.replace('V$', '').replace('_STAT', '') : aData.target.value;
+            const sTargetTable = pTableList.find((aItem: any) => aItem[3] === sTargetTableName);
 
             if (sIsVirtualTable) setSelectedTableType('vir_tag');
             else setSelectedTableType(getTableType(sTargetTable[4]));
@@ -352,7 +353,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         }
         const sTableList = pTableList.map((aItem: any) => aItem[3]);
         if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
-            const sTagTableList = JSON.parse(JSON.stringify(pTableList)).filter((aTable: any) => getTableType(aTable[4]) === 'tag');
+            const sTagTableList = JSON.parse(JSON.stringify(pTableList)).filter((aTable: any) => getTableType(aTable[4]) === 'tag' && aTable[6] === -1);
             sTagTableList.filter((aTagTable: any) => aTagTable.splice(3, 0, `V$${aTagTable[3]}_STAT`));
             const sResult = sTableList.concat(sTagTableList.map((bTagTable: any) => bTagTable[3]));
             return sResult;

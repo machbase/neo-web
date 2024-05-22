@@ -47,7 +47,6 @@ export const CreateBridge = () => {
     };
     /** Saved status */
     const handleSavedCode = (aSavedStatus: boolean) => {
-        console.log('handleSavedCode', aSavedStatus);
         setBoardList((aBoardList: any) => {
             return aBoardList.map((aBoard: any) => {
                 if (aBoard.type === TYPE) {

@@ -14,7 +14,7 @@ import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, 
 import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
 import moment from 'moment';
 import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
-import { fetchTimeMinMax, getRollupTableList } from '@/api/repository/machiot';
+import { fetchMountTimeMinMax, fetchTimeMinMax, getRollupTableList } from '@/api/repository/machiot';
 import { getId, isEmpty } from '@/utils';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
@@ -168,7 +168,13 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
             })[0]?.value;
 
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
-            const sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
+            let sSvrResult: any = undefined;
+            if (sTargetTag.table.split('.').length > 2) {
+                sSvrResult = await fetchMountTimeMinMax(sTargetTag);
+            } else {
+                sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
+            }
+            // const sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
             const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
             if (!Number(sResult.min) || !Number(sResult.max)) return getNowMinMax();
             else return sResult;

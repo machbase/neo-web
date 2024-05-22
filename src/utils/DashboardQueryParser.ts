@@ -261,9 +261,9 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         sAliasList.push({ name: sAlias, color: aQuery.color });
         // BAR | LINE | SCATTER
         if (aResDataType === 'TIME_VALUE') {
-            sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.userName}.${
-                aQuery.tableName
-            } WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''} ${sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''} ${sOrderBy}`;
+            sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${
+                sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''
+            } ${sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''} ${sOrderBy}`;
             if (sUseDiff) sTql += `MAP_${changeDiffText(aQuery.valueList[0]?.diff)}(1, value(1))`;
             if (aQuery?.math && aQuery?.math !== '') sTql += `${sUseDiff ? `\n` : ''}MAPVALUE(2, ${mathValueConverter('1', aQuery?.math)}, "VALUE")\nPOPVALUE(1)`;
         }
@@ -272,7 +272,7 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
             if (sIsVirtualTable) {
                 sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''}`;
             } else {
-                sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.userName}.${aQuery.tableName} WHERE ${sTimeWhere} ${
+                sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${
                     sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''
                 }`;
             }

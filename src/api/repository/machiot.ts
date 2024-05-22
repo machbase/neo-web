@@ -319,6 +319,30 @@ const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
     return sData;
 };
 
+export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
+    const sQuery = `select min(time), max(time) from ${aTargetInfo.table}`;
+    const sData = await request({
+        method: 'GET',
+        url: `/machbase?q=` + encodeURIComponent(sQuery),
+    });
+
+    if (sData.status >= 400) {
+        if (typeof sData.data === 'object') {
+            Error(sData.data.reason);
+        } else {
+            Error(sData.data);
+        }
+    }
+
+    if (sData.data.rows.length === 0) {
+        const sNowTime = moment().unix() * 1000000;
+        const sNowTimeMinMax = [moment(sNowTime).subtract(1, 'h').unix() * 1000000, sNowTime];
+        return sNowTimeMinMax;
+    }
+
+    return sData.data.rows;
+};
+
 export const fetchTimeMinMax = async (aTargetInfo: any) => {
     let sQuery: string | undefined = undefined;
     // Query tag table
@@ -354,11 +378,19 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
     return sData.data.rows;
 };
 
-export const fetchVirtualStatTable = async (aTable: string, aTagList: string[]) => {
+export const fetchVirtualStatTable = async (aTable: string, aTagList: string[], aTagSet?: any) => {
+    const sTime = aTagSet ? aTagSet.colName.time : 'TIME';
     const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
+
+    let query: string = `select min_time, max_time from ${sCurrentUserName}.V$${aTable}_STAT WHERE NAME IN ('${aTagList.join("','")}')`;
+
+    if (aTable.split('.').length > 2) {
+        query = `select min(${sTime}), max(${sTime}) from ${aTable}`;
+    }
+
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=` + encodeURIComponent(`select min_time, max_time from ${sCurrentUserName}.V$${aTable}_STAT WHERE NAME IN ('${aTagList.join("','")}')`),
+        url: `/machbase?q=` + encodeURIComponent(query),
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -489,9 +521,10 @@ export const getTagPagination = async (aTable: string, aFilter: string, aPage: n
     const DEFAULT_LIMIT = 10;
     const sFilter = aFilter ? `name like '%${aFilter}%'` : '';
     const sLimit = `${(aPage - 1) * DEFAULT_LIMIT}, ${DEFAULT_LIMIT}`;
+    const sTableName = getMetaTableName(aTable);
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=` + encodeURIComponent(`select * from _${aTable}_META${sFilter !== '' ? ' where ' + sFilter + ' ORDER BY NAME ' : ' ORDER BY NAME '} LIMIT ${sLimit}`),
+        url: `/machbase?q=` + encodeURIComponent(`select * from ${sTableName}${sFilter !== '' ? ' where ' + sFilter + ' ORDER BY NAME ' : ' ORDER BY NAME '} LIMIT ${sLimit}`),
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -503,11 +536,20 @@ export const getTagPagination = async (aTable: string, aFilter: string, aPage: n
     return sData;
 };
 
+const getMetaTableName = (aTableName: string) => {
+    const sSplitName = aTableName.split('.');
+    const sTableName = '_' + sSplitName?.at(-1) + '_META';
+    sSplitName.pop();
+    sSplitName.push(sTableName);
+    return sSplitName.join('.');
+};
+
 export const getTagTotal = async (aTable: string, aFilter: string) => {
+    const sTableName = getMetaTableName(aTable);
     const sFilter = aFilter ? `name like '%${aFilter}%'` : '';
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=` + encodeURIComponent(`select count(*) from _${aTable}_META${sFilter !== '' ? ' where ' + sFilter : ''}`),
+        url: `/machbase?q=` + encodeURIComponent(`select count(*) from ${sTableName}${sFilter !== '' ? ' where ' + sFilter : ''}`),
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {

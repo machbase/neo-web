@@ -46,11 +46,17 @@ export const TqlOptions = (props: GaugeOptionProps) => {
                             <span style={{ color: 'white' }}>From</span>
                             <span>$from_str: date string (YYYY-MM-DD HH:MI:SS)</span>
                             <span>$from_s: unix timestamp </span>
+                            <span>$from_ms: unix timestamp (milliseconds)</span>
+                            <span>$from_us: unix timestamp (microseconds)</span>
+                            <span>$from_ns: unix timestamp (nanoseconds)</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
                             <span style={{ color: 'white' }}>To</span>
                             <span>$to_str: date string (YYYY-MM-DD HH:MI:SS)</span>
                             <span>$to_s: unix timestamp</span>
+                            <span>$to_ms: unix timestamp (milliseconds)</span>
+                            <span>$to_us: unix timestamp (microseconds)</span>
+                            <span>$to_ns: unix timestamp (nanoseconds)</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
                             <span style={{ color: 'white' }}>Period</span>

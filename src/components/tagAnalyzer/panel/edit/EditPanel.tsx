@@ -66,7 +66,7 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
         else if (pBoardInfo.range_bgn !== '')
             sData = await timeConverter({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].tag_set });
         else {
-            const sVirtualStatInfo = await fetchVirtualStatTable(sCopyPanelInfo.tag_set[0].table, [sCopyPanelInfo.tag_set[0].tagName]);
+            const sVirtualStatInfo = await fetchVirtualStatTable(sCopyPanelInfo.tag_set[0].table, [sCopyPanelInfo.tag_set[0].tagName], sCopyPanelInfo.tag_set[0]);
             sData = {
                 bgn_min: sVirtualStatInfo[0][0] / 1000000,
                 bgn_max: sVirtualStatInfo[0][0] / 1000000,
@@ -109,7 +109,7 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
         else if (pBoardInfo.range_bgn !== '') {
             sData = await timeConverter({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].tag_set });
         } else {
-            const sVirtualStatInfo = await fetchVirtualStatTable(pPanelInfo.tag_set[0].table, [pPanelInfo.tag_set[0].tagName]);
+            const sVirtualStatInfo = await fetchVirtualStatTable(pPanelInfo.tag_set[0].table, [pPanelInfo.tag_set[0].tagName], pPanelInfo.tag_set[0]);
             sData = {
                 bgn_min: sVirtualStatInfo[0][0] / 1000000,
                 bgn_max: sVirtualStatInfo[0][0] / 1000000,
