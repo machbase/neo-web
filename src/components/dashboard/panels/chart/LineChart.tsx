@@ -1,4 +1,4 @@
-import { fetchTimeMinMax, getTqlChart, getTqlScripts } from '@/api/repository/machiot';
+import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart, getTqlScripts } from '@/api/repository/machiot';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { calcInterval, calcRefreshTime, decodeFormatterFunction, setUnitTime } from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
@@ -114,7 +114,12 @@ const LineChart = ({ pLoopMode, pChartVariableId, pPanelInfo, pType, pInsetDragi
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetPanel = pPanelInfo;
         const sTargetTag = sTargetPanel.blockList[0];
-        const sSvrResult = await fetchTimeMinMax(sTargetTag);
+        let sSvrResult: any = undefined;
+        if (sTargetTag.table.split('.').length > 2) {
+            sSvrResult = await fetchMountTimeMinMax(sTargetTag);
+        } else {
+            sSvrResult = await fetchTimeMinMax(sTargetTag);
+        }
         const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
         return sResult;
     };

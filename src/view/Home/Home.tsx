@@ -18,6 +18,7 @@ import { UncaughtErrorObserver } from '@/utils/UncaughtErrorHelper';
 import { TimerSide } from '@/components/side/Timer';
 import { Shell } from '@/components/side/Shell';
 import { useToken } from '@/hooks/useToken';
+import { BridgeSide } from '@/components/side/Bridge';
 
 const Home = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);
@@ -168,6 +169,7 @@ const Home = () => {
                                         {aItem.id === 'KEY' && <SecurityKey pServer={sServer} />}
                                         {aItem.id === 'TIMER' && <TimerSide pServer={sServer} />}
                                         {aItem.id === 'SHELL' && <Shell pServer={sServer} />}
+                                        {aItem.id === 'BRIDGE' && <BridgeSide pServer={sServer} />}
                                     </div>
                                 );
                             })}

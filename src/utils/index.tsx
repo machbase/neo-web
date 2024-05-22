@@ -107,6 +107,38 @@ export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
     });
 };
 
+export const parseDashboardTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
+    if (!aTableInfo.rows) return [];
+    const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub;
+    const sIsAdmin = sCurrentUserName.toLowerCase() === ADMIN_ID;
+    const sMount = aTableInfo.columns.findIndex((aItem: any) => aItem === 'DBID');
+    const sDbIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'DB_NAME');
+    const sUserIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'USER_NAME');
+    const sTableIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'TABLE_NAME');
+
+    let sParseTables: any = aTableInfo.rows;
+    if (!sIsAdmin) {
+        sParseTables = aTableInfo.rows.filter((aItem: any) => aItem[sDbIdx].toLowerCase() === DEFAULT_DB_NAME);
+    }
+
+    return sParseTables.map((aItem: any) => {
+        // MACHBASE_DB
+        if (aItem[sMount] === -1) {
+            if (aItem[sUserIdx].toUpperCase() === sCurrentUserName.toUpperCase()) {
+                return aItem;
+            } else {
+                aItem[sTableIdx] = aItem[sUserIdx] + '.' + aItem[sTableIdx];
+                return aItem;
+            }
+        }
+        // MOUNTED DB
+        else {
+            aItem[sTableIdx] = aItem[sDbIdx] + '.' + aItem[sUserIdx] + '.' + aItem[sTableIdx];
+            return aItem;
+        }
+    });
+};
+
 export const isEmpty = (aArr: any) => {
     return Array.isArray(aArr) && aArr.length === 0;
 };

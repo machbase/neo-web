@@ -80,6 +80,7 @@
                 font-family: initial;
                 color: #dbdbdb;
                 th {
+                    min-width: 20px;
                     padding: 0 0 4px 0;
                 }
             }
@@ -88,7 +89,7 @@
                 text-align: left;
                 font-size: 13px;
                 td {
-                    padding: 2px 0 2px 0;
+                    padding: 2px 2px 2px 2px;
                 }
             }
         }
@@ -355,15 +356,18 @@
     }
 
     .extension-tab-text-area-wrapper {
+        padding: 8px 0 8px 0;
         textarea {
-            text-align: center;
+            width: calc(100% - 18px);
             resize: none;
+            text-align: center;
             cursor: default;
             padding: 8px;
             border-radius: 3px;
             border: solid 1px #f1f1f125;
             background-color: rgba(255, 255, 255, 0.13);
             color: #f1f1f1;
+            text-align: start;
         }
     }
     .extension-tab-dp-row {

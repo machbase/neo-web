@@ -11,9 +11,9 @@ import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType } from '@/utils/dashboardUtil';
 import { getTableList, postFileList } from '@/api/repository/api';
-import { decodeJwt, generateUUID, isValidJSON } from '@/utils';
+import { decodeJwt, generateUUID, isValidJSON, parseDashboardTables } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
-import { fetchTimeMinMax } from '@/api/repository/machiot';
+import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import moment from 'moment';
 
@@ -276,9 +276,13 @@ const CreatePanel = ({
             sTargetTag.filter.filter((aFilter: any) => {
                 if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
             })[0]?.value;
-
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
-            const sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
+            let sSvrResult: any = undefined;
+            if (sTargetTag.table.split('.').length > 2) {
+                sSvrResult = await fetchMountTimeMinMax(sTargetTag);
+            } else {
+                sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
+            }
             const sSvrMinMax: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
             const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrMinMax);
             setCreateModeTimeMinMax(() => sTimeMinMax);
@@ -291,7 +295,8 @@ const CreatePanel = ({
         const sResult: any = await getTableList();
         if (sResult.success) {
             const newTable = sResult.data.rows.filter((aItem: any) => getTableType(aItem[4]) === 'log' || getTableType(aItem[4]) === 'tag');
-            setTableList(newTable);
+            const sParesdTable = parseDashboardTables({ columns: sResult.data.columns, rows: newTable });
+            setTableList(sParesdTable);
             if (aStatus) {
                 if (pType === 'create') {
                     const sToken = localStorage.getItem('accessToken');

@@ -9,6 +9,7 @@ import { LicenseModal } from '@/components/modal/LicenseModal';
 import { logOut } from '@/api/repository/login';
 import { useNavigate } from 'react-router-dom';
 import { RxLapTimer } from 'react-icons/rx';
+import { VscTypeHierarchy } from 'react-icons/vsc';
 import './index.scss';
 
 const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
@@ -66,6 +67,8 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                 return <RxLapTimer />;
             case 'SHELL':
                 return <GoTerminal />;
+            case 'BRIDGE':
+                return <VscTypeHierarchy />;
             default:
                 return <Cmd />;
         }

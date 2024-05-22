@@ -470,7 +470,7 @@ any) => {
         const sCopiedFile = await FileCopy(selectedContextFile);
         if (sCopiedFile) {
             CopyFileTree(sCopiedFile);
-            setRename(sCopiedFile);
+            // setRename(sCopiedFile);
         }
         closeContextMenu();
     };
@@ -584,10 +584,10 @@ any) => {
                                                 </Menu.Item> */}
                                             </>
                                         ) : null}
-                                        {(selectedContextFile as any)?.type === 0 && (
+                                        {(selectedContextFile as any)?.type === 0 && !isImage((selectedContextFile as any).name as string) && (
                                             <Menu.Item onClick={handleCopy}>
                                                 <VscCopy />
-                                                <span>Copy</span>
+                                                <span>Duplicate</span>
                                             </Menu.Item>
                                         )}
                                         <Menu.Item onClick={handleRename}>

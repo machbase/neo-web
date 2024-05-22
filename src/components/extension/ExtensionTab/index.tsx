@@ -63,7 +63,19 @@ const ContentDesc = ({ children }: { children: React.ReactNode }) => {
         </div>
     );
 };
-const TextButton = ({ pText, pType, pCallback, pWidth }: { pText: string; pType: string; pCallback: (e: React.MouseEvent) => void; pWidth?: string }) => {
+const TextButton = ({
+    pText,
+    pType,
+    pCallback,
+    pWidth,
+    pIsDisable = false,
+}: {
+    pText: string;
+    pType: string;
+    pCallback: (e: React.MouseEvent) => void;
+    pWidth?: string;
+    pIsDisable?: boolean;
+}) => {
     const getColor = () => {
         switch (pType) {
             case 'DELETE':
@@ -75,7 +87,7 @@ const TextButton = ({ pText, pType, pCallback, pWidth }: { pText: string; pType:
         }
     };
     return (
-        <button className="extension-tab-text-button" style={{ backgroundColor: getColor(), width: pWidth }} onClick={pCallback}>
+        <button className="extension-tab-text-button" style={{ backgroundColor: pIsDisable ? '#6f7173' : getColor(), width: pWidth }} onClick={pCallback}>
             {pText}
         </button>
     );
@@ -94,10 +106,10 @@ const Input = ({ pAutoFocus, pCallback, pValue, pWidth }: { pAutoFocus?: boolean
         </div>
     );
 };
-const TextArea = ({ pContent, pRows, pCols }: { pContent: string; pRows: number; pCols: number }) => {
+const TextArea = ({ pContent, pHeight, pCallback }: { pContent: string; pHeight: number; pCallback?: (e: React.FormEvent<HTMLTextAreaElement>) => void }) => {
     return (
         <div className="extension-tab-text-area-wrapper">
-            <textarea readOnly rows={pRows} cols={pCols} defaultValue={pContent} />
+            <textarea defaultValue={pContent} onChange={pCallback} style={{ height: pHeight + 'px' }} />
         </div>
     );
 };
@@ -385,7 +397,7 @@ const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
                                       {aRowList.map((aRowData: any) => {
                                           return (
                                               <td className="result-table-item" key={generateUUID()}>
-                                                  <span>{aRowData}</span>
+                                                  <span>{aRowData + ''}</span>
                                               </td>
                                           );
                                       })}
