@@ -94,10 +94,10 @@ const Input = ({ pAutoFocus, pCallback, pValue, pWidth }: { pAutoFocus?: boolean
         </div>
     );
 };
-const TextArea = ({ pContent, pRows, pCols }: { pContent: string; pRows: number; pCols: number }) => {
+const TextArea = ({ pContent, pHeight, pCallback }: { pContent: string; pHeight: number; pCallback?: (e: React.FormEvent<HTMLTextAreaElement>) => void }) => {
     return (
         <div className="extension-tab-text-area-wrapper">
-            <textarea readOnly rows={pRows} cols={pCols} defaultValue={pContent} />
+            <textarea defaultValue={pContent} onChange={pCallback} style={{ height: pHeight + 'px' }} />
         </div>
     );
 };
@@ -385,7 +385,7 @@ const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
                                       {aRowList.map((aRowData: any) => {
                                           return (
                                               <td className="result-table-item" key={generateUUID()}>
-                                                  <span>{aRowData}</span>
+                                                  <span>{aRowData + ''}</span>
                                               </td>
                                           );
                                       })}

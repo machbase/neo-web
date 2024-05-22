@@ -67,6 +67,11 @@ export const gExtensionList = atom<any>({
             label: 'SHELL',
         },
         {
+            id: 'BRIDGE',
+            type: 'BRIDGE',
+            label: 'BRIDGE',
+        },
+        {
             id: 'REFERENCE',
             type: 'REFERENCE',
             label: 'REFERENCE',
@@ -143,4 +148,12 @@ export const gShowShellList = selector<any>({
         const sShellList = get(gShellList);
         return sShellList.filter((aTermTypeItem: any) => aTermTypeItem.attributes.some((aAttr: any) => aAttr.editable));
     },
+});
+export const gBridgeList = atom<any>({
+    key: 'gBridgeList',
+    default: [] as any,
+});
+export const gActiveBridge = atom<any>({
+    key: 'gActiveBridge',
+    default: '' as string,
 });

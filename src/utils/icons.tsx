@@ -39,6 +39,7 @@ import {
     MuiFolderOpen,
 } from '@/assets/icons/Mui';
 import { RxLapTimer } from 'react-icons/rx';
+import { VscTypeHierarchy } from 'react-icons/vsc';
 
 const icons = (aType: string, aIsHome?: boolean) => {
     switch (aType) {
@@ -114,6 +115,8 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <VscKey />;
         case 'timer':
             return <RxLapTimer />;
+        case 'bridge':
+            return <VscTypeHierarchy />;
         default:
             return <GoTerminal />;
     }
