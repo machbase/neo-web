@@ -67,6 +67,35 @@ export const TqlOptions = (props: GaugeOptionProps) => {
                     </div>
                 </div>
             </Collapse>
+            <div className="divider" />
+            <Collapse title="Plugins" isOpen>
+                <div style={{ display: 'flex', flexDirection: 'column', cursor: 'default' }}>
+                    <span>For charts that use plugin, need to add the plugin to tql file.</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', color: '#b6b6b6' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
+                            <span style={{ color: 'white' }}>3D charts</span>
+                            <span>{`CHART(`}</span>
+                            <span style={{ color: '#179fff', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }}>plugins("gl"),</span>
+                            <span style={{ margin: '0 0 0 16px' }}>{`chartOption({`}</span>
+                            <span>{`...`}</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
+                            <span style={{ color: 'white' }}>Liquid fill</span>
+                            <span>{`CHART(`}</span>
+                            <span style={{ color: '#179fff', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }}>plugins("liquidfill"),</span>
+                            <span style={{ margin: '0 0 0 16px' }}>{`chartOption({`}</span>
+                            <span>{`...`}</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
+                            <span style={{ color: 'white' }}>Word cloud</span>
+                            <span>{`CHART(`}</span>
+                            <span style={{ color: '#179fff', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }}>plugins("wordcloud"),</span>
+                            <span style={{ margin: '0 0 0 16px' }}>{`chartOption({`}</span>
+                            <span>{`...`}</span>
+                        </div>
+                    </div>
+                </div>
+            </Collapse>
         </div>
     );
 };

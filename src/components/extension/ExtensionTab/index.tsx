@@ -9,6 +9,7 @@ import moment from 'moment';
 import './index.scss';
 import { VscCheck, VscCircleFilled } from 'react-icons/vsc';
 import { generateUUID } from '@/utils';
+import { MdKeyboardArrowRight, MdOutlineKeyboardArrowDown } from 'react-icons/md';
 
 export const ExtensionTab = ({ children, pRef }: { children: React.ReactNode; pRef?: React.MutableRefObject<any> }) => {
     return (
@@ -106,10 +107,20 @@ const Input = ({ pAutoFocus, pCallback, pValue, pWidth }: { pAutoFocus?: boolean
         </div>
     );
 };
-const TextArea = ({ pContent, pHeight, pCallback }: { pContent: string; pHeight: number; pCallback?: (e: React.FormEvent<HTMLTextAreaElement>) => void }) => {
+const TextArea = ({
+    pAutoFocus = false,
+    pContent,
+    pHeight,
+    pCallback,
+}: {
+    pAutoFocus?: boolean;
+    pContent: string;
+    pHeight: number;
+    pCallback?: (e: React.FormEvent<HTMLTextAreaElement>) => void;
+}) => {
     return (
         <div className="extension-tab-text-area-wrapper">
-            <textarea defaultValue={pContent} onChange={pCallback} style={{ height: pHeight + 'px' }} />
+            <textarea autoFocus={pAutoFocus} defaultValue={pContent} onChange={pCallback} style={{ height: pHeight + 'px' }} />
         </div>
     );
 };
@@ -422,6 +433,44 @@ const Switch = ({ pState, pCallback, pBadge }: { pState: boolean; pCallback: () 
     );
 };
 
+const StatusCircle = ({ pState }: { pState?: 'true' | 'false' | 'none' }) => {
+    const getColor = (): string => {
+        switch (pState) {
+            case 'true':
+                return '#9df486';
+            case 'false':
+                return '#fa6464';
+            default:
+                return '#717171';
+        }
+    };
+
+    return (
+        <div className="extension-tab-status-circle-wrapper">
+            <div className="extension-tab-status-circle" style={{ backgroundColor: getColor() }}></div>
+        </div>
+    );
+};
+
+const Collapse = ({ pInitOpen = false, pTrigger, pChildren }: { pInitOpen?: boolean; pTrigger: React.ReactNode; pChildren: React.ReactNode }) => {
+    const [sIsOpen, setIsOpen] = useState<boolean>(pInitOpen);
+
+    return (
+        <div className="extension-tab-collapse">
+            <div className="extension-tab-collapse-trigger-wrapper">
+                <div className="extension-tab-collapse-trigger" onClick={() => setIsOpen(!sIsOpen)}>
+                    <div className="extension-tab-collapse-trigger-icon">
+                        {!sIsOpen && <MdKeyboardArrowRight />}
+                        {sIsOpen && <MdOutlineKeyboardArrowDown />}
+                    </div>
+                    {pTrigger}
+                </div>
+            </div>
+            {sIsOpen && pChildren}
+        </div>
+    );
+};
+
 ExtensionTab.Checkbox = Checkbox;
 ExtensionTab.Group = Group;
 ExtensionTab.Header = Header;
@@ -444,3 +493,5 @@ ExtensionTab.Switch = Switch;
 ExtensionTab.IconBtn = IconBtn;
 ExtensionTab.Selector = Selector;
 ExtensionTab.TextResErr = TextResErr;
+ExtensionTab.StatusCircle = StatusCircle;
+ExtensionTab.Collapse = Collapse;
