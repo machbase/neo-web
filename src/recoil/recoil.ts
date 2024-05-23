@@ -66,11 +66,11 @@ export const gExtensionList = atom<any>({
             type: 'SHELL',
             label: 'SHELL',
         },
-        // {
-        //     id: 'BRIDGE',
-        //     type: 'BRIDGE',
-        //     label: 'BRIDGE',
-        // },
+        {
+            id: 'BRIDGE',
+            type: 'BRIDGE',
+            label: 'BRIDGE',
+        },
         {
             id: 'REFERENCE',
             type: 'REFERENCE',
