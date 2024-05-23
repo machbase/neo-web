@@ -9,6 +9,7 @@ import moment from 'moment';
 import './index.scss';
 import { VscCheck, VscCircleFilled } from 'react-icons/vsc';
 import { generateUUID } from '@/utils';
+import { MdKeyboardArrowRight, MdOutlineKeyboardArrowDown } from 'react-icons/md';
 
 export const ExtensionTab = ({ children, pRef }: { children: React.ReactNode; pRef?: React.MutableRefObject<any> }) => {
     return (
@@ -451,6 +452,25 @@ const StatusCircle = ({ pState }: { pState?: 'true' | 'false' | 'none' }) => {
     );
 };
 
+const Collapse = ({ pInitOpen = false, pTrigger, pChildren }: { pInitOpen?: boolean; pTrigger: React.ReactNode; pChildren: React.ReactNode }) => {
+    const [sIsOpen, setIsOpen] = useState<boolean>(pInitOpen);
+
+    return (
+        <div className="extension-tab-collapse">
+            <div className="extension-tab-collapse-trigger-wrapper">
+                <div className="extension-tab-collapse-trigger" onClick={() => setIsOpen(!sIsOpen)}>
+                    <div className="extension-tab-collapse-trigger-icon">
+                        {!sIsOpen && <MdKeyboardArrowRight />}
+                        {sIsOpen && <MdOutlineKeyboardArrowDown />}
+                    </div>
+                    {pTrigger}
+                </div>
+            </div>
+            {sIsOpen && pChildren}
+        </div>
+    );
+};
+
 ExtensionTab.Checkbox = Checkbox;
 ExtensionTab.Group = Group;
 ExtensionTab.Header = Header;
@@ -474,3 +494,4 @@ ExtensionTab.IconBtn = IconBtn;
 ExtensionTab.Selector = Selector;
 ExtensionTab.TextResErr = TextResErr;
 ExtensionTab.StatusCircle = StatusCircle;
+ExtensionTab.Collapse = Collapse;

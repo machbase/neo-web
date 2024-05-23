@@ -155,29 +155,41 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                                         <ExtensionTab.ContentTitle>bridge connection</ExtensionTab.ContentTitle>
                                         <ExtensionTab.StatusCircle pState={sCommandRes.test?.data?.success?.toString() ?? 'none'} />
                                     </ExtensionTab.DpRow>
-                                    <ExtensionTab.TextButton pIsDisable={sIsRunCommand} pText="Test" pType="CREATE" pCallback={() => handleCommand('test')} />
+                                    <div style={{ marginTop: '8px' }}>
+                                        <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={deleteItem} />
+                                        <ExtensionTab.TextButton pIsDisable={sIsRunCommand} pText="Test" pType="CREATE" pCallback={() => handleCommand('test')} />
+                                    </div>
                                     {sCommandRes.test.message !== '' && <ExtensionTab.TextResErr pText={sCommandRes.test.message} />}
                                 </ExtensionTab.ContentBlock>
                                 {/* Exec  */}
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Exec</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.TextArea pAutoFocus pContent={sPayload.exec} pHeight={100} pCallback={(event) => handlePayload('exec', event)} />
-                                    <ExtensionTab.TextButton pIsDisable={sIsRunCommand} pText="Send " pType="CREATE" pCallback={() => handleCommand('exec')} />
-                                    {sCommandRes.exec.message !== '' && <ExtensionTab.TextResErr pText={sCommandRes.exec.message} />}
+                                    <ExtensionTab.Collapse
+                                        pTrigger={<ExtensionTab.ContentTitle>Execute command</ExtensionTab.ContentTitle>}
+                                        pChildren={
+                                            <>
+                                                <ExtensionTab.TextArea pContent={sPayload.exec} pHeight={100} pCallback={(event) => handlePayload('exec', event)} />
+                                                <ExtensionTab.TextButton pIsDisable={sIsRunCommand} pText="Send " pType="CREATE" pCallback={() => handleCommand('exec')} />
+                                                {sCommandRes.exec.message !== '' && <ExtensionTab.TextResErr pText={sCommandRes.exec.message} />}
+                                            </>
+                                        }
+                                    />
                                 </ExtensionTab.ContentBlock>
                                 {/* Command */}
                                 {sPayload.type !== 'mqtt' && (
                                     <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Query</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>Only works with “SQL” type bridges</ExtensionTab.ContentDesc>
-                                        <ExtensionTab.TextArea pContent={sPayload.query} pHeight={100} pCallback={(event) => handlePayload('query', event)} />
-                                        <ExtensionTab.TextButton pIsDisable={sIsRunCommand} pText="Send " pType="CREATE" pCallback={() => handleCommand('query')} />
-                                        {sCommandRes.query.message !== '' && <ExtensionTab.TextResErr pText={sCommandRes.query.message} />}
+                                        <ExtensionTab.Collapse
+                                            pTrigger={<ExtensionTab.ContentTitle>Query command</ExtensionTab.ContentTitle>}
+                                            pChildren={
+                                                <>
+                                                    <ExtensionTab.ContentDesc>Only works with “SQL” type bridges</ExtensionTab.ContentDesc>
+                                                    <ExtensionTab.TextArea pContent={sPayload.query} pHeight={100} pCallback={(event) => handlePayload('query', event)} />
+                                                    <ExtensionTab.TextButton pIsDisable={sIsRunCommand} pText="Send " pType="CREATE" pCallback={() => handleCommand('query')} />
+                                                    {sCommandRes.query.message !== '' && <ExtensionTab.TextResErr pText={sCommandRes.query.message} />}
+                                                </>
+                                            }
+                                        />
                                     </ExtensionTab.ContentBlock>
                                 )}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={deleteItem} />
-                                </ExtensionTab.ContentBlock>
                             </ExtensionTab.Body>
                         </Pane>
                         <Pane>
