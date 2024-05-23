@@ -12,6 +12,7 @@ import { isMobile } from '@/utils';
 import ViewTimeRangeModal from '@/components/modal/ViewTimeRangeModal';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
+import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import './DashboardView.scss';
 
 const DashboardView = () => {
@@ -28,7 +29,7 @@ const DashboardView = () => {
         if (!aFileName) return;
         const sResult: any = await getFiles('/' + aFileName + '.dsh');
         if (typeof sResult === 'string') {
-            const sParsedRes = JSON.parse(sResult);
+            const sParsedRes = CheckDataCompatibility(sResult, 'dsh');
             await handleDashboardTimeRange(sParsedRes.dashboard.timeRange.start, sParsedRes.dashboard.timeRange.end, sParsedRes);
             setBoardInformation(sParsedRes);
             setNotFound(false);
