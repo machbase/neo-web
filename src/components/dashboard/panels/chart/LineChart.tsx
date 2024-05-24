@@ -14,7 +14,20 @@ import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import './LineChart.scss';
 import { TqlChartParser } from '@/utils/DashboardTqlChartParser';
 
-const LineChart = ({ pLoopMode, pChartVariableId, pPanelInfo, pType, pInsetDraging, pDragStat, pModifyState, pSetModifyState, pParentWidth, pIsHeader, pBoardTimeMinMax }: any) => {
+const LineChart = ({
+    pIsActiveTab,
+    pLoopMode,
+    pChartVariableId,
+    pPanelInfo,
+    pType,
+    pInsetDraging,
+    pDragStat,
+    pModifyState,
+    pSetModifyState,
+    pParentWidth,
+    pIsHeader,
+    pBoardTimeMinMax,
+}: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
     const [sChartData, setChartData] = useState<any>({});
     const [sIsMessage, setIsMessage] = useState<any>('Please set up a Query.');
@@ -37,6 +50,7 @@ const LineChart = ({ pLoopMode, pChartVariableId, pPanelInfo, pType, pInsetDragi
     };
 
     const executeTqlChart = async (aWidth?: number) => {
+        if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
         setIsLoading(true);
         !pLoopMode && setChartData({});
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {

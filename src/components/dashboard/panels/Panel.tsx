@@ -19,6 +19,7 @@ const Panel = ({
     pParentWidth,
     pIsHeader,
     pBoardTimeMinMax,
+    pIsActiveTab,
 }: any) => {
     const [sRefreshCount, setRefreshCount] = useState<number>(0);
     return (
@@ -48,6 +49,7 @@ const Panel = ({
                     pChartVariableId={pChartVariableId}
                     pIsView={pIsView}
                     pBoardTimeMinMax={pBoardTimeMinMax}
+                    pIsActiveTab={pIsActiveTab}
                 />
             )}
         </div>
