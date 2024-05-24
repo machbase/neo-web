@@ -18,13 +18,13 @@ import { postFileList } from '@/api/repository/api';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { Error } from '@/components/toast/Toast';
-import { useNavigate } from 'react-router-dom';
 import { ImageBox } from '@/components/imageBox/ImageBox';
 import { TextExtension } from '@/components/textExtension/TextExtension';
 import { SecurityKey } from '@/components/securityKey';
 import { Timer } from '../timer';
 import { ShellManage } from '@/components/ShellManage';
 import { Bridge } from '../bridge';
+import { useNavigate } from 'react-router-dom';
 
 const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);

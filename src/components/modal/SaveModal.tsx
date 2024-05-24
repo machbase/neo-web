@@ -361,6 +361,7 @@ export const SaveModal = (props: SaveModalProps) => {
     };
 
     const onContextMenu = (e: React.MouseEvent, file: FileType | FileTreeType) => {
+        return;
         e.preventDefault();
         setMenuX(e.pageX);
         setMenuY(e.pageY);

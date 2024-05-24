@@ -145,11 +145,11 @@ request.interceptors.response.use(
                     } else {
                         return error;
                     }
+                } else {
+                    window.dispatchEvent(new Event('logoutEvent'));
+                    return error;
                 }
             } else {
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
-                window.dispatchEvent(new Event('logoutEvent'));
                 return error;
             }
             if (sData) {

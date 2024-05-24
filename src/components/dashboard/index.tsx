@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import GridLayout from 'react-grid-layout';
 import { useRef, useState, useEffect } from 'react';
-
 import '/node_modules/react-grid-layout/css/styles.css';
 import '/node_modules/react-resizable/css/styles.css';
 import './index.scss';
-import { useRecoilState, useSetRecoilState } from 'recoil';
-import { gBoardList, gRollupTableList } from '@/recoil/recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { gBoardList, gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import Panel from './panels/Panel';
 import CreatePanel from './createPanel/CreatePanel';
 import { IconButton } from '../buttons/IconButton';
@@ -36,6 +35,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const [sIsPanelHeader, setIsPanelHeader] = useState<boolean>(true);
     const [sChartVariableId, setChartVariableId] = useState<string>('');
     const [sBoardTimeMinMax, setBoardTimeMinMax] = useState<any>(undefined);
+    const sActiveTabId = useRecoilValue<any>(gSelectedTab);
 
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
@@ -281,6 +281,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                                 pIsHeader={sIsPanelHeader}
                                                 pChartVariableId={sChartVariableId}
                                                 pBoardTimeMinMax={sBoardTimeMinMax}
+                                                pIsActiveTab={sActiveTabId === pInfo.id}
                                             />
                                         </div>
                                     );

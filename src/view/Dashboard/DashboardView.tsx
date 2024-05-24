@@ -198,6 +198,7 @@ const DashboardView = () => {
                                         pIsHeader={false}
                                         pLoopMode={sBoardInformation?.dashboard.timeRange.refresh !== 'Off' || aItem?.timeRange?.refresh !== 'Off' ? true : false}
                                         pBoardTimeMinMax={sBoardTimeMinMax}
+                                        pIsActiveTab={true}
                                     />
                                 </div>
                             );
