@@ -39,7 +39,6 @@ import { UrlDownloadModal } from '../modal/UrlDownloadModal';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { VscCopy } from 'react-icons/vsc';
 import { FileCopy } from '@/utils/UpdateTree';
-import { useNavigate } from 'react-router-dom';
 
 const Side = ({
     pGetInfo,
@@ -92,7 +91,6 @@ any) => {
     const DeleteFileTree = useSetRecoilState(gDeleteFileTree);
     const ReplaceTree = useSetRecoilState(gReplaceTree);
     const CopyFileTree = useSetRecoilState(gCopyFileTree);
-    const sNavigate = useNavigate();
 
     useEffect(() => {
         getFileTree();
