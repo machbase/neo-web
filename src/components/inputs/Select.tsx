@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import './Select.scss';
 import { ArrowDown } from '@/assets/icons/Icon';
 import useOutsideClick from '@/hooks/useOutsideClick';
+import { Tooltip } from 'react-tooltip';
 
 export interface SelectProps {
     pOptions: string[];
@@ -16,6 +17,7 @@ export interface SelectProps {
     pIsDisabled?: boolean;
     pAutoChanged?: boolean;
     pNoneValue?: string;
+    pIsToolTip?: boolean;
 }
 
 export const Select = (props: SelectProps) => {
@@ -32,6 +34,7 @@ export const Select = (props: SelectProps) => {
         pIsReadonly = true,
         pInitValue = '',
         onChange,
+        pIsToolTip = false,
     } = props;
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [selectValue, setSelectValue] = useState<string>(pInitValue);
@@ -91,11 +94,21 @@ export const Select = (props: SelectProps) => {
                 style={{ display: isOpen ? 'block' : 'none', maxHeight: pHeight * 5 + 'px', borderRadius: pBorderRadius + 'px' }}
                 onClick={(aEvent) => aEvent.stopPropagation()}
             >
-                {pOptions.map((aOption: string, aIdx) => (
-                    <div key={aOption + aIdx} className="options-item" onClick={() => handleSelect(aOption)} style={{ fontSize: pFontSize }}>
-                        {aOption}
-                    </div>
-                ))}
+                <div className="select-options-item-wrapper" style={{ maxHeight: pHeight * 4 + 'px' }}>
+                    {!pIsToolTip &&
+                        pOptions.map((aOption: string, aIdx) => (
+                            <div key={aOption + aIdx} className="options-item" onClick={() => handleSelect(aOption)} style={{ fontSize: pFontSize }}>
+                                {aOption}
+                            </div>
+                        ))}
+                    {pIsToolTip &&
+                        pOptions.map((aOption: string, aIdx) => (
+                            <button key={aIdx} className={`select-tooltip-${aIdx} options-item`} onClick={() => handleSelect(aOption)} style={{ fontSize: pFontSize }}>
+                                <Tooltip anchorSelect={`.select-tooltip-${aIdx}`} content={aOption} />
+                                <div className="select-text">{aOption}</div>
+                            </button>
+                        ))}
+                </div>
             </div>
         </div>
     );
