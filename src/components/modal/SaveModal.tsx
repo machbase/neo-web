@@ -17,6 +17,7 @@ import icons from '@/utils/icons';
 import { TextButton } from '../buttons/TextButton';
 import EnterCallback from '@/hooks/useEnter';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
+import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 
 export interface SaveModalProps {
     setIsOpen: any;
@@ -489,7 +490,16 @@ export const SaveModal = (props: SaveModalProps) => {
                             <span>File Name</span>
                             <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark' : ''}`}>
                                 {/* // onKeyDown={(e: any) => useEnter(e, saveFile)} */}
-                                <input autoFocus onChange={changeSaveFileName} value={sSaveFileName} onKeyDown={(e: any) => EnterCallback(e, saveFile)} />
+                                <input
+                                    autoFocus
+                                    onChange={changeSaveFileName}
+                                    value={sSaveFileName}
+                                    onKeyDown={(e: any) =>
+                                        FileNameAndExtensionValidator(sSaveFileName) && extractionExtension(sSaveFileName) === sFileType && pIsSave
+                                            ? EnterCallback(e, saveFile)
+                                            : null
+                                    }
+                                />
                             </div>
                         </div>
                     ) : null}
@@ -497,8 +507,12 @@ export const SaveModal = (props: SaveModalProps) => {
                         <TextButton
                             pText="OK"
                             pBackgroundColor="#4199ff"
-                            pIsDisabled={pIsSave && !sSaveFileName.endsWith(`.${sFileType}`)}
-                            onClick={extractionExtension(sSaveFileName) === sFileType && pIsSave ? saveFile : () => openFile(sSelectedFile)}
+                            pIsDisabled={pIsSave && !(FileNameAndExtensionValidator(sSaveFileName) && sSaveFileName.endsWith(`.${sFileType}`))}
+                            onClick={
+                                FileNameAndExtensionValidator(sSaveFileName) && extractionExtension(sSaveFileName) === sFileType && pIsSave
+                                    ? saveFile
+                                    : () => openFile(sSelectedFile)
+                            }
                         />
                         <div style={{ width: '10px' }}></div>
                         <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />
