@@ -105,6 +105,7 @@ const Home = () => {
         };
 
         sHome &&
+            sResult?.shells &&
             sResult.shells.length !== 0 &&
             sResult.shells.forEach((aItem: any) => {
                 if (aItem.attributes && Array.isArray(aItem.attributes)) {

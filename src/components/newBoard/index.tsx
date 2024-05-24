@@ -187,9 +187,10 @@ const NewBoard = (props: NewBoardProps) => {
                 <p className="main_title">New...</p>
             </div>
             <div className="btn_wrap">
-                {getShellList.map((aItem: any) => {
-                    return <ShellMenu key={aItem.id} pInfo={aItem} pChangeTabOption={changeTabOption} pSetIcon={setIcon} />;
-                })}
+                {getShellList &&
+                    getShellList.map((aItem: any) => {
+                        return <ShellMenu key={aItem.id} pInfo={aItem} pChangeTabOption={changeTabOption} pSetIcon={setIcon} />;
+                    })}
                 {/* Drop & Open */}
                 <label
                     onDragEnter={() => setFileUploadStyle(true)}

@@ -39,6 +39,7 @@ import { UrlDownloadModal } from '../modal/UrlDownloadModal';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { VscCopy } from 'react-icons/vsc';
 import { FileCopy } from '@/utils/UpdateTree';
+import { useNavigate } from 'react-router-dom';
 
 const Side = ({
     pGetInfo,
@@ -91,6 +92,7 @@ any) => {
     const DeleteFileTree = useSetRecoilState(gDeleteFileTree);
     const ReplaceTree = useSetRecoilState(gReplaceTree);
     const CopyFileTree = useSetRecoilState(gCopyFileTree);
+    const sNavigate = useNavigate();
 
     useEffect(() => {
         getFileTree();
@@ -147,9 +149,11 @@ any) => {
     const getFileTree = async () => {
         setLoadFileTree(true);
         const sReturn = await getFiles('/');
-        const sParedData = fileTreeParser(sReturn.data, '/', 0, '0');
-        setFileTree(JSON.parse(JSON.stringify(sParedData)));
-        setLoadFileTree(false);
+        if (sReturn && sReturn?.data) {
+            const sParedData = fileTreeParser(sReturn.data, '/', 0, '0');
+            setFileTree(JSON.parse(JSON.stringify(sParedData)));
+            setLoadFileTree(false);
+        }
     };
 
     const onSelect = async (file: FileType) => {
@@ -161,6 +165,7 @@ any) => {
         } else {
             const sContentResult: any = await getFiles(`${file.path}${file.name}`);
             const sFileExtension = extractionExtension(file.id);
+            if (typeof sContentResult === 'object' && !isImage(file.id)) return;
             let sTmpBoard: any = { id: sTmpId, name: file.name, type: sFileExtension, path: file.path, savedCode: sContentResult, code: '' };
             if (sFileExtension === 'wrk') {
                 const sTmpData = JSON.parse(sContentResult);

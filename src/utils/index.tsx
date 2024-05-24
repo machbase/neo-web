@@ -77,7 +77,13 @@ export const decodeJwt = (aToken: string) => {
 };
 
 export const getUserName = () => {
-    return decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub;
+    try {
+        const sToken = localStorage.getItem('accessToken');
+        const sDecodeJwt = decodeJwt(JSON.stringify(sToken));
+        return sDecodeJwt.sub;
+    } catch {
+        return undefined;
+    }
 };
 
 export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {

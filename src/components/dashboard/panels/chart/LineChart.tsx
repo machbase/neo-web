@@ -50,7 +50,9 @@ const LineChart = ({
     };
 
     const executeTqlChart = async (aWidth?: number) => {
-        if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
+        if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') {
+            return;
+        }
         setIsLoading(true);
         !pLoopMode && setChartData({});
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {

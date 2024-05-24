@@ -54,7 +54,9 @@ interface UserDivPropsType {
 const UserDiv = (props: UserDivPropsType): JSX.Element => {
     const [sCollapseTree, setCollapseTree] = useState(true);
     const TableTypeList: string[] = ['tag', 'log', 'fixed', 'volatile', 'lookup', 'keyValue'];
-    const sUserName = getUserName().toUpperCase();
+    let sUserName = getUserName();
+    if (sUserName) sUserName = sUserName.toUpperCase();
+
     const getTableInfoData = async (aDatabaseId: string, aTableId: string) => {
         return await getTableInfo(aDatabaseId, aTableId);
     };
@@ -108,7 +110,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                 {props.pUserData.tableList[aTableType].map((aTable: any, bIdx: number) => {
                                     return (
                                         <div className="table-wrap-content" key={`table-${aTableType}-${aIdx}-${bIdx}`} style={{ display: checkDisplay(aTable[5]) ? '' : 'none' }}>
-                                            <TableDiv
+                                           {sUserName && <TableDiv
                                                 pShowHiddenObj={props.pShowHiddenObj}
                                                 pUserName={sUserName}
                                                 pTableIcon={<TfiLayoutColumn3Alt style={{ color: getColor(aTableType), rotate: '90deg' }} />}
@@ -117,7 +119,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                                 onTableInfo={getTableInfoData}
                                                 onColumnInfo={getColumnIndexInfoData}
                                                 pRefresh={props.pRefresh}
-                                            />
+                                            />}
                                         </div>
                                     );
                                 })}
