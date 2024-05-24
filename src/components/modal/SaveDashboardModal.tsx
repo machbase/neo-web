@@ -20,6 +20,7 @@ import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
 import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
 import { Select } from '@/components/inputs/Select';
 import { chartTypeConverter } from '@/utils/eChartHelper';
+import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 
 export interface SaveDashboardModalProps {
     setIsOpen: any;
@@ -432,8 +433,8 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                         <TextButton
                             pText="OK"
                             pBackgroundColor="#4199ff"
-                            pIsDisabled={!sSaveFileName.endsWith(`.${sFileType}`)}
-                            onClick={extractionExtension(sSaveFileName) === sFileType ? saveFile : () => null}
+                            pIsDisabled={!(FileNameAndExtensionValidator(sSaveFileName) && sSaveFileName.endsWith(`.${sFileType}`))}
+                            onClick={FileNameAndExtensionValidator(sSaveFileName) && extractionExtension(sSaveFileName) === sFileType ? saveFile : () => null}
                         />
                         <div style={{ width: '10px' }}></div>
                         <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />
