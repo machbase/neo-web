@@ -1,5 +1,5 @@
 import { getTableInfo, getVirtualTableInfo } from '@/api/repository/api';
-import { fetchTags, getRollupTableList, getTqlChart } from '@/api/repository/machiot';
+import { getRollupTableList, getTqlChart } from '@/api/repository/machiot';
 import { BsArrowsCollapse, BsArrowsExpand, Close, Refresh, TbMath, TbMathOff } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { Select } from '@/components/inputs/Select';
@@ -28,9 +28,10 @@ import { TagColorList } from '@/utils/constants';
 import { SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser';
 import { Error } from '@/components/toast/Toast';
 import { chartTypeConverter } from '@/utils/eChartHelper';
+import { TagSearchSelect } from '@/components/inputs/TagSearchSelect';
 
 export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
-    const [sTagList, setTagList] = useState<any>([]);
+    // const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
     const setRollupTabls = useSetRecoilState(gRollupTableList);
@@ -143,20 +144,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                     }),
                 };
             });
-        }
-    };
-    const getTagList = async (aTable: any) => {
-        const sData: any = await fetchTags(aTable);
-        if (sData && sData.success && sData.data && sData.data.rows && sData.data.rows.length > 0) {
-            const sSvrResTagList = sData.data.rows.map((aItem: any) => {
-                return aItem[1];
-            });
-            // setOption('tag', sSvrResTagList[0]);
-            setTagList(sSvrResTagList);
-            return sSvrResTagList;
-        } else {
-            setTagList([]);
-            return [];
         }
     };
     const changeValueOption = (aKey: string, aData: any, aId: string, aChangedKey: string) => {
@@ -318,6 +305,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         await pGetTables();
         setIsLoadingRollup(() => false);
     };
+    const handleTagSelect = (aSelectedTag: string) => {
+        changedOption('tag', { target: { value: aSelectedTag } });
+    };
     /** return agg list based on chart type */
     const getAggregatorList = useMemo((): string[] => {
         const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
@@ -378,12 +368,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         const sIsVirtualTable = pBlockInfo.table.includes('V$');
         const sTableType = getTableType(sTable[4]);
         const sSelectedType = sIsVirtualTable ? 'vir_tag' : sTableType;
-        let sResTagList: any = [];
         setSelectedTableType(sSelectedType);
         getColumnList(pBlockInfo.table);
-        if (!sIsVirtualTable && sTableType === 'tag') sResTagList = await getTagList(pBlockInfo.table);
-        // Set default value
-        setOption(sTableType, pBlockInfo.tag !== '' ? pBlockInfo.tag : sResTagList[0]);
+        setOption(sTableType, pBlockInfo.tag);
     };
     useEffect(() => {
         init();
@@ -411,6 +398,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                     pHeight={26}
                                     onChange={(aEvent: any) => changedOption('table', aEvent)}
                                     pOptions={getTableList}
+                                    pIsToolTip
                                 />
                             </div>
                             {sSelectedTableType !== 'vir_tag' && (
@@ -449,23 +437,22 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                     pHeight={26}
                                     onChange={(aEvent: any) => changedOption('table', aEvent)}
                                     pOptions={getTableList}
+                                    pIsToolTip
                                 />
                             </div>
                             <div className="series-table">
                                 <span className="series-title"> Tag </span>
-                                {sTagList[0] && (
-                                    <Select
-                                        pFontSize={12}
+                                <div className="tag-search-select-wrapper-custom">
+                                    <Input
                                         pWidth={175}
-                                        pAutoChanged={true}
-                                        pBorderRadius={4}
-                                        pInitValue={pBlockInfo.tag}
                                         pHeight={26}
+                                        pBorderRadius={4}
+                                        pType="text"
+                                        pValue={pBlockInfo.tag}
                                         onChange={(aEvent: any) => changedOption('tag', aEvent)}
-                                        pOptions={sTagList}
-                                        pIsDisabled={sTagList.length <= 0}
                                     />
-                                )}
+                                    <TagSearchSelect pTable={pBlockInfo.table} pCallback={handleTagSelect} />
+                                </div>
                             </div>
                             <div className="series-table">
                                 <span className="series-title"> Aggregator </span>
