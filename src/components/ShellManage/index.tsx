@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { copyShell, postShell, removeShell } from '@/api/repository/api';
 import icons from '@/utils/icons';
 import SplitPane from 'split-pane-react/esm/SplitPane';
+import { ConfirmModal } from '../modal/ConfirmModal';
 
 interface ShellAttrType {
     [key: number]: any;
@@ -32,50 +33,51 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
     // const [sShellList, setaShellList] = useRecoilState<any>(gShellList);
     const sIconList = ['console-network-outline', 'monitor-small', 'console-line', 'powershell', 'laptop', 'database', 'database-outline'];
     const sThemeList = ['default', 'white', 'dark', 'indigo', 'gray', 'galaxy'];
+    const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
 
     /** delete shell */
-    const deleteShell = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (window.confirm(`Do you want to delete the shell "${sPayload.label}"?`)) {
-            const sRes: any = await removeShell(sPayload.id);
-            if (sRes.success) {
-                await shellList();
-                const sShellList = getShowShellList.filter((aShellInfo: any) => aShellInfo.id !== sPayload.id);
-                if (sShellList && sShellList.length > 0) {
-                    setActiveShellName(sShellList[0].id);
-                    const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'shell-manage');
-                    setBoardList((aBoardList: any) => {
-                        return aBoardList.map((aBoard: any) => {
-                            if (aBoard.id === aTarget.id) {
-                                return {
-                                    ...aTarget,
-                                    name: `SHELL: ${sShellList[0].label}`,
-                                    code: sShellList[0],
-                                    savedCode: sShellList[0],
-                                };
-                            }
-                            return aBoard;
-                        });
+    const deleteShell = async () => {
+        const sRes: any = await removeShell(sPayload.id);
+        if (sRes.success) {
+            await shellList();
+            const sShellList = getShowShellList.filter((aShellInfo: any) => aShellInfo.id !== sPayload.id);
+            if (sShellList && sShellList.length > 0) {
+                setActiveShellName(sShellList[0].id);
+                const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'shell-manage');
+                setBoardList((aBoardList: any) => {
+                    return aBoardList.map((aBoard: any) => {
+                        if (aBoard.id === aTarget.id) {
+                            return {
+                                ...aTarget,
+                                name: `SHELL: ${sShellList[0].label}`,
+                                code: sShellList[0],
+                                savedCode: sShellList[0],
+                            };
+                        }
+                        return aBoard;
                     });
-                    setSelectedTab(aTarget.id);
-                } else {
-                    const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'shell-manage');
-                    const aLastBoard = sBoardList.filter((aBoard: any) => aBoard.type !== 'shell-manage').at(-1);
-                    setBoardList((aBoardList: any) => {
-                        return aBoardList.filter((aBoard: any) => aBoard.id !== aTarget.id);
-                    });
-                    setSelectedTab(aLastBoard.id);
-                    setActiveShellName(undefined);
-                }
-
-                setResMessage(undefined);
+                });
+                setSelectedTab(aTarget.id);
             } else {
-                if (sRes?.data && sRes?.data.reason) setResMessage(sRes?.data.reason);
-                else setResMessage(sRes.statusText);
+                const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'shell-manage');
+                const aLastBoard = sBoardList.filter((aBoard: any) => aBoard.type !== 'shell-manage').at(-1);
+                setBoardList((aBoardList: any) => {
+                    return aBoardList.filter((aBoard: any) => aBoard.id !== aTarget.id);
+                });
+                setSelectedTab(aLastBoard.id);
+                setActiveShellName(undefined);
             }
+
+            setResMessage(undefined);
         } else {
-            alert('Delete Has Been Canceled.');
+            if (sRes?.data && sRes?.data.reason) setResMessage(sRes?.data.reason);
+            else setResMessage(sRes.statusText);
         }
+        setIsDeleteModal(false);
+    };
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsDeleteModal(true);
     };
     /** edit shell */
     const editShell = async (e: React.MouseEvent) => {
@@ -245,7 +247,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                 <ExtensionTab.ContentBlock>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <ExtensionTab.DpRow>
-                                            <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={deleteShell} />
+                                            <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
                                             <ExtensionTab.TextButton pText="Save" pType="CREATE" pCallback={editShell} />
                                             {sResMessage && <ExtensionTab.TextResErr pText={sResMessage} />}
                                         </ExtensionTab.DpRow>
@@ -259,6 +261,14 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                         </Pane>
                     </SplitPane>
                 </ExtensionTab>
+            )}
+            {sIsDeleteModal && (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={setIsDeleteModal}
+                    pCallback={deleteShell}
+                    pContents={<div className="body-content">{`Do you want to delete this shell?`}</div>}
+                />
             )}
         </>
     );

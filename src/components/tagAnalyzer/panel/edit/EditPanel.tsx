@@ -184,7 +184,19 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
                 <TextButton pWidth={100} pHeight={30} pText="OK" pBackgroundColor="#4199ff" onClick={checkSameWithConfirmModal} />
                 <TextButton pWidth={100} pHeight={30} pText="Cancel" pBackgroundColor="#666979" onClick={() => pSetEditPanel(false)} />
             </div>
-            {sIsConfirmModal ? <ConfirmModal pIsDarkMode setIsOpen={setIsConfirmModal} pCallback={save} /> : null}
+            {sIsConfirmModal ? (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={setIsConfirmModal}
+                    pCallback={save}
+                    pContents={
+                        <>
+                            <div className="body-content">There are contents that have not been applied.</div>
+                            <div className="body-content">Are you sure you want to save it?</div>
+                        </>
+                    }
+                />
+            ) : null}
         </div>
     );
 };

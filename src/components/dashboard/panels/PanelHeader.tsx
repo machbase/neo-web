@@ -14,6 +14,7 @@ import { Error } from '@/components/toast/Toast';
 import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
 import { SaveDashboardModal } from '@/components/modal/SaveDashboardModal';
 import { HiMiniDocumentDuplicate } from 'react-icons/hi2';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo }: any) => {
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
@@ -22,6 +23,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     const sHeaderId = generateRandomString();
     const sMenuRef = useRef<HTMLDivElement>(null);
     const [sDownloadModal, setDownloadModal] = useState<boolean>(false);
+    const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
 
     const removePanel = () => {
         setBoardList(
@@ -42,10 +44,13 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         aEvent.preventDefault();
         setIsContextMenu(!sIsContextMenu);
     };
-    const handleDeleteOnMenu = (aEvent: React.MouseEvent) => {
-        aEvent.stopPropagation();
+    const handleDeleteOnMenu = () => {
         removePanel();
+    };
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
         setIsContextMenu(false);
+        setIsDeleteModal(true);
     };
     const handleMoveEditOnMenu = (aEvent: React.MouseEvent, aPanelId: string) => {
         aEvent.stopPropagation();
@@ -178,7 +183,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                         <span>Show Taganalyzer</span>
                                     </Menu.Item>
                                 )}
-                                <Menu.Item onClick={handleDeleteOnMenu}>
+                                <Menu.Item onClick={handleDelete}>
                                     <Delete />
                                     <span>Delete</span>
                                 </Menu.Item>
@@ -231,6 +236,14 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                     setIsOpen={setDownloadModal}
                     pPanelInfo={pPanelInfo}
                     pIsDarkMode={true}
+                />
+            )}
+            {sIsDeleteModal && (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={setIsDeleteModal}
+                    pCallback={handleDeleteOnMenu}
+                    pContents={<div className="body-content">{`Do you want to delete this panel?`}</div>}
                 />
             )}
         </>

@@ -16,6 +16,7 @@ import { gConsoleSelector } from '@/recoil/recoil';
 import { sqlMultiQueryParser } from '@/utils/sqlMultiQueryParser';
 import { ShowMap } from '../tql/ShowMap';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
+import { ConfirmModal } from '../modal/ConfirmModal';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown';
 type MonacoLang = 'sql' | 'markdown' | 'go';
@@ -85,6 +86,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sMonacoLineHeight, setMonacoLineHeight] = useState<number>(pData.lineHeight ?? 19);
     const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
     const wrkEditorRef = useRef<HTMLDivElement>(null);
+    const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
 
     useEffect(() => {
         if (pAllRunCodeList.length > 0 && pAllRunCodeStatus && typeof pAllRunCodeTargetIdx === 'number' && pAllRunCodeList[pIdx] && pIdx === pAllRunCodeTargetIdx) {
@@ -283,6 +285,10 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setTqlResultType('text');
         setTqlTextResult(aText);
         aUseErrorConsole && ErrorConsole(aText);
+    };
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsDeleteModal(true);
     };
 
     const getTqlData = async (aText: string) => {
@@ -519,7 +525,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                             pIcon={<Delete />}
                             pDisabled={!(pWorkSheets.length > 1)}
                             pIsActiveHover
-                            onClick={pWorkSheets.length > 1 ? () => pCallback({ id: pData.id, event: 'Delete' }) : () => null}
+                            // onClick={pWorkSheets.length > 1 ? () => pCallback({ id: pData.id, event: 'Delete' }) : () => null}
+                            onClick={pWorkSheets.length > 1 ? handleDelete : () => null}
                         />
                     </div>
                     <div ref={resizeRef} className="editor">
@@ -545,6 +552,14 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     onClick={() => setCollapse(!sCollapse)}
                 />
             </div>
+            {sIsDeleteModal && (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={setIsDeleteModal}
+                    pCallback={() => pCallback({ id: pData.id, event: 'Delete' })}
+                    pContents={<div className="body-content">{`Do you want to delete this panel?`}</div>}
+                />
+            )}
         </div>
     );
 };

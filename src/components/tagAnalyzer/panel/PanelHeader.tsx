@@ -6,6 +6,7 @@ import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { Refresh, GearFill, Delete, MdRawOn, MdFlagCircle, PiSelectionPlusBold, LineChart, LuTimerReset } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
 
 const PanelHeader = ({
     pResetData,
@@ -31,6 +32,7 @@ const PanelHeader = ({
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sPanelRange, setPanelRage] = useState<any>({ startTime: 0, endTime: 0 });
     const [sEditPanel, setEditPanel] = useState<boolean>(false);
+    const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
 
     const clickHeader = () => {
         pGetChartInfo(pPanelRange.startTime, pPanelRange.endTime, pPanelInfo, pIsRaw);
@@ -48,6 +50,10 @@ const PanelHeader = ({
                 }
             })
         );
+    };
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsDeleteModal(true);
     };
     const handleRefreshTime = async () => {
         pResetData();
@@ -158,12 +164,20 @@ const PanelHeader = ({
                         pToolTipContent={'Delete'}
                         pToolTipId={'delete-taz-panel-' + JSON.stringify(pIsEdit)}
                         pIcon={<Delete size={18} />}
-                        onClick={() => removePanel()}
+                        onClick={handleDelete}
                     />
                 )}
             </div>
             {sEditPanel && (
                 <EditPanel pBoardInfo={pBoardInfo} pPanelInfo={pPanelInfo} pSetEditPanel={setEditPanel} pNavigatorRange={pNavigatorRange} pSetSaveEditedInfo={pSetSaveEditedInfo} />
+            )}
+            {sIsDeleteModal && (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={setIsDeleteModal}
+                    pCallback={removePanel}
+                    pContents={<div className="body-content">{`Do you want to delete this panel?`}</div>}
+                />
             )}
         </div>
     );
