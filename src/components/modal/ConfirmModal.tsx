@@ -2,15 +2,17 @@ import { Close, VscWarning } from '@/assets/icons/Icon';
 import { TextButton } from '@/components/buttons/TextButton';
 import Modal from './Modal';
 import './ConfirmModal.scss';
+import React from 'react';
 
 export interface DeleteModalProps {
     setIsOpen: any;
-    pIsDarkMode?: boolean;
+    pContents: React.ReactNode;
     pCallback: () => void;
+    pIsDarkMode?: boolean;
 }
 
 export const ConfirmModal = (props: DeleteModalProps) => {
-    const { setIsOpen, pIsDarkMode, pCallback } = props;
+    const { setIsOpen, pIsDarkMode, pContents, pCallback } = props;
 
     const handleClose = () => {
         setIsOpen(false);
@@ -35,10 +37,7 @@ export const ConfirmModal = (props: DeleteModalProps) => {
                     </div>
                 </Modal.Header>
                 <Modal.Body>
-                    <div className="body">
-                        <div className="body-content">There are contents that have not been applied.</div>
-                        <div className="body-content">Are you sure you want to save it?</div>
-                    </div>
+                    <div className="body">{pContents}</div>
                 </Modal.Body>
                 <Modal.Footer>
                     <div className="button-group">

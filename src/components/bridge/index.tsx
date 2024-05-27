@@ -8,6 +8,7 @@ import { CreateBridge } from './createBridge';
 import { useEffect, useRef, useState } from 'react';
 import { IconButton } from '../buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
+import { ConfirmModal } from '../modal/ConfirmModal';
 
 export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -24,55 +25,56 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
     });
     const setResList = useSetRecoilState<BridgeItemType[] | undefined>(gBridgeList);
     const TYPE = 'bridge';
+    const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
 
     /** delete item */
-    const deleteItem = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (window.confirm(`Do you want to delete the ${TYPE} "${pCode.name}"?`)) {
-            const sRes = await delBridge(pCode.name);
-            if (sRes.success) {
-                const sBridgeList = await getBridge();
-                if (sBridgeList.success) setResList(sBridgeList?.data || []);
-                else setResList([]);
+    const deleteItem = async () => {
+        const sRes = await delBridge(pCode.name);
+        if (sRes.success) {
+            const sBridgeList = await getBridge();
+            if (sBridgeList.success) setResList(sBridgeList?.data || []);
+            else setResList([]);
 
-                const sTempList = sBridgeList.data ? sBridgeList.data.filter((aInfo: any) => aInfo.name !== pCode.name) : [];
-                if (sTempList && sTempList.length > 0) {
-                    setActiveName(sTempList[0].name);
-                    const aTarget = sBoardList.find((aBoard: any) => aBoard.type === TYPE);
-                    setBoardList((aBoardList: any) => {
-                        return aBoardList.map((aBoard: any) => {
-                            if (aBoard.id === aTarget.id) {
-                                return {
-                                    ...aTarget,
-                                    name: `${TYPE.toUpperCase()}: ${sTempList[0].name}`,
-                                    code: sTempList[0],
-                                    savedCode: sTempList[0],
-                                };
-                            }
-                            return aBoard;
-                        });
+            const sTempList = sBridgeList.data ? sBridgeList.data.filter((aInfo: any) => aInfo.name !== pCode.name) : [];
+            if (sTempList && sTempList.length > 0) {
+                setActiveName(sTempList[0].name);
+                const aTarget = sBoardList.find((aBoard: any) => aBoard.type === TYPE);
+                setBoardList((aBoardList: any) => {
+                    return aBoardList.map((aBoard: any) => {
+                        if (aBoard.id === aTarget.id) {
+                            return {
+                                ...aTarget,
+                                name: `${TYPE.toUpperCase()}: ${sTempList[0].name}`,
+                                code: sTempList[0],
+                                savedCode: sTempList[0],
+                            };
+                        }
+                        return aBoard;
                     });
-                } else {
-                    const aTarget = sBoardList.find((aBoard: any) => aBoard.type === TYPE);
-                    setActiveName(undefined);
-                    setBoardList((aBoardList: any) => {
-                        return aBoardList.map((aBoard: any) => {
-                            if (aBoard.id === aTarget.id) {
-                                return {
-                                    ...aTarget,
-                                    name: `${TYPE.toUpperCase()}: create`,
-                                    code: undefined,
-                                    savedCode: false,
-                                };
-                            }
-                            return aBoard;
-                        });
+                });
+            } else {
+                const aTarget = sBoardList.find((aBoard: any) => aBoard.type === TYPE);
+                setActiveName(undefined);
+                setBoardList((aBoardList: any) => {
+                    return aBoardList.map((aBoard: any) => {
+                        if (aBoard.id === aTarget.id) {
+                            return {
+                                ...aTarget,
+                                name: `${TYPE.toUpperCase()}: create`,
+                                code: undefined,
+                                savedCode: false,
+                            };
+                        }
+                        return aBoard;
                     });
-                }
+                });
             }
-        } else {
-            alert('Delete Has Been Canceled.');
         }
+        setIsDeleteModal(false);
+    };
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsDeleteModal(true);
     };
     const handlePayload = (aState: CommandBridgeStateType, e: React.FormEvent<HTMLTextAreaElement>) => {
         const sTmp = JSON.parse(JSON.stringify(sPayload));
@@ -156,7 +158,7 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                                         <ExtensionTab.StatusCircle pState={sCommandRes.test?.data?.success?.toString() ?? 'none'} />
                                     </ExtensionTab.DpRow>
                                     <div style={{ marginTop: '8px' }}>
-                                        <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={deleteItem} />
+                                        <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
                                         <ExtensionTab.TextButton pIsDisable={sIsRunCommand} pText="Test" pType="CREATE" pCallback={() => handleCommand('test')} />
                                     </div>
                                     {sCommandRes.test.message !== '' && <ExtensionTab.TextResErr pText={sCommandRes.test.message} />}
@@ -235,6 +237,14 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
             )}
             {/* Show create */}
             {!sActiveName && <CreateBridge />}
+            {sIsDeleteModal && (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={setIsDeleteModal}
+                    pCallback={deleteItem}
+                    pContents={<div className="body-content">{`Do you want to delete this bridge?`}</div>}
+                />
+            )}
         </>
     );
 };

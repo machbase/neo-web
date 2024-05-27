@@ -9,6 +9,7 @@ import SplitPane from 'split-pane-react/esm/SplitPane';
 import { AUTO_START_DESC } from './content';
 import { SelectFileBtn } from '../buttons/SelectFileBtn';
 import { OpenFileBtn } from '../buttons/OpenFileBtn';
+import { ConfirmModal } from '../modal/ConfirmModal';
 
 export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -17,55 +18,57 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sCommandRes, setCommandRes] = useState<string | undefined>(undefined);
     const [sResMessage, setResMessage] = useState<string | undefined>(undefined);
     const [sPayload, setPayload] = useState<any>(undefined);
+    const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
 
     /** delete timer */
-    const deleteTimer = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (window.confirm(`Do you want to delete the timer "${pCode.name}"?`)) {
-            const sRes = await delTimer(pCode.name);
-            if (sRes.success) {
-                const sTimerList = await getTimer();
-                if (sTimerList.success) setResTimerList(sTimerList.data);
-                else setResTimerList([]);
+    const deleteTimer = async () => {
+        const sRes = await delTimer(pCode.name);
+        if (sRes.success) {
+            const sTimerList = await getTimer();
+            if (sTimerList.success) setResTimerList(sTimerList.data);
+            else setResTimerList([]);
 
-                const sTempTimerList = sTimerList.data.filter((aKeyInfo: any) => aKeyInfo.name !== pCode.name);
-                if (sTempTimerList && sTempTimerList.length > 0) {
-                    setActiveTimer(sTempTimerList[0].name);
-                    const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
-                    setBoardList((aBoardList: any) => {
-                        return aBoardList.map((aBoard: any) => {
-                            if (aBoard.id === aTarget.id) {
-                                return {
-                                    ...aTarget,
-                                    name: `TIMER: ${sTempTimerList[0].name}`,
-                                    code: sTempTimerList[0],
-                                    savedCode: sTempTimerList[0],
-                                };
-                            }
-                            return aBoard;
-                        });
+            const sTempTimerList = sTimerList.data.filter((aKeyInfo: any) => aKeyInfo.name !== pCode.name);
+            if (sTempTimerList && sTempTimerList.length > 0) {
+                setActiveTimer(sTempTimerList[0].name);
+                const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
+                setBoardList((aBoardList: any) => {
+                    return aBoardList.map((aBoard: any) => {
+                        if (aBoard.id === aTarget.id) {
+                            return {
+                                ...aTarget,
+                                name: `TIMER: ${sTempTimerList[0].name}`,
+                                code: sTempTimerList[0],
+                                savedCode: sTempTimerList[0],
+                            };
+                        }
+                        return aBoard;
                     });
-                } else {
-                    const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
-                    setActiveTimer(undefined);
-                    setBoardList((aBoardList: any) => {
-                        return aBoardList.map((aBoard: any) => {
-                            if (aBoard.id === aTarget.id) {
-                                return {
-                                    ...aTarget,
-                                    name: `TIMER: create`,
-                                    code: undefined,
-                                    savedCode: false,
-                                };
-                            }
-                            return aBoard;
-                        });
+                });
+            } else {
+                const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
+                setActiveTimer(undefined);
+                setBoardList((aBoardList: any) => {
+                    return aBoardList.map((aBoard: any) => {
+                        if (aBoard.id === aTarget.id) {
+                            return {
+                                ...aTarget,
+                                name: `TIMER: create`,
+                                code: undefined,
+                                savedCode: false,
+                            };
+                        }
+                        return aBoard;
                     });
-                }
+                });
             }
-        } else {
-            alert('Delete Has Been Canceled.');
         }
+
+        setIsDeleteModal(false);
+    };
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsDeleteModal(true);
     };
     /** edit item */
     const editItem = async () => {
@@ -237,7 +240,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
 
                                 <ExtensionTab.ContentBlock>
                                     <ExtensionTab.DpRow>
-                                        <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={deleteTimer} />
+                                        <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
                                         <ExtensionTab.TextButton pText="Save" pType="CREATE" pCallback={editItem} />
                                     </ExtensionTab.DpRow>
                                     {sResMessage && <ExtensionTab.TextResErr pText={sResMessage} />}
@@ -252,6 +255,14 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
             )}
             {/* Show create */}
             {!sActiveTimer && <EditTimer />}
+            {sIsDeleteModal && (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={setIsDeleteModal}
+                    pCallback={deleteTimer}
+                    pContents={<div className="body-content">{`Do you want to delete this timer?`}</div>}
+                />
+            )}
         </>
     );
 };
