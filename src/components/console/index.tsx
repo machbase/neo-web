@@ -117,7 +117,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
     /** return shell list */
     const getShellList = useMemo((): any[] => {
         const sExtensionListWithoutTerm = pExtentionList.filter((aExtension: any) => aExtension.type !== 'term');
-        return sExtensionListWithoutTerm.concat(sShellList);
+        return sExtensionListWithoutTerm.concat(sShellList ?? []);
     }, [sShellList]);
 
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
@@ -150,8 +150,8 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                 {getShellList.map((aItem: any) => {
                                     return (
                                         <Menu.Item onClick={(aEvent: any) => addConsoleTab(aEvent, aItem)} key={aItem.id}>
-                                            {icons(aItem.icon)}
-                                            {aItem.label}
+                                            {icons(aItem?.icon) ?? ''}
+                                            {aItem?.label ?? ''}
                                         </Menu.Item>
                                     );
                                 })}

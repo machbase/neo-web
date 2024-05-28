@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Close, Search } from '@/assets/icons/Icon';
-import { MdKeyboardDoubleArrowLeft, MdOutlineKeyboardArrowDown, MdOutlineKeyboardDoubleArrowRight } from 'react-icons/md';
+import { ArrowLeft, ArrowRight, Search } from '@/assets/icons/Icon';
+import { MdKeyboardDoubleArrowLeft, MdOutlineKeyboardArrowDown, MdOutlineKeyboardArrowUp, MdOutlineKeyboardDoubleArrowRight } from 'react-icons/md';
 import { getTagPagination, getTagTotal } from '@/api/repository/machiot';
 import { Input } from './Input';
 import { Tooltip } from 'react-tooltip';
@@ -106,7 +106,7 @@ export const TagSearchSelect = ({ pTable, pCallback }: { pTable: string; pCallba
     useOutsideClick(tagRef, () => sIsOpen && handleOutSideClick());
 
     return (
-        <div ref={tagRef} className="tag-search-select-wrapper" id="tag-search-select-wrapper" style={{ backgroundColor: sIsOpen ? '#bd2222' : '#323644' }}>
+        <div ref={tagRef} className="tag-search-select-wrapper" id="tag-search-select-wrapper" style={{ backgroundColor: '#323644' }}>
             <div
                 className="tag-search-select-open-btn-wrapper"
                 onClick={(e: any) => {
@@ -115,7 +115,7 @@ export const TagSearchSelect = ({ pTable, pCallback }: { pTable: string; pCallba
                 }}
             >
                 {!sIsOpen && <MdOutlineKeyboardArrowDown />}
-                {sIsOpen && <Close />}
+                {sIsOpen && <MdOutlineKeyboardArrowUp />}
             </div>
             {sIsOpen && (
                 <div className="tag-search-select-content-wrapper">

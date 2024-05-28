@@ -102,7 +102,7 @@ export const CreateBridge = () => {
 
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentTitle>path</ExtensionTab.ContentTitle>
+                                <ExtensionTab.ContentTitle>Connection string</ExtensionTab.ContentTitle>
                                 <ExtensionTab.ContentDesc>
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
                                 </ExtensionTab.ContentDesc>

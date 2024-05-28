@@ -67,10 +67,10 @@ const Home = () => {
 
                     timer.current = setInterval(() => {
                         if (count > 60) {
-                            clearInterval(timer.current);
                             localStorage.removeItem('accessToken');
                             localStorage.removeItem('refreshToken');
                             sNavigate('/login');
+                            clearInterval(timer.current);
                         } else {
                             init();
                             count++;

@@ -1,8 +1,9 @@
-import { Close, VscWarning } from '@/assets/icons/Icon';
+import { Close } from '@/assets/icons/Icon';
 import { TextButton } from '@/components/buttons/TextButton';
 import Modal from './Modal';
 import './ConfirmModal.scss';
 import React from 'react';
+import { VscQuestion } from 'react-icons/vsc';
 
 export interface DeleteModalProps {
     setIsOpen: any;
@@ -29,9 +30,9 @@ export const ConfirmModal = (props: DeleteModalProps) => {
                     <div className="confirm-modal-title">
                         <div className="confirm-modal-title-content">
                             <div className="confirm-modal-title-icon">
-                                <VscWarning />
+                                <VscQuestion />
                             </div>
-                            <span>Warning</span>
+                            <span>Confirm</span>
                         </div>
                         <Close className="close" onClick={handleClose} />
                     </div>

@@ -212,7 +212,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                     <ExtensionTab.DpRow>
                                         <ExtensionTab.Input pValue={sPayload.task} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('task', event)} />
                                         <SelectFileBtn pType="tql" pCallback={handleTql} btnWidth={'100px'} btnHeight="26px" />
-                                        <OpenFileBtn pType="tql" pFileInfo={{ path: sPayload.task }} btnWidth={'100px'} btnHeight="26px" />
+                                        <OpenFileBtn pType="tql" pFileInfo={{ path: sPayload.task }} btnWidth={'80px'} btnHeight="26px" />
                                     </ExtensionTab.DpRow>
                                 </ExtensionTab.ContentBlock>
 

@@ -8,7 +8,7 @@ const ReferenceList = ({ pServer }: any) => {
     const init = async () => {
         try {
             const sData = await getReferenceList();
-            setReferences(sData.data.refs);
+            setReferences(sData?.data?.refs);
         } catch (err) {
             console.log(err);
         }

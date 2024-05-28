@@ -9,6 +9,8 @@ import { VscWarning } from 'react-icons/vsc';
 import { IconButton } from '../buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
 import { AUTO_START_DESC, CRON_EXPRESSION, CRON_EXPRESSION_HINT, INTERVAL, INTERVAL_DESC, PREDEFINED_SCHEDULES, TIMER_SPEC } from './content';
+import { SelectFileBtn } from '../buttons/SelectFileBtn';
+import { OpenFileBtn } from '../buttons/OpenFileBtn';
 
 export const EditTimer = () => {
     const setTimerList = useSetRecoilState<TimerItemType[]>(gTimerList);
@@ -151,11 +153,20 @@ export const EditTimer = () => {
                                 </ExtensionTab.ContentDesc>
                             </ExtensionTab.DpRow>
                             <ExtensionTab.ContentDesc>The tql script as a task</ExtensionTab.ContentDesc>
-                            <ExtensionTab.Input
-                                pValue={sCreatePayload.path}
-                                pWidth={'400px'}
-                                pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('path', event)}
-                            />
+                            <ExtensionTab.DpRow>
+                                <ExtensionTab.Input
+                                    pValue={sCreatePayload.path}
+                                    pWidth={'400px'}
+                                    pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('path', event)}
+                                />
+                                <SelectFileBtn
+                                    pType="tql"
+                                    pCallback={(aKey: string) => handlePayload('path', { target: { value: aKey } } as any)}
+                                    btnWidth={'100px'}
+                                    btnHeight="26px"
+                                />
+                                <OpenFileBtn pType="tql" pFileInfo={{ path: sCreatePayload.path }} btnWidth={'80px'} btnHeight="26px" />
+                            </ExtensionTab.DpRow>
                         </ExtensionTab.ContentBlock>
 
                         <ExtensionTab.ContentBlock>

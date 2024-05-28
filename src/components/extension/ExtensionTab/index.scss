@@ -584,4 +584,24 @@
             color: rgb(255, 83, 83);
         }
     }
+    .extension-tab-res-success {
+        display: flex;
+        flex-direction: row;
+        padding: 20px 0 0 0;
+
+        svg {
+            margin-top: 2px;
+            min-width: 16px;
+            min-height: 16px;
+            width: 16px;
+            height: 16px;
+            fill: #71e071;
+        }
+        span {
+            margin-left: 4px;
+            font-family: 'Pretendard';
+            font-size: 14px;
+            color: #71e071;
+        }
+    }
 }

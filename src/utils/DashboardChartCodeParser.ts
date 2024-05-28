@@ -13,7 +13,7 @@ const NameValueFunc = (aChartType: string) => {
 /** TIME_VALUE func */
 const TimeValueFunc = () => {
     return `(obj) => {
-        \t\t_chartOption.series[aIdx].data = obj.data.rows;
+        \t\t_chartOption.series[aIdx].data = obj?.data?.rows ?? [];
         \t\t_chart.setOption(_chartOption);
         \t}`;
 };

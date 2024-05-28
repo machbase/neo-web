@@ -7,7 +7,7 @@ import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import moment from 'moment';
 import './index.scss';
-import { VscCheck, VscCircleFilled } from 'react-icons/vsc';
+import { VscCheck, VscCircleFilled, VscPass } from 'react-icons/vsc';
 import { generateUUID } from '@/utils';
 import { MdKeyboardArrowRight, MdOutlineKeyboardArrowDown } from 'react-icons/md';
 
@@ -372,7 +372,14 @@ const TextResErr = ({ pText }: { pText: string }) => {
         </div>
     );
 };
-
+const TextResSuccess = ({ pText }: { pText: string }) => {
+    return (
+        <div className="extension-tab-res-success">
+            <VscPass />
+            <span>{pText}</span>
+        </div>
+    );
+};
 const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
     return (
         <div className="extension-tab-table-wrapper">
@@ -495,3 +502,4 @@ ExtensionTab.Selector = Selector;
 ExtensionTab.TextResErr = TextResErr;
 ExtensionTab.StatusCircle = StatusCircle;
 ExtensionTab.Collapse = Collapse;
+ExtensionTab.TextResSuccess = TextResSuccess;
