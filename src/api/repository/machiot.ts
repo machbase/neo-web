@@ -334,7 +334,7 @@ export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
         }
     }
 
-    if (sData.data.rows.length === 0) {
+    if (!sData.data?.rows || sData.data.rows.length === 0) {
         const sNowTime = moment().unix() * 1000000;
         const sNowTimeMinMax = [moment(sNowTime).subtract(1, 'h').unix() * 1000000, sNowTime];
         return sNowTimeMinMax;
@@ -369,7 +369,7 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
         }
     }
 
-    if (sData.data.rows.length === 0) {
+    if (!sData.data?.rows || sData.data.rows.length === 0) {
         const sNowTime = moment().unix() * 1000000;
         const sNowTimeMinMax = [moment(sNowTime).subtract(1, 'h').unix() * 1000000, sNowTime];
         return sNowTimeMinMax;
@@ -493,7 +493,7 @@ const getRollupTableList = async () => {
         }
     }
     const sConvertArray: any = {};
-    if (sData.data.rows && sData.data.rows.length > 0) {
+    if (sData.data && sData.data.rows && sData.data.rows.length > 0) {
         for (const [user, table, value] of sData.data.rows) {
             if (!sConvertArray[user]) {
                 sConvertArray[user] = {};

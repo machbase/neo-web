@@ -7,9 +7,10 @@ export const useToken = (callback: (val: boolean) => void) => {
     const sRefreshToken = localStorage.getItem('refreshToken');
 
     const checkExpire = () => {
-        if (!sRefreshToken) return false;
+        const sTmpRefreshToken = localStorage.getItem('refreshToken');
+        if (!sTmpRefreshToken) return false;
         try {
-            const sBase64Url = sRefreshToken.split('.')[1];
+            const sBase64Url = sTmpRefreshToken.split('.')[1];
             const sBase64 = sBase64Url.replace(/-/g, '+').replace(/_/g, '/');
             const sJwtInfo = decodeURIComponent(
                 atob(sBase64)
@@ -33,7 +34,8 @@ export const useToken = (callback: (val: boolean) => void) => {
     }, [callback]);
 
     useEffect(() => {
-        if (sAccToken) {
+        const sTmpAccToken = localStorage.getItem('accessToken');
+        if (sTmpAccToken) {
             const sRJWTStatus = checkExpire();
             if (sRJWTStatus) return callback(true);
             else return callback(false);

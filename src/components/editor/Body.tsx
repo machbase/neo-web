@@ -141,6 +141,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
 
     useEffect(() => {
         const expiredRt = () => {
+            localStorage.removeItem('refreshToken');
             sNavigate('/login');
         };
         window.addEventListener('logoutEvent', expiredRt);
