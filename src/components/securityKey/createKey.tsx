@@ -148,13 +148,13 @@ export const CreateKey = () => {
                         </ExtensionTab.ContentBlock>
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentTitle>valid date</ExtensionTab.ContentTitle>
+                                <ExtensionTab.ContentTitle>Valid After</ExtensionTab.ContentTitle>
                             </ExtensionTab.DpRow>
                             <ExtensionTab.DatePicker pTime={sStartTime} pSetApply={(e: any) => handleTime('startTime', e)} />
                         </ExtensionTab.ContentBlock>
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentTitle>expiry date</ExtensionTab.ContentTitle>
+                                <ExtensionTab.ContentTitle>Valid Before</ExtensionTab.ContentTitle>
                             </ExtensionTab.DpRow>
                             <ExtensionTab.DatePicker pTime={sEndTime} pSetApply={(e: any) => handleTime('endTime', e)} />
                         </ExtensionTab.ContentBlock>
