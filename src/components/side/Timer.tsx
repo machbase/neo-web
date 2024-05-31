@@ -111,6 +111,10 @@ export const TimerSide = ({ pServer }: any) => {
     const handleCollapse = () => {
         setIsCollapse(!sIsCollapse);
     };
+    const getState = (aState: string) => {
+        if (aState.toUpperCase() === 'RUNNING') return '#5CA3DC';
+        return 'RGB(117, 117, 120)';
+    };
 
     /** init timer list */
     useEffect(() => {
@@ -136,7 +140,9 @@ export const TimerSide = ({ pServer }: any) => {
                         return (
                             <div key={aIdx} className={aItem.name === sActiveTimer ? 'file-wrap file-wrap-active' : 'file-wrap'} onClick={() => openInfo(aItem)}>
                                 <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', wordBreak: 'break-all' }}>
-                                    <span className="icons">{icons('timer')}</span>
+                                    <span className="icons" style={{ color: getState(aItem.state) }}>
+                                        {icons('timer')}
+                                    </span>
                                     <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{aItem.name}</span>
                                 </div>
                             </div>

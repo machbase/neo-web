@@ -87,11 +87,11 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
                                     <ExtensionTab.ContentDesc>{pCode.id}</ExtensionTab.ContentDesc>
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Valid from</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentTitle>Valid After</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>{getTime(pCode.notBefore)}</ExtensionTab.ContentDesc>
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Expire</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentTitle>Valid Before</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>{getTime(pCode.notAfter)}</ExtensionTab.ContentDesc>
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
