@@ -650,6 +650,13 @@ any) => {
         fetchPanelData(sPanelRange, !sIsRaw);
         fetchNavigatorData(sNavigatorRange, !sIsRaw);
     };
+    const getDuration = (aStartTime: number, aEndTime: number): string => {
+        const sDuration = moment.duration(aEndTime - aStartTime);
+        const sDays = Math.floor(sDuration.asDays());
+        return `${sDays === 0 ? '' : sDays + 'd '}${sDuration.hours() === 0 ? '' : sDuration.hours() + 'h '}${sDuration.minutes() === 0 ? '' : sDuration.minutes() + 'm '}${
+            sDuration.seconds() === 0 ? '' : sDuration.seconds() + 's '
+        }${sDuration.milliseconds() === 0 ? '' : ' ' + sDuration.milliseconds() + 'ms'}`;
+    };
 
     // refresh
     useEffect(() => {
@@ -757,7 +764,10 @@ any) => {
             <div ref={sMenuRef} className="menu-position">
                 <Menu isOpen={sIsMinMaxMenu}>
                     <div className="time">
-                        {moment(sFFTMinTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~ {moment(sFFTMaxTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
+                        <div className="time-start-end">
+                            {moment(sFFTMinTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~ {moment(sFFTMaxTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
+                        </div>
+                        <div className="menu-position-duration">{'( ' + getDuration(sFFTMinTime, sFFTMaxTime) + ' )'}</div>
                     </div>
                     <table className="table-style">
                         <thead>
