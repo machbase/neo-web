@@ -103,17 +103,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         const sTable = pTableList.find((aItem: any) => aItem[3] === aTable || aTable.includes(aItem[3]));
         const sIsVirtualTable = aTable.includes('V$');
         const sData = sIsVirtualTable ? await getVirtualTableInfo(sTable[6], aTable) : await getTableInfo(sTable[6], sTable[2]);
-        setTimeList(sData.data.rows.filter((aItem: any) => aItem[1] === 6));
-        pSetPanelOption((aPrev: any) => {
-            return {
-                ...aPrev,
-                blockList: aPrev.blockList.map((aItem: any) => {
-                    return aItem.id === pBlockInfo.id ? { ...aItem, type: getTableType(sTable[4]), tableInfo: sData.data.rows } : aItem;
-                }),
-            };
-        });
-
-        setColumnList(sData.data.rows);
         if (pType === 'create') {
             pSetPanelOption((aPrev: any) => {
                 return {
@@ -122,15 +111,17 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                         return aItem.id === pBlockInfo.id
                             ? {
                                   ...aItem,
+                                  name: sData.data.rows.filter((aItem: any) => {
+                                      return aItem[1] === 5;
+                                  })[0][0],
                                   time: sData.data.rows.filter((aItem: any) => {
                                       return aItem[1] === 6;
                                   })[0][0],
                                   value: sData.data.rows.filter((aItem: any) => {
                                       return isNumberTypeColumn(aItem[1]);
                                   })[0][0],
-                                  name: sData.data.rows.filter((aItem: any) => {
-                                      return aItem[1] === 5;
-                                  }),
+                                  type: getTableType(sTable[4]),
+                                  tableInfo: sData.data.rows,
                                   values: aItem.values.map((aItem: any) => {
                                       return {
                                           ...aItem,
@@ -139,12 +130,42 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                           })[0][0],
                                       };
                                   }),
+                                  filter: [
+                                      {
+                                          ...aItem.filter[0],
+                                          column: sData.data.rows.filter((aItem: any) => {
+                                              return aItem[1] === 5;
+                                          })[0][0],
+                                      },
+                                  ],
+                              }
+                            : aItem;
+                    }),
+                };
+            });
+        } else {
+            pSetPanelOption((aPrev: any) => {
+                return {
+                    ...aPrev,
+                    blockList: aPrev.blockList.map((aItem: any) => {
+                        return aItem.id === pBlockInfo.id
+                            ? {
+                                  ...aItem,
+                                  name: sData.data.rows[0][0],
+                                  time: sData.data.rows[1][0],
+                                  value: sData.data.rows[2][0],
+                                  type: getTableType(sTable[4]),
+                                  tableInfo: sData.data.rows,
+                                  filter: [{ ...aItem.filter[0], column: sData.data.rows[0][0] }],
+                                  values: [{ ...aItem.values[0], value: sData.data.rows[2][0] }],
                               }
                             : aItem;
                     }),
                 };
             });
         }
+        setTimeList(sData.data.rows.filter((aItem: any) => aItem[1] === 6));
+        setColumnList(sData.data.rows);
     };
     const changeValueOption = (aKey: string, aData: any, aId: string, aChangedKey: string) => {
         pSetPanelOption((aPrev: any) => {
@@ -252,11 +273,11 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             sChangedBlockInfo.filter = [
                 {
                     ...sChangedBlockInfo.filter[0],
-                    column: 'NAME',
+                    column: sChangedBlockInfo.name,
                     useFilter: pBlockInfo.tag !== '' ? true : false,
                     operator: 'in',
                     value: pBlockInfo.tag && pBlockInfo.tag !== '' ? pBlockInfo.tag : '',
-                    typingValue: pBlockInfo.tag !== '' ? `NAME in ("${pBlockInfo.tag}")` : '',
+                    typingValue: pBlockInfo.tag !== '' ? `${sChangedBlockInfo.name} in ("${pBlockInfo.tag}")` : '',
                 },
             ];
         }
@@ -451,7 +472,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                         pValue={pBlockInfo.tag}
                                         onChange={(aEvent: any) => changedOption('tag', aEvent)}
                                     />
-                                    <TagSearchSelect pTable={pBlockInfo.table} pCallback={handleTagSelect} />
+                                    <TagSearchSelect pTable={pBlockInfo.table} pCallback={handleTagSelect} pBlockOption={pBlockInfo} />
                                 </div>
                             </div>
                             <div className="series-table">

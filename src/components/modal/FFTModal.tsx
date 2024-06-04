@@ -26,14 +26,16 @@ interface FFTModalProps {
     pStartTime: number;
     pEndTime: number;
     setIsOpen: any;
+    pTagColInfo: any;
 }
 
 const sIntervalList: string[] = ['ms', 'sec', 'min', 'hour'];
 
 export const FFTModal = (props: FFTModalProps) => {
-    const { pInfo, pStartTime, pEndTime, setIsOpen } = props;
+    const { pInfo, pStartTime, pEndTime, setIsOpen, pTagColInfo } = props;
     const modalRef = useRef<HTMLDivElement>(null);
     const [sSelectedInfo, setSelectedInfo] = useState<FFTInfo | null>(null);
+    const [sSelectedColInfo, setSelectedColInfo] = useState<any>(null);
     const [sChartData, setChartData] = useState<any>(null);
     const [sIsChart2D, setIsChart2D] = useState<boolean>(true);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
@@ -44,7 +46,7 @@ export const FFTModal = (props: FFTModalProps) => {
     const sNewStartTime = moment(pStartTime).format('yyyy-MM-DD HH:mm:ss');
     const sNewEndTime = moment(pEndTime).format('yyyy-MM-DD HH:mm:ss');
     const sWindowWidth = window.innerWidth;
-    const sTql2DQuery = `SQL("select time, value from {tableName} where NAME in ('{tagName}') AND time between to_date('${sNewStartTime}') AND to_date('${sNewEndTime}')")
+    const sTql2DQuery = `SQL("select {time}, {value} from {tableName} where {name} in ('{tagName}') AND {time} between to_date('${sNewStartTime}') AND to_date('${sNewEndTime}')")
     \nMAPKEY('fft')
     \nGROUPBYKEY()
     \nFFT({MinMaxHz})
@@ -54,7 +56,7 @@ export const FFTModal = (props: FFTModalProps) => {
         \nyAxis(1, 'Amplitude'),
         \ndataZoom('slider', 0, 10) 
     \n)`;
-    const sTql3DQuery = `SQL("select time, value from {tableName} where NAME in ('{tagName}') AND time between to_date('${sNewStartTime}') AND to_date('${sNewEndTime}')")
+    const sTql3DQuery = `SQL("select {time}, {value} from {tableName} where {name} in ('{tagName}') AND {time} between to_date('${sNewStartTime}') AND to_date('${sNewEndTime}')")
     \nMAPKEY( roundTime(value(0), '{interval}ms') )
     \nGROUPBYKEY()
     \nFFT({MinMaxHz})
@@ -70,13 +72,23 @@ export const FFTModal = (props: FFTModalProps) => {
 
     useEffect(() => {
         setSelectedInfo(pInfo[0]);
-        getTqlChartData(sTql2DQuery.replace('{tableName}', pInfo[0].table).replace('{tagName}', pInfo[0].name).replace('{MinMaxHz}', ''));
+        setSelectedColInfo(pTagColInfo[0].colName);
+        getTqlChartData(
+            sTql2DQuery
+                .replace('{tableName}', pInfo[0].table)
+                .replace('{tagName}', pInfo[0].name)
+                .replace('{MinMaxHz}', '')
+                .replaceAll('{time}', pTagColInfo[0].colName.time)
+                .replace('{value}', pTagColInfo[0].colName.value)
+                .replace('{name}', pTagColInfo[0].colName.name)
+        );
     }, []);
 
     const handleSelectedTag = (aEvent: any) => {
         const sFindIndex = pInfo.findIndex((info: FFTInfo) => info.name === aEvent.target.value);
         if (sFindIndex !== -1) {
             setSelectedInfo(pInfo[sFindIndex]);
+            setSelectedColInfo(pTagColInfo[sFindIndex].colName);
         }
     };
 
@@ -88,13 +100,22 @@ export const FFTModal = (props: FFTModalProps) => {
     };
 
     const handleRunCode = () => {
+        if (!sSelectedInfo) return;
         if (sMinHz === '') setMinHz('0');
         if (sMaxHz === '') setMaxHz('0');
         const sMinHzValue = sMinHz === '' ? '0' : sMinHz;
         const sMaxHzValue = sMaxHz === '' ? '0' : sMaxHz;
         const sMinMaxHz = sMinHzValue === '0' && sMaxHzValue === '0' ? '' : `minHz(${sMinHzValue}), maxHz(${sMaxHzValue})`;
         if (sIsChart2D) {
-            getTqlChartData(sTql2DQuery.replace('{tableName}', pInfo[0].table).replace('{tagName}', pInfo[0].name).replace('{MinMaxHz}', sMinMaxHz));
+            getTqlChartData(
+                sTql2DQuery
+                    .replace('{tableName}', sSelectedInfo.table as string)
+                    .replace('{tagName}', sSelectedInfo.name)
+                    .replace('{MinMaxHz}', sMinMaxHz)
+                    .replaceAll('{time}', sSelectedColInfo.time)
+                    .replace('{value}', sSelectedColInfo.value)
+                    .replace('{name}', sSelectedColInfo.name)
+            );
         } else {
             if (sInterval === '' || sInterval === '0') {
                 Error('Please put an interval value');
@@ -104,11 +125,14 @@ export const FFTModal = (props: FFTModalProps) => {
             const sVisualMax = Math.round(Number(sSelectedInfo?.max)).toFixed(1);
             getTqlChartData(
                 sTql3DQuery
-                    .replace('{tableName}', pInfo[0].table)
-                    .replace('{tagName}', pInfo[0].name)
+                    .replace('{tableName}', sSelectedInfo.table)
+                    .replace('{tagName}', sSelectedInfo.name)
                     .replace('{MinMaxHz}', sMinMaxHz)
                     .replace('{interval}', sIntervalValue)
                     .replace('{visualMax}', sVisualMax || '1.5')
+                    .replaceAll('{time}', sSelectedColInfo.time.toLowerCase())
+                    .replace('{value}', sSelectedColInfo.value.toLowerCase())
+                    .replace('{name}', sSelectedColInfo.name.toLowerCase())
             );
         }
     };

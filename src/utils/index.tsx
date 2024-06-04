@@ -1,4 +1,4 @@
-import { ADMIN_ID, DEFAULT_DB_NAME, IMAGE_EXTENSION_LIST, MIN_MAX_BASE_QUERY, MIN_MAX_MOUNT_QUERY } from '@/utils/constants';
+import { ADMIN_ID, DEFAULT_DB_NAME, IMAGE_EXTENSION_LIST } from '@/utils/constants';
 
 export const getId = () => {
     return new Date().getTime() + (Math.random() * 1000).toFixed();
@@ -260,18 +260,20 @@ export const createTableTagMap = (tableTagInfo: TableTagInfo[]) => {
     tableTagInfo.forEach((aInfo: any) => {
         const tableKey = aInfo.table;
         const tagName = aInfo.tagName;
+        const colInfo = aInfo.colName;
 
         if (sMap[tableKey]) {
-            sMap[tableKey].push(tagName);
+            sMap[tableKey].tags.push(tagName);
         } else {
-            sMap[tableKey] = [tagName];
+            sMap[tableKey] = { tags: [tagName], cols: colInfo };
         }
     });
 
     const sResult = Object.keys(sMap).map((table: string) => {
         return {
             table,
-            tags: sMap[table],
+            tags: sMap[table].tags,
+            cols: sMap[table].cols,
         };
     });
 
@@ -292,15 +294,21 @@ export const createMinMaxQuery = (tableTagMap: TableTagMap[], currentUserName: s
         let userName = currentUserName;
         const tableInfo = aInfo.table.split('.');
 
+        // MOUNTED DB
         if (tableInfo.length === 3) {
             tags = aInfo.tags[0];
             tableName = aInfo.table;
-            query += MIN_MAX_MOUNT_QUERY.replace('[table]', tableName).replace('[tag]', tags);
-        } else {
+            query += `select min(${aInfo.cols.time}) as min_tm, max(${aInfo.cols.time}) as max_tm from ${tableName} where ${aInfo.cols.name} = '${tags}'`;
+        }
+        // MACHBASE DB
+        else {
+            // USER
             if (tableInfo.length === 2) {
                 tableName = tableInfo[1];
                 userName = tableInfo[0];
-            } else {
+            }
+            // ADMIN
+            else {
                 tableName = aInfo.table;
             }
             aInfo.tags.forEach((tag: string, aIndex: number) => {
@@ -310,7 +318,7 @@ export const createMinMaxQuery = (tableTagMap: TableTagMap[], currentUserName: s
                     tags += `'${tag}',`;
                 }
             });
-            query += MIN_MAX_BASE_QUERY.replace('[tags]', tags).replace('[table]', tableName).replace('[userName]', userName);
+            query += `select min(min_time) as min_tm, max(max_time) as max_tm from ${userName}.v$${tableName}_stat where NAME in (${tags})`;
         }
     });
     return query;

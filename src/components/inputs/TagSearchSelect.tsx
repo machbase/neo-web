@@ -9,7 +9,7 @@ import useDebounce from '@/hooks/useDebounce';
 import './TagSearchSelect.scss';
 import useEsc from '@/hooks/useEsc';
 
-export const TagSearchSelect = ({ pTable, pCallback }: { pTable: string; pCallback: (aSelectTag: string) => void }) => {
+export const TagSearchSelect = ({ pTable, pCallback, pBlockOption }: { pTable: string; pCallback: (aSelectTag: string) => void; pBlockOption: any }) => {
     const [sIsOpen, setIsOpen] = useState<boolean>(false);
     const [sTagPagination, setTagPagination] = useState(1);
     const [sKeepPageNum, setKeepPageNum] = useState<any>(1);
@@ -25,10 +25,11 @@ export const TagSearchSelect = ({ pTable, pCallback }: { pTable: string; pCallba
     }, [sTagTotal]);
 
     const getTagList = async () => {
+        if (!sIsOpen) return;
         if (pTable) {
             let sTotalRes: any = undefined;
-            if (!sSkipTagTotal) sTotalRes = await getTagTotal(pTable, sSearchText);
-            const sResult: any = await getTagPagination(pTable, sSearchText, sTagPagination);
+            if (!sSkipTagTotal) sTotalRes = await getTagTotal(pTable, sSearchText, pBlockOption.tableInfo[0][0]);
+            const sResult: any = await getTagPagination(pTable, sSearchText, sTagPagination, pBlockOption.tableInfo[0][0]);
             if (sResult.success) {
                 if (!sSkipTagTotal) setTotal(sTotalRes.data.rows[0][0]);
                 setTagList(sResult.data.rows);

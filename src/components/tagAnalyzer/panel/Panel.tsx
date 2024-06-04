@@ -760,7 +760,7 @@ any) => {
                 pSetButtonRange={setButtonRange}
                 pMoveNavigatorTimRange={moveNavigatorTimRange}
             />
-            {sIsFFTModal ? <FFTModal pInfo={sMinMaxList} setIsOpen={setIsFFTModal} pStartTime={sFFTMinTime} pEndTime={sFFTMaxTime} /> : null}
+            {sIsFFTModal ? <FFTModal pInfo={sMinMaxList} setIsOpen={setIsFFTModal} pStartTime={sFFTMinTime} pEndTime={sFFTMaxTime} pTagColInfo={pPanelInfo.tag_set} /> : null}
             <div ref={sMenuRef} className="menu-position">
                 <Menu isOpen={sIsMinMaxMenu}>
                     <div className="time">
