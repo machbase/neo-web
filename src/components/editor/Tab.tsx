@@ -73,7 +73,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
                 break;
             case 'wrk':
                 if (JSON.parse(pBoard.savedCode).data) {
-                    setIsSaved(`{"data":${JSON.stringify(aBoard.sheet)}}` === pBoard.savedCode);
+                    setIsSaved(JSON.stringify(aBoard.sheet) === pBoard.savedCode);
                     break;
                 } else {
                     setIsSaved(JSON.stringify(aBoard.sheet) === pBoard.savedCode);

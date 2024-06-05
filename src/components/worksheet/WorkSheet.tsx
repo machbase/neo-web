@@ -39,15 +39,6 @@ export const WorkSheet = (props: WorkSheetProps) => {
         type: 'mrk',
     };
 
-    useEffect(() => {
-        if (!isEmpty(pSheet)) {
-            setWorkSheets(pSheet);
-        } else setWorkSheets([sNewWrkDefaultData]);
-        return () => {
-            setSaveWorkSheet([]);
-        };
-    }, []);
-
     const handleCallback = (aData: { id: string; event: CallbackEventType }) => {
         switch (aData.event) {
             case 'LocUp':
@@ -62,7 +53,6 @@ export const WorkSheet = (props: WorkSheetProps) => {
                 return setWorkSheets(sWorkSheets.filter((aSheet: any) => aSheet.id !== aData.id));
         }
     };
-
     const moveSheet = (aSheetId: string, aDirection: number) => {
         const loc = sWorkSheets.findIndex((aSheet: any) => aSheet.id === aSheetId);
         if (loc === 0 && aDirection === -1) return;
@@ -72,24 +62,13 @@ export const WorkSheet = (props: WorkSheetProps) => {
         const sTarget = copySheet.filter((aSheet: any) => aSheet.id === aSheetId);
         const sResult = copySheet.filter((aSheet: any) => aSheet.id !== aSheetId);
         sResult.splice(loc + aDirection, 0, ...sTarget);
-        setWorkSheets(sResult);
+        handleUpdateSheet(sResult);
     };
-
     const addSheet = (aSheetId: string, aDirection: number) => {
         const copySheet = JSON.parse(JSON.stringify(sWorkSheets));
         copySheet.splice(sWorkSheets.findIndex((aSheet: any) => aSheet.id === aSheetId) + aDirection, 0, sNewWrkDefaultData);
-        setWorkSheets(copySheet);
+        handleUpdateSheet(copySheet);
     };
-
-    useEffect(() => {
-        setSaveWorkSheet(sWorkSheets);
-        setBoardList(
-            sBoardList.map((aItem) => {
-                return aItem.id === pId ? { ...aItem, sheet: sWorkSheets } : aItem;
-            })
-        );
-    }, [sWorkSheets]);
-
     const handleAllRunCode = (aStatus: boolean, aIdx: number) => {
         if (!aStatus || sAllRunCodeList.length === aIdx + 1) {
             setRunCodeTarget(undefined);
@@ -101,6 +80,17 @@ export const WorkSheet = (props: WorkSheetProps) => {
         setRunCodeTarget((sRunCodeTarget as number) + 1);
         setAllRunCodeList(sTmp);
     };
+    const handleUpdateSheet = (aSheet: any) => {
+        if (!isEmpty(pSheet) ? JSON.stringify(pSheet) !== JSON.stringify(aSheet) : JSON.stringify([sNewWrkDefaultData]) !== JSON.stringify(aSheet)) {
+            setWorkSheets(aSheet);
+            setSaveWorkSheet(aSheet);
+            setBoardList(
+                sBoardList.map((aItem) => {
+                    return aItem.id === pId ? { ...aItem, sheet: sWorkSheets } : aItem;
+                })
+            );
+        }
+    };
 
     useEffect(() => {
         if (sAllRunCodeStatus) {
@@ -111,6 +101,12 @@ export const WorkSheet = (props: WorkSheetProps) => {
             setAllRunCodeList(sTmp);
         }
     }, [sAllRunCodeStatus]);
+    useEffect(() => {
+        setWorkSheets(!isEmpty(pSheet) ? pSheet : [sNewWrkDefaultData]);
+        return () => {
+            setSaveWorkSheet([]);
+        };
+    }, []);
 
     return (
         <div className="worksheet-wrapper">
@@ -136,7 +132,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
                                     pAllRunCodeList={sAllRunCodeList}
                                     pAllRunCodeCallback={(aStatus: boolean) => handleAllRunCode(aStatus, aIdx)}
                                     pWorkSheets={sWorkSheets}
-                                    setSheet={setWorkSheets}
+                                    setSheet={handleUpdateSheet}
                                     pCallback={handleCallback}
                                 />
                             );
