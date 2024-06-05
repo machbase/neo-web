@@ -106,16 +106,16 @@ const GetValues = (aTable: any) => {
  * @return (filter {column: name, operator: in, name: "tag"})
  */
 const GetFilter = (aTableInfo: any) => {
-    if (aTableInfo.tag !== '') return [{ ...aTableInfo.filter[0], column: 'NAME', operator: 'in', value: aTableInfo.tag }];
+    if (aTableInfo.tag !== '') return [{ ...aTableInfo.filter[0], column: aTableInfo.name, operator: 'in', value: aTableInfo.tag }];
     else return [];
 };
 
-const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: 'tag' | 'log') => {
+const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: 'tag' | 'log', aTableInfo: any) => {
     return aValueList.map((aValue: any) => {
         if (aValue.aggregator === 'none' || aValue.aggregator === 'value' || aDiff) return `${aValue.value} as VALUE`;
         else {
             if (aValue.aggregator.includes('last') || aValue.aggregator.includes('first'))
-                return `${changeAggText(aValue.aggregator)}(${aTableType === 'tag' ? 'TIME' : '_ARRIVAL_TIME'} ,${aValue.value}) as VALUE`;
+                return `${changeAggText(aValue.aggregator)}(${aTableType === 'tag' ? aTableInfo[1][0] : '_ARRIVAL_TIME'} ,${aValue.value}) as VALUE`;
             else return `${changeAggText(aValue.aggregator)}(${aValue.value}) as VALUE`;
         }
     });
@@ -124,8 +124,8 @@ const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: 'tag' | 'lo
 const GetTimeColumn = (aUseAgg: boolean, aTable: any, aInterval: { IntervalType: string; IntervalValue: number }) => {
     if (!aUseAgg) return aTable.time;
     if (aTable.useRollup) {
-        if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `TIME ROLLUP 1 day`;
-        else return `TIME ROLLUP ${aInterval.IntervalValue} ${aInterval.IntervalType}`;
+        if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `${aTable.time} ROLLUP 1 day`;
+        else return `${aTable.time} ROLLUP ${aInterval.IntervalValue} ${aInterval.IntervalType}`;
     } else {
         if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `DATE_TRUNC('day', ${aTable.time}, 1)`;
         else return `DATE_TRUNC('${aInterval.IntervalType}', ${aTable.time}, ${aInterval.IntervalValue})`;
@@ -247,7 +247,7 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
         const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval);
-        const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type)[0];
+        const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo)[0];
         const sTimeWhere = GetTimeWhere(aQuery.time, aTime);
         const sFilterWhere = GetFilterWhere(aQuery.filterList, aQuery.useCustom, aQuery);
         const sGroupBy = `GROUP BY TIME ${UseGroupByTime(aQuery.valueList)}`;
@@ -272,9 +272,7 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
             if (sIsVirtualTable) {
                 sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''}`;
             } else {
-                sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${
-                    sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''
-                }`;
+                sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''}`;
             }
             if (aQuery?.math && aQuery?.math !== '') sTql += `MAPVALUE(1, ${mathValueConverter('0', aQuery?.math)}, "VALUE")\nPOPVALUE(0)\n`;
             sTql += `MAPVALUE(1, dict("name", "${sAlias}", "value", value(0)))\nPOPVALUE(0)`;

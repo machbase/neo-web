@@ -27,6 +27,7 @@ const PanelHeader = ({
     pIsUpdate,
     pSetSaveEditedInfo,
     pNavigatorRange,
+    pIsMinMaxMenuOpen,
 }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
@@ -71,7 +72,7 @@ const PanelHeader = ({
                 pIsToopTip={!pIsEdit}
                 pToolTipContent={pSelectedChart ? 'Disable overlap mode' : 'Enable overlap mode'}
                 pToolTipId={'overlap-data-range-taz-panel-' + JSON.stringify(pIsEdit)}
-                pIsActive={pIsUpdate}
+                // pIsActive={pIsUpdate}
                 pIcon={
                     <div className="title">
                         {pPanelsInfo && pPanelsInfo.length > 0 && pPanelsInfo[0].board.index_key === pPanelInfo.index_key && <MdFlagCircle style={{ color: '#fdb532' }} />}
@@ -113,7 +114,7 @@ const PanelHeader = ({
                             pIcon={<PiSelectionPlusBold style={{ color: pIsUpdate ? '#f8f8f8' : '' }} />}
                             onClick={pCtrMinMaxPopupModal}
                         />
-                        <div style={{ display: pIsUpdate ? 'initial' : 'none' }}>
+                        <div style={{ display: pIsMinMaxMenuOpen && pIsUpdate ? 'initial' : 'none' }}>
                             <IconButton
                                 pWidth={25}
                                 pHeight={25}

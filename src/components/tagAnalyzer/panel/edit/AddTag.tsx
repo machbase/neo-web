@@ -25,6 +25,8 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
     const [sTagInputValue, setTagInputValue] = useState<string>('');
     const [sSearchText, setSearchText] = useState<string>('');
     const [sTagTotal, setTagTotal] = useState<number>(0);
+    const [sSkipTagTotal, setSkipTagTotal] = useState<boolean>(false);
+    const [sColumns, setColumns] = useState<any>();
     const pageRef = useRef(null);
     const avgMode = [
         { key: 'Min', value: 'min' },
@@ -34,20 +36,41 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
         { key: 'Average', value: 'avg' },
     ];
 
+    const getTableInfo = async () => {
+        const sFetchTableInfo: any = await fetchTableName(sSelectedTable);
+        if (sFetchTableInfo.success) {
+            const sColumnInfo = { name: sFetchTableInfo.data.rows[0][0], time: sFetchTableInfo.data.rows[1][0], value: sFetchTableInfo.data.rows[2][0] };
+            setColumns(sColumnInfo);
+            return sColumnInfo;
+        } else {
+            setTagList([]);
+            setTotal(0);
+            setColumns(() => {
+                return { name: '', time: '', value: '' };
+            });
+            return Error(sFetchTableInfo.message ?? '');
+        }
+    };
     const getTagList = async () => {
-        const sTotalRes: any = await getTagTotal(sSelectedTable, sSearchText);
-        const sResult: any = await getTagPagination(sSelectedTable, sSearchText, sTagPagination);
+        let sTotalRes: any = undefined;
+        let sColumn: any = sColumns;
+        if (!sSkipTagTotal) {
+            sColumn = sSearchText === '' ? await getTableInfo() : sColumn;
+            sTotalRes = await getTagTotal(sSelectedTable, sSearchText, sColumn.name);
+        }
+        const sResult: any = await getTagPagination(sSelectedTable, sSearchText, sTagPagination, sColumn.name);
         if (sResult.success) {
-            setTotal(sTotalRes.data.rows[0]);
+            if (!sSkipTagTotal) setTotal(sTotalRes.data.rows[0][0]);
             setTagList(sResult.data.rows);
-            // setTagPagination(1);
         } else setTagList([]);
+        setSkipTagTotal(false);
     };
     const setTotal = (aTotal: number) => {
         sTagTotal !== aTotal && setTagTotal(aTotal);
     };
 
     const filterTag = (aEvent: any) => {
+        setSkipTagTotal(false);
         setSearchText(aEvent.target.value);
     };
 
@@ -91,8 +114,6 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
     };
     const setTag = async (aValue: any) => {
         if (sSelectedTag.length === 12 - pPanelInfo.tag_set.length) return;
-        const sResult: any = await fetchTableName(sSelectedTable);
-        const sData = sResult.data;
         setSelectedTag([
             ...sSelectedTag,
             {
@@ -102,7 +123,7 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                 calculationMode: 'avg',
                 alias: '',
                 weight: 1.0,
-                colName: { name: sData.rows[0][0], time: sData.rows[1][0], value: sData.rows[2][0] },
+                colName: sColumns,
             },
         ]);
     };
@@ -122,15 +143,18 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                 setTagPagination(getMaxPageNum);
                 return;
             }
+            setSkipTagTotal(true);
             setTagPagination(sKeepPageNum);
         }
     };
     const setpagination = (aStatus: boolean) => {
+        setSkipTagTotal(true);
         setTagPagination(aStatus ? sTagPagination + 1 : sTagPagination - 1);
         setKeepPageNum(aStatus ? sTagPagination + 1 : sTagPagination - 1);
     };
     const changedTable = (aEvent: any) => {
         setSelectedTable(aEvent.target.value);
+        setTagTotal(0);
         setSearchText('');
         setTagInputValue('');
         setTagPagination(1);
@@ -191,6 +215,7 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                                                 disabled={sTagPagination === 1}
                                                 style={sTagPagination === 1 ? { opacity: 0.4, cursor: 'default' } : {}}
                                                 onClick={() => {
+                                                    setSkipTagTotal(true);
                                                     setTagPagination(1);
                                                     setKeepPageNum(1);
                                                 }}
@@ -223,6 +248,7 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                                                 disabled={sTagPagination >= getMaxPageNum}
                                                 style={sTagPagination >= getMaxPageNum ? { opacity: 0.4, cursor: 'default' } : {}}
                                                 onClick={() => {
+                                                    setSkipTagTotal(true);
                                                     setTagPagination(getMaxPageNum);
                                                     setKeepPageNum(getMaxPageNum);
                                                 }}

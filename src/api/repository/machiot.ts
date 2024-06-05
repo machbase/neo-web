@@ -320,7 +320,8 @@ const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
 };
 
 export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
-    const sQuery = `select min(time), max(time) from ${aTargetInfo.table}`;
+    const sTime = aTargetInfo.tableInfo[1][0];
+    const sQuery = `select min(${sTime}), max(${sTime}) from ${aTargetInfo.table}`;
     const sData = await request({
         method: 'GET',
         url: `/machbase?q=` + encodeURIComponent(sQuery),
@@ -517,14 +518,16 @@ const getRollupTableList = async () => {
  * @param aPage pagination num [1 ~ 9999....]
  * @returns
  */
-export const getTagPagination = async (aTable: string, aFilter: string, aPage: number) => {
+export const getTagPagination = async (aTable: string, aFilter: string, aPage: number, aColName: string) => {
     const DEFAULT_LIMIT = 10;
-    const sFilter = aFilter ? `name like '%${aFilter}%'` : '';
+    const sFilter = aFilter ? `${aColName} like '%${aFilter}%'` : '';
     const sLimit = `${(aPage - 1) * DEFAULT_LIMIT}, ${DEFAULT_LIMIT}`;
     const sTableName = getMetaTableName(aTable);
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=` + encodeURIComponent(`select * from ${sTableName}${sFilter !== '' ? ' where ' + sFilter + ' ORDER BY NAME ' : ' ORDER BY NAME '} LIMIT ${sLimit}`),
+        url:
+            `/machbase?q=` +
+            encodeURIComponent(`select * from ${sTableName}${sFilter !== '' ? ' where ' + sFilter + ` ORDER BY ${aColName} ` : ` ORDER BY ${aColName} `} LIMIT ${sLimit}`),
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -544,9 +547,9 @@ const getMetaTableName = (aTableName: string) => {
     return sSplitName.join('.');
 };
 
-export const getTagTotal = async (aTable: string, aFilter: string) => {
+export const getTagTotal = async (aTable: string, aFilter: string, aColName: string) => {
     const sTableName = getMetaTableName(aTable);
-    const sFilter = aFilter ? `name like '%${aFilter}%'` : '';
+    const sFilter = aFilter ? `${aColName} like '%${aFilter}%'` : '';
     const sData = await request({
         method: 'GET',
         url: `/machbase?q=` + encodeURIComponent(`select count(*) from ${sTableName}${sFilter !== '' ? ' where ' + sFilter : ''}`),

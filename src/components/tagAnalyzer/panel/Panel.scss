@@ -53,8 +53,20 @@
 
         .time {
             display: flex;
-            align-items: center;
-            justify-content: center;
+            flex-direction: column;
+
+            .time-start-end {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .menu-position-duration {
+                margin-top: -4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
         }
 
         .close {

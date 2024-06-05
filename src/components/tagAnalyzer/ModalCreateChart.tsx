@@ -33,6 +33,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
     const [sSearchText, setSearchText] = useState<string>('');
     const [sTagTotal, setTagTotal] = useState<number>(0);
     const [sSkipTagTotal, setSkipTagTotal] = useState<boolean>(false);
+    const [sColumns, setColumns] = useState<any>();
     const pageRef = useRef(null);
     const avgMode = [
         { key: 'Min', value: 'min' },
@@ -45,11 +46,30 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
     const setChartType = (aType: string) => {
         setSelectedChartType(aType);
     };
+    const getTableInfo = async () => {
+        const sFetchTableInfo: any = await fetchTableName(sSelectedTable);
+        if (sFetchTableInfo.success) {
+            const sColumnInfo = { name: sFetchTableInfo.data.rows[0][0], time: sFetchTableInfo.data.rows[1][0], value: sFetchTableInfo.data.rows[2][0] };
+            setColumns(sColumnInfo);
+            return sColumnInfo;
+        } else {
+            setTagList([]);
+            setTotal(0);
+            setColumns(() => {
+                return { name: '', time: '', value: '' };
+            });
+            return Error(sFetchTableInfo.message ?? '');
+        }
+    };
     const getTagList = async () => {
         if (sSelectedTable) {
             let sTotalRes: any = undefined;
-            if (!sSkipTagTotal) sTotalRes = await getTagTotal(sSelectedTable, sSearchText);
-            const sResult: any = await getTagPagination(sSelectedTable, sSearchText, sTagPagination);
+            let sColumn: any = sColumns;
+            if (!sSkipTagTotal) {
+                sColumn = sSearchText === '' ? await getTableInfo() : sColumn;
+                sTotalRes = await getTagTotal(sSelectedTable, sSearchText, sColumn.name);
+            }
+            const sResult: any = await getTagPagination(sSelectedTable, sSearchText, sTagPagination, sColumn.name);
             if (sResult.success) {
                 if (!sSkipTagTotal) setTotal(sTotalRes.data.rows[0][0]);
                 setTagList(sResult.data.rows);
@@ -151,8 +171,6 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
     };
     const setTag = async (aValue: any) => {
         if (sSelectedTag.length === 12) return Error('The maximum number of tags in a chart is 12.');
-        const sResult: any = await fetchTableName(sSelectedTable);
-        const sData = sResult.data;
         setSelectedTag([
             ...sSelectedTag,
             {
@@ -163,7 +181,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                 alias: '',
                 weight: 1.0,
                 // onRollup: false,
-                colName: { name: sData.rows[0][0], time: sData.rows[1][0], value: sData.rows[2][0] },
+                colName: sColumns,
             },
         ]);
     };
