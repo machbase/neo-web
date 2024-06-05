@@ -28,7 +28,8 @@ export const getBgnEndTimeRange = async (baseTable: any, boardTime: TIME_RANGE_T
         const sTagList = baseTable.filter((aTable: any) => sBaseTable.table === aTable.table);
         const sVirtualStatInfo = await fetchVirtualStatTable(
             sBaseTable.table,
-            sTagList.map((aTag: any) => aTag.tagName)
+            sTagList.map((aTag: any) => aTag.tagName),
+            sBaseTable
         );
         if (sVirtualStatInfo && sVirtualStatInfo.length > 0) {
             const sBgnList = sVirtualStatInfo.map((aStat: any) => aStat[0]).sort((pre: number, cur: number) => pre - cur);
