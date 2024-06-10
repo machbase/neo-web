@@ -52,7 +52,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             tableName: bBlock.table,
             filterList: bBlock.filter,
             valueList: bBlock.values,
-            useRollup: isRollup(aRollupList, bBlock.table, getInterval(aTime.interval.IntervalType, aTime.interval.IntervalValue)),
+            useRollup: isRollup(aRollupList, bBlock.table, getInterval(aTime.interval.IntervalType, aTime.interval.IntervalValue), bBlock.values[0].value),
             useCustom: bBlock.useCustom,
             color: bBlock.color,
             tableInfo: bBlock.tableInfo,

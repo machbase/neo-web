@@ -484,7 +484,7 @@ const fetchOnRollupTable = async (table: string) => {
 const getRollupTableList = async () => {
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=select u.name as user_name, root_table, interval_time from v$rollup as v, m$sys_users as u where v.user_id = u.user_id group by root_table, interval_time, user_name order by root_table asc, interval_time desc`,
+        url: `/machbase?q=select u.name as user_name, root_table, interval_time, column_name from v$rollup as v, m$sys_users as u where v.user_id = u.user_id group by root_table, interval_time, user_name, column_name order by root_table asc, interval_time desc`,
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -495,16 +495,18 @@ const getRollupTableList = async () => {
     }
     const sConvertArray: any = {};
     if (sData.data && sData.data.rows && sData.data.rows.length > 0) {
-        for (const [user, table, value] of sData.data.rows) {
+        for (const [user, table, value, column] of sData.data.rows) {
             if (!sConvertArray[user]) {
                 sConvertArray[user] = {};
             }
             if (!sConvertArray[user][table]) {
                 sConvertArray[user][table] = [];
             }
-            sConvertArray[user][table].push(value);
+            if (!sConvertArray[user][table][column]) {
+                sConvertArray[user][table][column] = [];
+            }
+            sConvertArray[user][table][column].push(value);
         }
-
         return sConvertArray;
     } else {
         return [];
