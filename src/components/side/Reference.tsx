@@ -21,21 +21,30 @@ const Reference = ({ pValue }: any) => {
         } else {
             const sContentResult: any = await getTutorial(pValue.address);
             if (pValue.type === 'wrk') {
-                setBoardList([
-                    ...sBoardList,
-                    {
-                        id: sId,
-                        type: pValue.type,
-                        name: pValue.title,
-                        code: '',
-                        panels: [],
-                        path: '',
-                        sheet: sContentResult.data,
-                        savedCode: false,
-                        range_bgn: '',
-                        range_end: '',
-                    },
-                ]);
+                const sAlreadyExist = sBoardList.filter((aBoard: any) => aBoard._CHEAT_SHEET && aBoard.name === pValue.title);
+
+                if (sAlreadyExist.length > 0) {
+                    setSelectedTab(sAlreadyExist[0].id);
+                } else {
+                    setBoardList([
+                        ...sBoardList,
+                        {
+                            id: sId,
+                            type: pValue.type,
+                            name: pValue.title,
+                            code: '',
+                            _CHEAT_SHEET: true,
+                            panels: [],
+                            path: '',
+                            sheet: sContentResult.data,
+                            savedCode: JSON.stringify(sContentResult.data),
+                            range_bgn: '',
+                            range_end: '',
+                        },
+                    ]);
+                    setSelectedTab(sId);
+                }
+                return;
             } else if (isImage(pValue.title + '.' + pValue.type)) {
                 const base64 = binaryCodeEncodeBase64(sContentResult);
                 const updateBoard = {

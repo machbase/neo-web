@@ -296,7 +296,8 @@ export const tagTableValue = () => {
 };
 
 // Time value agg list
-export const tagAggregatorList = ['value', 'count(*)', 'count', 'sum', 'min', 'max', 'avg', 'sumsq'];
+export const tagAggregatorList = ['value', 'count', 'sum', 'min', 'max', 'avg', 'sumsq'];
+export const logAggregatorList = ['value', 'count(*)', 'count', 'sum', 'min', 'max', 'avg', 'sumsq'];
 export const DIFF_LIST = ['diff', 'diff (abs)', 'diff (no-negative)'];
 export const SEPARATE_DIFF: boolean = false;
 // Name value agg list

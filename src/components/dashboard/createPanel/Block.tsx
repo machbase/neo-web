@@ -10,6 +10,7 @@ import {
     createDefaultTagTableOption,
     getTableType,
     isNumberTypeColumn,
+    logAggregatorList,
     nameValueAggregatorList,
     nameValueVirtualAggList,
     tagAggregatorList,
@@ -333,7 +334,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     const getAggregatorList = useMemo((): string[] => {
         const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
         if (sChartDataType === 'TIME_VALUE') {
-            return SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
+            const sAggregatorList = pBlockInfo.type === 'tag' ? tagAggregatorList : logAggregatorList;
+            return SEPARATE_DIFF ? sAggregatorList : sAggregatorList.concat(DIFF_LIST);
         }
         if (sChartDataType === 'NAME_VALUE') {
             if (pBlockInfo.table.includes('V$')) return nameValueVirtualAggList;

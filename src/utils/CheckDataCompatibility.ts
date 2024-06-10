@@ -1,5 +1,5 @@
 import { SqlResDataType } from './DashboardQueryParser';
-import { DIFF_LIST, SEPARATE_DIFF, nameValueAggregatorList, nameValueVirtualAggList, tagAggregatorList } from './dashboardUtil';
+import { DIFF_LIST, SEPARATE_DIFF, logAggregatorList, nameValueAggregatorList, nameValueVirtualAggList, tagAggregatorList } from './dashboardUtil';
 import { chartTypeConverter } from './eChartHelper';
 
 const DashboardCompatibility = (aData: any) => {
@@ -20,7 +20,8 @@ const DashboardCompatibility = (aData: any) => {
                 let DEFAULT_AGGREGATOR: string = 'count';
                 let sAggList: string[] = [];
                 if (sResDataType === 'TIME_VALUE') {
-                    sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
+                    const sAggregatorList = aBlock.type === 'tag' ? tagAggregatorList : logAggregatorList;
+                    sAggList = SEPARATE_DIFF ? sAggregatorList : sAggregatorList.concat(DIFF_LIST);
                 }
                 if (sResDataType === 'NAME_VALUE') {
                     if (aBlock.table.includes('V$')) {
