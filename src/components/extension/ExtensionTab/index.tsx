@@ -10,6 +10,7 @@ import './index.scss';
 import { VscCheck, VscCircleFilled, VscPass } from 'react-icons/vsc';
 import { generateUUID } from '@/utils';
 import { MdKeyboardArrowRight, MdOutlineKeyboardArrowDown } from 'react-icons/md';
+import { ClipboardCopy } from '@/utils/ClipboardCopy';
 
 export const ExtensionTab = ({ children, pRef }: { children: React.ReactNode; pRef?: React.MutableRefObject<any> }) => {
     return (
@@ -70,12 +71,16 @@ const TextButton = ({
     pCallback,
     pWidth,
     pIsDisable = false,
+    onMouseOut = () => {},
+    mr = '16px',
 }: {
     pText: string;
     pType: string;
     pCallback: (e: React.MouseEvent) => void;
     pWidth?: string;
     pIsDisable?: boolean;
+    onMouseOut?: (e: React.MouseEvent) => void;
+    mr?: string;
 }) => {
     const getColor = () => {
         switch (pType) {
@@ -88,7 +93,12 @@ const TextButton = ({
         }
     };
     return (
-        <button className="extension-tab-text-button" style={{ backgroundColor: pIsDisable ? '#6f7173' : getColor(), width: pWidth }} onClick={pCallback}>
+        <button
+            className="extension-tab-text-button"
+            style={{ backgroundColor: pIsDisable ? '#6f7173' : getColor(), width: pWidth, marginRight: mr }}
+            onClick={pCallback}
+            onMouseOut={onMouseOut}
+        >
             {pText}
         </button>
     );
@@ -111,16 +121,18 @@ const TextArea = ({
     pAutoFocus = false,
     pContent,
     pHeight,
+    pPlaceHolder = '',
     pCallback,
 }: {
     pAutoFocus?: boolean;
     pContent: string;
     pHeight: number;
+    pPlaceHolder?: string;
     pCallback?: (e: React.FormEvent<HTMLTextAreaElement>) => void;
 }) => {
     return (
         <div className="extension-tab-text-area-wrapper">
-            <textarea autoFocus={pAutoFocus} defaultValue={pContent} onChange={pCallback} style={{ height: pHeight + 'px' }} />
+            <textarea placeholder={pPlaceHolder} autoFocus={pAutoFocus} defaultValue={pContent} onChange={pCallback} style={{ height: pHeight + 'px' }} />
         </div>
     );
 };
@@ -478,6 +490,44 @@ const Collapse = ({ pInitOpen = false, pTrigger, pChildren }: { pInitOpen?: bool
     );
 };
 
+const CopyBlock = ({ pContent }: { pContent: string }) => {
+    return (
+        <div className="extension-tab-copy-block-wrapper">
+            <div className="extension-tab-copy-block">
+                <div className="extension-tab-copy-block-text">
+                    <ContentText pContent={pContent} />
+                </div>
+                <div className="extension-tab-copy-block-btn">
+                    <CopyButton pContent={pContent} />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const CopyButton = ({ pContent }: { pContent: string }) => {
+    const [sTooltipTxt, setTooltipTxt] = useState<string>('Copy');
+
+    /** copy clipboard */
+    const handleCopy = () => {
+        setTooltipTxt('Copied!');
+        ClipboardCopy(pContent);
+    };
+    const handleMouseout = () => {
+        sTooltipTxt === 'Copied!' && setTooltipTxt('Copy');
+    };
+
+    return (
+        <div className="extension-tab-copy-warpper">
+            <TextButton pText={sTooltipTxt} pType="COPY" pWidth="60px" pCallback={handleCopy} onMouseOut={handleMouseout} mr="0px" />
+        </div>
+    );
+};
+
+const Space = ({ pHeight = '8px' }: { pHeight?: string }) => {
+    return <div style={{ width: '100%', height: pHeight }} />;
+};
+
 ExtensionTab.Checkbox = Checkbox;
 ExtensionTab.Group = Group;
 ExtensionTab.Header = Header;
@@ -503,3 +553,6 @@ ExtensionTab.TextResErr = TextResErr;
 ExtensionTab.StatusCircle = StatusCircle;
 ExtensionTab.Collapse = Collapse;
 ExtensionTab.TextResSuccess = TextResSuccess;
+ExtensionTab.CopyButton = CopyButton;
+ExtensionTab.CopyBlock = CopyBlock;
+ExtensionTab.Space = Space;

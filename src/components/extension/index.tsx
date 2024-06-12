@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase, VscKey, GoTerminal } from '@/assets/icons/Icon';
 import ExtensionBtn from '@/components/extension/ExtensionBtn';
-import { useRecoilState } from 'recoil';
-import { gExtensionList, gSelectedExtension } from '@/recoil/recoil';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import { gBoardList, gExtensionList, gSelectedExtension, gSelectedTab } from '@/recoil/recoil';
 import Menu from '../contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { LicenseModal } from '@/components/modal/LicenseModal';
@@ -10,6 +10,7 @@ import { logOut } from '@/api/repository/login';
 import { useNavigate } from 'react-router-dom';
 import { RxLapTimer } from 'react-icons/rx';
 import { VscTypeHierarchy } from 'react-icons/vsc';
+import { generateUUID } from '@/utils';
 import './index.scss';
 
 const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
@@ -19,6 +20,8 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const [sExtensionList] = useRecoilState<any>(gExtensionList);
     const [sSelectedExtension, setSelectedExtension] = useRecoilState<string>(gSelectedExtension);
     const [sIsLicenseModal, setIsLicenseModal] = useState<boolean>(false);
+    const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
+    const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
 
     const selectExtension = (aItem: any) => {
         if (aItem.label === sSelectedExtension) {
@@ -33,7 +36,6 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
             setSelectedExtension(aItem.id);
         }
     };
-
     const logout = async () => {
         const sLogout: any = await logOut();
         if (sLogout.success) {
@@ -42,7 +44,6 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
             sNavigate('/login');
         }
     };
-
     const setIcon = (aId: any) => {
         switch (aId) {
             case 'SQL':
@@ -71,6 +72,45 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                 return <VscTypeHierarchy />;
             default:
                 return <Cmd />;
+        }
+    };
+    const handleSSHKeys = () => {
+        setIsOpen(false);
+        const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
+            return prev || cur.type === 'ssh-key';
+        }, false);
+
+        if (sExistKeyTab) {
+            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'ssh-key');
+            setBoardList((aBoardList: any) => {
+                return aBoardList.map((aBoard: any) => {
+                    if (aBoard.id === aTarget.id) {
+                        return {
+                            ...aTarget,
+                            name: `SSH KEYS`,
+                            code: '',
+                            savedCode: '',
+                        };
+                    }
+                    return aBoard;
+                });
+            });
+            setSelectedTab(aTarget.id);
+            return;
+        } else {
+            const sId = generateUUID();
+            setBoardList([
+                ...sBoardList,
+                {
+                    id: sId,
+                    type: 'ssh-key',
+                    name: `SSH KEYS`,
+                    code: '',
+                    savedCode: '',
+                },
+            ]);
+            setSelectedTab(sId);
+            return;
         }
     };
 
@@ -121,6 +161,10 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                                 <Menu.Item onClick={() => setIsLicenseModal(true)}>
                                     <Key />
                                     <span>License</span>
+                                </Menu.Item>
+                                <Menu.Item onClick={handleSSHKeys}>
+                                    <VscKey />
+                                    <span>SSH Keys</span>
                                 </Menu.Item>
                                 <Menu.Item onClick={logout}>
                                     <Logout />
