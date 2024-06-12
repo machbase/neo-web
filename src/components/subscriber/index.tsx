@@ -3,15 +3,15 @@ import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gActiveBridge, gBoardList, gBridgeList } from '@/recoil/recoil';
 import { Pane, SashContent } from 'split-pane-react';
 import SplitPane from 'split-pane-react/esm/SplitPane';
-import { BridgeItemType, commandBridge, delBridge, getBridge } from '@/api/repository/bridge';
+import { BridgeItemType, delBridge, getBridge } from '@/api/repository/bridge';
 import { CreateBridge } from './createBridge';
 import { useEffect, useRef, useState } from 'react';
 import { IconButton } from '../buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
 import { ConfirmModal } from '../modal/ConfirmModal';
-import { getCommandState } from '@/utils/bridgeCommandHelper';
+import { AUTO_START_DESC } from '../timer/content';
 
-export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
+export const SubScriber = ({ pCode }: { pCode: BridgeItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sActiveName, setActiveName] = useRecoilState<any>(gActiveBridge);
     const [sPayload, setPayload] = useState<any>(pCode);
@@ -26,7 +26,7 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
         test: { message: '', data: undefined },
     });
     const setResList = useSetRecoilState<BridgeItemType[] | undefined>(gBridgeList);
-    const TYPE = 'bridge';
+    const TYPE = 'subscriber';
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
 
     /** delete item */
@@ -74,55 +74,12 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
         }
         setIsDeleteModal(false);
     };
-    const handleDelete = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setIsDeleteModal(true);
-    };
-    const handlePayload = (e: React.FormEvent<HTMLTextAreaElement>) => {
-        const sTmp = JSON.parse(JSON.stringify(sPayload));
-        sTmp.command = (e.target as HTMLInputElement).value;
-        setPayload(sTmp);
-    };
-
-    const handleCommand = async (aState: 'test' | 'command') => {
-        let sCommand: any = undefined;
-        let sState: any = undefined;
-
-        switch (aState) {
-            case 'command':
-                sCommand = sPayload?.command ?? '';
-                sState = getCommandState(sPayload?.command ?? '');
-                break;
-            default:
-                sState = 'test';
-                break;
-        }
-        const sTmpRes: any = JSON.parse(JSON.stringify(sCommandRes));
-
-        const sResCommand = await commandBridge(sState, pCode.name, sCommand);
-        if (sResCommand.success) {
-            sTmpRes[aState].message = '';
-            if (sResCommand.data) {
-                sTmpRes[aState].data = (sResCommand as any).data;
-            } else {
-                sTmpRes[aState].data = sResCommand as any;
-            }
-        } else {
-            if (sResCommand.data && (sResCommand as any).data?.reason) {
-                sTmpRes[aState].data = (sResCommand as any).data;
-                sTmpRes[aState].message = (sResCommand as any).data?.reason;
-            } else {
-                sTmpRes[aState].data = (sResCommand as any).statusText;
-                sTmpRes[aState].message = (sResCommand as any).statusText;
-            }
-        }
-        setCommandRes(sTmpRes);
-    };
     const Resizer = () => {
         return <SashContent className={`security-key-sash-style`} />;
     };
 
     useEffect(() => {
+        console.log('pCode', pCode);
         setPayload(pCode);
         setCommandRes({ command: { message: '', data: undefined }, test: { message: '', data: undefined } });
     }, [pCode]);
@@ -142,46 +99,50 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                             <ExtensionTab.Header />
                             <ExtensionTab.Body>
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Bridge name</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentTitle>subscriber name</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>{sPayload.name}</ExtensionTab.ContentDesc>
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Type</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{sPayload.type}</ExtensionTab.ContentDesc>
+                                    <ExtensionTab.ContentTitle>bridge</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentDesc>{sPayload.bridge}</ExtensionTab.ContentDesc>
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Connection string</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{sPayload.path}</ExtensionTab.ContentDesc>
+                                    <ExtensionTab.ContentTitle>topic</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentDesc>{sPayload.topic}</ExtensionTab.ContentDesc>
                                 </ExtensionTab.ContentBlock>
-                                {/* Test  */}
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>bridge connection</ExtensionTab.ContentTitle>
-                                    <div style={{ marginTop: '8px' }}>
-                                        <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
-                                        <ExtensionTab.TextButton pText="Test" pType="CREATE" pCallback={() => handleCommand('test')} />
-                                    </div>
-                                    {sCommandRes.test?.data && sCommandRes.test?.data?.success && <ExtensionTab.TextResSuccess pText={'success'} />}
-                                    {sCommandRes.test.message !== '' && <ExtensionTab.TextResErr pText={sCommandRes.test.message} />}
+                                    <ExtensionTab.ContentTitle>task</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentDesc>{sPayload.task}</ExtensionTab.ContentDesc>
                                 </ExtensionTab.ContentBlock>
 
-                                {sPayload.type !== 'mqtt' && (
-                                    <>
-                                        {/* Command */}
-                                        <ExtensionTab.ContentBlock>
-                                            <ExtensionTab.Collapse
-                                                pTrigger={<ExtensionTab.ContentTitle>Command</ExtensionTab.ContentTitle>}
-                                                pChildren={
-                                                    <>
-                                                        <ExtensionTab.TextArea pContent={sPayload.exec} pHeight={100} pCallback={(event) => handlePayload(event)} />
-                                                        <ExtensionTab.TextButton pText="Send" pType="CREATE" pCallback={() => handleCommand('command')} />
-                                                        {sCommandRes.command.message === '' && sCommandRes.command?.data && <ExtensionTab.TextResSuccess pText={'success'} />}
-                                                        {sCommandRes.command.message !== '' && <ExtensionTab.TextResErr pText={sCommandRes.command.message} />}
-                                                    </>
-                                                }
+                                <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.ContentTitle>subscriber state</ExtensionTab.ContentTitle>
+                                    {!(sPayload?.state?.includes('STOP') || sPayload?.state?.includes('RUNNING')) ? (
+                                        <ExtensionTab.ContentDesc>
+                                            <ExtensionTab.TextResErr pText={sPayload.state} />
+                                        </ExtensionTab.ContentDesc>
+                                    ) : (
+                                        <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'row' }}>
+                                            <ExtensionTab.Switch
+                                                pState={sPayload.state === 'RUNNING'}
+                                                pCallback={() => {}}
+                                                pBadge={sPayload.state.includes('STOP') ? 'STOP' : 'RUNNING'}
                                             />
-                                        </ExtensionTab.ContentBlock>
-                                    </>
-                                )}
+                                        </div>
+                                    )}
+                                </ExtensionTab.ContentBlock>
+
+                                <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.ContentTitle>qos</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentDesc>{sPayload.qos}</ExtensionTab.ContentDesc>
+                                </ExtensionTab.ContentBlock>
+                                <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.ContentTitle>Auto start</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.DpRow>
+                                        <ExtensionTab.Checkbox pValue={sPayload.autoStart} pDisable />
+                                        <ExtensionTab.ContentDesc>{AUTO_START_DESC}</ExtensionTab.ContentDesc>
+                                    </ExtensionTab.DpRow>
+                                </ExtensionTab.ContentBlock>
                             </ExtensionTab.Body>
                         </Pane>
                         <Pane>

@@ -149,11 +149,34 @@ export const gShowShellList = selector<any>({
         return sShellList.filter((aTermTypeItem: any) => aTermTypeItem.attributes.some((aAttr: any) => aAttr.editable));
     },
 });
+
+// Bridge & Subr
+export const setBridgeTree = (aBridgeList: any, aSubrList: any) => {
+    const sSubrMap: any = {};
+
+    aSubrList.forEach((aInfo: any) => {
+        const bridgeName = aInfo.bridge;
+        if (sSubrMap[bridgeName]) sSubrMap[bridgeName].push(aInfo);
+        else sSubrMap[bridgeName] = [aInfo];
+    });
+
+    const sParedTree = aBridgeList.map((aBridge: any) => {
+        if (aBridge.name in sSubrMap) return { ...aBridge, childs: sSubrMap[aBridge.name] };
+        else return aBridge;
+    });
+
+    return sParedTree;
+};
+
 export const gBridgeList = atom<any>({
     key: 'gBridgeList',
     default: [] as any,
 });
 export const gActiveBridge = atom<any>({
     key: 'gActiveBridge',
+    default: '' as string,
+});
+export const gActiveSubr = atom<any>({
+    key: 'gActiveSubr',
     default: '' as string,
 });

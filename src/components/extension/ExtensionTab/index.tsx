@@ -329,10 +329,11 @@ const DatePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTime: 
         </div>
     );
 };
-const Checkbox = ({ pCallback, pValue }: { pCallback?: (value: any) => void; pValue?: boolean }) => {
+const Checkbox = ({ pCallback, pValue, pDisable }: { pCallback?: (value: any) => void; pValue?: boolean; pDisable?: boolean }) => {
     const [sIsCheck, setIsCheck] = useState<boolean>(pValue || false);
 
     const handleCheck = () => {
+        if (pDisable) return;
         if (pCallback) {
             const sApplyValue = !sIsCheck;
             setIsCheck(sApplyValue);

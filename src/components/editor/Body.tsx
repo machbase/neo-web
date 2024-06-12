@@ -4,7 +4,6 @@ import Dashboard from '../dashboard';
 import Shell from '../shell/Shell';
 import { gBoardList, gSelectedBoard, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import './Body.scss';
 import NewBoard from '../newBoard';
 import Tab from './Tab';
 import TagAnalyzer from '../tagAnalyzer/TagAnalyzer';
@@ -26,6 +25,8 @@ import { ShellManage } from '@/components/ShellManage';
 import { Bridge } from '../bridge';
 import { useNavigate } from 'react-router-dom';
 import { SSHKey } from '../sshkey';
+import { SubScriber } from '../subscriber';
+import './Body.scss';
 
 const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -256,6 +257,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                             {aItem.type === 'shell-manage' && <ShellManage pCode={aItem.code} />}
                             {aItem.type === 'bridge' && <Bridge pCode={aItem.code} />}
                             {aItem.type === 'ssh-key' && <SSHKey />}
+                            {aItem.type === 'subscriber' && <SubScriber pCode={aItem.code} />}
                             {isImage(aItem.name) && <ImageBox pBase64Code={aItem.code} pType={aItem.type} />}
                         </div>
                     );

@@ -1,4 +1,4 @@
-import { gActiveKey, gActiveTimer, gActiveShellManage, gBoardList, gActiveBridge } from '@/recoil/recoil';
+import { gActiveKey, gActiveTimer, gActiveShellManage, gBoardList, gActiveBridge, gActiveSubr } from '@/recoil/recoil';
 import { deepEqual, getId, isValidJSON } from '@/utils';
 import icons from '@/utils/icons';
 import { useEffect, useState } from 'react';
@@ -15,6 +15,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
     const setActiveShellName = useSetRecoilState<any>(gActiveShellManage);
     const setActiveKeyName = useSetRecoilState<any>(gActiveKey);
     const setActiveBridge = useSetRecoilState(gActiveBridge);
+    const setActiveSubr = useSetRecoilState(gActiveSubr);
 
     useEffect(() => {
         compareValue(pBoard);
@@ -47,6 +48,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
         if (sEtc[0].type === 'shell-manage') setActiveShellName(undefined);
         if (sEtc[0].type === 'key') setActiveKeyName(undefined);
         if (sEtc[0].type === 'bridge') setActiveBridge(undefined);
+        if (sEtc[0].type === 'subscriber') setActiveSubr(undefined);
         setBoardList(sArray);
 
         if (sArray.length === 0) {

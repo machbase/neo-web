@@ -4,7 +4,7 @@ import { IconButton } from '../buttons/IconButton';
 import { useEffect, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { gActiveBridge, gBoardList, gBridgeList, gSelectedTab } from '@/recoil/recoil';
+import { gActiveBridge, gActiveSubr, gBoardList, gBridgeList, gSelectedTab, setBridgeTree } from '@/recoil/recoil';
 import { generateUUID } from '@/utils';
 import { BridgeItemType, getBridge } from '@/api/repository/bridge';
 import icons from '@/utils/icons';
@@ -13,24 +13,93 @@ export const BridgeSide = ({ pServer }: any) => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sIsCollapse, setIsCollapse] = useState<boolean>(true);
-    const [sList, setList] = useRecoilState<BridgeItemType[]>(gBridgeList);
+    const [sBridge, setBridge] = useRecoilState<BridgeItemType[]>(gBridgeList);
     const [sActiveName, setActiveName] = useRecoilState<any>(gActiveBridge);
-    const TYPE = 'bridge';
+    const [sActiveSubrName, setActiveSubrName] = useRecoilState<any>(gActiveSubr);
+    const BRIDGE_TYPE = 'bridge';
+    const SUBR_TYPE = 'subscriber';
 
     const getBridgeList = async () => {
         const sResBridge = await getBridge();
-        if (sResBridge.success) setList(sResBridge.data);
-        else setList([]);
+        if (sResBridge.success) {
+            const sResSubr = [
+                {
+                    name: 'MQ_SUBR1',
+                    type: 'subscriber',
+                    qos: '0',
+                    task: 'db/append/EXAMPLE:csv',
+                    queue: '',
+                    bridge: 'mqtest',
+                    topic: 'iot/sensor',
+                    autoStart: true,
+                    state: 'RUNNING',
+                },
+                {
+                    name: 'NATS_SUBR1',
+                    type: 'nats',
+                    qos: '0',
+                    task: 'db/append/EXAMPLE:csv',
+                    queue: 'asdfasdfasdf',
+                    bridge: 'asdfasdf',
+                    topic: 'iot/sensor',
+                    autoStart: true,
+                    state: 'RUNNING',
+                },
+            ];
+            setBridge(setBridgeTree(sResBridge.data, sResSubr));
+        } else setBridge([]);
     };
-    const openInfo = (aInfo: BridgeItemType) => {
-        const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
-            return prev || cur.type === TYPE;
+    const checkExistTab = (aType: string) => {
+        const sResut = sBoardList.reduce((prev: boolean, cur: any) => {
+            return prev || cur.type === aType;
         }, false);
+        return sResut;
+    };
+    // OPEN SUBSCRIBER
+    const openSubrInfo = (aInfo: any) => {
+        const sExistKeyTab = checkExistTab(SUBR_TYPE);
+        setActiveSubrName(aInfo.name);
 
+        if (sExistKeyTab) {
+            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === SUBR_TYPE);
+            setBoardList((aBoardList: any) => {
+                return aBoardList.map((aBoard: any) => {
+                    if (aBoard.id === aTarget.id) {
+                        return {
+                            ...aTarget,
+                            name: `SUBR: ${aInfo.name}`,
+                            code: aInfo,
+                            savedCode: aInfo,
+                        };
+                    }
+                    return aBoard;
+                });
+            });
+            setSelectedTab(aTarget.id);
+            return;
+        } else {
+            const sId = generateUUID();
+            setBoardList([
+                ...sBoardList,
+                {
+                    id: sId,
+                    type: SUBR_TYPE,
+                    name: `SUBR: ${aInfo.name}`,
+                    code: aInfo,
+                    savedCode: aInfo,
+                },
+            ]);
+            setSelectedTab(sId);
+            return;
+        }
+    };
+    // OPEN BRIDGE
+    const openBridgeInfo = (aInfo: BridgeItemType) => {
+        const sExistKeyTab = checkExistTab(BRIDGE_TYPE);
         setActiveName(aInfo.name);
 
         if (sExistKeyTab) {
-            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === TYPE);
+            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === BRIDGE_TYPE);
             setBoardList((aBoardList: any) => {
                 return aBoardList.map((aBoard: any) => {
                     if (aBoard.id === aTarget.id) {
@@ -52,7 +121,7 @@ export const BridgeSide = ({ pServer }: any) => {
                 ...sBoardList,
                 {
                     id: sId,
-                    type: TYPE,
+                    type: BRIDGE_TYPE,
                     name: `BRIDGE: ${aInfo.name}`,
                     code: aInfo,
                     savedCode: aInfo,
@@ -65,20 +134,17 @@ export const BridgeSide = ({ pServer }: any) => {
     const handleCreate = (e: React.MouseEvent) => {
         e && e.stopPropagation();
         setActiveName(undefined);
-
-        const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
-            return prev || cur.type === TYPE;
-        }, false);
+        const sExistKeyTab = checkExistTab(BRIDGE_TYPE);
 
         if (sExistKeyTab) {
-            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === TYPE);
+            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === BRIDGE_TYPE);
             const sId = generateUUID();
             setBoardList((aBoardList: any) => {
                 return aBoardList.map((aBoard: any) => {
                     if (aBoard.id === aTarget.id) {
                         return {
                             id: sId,
-                            type: TYPE,
+                            type: BRIDGE_TYPE,
                             name: `BRIDGE: create`,
                             code: undefined,
                             savedCode: false,
@@ -95,7 +161,7 @@ export const BridgeSide = ({ pServer }: any) => {
                 ...sBoardList,
                 {
                     id: sId,
-                    type: TYPE,
+                    type: BRIDGE_TYPE,
                     name: `BRIDGE: create`,
                     code: undefined,
                     savedCode: false,
@@ -131,15 +197,75 @@ export const BridgeSide = ({ pServer }: any) => {
 
             <div style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
                 {sIsCollapse &&
-                    sList &&
-                    sList.length !== 0 &&
-                    sList.map((aItem, aIdx: number) => {
+                    sBridge &&
+                    sBridge.length !== 0 &&
+                    sBridge.map((aItem, aIdx: number) => {
                         return (
-                            <div key={aIdx} className={aItem.name === sActiveName ? 'file-wrap file-wrap-active' : 'file-wrap'} onClick={() => openInfo(aItem)}>
-                                <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', wordBreak: 'break-all' }}>
-                                    <span className="icons">{icons('bridge')}</span>
-                                    <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{aItem.name}</span>
+                            <div key={aIdx}>
+                                <div className={aItem.name === sActiveName ? 'file-wrap file-wrap-active' : 'file-wrap'} onClick={() => openBridgeInfo(aItem)}>
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            overflow: 'hidden',
+                                            whiteSpace: 'nowrap',
+                                            textOverflow: 'ellipsis',
+                                            wordBreak: 'break-all',
+                                        }}
+                                    >
+                                        <span className="icons">{icons((aItem?.type as any) === 'mqtt' ? 'bridge-sub' : 'bridge-db')}</span>
+                                        <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{aItem.name}</span>
+                                    </div>
                                 </div>
+
+                                {aItem?.childs &&
+                                    aItem.childs.map((aChild, bIdx) => {
+                                        return (
+                                            <div
+                                                key={bIdx}
+                                                className={aChild.name === sActiveSubrName ? 'file-wrap file-wrap-active' : 'file-wrap'}
+                                                style={{ paddingLeft: '16px' }}
+                                                onClick={() => openSubrInfo(aChild)}
+                                            >
+                                                <div
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        overflow: 'hidden',
+                                                        whiteSpace: 'nowrap',
+                                                        textOverflow: 'ellipsis',
+                                                        wordBreak: 'break-all',
+                                                    }}
+                                                >
+                                                    {/* Child tree style */}
+                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                        <div
+                                                            style={{
+                                                                marginLeft: '7px',
+                                                                width: '8px',
+                                                                height: '8px',
+                                                                borderLeft: '1px solid #ffffff',
+                                                                borderBottom: '1px solid #ffffff',
+                                                            }}
+                                                        />
+                                                        <div
+                                                            style={{
+                                                                marginLeft: '7px',
+                                                                width: '8px',
+                                                                height: '8px',
+                                                                borderLeft: aItem?.childs?.length !== bIdx + 1 ? '1px solid #ffffff' : '',
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    <span className="icons">{icons('bridge-child')}</span>
+                                                    <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                                        {aChild.name}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                             </div>
                         );
                     })}

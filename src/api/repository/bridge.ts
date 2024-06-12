@@ -1,10 +1,22 @@
 import request from '@/api/core';
 
 export type BridgeType = 'SQLite' | 'PostgreSql' | 'Mysql' | 'MSSQL' | 'MQTT';
+interface SubrItemType {
+    name: string;
+    type: string;
+    autoStart: boolean;
+    bridge: string;
+    topic: string;
+    qos: string;
+    queue: string;
+    task: string;
+    state: string;
+}
 export interface BridgeItemType {
     name: string;
     type: BridgeType;
     path: string;
+    childs?: SubrItemType[];
 }
 interface BridgeListResType {
     data: BridgeItemType[];
