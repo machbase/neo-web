@@ -25,6 +25,7 @@ import { Timer } from '../timer';
 import { ShellManage } from '@/components/ShellManage';
 import { Bridge } from '../bridge';
 import { useNavigate } from 'react-router-dom';
+import { SSHKey } from '../sshkey';
 
 const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -254,6 +255,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                             {aItem.type === 'timer' && <Timer pCode={aItem.code} />}
                             {aItem.type === 'shell-manage' && <ShellManage pCode={aItem.code} />}
                             {aItem.type === 'bridge' && <Bridge pCode={aItem.code} />}
+                            {aItem.type === 'ssh-key' && <SSHKey />}
                             {isImage(aItem.name) && <ImageBox pBase64Code={aItem.code} pType={aItem.type} />}
                         </div>
                     );
