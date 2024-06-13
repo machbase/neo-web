@@ -38,6 +38,12 @@
         }
     }
 
+    .extension-tab-hover-bg-wrapper {
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.13);
+        }
+    }
+
     .extension-tab-switch-wrapper {
         display: flex;
         align-items: center;

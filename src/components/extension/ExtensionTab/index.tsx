@@ -110,7 +110,17 @@ const IconBtn = ({ children, pCallback, pActive }: { children: React.ReactNode; 
         </div>
     );
 };
-const Input = ({ pAutoFocus, pCallback, pValue, pWidth }: { pAutoFocus?: boolean; pCallback?: (e: React.FormEvent<HTMLInputElement>) => void; pValue?: any; pWidth?: any }) => {
+const Input = ({
+    pAutoFocus,
+    pCallback = () => {},
+    pValue,
+    pWidth,
+}: {
+    pAutoFocus?: boolean;
+    pCallback?: (e: React.FormEvent<HTMLInputElement>) => void;
+    pValue?: any;
+    pWidth?: any;
+}) => {
     return (
         <div className="extension-tab-input-wrapper" style={{ width: pWidth }}>
             <input autoFocus={pAutoFocus} onChange={pCallback} value={pValue} />
@@ -523,9 +533,11 @@ const CopyButton = ({ pContent }: { pContent: string }) => {
         </div>
     );
 };
-
 const Space = ({ pHeight = '8px' }: { pHeight?: string }) => {
     return <div style={{ width: '100%', height: pHeight }} />;
+};
+const HoverBg = ({ children }: { children: React.ReactNode }) => {
+    return <div className="extension-tab-hover-bg-wrapper">{children}</div>;
 };
 
 ExtensionTab.Checkbox = Checkbox;
@@ -556,3 +568,4 @@ ExtensionTab.TextResSuccess = TextResSuccess;
 ExtensionTab.CopyButton = CopyButton;
 ExtensionTab.CopyBlock = CopyBlock;
 ExtensionTab.Space = Space;
+ExtensionTab.HoverBg = HoverBg;

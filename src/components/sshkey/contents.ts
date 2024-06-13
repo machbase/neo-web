@@ -38,6 +38,7 @@ export const EXEC_SSH_KEY = {
 
 export const INFO_SSH_KEY = {
     title: 'SSH keys',
+    cre_alias: 'title',
     cre_title: 'public key',
     cre_desc: 'Copy the contents of your public key file.',
     cre_support: 'Only SSH keys of type "ssh-rsa" and type "ecdsa-sha2-nistp256" are supported.',
