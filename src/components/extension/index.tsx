@@ -10,7 +10,7 @@ import { logOut } from '@/api/repository/login';
 import { useNavigate } from 'react-router-dom';
 import { RxLapTimer } from 'react-icons/rx';
 import { generateUUID } from '@/utils';
-import { GiCableStayedBridge } from 'react-icons/gi';
+import { GiTallBridge } from 'react-icons/gi';
 import './index.scss';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { Password } from '../password';
@@ -72,7 +72,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
             case 'SHELL':
                 return <GoTerminal />;
             case 'BRIDGE':
-                return <GiCableStayedBridge />;
+                return <GiTallBridge />;
             default:
                 return <Cmd />;
         }

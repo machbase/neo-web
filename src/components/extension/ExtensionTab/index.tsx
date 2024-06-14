@@ -451,7 +451,7 @@ const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
         </div>
     );
 };
-const Switch = ({ pState, pCallback, pBadge }: { pState: boolean; pCallback: () => void; pBadge?: string }) => {
+const Switch = ({ pState, pCallback, pBadge }: { pState: boolean; pCallback: (aItem: any) => void; pBadge?: string }) => {
     return (
         <div className="extension-tab-switch-wrapper">
             <input type="checkbox" id="switch" className="extension-tab-switch-input" readOnly checked={pState} />
@@ -462,7 +462,29 @@ const Switch = ({ pState, pCallback, pBadge }: { pState: boolean; pCallback: () 
         </div>
     );
 };
+const TwoItemSwitch = ({ pItemA, pItemB, pSelectedItem, pCallback }: { pItemA: string; pItemB: string; pSelectedItem: string; pCallback: (aItem: any) => void }) => {
+    const [sState, setState] = useState<boolean>(pItemA !== pSelectedItem);
 
+    const handleItemCallback = () => {
+        setState(!sState);
+        pCallback(!sState ? pItemB : pItemA);
+    };
+
+    return (
+        <div className="extension-tab-two-item-switch-wrapper">
+            <span className={`extension-tab-two-item-switch-content ${!sState ? 'two-item-active' : ''}`} style={{ marginRight: '8px' }} onClick={handleItemCallback}>
+                {pItemA}
+            </span>
+            <input type="checkbox" id="switch" className="extension-tab-switch-input" readOnly checked={sState} />
+            <label htmlFor="switch" className="extension-tab-switch-label" onClick={handleItemCallback}>
+                <span className="extension-tab-switch-label-btn" />
+            </label>
+            <span className={`extension-tab-two-item-switch-content ${sState ? 'two-item-active' : ''}`} style={{ marginLeft: '8px' }} onClick={handleItemCallback}>
+                {pItemB}
+            </span>
+        </div>
+    );
+};
 const StatusCircle = ({ pState }: { pState?: 'true' | 'false' | 'none' }) => {
     const getColor = (): string => {
         switch (pState) {
@@ -560,6 +582,7 @@ ExtensionTab.DatePicker = DatePicker;
 ExtensionTab.DateTimePicker = DateTimePicker;
 ExtensionTab.Table = Table;
 ExtensionTab.Switch = Switch;
+ExtensionTab.TwoItemSwitch = TwoItemSwitch;
 ExtensionTab.IconBtn = IconBtn;
 ExtensionTab.Selector = Selector;
 ExtensionTab.TextResErr = TextResErr;

@@ -97,7 +97,7 @@ export const EditTimer = () => {
     };
 
     useEffect(() => {
-        if (sBodyRef && sBodyRef.current) {
+        if (sBodyRef && sBodyRef.current && sBodyRef.current.offsetWidth !== 0) {
             setGroupWidth([sBodyRef.current.offsetWidth / 2, sBodyRef.current.offsetWidth / 2]);
         }
     }, [sBodyRef]);

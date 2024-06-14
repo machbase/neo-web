@@ -1,15 +1,17 @@
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { gActiveBridge, gBoardList, gBridgeList } from '@/recoil/recoil';
+import { gActiveBridge, gActiveSubr, gBoardList, gBridgeList, gSelectedTab } from '@/recoil/recoil';
 import { Pane, SashContent } from 'split-pane-react';
 import SplitPane from 'split-pane-react/esm/SplitPane';
-import { BridgeItemType, commandBridge, delBridge, getBridge } from '@/api/repository/bridge';
+import { BridgeItemType, commandBridge, delBridge } from '@/api/repository/bridge';
 import { CreateBridge } from './createBridge';
 import { useEffect, useRef, useState } from 'react';
 import { IconButton } from '../buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
 import { ConfirmModal } from '../modal/ConfirmModal';
 import { getCommandState } from '@/utils/bridgeCommandHelper';
+import { SUBSCRIBER_TYPE } from './content';
+import { generateUUID } from '@/utils';
 
 export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -25,19 +27,17 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
         command: { message: '', data: undefined },
         test: { message: '', data: undefined },
     });
-    const setResList = useSetRecoilState<BridgeItemType[] | undefined>(gBridgeList);
+    const [sBridgeList, setBridgeList] = useRecoilState<BridgeItemType[] | undefined>(gBridgeList);
     const TYPE = 'bridge';
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
+    const setActiveSubrName = useSetRecoilState<any>(gActiveSubr);
+    const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
 
     /** delete item */
     const deleteItem = async () => {
         const sRes = await delBridge(pCode.name);
         if (sRes.success) {
-            const sBridgeList = await getBridge();
-            if (sBridgeList.success) setResList(sBridgeList?.data || []);
-            else setResList([]);
-
-            const sTempList = sBridgeList.data ? sBridgeList.data.filter((aInfo: any) => aInfo.name !== pCode.name) : [];
+            const sTempList = sBridgeList ? sBridgeList.filter((aInfo: any) => aInfo.name !== pCode.name) : [];
             if (sTempList && sTempList.length > 0) {
                 setActiveName(sTempList[0].name);
                 const aTarget = sBoardList.find((aBoard: any) => aBoard.type === TYPE);
@@ -71,6 +71,7 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                     });
                 });
             }
+            setBridgeList(sTempList);
         }
         setIsDeleteModal(false);
     };
@@ -83,7 +84,50 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
         sTmp.command = (e.target as HTMLInputElement).value;
         setPayload(sTmp);
     };
+    const checkExistTab = (aType: string) => {
+        const sResut = sBoardList.reduce((prev: boolean, cur: any) => {
+            return prev || cur.type === aType;
+        }, false);
+        return sResut;
+    };
+    /** Open subr create page */
+    const handleNewSubr = () => {
+        const sExistKeyTab = checkExistTab('subscriber');
+        setActiveSubrName(undefined);
 
+        if (sExistKeyTab) {
+            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'subscriber');
+            setBoardList((aBoardList: any) => {
+                return aBoardList.map((aBoard: any) => {
+                    if (aBoard.id === aTarget.id) {
+                        return {
+                            ...aTarget,
+                            name: `SUBR: create`,
+                            code: { bridge: pCode, subr: {} },
+                            savedCode: false,
+                        };
+                    }
+                    return aBoard;
+                });
+            });
+            setSelectedTab(aTarget.id);
+            return;
+        } else {
+            const sId = generateUUID();
+            setBoardList([
+                ...sBoardList,
+                {
+                    id: sId,
+                    type: 'subscriber',
+                    name: `SUBR: create`,
+                    code: { bridge: pCode, subr: {} },
+                    savedCode: false,
+                },
+            ]);
+            setSelectedTab(sId);
+            return;
+        }
+    };
     const handleCommand = async (aState: 'test' | 'command') => {
         let sCommand: any = undefined;
         let sState: any = undefined;
@@ -159,12 +203,15 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                                     <div style={{ marginTop: '8px' }}>
                                         <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
                                         <ExtensionTab.TextButton pText="Test" pType="CREATE" pCallback={() => handleCommand('test')} />
+                                        {SUBSCRIBER_TYPE.includes(sPayload.type) && (
+                                            <ExtensionTab.TextButton pWidth="120px" pText="New subscriber" pType="CREATE" pCallback={handleNewSubr} />
+                                        )}
                                     </div>
                                     {sCommandRes.test?.data && sCommandRes.test?.data?.success && <ExtensionTab.TextResSuccess pText={'success'} />}
                                     {sCommandRes.test.message !== '' && <ExtensionTab.TextResErr pText={sCommandRes.test.message} />}
                                 </ExtensionTab.ContentBlock>
 
-                                {sPayload.type !== 'mqtt' && (
+                                {!SUBSCRIBER_TYPE.includes(sPayload.type) && (
                                     <>
                                         {/* Command */}
                                         <ExtensionTab.ContentBlock>

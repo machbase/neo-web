@@ -2,8 +2,18 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import svgr from 'vite-plugin-svgr';
-const TestTarget = '127.0.0.1:5654';
-// '192.168.1.137:5654';
+const TestTarget = '192.168.1.53:5654';
+const TestSecurity = '';
+// '192.168.1.53:5654'
+// '192.168.1.166:5654';
+// http://192.168.0.148/
+// http://172.30.148.16:5654
+// 'eirny.machbase.com'
+
+// NEOW opt
+// --jwt-at-expire=1m
+// --http-debug=true
+// --log-level=TRACE
 
 export default defineConfig({
     plugins: [react(), svgr()],
@@ -18,24 +28,24 @@ export default defineConfig({
     server: {
         proxy: {
             'https://machbase.com/assets/example/*': {
-                target: `http://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
             },
             '/web/geomap': {
-                target: `http://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
                 ws: false,
             },
             '/web/echarts': {
-                target: `http://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
                 ws: false,
             },
             '/web/api': {
-                target: `http://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
                 ws: false,
@@ -51,31 +61,31 @@ export default defineConfig({
                 },
             },
             '/web/machbase': {
-                target: `http://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
                 ws: false,
             },
             '/web/tutorials': {
-                target: `http://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
                 ws: false,
             },
             '/web/api/term': {
-                target: `ws://${TestTarget}`,
+                target: `ws${TestSecurity}://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
                 ws: true,
             },
             '/web/api/console': {
-                target: `ws://${TestTarget}`,
+                target: `ws${TestSecurity}://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
                 ws: true,
             },
             '/db/tql': {
-                target: `http://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}`,
                 changeOrigin: true,
                 secure: false,
             },

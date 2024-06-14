@@ -137,6 +137,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
                 setIsSaved(JSON.stringify(aBoard.code) === JSON.stringify(pBoard.savedCode));
                 break;
             case 'bridge':
+            case 'subscriber':
                 setIsSaved(pBoard.savedCode);
                 break;
             default:

@@ -6,8 +6,9 @@ import { GoPlus } from 'react-icons/go';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gActiveBridge, gActiveSubr, gBoardList, gBridgeList, gSelectedTab, setBridgeTree } from '@/recoil/recoil';
 import { generateUUID } from '@/utils';
-import { BridgeItemType, getBridge } from '@/api/repository/bridge';
+import { BridgeItemType, getBridge, getSubr } from '@/api/repository/bridge';
 import icons from '@/utils/icons';
+import { SUBSCRIBER_TYPE } from '../bridge/content';
 
 export const BridgeSide = ({ pServer }: any) => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
@@ -22,31 +23,9 @@ export const BridgeSide = ({ pServer }: any) => {
     const getBridgeList = async () => {
         const sResBridge = await getBridge();
         if (sResBridge.success) {
-            const sResSubr = [
-                {
-                    name: 'MQ_SUBR1',
-                    type: 'subscriber',
-                    qos: '0',
-                    task: 'db/append/EXAMPLE:csv',
-                    queue: '',
-                    bridge: 'mqtest',
-                    topic: 'iot/sensor',
-                    autoStart: true,
-                    state: 'RUNNING',
-                },
-                {
-                    name: 'NATS_SUBR1',
-                    type: 'nats',
-                    qos: '0',
-                    task: 'db/append/EXAMPLE:csv',
-                    queue: 'asdfasdfasdf',
-                    bridge: 'asdfasdf',
-                    topic: 'iot/sensor',
-                    autoStart: true,
-                    state: 'RUNNING',
-                },
-            ];
-            setBridge(setBridgeTree(sResBridge.data, sResSubr));
+            const sResSubr = await getSubr();
+            if (sResSubr.success) setBridge(setBridgeTree(sResBridge.data, sResSubr.data));
+            else setBridge(setBridgeTree(sResBridge.data, []));
         } else setBridge([]);
     };
     const checkExistTab = (aType: string) => {
@@ -56,7 +35,7 @@ export const BridgeSide = ({ pServer }: any) => {
         return sResut;
     };
     // OPEN SUBSCRIBER
-    const openSubrInfo = (aInfo: any) => {
+    const openSubrInfo = (aItem: any, aInfo: any) => {
         const sExistKeyTab = checkExistTab(SUBR_TYPE);
         setActiveSubrName(aInfo.name);
 
@@ -68,8 +47,8 @@ export const BridgeSide = ({ pServer }: any) => {
                         return {
                             ...aTarget,
                             name: `SUBR: ${aInfo.name}`,
-                            code: aInfo,
-                            savedCode: aInfo,
+                            code: { bridge: aItem, subr: aInfo },
+                            savedCode: { bridge: aItem, subr: aInfo },
                         };
                     }
                     return aBoard;
@@ -85,8 +64,8 @@ export const BridgeSide = ({ pServer }: any) => {
                     id: sId,
                     type: SUBR_TYPE,
                     name: `SUBR: ${aInfo.name}`,
-                    code: aInfo,
-                    savedCode: aInfo,
+                    code: { bridge: aItem, subr: aInfo },
+                    savedCode: { bridge: aItem, subr: aInfo },
                 },
             ]);
             setSelectedTab(sId);
@@ -213,7 +192,7 @@ export const BridgeSide = ({ pServer }: any) => {
                                             wordBreak: 'break-all',
                                         }}
                                     >
-                                        <span className="icons">{icons((aItem?.type as any) === 'mqtt' ? 'bridge-sub' : 'bridge-db')}</span>
+                                        <span className="icons">{icons(SUBSCRIBER_TYPE.includes(aItem?.type) ? 'bridge-sub' : 'bridge-db')}</span>
                                         <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{aItem.name}</span>
                                     </div>
                                 </div>
@@ -225,7 +204,7 @@ export const BridgeSide = ({ pServer }: any) => {
                                                 key={bIdx}
                                                 className={aChild.name === sActiveSubrName ? 'file-wrap file-wrap-active' : 'file-wrap'}
                                                 style={{ paddingLeft: '16px' }}
-                                                onClick={() => openSubrInfo(aChild)}
+                                                onClick={() => openSubrInfo(aItem, aChild)}
                                             >
                                                 <div
                                                     style={{
@@ -258,8 +237,10 @@ export const BridgeSide = ({ pServer }: any) => {
                                                         />
                                                     </div>
 
-                                                    <span className="icons">{icons('bridge-child')}</span>
-                                                    <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                                    <span className="icons" style={{ marginLeft: '4px' }}>
+                                                        {icons('bridge-child')}
+                                                    </span>
+                                                    <span style={{ marginLeft: '1px', fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                                                         {aChild.name}
                                                     </span>
                                                 </div>

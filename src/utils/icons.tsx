@@ -38,11 +38,10 @@ import {
     MuiFolder,
     MuiFolderOpen,
 } from '@/assets/icons/Mui';
-import { GiCableStayedBridge } from 'react-icons/gi';
+import { GiTallBridge } from 'react-icons/gi';
 import { PiDatabaseLight } from 'react-icons/pi';
 import { RxLapTimer } from 'react-icons/rx';
-import { TbBell } from 'react-icons/tb';
-import { VscTypeHierarchy } from 'react-icons/vsc';
+import { VscMail, VscTypeHierarchy } from 'react-icons/vsc';
 
 const icons = (aType: string, aIsHome?: boolean) => {
     switch (aType) {
@@ -119,14 +118,14 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'timer':
             return <RxLapTimer />;
         case 'bridge':
-            return <GiCableStayedBridge />;
+            return <GiTallBridge />;
         case 'bridge-db':
             return <PiDatabaseLight />;
         case 'bridge-sub':
             return <VscTypeHierarchy />;
         case 'subscriber':
         case 'bridge-child':
-            return <TbBell />;
+            return <VscMail />;
         default:
             return <GoTerminal />;
     }

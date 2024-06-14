@@ -25,7 +25,7 @@ import { ShellManage } from '@/components/ShellManage';
 import { Bridge } from '../bridge';
 import { useNavigate } from 'react-router-dom';
 import { SSHKey } from '../sshkey';
-import { SubScriber } from '../subscriber';
+import { Subscriber } from '../bridge/subscriber';
 import './Body.scss';
 
 const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
@@ -257,7 +257,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                             {aItem.type === 'shell-manage' && <ShellManage pCode={aItem.code} />}
                             {aItem.type === 'bridge' && <Bridge pCode={aItem.code} />}
                             {aItem.type === 'ssh-key' && <SSHKey />}
-                            {aItem.type === 'subscriber' && <SubScriber pCode={aItem.code} />}
+                            {aItem.type === 'subscriber' && <Subscriber pCode={aItem.code} />}
                             {isImage(aItem.name) && <ImageBox pBase64Code={aItem.code} pType={aItem.type} />}
                         </div>
                     );
