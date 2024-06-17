@@ -2,7 +2,7 @@ import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { gActiveSubr, gDelSubr, gStateSubr } from '@/recoil/recoil';
 import { Pane } from 'split-pane-react';
-import { commandSubr, delSubr } from '@/api/repository/bridge';
+import { commandSubr, delSubr, getSubrItem } from '@/api/repository/bridge';
 import { useEffect, useState } from 'react';
 import { ConfirmModal } from '../../modal/ConfirmModal';
 import { AUTO_START_DESC } from '../../timer/content';
@@ -34,20 +34,23 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
     };
     const handleCommand = async () => {
         let sSetState: any = undefined;
-        if (sState === 'STARTING') sSetState = 'STOP';
-        if (sState === 'STOP') sSetState = 'STARTING';
+        if (sState === 'STARTING' || sState === 'RUNNING') sSetState = 'STOP';
+        else sSetState = 'STARTING';
         const sResCommand: any = await commandSubr(sSetState === 'STOP' ? 'stop' : 'start', pCode.subr.name);
+        const sResSubrInfo: any = await getSubrItem(pCode.subr.name);
         if (sResCommand.success) {
-            setStateSubr({ target: pCode, state: sSetState });
             setCommandResMessage(undefined);
         } else setCommandResMessage(sResCommand?.data ? (sResCommand as any).data.reason : (sResCommand.statusText as string));
+        setStateSubr({ target: pCode, state: sResSubrInfo?.success ? sResSubrInfo.data.state : 'UNKNWON' });
     };
 
     useEffect(() => {
         setPayload(pCode);
         setState(pCode?.subr?.state ?? '');
-        setResErrMessage(undefined);
-        setCommandResMessage(undefined);
+        if (sPayload?.subr?.name !== pCode?.subr?.name) {
+            setResErrMessage(undefined);
+            setCommandResMessage(undefined);
+        }
     }, [pCode]);
 
     return (
@@ -67,6 +70,14 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
                                 <ExtensionTab.ContentTitle>name</ExtensionTab.ContentTitle>
                                 <ExtensionTab.ContentDesc>{sPayload.subr.name}</ExtensionTab.ContentDesc>
                             </ExtensionTab.ContentBlock>
+                            {/* Auto start */}
+                            <ExtensionTab.ContentBlock>
+                                <ExtensionTab.ContentTitle>Auto start</ExtensionTab.ContentTitle>
+                                <ExtensionTab.DpRow>
+                                    <ExtensionTab.Checkbox pValue={sPayload.subr.autoStart} pDisable />
+                                    <ExtensionTab.ContentDesc>{AUTO_START_DESC}</ExtensionTab.ContentDesc>
+                                </ExtensionTab.DpRow>
+                            </ExtensionTab.ContentBlock>
                             {/* bridge */}
                             <ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentTitle>bridge</ExtensionTab.ContentTitle>
@@ -77,14 +88,20 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
                                 <ExtensionTab.ContentTitle>topic</ExtensionTab.ContentTitle>
                                 <ExtensionTab.ContentDesc>{sPayload.subr.topic}</ExtensionTab.ContentDesc>
                             </ExtensionTab.ContentBlock>
-                            {/* Auto start */}
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentTitle>Auto start</ExtensionTab.ContentTitle>
-                                <ExtensionTab.DpRow>
-                                    <ExtensionTab.Checkbox pValue={sPayload.subr.autoStart} pDisable />
-                                    <ExtensionTab.ContentDesc>{AUTO_START_DESC}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.DpRow>
-                            </ExtensionTab.ContentBlock>
+                            {/* QoS */}
+                            {sPayload?.subr?.QoS && (
+                                <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.ContentTitle>QoS</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentDesc>{sPayload.subr.QoS}</ExtensionTab.ContentDesc>
+                                </ExtensionTab.ContentBlock>
+                            )}
+                            {/* Queue */}
+                            {sPayload?.subr?.queue && (
+                                <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.ContentTitle>Queue</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentDesc>{sPayload.subr.queue}</ExtensionTab.ContentDesc>
+                                </ExtensionTab.ContentBlock>
+                            )}
                             {/* TASK */}
                             <ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentTitle>Destination</ExtensionTab.ContentTitle>
@@ -93,15 +110,9 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
                             {/* STATE */}
                             <ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentTitle>state</ExtensionTab.ContentTitle>
-                                {!(sState?.includes('STOP') || sState?.includes('STARTING')) ? (
-                                    <ExtensionTab.ContentDesc>
-                                        <ExtensionTab.TextResErr pText={sState} />
-                                    </ExtensionTab.ContentDesc>
-                                ) : (
-                                    <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'row' }}>
-                                        <ExtensionTab.Switch pState={sState === 'STARTING'} pCallback={handleCommand} pBadge={sState?.includes('STOP') ? 'STOP' : 'RUNNING'} />
-                                    </div>
-                                )}
+                                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'row' }}>
+                                    <ExtensionTab.Switch pState={sState.includes('RUNNING') || sState.includes('STARTING')} pCallback={handleCommand} pBadge={sState} />
+                                </div>
                                 {sCommandResMessage && (
                                     <ExtensionTab.DpRow>
                                         <VscWarning style={{ fill: 'rgb(236 118 118)' }} />
@@ -109,18 +120,6 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
                                     </ExtensionTab.DpRow>
                                 )}
                             </ExtensionTab.ContentBlock>
-                            {sPayload?.subr?.QoS && (
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>QoS</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{sPayload.subr.QoS}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                            )}
-                            {sPayload?.subr?.queue && (
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Queue</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{sPayload.subr.queue}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                            )}
                             <ExtensionTab.ContentBlock>
                                 <ExtensionTab.TextButton pText="Delete" pWidth="80px" pType="DELETE" pCallback={handleDelete} mr="0px" />
                                 {sResErrMessage && (

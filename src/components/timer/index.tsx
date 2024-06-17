@@ -1,9 +1,9 @@
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
-import { useRecoilState, useSetRecoilState } from 'recoil';
+import { useRecoilState } from 'recoil';
 import { gActiveTimer, gBoardList, gTimerList } from '@/recoil/recoil';
 import { Pane, SashContent } from 'split-pane-react';
 import { EditTimer } from './editTimer';
-import { TimerItemType, delTimer, getTimer, modTimer, sendTimerCommand } from '@/api/repository/timer';
+import { TimerItemType, delTimer, getTimer, getTimerItem, modTimer, sendTimerCommand } from '@/api/repository/timer';
 import { useState, useEffect } from 'react';
 import SplitPane from 'split-pane-react/esm/SplitPane';
 import { AUTO_START_DESC } from './content';
@@ -13,7 +13,7 @@ import { ConfirmModal } from '../modal/ConfirmModal';
 
 export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
-    const setResTimerList = useSetRecoilState<TimerItemType[] | undefined>(gTimerList);
+    const [sTimerList, setResTimerList] = useRecoilState<TimerItemType[] | undefined>(gTimerList);
     const [sActiveTimer, setActiveTimer] = useRecoilState<any>(gActiveTimer);
     const [sCommandRes, setCommandRes] = useState<string | undefined>(undefined);
     const [sResMessage, setResMessage] = useState<string | undefined>(undefined);
@@ -75,6 +75,14 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         const sResult: any = await modTimer({ autoStart: sPayload.autoStart, schedule: sPayload.schedule, path: sPayload.task }, sPayload.name);
 
         if (sResult.success) {
+            const sTimerInfo: any = await getTimerItem(sPayload.name);
+            const sTmpTimerList =
+                sTimerList &&
+                sTimerList.map((aTimerInfo: any) => {
+                    if (aTimerInfo.name === sPayload.name) {
+                        return sTimerInfo.success ? sTimerInfo.data : aTimerInfo;
+                    } else return aTimerInfo;
+                });
             const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
             setBoardList((aBoardList: any) => {
                 return aBoardList.map((aBoard: any) => {
@@ -82,49 +90,46 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                         return {
                             ...aTarget,
                             name: `TIMER: ${sPayload.name}`,
-                            code: sPayload,
-                            savedCode: sPayload,
+                            code: sTimerInfo.success ? sTimerInfo.data : sPayload,
+                            savedCode: sTimerInfo.success ? sTimerInfo.data : sPayload,
                         };
                     }
                     return aBoard;
                 });
             });
-            updateList();
+            setResTimerList(sTmpTimerList);
+            setPayload(sTimerInfo.success ? sTimerInfo.data : sPayload);
             setResMessage(undefined);
         } else {
             if (sResult?.data && sResult?.data.reason) setResMessage(sResult?.data.reason);
             else setResMessage(sResult.statusText);
         }
     };
-    /** update list */
-    const updateList = async (aEvent?: MouseEvent) => {
-        if (aEvent) aEvent.stopPropagation();
-        const sResList: any = await getTimer();
-        if (sResList.success) {
-            setResTimerList(sResList.data || []);
-            return sResList.data || [];
-        } else {
-            setResTimerList(undefined);
-            return [];
-        }
-    };
     const handleCommand = async () => {
-        const sResCommand = await sendTimerCommand(commandConverter(pCode.state.includes('STOP') ? 'STOP' : 'RUNNING').toLowerCase(), pCode.name);
+        const sResCommand = await sendTimerCommand(
+            commandConverter(pCode.state.includes('RUNNING') || pCode.state.includes('STARTING') ? 'RUNNING' : 'STOP').toLowerCase(),
+            pCode.name
+        );
         if (sResCommand.success) {
             setCommandRes(undefined);
-            const sTimerList = await getTimer();
-            if (sTimerList.success) setResTimerList(sTimerList.data);
-            else setResTimerList([]);
-            const sTargetTimer = sTimerList.data.find((aKeyInfo: any) => aKeyInfo.name === pCode.name);
-            if (sTargetTimer) {
+            const sTimerInfo: any = await getTimerItem(pCode.name);
+            const sTmpTimerList =
+                sTimerList &&
+                sTimerList.map((aTimerInfo: any) => {
+                    if (aTimerInfo.name === pCode.name) {
+                        return sTimerInfo.success ? sTimerInfo.data : aTimerInfo;
+                    } else return aTimerInfo;
+                });
+            setResTimerList(sTmpTimerList);
+            if (sTimerInfo.success) {
                 const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
                 setBoardList((aBoardList: any) => {
                     return aBoardList.map((aBoard: any) => {
                         if (aBoard.id === aTarget.id) {
                             return {
                                 ...aTarget,
-                                code: { ...sPayload, state: sTargetTimer.state },
-                                savedCode: { ...aTarget.savedCode, state: sTargetTimer.state, autoStart: sPayload.autoStart },
+                                code: { ...sPayload, state: sTimerInfo.data.state },
+                                savedCode: { ...aTarget.savedCode, state: sTimerInfo.data.state, autoStart: sPayload.autoStart },
                             };
                         }
                         return aBoard;
@@ -137,12 +142,10 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     };
     const commandConverter = (aCommand: string) => {
         switch (aCommand) {
-            case 'STOP':
-                return 'Start';
             case 'RUNNING':
                 return 'Stop';
             default:
-                return aCommand;
+                return 'Start';
         }
     };
     const Resizer = () => {
@@ -218,19 +221,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
 
                                 <ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentTitle>Timer state</ExtensionTab.ContentTitle>
-                                    {!(sPayload?.state?.includes('STOP') || sPayload?.state?.includes('RUNNING')) ? (
-                                        <ExtensionTab.ContentDesc>
-                                            <ExtensionTab.TextResErr pText={sPayload.state} />
-                                        </ExtensionTab.ContentDesc>
-                                    ) : (
-                                        <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'row' }}>
-                                            <ExtensionTab.Switch
-                                                pState={sPayload.state === 'RUNNING'}
-                                                pCallback={handleCommand}
-                                                pBadge={sPayload.state.includes('STOP') ? 'STOP' : 'RUNNING'}
-                                            />
-                                        </div>
-                                    )}
+                                    <ExtensionTab.Switch pState={sPayload.state === 'RUNNING' || sPayload.state === 'STARTING'} pCallback={handleCommand} pBadge={sPayload.state} />
                                     {sCommandRes && (
                                         <ExtensionTab.ContentDesc>
                                             <ExtensionTab.TextResErr pText={sCommandRes} />

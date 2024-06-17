@@ -125,6 +125,16 @@ export const getSubr = (): Promise<SUBR_RES_TYPE> => {
         url: `/api/subscribers`,
     });
 };
+/**
+ * Get subr item
+ * @returns subr info
+ */
+export const getSubrItem = (aSubrName: string): Promise<SubrItemType> => {
+    return request({
+        method: 'GET',
+        url: `/api/subscribers/${aSubrName}`,
+    });
+};
 
 /**
  * Gen subr

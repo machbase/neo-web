@@ -49,6 +49,16 @@ export const getTimer = (): Promise<TimerListResType> => {
         url: `/api/timers`,
     });
 };
+/**
+ * Get timer item
+ * @returns target item
+ */
+export const getTimerItem = (aTimerName: string): Promise<TimerItemType> => {
+    return request({
+        method: 'GET',
+        url: `/api/timers/${aTimerName}`,
+    });
+};
 
 /**
  * Gen timer
