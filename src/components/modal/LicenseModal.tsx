@@ -4,6 +4,7 @@ import './LicenseModal.scss';
 import { useEffect, useState } from 'react';
 import { Close, Key } from '@/assets/icons/Icon';
 import { TextButton } from '../buttons/TextButton';
+import useEsc from '@/hooks/useEsc';
 
 export interface LicenseModalProps {
     pIsDarkMode: boolean;
@@ -43,6 +44,8 @@ export const LicenseModal = (props: LicenseModalProps) => {
             console.error('files is null');
         }
     };
+
+    useEsc(() => setIsOpen && setIsOpen(false));
 
     return (
         <div className="license-modal">

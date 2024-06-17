@@ -1,0 +1,142 @@
+.change-password-wrapper {
+    display: flex;
+
+    .change-password-modal {
+        width: 350px;
+        padding: 16px;
+        position: relative;
+
+        .res-success {
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: calc(350px - 30px);
+            height: calc(100% - 46px);
+            background-color: #404457;
+            margin-top: 22px;
+            z-index: 77;
+        }
+
+        .change-password-modal-header {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+
+            .title {
+                display: flex;
+                flex-direction: row;
+
+                .text {
+                    margin-left: 4px;
+                }
+            }
+        }
+
+        .change-password-modal-body {
+            display: flex;
+            flex-direction: column;
+            font-size: 14px;
+            position: relative;
+
+            .content-user-name {
+                margin-top: 16px;
+            }
+
+            .res-err {
+                display: flex;
+                align-items: start;
+                justify-content: center;
+                flex-direction: row;
+
+                svg {
+                    margin-top: 4px;
+                    width: 14px;
+                    height: 14px;
+                    min-width: 14px;
+                    min-height: 14px;
+                }
+                .res-err-text {
+                    margin-left: 8px;
+                    color: rgb(236 118 118);
+                }
+            }
+
+            .content {
+                width: 100%;
+                margin: 8px 0px;
+
+                .title {
+                    color: rgb(214, 214, 214);
+                }
+                .item-wrapper {
+                    position: relative;
+                    width: 100%;
+                    padding-right: 8px;
+
+                    input {
+                        border-radius: 8px;
+                        height: 28px;
+                        width: calc(100% - 34px);
+                        padding-left: 8px;
+                        padding-right: 32px;
+                    }
+
+                    input:focus {
+                        border: solid 2px #0076e4;
+                    }
+
+                    button {
+                        position: absolute;
+                        right: 5px;
+                        top: 5px;
+                        height: 24px;
+                        width: 24px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        margin: 0px !important;
+                        padding: 0px !important;
+
+                        svg {
+                            width: 14px;
+                            height: 14px;
+                        }
+
+                        &:hover {
+                            background-color: #0076e4;
+
+                            svg {
+                                color: whitesmoke;
+                            }
+                        }
+                    }
+                    .btn-active {
+                        background-color: #005fb8;
+                    }
+                    .btn-none {
+                        background-color: rgb(214, 214, 214);
+
+                        svg {
+                            color: black;
+                        }
+                    }
+                }
+            }
+        }
+
+        .change-password-modal-footer {
+            margin-top: 16px;
+            width: 100%;
+            button {
+                width: 100%;
+                background-color: #005fb8;
+                color: whitesmoke;
+
+                &:hover {
+                    background-color: #0076e4;
+                }
+            }
+        }
+    }
+}

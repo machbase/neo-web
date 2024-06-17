@@ -12,6 +12,8 @@ import { RxLapTimer } from 'react-icons/rx';
 import { VscTypeHierarchy } from 'react-icons/vsc';
 import { generateUUID } from '@/utils';
 import './index.scss';
+import { RiLockPasswordLine } from 'react-icons/ri';
+import { Password } from '../password';
 
 const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const sNavigate = useNavigate();
@@ -20,6 +22,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const [sExtensionList] = useRecoilState<any>(gExtensionList);
     const [sSelectedExtension, setSelectedExtension] = useRecoilState<string>(gSelectedExtension);
     const [sIsLicenseModal, setIsLicenseModal] = useState<boolean>(false);
+    const [sIsPWDModal, setIsPWDModal] = useState<boolean>(false);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
 
@@ -113,6 +116,10 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
             return;
         }
     };
+    const handlePWD = () => {
+        setIsOpen(false);
+        setIsPWDModal(true);
+    };
 
     useOutsideClick(MenuRef, () => setIsOpen(false));
 
@@ -166,6 +173,10 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                                     <VscKey />
                                     <span>SSH Keys</span>
                                 </Menu.Item>
+                                <Menu.Item onClick={handlePWD}>
+                                    <RiLockPasswordLine />
+                                    <span>Change password</span>
+                                </Menu.Item>
                                 <Menu.Item onClick={logout}>
                                     <Logout />
                                     <span>Logout</span>
@@ -176,6 +187,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                 </div>
             </div>
             {sIsLicenseModal ? <LicenseModal pIsDarkMode setIsOpen={setIsLicenseModal} /> : null}
+            {sIsPWDModal && <Password setIsOpen={setIsPWDModal} />}
         </>
     );
 };
