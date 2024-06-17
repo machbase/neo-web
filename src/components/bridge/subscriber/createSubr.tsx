@@ -7,10 +7,11 @@ import { VscWarning } from 'react-icons/vsc';
 import { LuFlipVertical } from 'react-icons/lu';
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { IconButton } from '@/components/buttons/IconButton';
-import { SUBR_FORMAT_TABLE, SUBR_METHOD_TABLE, SUBR_OPTIONS_EXAMPLE_TABLE, SUBR_OPTIONS_TABLE } from './content';
 import { SelectFileBtn } from '@/components/buttons/SelectFileBtn';
 import { OpenFileBtn } from '@/components/buttons/OpenFileBtn';
 import { genSubr, getSubr } from '@/api/repository/bridge';
+import { NatsExplain } from './nats';
+import { MqttExplain } from './mqtt';
 
 export const CreateSubr = ({ pInit }: { pInit: any }) => {
     const setBoardList = useSetRecoilState<any[]>(gBoardList);
@@ -174,6 +175,26 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                             </ExtensionTab.DpRow>
                             <ExtensionTab.Input pValue={sCreatePayload.topic} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('topic', event)} />
                         </ExtensionTab.ContentBlock>
+                        {/* QoS - MQTT */}
+                        {sCreatePayload.bridge_type === 'mqtt' && (
+                            <ExtensionTab.ContentBlock>
+                                <ExtensionTab.ContentTitle>QoS</ExtensionTab.ContentTitle>
+                                <ExtensionTab.Selector
+                                    pList={['0', '1']}
+                                    pSelectedItem={sCreatePayload.QoS}
+                                    pCallback={(aSelectedItem: string) => {
+                                        handlePayload('QoS', { target: { value: aSelectedItem } } as any);
+                                    }}
+                                />
+                            </ExtensionTab.ContentBlock>
+                        )}
+                        {/* Queue - NATS */}
+                        {sCreatePayload.bridge_type === 'nats' && (
+                            <ExtensionTab.ContentBlock>
+                                <ExtensionTab.ContentTitle>Queue</ExtensionTab.ContentTitle>
+                                <ExtensionTab.Input pValue={sCreatePayload.Queue} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('Queue', event)} />
+                            </ExtensionTab.ContentBlock>
+                        )}
                         {/* Task (writing descriptor vs tql path) */}
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.DpRow>
@@ -215,26 +236,6 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                         <OpenFileBtn pType="tql" pFileInfo={{ path: sCreatePayload.task }} btnWidth={'80px'} btnHeight="26px" />
                                     </ExtensionTab.DpRow>
                                 </ExtensionTab.ContentBlock>
-                                {/* QoS - MQTT */}
-                                {sCreatePayload.bridge_type === 'mqtt' && (
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>QoS</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.Selector
-                                            pList={['0', '1']}
-                                            pSelectedItem={sCreatePayload.QoS}
-                                            pCallback={(aSelectedItem: string) => {
-                                                handlePayload('QoS', { target: { value: aSelectedItem } } as any);
-                                            }}
-                                        />
-                                    </ExtensionTab.ContentBlock>
-                                )}
-                                {/* Queue - NATS */}
-                                {sCreatePayload.bridge_type === 'nats' && (
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Queue</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.Input pValue={sCreatePayload.Queue} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('Queue', event)} />
-                                    </ExtensionTab.ContentBlock>
-                                )}
                             </>
                         )}
                         {/* Writing Descriptor */}
@@ -301,26 +302,6 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                     <ExtensionTab.ContentTitle>Options</ExtensionTab.ContentTitle>
                                     <ExtensionTab.Input pValue={sCreatePayload.options} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('options', event)} />
                                 </ExtensionTab.ContentBlock>
-                                {/* QoS - MQTT */}
-                                {sCreatePayload.bridge_type === 'mqtt' && (
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Qos</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.Selector
-                                            pList={['0', '1']}
-                                            pSelectedItem={sCreatePayload.QoS}
-                                            pCallback={(aSelectedItem: string) => {
-                                                handlePayload('QoS', { target: { value: aSelectedItem } } as any);
-                                            }}
-                                        />
-                                    </ExtensionTab.ContentBlock>
-                                )}
-                                {/* Queue - NATS */}
-                                {sCreatePayload.bridge_type === 'nats' && (
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Queue</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.Input pValue={sCreatePayload.Queue} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('Queue', event)} />
-                                    </ExtensionTab.ContentBlock>
-                                )}
                             </>
                         )}
                         {/* Create btn */}
@@ -345,127 +326,11 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                     </ExtensionTab.Header>
                     <ExtensionTab.Body>
                         {/* Writing Descriptor */}
-                        {sTaskSelect === 'Writing Descriptor' && (
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentTitle>writing descriptor</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Spec</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>AutoStart</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentText pContent="makes the subscriber starts along with machbase-neo starts. Ommit this to start/stop manually."></ExtensionTab.ContentText>
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>Name</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentText pContent="the name of the subscriber."></ExtensionTab.ContentText>
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>Bridge</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentText pContent="the name of the bridge that the subscriber is going to use."></ExtensionTab.ContentText>
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>{sCreatePayload.bridge_type === 'mqtt' ? 'Topic' : 'Subject'}</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentText pContent="subject name to subscribe. it should be in NATS subject syntax."></ExtensionTab.ContentText>
-                                    {sCreatePayload.bridge_type === 'mqtt' && (
-                                        <>
-                                            <ExtensionTab.Space pHeight="16px" />
-                                            <ExtensionTab.ContentDesc>QoS</ExtensionTab.ContentDesc>
-                                            <ExtensionTab.ContentText pContent="subscribe to the topic QoS 1, MQTT bridges support QoS 0 and 1."></ExtensionTab.ContentText>
-                                        </>
-                                    )}
-                                    {sCreatePayload.bridge_type === 'nats' && (
-                                        <>
-                                            <ExtensionTab.Space pHeight="16px" />
-                                            <ExtensionTab.ContentDesc>Queue</ExtensionTab.ContentDesc>
-                                            <ExtensionTab.ContentText pContent="if the bridge is NATS type, it specifies the Queue Group."></ExtensionTab.ContentText>
-                                        </>
-                                    )}
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>Destination</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentText pContent="writing descriptor, it means the incoming data is in CSV format and writing data into the table EXAMPLE in append mode."></ExtensionTab.ContentText>
-                                    <ExtensionTab.CopyBlock pContent={'db/{method}/{table_name}:{format}:{compress}?{options}'} />
-                                    {/* method */}
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>Method</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentText pContent={`There are two methods append and write. The append is recommended on the stream environment like NATS.`} />
-                                    <div style={{ width: '400px' }}>
-                                        <ExtensionTab.Table pList={SUBR_METHOD_TABLE} dotted />
-                                    </div>
-                                    {/* table_name */}
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>table_name</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentText pContent={`Specify the destination table name, case insensitive.`} />
-                                    {/* format */}
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>Format</ExtensionTab.ContentDesc>
-                                    <div style={{ width: '150px' }}>
-                                        <ExtensionTab.Table pList={SUBR_FORMAT_TABLE} dotted />
-                                    </div>
-                                    {/* compress */}
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>Compress</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentText pContent={`Currently gzip is supported, If :{compress} part is omitted, it means the data is not compressed.`} />
-                                    {/* Options */}
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>Options</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentText pContent="The writing description can contain an optional question-mark-separated URL-encoded parameters." />
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.Hr />
-                                    <ExtensionTab.Space pHeight="12px" />
-                                    <ExtensionTab.Table pList={SUBR_OPTIONS_TABLE} />
-                                </ExtensionTab.ContentBlock>
-                                {/* EX */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentDesc>Examples)</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.Space pHeight="8px" />
-                                    <div style={{ width: '600px' }}>
-                                        <ExtensionTab.Table pList={SUBR_OPTIONS_EXAMPLE_TABLE} dotted />
-                                    </div>
-                                </ExtensionTab.ContentBlock>
-                            </ExtensionTab.ContentBlock>
-                        )}
+                        {sTaskSelect === 'Writing Descriptor' && sCreatePayload.bridge_type === 'nats' && <NatsExplain pType="descriptor" />}
+                        {sTaskSelect === 'Writing Descriptor' && sCreatePayload.bridge_type === 'mqtt' && <MqttExplain pType="descriptor" />}
                         {/* TQL Script */}
-                        {sTaskSelect === 'TQL Script' && (
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentTitle>TQL script</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>The place of writing description can be replaced with a file path of TQL script.</ExtensionTab.ContentDesc>
-                                <ExtensionTab.Space pHeight="4px" />
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Spec</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>AutoStart</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentText pContent="makes the subscriber starts along with machbase-neo starts."></ExtensionTab.ContentText>
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>Name</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentText pContent="the name of the subscriber"></ExtensionTab.ContentText>
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>Bridge</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentText pContent="the name of the bridge that the subscriber is going to use"></ExtensionTab.ContentText>
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>{sCreatePayload.bridge_type === 'mqtt' ? 'Topic' : 'Subject'}</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentText pContent="subject name to subscribe. it supports NATS subject syntax."></ExtensionTab.ContentText>
-                                    <ExtensionTab.Space pHeight="16px" />
-                                    <ExtensionTab.ContentDesc>Tql Path</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentText pContent="the tql file path which will receive the incoming data."></ExtensionTab.ContentText>
-                                    {sCreatePayload.bridge_type === 'mqtt' && (
-                                        <>
-                                            <ExtensionTab.Space pHeight="16px" />
-                                            <ExtensionTab.ContentDesc>QoS</ExtensionTab.ContentDesc>
-                                            <ExtensionTab.ContentText pContent="subscribe to the topic QoS 1, MQTT bridges support QoS 0 and 1."></ExtensionTab.ContentText>
-                                        </>
-                                    )}
-                                    {sCreatePayload.bridge_type === 'nats' && (
-                                        <>
-                                            <ExtensionTab.Space pHeight="16px" />
-                                            <ExtensionTab.ContentDesc>Queue</ExtensionTab.ContentDesc>
-                                            <ExtensionTab.ContentText pContent="if the bridge is NATS type, it specifies the Queue Group."></ExtensionTab.ContentText>
-                                        </>
-                                    )}
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentDesc>Data writing TQL script example)</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.CopyBlock
-                                        pContent={'CSV(payload())\nMAPVALUE(1, parseTime(value(1), "ns"))\nMAPVALUE(2, parseFloat(value(2)))\nAPPEND( table("example") )'}
-                                    />
-                                </ExtensionTab.ContentBlock>
-                            </ExtensionTab.ContentBlock>
-                        )}
+                        {sTaskSelect === 'TQL Script' && sCreatePayload.bridge_type === 'nats' && <NatsExplain pType="tql" />}
+                        {sTaskSelect === 'TQL Script' && sCreatePayload.bridge_type === 'mqtt' && <MqttExplain pType="tql" />}
                     </ExtensionTab.Body>
                 </Pane>
             </SplitPane>
