@@ -63,15 +63,15 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                 }`,
             };
         }
-        if (sCreatePayload.bridge_type === 'mqtt') sParsedPayload.QoS = parseInt(sCreatePayload.QoS);
-        if (sCreatePayload.bridge_type === 'nats') sParsedPayload.queue = sCreatePayload.queue;
+        if (sCreatePayload.bridge_type === 'mqtt' && parseInt(sCreatePayload.QoS) !== 0) sParsedPayload.QoS = parseInt(sCreatePayload.QoS);
+        if (sCreatePayload.bridge_type === 'nats' && sCreatePayload.queue !== '') sParsedPayload.queue = sCreatePayload.queue;
 
         const sGenRes: any = await genSubr(sParsedPayload);
 
         if (sGenRes.success) {
             const sGetSubrRes: any = await getSubr();
             const sTargetSubrInfo = sGetSubrRes?.data ? sGetSubrRes.data.filter((aSubr: any) => aSubr.bridge === sCreatePayload.bridge) : undefined;
-            if (sTargetSubrInfo) setAddSubr(sParsedPayload);
+            if (sTargetSubrInfo) setAddSubr({ ...sParsedPayload, state: 'STOP', name: sParsedPayload.name.toUpperCase() });
             handleSavedCode(true);
             setResErrMessage(undefined);
         } else {
@@ -203,107 +203,112 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
                                 </ExtensionTab.ContentDesc>
                             </ExtensionTab.DpRow>
-                            <ExtensionTab.TwoItemSwitch
-                                pItemA={'Writing Descriptor'}
-                                pItemB={'TQL Script'}
+                            <ExtensionTab.Selector
+                                pList={['Writing Descriptor', 'TQL Script']}
                                 pSelectedItem={sTaskSelect}
-                                pCallback={(aItem: any) => setTaskSelect(aItem)}
+                                pCallback={(aSelectedItem: any) => {
+                                    setTaskSelect(aSelectedItem);
+                                }}
                             />
-                        </ExtensionTab.ContentBlock>
-                        {/* TQL Script */}
-                        {sTaskSelect === 'TQL Script' && (
-                            <>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.DpRow>
-                                        <ExtensionTab.ContentTitle>Tql path</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>
-                                            <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                        </ExtensionTab.ContentDesc>
-                                    </ExtensionTab.DpRow>
-                                    <ExtensionTab.ContentDesc>The tql script as a task</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.DpRow>
+                            <ExtensionTab.Space pHeight="16px" />
+                            {/* TQL Script */}
+                            {sTaskSelect === 'TQL Script' && (
+                                <>
+                                    <ExtensionTab.ContentBlock>
+                                        <ExtensionTab.DpRow>
+                                            <ExtensionTab.ContentTitle>Tql path</ExtensionTab.ContentTitle>
+                                            <ExtensionTab.ContentDesc>
+                                                <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                            </ExtensionTab.ContentDesc>
+                                        </ExtensionTab.DpRow>
+                                        <ExtensionTab.ContentDesc>The tql script as a task</ExtensionTab.ContentDesc>
+                                        <ExtensionTab.DpRow>
+                                            <ExtensionTab.Input
+                                                pValue={sCreatePayload.task}
+                                                pWidth={'400px'}
+                                                pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('task', event)}
+                                            />
+                                            <SelectFileBtn
+                                                pType="tql"
+                                                pCallback={(aKey: string) => handlePayload('task', { target: { value: aKey } } as any)}
+                                                btnWidth={'100px'}
+                                                btnHeight="26px"
+                                            />
+                                            <OpenFileBtn pType="tql" pFileInfo={{ path: sCreatePayload.task }} btnWidth={'80px'} btnHeight="26px" />
+                                        </ExtensionTab.DpRow>
+                                    </ExtensionTab.ContentBlock>
+                                </>
+                            )}
+                            {/* Writing Descriptor */}
+                            {sTaskSelect === 'Writing Descriptor' && (
+                                <>
+                                    {/* DESTINATION - method */}
+                                    <ExtensionTab.ContentBlock>
+                                        <ExtensionTab.DpRow>
+                                            <ExtensionTab.ContentTitle>Method</ExtensionTab.ContentTitle>
+                                            <ExtensionTab.ContentDesc>
+                                                <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                            </ExtensionTab.ContentDesc>
+                                        </ExtensionTab.DpRow>
+                                        <ExtensionTab.Selector
+                                            pList={['append', 'write']}
+                                            pSelectedItem={sCreatePayload.method}
+                                            pCallback={(aSelectedItem: string) => {
+                                                handlePayload('method', { target: { value: aSelectedItem } } as any);
+                                            }}
+                                        />
+                                    </ExtensionTab.ContentBlock>
+                                    {/* DESTINATION - table_name */}
+                                    <ExtensionTab.ContentBlock>
+                                        <ExtensionTab.DpRow>
+                                            <ExtensionTab.ContentTitle>Table name</ExtensionTab.ContentTitle>
+                                            <ExtensionTab.ContentDesc>
+                                                <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                            </ExtensionTab.ContentDesc>
+                                        </ExtensionTab.DpRow>
                                         <ExtensionTab.Input
-                                            pValue={sCreatePayload.task}
-                                            pWidth={'400px'}
-                                            pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('task', event)}
+                                            pValue={sCreatePayload.table_name}
+                                            pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('table_name', event)}
                                         />
-                                        <SelectFileBtn
-                                            pType="tql"
-                                            pCallback={(aKey: string) => handlePayload('task', { target: { value: aKey } } as any)}
-                                            btnWidth={'100px'}
-                                            btnHeight="26px"
+                                    </ExtensionTab.ContentBlock>
+                                    {/* DESTINATION - format */}
+                                    <ExtensionTab.ContentBlock>
+                                        <ExtensionTab.DpRow>
+                                            <ExtensionTab.ContentTitle>Format</ExtensionTab.ContentTitle>
+                                            <ExtensionTab.ContentDesc>
+                                                <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                            </ExtensionTab.ContentDesc>
+                                        </ExtensionTab.DpRow>
+                                        <ExtensionTab.Selector
+                                            pList={['json', 'csv']}
+                                            pSelectedItem={sCreatePayload.format}
+                                            pCallback={(aSelectedItem: string) => {
+                                                handlePayload('format', { target: { value: aSelectedItem } } as any);
+                                            }}
                                         />
-                                        <OpenFileBtn pType="tql" pFileInfo={{ path: sCreatePayload.task }} btnWidth={'80px'} btnHeight="26px" />
-                                    </ExtensionTab.DpRow>
-                                </ExtensionTab.ContentBlock>
-                            </>
-                        )}
-                        {/* Writing Descriptor */}
-                        {sTaskSelect === 'Writing Descriptor' && (
-                            <>
-                                {/* DESTINATION - method */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.DpRow>
-                                        <ExtensionTab.ContentTitle>Method</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>
-                                            <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                        </ExtensionTab.ContentDesc>
-                                    </ExtensionTab.DpRow>
-                                    <ExtensionTab.Selector
-                                        pList={['append', 'write']}
-                                        pSelectedItem={sCreatePayload.method}
-                                        pCallback={(aSelectedItem: string) => {
-                                            handlePayload('method', { target: { value: aSelectedItem } } as any);
-                                        }}
-                                    />
-                                </ExtensionTab.ContentBlock>
-                                {/* DESTINATION - table_name */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.DpRow>
-                                        <ExtensionTab.ContentTitle>Table name</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>
-                                            <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                        </ExtensionTab.ContentDesc>
-                                    </ExtensionTab.DpRow>
-                                    <ExtensionTab.Input
-                                        pValue={sCreatePayload.table_name}
-                                        pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('table_name', event)}
-                                    />
-                                </ExtensionTab.ContentBlock>
-                                {/* DESTINATION - format */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.DpRow>
-                                        <ExtensionTab.ContentTitle>Format</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>
-                                            <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                        </ExtensionTab.ContentDesc>
-                                    </ExtensionTab.DpRow>
-                                    <ExtensionTab.Selector
-                                        pList={['json', 'csv']}
-                                        pSelectedItem={sCreatePayload.format}
-                                        pCallback={(aSelectedItem: string) => {
-                                            handlePayload('format', { target: { value: aSelectedItem } } as any);
-                                        }}
-                                    />
-                                </ExtensionTab.ContentBlock>
-                                {/* DESTINATION - compress */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Compress</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.DpRow>
-                                        <ExtensionTab.Checkbox
-                                            pValue={sCreatePayload.compress}
-                                            pCallback={(value: boolean) => handlePayload('compress', { target: { value } } as any)}
+                                    </ExtensionTab.ContentBlock>
+                                    {/* DESTINATION - compress */}
+                                    <ExtensionTab.ContentBlock>
+                                        <ExtensionTab.ContentTitle>Compress</ExtensionTab.ContentTitle>
+                                        <ExtensionTab.DpRow>
+                                            <ExtensionTab.Checkbox
+                                                pValue={sCreatePayload.compress}
+                                                pCallback={(value: boolean) => handlePayload('compress', { target: { value } } as any)}
+                                            />
+                                            <ExtensionTab.ContentDesc>{`use gzip`}</ExtensionTab.ContentDesc>
+                                        </ExtensionTab.DpRow>
+                                    </ExtensionTab.ContentBlock>
+                                    {/* DESTINATION - options */}
+                                    <ExtensionTab.ContentBlock>
+                                        <ExtensionTab.ContentTitle>Options</ExtensionTab.ContentTitle>
+                                        <ExtensionTab.Input
+                                            pValue={sCreatePayload.options}
+                                            pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('options', event)}
                                         />
-                                        <ExtensionTab.ContentDesc>{`use gzip`}</ExtensionTab.ContentDesc>
-                                    </ExtensionTab.DpRow>
-                                </ExtensionTab.ContentBlock>
-                                {/* DESTINATION - options */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Options</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.Input pValue={sCreatePayload.options} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('options', event)} />
-                                </ExtensionTab.ContentBlock>
-                            </>
-                        )}
+                                    </ExtensionTab.ContentBlock>
+                                </>
+                            )}
+                        </ExtensionTab.ContentBlock>
                         {/* Create btn */}
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.TextButton pText="Create" pType="CREATE" pCallback={createItem} />

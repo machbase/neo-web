@@ -256,7 +256,7 @@ export const gStateSubr = selector({
                     if (aChild.name === newValue.target.subr.name) {
                         sApplyData = { ...aChild, state: newValue.state };
                         // Update tab data
-                        set(gActiveSubr, sApplyData);
+                        set(gActiveSubr, aChild.name);
                         return sApplyData;
                     } else return aChild;
                 });

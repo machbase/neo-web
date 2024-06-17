@@ -23,40 +23,42 @@ export const MqttExplain = ({ pType }: { pType: string }) => {
                     <ExtensionTab.Space pHeight="16px" />
                     <ExtensionTab.ContentDesc>QoS</ExtensionTab.ContentDesc>
                     <ExtensionTab.ContentText pContent="subscribe to the topic QoS 1, MQTT bridges support QoS 0 and 1."></ExtensionTab.ContentText>
-
                     <ExtensionTab.Space pHeight="16px" />
                     <ExtensionTab.ContentDesc>Destination</ExtensionTab.ContentDesc>
                     <ExtensionTab.ContentText pContent="writing descriptor, it means the incoming data is in CSV format and writing data into the table EXAMPLE in append mode."></ExtensionTab.ContentText>
                     <ExtensionTab.CopyBlock pContent={'db/{method}/{table_name}:{format}:{compress}?{options}'} />
-                    {/* method */}
-                    <ExtensionTab.Space pHeight="16px" />
-                    <ExtensionTab.ContentDesc>Method</ExtensionTab.ContentDesc>
-                    <ExtensionTab.ContentText pContent={`There are two methods append and write. The append is recommended on the stream environment like NATS.`} />
-                    <div style={{ width: '400px' }}>
-                        <ExtensionTab.Table pList={SUBR_METHOD_TABLE} dotted />
-                    </div>
-                    {/* table_name */}
-                    <ExtensionTab.Space pHeight="16px" />
-                    <ExtensionTab.ContentDesc>Table name</ExtensionTab.ContentDesc>
-                    <ExtensionTab.ContentText pContent={`Specify the destination table name, case insensitive.`} />
-                    {/* format */}
-                    <ExtensionTab.Space pHeight="16px" />
-                    <ExtensionTab.ContentDesc>Format</ExtensionTab.ContentDesc>
-                    <div style={{ width: '150px' }}>
-                        <ExtensionTab.Table pList={SUBR_FORMAT_TABLE} dotted />
-                    </div>
-                    {/* compress */}
-                    <ExtensionTab.Space pHeight="16px" />
-                    <ExtensionTab.ContentDesc>Compress</ExtensionTab.ContentDesc>
-                    <ExtensionTab.ContentText pContent={`Currently gzip is supported, If :{compress} part is omitted, it means the data is not compressed.`} />
-                    {/* Options */}
-                    <ExtensionTab.Space pHeight="16px" />
-                    <ExtensionTab.ContentDesc>Options</ExtensionTab.ContentDesc>
-                    <ExtensionTab.ContentText pContent="The writing description can contain an optional question-mark-separated URL-encoded parameters." />
-                    <ExtensionTab.Space pHeight="16px" />
-                    <ExtensionTab.Hr />
-                    <ExtensionTab.Space pHeight="12px" />
-                    <ExtensionTab.Table pList={SUBR_OPTIONS_TABLE} />
+
+                    <ExtensionTab.ContentBlock>
+                        {/* method */}
+                        <ExtensionTab.Space pHeight="16px" />
+                        <ExtensionTab.ContentDesc>Method</ExtensionTab.ContentDesc>
+                        <ExtensionTab.ContentText pContent={`There are two methods append and write. The append is recommended on the stream environment like NATS.`} />
+                        <div style={{ width: '400px' }}>
+                            <ExtensionTab.Table pList={SUBR_METHOD_TABLE} dotted />
+                        </div>
+                        {/* table_name */}
+                        <ExtensionTab.Space pHeight="16px" />
+                        <ExtensionTab.ContentDesc>Table name</ExtensionTab.ContentDesc>
+                        <ExtensionTab.ContentText pContent={`Specify the destination table name, case insensitive.`} />
+                        {/* format */}
+                        <ExtensionTab.Space pHeight="16px" />
+                        <ExtensionTab.ContentDesc>Format</ExtensionTab.ContentDesc>
+                        <div style={{ width: '150px' }}>
+                            <ExtensionTab.Table pList={SUBR_FORMAT_TABLE} dotted />
+                        </div>
+                        {/* compress */}
+                        <ExtensionTab.Space pHeight="16px" />
+                        <ExtensionTab.ContentDesc>Compress</ExtensionTab.ContentDesc>
+                        <ExtensionTab.ContentText pContent={`Currently gzip is supported, If :{compress} part is omitted, it means the data is not compressed.`} />
+                        {/* Options */}
+                        <ExtensionTab.Space pHeight="16px" />
+                        <ExtensionTab.ContentDesc>Options</ExtensionTab.ContentDesc>
+                        <ExtensionTab.ContentText pContent="The writing description can contain an optional question-mark-separated URL-encoded parameters." />
+                        <ExtensionTab.Space pHeight="16px" />
+                        <ExtensionTab.Hr />
+                        <ExtensionTab.Space pHeight="12px" />
+                        <ExtensionTab.Table pList={SUBR_OPTIONS_TABLE} />
+                    </ExtensionTab.ContentBlock>
                 </ExtensionTab.ContentBlock>
                 {/* EX */}
                 <ExtensionTab.ContentBlock>
