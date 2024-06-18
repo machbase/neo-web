@@ -196,7 +196,8 @@ export const EditTimer = () => {
                     </ExtensionTab.Header>
                     <ExtensionTab.Body>
                         <ExtensionTab.ContentBlock>
-                            <ExtensionTab.ContentTitle>{'timer spec'}</ExtensionTab.ContentTitle>
+                            <ExtensionTab.SubTitle>{'Timer Spec'}</ExtensionTab.SubTitle>
+                            <ExtensionTab.Space pHeight="4px" />
                             <ExtensionTab.ContentDesc>{'There three possible examples)'}</ExtensionTab.ContentDesc>
                             <div style={{ margin: '10px 20px', padding: '12px 16px 12px 0' }}>
                                 <ExtensionTab.Table pList={TIMER_SPEC} dotted />

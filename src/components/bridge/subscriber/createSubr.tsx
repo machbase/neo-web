@@ -10,8 +10,7 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { SelectFileBtn } from '@/components/buttons/SelectFileBtn';
 import { OpenFileBtn } from '@/components/buttons/OpenFileBtn';
 import { genSubr, getSubr } from '@/api/repository/bridge';
-import { NatsExplain } from './nats';
-import { MqttExplain } from './mqtt';
+import { SUBR_FORMAT_TABLE, SUBR_METHOD_TABLE, SUBR_OPTIONS_TABLE } from './content';
 
 export const CreateSubr = ({ pInit }: { pInit: any }) => {
     const setBoardList = useSetRecoilState<any[]>(gBoardList);
@@ -146,6 +145,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
                                 </ExtensionTab.ContentDesc>
                             </ExtensionTab.DpRow>
+                            <ExtensionTab.ContentDesc>{`The name of the subscriber.`}</ExtensionTab.ContentDesc>
                             <ExtensionTab.Input pValue={sCreatePayload.name} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
                         </ExtensionTab.ContentBlock>
                         {/* Bridge name */}
@@ -156,6 +156,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
                                 </ExtensionTab.ContentDesc>
                             </ExtensionTab.DpRow>
+                            <ExtensionTab.ContentDesc>{`The name of the subscriber.`}</ExtensionTab.ContentDesc>
                             {/* recoil bridge name list */}
                             <ExtensionTab.Selector
                                 pList={sBridgeNameList}
@@ -173,12 +174,18 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
                                 </ExtensionTab.ContentDesc>
                             </ExtensionTab.DpRow>
+                            <ExtensionTab.ContentDesc>
+                                {sCreatePayload.bridge_type === 'mqtt'
+                                    ? 'Topic name to subscribe. it supports standard MQTT topic syntax includes # and +.'
+                                    : 'Subject name to subscribe. it should be in NATS subject syntax.'}
+                            </ExtensionTab.ContentDesc>
                             <ExtensionTab.Input pValue={sCreatePayload.topic} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('topic', event)} />
                         </ExtensionTab.ContentBlock>
                         {/* QoS - MQTT */}
                         {sCreatePayload.bridge_type === 'mqtt' && (
                             <ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentTitle>QoS</ExtensionTab.ContentTitle>
+                                <ExtensionTab.ContentDesc>{'Subscribe to the topic QoS 1, MQTT bridges support QoS 0 and 1.'}</ExtensionTab.ContentDesc>
                                 <ExtensionTab.Selector
                                     pList={['0', '1']}
                                     pSelectedItem={sCreatePayload.QoS}
@@ -192,6 +199,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                         {sCreatePayload.bridge_type === 'nats' && (
                             <ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentTitle>Queue</ExtensionTab.ContentTitle>
+                                <ExtensionTab.ContentDesc>{'If the bridge is NATS type, it specifies the Queue Group.'}</ExtensionTab.ContentDesc>
                                 <ExtensionTab.Input pValue={sCreatePayload.Queue} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('Queue', event)} />
                             </ExtensionTab.ContentBlock>
                         )}
@@ -202,6 +210,10 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 <ExtensionTab.ContentDesc>
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
                                 </ExtensionTab.ContentDesc>
+                            </ExtensionTab.DpRow>
+                            <ExtensionTab.DpRow>
+                                <ExtensionTab.ContentDesc>{'The path of tql script or writing path descriptor.'}</ExtensionTab.ContentDesc>
+                                <span style={{ marginLeft: '8px', color: 'dodgerblue', fontSize: '12px' }}>Check the example on the right</span>
                             </ExtensionTab.DpRow>
                             <ExtensionTab.Selector
                                 pList={['Writing Descriptor', 'TQL Script']}
@@ -228,13 +240,17 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                                 pWidth={'400px'}
                                                 pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('task', event)}
                                             />
-                                            <SelectFileBtn
-                                                pType="tql"
-                                                pCallback={(aKey: string) => handlePayload('task', { target: { value: aKey } } as any)}
-                                                btnWidth={'100px'}
-                                                btnHeight="26px"
-                                            />
-                                            <OpenFileBtn pType="tql" pFileInfo={{ path: sCreatePayload.task }} btnWidth={'80px'} btnHeight="26px" />
+                                            <div style={{ marginLeft: '4px' }}>
+                                                <SelectFileBtn
+                                                    pType="tql"
+                                                    pCallback={(aKey: string) => handlePayload('task', { target: { value: aKey } } as any)}
+                                                    btnWidth={'100px'}
+                                                    btnHeight="26px"
+                                                />
+                                            </div>
+                                            <div style={{ marginLeft: '4px' }}>
+                                                <OpenFileBtn pType="tql" pFileInfo={{ path: sCreatePayload.task }} btnWidth={'80px'} btnHeight="26px" />
+                                            </div>
                                         </ExtensionTab.DpRow>
                                     </ExtensionTab.ContentBlock>
                                 </>
@@ -330,12 +346,55 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                         </div>
                     </ExtensionTab.Header>
                     <ExtensionTab.Body>
+                        <ExtensionTab.ContentBlock>
+                            <ExtensionTab.SubTitle>Destination</ExtensionTab.SubTitle>
+                        </ExtensionTab.ContentBlock>
                         {/* Writing Descriptor */}
-                        {sTaskSelect === 'Writing Descriptor' && sCreatePayload.bridge_type === 'nats' && <NatsExplain pType="descriptor" />}
-                        {sTaskSelect === 'Writing Descriptor' && sCreatePayload.bridge_type === 'mqtt' && <MqttExplain pType="descriptor" />}
-                        {/* TQL Script */}
-                        {sTaskSelect === 'TQL Script' && sCreatePayload.bridge_type === 'nats' && <NatsExplain pType="tql" />}
-                        {sTaskSelect === 'TQL Script' && sCreatePayload.bridge_type === 'mqtt' && <MqttExplain pType="tql" />}
+                        <ExtensionTab.ContentBlock>
+                            <ExtensionTab.ContentTitle>Writing Descriptor</ExtensionTab.ContentTitle>
+                            <ExtensionTab.ContentDesc>The syntax of writing descriptor is …</ExtensionTab.ContentDesc>
+                            <ExtensionTab.CopyBlock pContent={'db/{method}/{table_name}:{format}:{compress}?{options}'} />
+                            <ExtensionTab.ContentBlock>
+                                {/* method */}
+                                <ExtensionTab.ContentDesc>Method</ExtensionTab.ContentDesc>
+                                <ExtensionTab.ContentText pContent={`There are two methods append and write. The append is recommended on the stream environment like NATS.`} />
+                                <div style={{ width: '400px' }}>
+                                    <ExtensionTab.Table pList={SUBR_METHOD_TABLE} dotted />
+                                </div>
+                                {/* table_name */}
+                                <ExtensionTab.Space pHeight="16px" />
+                                <ExtensionTab.ContentDesc>Table name</ExtensionTab.ContentDesc>
+                                <ExtensionTab.ContentText pContent={`Specify the destination table name, case insensitive.`} />
+                                {/* format */}
+                                <ExtensionTab.Space pHeight="16px" />
+                                <ExtensionTab.ContentDesc>Format</ExtensionTab.ContentDesc>
+                                <div style={{ width: '150px' }}>
+                                    <ExtensionTab.Table pList={SUBR_FORMAT_TABLE} dotted />
+                                </div>
+                                {/* compress */}
+                                <ExtensionTab.Space pHeight="16px" />
+                                <ExtensionTab.ContentDesc>Compress</ExtensionTab.ContentDesc>
+                                <ExtensionTab.ContentText pContent={`Currently gzip is supported, If :{compress} part is omitted, it means the data is not compressed.`} />
+                                {/* Options */}
+                                <ExtensionTab.Space pHeight="16px" />
+                                <ExtensionTab.ContentDesc>Options</ExtensionTab.ContentDesc>
+                                <ExtensionTab.ContentText pContent="The writing description can contain an optional question-mark-separated URL-encoded parameters." />
+                                <ExtensionTab.Space pHeight="16px" />
+                                <ExtensionTab.Hr />
+                                <ExtensionTab.Space pHeight="12px" />
+                                <ExtensionTab.Table pList={SUBR_OPTIONS_TABLE} />
+                            </ExtensionTab.ContentBlock>
+                        </ExtensionTab.ContentBlock>
+                        {/* TQL SCRIPT */}
+                        <ExtensionTab.ContentBlock>
+                            <ExtensionTab.ContentTitle>TQL script</ExtensionTab.ContentTitle>
+                            <ExtensionTab.ContentDesc>{'The place of writing descriptor can be replaced with a file path of TQL script.'}</ExtensionTab.ContentDesc>
+                            <ExtensionTab.Space pHeight="16px" />
+                            <ExtensionTab.ContentDesc>Data writing TQL script example)</ExtensionTab.ContentDesc>
+                            <ExtensionTab.CopyBlock
+                                pContent={'CSV(payload())\nMAPVALUE(1, parseTime(value(1), "ns"))\nMAPVALUE(2, parseFloat(value(2)))\nAPPEND( table("example") )'}
+                            />
+                        </ExtensionTab.ContentBlock>
                     </ExtensionTab.Body>
                 </Pane>
             </SplitPane>
