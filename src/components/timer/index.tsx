@@ -190,10 +190,35 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                             <ExtensionTab.Header />
                             <ExtensionTab.Body>
                                 <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.SubTitle>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', flexDirection: 'row', alignContent: 'center' }}>
+                                            <div style={{ display: 'flex' }}>Timer</div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end', marginTop: '20px' }}>
+                                                <ExtensionTab.Switch
+                                                    pState={sPayload.state === 'RUNNING' || sPayload.state === 'STARTING'}
+                                                    pCallback={handleCommand}
+                                                    pBadge={sPayload.state}
+                                                    pBadgeL={true}
+                                                />
+                                                {sCommandRes && (
+                                                    <ExtensionTab.ContentDesc>
+                                                        <div style={{ marginTop: '-10px' }}>
+                                                            <ExtensionTab.TextResErr pText={sCommandRes} />
+                                                        </div>
+                                                    </ExtensionTab.ContentDesc>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </ExtensionTab.SubTitle>
+
+                                    <ExtensionTab.Hr />
+                                </ExtensionTab.ContentBlock>
+                                <ExtensionTab.ContentBlock>
                                     {/* NAME */}
-                                    <ExtensionTab.ContentTitle>Timer name</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentTitle>Name</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>{sPayload.name}</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.Space pHeight="32px" />
+                                </ExtensionTab.ContentBlock>
+                                <ExtensionTab.ContentBlock>
                                     {/* Auto start */}
                                     <ExtensionTab.ContentTitle>Auto start</ExtensionTab.ContentTitle>
                                     <ExtensionTab.DpRow>
@@ -203,11 +228,13 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                         />
                                         <ExtensionTab.ContentDesc>{AUTO_START_DESC}</ExtensionTab.ContentDesc>
                                     </ExtensionTab.DpRow>
-                                    <ExtensionTab.Space pHeight="32px" />
+                                </ExtensionTab.ContentBlock>
+                                <ExtensionTab.ContentBlock>
                                     {/* Schedule */}
                                     <ExtensionTab.ContentTitle>schedule</ExtensionTab.ContentTitle>
                                     <ExtensionTab.Input pValue={sPayload.schedule} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('schedule', event)} />
-                                    <ExtensionTab.Space pHeight="32px" />
+                                </ExtensionTab.ContentBlock>
+                                <ExtensionTab.ContentBlock>
                                     {/* Task */}
                                     <ExtensionTab.ContentTitle>task</ExtensionTab.ContentTitle>
                                     <ExtensionTab.DpRow>
@@ -215,23 +242,14 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                         <SelectFileBtn pType="tql" pCallback={handleTql} btnWidth={'100px'} btnHeight="26px" />
                                         <OpenFileBtn pType="tql" pFileInfo={{ path: sPayload.task }} btnWidth={'80px'} btnHeight="26px" />
                                     </ExtensionTab.DpRow>
-                                    <ExtensionTab.Space pHeight="32px" />
+                                </ExtensionTab.ContentBlock>
+                                <ExtensionTab.ContentBlock>
                                     {/* BTN */}
                                     <ExtensionTab.DpRow>
                                         <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
                                         <ExtensionTab.TextButton pText="Save" pType="CREATE" pCallback={editItem} />
                                     </ExtensionTab.DpRow>
                                     {sResMessage && <ExtensionTab.TextResErr pText={sResMessage} />}
-                                </ExtensionTab.ContentBlock>
-
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Timer state</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.Switch pState={sPayload.state === 'RUNNING' || sPayload.state === 'STARTING'} pCallback={handleCommand} pBadge={sPayload.state} />
-                                    {sCommandRes && (
-                                        <ExtensionTab.ContentDesc>
-                                            <ExtensionTab.TextResErr pText={sCommandRes} />
-                                        </ExtensionTab.ContentDesc>
-                                    )}
                                 </ExtensionTab.ContentBlock>
                             </ExtensionTab.Body>
                         </Pane>
