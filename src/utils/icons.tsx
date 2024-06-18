@@ -41,7 +41,7 @@ import {
 import { GiTallBridge } from 'react-icons/gi';
 import { PiDatabaseLight } from 'react-icons/pi';
 import { RxLapTimer } from 'react-icons/rx';
-import { VscMail, VscTypeHierarchy } from 'react-icons/vsc';
+import { VscMail } from 'react-icons/vsc';
 
 const icons = (aType: string, aIsHome?: boolean) => {
     switch (aType) {
@@ -118,11 +118,10 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'timer':
             return <RxLapTimer />;
         case 'bridge':
+        case 'bridge-sub':
             return <GiTallBridge />;
         case 'bridge-db':
             return <PiDatabaseLight />;
-        case 'bridge-sub':
-            return <VscTypeHierarchy />;
         case 'subscriber':
         case 'bridge-child':
             return <VscMail />;

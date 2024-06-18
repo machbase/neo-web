@@ -114,7 +114,7 @@ const Input = ({
     pAutoFocus,
     pCallback = () => {},
     pValue,
-    pWidth,
+    pWidth = '200px',
 }: {
     pAutoFocus?: boolean;
     pCallback?: (e: React.FormEvent<HTMLInputElement>) => void;
@@ -122,7 +122,7 @@ const Input = ({
     pWidth?: any;
 }) => {
     return (
-        <div className="extension-tab-input-wrapper" style={{ width: pWidth }}>
+        <div className="extension-tab-input-wrapper" style={{ width: '100%', maxWidth: pWidth }}>
             <input autoFocus={pAutoFocus} onChange={pCallback} value={pValue} />
         </div>
     );

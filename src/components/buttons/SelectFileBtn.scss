@@ -10,6 +10,10 @@
         background: rgba(255, 255, 255, 0.13);
         border: 1px solid rgba(255, 255, 255, 0.13);
         font-size: 12px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        min-width: 74px;
 
         &:hover {
             background-color: #262831;
