@@ -7,6 +7,7 @@ import { VscEye, VscEyeClosed, VscWarning } from 'react-icons/vsc';
 import { useRef, useState } from 'react';
 import { changePwd } from '@/api/repository/login';
 import './index.scss';
+import { checkPwdPolicy, parsePwd } from './utils';
 
 export const Password = ({ setIsOpen }: { setIsOpen: (aState: boolean) => void }) => {
     const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
@@ -19,12 +20,12 @@ export const Password = ({ setIsOpen }: { setIsOpen: (aState: boolean) => void }
     const sChangeBtnRef = useRef(null);
 
     const handleChange = async () => {
-        if (sNewPassword.toUpperCase() !== sConfirmPassword.toUpperCase()) return setPwdDiff('Please Check The Confirm Password.');
-        if (sNewPassword.length > 256) return setPwdDiff('Password can be up to 256 characters long.');
-        if (sNewPassword.includes(';')) return setPwdDiff('Password cannot contain ";".');
-        setPwdDiff(undefined);
+        const sPolicyRes = checkPwdPolicy(sNewPassword, sConfirmPassword);
+        if (sPolicyRes) return setPwdDiff(sPolicyRes);
+        else setPwdDiff(undefined);
+
         // eslint-disable-next-line no-useless-escape
-        const sParsedNewPwd = sNewPassword.replaceAll('\\', '\\\\').replaceAll("'", `\\'`);
+        const sParsedNewPwd = parsePwd(sNewPassword);
         const sPwdRes = await changePwd(sCurrentUserName, sParsedNewPwd);
         const sParsedRes = sPwdRes?.data ? sPwdRes.data : sPwdRes;
         setRes(sParsedRes);
