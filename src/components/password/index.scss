@@ -46,7 +46,8 @@
             .res-err {
                 display: flex;
                 align-items: start;
-                justify-content: center;
+                justify-content: start;
+                margin-left: 4px;
                 flex-direction: row;
 
                 svg {

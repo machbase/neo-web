@@ -32,12 +32,10 @@ export const logOut = async () => {
 };
 
 export const changePwd = async (aUser: string, aNewPwd: string) => {
-    // ALTER USER user1 IDENTIFIED BY password
-    const sSql = `ALTER USER ${aUser} IDENTIFIED BY ${aNewPwd}`;
-    const queryString = `/machbase?q=${sSql}`;
     const sData = await request({
-        method: 'GET',
-        url: encodeURI(queryString),
+        method: 'POST',
+        url: '/api/query',
+        data: { q: 'ALTER USER ' + aUser + ' IDENTIFIED BY ' + "'" + aNewPwd + "'" },
     });
 
     return sData;
