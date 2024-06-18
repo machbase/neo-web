@@ -4,6 +4,7 @@ import { checkPwdPolicy, parsePwd } from './utils';
 test.each([
     ['대소문자 - [new 에만 대문자 포함]', 'TEST', 'test', undefined],
     ['대소문자 - [confirm 에만 대문자 포함]', 'test', 'TEST', undefined],
+    ['최소길이 - [0자]', '', '', 'Password must be at least 1 character.'],
     [
         '최대길이 - [256자]',
         'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
