@@ -49,7 +49,7 @@ export const LicenseModal = (props: LicenseModalProps) => {
 
     return (
         <div className="license-modal">
-            <Modal pIsDarkMode={pIsDarkMode} className="license-modal-wh">
+            <Modal pIsDarkMode={pIsDarkMode} className="license-modal-wh" onOutSideClose={() => setIsOpen(false)}>
                 <Modal.Header>
                     <div className="license-modal-header">
                         <div className="title">

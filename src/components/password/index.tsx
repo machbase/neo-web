@@ -53,7 +53,7 @@ export const Password = ({ setIsOpen }: { setIsOpen: (aState: boolean) => void }
                     <Modal.Body>
                         <div className="change-password-modal-body">
                             <div className="content-user-name">
-                                <div>{sCurrentUserName}</div>
+                                <div>User: {sCurrentUserName}</div>
                             </div>
                             <PasswordForm pTitle="New password:" pCallback={setNewPassword} pFocus />
                             <PasswordForm pTitle="Confirm password:" pCallback={setConfirmPassword} />
@@ -89,7 +89,7 @@ const PasswordForm = ({ pTitle, pCallback, pFocus = false }: { pTitle: string; p
             <div className="title">{pTitle}</div>
             <div className="item-wrapper">
                 <input autoFocus={pFocus} onChange={handleText} type={sState ? 'text' : 'password'} style={{ imeMode: 'inactive' }} />
-                <button className={sState ? 'btn-active' : 'btn-none'} onClick={() => setState(!sState)}>
+                <button className={sState ? 'btn-active' : 'btn-none'} onClick={() => setState(!sState)} tabIndex={-1}>
                     {sState && <VscEye />}
                     {!sState && <VscEyeClosed />}
                 </button>
