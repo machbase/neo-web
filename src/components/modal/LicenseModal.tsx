@@ -4,6 +4,7 @@ import './LicenseModal.scss';
 import { useEffect, useState } from 'react';
 import { Close, Key } from '@/assets/icons/Icon';
 import { TextButton } from '../buttons/TextButton';
+import useEsc from '@/hooks/useEsc';
 
 export interface LicenseModalProps {
     pIsDarkMode: boolean;
@@ -44,9 +45,11 @@ export const LicenseModal = (props: LicenseModalProps) => {
         }
     };
 
+    useEsc(() => setIsOpen && setIsOpen(false));
+
     return (
         <div className="license-modal">
-            <Modal pIsDarkMode={pIsDarkMode} className="license-modal-wh">
+            <Modal pIsDarkMode={pIsDarkMode} className="license-modal-wh" onOutSideClose={() => setIsOpen(false)}>
                 <Modal.Header>
                     <div className="license-modal-header">
                         <div className="title">

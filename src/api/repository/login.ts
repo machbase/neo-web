@@ -7,7 +7,7 @@ export const getLogin = () => {
     });
 };
 
-export const postLogin = (params: { loginName: string, password: string }) => {
+export const postLogin = (params: { loginName: string; password: string }) => {
     return request({
         method: 'POST',
         url: '/api/login',
@@ -29,4 +29,14 @@ export const logOut = async () => {
         url: '/api/logout',
         data: { refreshToken: localStorage.getItem('refreshToken') },
     });
+};
+
+export const changePwd = async (aUser: string, aNewPwd: string) => {
+    const sData = await request({
+        method: 'POST',
+        url: '/api/query',
+        data: { q: 'ALTER USER ' + aUser + ' IDENTIFIED BY ' + "'" + aNewPwd + "'" },
+    });
+
+    return sData;
 };
