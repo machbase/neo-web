@@ -190,11 +190,11 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                             <ExtensionTab.Header />
                             <ExtensionTab.Body>
                                 <ExtensionTab.ContentBlock>
+                                    {/* NAME */}
                                     <ExtensionTab.ContentTitle>Timer name</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>{sPayload.name}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-
-                                <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.Space pHeight="32px" />
+                                    {/* Auto start */}
                                     <ExtensionTab.ContentTitle>Auto start</ExtensionTab.ContentTitle>
                                     <ExtensionTab.DpRow>
                                         <ExtensionTab.Checkbox
@@ -203,20 +203,25 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                         />
                                         <ExtensionTab.ContentDesc>{AUTO_START_DESC}</ExtensionTab.ContentDesc>
                                     </ExtensionTab.DpRow>
-                                </ExtensionTab.ContentBlock>
-
-                                <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.Space pHeight="32px" />
+                                    {/* Schedule */}
                                     <ExtensionTab.ContentTitle>schedule</ExtensionTab.ContentTitle>
                                     <ExtensionTab.Input pValue={sPayload.schedule} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('schedule', event)} />
-                                </ExtensionTab.ContentBlock>
-
-                                <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.Space pHeight="32px" />
+                                    {/* Task */}
                                     <ExtensionTab.ContentTitle>task</ExtensionTab.ContentTitle>
                                     <ExtensionTab.DpRow>
                                         <ExtensionTab.Input pValue={sPayload.task} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('task', event)} />
                                         <SelectFileBtn pType="tql" pCallback={handleTql} btnWidth={'100px'} btnHeight="26px" />
                                         <OpenFileBtn pType="tql" pFileInfo={{ path: sPayload.task }} btnWidth={'80px'} btnHeight="26px" />
                                     </ExtensionTab.DpRow>
+                                    <ExtensionTab.Space pHeight="32px" />
+                                    {/* BTN */}
+                                    <ExtensionTab.DpRow>
+                                        <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
+                                        <ExtensionTab.TextButton pText="Save" pType="CREATE" pCallback={editItem} />
+                                    </ExtensionTab.DpRow>
+                                    {sResMessage && <ExtensionTab.TextResErr pText={sResMessage} />}
                                 </ExtensionTab.ContentBlock>
 
                                 <ExtensionTab.ContentBlock>
@@ -227,14 +232,6 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                             <ExtensionTab.TextResErr pText={sCommandRes} />
                                         </ExtensionTab.ContentDesc>
                                     )}
-                                </ExtensionTab.ContentBlock>
-
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.DpRow>
-                                        <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
-                                        <ExtensionTab.TextButton pText="Save" pType="CREATE" pCallback={editItem} />
-                                    </ExtensionTab.DpRow>
-                                    {sResMessage && <ExtensionTab.TextResErr pText={sResMessage} />}
                                 </ExtensionTab.ContentBlock>
                             </ExtensionTab.Body>
                         </Pane>

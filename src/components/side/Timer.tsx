@@ -112,7 +112,7 @@ export const TimerSide = ({ pServer }: any) => {
         setIsCollapse(!sIsCollapse);
     };
     const getState = (aState: string) => {
-        if (aState.toUpperCase() === 'RUNNING') return '#dedede';
+        if (aState.toUpperCase() === 'RUNNING') return '#5CA3DC';
         return 'RGB(117, 117, 120)';
     };
 
