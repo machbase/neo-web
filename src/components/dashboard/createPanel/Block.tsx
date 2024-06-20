@@ -101,7 +101,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         }
     };
     const getColumnList = async (aTable: string) => {
-        const sTable = pTableList.find((aItem: any) => aItem[3] === aTable || aTable.includes(aItem[3]));
+        const sTable = pTableList.find((aItem: any) => aItem[3] === aTable || `V$${aItem[3]}_STAT` === aTable);
         const sIsVirtualTable = aTable.includes('V$');
         const sData = sIsVirtualTable ? await getVirtualTableInfo(sTable[6], aTable) : await getTableInfo(sTable[6], sTable[2]);
         if (pType === 'create') {

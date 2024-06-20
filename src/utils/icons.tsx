@@ -38,8 +38,12 @@ import {
     MuiFolder,
     MuiFolderOpen,
 } from '@/assets/icons/Mui';
+import { BsSignpost } from 'react-icons/bs';
+import { GiTallBridge } from 'react-icons/gi';
+import { PiDatabaseLight } from 'react-icons/pi';
 import { RxLapTimer } from 'react-icons/rx';
-import { VscTypeHierarchy } from 'react-icons/vsc';
+import { SiMqtt, SiNatsdotio } from 'react-icons/si';
+// import { VscMail } from 'react-icons/vsc';
 
 const icons = (aType: string, aIsHome?: boolean) => {
     switch (aType) {
@@ -116,7 +120,25 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'timer':
             return <RxLapTimer />;
         case 'bridge':
-            return <VscTypeHierarchy />;
+            // case 'bridge-sub':
+            return <GiTallBridge />;
+        case 'bridge-mqtt':
+            return (
+                <div className="bridge-mqtt-icon-wrapper">
+                    <SiMqtt />
+                </div>
+            );
+        case 'bridge-nats':
+            return (
+                <div className="bridge-nats-icon-wrapper">
+                    <SiNatsdotio />
+                </div>
+            );
+        case 'bridge-db':
+            return <PiDatabaseLight />;
+        case 'subscriber':
+        case 'bridge-child':
+            return <BsSignpost />;
         default:
             return <GoTerminal />;
     }

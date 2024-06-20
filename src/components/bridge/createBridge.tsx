@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { ExtensionTab } from '../extension/ExtensionTab';
-import { useSetRecoilState } from 'recoil';
+import { useRecoilState, useSetRecoilState } from 'recoil';
 import { Pane, SashContent } from 'split-pane-react';
 import SplitPane from 'split-pane-react/esm/SplitPane';
 import { gBoardList, gBridgeList } from '@/recoil/recoil';
 import { VscWarning } from 'react-icons/vsc';
 import { IconButton } from '../buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
-import { BridgeItemType, CreatePayloadType, genBridge, getBridge } from '@/api/repository/bridge';
+import { BridgeItemType, CreatePayloadType, genBridge } from '@/api/repository/bridge';
 import { SELECTE_TYPE } from './content';
 
 export const CreateBridge = () => {
-    const setList = useSetRecoilState<BridgeItemType[]>(gBridgeList);
+    const [sBridgeList, setBridgeList] = useRecoilState<BridgeItemType[]>(gBridgeList);
     const sBodyRef: any = useRef(null);
     const [sGroupWidth, setGroupWidth] = useState<any[]>(['50', '50']);
     const [sResErrMessage, setResErrMessage] = useState<string | undefined>(undefined);
@@ -27,10 +27,9 @@ export const CreateBridge = () => {
     /** create item */
     const createItem = async () => {
         const sRes = await genBridge(sCreatePayload);
+
         if (sRes.success) {
-            const sResList = await getBridge();
-            if (sResList.success) setList(sResList.data);
-            else setList([]);
+            setBridgeList([...sBridgeList, { ...sCreatePayload, type: sCreatePayload.type.toLowerCase() }] as any);
             handleSavedCode(true);
             setResErrMessage(undefined);
         } else {

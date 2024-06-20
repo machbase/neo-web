@@ -24,7 +24,8 @@ export const SSHKey = () => {
     /** Get ssh key list */
     const getSSHKeyList = async () => {
         const sResSSHKeyList = await getSSHKeys();
-        if (sResSSHKeyList.success) setSSHKeyList(sResSSHKeyList.data.sort((a, b) => a.comment.localeCompare(b.comment)));
+        if (sResSSHKeyList.success)
+            setSSHKeyList(sResSSHKeyList.data && sResSSHKeyList.data?.length > 0 ? sResSSHKeyList.data.sort((a, b) => a.comment.localeCompare(b.comment)) : []);
         else setSSHKeyList([]);
     };
     /** Gen ssh key */
@@ -38,6 +39,7 @@ export const SSHKey = () => {
         if (sRes?.success) {
             getSSHKeyList();
             setAddState(undefined);
+            setAddSSHKeyState(false);
         } else setAddState(sRes?.data ? (sRes as any).data.reason : (sRes.statusText as string));
     };
     /** Del ssh key */
@@ -105,7 +107,7 @@ export const SSHKey = () => {
                                                 <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
                                             </ExtensionTab.ContentDesc>
                                         </ExtensionTab.DpRow>
-                                        <ExtensionTab.Input pAutoFocus pValue={sAlias} pCallback={(event: React.FormEvent<HTMLInputElement>) => handleAlias(event)} />
+                                        <ExtensionTab.Input pAutoFocus pValue={sAlias} pWidth="100%" pCallback={(event: React.FormEvent<HTMLInputElement>) => handleAlias(event)} />
                                     </ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentBlock>
                                         <ExtensionTab.DpRow>

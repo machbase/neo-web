@@ -149,11 +149,135 @@ export const gShowShellList = selector<any>({
         return sShellList.filter((aTermTypeItem: any) => aTermTypeItem.attributes.some((aAttr: any) => aAttr.editable));
     },
 });
+
+// Bridge & Subr
+export const setBridgeTree = (aBridgeList: any, aSubrList: any) => {
+    const sSubrMap: any = {};
+
+    aSubrList.forEach((aInfo: any) => {
+        const bridgeName = aInfo.bridge;
+        if (sSubrMap[bridgeName]) sSubrMap[bridgeName].push(aInfo);
+        else sSubrMap[bridgeName] = [aInfo];
+    });
+
+    const sParedTree = aBridgeList.map((aBridge: any) => {
+        if (aBridge.name in sSubrMap) return { ...aBridge, childs: sSubrMap[aBridge.name] };
+        else return aBridge;
+    });
+
+    return sParedTree;
+};
+
 export const gBridgeList = atom<any>({
     key: 'gBridgeList',
     default: [] as any,
 });
+export const gBridgeNameList = selector<any>({
+    key: 'gBridgeNameList',
+    get: ({ get }) => {
+        const sTmpBridgeList = get(gBridgeList).filter((aItem: any) => aItem.type === 'nats' || aItem.type === 'mqtt');
+        return sTmpBridgeList.map((aItem: any) => aItem.name);
+    },
+});
 export const gActiveBridge = atom<any>({
     key: 'gActiveBridge',
     default: '' as string,
+});
+export const gActiveSubr = atom<any>({
+    key: 'gActiveSubr',
+    default: '' as string,
+});
+export const gAddSubr = selector({
+    key: 'gAddSubr',
+    get: () => {},
+    set: ({ set, get }, newValue: any) => {
+        const sTmpBridgeList = get(gBridgeList);
+        const sApplyList = sTmpBridgeList.map((aBridge: any) => {
+            if (aBridge.name === newValue.bridge) {
+                const sChild = aBridge?.childs ? [...aBridge.childs] : [];
+                return { ...aBridge, childs: [...sChild, newValue] };
+            } else return aBridge;
+        });
+        set(gBridgeList, sApplyList);
+    },
+});
+export const gDelSubr = selector({
+    key: 'gDelSubr',
+    get: () => {},
+    set: ({ set, get }, newValue: any) => {
+        const sTmpBridgeList = get(gBridgeList);
+        const sApplyList = sTmpBridgeList.map((aBridge: any) => {
+            if (aBridge.name === newValue.bridge.name) {
+                const sChildList = aBridge.childs.filter((aChild: any) => aChild.name !== newValue.subr.name);
+                const sTmpBoardList = get(gBoardList);
+                let sApplyBoardList: any = undefined;
+                if (sChildList.length > 0) {
+                    set(gActiveSubr, sChildList.at(-1).name);
+                    sApplyBoardList = sTmpBoardList.map((aBoard) => {
+                        if (aBoard.type === 'subscriber') {
+                            return {
+                                ...aBoard,
+                                name: `SUBR: ${newValue.subr.name}`,
+                                code: { bridge: newValue.bridge, subr: sChildList.at(-1) },
+                                savedCode: false,
+                            };
+                        } else return aBoard;
+                    });
+                } else {
+                    set(gActiveSubr, undefined);
+                    sApplyBoardList = sTmpBoardList.map((aBoard) => {
+                        if (aBoard.type === 'subscriber') {
+                            return {
+                                ...aBoard,
+                                name: 'SUBR: create',
+                                code: { bridge: newValue.bridge, subr: {} },
+                                savedCode: false,
+                            };
+                        } else return aBoard;
+                    });
+                }
+                set(gBoardList, sApplyBoardList);
+                return { ...aBridge, childs: sChildList };
+            } else return aBridge;
+        });
+        set(gBridgeList, sApplyList);
+    },
+});
+export const gStateSubr = selector({
+    key: 'gStateSubr',
+    get: () => {},
+    set: ({ set, get }, newValue: any) => {
+        // Update bridge tree
+        let sApplyData: any = undefined;
+        const sTmpBridgeList = get(gBridgeList);
+        const sApplyBridgeList = sTmpBridgeList.map((aBridge: any) => {
+            if (aBridge.name === newValue.target.bridge.name) {
+                const sApplyChildList = aBridge.childs.map((aChild: any) => {
+                    if (aChild.name === newValue.target.subr.name) {
+                        sApplyData = { ...aChild, state: newValue.state };
+                        // Update tab data
+                        set(gActiveSubr, aChild.name);
+                        return sApplyData;
+                    } else return aChild;
+                });
+
+                return { ...aBridge, childs: sApplyChildList };
+            } else return aBridge;
+        });
+
+        // Update active board list
+        const sTmpBoardList = get(gBoardList);
+        const sApplyBoardLIst = sTmpBoardList.map((aBoard: any) => {
+            if (aBoard.type === 'subscriber') {
+                return {
+                    ...aBoard,
+                    code: { bridge: newValue.target.bridge, subr: { ...aBoard.code.subr, state: newValue.state } },
+                    savedCode: { bridge: newValue.target.bridge, subr: { ...aBoard.code.subr, state: newValue.state } },
+                };
+            } else return aBoard;
+        });
+
+        set(gBoardList, sApplyBoardLIst);
+        set(gBridgeList, sApplyBridgeList);
+    },
 });

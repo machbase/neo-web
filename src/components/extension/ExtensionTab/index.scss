@@ -7,8 +7,9 @@
 
     .extension-tab-badge {
         margin-left: 4px;
+        margin-right: 4px;
         font-family: initial;
-        font-size: 13px;
+        font-size: 12px;
     }
     .extension-tab-copy-block-wrapper {
         display: flex;
@@ -44,10 +45,36 @@
         }
     }
 
-    .extension-tab-switch-wrapper {
+    .extension-tab-switch-wrapper,
+    .extension-tab-two-item-switch-wrapper {
         display: flex;
         align-items: center;
         text-align: center;
+
+        .extension-tab-two-item-switch-content {
+            font-size: 14px;
+            color: #727272;
+            padding: 0px 8px;
+            cursor: pointer;
+
+            &:hover {
+                color: #a0a0a0;
+                background-color: rgba(255, 255, 255, 0.13);
+                border-radius: 4px;
+            }
+        }
+
+        .two-item-active {
+            color: #f1f1f1;
+            background-color: #005fb8;
+            border-radius: 4px;
+
+            &:hover {
+                color: #f1f1f1;
+                background-color: #0075e2;
+                border-radius: 4px;
+            }
+        }
 
         .extension-tab-switch-input {
             position: absolute;
@@ -552,8 +579,8 @@
         border: solid 2px #005fb8;
     }
 
-    .extension-tab-selector-wrapper {
-        width: 300px;
+    .extension-tab-selector-wrapper,
+    .extension-tab-open-selector-wrapper {
         font-size: 13px;
         text-transform: capitalize;
 

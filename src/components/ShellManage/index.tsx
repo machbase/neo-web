@@ -204,7 +204,6 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                     <ExtensionTab.Input
                                         pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('label', event)}
                                         pValue={sPayload.label}
-                                        pWidth={'300px'}
                                         pAutoFocus
                                     />
                                 </ExtensionTab.ContentBlock>
@@ -214,7 +213,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                     <ExtensionTab.Input
                                         pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('command', event)}
                                         pValue={sPayload.command}
-                                        pWidth={'100%'}
+                                        pWidth={'400px'}
                                     />
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>

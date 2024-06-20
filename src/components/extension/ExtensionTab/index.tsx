@@ -114,16 +114,18 @@ const Input = ({
     pAutoFocus,
     pCallback = () => {},
     pValue,
-    pWidth,
+    pWidth = '400px',
+    pMaxLen,
 }: {
     pAutoFocus?: boolean;
     pCallback?: (e: React.FormEvent<HTMLInputElement>) => void;
     pValue?: any;
     pWidth?: any;
+    pMaxLen?: number;
 }) => {
     return (
-        <div className="extension-tab-input-wrapper" style={{ width: pWidth }}>
-            <input autoFocus={pAutoFocus} onChange={pCallback} value={pValue} />
+        <div className="extension-tab-input-wrapper" style={{ width: '100%', maxWidth: pWidth }}>
+            <input autoFocus={pAutoFocus} onChange={pCallback} value={pValue} maxLength={pMaxLen} />
         </div>
     );
 };
@@ -329,10 +331,11 @@ const DatePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTime: 
         </div>
     );
 };
-const Checkbox = ({ pCallback, pValue }: { pCallback?: (value: any) => void; pValue?: boolean }) => {
+const Checkbox = ({ pCallback, pValue, pDisable }: { pCallback?: (value: any) => void; pValue?: boolean; pDisable?: boolean }) => {
     const [sIsCheck, setIsCheck] = useState<boolean>(pValue || false);
 
     const handleCheck = () => {
+        if (pDisable) return;
         if (pCallback) {
             const sApplyValue = !sIsCheck;
             setIsCheck(sApplyValue);
@@ -352,7 +355,7 @@ const Checkbox = ({ pCallback, pValue }: { pCallback?: (value: any) => void; pVa
         </div>
     );
 };
-const Selector = ({ pList, pSelectedItem, pCallback }: { pList: any; pSelectedItem: any; pCallback: (eTarget: string) => void }) => {
+const Selector = ({ pList, pSelectedItem, pCallback, pWidth = '400px' }: { pList: any; pSelectedItem: any; pCallback: (eTarget: string) => void; pWidth?: string }) => {
     const [sIsOpen, setIsOpen] = useState<boolean>(false);
 
     const handleCallback = (aItem: string) => {
@@ -361,7 +364,7 @@ const Selector = ({ pList, pSelectedItem, pCallback }: { pList: any; pSelectedIt
     };
 
     return (
-        <div className="extension-tab-selector-wrapper">
+        <div className="extension-tab-selector-wrapper" style={{ width: 'auto', maxWidth: pWidth }}>
             <div className="extension-tab-selector-header" onClick={() => setIsOpen(!sIsOpen)}>
                 <span>{pSelectedItem}</span>
                 <ArrowDown />
@@ -450,18 +453,41 @@ const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
         </div>
     );
 };
-const Switch = ({ pState, pCallback, pBadge }: { pState: boolean; pCallback: () => void; pBadge?: string }) => {
+const Switch = ({ pState, pCallback, pBadge, pBadgeL = false }: { pState: boolean; pCallback: (aItem: any) => void; pBadge?: string; pBadgeL?: boolean }) => {
     return (
         <div className="extension-tab-switch-wrapper">
+            {!!pBadge && pBadgeL && <span className={`extension-tab-badge ${!pBadge ? '' : 'extension-tab-badge-active'}`}>{pBadge}</span>}
             <input type="checkbox" id="switch" className="extension-tab-switch-input" readOnly checked={pState} />
             <label htmlFor="switch" className="extension-tab-switch-label" onClick={pCallback}>
                 <span className="extension-tab-switch-label-btn" />
             </label>
-            {!!pBadge && <span className={`extension-tab-badge ${!pBadge ? '' : 'extension-tab-badge-active'}`}>{pBadge}</span>}
+            {!!pBadge && !pBadgeL && <span className={`extension-tab-badge ${!pBadge ? '' : 'extension-tab-badge-active'}`}>{pBadge}</span>}
         </div>
     );
 };
+const TwoItemSwitch = ({ pItemA, pItemB, pSelectedItem, pCallback }: { pItemA: string; pItemB: string; pSelectedItem: string; pCallback: (aItem: any) => void }) => {
+    const [sState, setState] = useState<boolean>(pItemA !== pSelectedItem);
 
+    const handleItemCallback = () => {
+        setState(!sState);
+        pCallback(!sState ? pItemB : pItemA);
+    };
+
+    return (
+        <div className="extension-tab-two-item-switch-wrapper">
+            <span className={`extension-tab-two-item-switch-content ${!sState ? 'two-item-active' : ''}`} style={{ marginRight: '8px' }} onClick={handleItemCallback}>
+                {pItemA}
+            </span>
+            <input type="checkbox" id="switch" className="extension-tab-switch-input" readOnly checked={sState} />
+            <label htmlFor="switch" className="extension-tab-switch-label" onClick={handleItemCallback}>
+                <span className="extension-tab-switch-label-btn" />
+            </label>
+            <span className={`extension-tab-two-item-switch-content ${sState ? 'two-item-active' : ''}`} style={{ marginLeft: '8px' }} onClick={handleItemCallback}>
+                {pItemB}
+            </span>
+        </div>
+    );
+};
 const StatusCircle = ({ pState }: { pState?: 'true' | 'false' | 'none' }) => {
     const getColor = (): string => {
         switch (pState) {
@@ -559,6 +585,7 @@ ExtensionTab.DatePicker = DatePicker;
 ExtensionTab.DateTimePicker = DateTimePicker;
 ExtensionTab.Table = Table;
 ExtensionTab.Switch = Switch;
+ExtensionTab.TwoItemSwitch = TwoItemSwitch;
 ExtensionTab.IconBtn = IconBtn;
 ExtensionTab.Selector = Selector;
 ExtensionTab.TextResErr = TextResErr;

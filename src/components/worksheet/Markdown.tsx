@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { postMd } from '@/api/repository/api';
 import '@/assets/md/md.css';
 import '@/components/worksheet/Markdown.scss';
 import '@/assets/md/mdDark.css';
 import setMermaid from '@/plugin/mermaid';
-import { useRecoilState } from 'recoil';
-import { gBoardList } from '@/recoil/recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { generateUUID, parseCodeBlocks } from '@/utils';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Success } from '@/components/toast/Toast';
@@ -24,20 +24,17 @@ export const Markdown = (props: MarkdownProps) => {
     const [sMarkdownId, setMarkdownId] = useState<string>('');
     const [sCodeBlocks, setCodeBlocks] = useState<string[]>([]);
     const sCheckMermaid: RegExp = new RegExp('([```mermaid]*```mermaid[^```]*```)', 'igm');
+    const sBodyRef: any = useRef(null);
+    const sSelectedTab = useRecoilValue<any>(gSelectedTab);
 
     useEffect(() => {
         init();
         setMarkdownId(generateUUID());
         if (typeof pContents === 'string') setCodeBlocks(parseCodeBlocks(pContents));
     }, [pContents]);
-
     useEffect(() => {
         if (typeof pContents !== 'string') return;
-        if (sMdxText && pContents && pContents.match(sCheckMermaid)) {
-            setTimeout(() => {
-                setMermaid();
-            }, pIdx * 10);
-        }
+        drawMermaid();
         if (!sMarkdownId) return;
         const blocks = document.querySelectorAll(`div.mrk${sMarkdownId} pre:not(.mermaid)`);
         if (!blocks) return;
@@ -68,7 +65,20 @@ export const Markdown = (props: MarkdownProps) => {
             });
         };
     }, [sMdxText]);
+    useEffect(() => {
+        const sMermaidNodeList = document.getElementsByClassName('mermaid');
+        if (sSelectedTab === pData && sMermaidNodeList.length > 0) {
+            (sMermaidNodeList[0] as any)?.dataset?.processed === 'true' ? null : drawMermaid();
+        }
+    }, [sSelectedTab]);
 
+    const drawMermaid = () => {
+        if (sMdxText && pContents && pContents.match(sCheckMermaid) && sBodyRef && sBodyRef?.current && sBodyRef.current.offsetWidth > 0) {
+            setTimeout(() => {
+                setMermaid();
+            }, pIdx * 10);
+        }
+    };
     const handleCopy = (aText: string) => {
         ClipboardCopy(aText);
         Success('copied content');
@@ -103,5 +113,12 @@ export const Markdown = (props: MarkdownProps) => {
         }
     };
 
-    return <div className={`mrk-form markdown-body mrk${sMarkdownId}`} style={{ backgroundColor: '#1B1C21', width: '100%' }} dangerouslySetInnerHTML={{ __html: sMdxText }}></div>;
+    return (
+        <div
+            ref={sBodyRef}
+            className={`mrk-form markdown-body mrk${sMarkdownId}`}
+            style={{ backgroundColor: '#1B1C21', width: '100%' }}
+            dangerouslySetInnerHTML={{ __html: sMdxText }}
+        />
+    );
 };
