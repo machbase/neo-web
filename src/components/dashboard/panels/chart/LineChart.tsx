@@ -13,6 +13,7 @@ import { chartTypeConverter } from '@/utils/eChartHelper';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import './LineChart.scss';
 import { TqlChartParser } from '@/utils/DashboardTqlChartParser';
+import moment from 'moment';
 
 const LineChart = ({
     pIsActiveTab,
@@ -130,14 +131,24 @@ const LineChart = ({
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetPanel = pPanelInfo;
         const sTargetTag = sTargetPanel.blockList[0];
-        let sSvrResult: any = undefined;
-        if (sTargetTag.table.split('.').length > 2) {
-            sSvrResult = await fetchMountTimeMinMax(sTargetTag);
+        const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
+        const sCustomTag = sTargetTag.filter.filter((aFilter: any) => {
+            if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
+        })[0]?.value;
+        if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
+            let sSvrResult: any = undefined;
+            if (sTargetTag.table.split('.').length > 2) {
+                sSvrResult = await fetchMountTimeMinMax(sTargetTag);
+            } else {
+                sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
+            }
+            const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
+            return sResult;
         } else {
-            sSvrResult = await fetchTimeMinMax(sTargetTag);
+            const sNowTime = moment().unix() * 1000;
+            const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
+            return sNowTimeMinMax;
         }
-        const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
-        return sResult;
     };
     const handlePanelTimeRange = async (sStart: any, sEnd: any) => {
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
