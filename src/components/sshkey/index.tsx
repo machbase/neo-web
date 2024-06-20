@@ -24,7 +24,8 @@ export const SSHKey = () => {
     /** Get ssh key list */
     const getSSHKeyList = async () => {
         const sResSSHKeyList = await getSSHKeys();
-        if (sResSSHKeyList.success) setSSHKeyList(sResSSHKeyList.data.sort((a, b) => a.comment.localeCompare(b.comment)));
+        if (sResSSHKeyList.success)
+            setSSHKeyList(sResSSHKeyList.data && sResSSHKeyList.data?.length > 0 ? sResSSHKeyList.data.sort((a, b) => a.comment.localeCompare(b.comment)) : []);
         else setSSHKeyList([]);
     };
     /** Gen ssh key */
