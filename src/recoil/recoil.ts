@@ -175,7 +175,7 @@ export const gBridgeList = atom<any>({
 export const gBridgeNameList = selector<any>({
     key: 'gBridgeNameList',
     get: ({ get }) => {
-        const sTmpBridgeList = get(gBridgeList);
+        const sTmpBridgeList = get(gBridgeList).filter((aItem: any) => aItem.type === 'nats' || aItem.type === 'mqtt');
         return sTmpBridgeList.map((aItem: any) => aItem.name);
     },
 });

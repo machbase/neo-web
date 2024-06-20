@@ -2,7 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { Pane, SashContent } from 'split-pane-react';
 import SplitPane from 'split-pane-react/esm/SplitPane';
-import { gAddSubr, gBoardList, gBridgeList, gBridgeNameList } from '@/recoil/recoil';
+import {
+    gAddSubr,
+    gBoardList,
+    gBridgeList,
+    // gBridgeNameList
+} from '@/recoil/recoil';
 import { VscWarning } from 'react-icons/vsc';
 import { LuFlipVertical } from 'react-icons/lu';
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
@@ -15,7 +20,7 @@ import { SUBR_FORMAT_TABLE, SUBR_METHOD_TABLE, SUBR_OPTIONS_TABLE } from './cont
 export const CreateSubr = ({ pInit }: { pInit: any }) => {
     const setBoardList = useSetRecoilState<any[]>(gBoardList);
     const setAddSubr = useSetRecoilState<any>(gAddSubr);
-    const sBridgeNameList = useRecoilValue(gBridgeNameList);
+    // const sBridgeNameList = useRecoilValue(gBridgeNameList);
     const sBridgeList = useRecoilValue(gBridgeList);
     const sBodyRef: any = useRef(null);
     const [sTaskSelect, setTaskSelect] = useState<'Writing Descriptor' | 'TQL Script'>('Writing Descriptor');
@@ -33,7 +38,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
         method: 'append',
         table_name: '',
         format: 'json',
-        compress: false,
+        compress: 'no compress',
         options: '',
         QoS: 0,
         queue: '',
@@ -57,7 +62,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                 name: sCreatePayload.name,
                 bridge: sCreatePayload.bridge,
                 topic: sCreatePayload.topic,
-                task: `db/${sCreatePayload.method}/${sCreatePayload.table_name}:${sCreatePayload.format}${sCreatePayload.compress ? ':gzip' : ''}${
+                task: `db/${sCreatePayload.method}/${sCreatePayload.table_name}:${sCreatePayload.format}${sCreatePayload.compress === 'gzip' ? ':gzip' : ''}${
                     sCreatePayload.options !== '' ? '?' + sCreatePayload.options : ''
                 }`,
             };
@@ -129,14 +134,6 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                             <ExtensionTab.SubTitle>Subscriber</ExtensionTab.SubTitle>
                             <ExtensionTab.Hr />
                         </ExtensionTab.ContentBlock>
-                        {/* Auto start */}
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.ContentTitle>Auto start</ExtensionTab.ContentTitle>
-                            <ExtensionTab.DpRow>
-                                <ExtensionTab.Checkbox pValue={sCreatePayload.autoStart} pCallback={(value: boolean) => handlePayload('autoStart', { target: { value } } as any)} />
-                                <ExtensionTab.ContentDesc>{`Makes the task to start automatically when machbase-neo starts`}</ExtensionTab.ContentDesc>
-                            </ExtensionTab.DpRow>
-                        </ExtensionTab.ContentBlock>
                         {/* Subr name */}
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.DpRow>
@@ -146,10 +143,18 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 </ExtensionTab.ContentDesc>
                             </ExtensionTab.DpRow>
                             <ExtensionTab.ContentDesc>{`The name of the subscriber.`}</ExtensionTab.ContentDesc>
-                            <ExtensionTab.Input pValue={sCreatePayload.name} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
+                            <ExtensionTab.Input pValue={sCreatePayload.name} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} pMaxLen={40} />
+                        </ExtensionTab.ContentBlock>
+                        {/* Auto start */}
+                        <ExtensionTab.ContentBlock>
+                            <ExtensionTab.ContentTitle>Auto start</ExtensionTab.ContentTitle>
+                            <ExtensionTab.DpRow>
+                                <ExtensionTab.Checkbox pValue={sCreatePayload.autoStart} pCallback={(value: boolean) => handlePayload('autoStart', { target: { value } } as any)} />
+                                <ExtensionTab.ContentDesc>{`Makes the task to start automatically when machbase-neo starts`}</ExtensionTab.ContentDesc>
+                            </ExtensionTab.DpRow>
                         </ExtensionTab.ContentBlock>
                         {/* Bridge name */}
-                        <ExtensionTab.ContentBlock>
+                        {/* <ExtensionTab.ContentBlock>
                             <ExtensionTab.DpRow>
                                 <ExtensionTab.ContentTitle>bridge</ExtensionTab.ContentTitle>
                                 <ExtensionTab.ContentDesc>
@@ -157,7 +162,6 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 </ExtensionTab.ContentDesc>
                             </ExtensionTab.DpRow>
                             <ExtensionTab.ContentDesc>{`The name of the subscriber.`}</ExtensionTab.ContentDesc>
-                            {/* recoil bridge name list */}
                             <ExtensionTab.Selector
                                 pList={sBridgeNameList}
                                 pSelectedItem={sCreatePayload.bridge}
@@ -165,7 +169,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                     handlePayload('bridge', { target: { value: aSelectedItem } } as any);
                                 }}
                             />
-                        </ExtensionTab.ContentBlock>
+                        </ExtensionTab.ContentBlock> */}
                         {/* Topic | Subject*/}
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.DpRow>
@@ -267,6 +271,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                             </ExtensionTab.ContentDesc>
                                         </ExtensionTab.DpRow>
                                         <ExtensionTab.Selector
+                                            pWidth={'364px'}
                                             pList={['append', 'write']}
                                             pSelectedItem={sCreatePayload.method}
                                             pCallback={(aSelectedItem: string) => {
@@ -283,6 +288,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                             </ExtensionTab.ContentDesc>
                                         </ExtensionTab.DpRow>
                                         <ExtensionTab.Input
+                                            pWidth={'364px'}
                                             pValue={sCreatePayload.table_name}
                                             pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('table_name', event)}
                                         />
@@ -296,6 +302,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                             </ExtensionTab.ContentDesc>
                                         </ExtensionTab.DpRow>
                                         <ExtensionTab.Selector
+                                            pWidth={'364px'}
                                             pList={['json', 'csv']}
                                             pSelectedItem={sCreatePayload.format}
                                             pCallback={(aSelectedItem: string) => {
@@ -306,18 +313,28 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                     {/* DESTINATION - compress */}
                                     <ExtensionTab.ContentBlock>
                                         <ExtensionTab.ContentTitle>Compress</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.DpRow>
+                                        <ExtensionTab.Selector
+                                            pWidth={'364px'}
+                                            pList={['no compress', 'gzip']}
+                                            pSelectedItem={sCreatePayload.compress}
+                                            pCallback={(aSelectedItem: string) => {
+                                                handlePayload('compress', { target: { value: aSelectedItem } } as any);
+                                            }}
+                                        />
+
+                                        {/* <ExtensionTab.DpRow>
                                             <ExtensionTab.Checkbox
                                                 pValue={sCreatePayload.compress}
                                                 pCallback={(value: boolean) => handlePayload('compress', { target: { value } } as any)}
                                             />
                                             <ExtensionTab.ContentDesc>{`use gzip`}</ExtensionTab.ContentDesc>
-                                        </ExtensionTab.DpRow>
+                                        </ExtensionTab.DpRow> */}
                                     </ExtensionTab.ContentBlock>
                                     {/* DESTINATION - options */}
                                     <ExtensionTab.ContentBlock>
                                         <ExtensionTab.ContentTitle>Options</ExtensionTab.ContentTitle>
                                         <ExtensionTab.Input
+                                            pWidth={'364px'}
                                             pValue={sCreatePayload.options}
                                             pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('options', event)}
                                         />
@@ -352,12 +369,13 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                         {/* Writing Descriptor */}
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.ContentTitle>Writing Descriptor</ExtensionTab.ContentTitle>
+                            <ExtensionTab.ContentDesc>Parses the message and write it in the specified table.</ExtensionTab.ContentDesc>
                             <ExtensionTab.ContentDesc>The syntax of writing descriptor is …</ExtensionTab.ContentDesc>
                             <ExtensionTab.CopyBlock pContent={'db/{method}/{table_name}:{format}:{compress}?{options}'} />
                             <ExtensionTab.ContentBlock>
                                 {/* method */}
                                 <ExtensionTab.ContentDesc>Method</ExtensionTab.ContentDesc>
-                                <ExtensionTab.ContentText pContent={`There are two methods append and write. The append is recommended on the stream environment like NATS.`} />
+                                <ExtensionTab.ContentText pContent={`There are two methods append and write.`} />
                                 <div style={{ width: '400px' }}>
                                     <ExtensionTab.Table pList={SUBR_METHOD_TABLE} dotted />
                                 </div>
@@ -389,6 +407,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                         <ExtensionTab.ContentBlock>
                             <ExtensionTab.ContentTitle>TQL script</ExtensionTab.ContentTitle>
                             <ExtensionTab.ContentDesc>{'The place of writing descriptor can be replaced with a file path of TQL script.'}</ExtensionTab.ContentDesc>
+                            <ExtensionTab.ContentDesc>{'Pass the message to payload() in the TQL script.'}</ExtensionTab.ContentDesc>
                             <ExtensionTab.Space pHeight="16px" />
                             <ExtensionTab.ContentDesc>Data writing TQL script example)</ExtensionTab.ContentDesc>
                             <ExtensionTab.CopyBlock

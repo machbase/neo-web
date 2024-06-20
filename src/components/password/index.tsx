@@ -4,13 +4,13 @@ import { RiLockPasswordLine } from 'react-icons/ri';
 import { Close } from '@/assets/icons/Icon';
 import { decodeJwt } from '@/utils';
 import { VscEye, VscEyeClosed, VscWarning } from 'react-icons/vsc';
-import { useRef, useState } from 'react';
-import { changePwd } from '@/api/repository/login';
-import './index.scss';
+import { useEffect, useRef, useState } from 'react';
+import { changePwd, getLogin } from '@/api/repository/login';
 import { checkPwdPolicy, parsePwd } from './utils';
+import './index.scss';
 
 export const Password = ({ setIsOpen }: { setIsOpen: (aState: boolean) => void }) => {
-    const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
+    const [sCurrentUserName, setCurUserName] = useState<string>('');
     const [sNewPassword, setNewPassword] = useState<string>('');
     const [sConfirmPassword, setConfirmPassword] = useState<string>('');
     const [sPwdDiff, setPwdDiff] = useState<string | undefined>(undefined);
@@ -37,6 +37,15 @@ export const Password = ({ setIsOpen }: { setIsOpen: (aState: boolean) => void }
             }, 1000);
         }
     };
+    const init = async () => {
+        const sChcekRes: any = await getLogin();
+        if (sChcekRes.success) setCurUserName(decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase());
+        else setCurUserName('');
+    };
+
+    useEffect(() => {
+        init();
+    }, []);
 
     useEsc(() => setIsOpen && setIsOpen(false));
 

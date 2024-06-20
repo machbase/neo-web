@@ -38,6 +38,7 @@ export const SSHKey = () => {
         if (sRes?.success) {
             getSSHKeyList();
             setAddState(undefined);
+            setAddSSHKeyState(false);
         } else setAddState(sRes?.data ? (sRes as any).data.reason : (sRes.statusText as string));
     };
     /** Del ssh key */
@@ -105,7 +106,7 @@ export const SSHKey = () => {
                                                 <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
                                             </ExtensionTab.ContentDesc>
                                         </ExtensionTab.DpRow>
-                                        <ExtensionTab.Input pAutoFocus pValue={sAlias} pCallback={(event: React.FormEvent<HTMLInputElement>) => handleAlias(event)} />
+                                        <ExtensionTab.Input pAutoFocus pValue={sAlias} pWidth="100%" pCallback={(event: React.FormEvent<HTMLInputElement>) => handleAlias(event)} />
                                     </ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentBlock>
                                         <ExtensionTab.DpRow>

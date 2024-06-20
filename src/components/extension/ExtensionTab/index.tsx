@@ -114,16 +114,18 @@ const Input = ({
     pAutoFocus,
     pCallback = () => {},
     pValue,
-    pWidth = '200px',
+    pWidth = '400px',
+    pMaxLen,
 }: {
     pAutoFocus?: boolean;
     pCallback?: (e: React.FormEvent<HTMLInputElement>) => void;
     pValue?: any;
     pWidth?: any;
+    pMaxLen?: number;
 }) => {
     return (
         <div className="extension-tab-input-wrapper" style={{ width: '100%', maxWidth: pWidth }}>
-            <input autoFocus={pAutoFocus} onChange={pCallback} value={pValue} />
+            <input autoFocus={pAutoFocus} onChange={pCallback} value={pValue} maxLength={pMaxLen} />
         </div>
     );
 };
@@ -353,7 +355,7 @@ const Checkbox = ({ pCallback, pValue, pDisable }: { pCallback?: (value: any) =>
         </div>
     );
 };
-const Selector = ({ pList, pSelectedItem, pCallback }: { pList: any; pSelectedItem: any; pCallback: (eTarget: string) => void }) => {
+const Selector = ({ pList, pSelectedItem, pCallback, pWidth = '400px' }: { pList: any; pSelectedItem: any; pCallback: (eTarget: string) => void; pWidth?: string }) => {
     const [sIsOpen, setIsOpen] = useState<boolean>(false);
 
     const handleCallback = (aItem: string) => {
@@ -362,7 +364,7 @@ const Selector = ({ pList, pSelectedItem, pCallback }: { pList: any; pSelectedIt
     };
 
     return (
-        <div className="extension-tab-selector-wrapper">
+        <div className="extension-tab-selector-wrapper" style={{ width: 'auto', maxWidth: pWidth }}>
             <div className="extension-tab-selector-header" onClick={() => setIsOpen(!sIsOpen)}>
                 <span>{pSelectedItem}</span>
                 <ArrowDown />

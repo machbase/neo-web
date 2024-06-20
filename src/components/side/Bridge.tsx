@@ -10,6 +10,8 @@ import { BridgeItemType, getBridge, getSubr } from '@/api/repository/bridge';
 import icons from '@/utils/icons';
 import { SUBSCRIBER_TYPE } from '../bridge/content';
 
+import './Bridge.scss';
+
 export const BridgeSide = ({ pServer }: any) => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -157,6 +159,10 @@ export const BridgeSide = ({ pServer }: any) => {
     const handleCollapse = () => {
         setIsCollapse(!sIsCollapse);
     };
+    const getState = (aState: string) => {
+        if (aState.toUpperCase() === 'RUNNING' || aState.toUpperCase() === 'STARTING') return '#5CA3DC';
+        return 'RGB(117, 117, 120)';
+    };
 
     /** init bridge list */
     useEffect(() => {
@@ -192,7 +198,9 @@ export const BridgeSide = ({ pServer }: any) => {
                                             wordBreak: 'break-all',
                                         }}
                                     >
-                                        <span className="icons">{icons(SUBSCRIBER_TYPE.includes(aItem?.type) ? 'bridge-sub' : 'bridge-db')}</span>
+                                        <span className="icons">
+                                            {icons(SUBSCRIBER_TYPE.includes(aItem?.type) ? ((aItem?.type as any) === 'mqtt' ? 'bridge-mqtt' : 'bridge-nats') : 'bridge-db')}
+                                        </span>
                                         <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{aItem.name}</span>
                                     </div>
                                 </div>
@@ -237,7 +245,7 @@ export const BridgeSide = ({ pServer }: any) => {
                                                         />
                                                     </div>
 
-                                                    <span className="icons" style={{ marginLeft: '4px' }}>
+                                                    <span className="icons" style={{ marginLeft: '4px', color: getState(aChild.state) }}>
                                                         {icons('bridge-child')}
                                                     </span>
                                                     <span style={{ marginLeft: '1px', fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>

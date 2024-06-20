@@ -79,10 +79,11 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
                                                     pBadgeL={true}
                                                 />
                                                 {sCommandResMessage && (
-                                                    <ExtensionTab.DpRow>
-                                                        <VscWarning style={{ fill: 'rgb(236 118 118)' }} />
-                                                        <span style={{ margin: '8px', color: 'rgb(236 118 118)' }}>{sCommandResMessage}</span>
-                                                    </ExtensionTab.DpRow>
+                                                    <ExtensionTab.ContentDesc>
+                                                        <div style={{ marginTop: '-10px' }}>
+                                                            <ExtensionTab.TextResErr pText={sCommandResMessage} />
+                                                        </div>
+                                                    </ExtensionTab.ContentDesc>
                                                 )}
                                             </div>
                                         </div>

@@ -1,0 +1,9 @@
+.bridge-nats-icon-wrapper,
+.bridge-mqtt-icon-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    svg {
+        width: 12px !important;
+    }
+}
