@@ -92,11 +92,15 @@ const TextButton = ({
                 return '#6f7173';
         }
     };
+    const handleCallback = (e: any) => {
+        if (pIsDisable) return;
+        pCallback(e);
+    };
     return (
         <button
             className="extension-tab-text-button"
             style={{ backgroundColor: pIsDisable ? '#6f7173' : getColor(), width: pWidth, marginRight: mr }}
-            onClick={pCallback}
+            onClick={handleCallback}
             onMouseOut={onMouseOut}
         >
             {pText}

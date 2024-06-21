@@ -52,9 +52,15 @@ export const gExtensionList = atom<any>({
             label: 'DBEXPLORER',
         },
         {
-            id: 'KEY',
-            type: 'KEY',
-            label: 'KEY',
+            id: 'SHELL',
+            type: 'SHELL',
+            label: 'SHELL',
+        },
+
+        {
+            id: 'BRIDGE',
+            type: 'BRIDGE',
+            label: 'BRIDGE',
         },
         {
             id: 'TIMER',
@@ -62,14 +68,9 @@ export const gExtensionList = atom<any>({
             label: 'TIMER',
         },
         {
-            id: 'SHELL',
-            type: 'SHELL',
-            label: 'SHELL',
-        },
-        {
-            id: 'BRIDGE',
-            type: 'BRIDGE',
-            label: 'BRIDGE',
+            id: 'KEY',
+            type: 'KEY',
+            label: 'KEY',
         },
         {
             id: 'REFERENCE',

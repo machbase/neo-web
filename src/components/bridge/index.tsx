@@ -10,7 +10,7 @@ import { IconButton } from '../buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
 import { ConfirmModal } from '../modal/ConfirmModal';
 import { getCommandState } from '@/utils/bridgeCommandHelper';
-import { SUBSCRIBER_TYPE } from './content';
+import { SUBSCRIBER_TYPE, bridgeTypeHelper } from './content';
 import { generateUUID } from '@/utils';
 
 export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
@@ -191,7 +191,7 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentTitle>Type</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{sPayload.type}</ExtensionTab.ContentDesc>
+                                    <ExtensionTab.ContentDesc>{bridgeTypeHelper(sPayload.type)}</ExtensionTab.ContentDesc>
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentTitle>Connection string</ExtensionTab.ContentTitle>
@@ -201,7 +201,7 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                                 <ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentTitle>bridge connection</ExtensionTab.ContentTitle>
                                     <div style={{ marginTop: '8px' }}>
-                                        <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
+                                        <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} pIsDisable={sPayload?.childs?.length > 0} />
                                         <ExtensionTab.TextButton pText="Test" pType="CREATE" pCallback={() => handleCommand('test')} />
                                         {SUBSCRIBER_TYPE.includes(sPayload.type) && (
                                             <ExtensionTab.TextButton pWidth="120px" pText="New subscriber" pType="CREATE" pCallback={handleNewSubr} />
