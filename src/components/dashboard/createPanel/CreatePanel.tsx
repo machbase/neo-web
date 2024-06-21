@@ -83,13 +83,15 @@ const CreatePanel = ({
         }
         sPanelOption.w = getChartDefaultWidthSize(sPanelOption.type, !!sPanelOption.chartOptions?.isPolar);
 
+        const sTmpPanelInfo = checkXAxisInterval(sPanelOption);
+
         let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
         if (sSaveTarget?.path !== '') {
             const sTabList = sBoardList.map((aItem) => {
                 if (aItem.id === pBoardInfo.id) {
                     const sTmpDashboard = {
                         ...aItem.dashboard,
-                        panels: [...aItem.dashboard.panels, sPanelOption],
+                        panels: [...aItem.dashboard.panels, sTmpPanelInfo],
                     };
                     sSaveTarget = {
                         ...aItem,
@@ -106,7 +108,7 @@ const CreatePanel = ({
                 if (aItem.id === pBoardInfo.id) {
                     const sTmpDashboard = {
                         ...aItem.dashboard,
-                        panels: [...aItem.dashboard.panels, sPanelOption],
+                        panels: [...aItem.dashboard.panels, sTmpPanelInfo],
                     };
                     sSaveTarget = {
                         ...aItem,
@@ -120,16 +122,16 @@ const CreatePanel = ({
         }
 
         if (pBoardInfo.dashboard.panels.length === 0) {
-            pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
-            pSetModifyState({ id: sPanelOption.id, state: true });
+            pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange));
+            pSetModifyState({ id: sTmpPanelInfo.id, state: true });
         } else {
             const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart');
             if (sChartPanelList.length === 0) {
-                pSetBoardTimeMinMax(await getTimeMinMax(sPanelOption.useCustomTime ? sPanelOption.timeRange : pBoardInfo.dashboard.timeRange));
-                pSetModifyState({ id: sPanelOption.id, state: true });
+                pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange));
+                pSetModifyState({ id: sTmpPanelInfo.id, state: true });
             } else {
                 if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
-                else pSetModifyState({ id: sPanelOption.id, state: true });
+                else pSetModifyState({ id: sTmpPanelInfo.id, state: true });
             }
         }
         handleClose();
@@ -145,7 +147,7 @@ const CreatePanel = ({
                     const sTmpDashboard = {
                         ...aItem.dashboard,
                         panels: aItem.dashboard.panels.map((bItem: any) => {
-                            return bItem.id === pPanelId ? { ...sPanelOption, id: sNewPanelId } : bItem;
+                            return bItem.id === pPanelId ? { ...checkXAxisInterval(sPanelOption), id: sNewPanelId } : bItem;
                         }),
                     };
                     sSaveTarget = {
@@ -165,7 +167,7 @@ const CreatePanel = ({
                     const sTmpDashboard = {
                         ...aItem.dashboard,
                         panels: aItem.dashboard.panels.map((bItem: any) => {
-                            return bItem.id === pPanelId ? { ...sPanelOption, id: sNewPanelId } : bItem;
+                            return bItem.id === pPanelId ? { ...checkXAxisInterval(sPanelOption), id: sNewPanelId } : bItem;
                         }),
                     };
                     sSaveTarget = {
@@ -181,9 +183,15 @@ const CreatePanel = ({
         if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
         handleClose();
     };
+    const checkXAxisInterval = (aPanelInfo: any) => {
+        if (aPanelInfo?.axisInterval?.IntervalType === '' || aPanelInfo?.axisInterval?.IntervalValue === '')
+            return { ...aPanelInfo, axisInterval: { IntervalType: '', IntervalValue: '' }, isAxisInterval: false };
+        else return { ...aPanelInfo, isAxisInterval: true };
+    };
     // Preview
     const applyPanel = async () => {
-        const sTmpPanelOption = JSON.parse(JSON.stringify(sPanelOption));
+        const sTmpPanelOption = checkXAxisInterval(sPanelOption);
+        // checkXAxisInterval(sTmpPanelOption);
         if (sPanelOption.type === 'Tql chart') {
             if (sTmpPanelOption.useCustomTime) {
                 let sStart: any;

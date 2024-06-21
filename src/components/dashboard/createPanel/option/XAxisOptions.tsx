@@ -42,8 +42,12 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                     IntervalValue: aValue,
                 },
             };
-            if (sResult.axisInterval.Interval !== '' && sResult.axisInterval.IntervalValue !== '') sResult.isAxisInterval = true;
-            else sResult.isAxisInterval = false;
+            // if (sResult.axisInterval.IntervalType !== '' && sResult.axisInterval.IntervalValue !== '') sResult.isAxisInterval = true;
+            // else {
+            //     sResult.axisInterval.IntervalType = '';
+            //     sResult.axisInterval.IntervalValue = '';
+            //     sResult.isAxisInterval = false;
+            // }
             return sResult;
         });
     };
