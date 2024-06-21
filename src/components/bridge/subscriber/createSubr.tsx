@@ -376,7 +376,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 {/* method */}
                                 <ExtensionTab.ContentDesc>Method</ExtensionTab.ContentDesc>
                                 <ExtensionTab.ContentText pContent={`There are two methods append and write.`} />
-                                <div style={{ width: '400px' }}>
+                                <div style={{ width: 'auto', maxWidth: '400px' }}>
                                     <ExtensionTab.Table pList={SUBR_METHOD_TABLE} dotted />
                                 </div>
                                 {/* table_name */}
@@ -386,7 +386,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 {/* format */}
                                 <ExtensionTab.Space pHeight="16px" />
                                 <ExtensionTab.ContentDesc>Format</ExtensionTab.ContentDesc>
-                                <div style={{ width: '150px' }}>
+                                <div style={{ width: 'auto', maxWidth: '150px' }}>
                                     <ExtensionTab.Table pList={SUBR_FORMAT_TABLE} dotted />
                                 </div>
                                 {/* compress */}

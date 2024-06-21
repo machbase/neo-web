@@ -153,12 +153,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             ? {
                                   ...aItem,
                                   name: sData.data.rows[0][0],
-                                  time: sData.data.rows[1][0],
-                                  value: sData.data.rows[2][0],
                                   type: getTableType(sTable[4]),
                                   tableInfo: sData.data.rows,
-                                  filter: [{ ...aItem.filter[0], column: sData.data.rows[0][0] }],
-                                  values: [{ ...aItem.values[0], value: sData.data.rows[2][0] }],
                               }
                             : aItem;
                     }),
@@ -387,7 +383,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     }, [pPanelOption.type]);
     /** init */
     const init = async () => {
-        const sTable = pTableList.find((aItem: any) => aItem[3] === pBlockInfo.table || pBlockInfo.table.includes(aItem[3]));
+        const sTable = pTableList.find((aItem: any) => aItem[3] === pBlockInfo.table || `V$${aItem[3]}_STAT` === pBlockInfo.table);
         const sIsVirtualTable = pBlockInfo.table.includes('V$');
         const sTableType = getTableType(sTable[4]);
         const sSelectedType = sIsVirtualTable ? 'vir_tag' : sTableType;

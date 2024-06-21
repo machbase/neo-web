@@ -128,7 +128,7 @@ const Home = () => {
     };
 
     useEffect(() => {
-        getInfo();
+        sHome && getInfo();
     }, [sHome]);
     useEffect(() => {
         sHome && init();
