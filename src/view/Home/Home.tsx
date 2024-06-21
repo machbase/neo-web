@@ -44,7 +44,7 @@ const Home = () => {
             setSideSizes(['0%', '100%']);
         }
         const sResult: any = await getLogin();
-        if (sResult.reason === 'success') {
+        if (sResult?.reason === 'success') {
             const sId = getId();
             if (!sWebSoc.current) {
                 if (window.location.protocol.indexOf('https') === -1) {

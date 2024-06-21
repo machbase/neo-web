@@ -1,6 +1,6 @@
 import request from '@/api/core';
 
-export type BridgeType = 'SQLite' | 'PostgreSql' | 'Mysql' | 'MSSQL' | 'MQTT' | 'NATS';
+export type BridgeType = 'SQLite' | 'PostgreSQL' | 'MySQL' | 'MSSQL' | 'MQTT' | 'NATS';
 interface SubrItemType {
     name: string;
     autoStart: boolean;
