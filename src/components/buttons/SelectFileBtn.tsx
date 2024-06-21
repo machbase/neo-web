@@ -122,7 +122,7 @@ export const SelectFileBtn = ({
                 height: Number(btnHeight) ? btnHeight + 'px' : String(btnHeight) ? btnHeight : '100px',
             }}
         >
-            <button className="select-input-button" onClick={() => setOpen(true)}>
+            <button className="select-input-button" onClick={() => setOpen(true)} style={{ marginLeft: '8px', marginRight: '8px' }}>
                 {btnTxt ?? 'Select file'}
             </button>
 
