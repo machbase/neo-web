@@ -75,8 +75,8 @@ const DashboardView = () => {
             sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
         }
         if (String(sStartTimeBeforeStart).includes('last') || String(sStartTimeBeforeEnd).includes('last')) {
-            sStartTimeBeforeStart = sBoardTimeMinMax.min;
-            sStartTimeBeforeEnd = sBoardTimeMinMax.max;
+            sStartTimeBeforeStart = setUnitTime(sBoardTimeMinMax.min);
+            sStartTimeBeforeEnd = setUnitTime(sBoardTimeMinMax.max);
         }
         if (String(sStartTimeBeforeStart) === '' || String(sStartTimeBeforeEnd) === '') {
             sStartTimeBeforeStart = sBoardTimeMinMax.min;
