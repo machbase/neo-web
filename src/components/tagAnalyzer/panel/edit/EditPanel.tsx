@@ -35,8 +35,8 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
             sData = {
                 bgn_min: subtractTime(sLastRange.end_max as number, aTargetTime.range_bgn),
                 bgn_max: subtractTime(sLastRange.end_max as number, aTargetTime.range_bgn),
-                end_min: (sLastRange.end_max as number) / 1000000,
-                end_max: (sLastRange.end_max as number) / 1000000,
+                end_min: subtractTime(sLastRange.end_max as number, aTargetTime.range_end),
+                end_max: subtractTime(sLastRange.end_max as number, aTargetTime.range_end),
             };
         }
         // Set now
