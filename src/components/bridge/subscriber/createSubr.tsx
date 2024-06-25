@@ -74,13 +74,15 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
         const sGenRes: any = await genSubr(sParsedPayload);
 
         if (sGenRes.success) {
-            const sGetSubrRes: any = await getSubr();
-            const sTargetSubrInfo = sGetSubrRes?.data ? sGetSubrRes.data.filter((aSubr: any) => aSubr.bridge === sCreatePayload.bridge) : undefined;
-            if (sTargetSubrInfo) setAddSubr({ ...sParsedPayload, state: 'STOP', name: sParsedPayload.name.toUpperCase() });
-            handleSavedCode(true);
             setResErrMessage(undefined);
         } else {
             setResErrMessage(sGenRes?.data ? (sGenRes as any).data.reason : (sGenRes.statusText as string));
+        }
+        const sGetSubrRes: any = await getSubr();
+        if (sGetSubrRes?.success) {
+            const sTargetSubrInfo = sGetSubrRes?.data ? sGetSubrRes.data.filter((aSubr: any) => aSubr.bridge === sCreatePayload.bridge) : undefined;
+            if (sTargetSubrInfo) setAddSubr({ ...sParsedPayload, state: 'STOP', name: sParsedPayload.name.toUpperCase() });
+            handleSavedCode(true);
         }
     };
     /** handle info */

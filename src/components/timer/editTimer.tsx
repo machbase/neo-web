@@ -31,7 +31,12 @@ export const EditTimer = () => {
     const createTimer = async () => {
         const sRes = await genTimer(sCreatePayload, sCreateName);
         if (sRes.success) {
-            const sTimerInfo: any = await getTimerItem(sCreateName);
+            setResErrMessage(undefined);
+        } else {
+            setResErrMessage(sRes?.data ? (sRes as any).data.reason : (sRes.statusText as string));
+        }
+        const sTimerInfo: any = await getTimerItem(sCreateName);
+        if (sTimerInfo?.success) {
             const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
             setBoardList((aBoardList: any) => {
                 return aBoardList.map((aBoard: any) => {
@@ -54,9 +59,6 @@ export const EditTimer = () => {
                     } else return aTimerInfo;
                 });
             setTimerList(sTmpTimerList);
-            setResErrMessage(undefined);
-        } else {
-            setResErrMessage(sRes?.data ? (sRes as any).data.reason : (sRes.statusText as string));
         }
     };
     /** handle timer info */
