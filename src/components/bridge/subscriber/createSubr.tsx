@@ -43,6 +43,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
         QoS: 0,
         queue: '',
     });
+    const [sResOpenFile, setResOpenFile] = useState<string | undefined>(undefined);
 
     /** create item */
     const createItem = async () => {
@@ -253,9 +254,16 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                                 />
                                             </div>
                                             <div style={{ marginLeft: '4px' }}>
-                                                <OpenFileBtn pType="tql" pFileInfo={{ path: sCreatePayload.task }} btnWidth={'80px'} btnHeight="26px" />
+                                                <OpenFileBtn
+                                                    pType="tql"
+                                                    pFileInfo={{ path: sCreatePayload.task }}
+                                                    btnWidth={'80px'}
+                                                    btnHeight="26px"
+                                                    pErrorCallback={setResOpenFile}
+                                                />
                                             </div>
                                         </ExtensionTab.DpRow>
+                                        {sResOpenFile && <ExtensionTab.TextResErr pText={sResOpenFile} />}
                                     </ExtensionTab.ContentBlock>
                                 </>
                             )}

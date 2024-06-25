@@ -25,6 +25,7 @@ export const EditTimer = () => {
         schedule: '', //@every 1h30m
         path: '', ///sql_select_log.tql
     });
+    const [sResOpenFile, setResOpenFile] = useState<string | undefined>(undefined);
 
     /** create timer */
     const createTimer = async () => {
@@ -169,8 +170,9 @@ export const EditTimer = () => {
                                     btnWidth={'100px'}
                                     btnHeight="26px"
                                 />
-                                <OpenFileBtn pType="tql" pFileInfo={{ path: sCreatePayload.path }} btnWidth={'80px'} btnHeight="26px" />
+                                <OpenFileBtn pType="tql" pFileInfo={{ path: sCreatePayload.path }} btnWidth={'80px'} btnHeight="26px" pErrorCallback={setResOpenFile} />
                             </ExtensionTab.DpRow>
+                            {sResOpenFile && <ExtensionTab.TextResErr pText={sResOpenFile} />}
                         </ExtensionTab.ContentBlock>
 
                         <ExtensionTab.ContentBlock>
