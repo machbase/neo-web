@@ -337,11 +337,9 @@ const Chart = ({
                             : new Date((this as any).x - getTimeZoneValue() * 60000).toISOString().replace('T', ' ').replace('Z', '')
                     }</div></div>
                     <br/>
-                    <div style="display: flex; justifyContent: space-between">
-                    <p style="color: ${(this as any).color}">${(this as any).series.name}</p>
-                    <p style="color: ${(this as any).color}">${(this as any).y}</p>
-                    </div>
-                    </div>`;
+                    ${(this as any)?.points.map((aPoint: any) => {
+                        return `<p style="color: ${aPoint.color}; margin:0px; padding:0px;">${aPoint.series.name}</p><p style="color: ${aPoint.color}">${aPoint.y}</p><br />`;
+                    })}</div>`;
                 },
             },
             legend: {
