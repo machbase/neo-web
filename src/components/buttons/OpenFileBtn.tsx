@@ -10,12 +10,14 @@ export const OpenFileBtn = ({
     btnTxt,
     btnWidth,
     btnHeight,
+    pErrorCallback,
 }: {
     pType: string;
     pFileInfo: any;
     btnTxt?: string;
     btnWidth?: string | number;
     btnHeight?: string | number;
+    pErrorCallback?: (aError: string | undefined) => void;
 }) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const setSelectedTab = useSetRecoilState<string>(gSelectedTab);
@@ -25,6 +27,7 @@ export const OpenFileBtn = ({
     };
     const handleOpen = async () => {
         if (!pFileInfo.path) return;
+        pErrorCallback && pErrorCallback(undefined);
         const sSplitPath = pFileInfo.path.split('/').filter((aPath: string) => aPath !== '');
         const sFileName = sSplitPath.at(-1).includes(`.${pType}`) ? sSplitPath.at(-1) : '';
         const sFilePath = ('/' + sSplitPath.slice(0, sSplitPath.length - 1).join('/') + '/').replaceAll('//', '/');
@@ -35,14 +38,17 @@ export const OpenFileBtn = ({
             setSelectedTab(sExistBoard.id as string);
         } else {
             const sFileExtension = extractionExtension(sFileName);
-            if (sFileExtension === 'tql') {
-                const sContentResult: any = await getFiles(`${sFilePath}/${sFileName}`);
+            const sContentResult: any = await getFiles(`${sFilePath}/${sFileName}`);
+            if (typeof sContentResult === 'string') {
                 const sTmpBoard: any = { id: sTmpId, name: sFileName, type: sFileExtension, path: sFilePath, savedCode: sContentResult, code: '' };
-
                 sTmpBoard.code = sContentResult;
-
                 setBoardList([...sBoardList, sTmpBoard]);
                 setSelectedTab(sTmpId);
+                return;
+            } else {
+                pErrorCallback &&
+                    pErrorCallback(sContentResult?.data ? (sContentResult as any).data?.reason ?? (sContentResult as any).data : (sContentResult?.statusText as string));
+                return;
             }
         }
     };

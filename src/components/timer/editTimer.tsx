@@ -25,12 +25,18 @@ export const EditTimer = () => {
         schedule: '', //@every 1h30m
         path: '', ///sql_select_log.tql
     });
+    const [sResOpenFile, setResOpenFile] = useState<string | undefined>(undefined);
 
     /** create timer */
     const createTimer = async () => {
         const sRes = await genTimer(sCreatePayload, sCreateName);
         if (sRes.success) {
-            const sTimerInfo: any = await getTimerItem(sCreateName);
+            setResErrMessage(undefined);
+        } else {
+            setResErrMessage(sRes?.data ? (sRes as any).data.reason : (sRes.statusText as string));
+        }
+        const sTimerInfo: any = await getTimerItem(sCreateName);
+        if (sTimerInfo?.success) {
             const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
             setBoardList((aBoardList: any) => {
                 return aBoardList.map((aBoard: any) => {
@@ -53,9 +59,6 @@ export const EditTimer = () => {
                     } else return aTimerInfo;
                 });
             setTimerList(sTmpTimerList);
-            setResErrMessage(undefined);
-        } else {
-            setResErrMessage(sRes?.data ? (sRes as any).data.reason : (sRes.statusText as string));
         }
     };
     /** handle timer info */
@@ -169,8 +172,9 @@ export const EditTimer = () => {
                                     btnWidth={'100px'}
                                     btnHeight="26px"
                                 />
-                                <OpenFileBtn pType="tql" pFileInfo={{ path: sCreatePayload.path }} btnWidth={'80px'} btnHeight="26px" />
+                                <OpenFileBtn pType="tql" pFileInfo={{ path: sCreatePayload.path }} btnWidth={'80px'} btnHeight="26px" pErrorCallback={setResOpenFile} />
                             </ExtensionTab.DpRow>
+                            {sResOpenFile && <ExtensionTab.TextResErr pText={sResOpenFile} />}
                         </ExtensionTab.ContentBlock>
 
                         <ExtensionTab.ContentBlock>

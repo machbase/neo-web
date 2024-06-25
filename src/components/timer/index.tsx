@@ -19,6 +19,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sResMessage, setResMessage] = useState<string | undefined>(undefined);
     const [sPayload, setPayload] = useState<any>(undefined);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
+    const [sResOpenFile, setResOpenFile] = useState<string | undefined>(undefined);
 
     /** delete timer */
     const deleteTimer = async () => {
@@ -240,8 +241,9 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                     <ExtensionTab.DpRow>
                                         <ExtensionTab.Input pValue={sPayload.task} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('task', event)} />
                                         <SelectFileBtn pType="tql" pCallback={handleTql} btnWidth={'100px'} btnHeight="26px" />
-                                        <OpenFileBtn pType="tql" pFileInfo={{ path: sPayload.task }} btnWidth={'80px'} btnHeight="26px" />
+                                        <OpenFileBtn pType="tql" pFileInfo={{ path: sPayload.task }} btnWidth={'80px'} btnHeight="26px" pErrorCallback={setResOpenFile} />
                                     </ExtensionTab.DpRow>
+                                    {sResOpenFile && <ExtensionTab.TextResErr pText={sResOpenFile} />}
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
                                     {/* BTN */}

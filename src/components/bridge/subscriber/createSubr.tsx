@@ -43,6 +43,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
         QoS: 0,
         queue: '',
     });
+    const [sResOpenFile, setResOpenFile] = useState<string | undefined>(undefined);
 
     /** create item */
     const createItem = async () => {
@@ -73,13 +74,15 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
         const sGenRes: any = await genSubr(sParsedPayload);
 
         if (sGenRes.success) {
-            const sGetSubrRes: any = await getSubr();
-            const sTargetSubrInfo = sGetSubrRes?.data ? sGetSubrRes.data.filter((aSubr: any) => aSubr.bridge === sCreatePayload.bridge) : undefined;
-            if (sTargetSubrInfo) setAddSubr({ ...sParsedPayload, state: 'STOP', name: sParsedPayload.name.toUpperCase() });
-            handleSavedCode(true);
             setResErrMessage(undefined);
         } else {
             setResErrMessage(sGenRes?.data ? (sGenRes as any).data.reason : (sGenRes.statusText as string));
+        }
+        const sGetSubrRes: any = await getSubr();
+        if (sGetSubrRes?.success) {
+            const sTargetSubrInfo = sGetSubrRes?.data ? sGetSubrRes.data.filter((aSubr: any) => aSubr.bridge === sCreatePayload.bridge) : undefined;
+            if (sTargetSubrInfo) setAddSubr({ ...sParsedPayload, state: 'STOP', name: sParsedPayload.name.toUpperCase() });
+            handleSavedCode(true);
         }
     };
     /** handle info */
@@ -253,9 +256,16 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                                 />
                                             </div>
                                             <div style={{ marginLeft: '4px' }}>
-                                                <OpenFileBtn pType="tql" pFileInfo={{ path: sCreatePayload.task }} btnWidth={'80px'} btnHeight="26px" />
+                                                <OpenFileBtn
+                                                    pType="tql"
+                                                    pFileInfo={{ path: sCreatePayload.task }}
+                                                    btnWidth={'80px'}
+                                                    btnHeight="26px"
+                                                    pErrorCallback={setResOpenFile}
+                                                />
                                             </div>
                                         </ExtensionTab.DpRow>
+                                        {sResOpenFile && <ExtensionTab.TextResErr pText={sResOpenFile} />}
                                     </ExtensionTab.ContentBlock>
                                 </>
                             )}
