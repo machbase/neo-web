@@ -501,7 +501,7 @@ any) => {
                 // Set top-level last
                 if (!pIsEdit && pBgnEndTimeRange && pBgnEndTimeRange.end_max && typeof pBoardInfo?.range_bgn === 'string' && pBoardInfo.range_bgn?.includes('last')) {
                     sStartTime = subtractTime(pBgnEndTimeRange.end_max, pBoardInfo.range_bgn);
-                    sLastTime = pBgnEndTimeRange.end_max / 1000000; // Set milli sec
+                    sLastTime = subtractTime(pBgnEndTimeRange.end_max, pBoardInfo.range_end);
                 }
                 // Set panel-level last & now
                 if (!pIsEdit && typeof pPanelInfo.range_end === 'string') {
@@ -512,7 +512,7 @@ any) => {
                             { bgn: pPanelInfo.range_bgn, end: pPanelInfo.range_end }
                         );
                         sStartTime = subtractTime(sTimeRange.end_max as number, pPanelInfo.range_bgn);
-                        sLastTime = (sTimeRange.end_max as number) / 1000000; // Set milli sec
+                        sLastTime = subtractTime(sTimeRange.end_max as number, pPanelInfo.range_end);
                     }
                     if (pPanelInfo.range_end.includes('now')) {
                         const sTimeRange = getDateRange(pPanelInfo, pBoardInfo);
@@ -554,7 +554,7 @@ any) => {
                 sLastTime = pBgnEndTimeRange.end_max; // Set milli sec
             } else {
                 sStartTime = subtractTime(pBgnEndTimeRange.end_max, pBoardInfo.range_bgn);
-                sLastTime = pBgnEndTimeRange.end_max / 1000000; // Set milli sec
+                sLastTime = subtractTime(pBgnEndTimeRange.end_max, pBoardInfo.range_end);
             }
         }
         // Set panel-level last & now
@@ -566,7 +566,7 @@ any) => {
                     { bgn: pPanelInfo.range_bgn, end: pPanelInfo.range_end }
                 );
                 sStartTime = subtractTime(sTimeRange.end_max as number, pPanelInfo.range_bgn);
-                sLastTime = (sTimeRange.end_max as number) / 1000000; // Set milli sec
+                sLastTime = subtractTime(sTimeRange.end_max as number, pPanelInfo.range_end);
             }
             if (pPanelInfo.range_end.includes('now')) {
                 const sTimeRange = getDateRange(pPanelInfo, pBoardInfo);
