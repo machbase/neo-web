@@ -1,4 +1,4 @@
-import { formatColors, getTimeZoneValue } from '@/utils/utils';
+import { getTimeZoneValue } from '@/utils/utils';
 import Highcharts from 'highcharts/highstock';
 import HighchartsBoost from 'highcharts/modules/boost';
 import HighchartsReact from 'highcharts-react-official';
@@ -80,7 +80,6 @@ const Chart = ({
             accessibility: {
                 enabled: false,
             },
-            colors: formatColors(pPanelInfo.color_set),
             chart: {
                 spacing: pPanelInfo.show_legend === 'Y' ? [10, 10, 15, 10] : [10, 10, 30, 10],
                 height: 300,

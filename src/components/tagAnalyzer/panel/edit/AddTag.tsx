@@ -14,6 +14,7 @@ import { MdKeyboardDoubleArrowLeft, MdOutlineKeyboardDoubleArrowRight } from 're
 import useDebounce from '@/hooks/useDebounce';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { Tooltip } from 'react-tooltip';
+import { concatTagSet } from '@/utils/helpers/tags';
 
 const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
     const [sTables] = useRecoilState(gTables);
@@ -100,10 +101,9 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
             Error('The maximum number of tags in a chart is 12.');
             return;
         }
-
         const tagSet = convertTagChartType(sSelectedTag);
 
-        pSetCopyPanelInfo({ ...pPanelInfo, tag_set: pPanelInfo.tag_set.concat(tagSet) });
+        pSetCopyPanelInfo({ ...pPanelInfo, tag_set: concatTagSet(pPanelInfo.tag_set, tagSet) });
         pCloseModal();
     };
     const handleSearch = () => {

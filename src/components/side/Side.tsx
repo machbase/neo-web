@@ -188,7 +188,7 @@ any) => {
                     savedCode: JSON.stringify(JSON.parse(sContentResult).dashboard),
                 };
             } else if (sFileExtension === 'taz') {
-                const sTmpData: any = JSON.parse(sContentResult);
+                const sTmpData: any = CheckDataCompatibility(sContentResult, sFileExtension);
                 sTmpBoard = { ...sTmpData, id: sTmpBoard.id, name: sTmpBoard.name, type: sFileExtension, path: sTmpBoard.path, savedCode: JSON.stringify(sTmpData.panels) };
             } else if (isImage(file.id)) {
                 const base64 = binaryCodeEncodeBase64(sContentResult);
