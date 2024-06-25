@@ -15,6 +15,7 @@ import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
 import { SaveDashboardModal } from '@/components/modal/SaveDashboardModal';
 import { HiMiniDocumentDuplicate } from 'react-icons/hi2';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { concatTagSet } from '@/utils/helpers/tags';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo }: any) => {
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
@@ -72,7 +73,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             const sTime = pPanelInfo.useCustomTime ? pPanelInfo.timeRange : sBoard.dashboard.timeRange;
             const sNewData = {
                 chartType: 'Line',
-                tagSet: sTags,
+                tagSet: concatTagSet([], sTags),
                 defaultRange: {
                     min: sTime.start,
                     max: sTime.end,

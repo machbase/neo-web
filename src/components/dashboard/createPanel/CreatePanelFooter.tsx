@@ -10,6 +10,7 @@ import { generateUUID } from '@/utils';
 // import { TagColorList } from '@/utils/constants';
 import { IconButton } from '@/components/buttons/IconButton';
 import { TqlBlock } from './TqlBlock';
+import { getTagColor, getUseColorList } from '@/utils/helpers/tags';
 
 const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
     const [sTab, setTab] = useState('Query');
@@ -53,8 +54,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                     {
                         ...aPrev.blockList.at(-1),
                         id: generateUUID(),
-                        // color: TagColorList[aPrev.blockList.length],
-                        color: '#' + ((Math.random() * 0xffffff) << 0).toString(16).padStart(6, '0'),
+                        color: getTagColor(getUseColorList(aPrev.blockList)),
                         math: '',
                         alias: '',
                         values: [{ id: generateUUID(), alias: '', value: aPrev.blockList.at(-1).values.at(-1).value, aggregator: aPrev.blockList.at(-1).values.at(-1).aggregator }],

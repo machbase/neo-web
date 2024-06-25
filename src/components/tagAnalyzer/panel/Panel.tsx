@@ -370,6 +370,7 @@ any) => {
                         : [],
                 yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
                 marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
+                color: sTagSetElement?.color ?? '',
             });
         }
         setChartData({ datasets: sDatasets });

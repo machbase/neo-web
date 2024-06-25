@@ -1,6 +1,7 @@
 import { generateUUID } from '@/utils';
 import { ChartTheme, ChartType } from '@/type/eChart';
 import { ChartTypeList } from './constants';
+import { getDefaultColor } from './helpers/tags';
 
 // use create common chart option (createCommonOption)
 export const DefaultCommonOption = {
@@ -196,7 +197,7 @@ export const DefaultTagTableOption = {
     id: generateUUID(),
     table: undefined as string | undefined,
     userName: undefined as string | undefined,
-    color: '#73BF69',
+    color: getDefaultColor(),
     type: 'tag',
     filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: 'VALUE', aggregator: 'avg' }],
@@ -216,7 +217,7 @@ export const DefaultLogTableOption = {
     id: generateUUID(),
     table: undefined as string | undefined,
     userName: undefined as string | undefined,
-    color: '#73BF69',
+    color: getDefaultColor(),
     type: 'log',
     filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: '', aggregator: 'avg' }],

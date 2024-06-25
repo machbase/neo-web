@@ -18,6 +18,7 @@ import { Error } from '@/components/toast/Toast';
 import { MdKeyboardDoubleArrowLeft, MdOutlineKeyboardDoubleArrowRight } from 'react-icons/md';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import './ModalCreateChart.scss';
+import { concatTagSet } from '@/utils/helpers/tags';
 
 const ModalCreateChart = ({ pCloseModal }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
@@ -136,11 +137,11 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
 
                 const sNewData = {
                     chartType: sSelectedChartType,
-                    tagSet: sSelectedTag,
+                    tagSet: concatTagSet([], sSelectedTag),
                     defaultRange: sRangeData,
                 };
 
-                const chartFormat = await convertChartDefault(DEFAULT_CHART, sNewData);
+                const chartFormat = convertChartDefault(DEFAULT_CHART, sNewData);
                 setBoardList(
                     sBoardList.map((aItem) => {
                         return aItem.id === sSelectedTab ? { ...aItem, panels: aItem.panels.concat(chartFormat) } : aItem;
@@ -149,11 +150,11 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
             } else {
                 const sNewData = {
                     chartType: sSelectedChartType,
-                    tagSet: sSelectedTag,
+                    tagSet: concatTagSet([], sSelectedTag),
                     defaultRange: { min: minMillis, max: maxMillis },
                 };
 
-                const chartFormat = await convertChartDefault(DEFAULT_CHART, sNewData);
+                const chartFormat = convertChartDefault(DEFAULT_CHART, sNewData);
                 setBoardList(
                     sBoardList.map((aItem) => {
                         return aItem.id === sSelectedTab ? { ...aItem, panels: aItem.panels.concat(chartFormat) } : aItem;

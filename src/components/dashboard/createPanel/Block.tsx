@@ -25,7 +25,6 @@ import { CompactPicker } from 'react-color';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { useRef } from 'react';
 import { Input } from '@/components/inputs/Input';
-import { TagColorList } from '@/utils/constants';
 import { SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser';
 import { Error } from '@/components/toast/Toast';
 import { chartTypeConverter } from '@/utils/eChartHelper';
@@ -69,8 +68,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                 sDefaultBlockOption[0].table = aData.target.value;
                 sDefaultBlockOption[0].values = [{ id: sDefaultBlockOption[0].values[0].id, aggregator: 'sum', value: '', alias: '' }];
             }
-            const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any, aIdx: number) => {
-                return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID(), color: TagColorList[aIdx] } : aTable;
+            const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any) => {
+                return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID() } : aTable;
             });
             pSetPanelOption((aPrev: any) => {
                 return {
