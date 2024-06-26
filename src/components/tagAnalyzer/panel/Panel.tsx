@@ -672,7 +672,7 @@ any) => {
     }, [pPanelInfo]);
     // update time range & preview
     useEffect(() => {
-        sChartRef.current && resetData();
+        sChartRef.current && setRange();
     }, [pBgnEndTimeRange]);
 
     // init

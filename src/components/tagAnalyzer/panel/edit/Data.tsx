@@ -7,6 +7,7 @@ import { Select } from '@/components/inputs/Select';
 import { CompactPicker } from 'react-color';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { IconButton } from '@/components/buttons/IconButton';
+import { Tooltip } from 'react-tooltip';
 
 const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const [isModal, setIsModal] = useState(false);
@@ -55,9 +56,10 @@ const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                                     />
                                 </div>
                                 <div className="tag-names">
-                                    <span className="tag-names-title">
+                                    <span className={`tag-names-title taz-table-name-tooltip-${aItem.table}`}>
                                         Tag Names
                                         <span style={{ fontSize: '10px', marginLeft: '4px', marginBottom: '2px' }}>({aItem.table})</span>
+                                        <Tooltip anchorSelect={`.taz-table-name-tooltip-${aItem.table}`} content={aItem.table} />
                                     </span>
                                     <Input
                                         pWidth={240}

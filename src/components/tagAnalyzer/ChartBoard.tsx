@@ -66,6 +66,7 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
         await getToplevelBgnEndTime();
     };
     const getToplevelBgnEndTime = async (aStart?: any, aEnd?: any) => {
+        if (pInfo?.panels && pInfo?.panels <= 0) return;
         const sTimeRange = await getBgnEndTimeRange(pInfo.panels[0].tag_set, { bgn: aStart || pInfo.range_bgn, end: aEnd || pInfo.range_end }, { bgn: '', end: '' });
         setBgnEndTimeRange(() => sTimeRange);
     };
