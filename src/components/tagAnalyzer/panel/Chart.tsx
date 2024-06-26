@@ -337,7 +337,7 @@ const Chart = ({
                     }</div></div>
                     <br/>
                     ${(this as any)?.points.map((aPoint: any) => {
-                        return `<p style="color: ${aPoint.color}; margin:0px; padding:0px;">${aPoint.series.name}</p><p style="color: ${aPoint.color}">${aPoint.y}</p><br />`;
+                        return `<p style="color: ${aPoint.color}; margin:0px; padding:0px;">${aPoint.series.name}</p>  <p style="color: ${aPoint.color}">${aPoint.y}</p><br />`;
                     })}</div>`;
                 },
             },

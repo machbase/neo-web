@@ -74,8 +74,8 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
                 end_max: sVirtualStatInfo[0][1] / 1000000,
             };
         }
-        setBgnEndTimeRange(() => sData);
         setPanelInfo(sCopyPanelInfo);
+        setBgnEndTimeRange(() => sData);
     };
     const save = () => {
         setBoardList(
@@ -138,7 +138,7 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
             <div className="modal-body">
                 <div className="chart">
                     {sPanelInfo.index_key && !sLoading && (
-                        <Panel pBgnEndTimeRange={sBgnEndTimeRange} pNavigatorRange={pNavigatorRange} pBoardInfo={pBoardInfo} pPanelInfo={sCopyPanelInfo} pIsEdit={true} />
+                        <Panel pBgnEndTimeRange={sBgnEndTimeRange} pNavigatorRange={pNavigatorRange} pBoardInfo={pBoardInfo} pPanelInfo={sPanelInfo} pIsEdit={true} />
                     )}
                 </div>
                 <div className="edit-form">
