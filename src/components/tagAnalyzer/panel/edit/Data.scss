@@ -23,6 +23,10 @@
         background-color: #262831 !important;
     }
     .tag-list {
+        span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
         .tag-names-title {
             display: flex !important;
             align-items: flex-end;
