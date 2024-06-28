@@ -47,6 +47,13 @@ const DashboardCompatibility = (aData: any) => {
                     });
                     sResult.values = sVaildValueList;
                 } else {
+                    // NAME column
+                    if (aBlock.name === '' || typeof aBlock.name !== 'string') sResult.name = aBlock.tableInfo[0][0];
+                    // TIME column
+                    if (aBlock.time === '' || typeof aBlock.time !== 'string') sResult.time = aBlock.tableInfo[1][0];
+                    // VALUE column
+                    if (aBlock.value === '' || typeof aBlock.value !== 'string') sResult.value = aBlock.tableInfo[2][0];
+                    // AGG
                     if (!sAggList.includes(aBlock.aggregator)) sResult.aggregator = DEFAULT_AGGREGATOR;
                 }
 
