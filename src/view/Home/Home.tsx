@@ -10,7 +10,11 @@ import { getLogin } from '@/api/repository/login';
 import Body from '@/components/editor/Body';
 import { getId } from '@/utils';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { gConsoleSelector, gExtensionList, gSelectedExtension } from '@/recoil/recoil';
+import {
+    gConsoleSelector,
+    // gExtensionList,
+    gSelectedExtension,
+} from '@/recoil/recoil';
 import ReferenceList from '@/components/side/ReferenceList';
 import DBExplorer from '@/components/side/DBExplorer/DBExplorer';
 import { SecurityKey } from '@/components/side/SecurityKey';
@@ -31,7 +35,7 @@ const Home = () => {
     const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
     const sNavigate = useNavigate();
     const [sSelectedExtension] = useRecoilState<string>(gSelectedExtension);
-    const [sExtensionList] = useRecoilState<any>(gExtensionList);
+    // const [sExtensionList] = useRecoilState<any>(gExtensionList);
     const [sDragStat, setDragStat] = useState<boolean>(false);
     const [sHome, setHome] = useState<boolean>(false);
     const timer: any = useRef();
@@ -158,7 +162,7 @@ const Home = () => {
                     onDragStart={setStatus}
                 >
                     <Pane minSize={0} maxSize="50%">
-                        {sHome &&
+                        {/* {sHome &&
                             sExtensionList &&
                             sExtensionList.length !== 0 &&
                             sExtensionList.map((aItem: any) => {
@@ -173,7 +177,18 @@ const Home = () => {
                                         {aItem.id === 'BRIDGE' && <BridgeSide pServer={sServer} />}
                                     </div>
                                 );
-                            })}
+                            })} */}
+                        {sHome && (
+                            <div key={sSelectedExtension} style={{ height: '100%' }}>
+                                {sSelectedExtension === 'EXPLORER' && <Side pServer={sServer} pGetInfo={getInfo} pSavedPath={sSavedPath} />}
+                                {sSelectedExtension === 'REFERENCE' && <ReferenceList pServer={sServer} />}
+                                {sSelectedExtension === 'DBEXPLORER' && <DBExplorer pServer={sServer} />}
+                                {sSelectedExtension === 'KEY' && <SecurityKey pServer={sServer} />}
+                                {sSelectedExtension === 'TIMER' && <TimerSide pServer={sServer} />}
+                                {sSelectedExtension === 'SHELL' && <Shell pServer={sServer} />}
+                                {sSelectedExtension === 'BRIDGE' && <BridgeSide pServer={sServer} />}
+                            </div>
+                        )}
                     </Pane>
                     <Pane>
                         <div

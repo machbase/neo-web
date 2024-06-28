@@ -58,7 +58,9 @@ const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                                 <div className="tag-names">
                                     <span className={`tag-names-title taz-table-name-tooltip-${aItem.table}`}>
                                         Tag Names
-                                        <span style={{ fontSize: '10px', marginLeft: '4px', marginBottom: '2px' }}>({aItem.table})</span>
+                                        <span style={{ width: '100%', display: 'flex', margin: '0px 4px', alignItems: 'center' }}>
+                                            (<span style={{ fontSize: '10px', width: 'auto' }}>{aItem.table}</span>)
+                                        </span>
                                         <Tooltip anchorSelect={`.taz-table-name-tooltip-${aItem.table}`} content={aItem.table} />
                                     </span>
                                     <Input

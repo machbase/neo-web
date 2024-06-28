@@ -137,8 +137,8 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
                                     <ExtensionTab.TextButton pText="Delete" pWidth="80px" pType="DELETE" pCallback={handleDelete} mr="0px" />
                                     {sResErrMessage && (
                                         <ExtensionTab.DpRow>
-                                            <VscWarning style={{ fill: 'rgb(236 118 118)' }} />
-                                            <span style={{ margin: '8px', color: 'rgb(236 118 118)' }}>{sResErrMessage}</span>
+                                            <VscWarning style={{ fill: '#ff5353' }} />
+                                            <span style={{ margin: '8px', color: '#ff5353' }}>{sResErrMessage}</span>
                                         </ExtensionTab.DpRow>
                                     )}
                                 </ExtensionTab.ContentBlock>

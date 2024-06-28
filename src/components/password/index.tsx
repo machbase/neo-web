@@ -78,13 +78,13 @@ export const Password = ({ setIsOpen }: { setIsOpen: (aState: boolean) => void }
                             </div>
                             {sPwdDiff && (
                                 <div className="res-err">
-                                    <VscWarning style={{ fill: 'rgb(236 118 118)' }} />
+                                    <VscWarning style={{ fill: '#ff5353' }} />
                                     <span className="res-err-text">{sPwdDiff}</span>
                                 </div>
                             )}
                             {sRes && !sRes.success && (
                                 <div className="res-err">
-                                    <VscWarning style={{ fill: 'rgb(236 118 118)' }} />
+                                    <VscWarning style={{ fill: '#ff5353' }} />
                                     <span className="res-err-text">{sRes.reason}</span>
                                 </div>
                             )}

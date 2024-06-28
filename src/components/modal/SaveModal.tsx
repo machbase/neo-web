@@ -80,8 +80,8 @@ export const SaveModal = (props: SaveModalProps) => {
 
     const getFiles = async (aType: string, aPathArr?: any) => {
         const sData = await getFileList(pIsSave ? `?filter=*.${aType}` : '', aPathArr ? aPathArr.join('/') : sSelectedDir.join('/'), '');
-        setFileList(sData.data.children ?? []);
-        setFilterFileList(sData.data.children ?? []);
+        setFileList(sData.data?.children ?? []);
+        setFilterFileList(sData.data?.children ?? []);
     };
 
     const changeSaveFileName = (aEvent: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,7 +145,7 @@ export const SaveModal = (props: SaveModalProps) => {
                 deletePath.pop();
                 setDeletePath(deletePath);
                 const sData = await getFileList(pIsSave ? `?filter=*.${sFileType}` : '', currentPath.join('/'), '');
-                setFileList(sData.data.children ?? []);
+                setFileList(sData.data?.children ?? []);
                 setFilterFileList(sData.data.children ?? []);
             } else {
                 getFiles(sFileType, currentPath);

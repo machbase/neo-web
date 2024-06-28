@@ -164,8 +164,8 @@ export const CreateKey = () => {
                         {!sGenKeyInfo && sResErrMessage && (
                             <ExtensionTab.ContentBlock>
                                 <ExtensionTab.DpRow>
-                                    <VscWarning style={{ fill: 'rgb(236 118 118)' }} />
-                                    <span style={{ margin: '8px', color: 'rgb(236 118 118)' }}>{sResErrMessage}</span>
+                                    <VscWarning style={{ fill: '#ff5353' }} />
+                                    <span style={{ margin: '8px', color: '#ff5353' }}>{sResErrMessage}</span>
                                 </ExtensionTab.DpRow>
                             </ExtensionTab.ContentBlock>
                         )}

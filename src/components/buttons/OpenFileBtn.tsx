@@ -29,9 +29,12 @@ export const OpenFileBtn = ({
         if (!pFileInfo.path) return;
         pErrorCallback && pErrorCallback(undefined);
         const sSplitPath = pFileInfo.path.split('/').filter((aPath: string) => aPath !== '');
-        const sFileName = sSplitPath.at(-1).includes(`.${pType}`) ? sSplitPath.at(-1) : '';
+        const sFileName = sSplitPath.at(-1)?.includes(`.${pType}`) ? sSplitPath.at(-1) : '';
         const sFilePath = ('/' + sSplitPath.slice(0, sSplitPath.length - 1).join('/') + '/').replaceAll('//', '/');
         const sTmpId = getId();
+
+        if (!sFileName) return;
+
         const sExistBoard = getExistBoard({ name: sFileName, path: sFilePath });
 
         if (sExistBoard) {
