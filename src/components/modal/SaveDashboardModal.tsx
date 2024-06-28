@@ -98,7 +98,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
 
     const getFiles = async (aType: string, aPathArr?: any) => {
         const sData = await getFileList(`?filter=*.${aType}`, aPathArr ? aPathArr.join('/') : sSelectedDir.join('/'), '');
-        setFileList(sData.data.children ?? []);
+        setFileList(sData.data?.children ?? []);
         setFilterFileList(sData.data.children ?? []);
     };
 
@@ -160,7 +160,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                 deletePath.pop();
                 setDeletePath(deletePath);
                 const sData = await getFileList(`?filter=*.${sFileType}`, currentPath.join('/'), '');
-                setFileList(sData.data.children ?? []);
+                setFileList(sData.data?.children ?? []);
                 setFilterFileList(sData.data.children ?? []);
             } else {
                 getFiles(sFileType, currentPath);

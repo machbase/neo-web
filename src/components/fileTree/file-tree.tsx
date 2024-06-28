@@ -697,7 +697,7 @@ const FileDiv = ({
                 isDndItem={checkDndItem(file)}
                 isDndSection={checkDndSection(file)}
                 isSelected={isSelected}
-                isGit={(file as FileTreeType).gitClone || false}
+                isGit={(file as FileTreeType)?.gitClone || false}
                 isDropzone={pIsDropzone}
                 onClick={handleClick}
                 onContextMenu={(e) => handleOnContextMenu(e, file)}

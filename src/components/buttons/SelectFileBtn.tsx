@@ -31,7 +31,7 @@ export const SelectFileBtn = ({
 
     const getFiles = async () => {
         const sData = await getFileList(`?filter=*.${pType}`, sSelectedDir.join('/'), '');
-        setFileList(sData.data.children ?? []);
+        setFileList(sData.data?.children ?? []);
     };
     const handleSave = () => {
         const sTargetPath = '/' + sSelectedDir.join('/') + '/' + sSelectedFile;
