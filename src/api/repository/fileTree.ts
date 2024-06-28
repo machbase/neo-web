@@ -5,9 +5,10 @@ import { AxiosResponse } from 'axios';
 const normalizePath = (path: string) => path.replace(/[\\/]+/g, '/');
 
 export const getFiles = (aPath: string): Promise<AxiosResponse<ResFileListType>> => {
+    const sRegExp = new RegExp(/[/]*[/]/, 'g');
     return request({
         method: 'GET',
-        url: `/api/files${aPath}`,
+        url: `/api/files${aPath.replaceAll(sRegExp, '/')}`,
     });
 };
 
