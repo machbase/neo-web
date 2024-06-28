@@ -52,7 +52,7 @@ export const getBgnEndTimeRange = async (baseTable: any, boardTime: TIME_RANGE_T
  */
 export const subtractTime = (aTime: number, aSubtract: string) => {
     const sSubtract = aSubtract.split('-')[1];
-    let sResult = aTime / 1000000; // Set ms
+    let sResult = Math.floor(aTime / 1000000); // Set ms
     if (sSubtract) {
         const sTimeNumber = parseInt(sSubtract);
         const sTimeUnit = sSubtract.match(/[a-zA-Z]/g)?.join('');
