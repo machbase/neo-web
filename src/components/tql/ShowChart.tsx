@@ -61,6 +61,8 @@ export const ShowChart = (props: ShowChartProps) => {
             }
         }
 
+        pPanelSize && pPanelSize?.current && pPanelSize.current.setAttribute('data-processed', true);
+
         pPanelType && document.getElementById(pData.chartID) && echarts.init(document.getElementById(pData.chartID) as any, pTheme ?? 'white');
         pData && pData.jsCodeAssets && (await loadScriptsSequentially({ jsAssets: [], jsCodeAssets: pData.jsCodeAssets }));
         const tmpNodeList = wrapRef.current?.childNodes;

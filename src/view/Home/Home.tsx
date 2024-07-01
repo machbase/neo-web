@@ -231,7 +231,7 @@ const Home = () => {
                                         }}
                                     >
                                         <Console
-                                            pExtentionList={sTabList.filter((aItem: any) => aItem.type === 'term')}
+                                            pExtentionList={sTabList && sTabList.filter((aItem: any) => aItem.type === 'term')}
                                             pTerminalSizes={sTerminalSizes}
                                             pSetTerminalSizes={setTerminalSizes}
                                         />

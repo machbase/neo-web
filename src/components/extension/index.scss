@@ -6,6 +6,12 @@
     justify-content: space-between;
     align-items: center;
     flex-direction: column;
+
+    .extension-top-list-item {
+        width: 48px;
+        cursor: pointer;
+    }
+
     svg {
         cursor: pointer;
     }

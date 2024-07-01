@@ -191,6 +191,11 @@ const LineChart = ({
         setIsMounted(true);
     }, []);
 
+    useEffect(() => {
+        if (!(ChartRef && ChartRef?.current)) return;
+        if (pIsActiveTab && ChartRef.current.dataset && !ChartRef.current.dataset.processed) executeTqlChart();
+    }, [pIsActiveTab]);
+
     useOverlapTimeout(() => {
         !sIsLoading && executeTqlChart();
     }, sSetIntervalTime());
