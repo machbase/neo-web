@@ -147,6 +147,7 @@ export const gShowShellList = selector<any>({
     key: 'gShowShellList',
     get: ({ get }) => {
         const sShellList = get(gShellList);
+        if (!sShellList) return [];
         return sShellList.filter((aTermTypeItem: any) => aTermTypeItem.attributes.some((aAttr: any) => aAttr.editable));
     },
 });

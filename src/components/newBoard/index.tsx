@@ -177,7 +177,8 @@ const NewBoard = (props: NewBoardProps) => {
     };
     /** return shell list */
     const getShellList = useMemo((): any[] => {
-        const sExtensionListWithoutTerm = pExtentionList.filter((aExtension: any) => aExtension.type !== 'term');
+        const sExtensionListWithoutTerm = pExtentionList && pExtentionList.filter((aExtension: any) => aExtension.type !== 'term');
+        if (!sExtensionListWithoutTerm) return [];
         return sExtensionListWithoutTerm.concat(sShellList ?? []);
     }, [sShellList, pGetInfo]);
 
