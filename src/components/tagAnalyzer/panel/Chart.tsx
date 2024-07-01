@@ -90,6 +90,10 @@ const Chart = ({
                 width: pAreaChart?.current?.clientWidth,
                 events: {
                     selection: pIsUpdate ? pViewMinMaxPopup : false,
+                    // load | redraw | render
+                    render() {
+                        pAreaChart && pAreaChart?.current && pAreaChart?.current?.setAttribute('data-processed', true);
+                    },
                 },
                 zooming: {
                     mouseWheel: {
@@ -382,6 +386,7 @@ const Chart = ({
     };
 
     useEffect(() => {
+        pAreaChart && pAreaChart?.current && pAreaChart?.current?.removeAttribute('data-processed');
         setValue();
     }, [pChartData, pNavigatorData, pPanelInfo, pIsRaw, pIsUpdate]);
 

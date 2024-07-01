@@ -51,6 +51,8 @@ any) => {
     const [sIsMinMaxMenu, setIsMinMaxMenu] = useState<boolean>(false);
     const [sSaveEditedInfo, setSaveEditedInfo] = useState<boolean>(false);
     const sDataFetchHandler = useRef<boolean>(false);
+    const tazPanelFormRef = useRef<any>(null);
+    const sActiveTabId = useRecoilValue<any>(gSelectedTab);
 
     const setExtremes = async (aEvent: any) => {
         if (aEvent.min) {
@@ -244,6 +246,7 @@ any) => {
             pPanelInfo.interval_type.toLowerCase() === ''
                 ? calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, sRaw)
                 : { IntervalType: convertInterType(pPanelInfo.interval_type?.toLowerCase()), IntervalValue: 0 };
+
         for (let index = 0; index < sTagSet.length; index++) {
             const sTagSetElement = sTagSet[index];
             let sFetchResult: any = [];
@@ -545,6 +548,7 @@ any) => {
     };
     // Set init range
     const setRange = async () => {
+        if (!(tazPanelFormRef && tazPanelFormRef.current && tazPanelFormRef.current.clientWidth !== 0)) return;
         let sData: any = { startTime: 0, endTime: 0 };
         let sStartTime = null;
         let sLastTime = null;
@@ -674,12 +678,15 @@ any) => {
     useEffect(() => {
         sChartRef.current && setRange();
     }, [pBgnEndTimeRange]);
+    useEffect(() => {
+        if (sActiveTabId === pBoardInfo.id && sAreaChart && sAreaChart.current && !sAreaChart.current.dataset.processed) setRange();
+    }, [sActiveTabId]);
 
     // init
     useDebounce([], setRange, 100);
 
     return (
-        <div className="panel-form" style={sSelectedChart ? { border: '1px solid #FDB532' } : { border: '1px solid transparent' }}>
+        <div ref={tazPanelFormRef} className="panel-form" style={sSelectedChart ? { border: '1px solid #FDB532' } : { border: '1px solid transparent' }}>
             <PanelHeader
                 pSetSelectedChart={setSelectedChart}
                 pGetChartInfo={pGetChartInfo}
