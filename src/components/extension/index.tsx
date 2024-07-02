@@ -9,11 +9,11 @@ import { LicenseModal } from '@/components/modal/LicenseModal';
 import { logOut } from '@/api/repository/login';
 import { useNavigate } from 'react-router-dom';
 import { RxLapTimer } from 'react-icons/rx';
-import { generateUUID } from '@/utils';
+import { generateUUID, getId } from '@/utils';
 import { GiTallBridge } from 'react-icons/gi';
-import './index.scss';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { Password } from '../password';
+import './index.scss';
 
 const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const sNavigate = useNavigate();
@@ -42,6 +42,11 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const logout = async () => {
         const sLogout: any = await logOut();
         if (sLogout.success) {
+            // Apply default board (new board)
+            const sNewTab = { id: getId(), type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false };
+            setBoardList([sNewTab]);
+            setSelectedTab(sNewTab.id);
+
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             sNavigate('/login');
