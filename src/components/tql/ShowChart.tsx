@@ -53,11 +53,11 @@ export const ShowChart = (props: ShowChartProps) => {
                 sEchart.style.height = pData.style.height;
                 // @ts-ignore
                 // sEchart && echarts.init(sEchart).resize();
-                sEchart && echarts.getInstanceByDom(sEchart).resize();
+                sEchart && echarts.getInstanceByDom(sEchart)?.resize();
             } else {
                 // @ts-ignore
                 // sEchart && echarts.init(sEchart).clear();
-                sEchart && echarts.getInstanceByDom(sEchart).clear();
+                sEchart && echarts.getInstanceByDom(sEchart)?.clear();
             }
         }
 
