@@ -679,7 +679,7 @@ any) => {
         sChartRef.current && setRange();
     }, [pBgnEndTimeRange]);
     useEffect(() => {
-        if (sActiveTabId === pBoardInfo.id && sAreaChart && sAreaChart.current && !sAreaChart.current.dataset.processed) setRange();
+        if (sActiveTabId === pBoardInfo.id && sAreaChart && sAreaChart.current && !sAreaChart.current?.dataset?.processed) setRange();
     }, [sActiveTabId]);
 
     // init
