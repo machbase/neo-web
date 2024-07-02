@@ -520,7 +520,7 @@ any) => {
                     <div className="side-sub-title editors-title" onClick={() => setCollapseTree(!sCollapseTree)}>
                         <div className="collapse-icon">{sCollapseTree ? <VscChevronDown /> : <VscChevronRight />}</div>
                         <div className="files-open-option">
-                            <div>EXPLORER</div>
+                            <span>EXPLORER</span>
                             <div style={{ display: 'flex', alignItems: 'center' }}>
                                 {/* <div style={{ marginRight: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <SearchInput
@@ -543,7 +543,7 @@ any) => {
                     </div>
                     {sCollapseTree &&
                         (sLoadFileTree ? (
-                            <>...</>
+                            <span>...</span>
                         ) : (
                             <>
                                 <div

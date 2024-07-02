@@ -14,7 +14,7 @@ const ExtensionBtn = ({ pLabel, pIcon, onClick }: ExtensionBtnProps) => {
         <div
             style={
                 pLabel === sSelectedExtension
-                    ? { color: '#f8f8f8', width: '44px', borderLeft: '2px solid #005FB8', justifyContent: 'end', paddingRight: '4px' }
+                    ? { color: '#f8f8f8', width: '44px', borderLeft: '2px solid #005FB8', justifyContent: 'center', paddingLeft: '2px' }
                     : { color: '#7c7c7c' }
             }
             className="icon"

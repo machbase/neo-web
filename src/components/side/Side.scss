@@ -1,6 +1,14 @@
 .side-form {
     height: 100%;
     background-color: #333333;
+
+    span {
+        user-select: none; /* standard syntax */
+        -webkit-user-select: none; /* webkit (safari, chrome) browsers */
+        -moz-user-select: none; /* mozilla browsers */
+        -khtml-user-select: none; /* webkit (konqueror) browsers */
+        -ms-user-select: none; /* IE10+ */
+    }
     .side-title {
         height: 40px;
         display: flex;
