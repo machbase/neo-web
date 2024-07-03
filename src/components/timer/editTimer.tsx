@@ -51,6 +51,8 @@ export const EditTimer = () => {
                     return aBoard;
                 });
             });
+            const sAlreadyExist = sTimerList?.length > 0 ? sTimerList.find((aTimer: any) => aTimer.name === sCreateName) : undefined;
+            if (sAlreadyExist) return;
             const sTmpTimerList = [...sTimerList, sTimerInfo.success ? sTimerInfo.data : { ...sCreatePayload, name: sCreateName, type: 'TIMER', state: 'UNKNWON' }];
             sTimerList &&
                 sTimerList.map((aTimerInfo: any) => {
