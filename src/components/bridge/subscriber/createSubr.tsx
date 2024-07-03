@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { useRecoilState, useSetRecoilState } from 'recoil';
 import { Pane, SashContent } from 'split-pane-react';
 import SplitPane from 'split-pane-react/esm/SplitPane';
 import {
-    gAddSubr,
     gBoardList,
     gBridgeList,
+    setBridgeTree,
     // gBridgeNameList
 } from '@/recoil/recoil';
 import { VscWarning } from 'react-icons/vsc';
@@ -14,14 +14,12 @@ import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { IconButton } from '@/components/buttons/IconButton';
 import { SelectFileBtn } from '@/components/buttons/SelectFileBtn';
 import { OpenFileBtn } from '@/components/buttons/OpenFileBtn';
-import { genSubr, getSubr } from '@/api/repository/bridge';
+import { genSubr, getBridge, getSubr } from '@/api/repository/bridge';
 import { SUBR_FORMAT_TABLE, SUBR_METHOD_TABLE, SUBR_OPTIONS_TABLE } from './content';
 
 export const CreateSubr = ({ pInit }: { pInit: any }) => {
     const setBoardList = useSetRecoilState<any[]>(gBoardList);
-    const setAddSubr = useSetRecoilState<any>(gAddSubr);
-    // const sBridgeNameList = useRecoilValue(gBridgeNameList);
-    const sBridgeList = useRecoilValue(gBridgeList);
+    const [sBridgeList, setBridge] = useRecoilState(gBridgeList);
     const sBodyRef: any = useRef(null);
     const [sTaskSelect, setTaskSelect] = useState<'Writing Descriptor' | 'TQL Script'>('Writing Descriptor');
     const [sGroupWidth, setGroupWidth] = useState<any[]>(['50', '50']);
@@ -72,18 +70,19 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
         if (sCreatePayload.bridge_type === 'nats' && sCreatePayload.queue !== '') sParsedPayload.queue = sCreatePayload.queue;
 
         const sGenRes: any = await genSubr(sParsedPayload);
-
         if (sGenRes.success) {
             setResErrMessage(undefined);
         } else {
             setResErrMessage(sGenRes?.data ? (sGenRes as any).data.reason : (sGenRes.statusText as string));
         }
-        const sGetSubrRes: any = await getSubr();
-        if (sGetSubrRes?.success) {
-            const sTargetSubrInfo = sGetSubrRes?.data ? sGetSubrRes.data.filter((aSubr: any) => aSubr.bridge === sCreatePayload.bridge) : undefined;
-            if (sTargetSubrInfo) setAddSubr({ ...sParsedPayload, state: 'STOP', name: sParsedPayload.name.toUpperCase() });
+
+        const sResBridge = await getBridge();
+        if (sResBridge?.success) {
+            const sResSubr = await getSubr();
+            if (sResSubr?.success) setBridge(setBridgeTree(sResBridge.data, sResSubr.data));
+            else setBridge(setBridgeTree(sResBridge.data, []));
             handleSavedCode(true);
-        }
+        } else setBridge([]);
     };
     /** handle info */
     const handlePayload = (aTarget: string, aEvent: React.FormEvent<HTMLInputElement>) => {
