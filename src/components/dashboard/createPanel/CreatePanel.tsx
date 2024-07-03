@@ -53,9 +53,9 @@ const CreatePanel = ({
     const [sAppliedPanelOption, setAppliedPanelOption] = useState<any>({});
     const [sTableList, setTableList] = useState<any>([]);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
-    const [sTimeRangeStatus, setTimeRangeStatus] = useState<boolean>(false);
     const [sCreateModeTimeMinMax, setCreateModeTimeMinMax] = useState<any>(undefined);
     const [sIsPreview, setIsPreview] = useState<boolean>(false);
+    const [sBoardTimeRange, setBoardTimeRange] = useState<any>(undefined);
 
     // Create
     const addPanel = async () => {
@@ -180,7 +180,6 @@ const CreatePanel = ({
             setBoardList(() => sTabList);
         }
 
-        if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
         handleClose();
     };
     const checkXAxisInterval = (aPanelInfo: any) => {
@@ -191,7 +190,6 @@ const CreatePanel = ({
     // Preview
     const applyPanel = async () => {
         const sTmpPanelOption = checkXAxisInterval(sPanelOption);
-        // checkXAxisInterval(sTmpPanelOption);
         if (sPanelOption.type === 'Tql chart') {
             if (sTmpPanelOption.useCustomTime) {
                 let sStart: any;
@@ -276,7 +274,7 @@ const CreatePanel = ({
         return sNowTimeMinMax;
     };
     const getTimeMinMax = async (aTimeRange: any) => {
-        const sTargetPanel = sPanelOption;
+        const sTargetPanel = pType === 'create' ? sPanelOption : pBoardInfo?.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart')[0];
         const sTargetTag = sTargetPanel?.blockList ? sTargetPanel.blockList[0] : { tag: '' };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
         const sCustomTag =
@@ -341,7 +339,6 @@ const CreatePanel = ({
     const handleClose = () => {
         pSetType(undefined);
         pSetCreateModal(false);
-        if (sTimeRangeStatus) return setTimeRangeStatus(() => false);
         if (pBoardInfo.path === '') pSetIsSaveModal(true);
     };
     const handleDiscard = () => {
@@ -349,16 +346,26 @@ const CreatePanel = ({
         pSetCreateModal(false);
     };
     const handleTimeRange = () => {
-        setTimeRangeStatus(() => true);
         pSetTimeRangeModal(true);
     };
     const init = async () => {
-        getTables(true);
+        if (pType === 'edit') setCreateModeTimeMinMax(async () => await getTimeMinMax(pBoardInfo?.dashboard?.timeRange));
+        await getTables(true);
+    };
+    const handlePreviewText = () => {
+        if (JSON.stringify(sPanelOption) !== JSON.stringify(sAppliedPanelOption)) return 'Apply';
+        return 'Refresh';
     };
 
     useEffect(() => {
         init();
     }, []);
+    useEffect(() => {
+        if (sTableList.length > 0 && JSON.stringify(sBoardTimeRange) !== JSON.stringify(pBoardInfo?.dashboard?.timeRange)) {
+            setBoardTimeRange(() => pBoardInfo?.dashboard?.timeRange);
+            applyPanel();
+        }
+    }, [pBoardInfo?.dashboard?.timeRange]);
 
     return (
         <div className="create-panel-form">
@@ -409,9 +416,8 @@ const CreatePanel = ({
                         pWidth={65}
                         pFontColor="#4199ff"
                         pBorderRadius={2}
-                        pIsDisabled={JSON.stringify(sPanelOption) === JSON.stringify(sAppliedPanelOption)}
                         onClick={() => applyPanel()}
-                        pText="Apply"
+                        pText={handlePreviewText()}
                         pBackgroundColor="transparent"
                     />
                     <TextButton

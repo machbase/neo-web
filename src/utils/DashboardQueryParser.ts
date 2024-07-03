@@ -52,7 +52,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             tableName: bBlock.table,
             filterList: bBlock.filter,
             valueList: bBlock.values,
-            useRollup: isRollup(aRollupList, bBlock.table, getInterval(aTime.interval.IntervalType, aTime.interval.IntervalValue), bBlock.values[0].value),
+            useRollup: isRollup(aRollupList, bBlock.table, getInterval(aTime.interval.IntervalType, aTime.interval.IntervalValue), bBlock.values[0]?.value),
             useCustom: bBlock.useCustom,
             color: bBlock.color,
             tableInfo: bBlock.tableInfo,
@@ -192,7 +192,8 @@ const UseGroupByTime = (aValueList: any) => {
     else return ', VALUE';
 };
 const GetAlias = (aValue: any) => {
-    if (aValue.alias && aValue.alias !== '') return aValue.alias;
+    if (!aValue) return;
+    if (aValue?.alias && aValue?.alias !== '') return aValue.alias;
     else return `${aValue.value}${aValue.aggregator !== 'value' && aValue.aggregator !== 'none' ? '(' + aValue.aggregator + ')' : ''}`;
 };
 const UseCountAll = (aValueList: any) => {
