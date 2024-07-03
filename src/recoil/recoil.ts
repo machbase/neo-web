@@ -194,9 +194,6 @@ export const gAddSubr = selector({
     get: () => {},
     set: ({ set, get }, newValue: any) => {
         const sTmpBridgeList = get(gBridgeList);
-        const sTargetSubrList = sTmpBridgeList.find((aTimer: any) => aTimer?.name === newValue?.bridge);
-        const sAlreadyExist = sTargetSubrList && sTargetSubrList?.childs?.length > 0 ? sTargetSubrList.childs.find((aSubr: any) => aSubr.name === newValue.name) : undefined;
-        if (sAlreadyExist) return;
         const sApplyList = sTmpBridgeList.map((aBridge: any) => {
             if (aBridge.name === newValue.bridge) {
                 const sChild = aBridge?.childs ? [...aBridge.childs] : [];

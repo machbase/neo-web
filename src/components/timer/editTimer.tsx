@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { ExtensionTab } from '../extension/ExtensionTab';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useSetRecoilState } from 'recoil';
 import { Pane, SashContent } from 'split-pane-react';
 import SplitPane from 'split-pane-react/esm/SplitPane';
-import { CreatePayloadType, TimerItemType, genTimer, getTimerItem } from '@/api/repository/timer';
+import { CreatePayloadType, TimerItemType, genTimer, getTimer } from '@/api/repository/timer';
 import { gBoardList, gTimerList } from '@/recoil/recoil';
 import { VscWarning } from 'react-icons/vsc';
 import { IconButton } from '../buttons/IconButton';
@@ -13,7 +13,7 @@ import { SelectFileBtn } from '../buttons/SelectFileBtn';
 import { OpenFileBtn } from '../buttons/OpenFileBtn';
 
 export const EditTimer = () => {
-    const [sTimerList, setTimerList] = useRecoilState<TimerItemType[]>(gTimerList);
+    const setTimerList = useSetRecoilState<TimerItemType[]>(gTimerList);
     const sBodyRef: any = useRef(null);
     const [sGroupWidth, setGroupWidth] = useState<any[]>(['50', '50']);
     const [sResErrMessage, setResErrMessage] = useState<string | undefined>(undefined);
@@ -30,13 +30,14 @@ export const EditTimer = () => {
     /** create timer */
     const createTimer = async () => {
         const sRes = await genTimer(sCreatePayload, sCreateName);
-        if (sRes.success) {
+        if (sRes?.success) {
             setResErrMessage(undefined);
         } else {
             setResErrMessage(sRes?.data ? (sRes as any).data.reason : (sRes.statusText as string));
         }
-        const sTimerInfo: any = await getTimerItem(sCreateName);
-        if (sTimerInfo?.success) {
+
+        const sResTimerList: any = await getTimer();
+        if (sResTimerList?.success) {
             const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
             setBoardList((aBoardList: any) => {
                 return aBoardList.map((aBoard: any) => {
@@ -44,23 +45,14 @@ export const EditTimer = () => {
                         return {
                             ...aTarget,
                             name: `TIMER: create`,
-                            code: sTimerInfo.success ? sTimerInfo.data : { ...sCreatePayload, name: sCreateName },
-                            savedCode: sTimerInfo.success ? sTimerInfo.data : { ...sCreatePayload, name: sCreateName },
+                            code: { ...sCreatePayload, name: sCreateName },
+                            savedCode: { ...sCreatePayload, name: sCreateName },
                         };
                     }
                     return aBoard;
                 });
             });
-            const sAlreadyExist = sTimerList?.length > 0 ? sTimerList.find((aTimer: any) => aTimer.name === sCreateName) : undefined;
-            if (sAlreadyExist) return;
-            const sTmpTimerList = [...sTimerList, sTimerInfo.success ? sTimerInfo.data : { ...sCreatePayload, name: sCreateName, type: 'TIMER', state: 'UNKNWON' }];
-            sTimerList &&
-                sTimerList.map((aTimerInfo: any) => {
-                    if (aTimerInfo.name === sCreateName) {
-                        return sTimerInfo.success ? sTimerInfo.data : aTimerInfo;
-                    } else return aTimerInfo;
-                });
-            setTimerList(sTmpTimerList);
+            setTimerList(sResTimerList.data);
         }
     };
     /** handle timer info */
