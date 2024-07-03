@@ -10,7 +10,6 @@ import { ArrowLeft, ArrowRight, Close } from '@/assets/icons/Icon';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { isEmpty, isRollup } from '@/utils';
-import useDebounce from '@/hooks/useDebounce';
 import { FFTModal } from '@/components/modal/FFTModal';
 import { Error } from '@/components/toast/Toast';
 import Menu from '@/components/contextMenu/Menu';
@@ -665,7 +664,7 @@ any) => {
 
     // refresh
     useEffect(() => {
-        sChartRef.current && fetchPanelData(sPanelRange);
+        if (sChartRef.current) fetchPanelData(sPanelRange);
     }, [pRefreshCount]);
     // save edit info
     useEffect(() => {
@@ -674,16 +673,13 @@ any) => {
             sSaveEditedInfo && setSaveEditedInfo(false);
         }
     }, [pPanelInfo]);
-    // update time range & preview
+    // update time range & preview & init
     useEffect(() => {
-        sChartRef.current && setRange();
+        if (sChartRef.current) setRange();
     }, [pBgnEndTimeRange]);
     useEffect(() => {
         if (sActiveTabId === pBoardInfo.id && sAreaChart && sAreaChart.current && !sAreaChart.current?.dataset?.processed) setRange();
     }, [sActiveTabId]);
-
-    // init
-    useDebounce([], setRange, 100);
 
     return (
         <div ref={tazPanelFormRef} className="panel-form" style={sSelectedChart ? { border: '1px solid #FDB532' } : { border: '1px solid transparent' }}>
