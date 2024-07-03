@@ -56,6 +56,7 @@ const CreatePanel = ({
     const [sTimeRangeStatus, setTimeRangeStatus] = useState<boolean>(false);
     const [sCreateModeTimeMinMax, setCreateModeTimeMinMax] = useState<any>(undefined);
     const [sIsPreview, setIsPreview] = useState<boolean>(false);
+    const [sBoardTimeRange, setBoardTimeRange] = useState<any>(undefined);
 
     // Create
     const addPanel = async () => {
@@ -190,6 +191,7 @@ const CreatePanel = ({
     };
     // Preview
     const applyPanel = async () => {
+        setBoardTimeRange(pBoardInfo?.dashboard.timeRange);
         const sTmpPanelOption = checkXAxisInterval(sPanelOption);
         // checkXAxisInterval(sTmpPanelOption);
         if (sPanelOption.type === 'Tql chart') {
@@ -355,8 +357,13 @@ const CreatePanel = ({
     const init = async () => {
         getTables(true);
     };
+    const handlePreviewText = () => {
+        if (JSON.stringify(sBoardTimeRange) === JSON.stringify(pBoardInfo?.dashboard?.timeRange)) return 'Apply';
+        return 'Refresh';
+    };
 
     useEffect(() => {
+        setBoardTimeRange(pBoardInfo?.dashboard?.timeRange);
         init();
     }, []);
 
@@ -409,9 +416,8 @@ const CreatePanel = ({
                         pWidth={65}
                         pFontColor="#4199ff"
                         pBorderRadius={2}
-                        pIsDisabled={JSON.stringify(sPanelOption) === JSON.stringify(sAppliedPanelOption)}
                         onClick={() => applyPanel()}
-                        pText="Apply"
+                        pText={handlePreviewText()}
                         pBackgroundColor="transparent"
                     />
                     <TextButton
