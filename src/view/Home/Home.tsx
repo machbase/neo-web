@@ -14,6 +14,7 @@ import {
     gConsoleSelector,
     // gExtensionList,
     gSelectedExtension,
+    gShellList,
 } from '@/recoil/recoil';
 import ReferenceList from '@/components/side/ReferenceList';
 import DBExplorer from '@/components/side/DBExplorer/DBExplorer';
@@ -40,6 +41,7 @@ const Home = () => {
     const [sHome, setHome] = useState<boolean>(false);
     const timer: any = useRef();
     const sWebSoc: any = useRef(null);
+    const setShellList = useSetRecoilState<any>(gShellList);
 
     let count = 0;
     const init = async () => {
@@ -49,6 +51,8 @@ const Home = () => {
         }
         const sResult: any = await getLogin();
         if (sResult?.reason === 'success') {
+            const sTermTypeList = sResult?.shells.filter((aShell: any) => aShell.type === 'term');
+            setShellList(sTermTypeList);
             const sId = getId();
             if (!sWebSoc.current) {
                 if (window.location.protocol.indexOf('https') === -1) {
@@ -99,7 +103,6 @@ const Home = () => {
 
     const getInfo = async () => {
         const sResult: any = await getLogin();
-        // set experiment option
         if (sResult && sResult?.experimentMode) localStorage.setItem('experimentMode', sResult.experimentMode);
         else localStorage.removeItem('experimentMode');
         setServer(sResult.server);
@@ -108,16 +111,16 @@ const Home = () => {
             return sOrder.indexOf(aItem) - sOrder.indexOf(bItem);
         };
 
-        sHome &&
-            sResult?.shells &&
-            sResult.shells.length !== 0 &&
+        if (sHome && sResult?.shells && sResult.shells.length !== 0) {
             sResult.shells.forEach((aItem: any) => {
                 if (aItem.attributes && Array.isArray(aItem.attributes)) {
                     aItem.attributes.sort((aItem: string, bItem: string) => sortAttributes(Object.keys(aItem)[0], Object.keys(bItem)[0]));
                 }
             });
-
-        sHome && setTabList(sResult.shells);
+            setTabList(sResult.shells);
+            const sTermTypeList = sResult?.shells.filter((aShell: any) => aShell.type === 'term');
+            setShellList(sTermTypeList);
+        }
     };
 
     const setStatus = () => {

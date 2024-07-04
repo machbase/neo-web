@@ -477,7 +477,7 @@ export const ChartAxisTooltipFormatter = (aUnit?: string, aDecimals?: number) =>
         `let output = params[0].name === '' ? params[0].axisValueLabel : d.toLocaleString('en-GB', { timezone: 'UTC' }) + '<br/>';` +
         `output += '<table>';` +
         `params.reverse().forEach(function (param) {` +
-        `output += '<tr><td>' + param.marker + '</td><td>' + param.seriesName + '&ensp;</td><td><b>' + (param.data[1] ? param.data[1]${
+        `output += '<tr><td>' + param.marker + '</td><td>' + param.seriesName + '&ensp;</td><td><b>' + (param.data[1] || param.data[1] === 0? param.data[1]${
             aDecimals ? '.toFixed(' + aDecimals + ')' : ''
         } : 'no-data') ${aUnit ? "+ ' " + aUnit.replaceAll("'", '"') + "'" : ''} + '</b></td></tr>';` +
         `});` +
@@ -493,7 +493,7 @@ export const ChartItemTooltipFormatter = (aUnit?: string, aDecimals?: number) =>
         `d.setUTCSeconds(params.data[0] / 1000);` +
         `let output = d.toLocaleString('en-GB', { timezone: 'UTC' }) + '<br/>';` +
         `output += '<table>'; ` +
-        `output += '<tr><td>'+params.marker+'</td><td>' + params.seriesName + '&ensp;</td><td><b>' + (params.data[1] ? params.data[1]${
+        `output += '<tr><td>'+params.marker+'</td><td>' + params.seriesName + '&ensp;</td><td><b>' + (params.data[1] || params.data[1] === 0 ? params.data[1]${
             aDecimals ? '.toFixed(' + aDecimals + ')' : ''
         }: 'no-data') ${aUnit ? "+ ' " + aUnit.replaceAll("'", '"') + "'" : ''} +'&ensp;</b>` +
         `</tr>'; return output + '</table>';}`
