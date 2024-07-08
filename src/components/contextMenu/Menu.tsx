@@ -5,14 +5,19 @@ interface ChildProps {
 }
 interface MenuProps extends ChildProps {
     isOpen: boolean;
+    zIndex?: number;
 }
 interface ItemProps extends ChildProps {
     onClick?: React.MouseEventHandler<HTMLDivElement>;
 }
 
-export const Menu = ({ children, isOpen }: MenuProps) => {
+export const Menu = ({ children, isOpen, zIndex }: MenuProps) => {
+    const style = {
+        display: isOpen ? 'flex' : 'none',
+        ...(zIndex !== undefined && { zIndex: zIndex })
+    };
     return (
-        <div className="menu-wrapper" style={{ display: isOpen ? 'flex' : 'none' }}>
+        <div className="menu-wrapper" style={style}>
             { children }
         </div>
     )
