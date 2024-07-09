@@ -29,6 +29,10 @@
 
 .tooltip-div {
     color: rgba(255, 255, 255, 1) !important;
+    max-width: 500px;
+    width: 'auto';
+    overflow: hidden;
+    text-wrap: balance;
 }
 
 .icon-btn-active-hover {

@@ -12,13 +12,29 @@ export interface IconButtonProps {
     pIsToopTip?: boolean;
     pToolTipContent?: string;
     pToolTipId?: string;
+    pToolTipMaxWidth?: number;
     pPlace?: PlacesType | undefined;
 }
 
 export const IconButton = (props: IconButtonProps) => {
-    const { pIcon, pIsActive = false, pPlace, onClick, pWidth = 30, pHeight = 30, pDisabled = false, pIsActiveHover = false, pIsToopTip, pToolTipContent, pToolTipId } = props;
+    const {
+        pToolTipMaxWidth,
+        pIcon,
+        pIsActive = false,
+        pPlace,
+        onClick,
+        pWidth = 30,
+        pHeight = 30,
+        pDisabled = false,
+        pIsActiveHover = false,
+        pIsToopTip,
+        pToolTipContent,
+        pToolTipId,
+    } = props;
     const sDisabledClass = pDisabled ? 'icon-btn-disabled' : '';
     const sIsActiveHoverClass = pIsActiveHover ? 'icon-btn-active-hover' : '';
+
+    // sql-result-wrapper
     return (
         <div
             className={`${sDisabledClass} ${sIsActiveHoverClass} icon-btn-wrapper`}
@@ -40,7 +56,7 @@ export const IconButton = (props: IconButtonProps) => {
                         place={pPlace ?? 'top'}
                         anchorSelect={`.tooltip-${pToolTipId}`}
                         content={pToolTipContent}
-                        style={{ zIndex: 9999, fontSize: '12px', color: 'whitesmoke' }}
+                        style={{ zIndex: 9999, fontSize: '12px', color: 'whitesmoke', width: pToolTipMaxWidth && pToolTipMaxWidth < 500 ? pToolTipMaxWidth + 'px' : '' }}
                     />
                 </>
             ) : (

@@ -316,7 +316,12 @@ const Sql = ({
                                     {sErrLog}
                                 </div>
                             ) : (
-                                <RESULT pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'} pSqlResponseData={sSqlResponseData} onMoreResult={() => onMoreResult()} />
+                                <RESULT
+                                    pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'}
+                                    pSqlResponseData={sSqlResponseData}
+                                    onMoreResult={() => onMoreResult()}
+                                    pHelpTxt={sOldFetchTxt}
+                                />
                             )
                         ) : null}
 
