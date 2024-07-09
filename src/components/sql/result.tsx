@@ -57,9 +57,9 @@ const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, onMoreResult }: Resul
     };
 
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
-
     useEffect(() => {
         if (pSqlResponseData && sObserveRef.current && sRootRef.current.clientHeight < sRootRef.current.children[0].clientHeight) {
+            if (pSqlResponseData && pSqlResponseData?.rows && pSqlResponseData.rows.length < 51) sRootRef.current.scroll(0, 0);
             observe(sObserveRef.current);
         }
 
