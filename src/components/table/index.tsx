@@ -1,5 +1,7 @@
 import { generateUUID } from '@/utils';
 import './index.scss';
+import { IconButton } from '../buttons/IconButton';
+import { PiFileSqlThin } from 'react-icons/pi';
 /**
  * @param pTableData
  * @returns
@@ -8,10 +10,12 @@ import './index.scss';
 interface TableProps {
     pTableData: any;
     pMaxShowLen?: boolean;
+    pHelpText?: string;
+    pMaxWidth?: number;
     clickEvent: (e: any, aRowData: string) => void;
 }
 
-const TABLE = ({ pTableData, pMaxShowLen, clickEvent }: TableProps) => {
+const TABLE = ({ pTableData, pMaxShowLen, pHelpText, pMaxWidth, clickEvent }: TableProps) => {
     const MaxLenDiv = () => {
         return (
             <tr key="tbody-row5" className="result-body-tr">
@@ -35,7 +39,22 @@ const TABLE = ({ pTableData, pMaxShowLen, clickEvent }: TableProps) => {
                 {pTableData && pTableData.columns ? (
                     <tr>
                         <th>
-                            <span style={{ marginLeft: '20px', cursor: 'default' }} />
+                            {pHelpText !== undefined && pHelpText ? (
+                                <IconButton
+                                    pWidth={20}
+                                    pHeight={20}
+                                    pIsActive={false}
+                                    pIsActiveHover={false}
+                                    pIsToopTip
+                                    pToolTipMaxWidth={pMaxWidth}
+                                    pToolTipContent={pHelpText}
+                                    pToolTipId="sql-result-tab"
+                                    pIcon={<div style={{ width: '16px', height: '16px', marginLeft: '32px', cursor: 'default' }}>{<PiFileSqlThin />}</div>}
+                                    onClick={() => {}}
+                                />
+                            ) : (
+                                <span style={{ marginLeft: '20px', cursor: 'default' }} />
+                            )}
                         </th>
                         {pTableData.columns.map((aColumn: string) => {
                             return (

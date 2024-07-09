@@ -45,6 +45,7 @@ const Sql = ({
     const [sChartQueryList, setChartQueryList] = useState<string[]>([]);
     const sSaveCommand = useRef<any>(null);
     const sNavi = useRef(null);
+    const [sOldFetchTxt, setOldFetchTxt] = useState<string | undefined>(undefined);
     const [sSqlLocation, setSqlLocation] = useState<{
         position: PositionType;
         selection: SelectionType;
@@ -180,6 +181,7 @@ const Sql = ({
         if (sQueryReslutList[sQueryReslutList.length - 1].data.success === true) {
             setErrLog(null);
             setSelectedSubTab('RESULT');
+            setOldFetchTxt(sLowerQuery);
             return true;
         } else {
             // setSelectedSubTab('LOG');
@@ -203,7 +205,7 @@ const Sql = ({
     };
 
     const fetchMoreResult = async () => {
-        const paredQuery = getTargetQuery();
+        const paredQuery = sOldFetchTxt ?? getTargetQuery();
         if (paredQuery.toLowerCase().includes('limit')) return;
         const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery, sResultLimit, sTimeRange, sTimeZone));
         const sParsedSqlResult = await JSON.parse(isJsonString(sSqlResult.request.response) ? sSqlResult.request.response : '{}');
@@ -314,7 +316,12 @@ const Sql = ({
                                     {sErrLog}
                                 </div>
                             ) : (
-                                <RESULT pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'} pSqlResponseData={sSqlResponseData} onMoreResult={() => onMoreResult()} />
+                                <RESULT
+                                    pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'}
+                                    pSqlResponseData={sSqlResponseData}
+                                    onMoreResult={() => onMoreResult()}
+                                    pHelpTxt={sOldFetchTxt}
+                                />
                             )
                         ) : null}
 

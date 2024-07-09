@@ -13,10 +13,11 @@ interface ResultProps {
     pDisplay: string;
     pSqlResponseData: any;
     pMaxShowLen?: boolean;
+    pHelpTxt?: string;
     onMoreResult: () => void;
 }
 
-const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, onMoreResult }: ResultProps) => {
+const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, pHelpTxt, onMoreResult }: ResultProps) => {
     const [observe, unobserve] = useObserver(0, onMoreResult);
     const sObserveRef = useRef<any>(null);
     const sRootRef = useRef<any>(null);
@@ -57,9 +58,9 @@ const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, onMoreResult }: Resul
     };
 
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
-
     useEffect(() => {
         if (pSqlResponseData && sObserveRef.current && sRootRef.current.clientHeight < sRootRef.current.children[0].clientHeight) {
+            if (pSqlResponseData && pSqlResponseData?.rows && pSqlResponseData.rows.length < 51) sRootRef.current.scroll(0, 0);
             observe(sObserveRef.current);
         }
 
@@ -71,7 +72,13 @@ const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, onMoreResult }: Resul
 
     return (
         <div ref={sRootRef} className="sql-result-wrapper" style={{ display: pDisplay }}>
-            <TABLE pTableData={pSqlResponseData} pMaxShowLen={pMaxShowLen} clickEvent={handleClick} />
+            <TABLE
+                pTableData={pSqlResponseData}
+                pMaxShowLen={pMaxShowLen}
+                clickEvent={handleClick}
+                pHelpText={pHelpTxt}
+                pMaxWidth={sRootRef && sRootRef?.current && sRootRef?.current?.clientWidth}
+            />
             <div ref={sObserveRef} style={{ width: '100%', height: '1px' }} />
             <div ref={MenuRef} style={{ position: 'fixed', top: sMenuY, left: sMenuX, zIndex: 999 }}>
                 <Menu isOpen={sIsContextMenu}>
