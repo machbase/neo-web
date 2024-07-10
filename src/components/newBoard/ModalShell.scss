@@ -1,3 +1,4 @@
+@import '/src/assets/scss/theme.scss';
 .edit-shell-modal-cover {
     width: 100vw;
     height: 100vh;
@@ -6,7 +7,7 @@
     top: 0;
     left: 0;
     position: fixed;
-    z-index: 999;
+    z-index: $modal-back-drop-idx;
 }
 .edit-shell-modal {
     width: 400px;
@@ -16,7 +17,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
     background-color: #404457;
-    z-index: 999;
+    z-index: $modal-idx;
     border-radius: 8px;
     border: solid 0.5px rgba(255, 255, 255, 0.5);
     font-size: 14px;

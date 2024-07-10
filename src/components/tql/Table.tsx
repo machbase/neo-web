@@ -53,7 +53,7 @@ export const Table = (props: TableProps) => {
     return (
         <div className="table-wrapper">
             <TABLE pTableData={{ columns: headers, rows: items, types: pTabOption }} pMaxShowLen={false} clickEvent={onContextMenu} />
-            <div ref={MenuRef} style={{ position: 'fixed', top: sMenuY, left: sMenuX, zIndex: 999 }}>
+            <div ref={MenuRef} className="table-context-menu" style={{ top: sMenuY, left: sMenuX }}>
                 <Menu isOpen={sIsContextMenu}>
                     <Menu.Item onClick={showFullContent}>
                         <Monitor />

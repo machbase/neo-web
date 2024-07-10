@@ -1,6 +1,11 @@
+@import '/src/assets/scss/theme.scss';
 .tql {
     svg {
         cursor: pointer;
+    }
+    .save-dashboard-context-menu {
+        position: fixed;
+        z-index: $modal-idx;
     }
 
     .title {

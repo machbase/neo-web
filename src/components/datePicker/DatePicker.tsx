@@ -42,11 +42,10 @@ const DatePicker = ({ pTimeValue, pSetApply, onChange, pTopPixel, pAutoFocus }: 
             </div>
             {sIsModalPicker && sInputRef && (
                 <div
+                    className="date-picker-modal"
                     style={{
-                        position: 'fixed',
                         left: sInputRef.current.offsetLeft,
                         top: sInputRef.current.offsetTop + pTopPixel,
-                        zIndex: 99999999,
                     }}
                 >
                     <div className="date-picker-wrap">

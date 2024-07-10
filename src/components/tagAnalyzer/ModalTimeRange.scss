@@ -1,3 +1,4 @@
+@import '/src/assets/scss/theme.scss';
 .modal-time-range {
     position: fixed;
     top: 50%;
@@ -6,7 +7,7 @@
     background-color: #404457;
     width: 500px;
     height: 650px;
-    z-index: 999;
+    z-index: $modal-idx;
     border-radius: 8px;
     border: solid 0.5px rgba(255, 255, 255, 0.5);
     font-size: 14px;
@@ -57,12 +58,7 @@
                 .span-to {
                     width: 100px;
                 }
-                .modal-date-picker {
-                    z-index: 8;
-                    input {
-                        filter: invert(1);
-                    }
-                }
+
                 .date-picker {
                     display: inline-block;
                     width: 200px;
@@ -163,7 +159,7 @@
 .time-range-cover {
     width: 100vw;
     height: 100vh;
-    z-index: 998;
+    z-index: $modal-back-drop-idx;
     background-color: rgba(38, 40, 49, 0.5);
     position: fixed;
     top: 0;

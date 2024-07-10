@@ -1,3 +1,4 @@
+@import '/src/assets/scss/theme.scss';
 .auto-combo-box-wraper {
     // margin-right: 4px;
     display: flex;
@@ -29,7 +30,7 @@
     .combo-box-list {
         position: absolute;
         top: 35px;
-        z-index: 1;
+        z-index: $dropdown-idx;
         background-color: #404457;
         min-width: 230px;
         max-height: 300px;

@@ -52,11 +52,11 @@ export const IconButton = (props: IconButtonProps) => {
                         {pIcon}
                     </div>
                     <Tooltip
-                        className={'tooltip-div'}
+                        className="tooltip-div"
                         place={pPlace ?? 'top'}
                         anchorSelect={`.tooltip-${pToolTipId}`}
                         content={pToolTipContent}
-                        style={{ zIndex: 9999, fontSize: '12px', color: 'whitesmoke', width: pToolTipMaxWidth && pToolTipMaxWidth < 500 ? pToolTipMaxWidth + 'px' : '' }}
+                        style={{ width: pToolTipMaxWidth && pToolTipMaxWidth < 500 ? pToolTipMaxWidth + 'px' : '' }}
                     />
                 </>
             ) : (

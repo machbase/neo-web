@@ -11,6 +11,13 @@
     background-position: center;
     background-size: cover;
     background-color: #1b1c21;
+
+    .login-bg-img {
+        width: 100%;
+        height: 100%;
+        z-index: $login-bg-img-idx;
+        position: absolute;
+    }
 }
 .input-form {
     align-items: center;
@@ -78,6 +85,7 @@
     }
 }
 .login-card {
+    z-index: $login-card-form-idx;
     width: 420px;
     background-color: #fff;
     flex-direction: column;

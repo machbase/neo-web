@@ -565,7 +565,7 @@ any) => {
                                         onRename={onRename}
                                     />
                                 </div>
-                                <div ref={MenuRef} style={{ position: 'fixed', top: menuY, left: menuX, zIndex: 10 }}>
+                                <div ref={MenuRef} className="side-file-tree-context-menu" style={{ top: menuY, left: menuX }}>
                                     <Menu isOpen={sIsContextMenu}>
                                         {(selectedContextFile as any)?.type === 1 && !(selectedContextFile as any)?.virtual ? (
                                             <>

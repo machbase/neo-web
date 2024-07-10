@@ -47,12 +47,6 @@
         display: flex;
 
         flex-direction: column;
-        .modal-date-picker {
-            z-index: 8;
-            input {
-                filter: invert(1);
-            }
-        }
         .date-picker {
             flex-direction: row;
             display: inline-block;

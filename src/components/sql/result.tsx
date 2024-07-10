@@ -80,7 +80,7 @@ const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, pHelpTxt, onMoreResul
                 pMaxWidth={sRootRef && sRootRef?.current && sRootRef?.current?.clientWidth}
             />
             <div ref={sObserveRef} style={{ width: '100%', height: '1px' }} />
-            <div ref={MenuRef} style={{ position: 'fixed', top: sMenuY, left: sMenuX, zIndex: 999 }}>
+            <div ref={MenuRef} className="sql-result-context-menu" style={{ top: sMenuY, left: sMenuX }}>
                 <Menu isOpen={sIsContextMenu}>
                     <Menu.Item onClick={handleModal}>
                         <Monitor />

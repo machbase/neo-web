@@ -1,3 +1,4 @@
+@import '/src/assets/scss/theme.scss';
 .icon-btn-wrapper {
     display: flex;
     justify-content: center;
@@ -30,8 +31,10 @@
 .tooltip-div {
     color: rgba(255, 255, 255, 1) !important;
     max-width: 500px;
-    width: 'auto';
+    width: auto;
     overflow: hidden;
+    z-index: $tooltip-idx;
+    font-size: 12px !important;
     text-wrap: balance;
 }
 

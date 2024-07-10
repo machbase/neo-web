@@ -1,3 +1,4 @@
+@import '/src/assets/scss/theme.scss';
 .drop-box-btn-wrapper {
     display: flex;
     position: relative;
@@ -39,7 +40,7 @@
         border: 1px solid rgb(68, 68, 68);
         border-radius: 8px;
         overflow: hidden;
-        z-index: 999;
+        z-index: $dropdown-idx;
 
         button {
             background-color: #323336;

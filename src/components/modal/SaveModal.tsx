@@ -519,7 +519,7 @@ export const SaveModal = (props: SaveModalProps) => {
                     </div>
                 </Modal.Footer>
             </Modal>
-            <div ref={MenuRef} style={{ position: 'fixed', top: sMenuY, left: sMenuX, zIndex: 999 }}>
+            <div ref={MenuRef} className="save-modal-context-menu" style={{ top: sMenuY, left: sMenuX }}>
                 <Menu isOpen={sIsContextMenu}>
                     <Menu.Item onClick={deleteFile}>
                         <Delete />

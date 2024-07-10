@@ -53,11 +53,6 @@ export const Password = ({ setIsOpen }: { setIsOpen: (aState: boolean) => void }
         <div className="change-password-wrapper">
             <div ref={sRef} style={{ display: 'flex' }}>
                 <Modal pIsDarkMode className="change-password-modal" onOutSideClose={() => setIsOpen(false)}>
-                    {sRes && sRes.success && (
-                        <div className="res-success">
-                            <span>{sRes.reason}</span>
-                        </div>
-                    )}
                     <Modal.Header>
                         <div className="change-password-modal-header">
                             <div className="title">
@@ -67,34 +62,42 @@ export const Password = ({ setIsOpen }: { setIsOpen: (aState: boolean) => void }
                             <Close style={{ cursor: 'pointer' }} onClick={() => setIsOpen(false)} />
                         </div>
                     </Modal.Header>
-                    <Modal.Body>
-                        <div className="change-password-modal-body">
-                            <div className="content-user-name">
-                                <div>User: {sCurrentUserName}</div>
-                            </div>
-                            <PasswordForm pTitle="New password:" pCallback={setNewPassword} pFocus pTabIdx={1} pEnterNextRef={sConfirmPwdRef} />
-                            <div ref={sConfirmPwdRef}>
-                                <PasswordForm pTitle="Confirm password:" pCallback={setConfirmPassword} pTabIdx={2} pEnterNextRef={sChangeBtnRef} />
-                            </div>
-                            {sPwdDiff && (
-                                <div className="res-err">
-                                    <VscWarning style={{ fill: '#ff5353' }} />
-                                    <span className="res-err-text">{sPwdDiff}</span>
-                                </div>
-                            )}
-                            {sRes && !sRes.success && (
-                                <div className="res-err">
-                                    <VscWarning style={{ fill: '#ff5353' }} />
-                                    <span className="res-err-text">{sRes.reason}</span>
-                                </div>
-                            )}
+                    {sRes && sRes.success ? (
+                        <div className="res-success">
+                            <span>{sRes.reason}</span>
                         </div>
-                    </Modal.Body>
-                    <Modal.Footer>
-                        <div ref={sChangeBtnRef} className="change-password-modal-footer">
-                            <button onClick={handleChange}>Change password</button>
-                        </div>
-                    </Modal.Footer>
+                    ) : (
+                        <>
+                            <Modal.Body>
+                                <div className="change-password-modal-body">
+                                    <div className="content-user-name">
+                                        <div>User: {sCurrentUserName}</div>
+                                    </div>
+                                    <PasswordForm pTitle="New password:" pCallback={setNewPassword} pFocus pTabIdx={1} pEnterNextRef={sConfirmPwdRef} />
+                                    <div ref={sConfirmPwdRef}>
+                                        <PasswordForm pTitle="Confirm password:" pCallback={setConfirmPassword} pTabIdx={2} pEnterNextRef={sChangeBtnRef} />
+                                    </div>
+                                    {sPwdDiff && (
+                                        <div className="res-err">
+                                            <VscWarning style={{ fill: '#ff5353' }} />
+                                            <span className="res-err-text">{sPwdDiff}</span>
+                                        </div>
+                                    )}
+                                    {sRes && !sRes.success && (
+                                        <div className="res-err">
+                                            <VscWarning style={{ fill: '#ff5353' }} />
+                                            <span className="res-err-text">{sRes.reason}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </Modal.Body>
+                            <Modal.Footer>
+                                <div ref={sChangeBtnRef} className="change-password-modal-footer">
+                                    <button onClick={handleChange}>Change password</button>
+                                </div>
+                            </Modal.Footer>
+                        </>
+                    )}
                 </Modal>
             </div>
         </div>

@@ -79,8 +79,8 @@ const Login = () => {
 
     return (
         <div className="login-form">
-            <img style={{ width: '100%', height: '100%', zIndex: 10, position: 'absolute' }} src={`${LOGIN_BG_IMG}`} />
-            <div className="login-card" style={{ zIndex: 100 }}>
+            <img className="login-bg-img" src={`${LOGIN_BG_IMG}`} />
+            <div className="login-card">
                 <img alt="" src={LoginLogo} />
                 <div className="input-form">
                     <input ref={sIdRef} className="input-id input normal-text" placeholder="User" type="text" onKeyDown={keyDownLogin} value={sLoginId} onInput={handleLoginId} />
