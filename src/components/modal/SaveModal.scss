@@ -1,3 +1,4 @@
+@import '/src/assets/scss/theme.scss';
 .tql {
     svg {
         cursor: pointer;
@@ -17,6 +18,11 @@
             align-items: center;
             gap: 4px;
         }
+    }
+
+    .save-modal-context-menu {
+        position: fixed;
+        z-index: $modal-idx;
     }
 
     .tool-bar {

@@ -115,7 +115,7 @@ const ColorBlock = ({ pItem, pCallback }: { pItem: any; pCallback: (aColor: stri
             />
 
             {sIsColorPicker && (
-                <div className="color-picker" style={{ position: 'absolute', zIndex: 1, top: '20px', left: '0px' }}>
+                <div className="color-picker">
                     <CompactPicker color={pItem.color} onChangeComplete={(aInfo: any) => pCallback(aInfo.hex)} />
                 </div>
             )}

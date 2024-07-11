@@ -1,3 +1,4 @@
+@import '/src/assets/scss/theme.scss';
 .panel-form {
     background-color: #262831;
     width: 100%;
@@ -49,7 +50,7 @@
         position: absolute;
         top: 0;
         left: 0;
-        z-index: 99;
+        z-index: $chart-tooltip-idx;
 
         .time {
             display: flex;

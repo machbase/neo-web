@@ -5,6 +5,7 @@ import { Select } from '@/components/inputs/Select';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { useRef, useState } from 'react';
 import { CompactPicker } from 'react-color';
+import './options.scss';
 
 interface LiquidfillOptionProps {
     pPanelOption: any;
@@ -19,14 +20,6 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
 
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
 
-    const sMenuStyle = {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginRight: '10px',
-        marginBottom: '5px',
-    };
-
     const HandleOption = (aEvent: any, aKey: any) => {
         pSetPanelOption((prev: any) => {
             return {
@@ -40,8 +33,8 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
     };
 
     return (
-        <div>
-            <div style={{ ...sMenuStyle, zIndex: 999, overflow: 'none' }}>
+        <div className="liquid-fill-options-wrape">
+            <div className="menu-style">
                 <span>Shape</span>
                 <Select
                     pFontSize={12}
@@ -53,8 +46,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                     pOptions={sShapeList}
                 />
             </div>
-            <div style={{ height: '10px' }} />
-            <div style={sMenuStyle}>
+            <div className="menu-style">
                 <span>Unit</span>
                 <Input
                     pType="text"
@@ -66,8 +58,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                     onChange={(aEvent: any) => HandleOption(aEvent, 'unit')}
                 />
             </div>
-            <div style={{ height: '10px' }} />
-            <div style={sMenuStyle}>
+            <div className="menu-style">
                 <span>Digit</span>
                 <Input
                     pType="number"
@@ -79,8 +70,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                     onChange={(aEvent: any) => HandleOption(aEvent, 'digit')}
                 />
             </div>
-            <div style={{ height: '10px' }} />
-            <div style={sMenuStyle}>
+            <div className="menu-style">
                 <span>Font size</span>
                 <Input
                     pType="number"
@@ -92,8 +82,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                     onChange={(aEvent: any) => HandleOption(aEvent, 'fontSize')}
                 />
             </div>
-            <div style={{ height: '10px' }} />
-            <div style={sMenuStyle}>
+            <div className="menu-style">
                 <span>Wave min</span>
                 <Input
                     pType="number"
@@ -105,8 +94,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                     onChange={(aEvent: any) => HandleOption(aEvent, 'minData')}
                 />
             </div>
-            <div style={{ height: '10px' }} />
-            <div style={sMenuStyle}>
+            <div className="menu-style">
                 <span>Wave max</span>
                 <Input
                     pType="number"
@@ -118,8 +106,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                     onChange={(aEvent: any) => HandleOption(aEvent, 'maxData')}
                 />
             </div>
-            <div style={{ height: '10px' }} />
-            <div style={sMenuStyle}>
+            <div className="menu-style">
                 <span>Wave amplitude</span>
                 <Input
                     pType="number"
@@ -132,7 +119,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                 />
             </div>
             <div style={{ height: '10px' }} />
-            <div ref={sColorPickerRef} style={{ position: 'relative', ...sMenuStyle }}>
+            <div className="menu-style" ref={sColorPickerRef} style={{ position: 'relative' }}>
                 <span>Background color</span>
                 <IconButton
                     pWidth={20}
@@ -152,7 +139,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                     onClick={() => setIsColorPicker(!sIsColorPicker)}
                 />
                 {sIsColorPicker && (
-                    <div className="color-picker" style={{ position: 'absolute', zIndex: 999 }}>
+                    <div className="color-picker">
                         <CompactPicker
                             color={pPanelOption.chartOptions?.backgroundColor as string}
                             onChangeComplete={(aInfo: any) => {

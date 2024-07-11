@@ -1,3 +1,4 @@
+@import '/src/assets/scss/theme.scss';
 .tab_button {
     margin-top: 4px;
     width: 200px;
@@ -84,7 +85,7 @@
     border-bottom-right-radius: 0px;
     border-bottom-left-radius: 0px;
     position: relative;
-    z-index: 21;
+    z-index: $tab-select-style-idx;
     svg,
     span {
         color: #f8f8f8;
@@ -117,7 +118,7 @@
         bottom: 0px;
         right: -15px;
         transform: scaleX(-1), scaleY(-1);
-        z-index: 1;
+        z-index: $tab-round-style-idx;
 
         .round_left {
             width: 15px;
@@ -138,7 +139,7 @@
         height: 24px;
         position: absolute;
         right: -3px;
-        z-index: 20;
+        z-index: $tab-none-select-stye-idx;
     }
     &:hover {
         svg,

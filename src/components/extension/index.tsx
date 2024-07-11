@@ -159,7 +159,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                     >
                         <ExtensionBtn pIcon={<Gear />} onClick={() => setIsOpen(!isOpen)} />
                         <div style={{ position: 'absolute', bottom: 1, left: '100%' }}>
-                            <Menu isOpen={isOpen} zIndex={2147483647}>
+                            <Menu isOpen={isOpen}>
                                 <Menu.Item onClick={() => setIsLicenseModal(true)}>
                                     <Key />
                                     <span>License</span>

@@ -6,7 +6,9 @@
         position: relative;
         overflow: scroll;
         height: 100%;
-        // background-color: white;
+    }
+    .sql-result-context-menu {
+        position: fixed;
     }
 
     .sql-modal-title {

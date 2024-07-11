@@ -1,8 +1,8 @@
+@import '../../assets/scss/theme.scss';
 .worksheet-editor-wrapper {
     display: flex;
 
     .worksheet-editor {
-        overflow: hidden;
         width: 100%;
 
         .worksheet-content {
@@ -41,7 +41,7 @@
                         align-items: center;
 
                         .worksheet-ctr-lang-content-list {
-                            z-index: 1 !important;
+                            z-index: $worksheet-dropdown-form-idx;
                             fill: #f8f8f8;
                             position: absolute;
                             background-color: #393b41;
@@ -87,7 +87,7 @@
                     left: 0;
                     bottom: -15px;
 
-                    z-index: 99;
+                    z-index: $worksheet-drag-stick-idx;
 
                     -webkit-user-drag: element;
                 }
@@ -124,7 +124,7 @@
                                 top: 0;
                                 left: 0;
                                 right: 0;
-                                z-index: 10;
+                                z-index: $table-header-idx;
                                 font-size: 14px;
 
                                 tr {

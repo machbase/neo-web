@@ -1,4 +1,4 @@
-@import '@/assets/scss/theme.scss';
+@import '/src/assets/scss/theme.scss';
 .backdrop {
     position: fixed;
     top: 0;
@@ -6,7 +6,7 @@
     width: 100%;
     height: 100%;
     background-color: rgba(38, 40, 49, 0.5);
-    z-index: 998;
+    z-index: $modal-back-drop-idx;
 }
 .tag_plus_wrap {
     height: 80px;
@@ -35,7 +35,7 @@
         height: 100%;
         background-color: rgba(0, 0, 0, 0.2);
         border-radius: 8px;
-        z-index: 1;
+        z-index: $hover-effect-idx;
         @include theme() {
             border: solid 0.5px theme-get('hover-text') !important;
         }

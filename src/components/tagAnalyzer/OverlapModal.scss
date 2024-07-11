@@ -1,7 +1,8 @@
+@import '/src/assets/scss/theme.scss';
 .Overlap-cover {
     width: 100vw;
     height: 100vh;
-    z-index: 998;
+    z-index: $modal-back-drop-idx;
     background-color: rgba(38, 40, 49, 0.5);
     position: fixed;
     top: 0;
@@ -17,7 +18,7 @@
     align-items: center;
     flex-direction: column;
     background-color: #404457;
-    z-index: 999;
+    z-index: $modal-idx;
     border-radius: 8px;
     border: solid 0.5px rgba(255, 255, 255, 0.5);
     transform: translate(-50%, -50%);

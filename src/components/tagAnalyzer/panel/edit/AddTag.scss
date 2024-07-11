@@ -1,3 +1,5 @@
+@import '/src/assets/scss/theme.scss';
+
 .modal-form-tag {
     position: fixed;
     top: 50%;
@@ -6,7 +8,7 @@
     background-color: #404457;
     width: 600px;
     height: 650px;
-    z-index: 999;
+    z-index: $modal-idx;
     border-radius: 8px;
     border: solid 0.5px rgba(255, 255, 255, 0.5);
     font-size: 14px;
@@ -170,51 +172,7 @@
             }
         }
     }
-    .chart-select {
-        height: 15%;
 
-        padding: 0 16% 0 8%;
-        display: flex;
-        justify-content: space-between;
-        .title {
-            width: 20%;
-            opacity: 0.5;
-        }
-        .selected-chart {
-            height: 23%;
-        }
-        .select-chart-form {
-            width: 80%;
-            .tag_modal_chart_wrap {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-
-                .tag_modal_chart_btn {
-                    cursor: pointer;
-                    margin-right: 9px;
-                    border-radius: 8px;
-
-                    border: solid 0.5px transparent;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    &:hover {
-                        box-shadow: inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5);
-                        border: solid 0.5px #4199ff;
-                    }
-                    img {
-                        z-index: -1;
-                        width: 100%;
-                        height: 100%;
-                    }
-                }
-                .last {
-                    margin-right: 0;
-                }
-            }
-        }
-    }
     .footer {
         height: 10%;
         display: flex;

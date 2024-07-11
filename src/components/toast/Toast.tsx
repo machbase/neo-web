@@ -1,19 +1,31 @@
 import toast from 'react-hot-toast';
-
-const toastStyle = {
-    backgroundColor: '#404457',
-    color: 'white',
-    border: '0.5px solid rgba(255, 255, 255, 0.5)',
-};
+import { VscCheck, VscClose } from 'react-icons/vsc';
+import './Toast.scss';
 
 export const Error = (aMessage: string) => {
-    return toast.error(aMessage, {
-        style: toastStyle,
-    });
+    return toast(
+        (t) => (
+            <div className="toast-custom-style">
+                <div className="toast-custom-icon-error" onClick={() => toast.remove(t.id)}>
+                    <VscClose />
+                </div>
+                <div className="toast-custom-text"> {aMessage} </div>
+            </div>
+        ),
+        { className: 'toast-custom-outside' }
+    );
 };
 
 export const Success = (aMessage: string) => {
-    return toast.success(aMessage, {
-        style: toastStyle,
-    });
+    return toast(
+        (t) => (
+            <div className="toast-custom-style">
+                <div className="toast-custom-icon-success" onClick={() => toast.remove(t.id)}>
+                    <VscCheck />
+                </div>
+                <div className="toast-custom-text"> {aMessage} </div>
+            </div>
+        ),
+        { className: 'toast-custom-outside' }
+    );
 };

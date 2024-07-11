@@ -1,3 +1,4 @@
+@import '/src/assets/scss/theme.scss';
 .table {
     width: calc(100%);
     table-layout: auto;
@@ -9,7 +10,7 @@
         top: 0;
         left: 0;
         right: 0;
-        z-index: 10;
+        z-index: $table-header-idx;
         font-size: 14px;
     }
 

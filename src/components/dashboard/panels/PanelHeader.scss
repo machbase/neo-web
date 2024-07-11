@@ -1,3 +1,4 @@
+@import '/src/assets/scss/theme.scss';
 .panel-wrap {
     .board-panel-header {
         display: flex;
@@ -9,7 +10,7 @@
         font-size: 14px;
         .panel-header-navigator {
             .tooltip {
-                z-index: 99999;
+                z-index: $tooltip-idx;
             }
             display: flex;
             align-items: center;

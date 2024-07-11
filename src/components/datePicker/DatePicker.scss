@@ -1,3 +1,9 @@
+@import '/src/assets/scss/theme.scss';
+.date-picker-modal {
+    position: fixed;
+    z-index: $modal-idx;
+}
+
 .date-picker-wrap {
     display: flex;
     flex-direction: column;

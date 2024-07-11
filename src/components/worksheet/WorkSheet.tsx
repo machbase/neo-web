@@ -50,14 +50,13 @@ export const WorkSheet = (props: WorkSheetProps) => {
             case 'AddBottom':
                 return addSheet(aData.id, 1);
             case 'Delete':
-                return setWorkSheets(sWorkSheets.filter((aSheet: any) => aSheet.id !== aData.id));
+                return handleUpdateSheet(sWorkSheets.filter((aSheet: any) => aSheet.id !== aData.id));
         }
     };
     const moveSheet = (aSheetId: string, aDirection: number) => {
         const loc = sWorkSheets.findIndex((aSheet: any) => aSheet.id === aSheetId);
         if (loc === 0 && aDirection === -1) return;
         if (loc + 1 === sWorkSheets.length && aDirection === 0) return;
-
         const copySheet = JSON.parse(JSON.stringify(sWorkSheets));
         const sTarget = copySheet.filter((aSheet: any) => aSheet.id === aSheetId);
         const sResult = copySheet.filter((aSheet: any) => aSheet.id !== aSheetId);
@@ -81,15 +80,13 @@ export const WorkSheet = (props: WorkSheetProps) => {
         setAllRunCodeList(sTmp);
     };
     const handleUpdateSheet = (aSheet: any) => {
-        if (!isEmpty(pSheet) ? JSON.stringify(pSheet) !== JSON.stringify(aSheet) : JSON.stringify([sNewWrkDefaultData]) !== JSON.stringify(aSheet)) {
-            setWorkSheets(aSheet);
-            setSaveWorkSheet(aSheet);
-            setBoardList(
-                sBoardList.map((aItem) => {
-                    return aItem.id === pId ? { ...aItem, sheet: sWorkSheets } : aItem;
-                })
-            );
-        }
+        setSaveWorkSheet(aSheet);
+        setWorkSheets(aSheet);
+        setBoardList(
+            sBoardList.map((aItem) => {
+                return aItem.id === pId ? { ...aItem, sheet: aSheet } : aItem;
+            })
+        );
     };
 
     useEffect(() => {

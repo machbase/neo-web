@@ -64,7 +64,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sText, setText] = useState<string>(pData.contents);
     const [initialPos, setInitialPos] = useState<number>(0);
     const [initialSize, setInitialSize] = useState<number>(pData.height ?? sInitHeight);
-    const [sSelectedLang, setSelectedLang] = useState<Lang>('Markdown');
+    const [sSelectedLang, setSelectedLang] = useState<Lang | undefined>(undefined);
     const [sShowLang, setShowLang] = useState<boolean>(false);
     const [sTqlResultType, setTqlResultType] = useState<'html' | 'csv' | 'mrk' | 'text' | 'xhtml' | 'map'>(pData.tqlType ?? 'text');
     const [sTqlTextResult, setTqlTextResult] = useState<string>('');
@@ -73,7 +73,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sTqlMarkdown, setTqlMarkdown] = useState<any>('');
     const [sTqlCsv, setTqlCsv] = useState<string[][]>([]);
     const [sTqlCsvHeader, setTqlCsvHeader] = useState<string[]>([]);
-    const [sMonacoLanguage, setMonacoLanguage] = useState<MonacoLang>('markdown');
+    const [sMonacoLanguage, setMonacoLanguage] = useState<MonacoLang | undefined>(undefined);
     const [sMarkdown, setMarkdown] = useState<string>('');
     const [sSql, setSql] = useState<any>(null);
     const [sCollapse, setCollapse] = useState<boolean>(pData.minimal ?? false);
@@ -93,8 +93,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             handleRunCode(sText);
         }
     }, [pAllRunCodeList]);
-
     useEffect(() => {
+        if (sSelectedLang === undefined) return;
+        if (sMonacoLanguage === undefined) return;
         const sCopyWorkSheets = JSON.parse(JSON.stringify(pWorkSheets));
         const sIndex = sCopyWorkSheets.findIndex((aSheet: any) => aSheet.id === pData.id);
         const sPayload: any = {
@@ -120,6 +121,19 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setSheet(sCopyWorkSheets);
         }
     }, [sText, initialSize, sCollapse, sSelectedLang, sResultContentType, sMonacoLineHeight]);
+    useEffect(() => {
+        if (resizeRef.current) {
+            resizeRef.current.style.height = pData.height ? pData.height + 'px' : sInitHeight + 'px';
+            langConverter(pData.type);
+        }
+    }, []);
+    useEffect(() => {
+        if (resizeRef.current) {
+            const sLines = getMonacoLines(pData.height ? pData.height : sInitHeight, pData.lineHeight ? pData.lineHeight : sMonacoLineHeight);
+            const sCurrentHeight = sLines * sMonacoLineHeight;
+            resizeRef.current.style.height = sCurrentHeight + 'px';
+        }
+    }, [sMonacoLineHeight]);
 
     const langConverter = (aTxt: ServerLangType) => {
         switch (aTxt) {
@@ -139,47 +153,27 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 return;
         }
     };
-
-    useEffect(() => {
-        if (resizeRef.current) {
-            resizeRef.current.style.height = pData.height ? pData.height + 'px' : sInitHeight + 'px';
-            langConverter(pData.type);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (resizeRef.current) {
-            const sLines = getMonacoLines(pData.height ? pData.height : sInitHeight, pData.lineHeight ? pData.lineHeight : sMonacoLineHeight);
-            const sCurrentHeight = sLines * sMonacoLineHeight;
-            resizeRef.current.style.height = sCurrentHeight + 'px';
-        }
-    }, [sMonacoLineHeight]);
-
     const initValue = (aEvent: React.DragEvent<HTMLDivElement>) => {
         if (resizeRef.current) {
             setInitialPos(aEvent.clientY);
             setInitialSize(resizeRef.current.offsetHeight);
         }
     };
-
     const resize = (aEvent: React.MouseEvent<HTMLDivElement>) => {
         if (aEvent.clientY && resizeRef.current) {
             const sHeight = initialSize + (aEvent.clientY - initialPos);
             resizeRef.current.style.height = `${sHeight}px`;
         }
     };
-
     const setHeight = (aEvent: React.DragEvent<HTMLDivElement>) => {
         if (aEvent.clientY && resizeRef.current) {
             const sHeight = Number(resizeRef.current.style.height.replace(/[^0-9.]/g, ''));
             setInitialSize(sHeight);
         }
     };
-
     const handleText = (aText: any) => {
         setText(aText);
     };
-
     const handleRunCode = (
         aText: string,
         aLocation?: {
@@ -196,7 +190,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
         if (sSelectedLang === 'SQL') getSqlData(aText, aLocation);
     };
-
     const changeLanguage = (aLang: ServerLang) => {
         setSqlReason('');
         setTqlTextResult('');
@@ -211,7 +204,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setMonacoLanguage('markdown');
         }
     };
-
     const getSqlData = (aText: string, aLocation?: LocationType) => {
         setSql('');
         let parsedQuery: any = '';
@@ -235,7 +227,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
         fetchSql(parsedQuery);
     };
-
     const fetchSql = async (aParsedQuery: string[]) => {
         const sQueryReslutList: any = [];
         try {
@@ -269,7 +260,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             if (pAllRunCodeStatus) pAllRunCodeCallback(false);
         }
     };
-
     const ErrorConsole = (aMessage: string) => {
         setConsoleList((prev: any) => [
             ...prev,
@@ -290,7 +280,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         e.stopPropagation();
         setIsDeleteModal(true);
     };
-
     const getTqlData = async (aText: string) => {
         // TODO C:\Users\MACH-NOT-23\Documents\GitHub\neo-web\src\components\tql\index.tsx - getTqlData
         const sResult: any = await getTqlChart(aText);
@@ -371,11 +360,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             else HandleResutTypeAndTxt(typeof sResult.data === 'object' ? (sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data)) : sResult.data, false);
         }
     };
-
     const VerticalDivision = () => {
         return <div className="worksheet-ctr-verti-divi" />;
     };
-
     const Result = () => {
         return (
             <div className="result">
@@ -385,7 +372,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             </div>
         );
     };
-
     const SqlResult = () => {
         return sSql ? (
             <>
@@ -399,7 +385,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             </div>
         );
     };
-
     const TqlResult = () => {
         return (
             <>
@@ -445,7 +430,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             </>
         );
     };
-
     const DropDown = () => {
         return (
             <div ref={dropDownRef} className="worksheet-ctr-lang" onClick={() => setShowLang(!sShowLang)}>
@@ -467,7 +451,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             </div>
         );
     };
-
     const ResultContentType = () => {
         return sMonacoLanguage === 'sql' ? (
             <>
@@ -532,7 +515,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     <div ref={resizeRef} className="editor">
                         <MonacoEditor
                             pText={sText}
-                            pLang={sMonacoLanguage}
+                            pLang={sMonacoLanguage ?? 'Markdown'}
                             onChange={handleText}
                             onRunCode={handleRunCode}
                             onSelectLine={sMonacoLanguage === 'sql' ? setSqlLocation : () => {}}

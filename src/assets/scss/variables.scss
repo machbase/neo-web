@@ -64,6 +64,37 @@ $px-12: 12px;
 $px-15: 15px;
 $px-20: 20px;
 
-// z-index
-$z-index-set: 2;
-$height: 30px;
+//-------------------- z-index ---------------------//
+// Login page
+$login-bg-img-idx: 1;
+$login-card-form-idx: 2;
+// Worksheet
+$worksheet-dropdown-form-idx: 101;
+$worksheet-drag-stick-idx: 11;
+// Table
+$table-header-idx: 10;
+$table-context-menu-idx: 101;
+// Modal
+$modal-idx: 1000;
+$modal-back-drop-idx: 999;
+// Tab
+$tab-round-style-idx: 1;
+$tab-select-style-idx: 21;
+$tab-none-select-stye-idx: 20;
+// Color
+$color-dropdown-idx: 101;
+$chart-tooltip-idx: 102; // Tooltip in chart
+$hover-effect-idx: 1; // Tql add panel hover effect
+// Tooltip
+$tooltip-idx: 10000;
+// Dropdown
+$dropdown-idx: 100;
+// Side extension form
+$side-extension-form: 1000;
+// Dashboard draggable-panel-header
+$dsh-draggable-panel-header-idx: 1000;
+$dsh-split-panel-handler-after-idx: 10;
+$dsh-split-panel-handler-before-idx: 9;
+$dsh-edit-page-idx: 10;
+// Menu modal
+$menu-modal-idx: 999999;

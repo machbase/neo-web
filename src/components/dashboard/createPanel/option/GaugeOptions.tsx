@@ -6,6 +6,7 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { useState, useRef } from 'react';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { Close, PlusCircle } from '@/assets/icons/Icon';
+import './options.scss';
 
 interface GaugeOptionProps {
     pPanelOption: any;
@@ -208,7 +209,7 @@ const LineStyleValue = (props: LineStyle) => {
     const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
     return (
-        <>
+        <div className="gauge-options-wrape">
             <div className="menu-style">
                 <div ref={sColorPickerRef} style={{ position: 'relative', display: 'flex' }}>
                     <div style={{ marginRight: '10px' }}>
@@ -242,7 +243,7 @@ const LineStyleValue = (props: LineStyle) => {
                     />
 
                     {sIsColorPicker && (
-                        <div className="color-picker" style={{ position: 'absolute', zIndex: 999 }}>
+                        <div className="color-picker">
                             <CompactPicker
                                 color={aAxisColor[1] as any}
                                 onChangeComplete={(aInfo: any) => {
@@ -258,6 +259,6 @@ const LineStyleValue = (props: LineStyle) => {
                     <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => HandleItem('remove', aIdx)} />
                 )}
             </div>
-        </>
+        </div>
     );
 };
