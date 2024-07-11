@@ -351,9 +351,7 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
         const sIsVirtualTable = aTargetInfo.table.includes('V$');
         // const reg = /(?<=V\$)(.*?)(?=_STAT)/g;
         const reg = /(V\$.*?)(_STAT)/g;
-        const sTableName = sIsVirtualTable ? aTargetInfo.table.match(reg) : aTargetInfo.table;
-        sTableName.replace('V$', '');
-        sTableName.replace('_STAT', '');
+        const sTableName = sIsVirtualTable ? aTargetInfo.table.match(reg).replace('V$', '').replace('_STAT', '') : aTargetInfo.table;
         sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
     }
     // Query log table
