@@ -133,7 +133,9 @@ const Sql = ({
             const fetchQuery = (aQuery: string) => {
                 let sTakeLimit: number = 50;
                 if (aQuery.toLowerCase().includes('limit')) {
-                    const sLimitKeyword: any = /(?<=limit)(?:\s)*([0-9]*)(?:\s)*(,?)(?:\s)*([0-9]*)/gm.exec(aQuery.toLowerCase());
+                    // const sLimitKeyword: any = /(?<=limit)(?:\s)*([0-9]*)(?:\s)*(,?)(?:\s)*([0-9]*)/gm.exec(aQuery.toLowerCase());
+                    const sLimitKeyword: any = /(limit)(?:\s)*([0-9]*)(?:\s)*(,?)(?:\s)*([0-9]*)/gm.exec(aQuery.toLowerCase());
+                    sLimitKeyword.toLowerCase().replace('limit', '');
                     if (sLimitKeyword[0].includes(',')) sTakeLimit = sLimitKeyword[0].split(',')[1];
                     else sTakeLimit = sLimitKeyword[0];
                 }
