@@ -2,6 +2,7 @@ import request from '@/api/core';
 import { Error } from '@/components/toast/Toast';
 import { createMinMaxQuery, createTableTagMap, decodeJwt } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
+import { removeV$Table } from '@/utils/dbUtils';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import moment from 'moment';
 // import { getTimeZoneValue } from '@/utils/utils';
@@ -349,9 +350,7 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
     // Query tag table
     if (aTargetInfo.type === 'tag') {
         const sIsVirtualTable = aTargetInfo.table.includes('V$');
-        // const reg = /(?<=V\$)(.*?)(?=_STAT)/g;
-        const reg = /(V\$.*?)(_STAT)/g;
-        const sTableName = sIsVirtualTable ? aTargetInfo.table.match(reg).replace('V$', '').replace('_STAT', '') : aTargetInfo.table;
+        const sTableName = sIsVirtualTable ? removeV$Table(aTargetInfo.table) : aTargetInfo.table;
         sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
     }
     // Query log table

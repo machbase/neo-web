@@ -245,7 +245,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 return fetchQuery(curQuery);
             }, Promise.resolve());
         } catch {
-            setSqlReason(sQueryReslutList.at(-1).data.reason);
+            setSqlReason(sQueryReslutList.at(-1)?.data?.reason);
         }
         if (sQueryReslutList.at(-1).status === 200 && aParsedQuery.length === sQueryReslutList.length) {
             const sLastQueryResult = sQueryReslutList.at(-1);
