@@ -12,7 +12,7 @@ import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 import './index.scss';
 import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, SaveAs } from '@/assets/icons/Icon';
 import { isJsonString } from '@/utils/utils';
-import { PositionType, SelectionType, sqlQueryParser } from '@/utils/sqlQueryParser';
+import { PositionType, SelectionType, sqlQueryParser, sqlRemoveLimitKeyword } from '@/utils/sqlQueryParser';
 import { sqlMultiQueryParser } from '@/utils/sqlMultiQueryParser';
 import { MonacoEditor } from '../monaco/MonacoEditor';
 import { IconButton } from '@/components/buttons/IconButton';
@@ -133,11 +133,7 @@ const Sql = ({
             const fetchQuery = (aQuery: string) => {
                 let sTakeLimit: number = 50;
                 if (aQuery.toLowerCase().includes('limit')) {
-                    // const sLimitKeyword: any = /(?<=limit)(?:\s)*([0-9]*)(?:\s)*(,?)(?:\s)*([0-9]*)/gm.exec(aQuery.toLowerCase());
-                    const sLimitKeyword: any = /(limit)(?:\s)*([0-9]*)(?:\s)*(,?)(?:\s)*([0-9]*)/gm.exec(aQuery.toLowerCase());
-                    sLimitKeyword.toLowerCase().replace('limit', '');
-                    if (sLimitKeyword[0].includes(',')) sTakeLimit = sLimitKeyword[0].split(',')[1];
-                    else sTakeLimit = sLimitKeyword[0];
+                    sTakeLimit = sqlRemoveLimitKeyword(aQuery) as number;
                 }
                 return new Promise((resolve, reject) => {
                     setTimeout(async () => {

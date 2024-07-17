@@ -132,3 +132,18 @@ export const sqlQueryParser = (aQueryTxt: string, aPosition: PositionType, aSele
     const sSelectionLen = findCursorLength(sNoAnnotationList, sStartLine, sEndLine, aSelection);
     return findTargetQuery(sParsedQuery, sSelectionLen, sVariableList);
 };
+/** REMOVE LIMIT KEYWORD
+ * @QUERY_TEXT string;
+ * @return Num of take;
+ */
+export const sqlRemoveLimitKeyword = (aQueryTxt: string) => {
+    const sLimitReg: RegExp = new RegExp(/(limit)(?:\s)*([0-9]*)(?:\s)*(,?)(?:\s)*([0-9]*)/, 'gm');
+    const sLimitKeyword = sLimitReg.exec(aQueryTxt.toLowerCase());
+    let sResult = undefined;
+    if (sLimitKeyword && sLimitKeyword?.length >= 1) {
+        sResult = sLimitKeyword[0]?.toLowerCase().replace('limit', '').trim();
+        if (sResult?.includes(',')) sResult = sResult.split(',')[1].trim();
+        if (sResult === '') sResult = 0;
+    } else sResult = 0;
+    return sResult;
+};

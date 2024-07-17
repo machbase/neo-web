@@ -1,4 +1,4 @@
-import { sqlQueryParser } from './sqlQueryParser';
+import { sqlQueryParser, sqlRemoveLimitKeyword } from './sqlQueryParser';
 
 test.each([
     [
@@ -226,4 +226,20 @@ test.each([
     ],
 ])('SQL - %s', (_, aQueryText, aPosition, aSelection, expected) => {
     expect(sqlQueryParser(aQueryText, aPosition, aSelection)).toEqual(expected);
+});
+
+test.each([
+    ['Limit 만 작성 - (limit)', `select * from example limit`, 0],
+    ['Limit ","사용 - (limit ,)', `select * from example limit ,`, 0],
+    ['Limit 공백 없이(limitn)', `select * from example limit3`, '3'],
+    ['Limit 1공백 - (limit n)', `select * from example limit 3`, '3'],
+    ['Limit n공백 - (limit  n)', `select * from example limit 3`, '3'],
+    ['Limit ","사용 & 공백 없이 - (limitn,n)', `select * from example limit3,7`, '7'],
+    ['Limit ","사용 & 1공백 - (limit n,n)', `select * from example limit 3,7`, '7'],
+    ['Limit ","사용 & n공백 - (limit  n,n)', `select * from example limit  3,7`, '7'],
+    ['Limit ","사용 & 숫자 간 공백 - (limit  n , n)', `select * from example limit 3 , 7`, '7'],
+    ['Limit ","사용 & 숫자 간 공백 n개 - (limit  n  ,  n)', `select * from example limit 3  ,  7`, '7'],
+    ['Limit ","사용 & 숫자 3개 - (limit  n,n,n)', `select * from example limit 3,6,9`, '6'],
+])('SQL - %s', (_, aQueryText, expected) => {
+    expect(sqlRemoveLimitKeyword(aQueryText)).toEqual(expected);
 });
