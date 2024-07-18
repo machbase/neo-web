@@ -60,12 +60,35 @@ export const TextExtension = (props: TextExtensionProps) => {
     return (
         <div className="textextension-editor">
             <div className="textextension-editor-header">
-                <div className="textextension-editor-header-l">{pLang === 'html' && <IconButton pIcon={<Play />} onClick={handleWindowOpen} />}</div>
+                <div className="textextension-editor-header-l">
+                    {pLang === 'html' && (
+                        <IconButton pPlace="bottom-start" pIsToopTip pToolTipContent="Run code" pToolTipId="txt-tab-run-code" pIcon={<Play />} onClick={handleWindowOpen} />
+                    )}
+                </div>
                 <div className="textextension-editor-header-r">
-                    {pLang === 'markdown' ? <IconButton pIcon={<BiSolidEdit size={18} />} pIsActive={!sIsPreview} onClick={() => setIsPreView(!sIsPreview)} /> : null}
-                    <IconButton pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
-                    <IconButton pIcon={<SaveAs size={18} />} onClick={() => setIsOpenModal(true)} />
-                    {pLang === 'html' && <IconButton pIcon={<MdLink />} onClick={handleCopyLink} />}
+                    {pLang === 'markdown' ? (
+                        <IconButton
+                            pPlace="bottom-end"
+                            pIsToopTip
+                            pToolTipContent="Edit"
+                            pToolTipId="txt-tab-edit"
+                            pIcon={<BiSolidEdit size={18} />}
+                            pIsActive={!sIsPreview}
+                            onClick={() => setIsPreView(!sIsPreview)}
+                        />
+                    ) : null}
+                    <IconButton pPlace="bottom-end" pIsToopTip pToolTipContent="Save" pToolTipId="txt-tab-save" pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
+                    <IconButton
+                        pPlace="bottom-end"
+                        pIsToopTip
+                        pToolTipContent="Save as"
+                        pToolTipId="txt-tab-save-as"
+                        pIcon={<SaveAs size={18} />}
+                        onClick={() => setIsOpenModal(true)}
+                    />
+                    {pLang === 'html' && (
+                        <IconButton pPlace="bottom-end" pIsToopTip pToolTipContent="Copy link" pToolTipId="txt-tab-copy-link" pIcon={<MdLink />} onClick={handleCopyLink} />
+                    )}
                 </div>
             </div>
             <div className="textextension-editor-content" style={{ padding: sIsPreview ? '0 1rem' : '', backgroundColor: sIsPreview ? '#1B1C21' : '' }}>

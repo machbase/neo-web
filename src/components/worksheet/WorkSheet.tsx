@@ -108,10 +108,24 @@ export const WorkSheet = (props: WorkSheetProps) => {
     return (
         <div className="worksheet-wrapper">
             <div className="worksheet-header">
-                <IconButton pIcon={<IoPlayForwardSharp />} onClick={() => setAllRunCodeStatus(true)} />
+                <IconButton
+                    pPlace="bottom-start"
+                    pIsToopTip
+                    pToolTipContent="Run code"
+                    pToolTipId="wrk-tab-run-code"
+                    pIcon={<IoPlayForwardSharp />}
+                    onClick={() => setAllRunCodeStatus(true)}
+                />
                 <div className="divider"></div>
-                <IconButton pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
-                <IconButton pIcon={<SaveAs size={18} />} onClick={() => setIsSaveModal(true)} />
+                <IconButton pPlace="bottom-start" pIsToopTip pToolTipContent="Save" pToolTipId="wrk-tab-save" pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
+                <IconButton
+                    pPlace="bottom-start"
+                    pIsToopTip
+                    pToolTipContent="Save as"
+                    pToolTipId="wrk-tab-save-as"
+                    pIcon={<SaveAs size={18} />}
+                    onClick={() => setIsSaveModal(true)}
+                />
             </div>
             <div className="worksheet-body">
                 <div className="worksheet">

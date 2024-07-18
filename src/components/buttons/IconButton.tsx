@@ -53,11 +53,12 @@ export const IconButton = (props: IconButtonProps) => {
                     </div>
                     <Tooltip
                         className="tooltip-div"
-                        place={pPlace ?? 'top'}
+                        place={pPlace ?? 'top-end'}
+                        positionStrategy="absolute"
                         anchorSelect={`.tooltip-${pToolTipId}`}
                         content={pToolTipContent}
                         style={{ width: pToolTipMaxWidth && pToolTipMaxWidth < 500 ? pToolTipMaxWidth + 'px' : '' }}
-                        delayShow={1000}
+                        delayShow={700}
                     />
                 </>
             ) : (

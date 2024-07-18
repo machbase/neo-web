@@ -130,8 +130,22 @@ export const CreateBridge = () => {
                     <ExtensionTab.Header>
                         <div />
                         <div style={{ display: 'flex' }}>
-                            <IconButton pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />} pIsActive={isVertical} onClick={() => setIsVertical(true)} />
-                            <IconButton pIcon={<LuFlipVertical />} pIsActive={!isVertical} onClick={() => setIsVertical(false)} />
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Horizontal"
+                                pToolTipId="bridge-tab-hori"
+                                pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
+                                pIsActive={isVertical}
+                                onClick={() => setIsVertical(true)}
+                            />
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Vertical"
+                                pToolTipId="bridge-tab-ver"
+                                pIcon={<LuFlipVertical />}
+                                pIsActive={!isVertical}
+                                onClick={() => setIsVertical(false)}
+                            />
                         </div>
                     </ExtensionTab.Header>
                     <ExtensionTab.Body>

@@ -1,7 +1,7 @@
 import { gActiveKey, gActiveTimer, gActiveShellManage, gBoardList, gActiveBridge, gActiveSubr } from '@/recoil/recoil';
 import { deepEqual, getId, isValidJSON } from '@/utils';
 import icons from '@/utils/icons';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { SaveCricle } from '@/assets/icons/Icon';
 import './Tab.scss';
@@ -162,6 +162,12 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
             }, 10)
         );
     };
+    const handleAuxClick = (e: React.MouseEvent) => {
+        if (e && e.button === 1 && e.type === 'auxclick') {
+            e.preventDefault();
+            closeTab(e);
+        }
+    };
 
     const handleDragLeave = (e: any) => {
         e.stopPropagation();
@@ -190,6 +196,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
                 onDragEnd={handleDragEnd}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
+                onAuxClick={handleAuxClick}
                 className="tab-inner"
             >
                 <span className="tab-name">
