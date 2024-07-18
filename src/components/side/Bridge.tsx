@@ -175,8 +175,24 @@ export const BridgeSide = ({ pServer }: any) => {
             <SideCollapse pCallback={handleCollapse} pCollapseState={sIsCollapse}>
                 <span className="title-text">BRIDGE</span>
                 <span className="sub-title-navi">
-                    <IconButton pWidth={20} pHeight={20} pIcon={<GoPlus size={15} />} onClick={handleCreate} />
-                    <IconButton pWidth={20} pHeight={20} pIcon={<MdRefresh size={15} />} onClick={handleRefresh} />
+                    <IconButton
+                        pIsToopTip
+                        pToolTipContent="New bridge"
+                        pToolTipId="bridge-explorer-new-bridge"
+                        pWidth={20}
+                        pHeight={20}
+                        pIcon={<GoPlus size={15} />}
+                        onClick={handleCreate}
+                    />
+                    <IconButton
+                        pIsToopTip
+                        pToolTipContent="Refresh"
+                        pToolTipId="bridge-explorer-refresh"
+                        pWidth={20}
+                        pHeight={20}
+                        pIcon={<MdRefresh size={15} />}
+                        onClick={handleRefresh}
+                    />
                 </span>
             </SideCollapse>
 

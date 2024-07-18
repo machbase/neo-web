@@ -534,10 +534,42 @@ any) => {
                                     />
                                 </div> */}
                                 {/* <IconButton pWidth={20} pHeight={20} pIcon={<TbFolder size={15} />} onClick={(aEvent: any) => handleIsOpenModal(true, aEvent)} /> */}
-                                <IconButton pWidth={20} pHeight={20} pIcon={<VscNewFile size={15} />} onClick={(aEvent: any) => handleFile(aEvent)} />
-                                <IconButton pWidth={20} pHeight={20} pIcon={<TbFolderPlus size={15} />} onClick={(aEvent: any) => handleFolder(true, aEvent, false)} />
-                                <IconButton pWidth={20} pHeight={20} pIcon={<TbCloudDown size={15} />} onClick={(aEvent: any) => handleFolder(true, aEvent, true)} />
-                                <IconButton pWidth={20} pHeight={20} pIcon={<MdRefresh size={15} />} onClick={(e: any) => handleRefresh(e)} />
+                                <IconButton
+                                    pIsToopTip
+                                    pToolTipContent="New file"
+                                    pToolTipId="file-explorer-new-file"
+                                    pWidth={20}
+                                    pHeight={20}
+                                    pIcon={<VscNewFile size={15} />}
+                                    onClick={(aEvent: any) => handleFile(aEvent)}
+                                />
+                                <IconButton
+                                    pIsToopTip
+                                    pToolTipContent="New folder"
+                                    pToolTipId="file-explorer-new-folder"
+                                    pWidth={20}
+                                    pHeight={20}
+                                    pIcon={<TbFolderPlus size={15} />}
+                                    onClick={(aEvent: any) => handleFolder(true, aEvent, false)}
+                                />
+                                <IconButton
+                                    pIsToopTip
+                                    pToolTipContent="Git clone"
+                                    pToolTipId="file-explorer-git-clone"
+                                    pWidth={20}
+                                    pHeight={20}
+                                    pIcon={<TbCloudDown size={15} />}
+                                    onClick={(aEvent: any) => handleFolder(true, aEvent, true)}
+                                />
+                                <IconButton
+                                    pIsToopTip
+                                    pToolTipContent="Refresh"
+                                    pToolTipId="file-explorer-refresh"
+                                    pWidth={20}
+                                    pHeight={20}
+                                    pIcon={<MdRefresh size={15} />}
+                                    onClick={(e: any) => handleRefresh(e)}
+                                />
                             </div>
                         </div>
                     </div>
