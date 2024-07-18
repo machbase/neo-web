@@ -136,9 +136,25 @@ export const Shell = ({ pServer }: any) => {
                     <span className="title-text">SHELL</span>
                     <span className="sub-title-navi">
                         {/* Create shell */}
-                        <IconButton pWidth={20} pHeight={20} pIcon={<GoPlus size={15} />} onClick={(aEvent: MouseEvent) => handleCreateShell(aEvent)} />
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="New shell"
+                            pToolTipId="shell-explorer-new-shell"
+                            pWidth={20}
+                            pHeight={20}
+                            pIcon={<GoPlus size={15} />}
+                            onClick={(aEvent: MouseEvent) => handleCreateShell(aEvent)}
+                        />
                         {/* GET shell list */}
-                        <IconButton pWidth={20} pHeight={20} pIcon={<MdRefresh size={15} />} onClick={(aEvent: MouseEvent) => shellList(aEvent)} />
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="Refresh"
+                            pToolTipId="shell-explorer-refresh"
+                            pWidth={20}
+                            pHeight={20}
+                            pIcon={<MdRefresh size={15} />}
+                            onClick={(aEvent: MouseEvent) => shellList(aEvent)}
+                        />
                     </span>
                 </div>
             </div>

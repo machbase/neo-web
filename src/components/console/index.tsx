@@ -11,6 +11,7 @@ import ConsoleTab from './ConsoleTab';
 import icons from '@/utils/icons';
 import { stringParseNewDate } from '@/utils/helpers/date';
 import moment from 'moment';
+import { IconButton } from '../buttons/IconButton';
 
 const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => {
     const [sConsoleTab, setConsoleTab] = useState<any>([]);
@@ -144,8 +145,19 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                 </div>
                 <div className="console-header-right">
                     <div ref={MenuRef} onClick={(aEvent: any) => onContextMenu(aEvent)} className="add-terminal">
-                        <VscAdd />
-                        <VscChevronDown />
+                        <IconButton
+                            pIsToopTip
+                            pPlace="bottom-end"
+                            pToolTipContent="Open shell"
+                            pToolTipId="console-open-shell"
+                            pIcon={
+                                <>
+                                    <VscAdd />
+                                    <VscChevronDown />
+                                </>
+                            }
+                            onClick={() => null}
+                        />
                         <div className="extension-menu">
                             <Menu isOpen={sIsContextMenu}>
                                 {getShellList.map((aItem: any) => {
@@ -159,10 +171,30 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                             </Menu>
                         </div>
                     </div>
-                    {sConsoleTab && sSelectedTab === sConsoleTab[0]?.id && <VscTrash onClick={() => setConsoleList([])} />}
+                    {sConsoleTab && sSelectedTab === sConsoleTab[0]?.id && (
+                        <IconButton pIsToopTip pPlace="bottom-end" pToolTipContent="Clear" pToolTipId="console-clear" pIcon={<VscTrash />} onClick={() => setConsoleList([])} />
+                    )}
 
-                    {pTerminalSizes[1] === 40 && <VscChevronUp onClick={() => pSetTerminalSizes(['72%', '28%'])} />}
-                    {pTerminalSizes[1] !== 40 && <VscChevronDown onClick={() => pSetTerminalSizes(['', 40])} />}
+                    {pTerminalSizes[1] === 40 && (
+                        <IconButton
+                            pIsToopTip
+                            pPlace="bottom-end"
+                            pToolTipContent="Expand"
+                            pToolTipId="console-expand"
+                            pIcon={<VscChevronUp />}
+                            onClick={() => pSetTerminalSizes(['72%', '28%'])}
+                        />
+                    )}
+                    {pTerminalSizes[1] !== 40 && (
+                        <IconButton
+                            pIsToopTip
+                            pPlace="bottom-end"
+                            pToolTipContent="Collapse"
+                            pToolTipId="console-collapse"
+                            pIcon={<VscChevronDown />}
+                            onClick={() => pSetTerminalSizes(['', 40])}
+                        />
+                    )}
                 </div>
             </div>
             <div ref={consoleRef} className="console-body">

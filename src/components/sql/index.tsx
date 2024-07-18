@@ -250,12 +250,12 @@ const Sql = ({
                         ref={sNavi}
                         onWheel={handleMouseWheel}
                     >
-                        <IconButton pIcon={<Play />} onClick={checkCtrl} />
+                        <IconButton pIsToopTip pToolTipContent="Run code" pToolTipId="sql-tab-explorer-run-code" pIcon={<Play />} onClick={checkCtrl} />
                         <div className="sql-option-ctr">
                             <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
                             <AUTOCOMBOBOX pName="sTimeZone" pList={IANA_TIMEZONES} pTarget={sTimeZone} pCallback={setTimeZone} />
-                            <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
-                            <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
+                            <IconButton pIsToopTip pToolTipContent="Save" pToolTipId="sql-tab-explorer-save" pIcon={<Save />} onClick={pHandleSaveModalOpen} />
+                            <IconButton pIsToopTip pToolTipContent="Save as" pToolTipId="sql-tab-explorer-save-as" pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
                         </div>
                     </div>
                     <div ref={sEditorRef} style={{ height: 'calc(100% - 40px)', width: '100%' }}>
@@ -304,8 +304,22 @@ const Sql = ({
                                 })}
                             </div>
                             <div className="sub-tab-header-icon-ctr">
-                                <IconButton pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />} pIsActive={isVertical} onClick={handleSplitVertical} />
-                                <IconButton pIcon={<LuFlipVertical />} pIsActive={!isVertical} onClick={handleSplitHorizontal} />
+                                <IconButton
+                                    pIsToopTip
+                                    pToolTipContent="Vertical"
+                                    pToolTipId="sql-tab-divider-explorer-hori"
+                                    pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
+                                    pIsActive={isVertical}
+                                    onClick={handleSplitVertical}
+                                />
+                                <IconButton
+                                    pIsToopTip
+                                    pToolTipContent="Horizontal"
+                                    pToolTipId="sql-tab-divider-explorer-ver"
+                                    pIcon={<LuFlipVertical />}
+                                    pIsActive={!isVertical}
+                                    onClick={handleSplitHorizontal}
+                                />
                             </div>
                         </div>
                         {sSelectedSubTab === 'RESULT' ? (

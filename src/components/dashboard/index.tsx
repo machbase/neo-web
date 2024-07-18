@@ -219,10 +219,30 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         <Input pBorderRadius={4} pWidth={175} pHeight={26} pType="text" pValue={pInfo.dashboard.title} pSetValue={() => null} onChange={changeDashboardName} />
                     </div>
                     <div className="board-header-r">
-                        <IconButton pIcon={<TbSquarePlus />} onClick={() => showEditPanel('create')}></IconButton>
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="New panel"
+                            pToolTipId="dsh-tab-explorer-new-panel"
+                            pIcon={<TbSquarePlus />}
+                            onClick={() => showEditPanel('create')}
+                        ></IconButton>
                         {/* <IconButton pIcon={<MdDevicesFold style={{ transform: 'rotate(-90deg)' }} />} pIsActive={!sIsPanelHeader} onClick={HandlePanelHeader} /> */}
-                        <IconButton pIcon={<VscSync />} onClick={() => HandleRefresh(pInfo.dashboard.timeRange)} />
-                        <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')} />
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="Refresh"
+                            pToolTipId="dsh-tab-explorer-refresh"
+                            pIcon={<VscSync />}
+                            onClick={() => HandleRefresh(pInfo.dashboard.timeRange)}
+                        />
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="Move range"
+                            pToolTipId="dsh-tab-explorer-move-r"
+                            pWidth={24}
+                            pHeight={24}
+                            pIcon={<VscChevronLeft />}
+                            onClick={() => moveTimeRange('l')}
+                        />
                         <button onClick={() => setTimeRangeModal(true)} className="set-global-option-btn">
                             <Calendar />
                             {pInfo && pInfo.dashboard.timeRange.start ? (
@@ -242,10 +262,20 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                             )}
                             , Refresh : {pInfo.dashboard.timeRange.refresh}
                         </button>
-                        <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight />} onClick={() => moveTimeRange('r')} />
-                        <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
-                        <IconButton pIcon={<SaveAs />} onClick={() => pSetIsSaveModal(true)} />
-                        {pIsSave ? <IconButton pIcon={<MdLink size={18} />} onClick={handleCopyLink} /> : null}
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="Move range"
+                            pToolTipId="dsh-tab-explorer-move-l"
+                            pWidth={24}
+                            pHeight={24}
+                            pIcon={<VscChevronRight />}
+                            onClick={() => moveTimeRange('r')}
+                        />
+                        <IconButton pIsToopTip pToolTipContent="Save" pToolTipId="dsh-tab-explorer-save" pIcon={<Save />} onClick={pHandleSaveModalOpen} />
+                        <IconButton pIsToopTip pToolTipContent="Save as" pToolTipId="dsh-tab-explorer-save-as" pIcon={<SaveAs />} onClick={() => pSetIsSaveModal(true)} />
+                        {pIsSave ? (
+                            <IconButton pIsToopTip pToolTipContent="Copy link" pToolTipId="dsh-tab-explorer-copy-link" pIcon={<MdLink size={18} />} onClick={handleCopyLink} />
+                        ) : null}
                     </div>
                 </div>
                 {pWidth && (

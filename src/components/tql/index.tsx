@@ -195,11 +195,11 @@ const Tql = (props: TqlProps) => {
             >
                 <Pane minSize={50}>
                     <div className="tql-editor-header">
-                        <IconButton pIcon={<Play />} onClick={() => getTqlData(sText)} />
+                        <IconButton pIsToopTip pToolTipContent="Run code" pToolTipId="tql-tab-explorer-run-code" pIcon={<Play />} onClick={() => getTqlData(sText)} />
                         <div style={{ display: 'flex' }}>
-                            <IconButton pIcon={<Save />} onClick={pHandleSaveModalOpen} />
-                            <IconButton pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
-                            {pIsSave && <IconButton pIcon={<MdLink />} onClick={handleCopyLink} />}
+                            <IconButton pIsToopTip pToolTipContent="Save" pToolTipId="tql-tab-explorer-save" pIcon={<Save />} onClick={pHandleSaveModalOpen} />
+                            <IconButton pIsToopTip pToolTipContent="Save as" pToolTipId="tql-tab-explorer-save-as" pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
+                            {pIsSave && <IconButton pIsToopTip pToolTipContent="Copy link" pToolTipId="tql-tab-explorer-copy-link" pIcon={<MdLink />} onClick={handleCopyLink} />}
                         </div>
                     </div>
                     <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
@@ -224,14 +224,42 @@ const Tql = (props: TqlProps) => {
                             </div>
                             <div className="tql-result-btn-group">
                                 {sResultType === 'text' && sTextField !== '' ? (
-                                    <IconButton pIcon={<VscJson />} pIsActive={sIsPrettier} onClick={() => setIsPrettier(!sIsPrettier)} />
+                                    <IconButton
+                                        pIsToopTip
+                                        pToolTipContent="JSON format"
+                                        pToolTipId="tql-tab-divider-explorer-json-format"
+                                        pIcon={<VscJson />}
+                                        pIsActive={sIsPrettier}
+                                        onClick={() => setIsPrettier(!sIsPrettier)}
+                                    />
                                 ) : null}
                                 {sResultType === 'csv' ? (
-                                    <IconButton pIcon={sIsHeader ? <TableHeader /> : <TableNotHeader />} pIsActive={sIsHeader} onClick={() => handleChangeHeader(sCsv)} />
+                                    <IconButton
+                                        pIsToopTip
+                                        pToolTipContent={`${sIsHeader ? 'Hide' : 'Show'} header`}
+                                        pToolTipId="tql-tab-divider-explorer-csv-format"
+                                        pIcon={sIsHeader ? <TableHeader /> : <TableNotHeader />}
+                                        pIsActive={sIsHeader}
+                                        onClick={() => handleChangeHeader(sCsv)}
+                                    />
                                 ) : null}
                                 <div className="divider" />
-                                <IconButton pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />} pIsActive={isVertical} onClick={handleSplitVertical} />
-                                <IconButton pIcon={<LuFlipVertical />} pIsActive={!isVertical} onClick={handleSplitHorizontal} />
+                                <IconButton
+                                    pIsToopTip
+                                    pToolTipContent="Vertical"
+                                    pToolTipId="tql-tab-divider-explorer-hori"
+                                    pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
+                                    pIsActive={isVertical}
+                                    onClick={handleSplitVertical}
+                                />
+                                <IconButton
+                                    pIsToopTip
+                                    pToolTipContent="Horizontal"
+                                    pToolTipId="tql-tab-divider-explorer-ver"
+                                    pIcon={<LuFlipVertical />}
+                                    pIsActive={!isVertical}
+                                    onClick={handleSplitHorizontal}
+                                />
                             </div>
                         </div>
                         <div ref={tqlResultBodyRef} className="tql-result-body" style={{ backgroundColor: '#1B1C21' }}>

@@ -488,23 +488,46 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         {DropDown()}
                         {VerticalDivision()}
                         {ResultContentType()}
-                        <IconButton pIcon={<Play />} pIsActiveHover onClick={() => handleRunCode(sText)} />
+                        <IconButton pIsToopTip pToolTipContent="Run code" pToolTipId="wrk-tab-panel-run" pIcon={<Play />} pIsActiveHover onClick={() => handleRunCode(sText)} />
                         {VerticalDivision()}
-                        <IconButton pIcon={<ArrowUpDouble />} pIsActiveHover onClick={() => pCallback({ id: pData.id, event: 'LocUp' })} />
                         <IconButton
+                            pIsToopTip
+                            pToolTipContent="Move to upper"
+                            pToolTipId="wrk-tab-panel-move-up"
+                            pIcon={<ArrowUpDouble />}
+                            pIsActiveHover
+                            onClick={() => pCallback({ id: pData.id, event: 'LocUp' })}
+                        />
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="Move to down"
+                            pToolTipId="wrk-tab-panel-move-down"
                             pIcon={<ArrowUpDouble style={{ transform: 'rotate(180deg)' }} />}
                             pIsActiveHover
                             onClick={() => pCallback({ id: pData.id, event: 'LocDown' })}
                         />
                         {VerticalDivision()}
-                        <IconButton pIcon={<InsertRowTop />} pIsActiveHover onClick={() => pCallback({ id: pData.id, event: 'AddTop' })} />
                         <IconButton
+                            pIsToopTip
+                            pToolTipContent="Add to upper"
+                            pToolTipId="wrk-tab-panel-add-up"
+                            pIcon={<InsertRowTop />}
+                            pIsActiveHover
+                            onClick={() => pCallback({ id: pData.id, event: 'AddTop' })}
+                        />
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="Add to down"
+                            pToolTipId="wrk-tab-panel-add-down"
                             pIcon={<InsertRowTop style={{ transform: 'rotate(180deg)' }} />}
                             pIsActiveHover
                             onClick={() => pCallback({ id: pData.id, event: 'AddBottom' })}
                         />
                         {VerticalDivision()}
                         <IconButton
+                            pIsToopTip
+                            pToolTipContent="Delete"
+                            pToolTipId="wrk-tab-panel-delete"
                             pIcon={<Delete />}
                             pDisabled={!(pWorkSheets.length > 1)}
                             pIsActiveHover
@@ -528,6 +551,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             </div>
             <div style={{ marginLeft: '5px' }}>
                 <IconButton
+                    pIsToopTip
+                    pToolTipContent={`${!sCollapse ? 'Collapse' : 'Expand'}`}
+                    pToolTipId="wrk-tab-panel-collapse"
                     pWidth={40}
                     pHeight={40}
                     pIcon={!sCollapse ? <HideOn size={18} /> : <HideOff size={18} style={{ transform: 'rotate(90deg)' }} />}

@@ -175,8 +175,22 @@ export const CreateKey = () => {
                     <ExtensionTab.Header>
                         <div />
                         <div style={{ display: 'flex' }}>
-                            <IconButton pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />} pIsActive={isVertical} onClick={() => setIsVertical(true)} />
-                            <IconButton pIcon={<LuFlipVertical />} pIsActive={!isVertical} onClick={() => setIsVertical(false)} />
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Vertical"
+                                pToolTipId="se-key-tab-hori"
+                                pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
+                                pIsActive={isVertical}
+                                onClick={() => setIsVertical(true)}
+                            />
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Horizontal"
+                                pToolTipId="se-key-tab-ver"
+                                pIcon={<LuFlipVertical />}
+                                pIsActive={!isVertical}
+                                onClick={() => setIsVertical(false)}
+                            />
                         </div>
                     </ExtensionTab.Header>
                     {sGenKeyInfo && sGenKeyInfo.success && (

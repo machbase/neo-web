@@ -21,6 +21,7 @@ import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
 import { Select } from '@/components/inputs/Select';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
+import { IconButton } from '../buttons/IconButton';
 
 export interface SaveDashboardModalProps {
     setIsOpen: any;
@@ -327,27 +328,35 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                     </div>
                     <div className="tool-bar">
                         <div className={`tool-bar-content ${pIsDarkMode ? 'dark dark-border' : ''} ${sSelectedDir.length > 0 ? 'active' : ''}`} onClick={() => handleBackPath()}>
-                            <ArrowLeft />
+                            <IconButton pIsToopTip pToolTipContent="Backward" pToolTipId="save-modal-backward" pIcon={<ArrowLeft />} onClick={() => null} />
                         </div>
-                        <div className={`tool-bar-content ${pIsDarkMode ? 'dark dark-border' : ''} ${sDeletePath.length > 0 ? 'active' : ''}`} style={{ marginLeft: '8px' }}>
-                            <ArrowRight onClick={() => handleForwardPath(sDeletePath[sDeletePath.length - 1])} />
+                        <div
+                            className={`tool-bar-content ${pIsDarkMode ? 'dark dark-border' : ''} ${sDeletePath.length > 0 ? 'active' : ''}`}
+                            style={{ marginLeft: '8px' }}
+                            onClick={() => handleForwardPath(sDeletePath[sDeletePath.length - 1])}
+                        >
+                            <IconButton pIsToopTip pToolTipContent="Forward" pToolTipId="save-modal-forward" pIcon={<ArrowRight />} onClick={() => null} />
                         </div>
                         <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark dark' : ''}`} style={{ marginLeft: '1rem' }}>
                             {sIsSearchMode ? (
-                                <Search />
+                                <Search style={{ cursor: 'default' }} />
                             ) : (
                                 <>
-                                    <Home />
-                                    <Play />
+                                    <Home style={{ cursor: 'default' }} />
+                                    <Play style={{ cursor: 'default' }} />
                                 </>
                             )}
-                            {sIsSearchMode ? <input onChange={changeSearchText} value={sSearchText} /> : <input readOnly value={sSelectedDir.join(' / ')} />}
+                            {sIsSearchMode ? (
+                                <input onChange={changeSearchText} value={sSearchText} />
+                            ) : (
+                                <input readOnly value={sSelectedDir.join(' / ')} style={{ cursor: 'default' }} />
+                            )}
                         </div>
                         <div className={`file-button ${pIsDarkMode ? 'dark' : ''}`} onClick={() => setIsSearchMode(!sIsSearchMode)}>
-                            <Search size={20} />
+                            <IconButton pIsToopTip pToolTipContent="Search" pToolTipId="save-modal-search" pIcon={<Search size={20} />} onClick={() => null} />
                         </div>
                         <div className={`file-button ${pIsDarkMode ? 'dark' : ''}`} onClick={makeFolder}>
-                            <NewFolder size={28} />
+                            <IconButton pIsToopTip pToolTipContent="New folder" pToolTipId="save-modal-new-folder" pIcon={<NewFolder size={28} />} onClick={() => null} />
                         </div>
                     </div>
                 </Modal.Header>

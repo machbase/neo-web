@@ -121,9 +121,25 @@ export const SecurityKey = ({ pServer }: any) => {
                     <span className="title-text">SECURITY KEY</span>
                     <span className="sub-title-navi">
                         {/* Create key */}
-                        <IconButton pWidth={20} pHeight={20} pIcon={<GoPlus size={15} />} onClick={(aEvent: MouseEvent) => handleKeyMode(aEvent)} />
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="New security key"
+                            pToolTipId="security-key-explorer-new-key"
+                            pWidth={20}
+                            pHeight={20}
+                            pIcon={<GoPlus size={15} />}
+                            onClick={(aEvent: MouseEvent) => handleKeyMode(aEvent)}
+                        />
                         {/* GET key list */}
-                        <IconButton pWidth={20} pHeight={20} pIcon={<MdRefresh size={15} />} onClick={(aEvent: MouseEvent) => keyList(aEvent)} />
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="Refresh"
+                            pToolTipId="security-key-explorer-refresh"
+                            pWidth={20}
+                            pHeight={20}
+                            pIcon={<MdRefresh size={15} />}
+                            onClick={(aEvent: MouseEvent) => keyList(aEvent)}
+                        />
                     </span>
                 </div>
             </div>
