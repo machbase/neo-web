@@ -95,7 +95,7 @@ const DBExplorer = ({ pServer }: any) => {
                     <span className="sub-title-navi">
                         <IconButton
                             pIsToopTip
-                            pToolTipContent={`${sShowHiddenObj ? 'Show' : 'Hide'} table`}
+                            pToolTipContent={`${sShowHiddenObj ? 'Show hidden' : 'Hide'} table`}
                             pToolTipId="db-explorer-show-table"
                             pWidth={20}
                             pHeight={20}
