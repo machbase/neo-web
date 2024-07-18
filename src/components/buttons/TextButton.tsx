@@ -1,3 +1,4 @@
+import { Loader } from '../loader';
 import './TextButton.scss';
 
 export interface TextButtonProps {
@@ -9,11 +10,23 @@ export interface TextButtonProps {
     pFontColor?: string;
     pBorderColor?: string;
     pBorderRadius?: number;
+    pIsLoad?: boolean;
     onClick: React.MouseEventHandler<HTMLDivElement>;
 }
 
 export const TextButton = (props: TextButtonProps) => {
-    const { onClick, pWidth = 120, pBorderColor = '#f8f8f8', pBorderRadius = 8, pFontColor = '#f8f8f8', pHeight = 40, pText, pBackgroundColor, pIsDisabled = false } = props;
+    const {
+        onClick,
+        pIsLoad = false,
+        pWidth = 120,
+        pBorderColor = '#f8f8f8',
+        pBorderRadius = 8,
+        pFontColor = '#f8f8f8',
+        pHeight = 40,
+        pText,
+        pBackgroundColor,
+        pIsDisabled = false,
+    } = props;
 
     return (
         <div
@@ -31,7 +44,7 @@ export const TextButton = (props: TextButtonProps) => {
             }}
             onClick={!pIsDisabled ? onClick : () => null}
         >
-            <span>{pText}</span>
+            {!pIsLoad ? <span>{pText}</span> : <Loader width="20px" height="20px" />}
         </div>
     );
 };

@@ -5,12 +5,15 @@ import { useEffect, useState } from 'react';
 import { VscChevronDown, VscChevronRight } from '@/assets/icons/Icon';
 import TableInfo from './TableInfo';
 import { getUserName } from '@/utils';
+import { TbDatabasePlus } from 'react-icons/tb';
+import { DBMountModal } from './DBMountModal';
 
 const DBExplorer = ({ pServer }: any) => {
     const [sDBList, setDBList] = useState<any>([]);
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sShowHiddenObj, setShowHiddenObj] = useState(true);
     const [sRefresh, setRefresh] = useState<number>(0);
+    const [mountModalOpen, setMountModalOpen] = useState<boolean>(false);
 
     const TableTypeConverter = (aType: number): string => {
         switch (aType) {
@@ -78,6 +81,10 @@ const DBExplorer = ({ pServer }: any) => {
         aEvent.stopPropagation();
         setShowHiddenObj(!sShowHiddenObj);
     };
+    const mountDB = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setMountModalOpen(true);
+    };
 
     useEffect(() => {
         init();
@@ -93,6 +100,16 @@ const DBExplorer = ({ pServer }: any) => {
                 <div className="files-open-option">
                     <span className="title-text">DB EXPLORER</span>
                     <span className="sub-title-navi">
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent={`Mount`}
+                            pToolTipId="db-explorer-mount"
+                            pWidth={20}
+                            pHeight={20}
+                            pIsActive={!sShowHiddenObj}
+                            pIcon={<TbDatabasePlus size={13} />}
+                            onClick={mountDB}
+                        />
                         <IconButton
                             pIsToopTip
                             pToolTipContent={`${sShowHiddenObj ? 'Show hidden' : 'Hide'} table`}
@@ -120,9 +137,10 @@ const DBExplorer = ({ pServer }: any) => {
                     sDBList &&
                     sDBList.length !== 0 &&
                     sDBList.map((aDB: any, aIdx: number) => {
-                        return <TableInfo pShowHiddenObj={sShowHiddenObj} key={aIdx} pValue={aDB} pDBList={sDBList} pSetDBList={setDBList} pRefresh={sRefresh} />;
+                        return <TableInfo pShowHiddenObj={sShowHiddenObj} key={aIdx} pValue={aDB} pRefresh={sRefresh} pUpdate={init} />;
                     })}
             </div>
+            {mountModalOpen && <DBMountModal setIsOpen={setMountModalOpen} pRefresh={init} />}
         </div>
     );
 };

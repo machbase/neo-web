@@ -1,13 +1,16 @@
-import { getTableInfo, getColumnIndexInfo, getRollupTable, getRecordCount } from '@/api/repository/api';
-import { useEffect, useState } from 'react';
+import { getTableInfo, getColumnIndexInfo, getRollupTable, getRecordCount, unMountDB } from '@/api/repository/api';
+import React, { useEffect, useState } from 'react';
 import { GoDotFill, FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser } from '@/assets/icons/Icon';
 import { getUserName } from '@/utils';
 import { getColumnType } from '@/utils/dashboardUtil';
 import { IconButton } from '@/components/buttons/IconButton';
+import { TbDatabaseMinus } from 'react-icons/tb';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import './TableInfo.scss';
 
-const TableInfo = ({ pShowHiddenObj, pValue, pRefresh }: any) => {
+const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate }: any) => {
     const [sCollapseTree, setCollapseTree] = useState(true);
+    const [isUnmount, setIsUnmount] = useState<boolean>(false);
     const DBDiv = (aIcon: React.ReactElement, aName: string, aClassName: string): JSX.Element => {
         return (
             <div className="db-folder-wrap">
@@ -17,13 +20,32 @@ const TableInfo = ({ pShowHiddenObj, pValue, pRefresh }: any) => {
             </div>
         );
     };
+    const handleUnmountModal = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsUnmount(true);
+    };
+    const unmountDB = async () => {
+        await unMountDB(pValue.dbName);
+        pUpdate();
+    };
+
     return (
         <>
             {/* DB */}
             {pValue && pValue.dbName && (
                 <div className="db-wrap db-exp-comm" style={{ alignItems: 'baseline' }} onClick={() => setCollapseTree(!sCollapseTree)}>
                     {DBDiv(<FaDatabase />, pValue.dbName, sCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow')}
+                    {pValue.dbName !== 'MACHBASEDB' && <IconButton pWidth={20} pHeight={20} pIcon={<TbDatabaseMinus size={13} />} onClick={handleUnmountModal} />}
                 </div>
+            )}
+            {/* DELETE CONFIRM MODAL */}
+            {isUnmount && (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={setIsUnmount}
+                    pCallback={unmountDB}
+                    pContents={<div className="body-content">{`Do you want to unmount this database (${pValue?.dbName})?`}</div>}
+                />
             )}
             {/* USER */}
             {pValue && sCollapseTree && (
