@@ -57,6 +57,7 @@ export const IconButton = (props: IconButtonProps) => {
                         anchorSelect={`.tooltip-${pToolTipId}`}
                         content={pToolTipContent}
                         style={{ width: pToolTipMaxWidth && pToolTipMaxWidth < 500 ? pToolTipMaxWidth + 'px' : '' }}
+                        delayShow={1000}
                     />
                 </>
             ) : (
