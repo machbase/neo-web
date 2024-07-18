@@ -33,9 +33,19 @@ const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate }: any) => {
         <>
             {/* DB */}
             {pValue && pValue.dbName && (
-                <div className="db-wrap db-exp-comm" style={{ alignItems: 'baseline' }} onClick={() => setCollapseTree(!sCollapseTree)}>
+                <div className="db-wrap db-exp-comm" onClick={() => setCollapseTree(!sCollapseTree)}>
                     {DBDiv(<FaDatabase />, pValue.dbName, sCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow')}
-                    {pValue.dbName !== 'MACHBASEDB' && <IconButton pWidth={20} pHeight={20} pIcon={<TbDatabaseMinus size={13} />} onClick={handleUnmountModal} />}
+                    {pValue.dbName !== 'MACHBASEDB' && (
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="Database unmount"
+                            pToolTipId="db-unmount"
+                            pWidth={20}
+                            pHeight={20}
+                            pIcon={<TbDatabaseMinus size={13} />}
+                            onClick={handleUnmountModal}
+                        />
+                    )}
                 </div>
             )}
             {/* DELETE CONFIRM MODAL */}

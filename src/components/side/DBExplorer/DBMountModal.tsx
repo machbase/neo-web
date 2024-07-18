@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { TextButton } from '@/components/buttons/TextButton';
 import { getDBSPath, mountDB } from '@/api/repository/api';
 import Modal from '@/components/modal/Modal';
-import { Tooltip } from 'react-tooltip';
 
 export const DBMountModal = ({ setIsOpen, pRefresh }: { setIsOpen: (status: boolean) => void; pRefresh: () => void }) => {
     const [mountDBInfo, setMountDBInfo] = useState<{ name: string; path: string }>({ name: '', path: '' });

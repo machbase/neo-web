@@ -101,8 +101,9 @@ const DBExplorer = ({ pServer }: any) => {
                     <span className="title-text">DB EXPLORER</span>
                     <span className="sub-title-navi">
                         <IconButton
+                            pPlace="bottom-end"
                             pIsToopTip
-                            pToolTipContent={`Mount`}
+                            pToolTipContent={`Database mount`}
                             pToolTipId="db-explorer-mount"
                             pWidth={20}
                             pHeight={20}
