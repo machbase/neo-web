@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { TextButton } from '@/components/buttons/TextButton';
 import { getDBSPath, mountDB } from '@/api/repository/api';
 import Modal from '@/components/modal/Modal';
+import { Tooltip } from 'react-tooltip';
 
 export const DBMountModal = ({ setIsOpen, pRefresh }: { setIsOpen: (status: boolean) => void; pRefresh: () => void }) => {
     const [mountDBInfo, setMountDBInfo] = useState<{ name: string; path: string }>({ name: '', path: '' });
@@ -93,7 +94,15 @@ export const DBMountModal = ({ setIsOpen, pRefresh }: { setIsOpen: (status: bool
                             <div className={`file-dark-content-name`}>
                                 <div className={`file-dark-content-name-wrap`} style={{ display: 'flex', alignItems: 'baseLine' }}>
                                     <span>Path</span>
-                                    <div style={{ marginLeft: '4px', display: 'flex', fontSize: '12px', color: '#9d9d9d', cursor: 'default' }}>(default: {defaultPath})</div>
+                                    <div>
+                                        <div
+                                            className={`tooltip-db-mount-default-path tooltip-icon`}
+                                            style={{ marginLeft: '4px', display: 'flex', fontSize: '12px', color: '#9d9d9d', cursor: 'default' }}
+                                        >
+                                            default path
+                                        </div>
+                                        <Tooltip className="tooltip-div" place={'top'} anchorSelect={`.tooltip-db-mount-default-path`} content={defaultPath} />
+                                    </div>
                                 </div>
                                 <div className={`input-wrapper input-wrapper-dark`}>
                                     <input onChange={(e) => handleMountDBInfo('path', e)} value={mountDBInfo.path} onKeyDown={handleEnter} />
