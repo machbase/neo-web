@@ -110,16 +110,18 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                 {props.pUserData.tableList[aTableType].map((aTable: any, bIdx: number) => {
                                     return (
                                         <div className="table-wrap-content" key={`table-${aTableType}-${aIdx}-${bIdx}`} style={{ display: checkDisplay(aTable[5]) ? '' : 'none' }}>
-                                           {sUserName && <TableDiv
-                                                pShowHiddenObj={props.pShowHiddenObj}
-                                                pUserName={sUserName}
-                                                pTableIcon={<TfiLayoutColumn3Alt style={{ color: getColor(aTableType), rotate: '90deg' }} />}
-                                                pTable={aTable}
-                                                pTableType={aTableType}
-                                                onTableInfo={getTableInfoData}
-                                                onColumnInfo={getColumnIndexInfoData}
-                                                pRefresh={props.pRefresh}
-                                            />}
+                                            {sUserName && (
+                                                <TableDiv
+                                                    pShowHiddenObj={props.pShowHiddenObj}
+                                                    pUserName={sUserName}
+                                                    pTableIcon={<TfiLayoutColumn3Alt style={{ color: getColor(aTableType), rotate: '90deg' }} />}
+                                                    pTable={aTable}
+                                                    pTableType={aTableType}
+                                                    onTableInfo={getTableInfoData}
+                                                    onColumnInfo={getColumnIndexInfoData}
+                                                    pRefresh={props.pRefresh}
+                                                />
+                                            )}
                                         </div>
                                     );
                                 })}
@@ -188,7 +190,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
                             pWidth={'100%'}
                             pHeight={20}
                             pIsToopTip
-                            pToolTipContent={props.pTableType}
+                            pToolTipContent={props.pTableType + ' table'}
                             pToolTipId={props.pTableType + props.pUserName + '-block-math'}
                             pIcon={
                                 <>

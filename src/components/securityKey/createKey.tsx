@@ -177,7 +177,7 @@ export const CreateKey = () => {
                         <div style={{ display: 'flex' }}>
                             <IconButton
                                 pIsToopTip
-                                pToolTipContent="Horizontal"
+                                pToolTipContent="Vertical"
                                 pToolTipId="se-key-tab-hori"
                                 pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
                                 pIsActive={isVertical}
@@ -185,7 +185,7 @@ export const CreateKey = () => {
                             />
                             <IconButton
                                 pIsToopTip
-                                pToolTipContent="Vertical"
+                                pToolTipContent="Horizontal"
                                 pToolTipId="se-key-tab-ver"
                                 pIcon={<LuFlipVertical />}
                                 pIsActive={!isVertical}

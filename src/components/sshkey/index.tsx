@@ -189,7 +189,7 @@ export const SSHKey = () => {
                             <div style={{ display: 'flex' }}>
                                 <IconButton
                                     pIsToopTip
-                                    pToolTipContent="Horizontal"
+                                    pToolTipContent="Vertical"
                                     pToolTipId="ssh-key-tab-hori"
                                     pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
                                     pIsActive={isVertical}
@@ -197,7 +197,7 @@ export const SSHKey = () => {
                                 />
                                 <IconButton
                                     pIsToopTip
-                                    pToolTipContent="Vertical"
+                                    pToolTipContent="Horizontal"
                                     pToolTipId="ssh-key-tab-ver"
                                     pIcon={<LuFlipVertical />}
                                     pIsActive={!isVertical}

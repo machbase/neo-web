@@ -190,7 +190,7 @@ export const EditTimer = () => {
                         <div style={{ display: 'flex' }}>
                             <IconButton
                                 pIsToopTip
-                                pToolTipContent="Horizontal"
+                                pToolTipContent="Vertical"
                                 pToolTipId="timer-tab-hori"
                                 pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
                                 pIsActive={isVertical}
@@ -198,7 +198,7 @@ export const EditTimer = () => {
                             />
                             <IconButton
                                 pIsToopTip
-                                pToolTipContent="Vertical"
+                                pToolTipContent="Horizontal"
                                 pToolTipId="timer-tab-ver"
                                 pIcon={<LuFlipVertical />}
                                 pIsActive={!isVertical}

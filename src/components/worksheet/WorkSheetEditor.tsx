@@ -492,7 +492,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         {VerticalDivision()}
                         <IconButton
                             pIsToopTip
-                            pToolTipContent="Move to up"
+                            pToolTipContent="Move to upper"
                             pToolTipId="wrk-tab-panel-move-up"
                             pIcon={<ArrowUpDouble />}
                             pIsActiveHover
@@ -509,7 +509,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         {VerticalDivision()}
                         <IconButton
                             pIsToopTip
-                            pToolTipContent="Add to up"
+                            pToolTipContent="Add to upper"
                             pToolTipId="wrk-tab-panel-add-up"
                             pIcon={<InsertRowTop />}
                             pIsActiveHover

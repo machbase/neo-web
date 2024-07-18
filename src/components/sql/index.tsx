@@ -306,7 +306,7 @@ const Sql = ({
                             <div className="sub-tab-header-icon-ctr">
                                 <IconButton
                                     pIsToopTip
-                                    pToolTipContent="Horizontal"
+                                    pToolTipContent="Vertical"
                                     pToolTipId="sql-tab-divider-explorer-hori"
                                     pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
                                     pIsActive={isVertical}
@@ -314,7 +314,7 @@ const Sql = ({
                                 />
                                 <IconButton
                                     pIsToopTip
-                                    pToolTipContent="Vertical"
+                                    pToolTipContent="Horizontal"
                                     pToolTipId="sql-tab-divider-explorer-ver"
                                     pIcon={<LuFlipVertical />}
                                     pIsActive={!isVertical}

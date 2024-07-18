@@ -246,7 +246,7 @@ const Tql = (props: TqlProps) => {
                                 <div className="divider" />
                                 <IconButton
                                     pIsToopTip
-                                    pToolTipContent="Horizontal"
+                                    pToolTipContent="Vertical"
                                     pToolTipId="tql-tab-divider-explorer-hori"
                                     pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
                                     pIsActive={isVertical}
@@ -254,7 +254,7 @@ const Tql = (props: TqlProps) => {
                                 />
                                 <IconButton
                                     pIsToopTip
-                                    pToolTipContent="Vertical"
+                                    pToolTipContent="Horizontal"
                                     pToolTipId="tql-tab-divider-explorer-ver"
                                     pIcon={<LuFlipVertical />}
                                     pIsActive={!isVertical}

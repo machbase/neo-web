@@ -237,7 +237,7 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                                 <div style={{ display: 'flex' }}>
                                     <IconButton
                                         pIsToopTip
-                                        pToolTipContent="Horizontal"
+                                        pToolTipContent="Vertical"
                                         pToolTipId="bridge-tab-hori"
                                         pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
                                         pIsActive={isVertical}
@@ -245,7 +245,7 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                                     />
                                     <IconButton
                                         pIsToopTip
-                                        pToolTipContent="Vertical"
+                                        pToolTipContent="Horizontal"
                                         pToolTipId="bridge-tab-ver"
                                         pIcon={<LuFlipVertical />}
                                         pIsActive={!isVertical}

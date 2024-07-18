@@ -179,8 +179,8 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                         <IconButton
                             pIsToopTip
                             pPlace="bottom-end"
-                            pToolTipContent="Maximize"
-                            pToolTipId="console-maximize"
+                            pToolTipContent="Expand"
+                            pToolTipId="console-expand"
                             pIcon={<VscChevronUp />}
                             onClick={() => pSetTerminalSizes(['72%', '28%'])}
                         />
@@ -189,8 +189,8 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                         <IconButton
                             pIsToopTip
                             pPlace="bottom-end"
-                            pToolTipContent="Minimize"
-                            pToolTipId="console-minimize"
+                            pToolTipContent="Collapse"
+                            pToolTipId="console-collapse"
                             pIcon={<VscChevronDown />}
                             onClick={() => pSetTerminalSizes(['', 40])}
                         />

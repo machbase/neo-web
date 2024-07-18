@@ -369,7 +369,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                         <div style={{ display: 'flex' }}>
                             <IconButton
                                 pIsToopTip
-                                pToolTipContent="Horizontal"
+                                pToolTipContent="Vertical"
                                 pToolTipId="sub-tab-hori"
                                 pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
                                 pIsActive={isVertical}
@@ -377,7 +377,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                             />
                             <IconButton
                                 pIsToopTip
-                                pToolTipContent="Vertical"
+                                pToolTipContent="Horizontal"
                                 pToolTipId="sub-tab-ver"
                                 pIcon={<LuFlipVertical />}
                                 pIsActive={!isVertical}

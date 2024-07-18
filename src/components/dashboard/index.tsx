@@ -272,7 +272,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                             onClick={() => moveTimeRange('r')}
                         />
                         <IconButton pIsToopTip pToolTipContent="Save" pToolTipId="dsh-tab-explorer-save" pIcon={<Save />} onClick={pHandleSaveModalOpen} />
-                        <IconButton pIsToopTip pToolTipContent="Save-as" pToolTipId="dsh-tab-explorer-save-as" pIcon={<SaveAs />} onClick={() => pSetIsSaveModal(true)} />
+                        <IconButton pIsToopTip pToolTipContent="Save as" pToolTipId="dsh-tab-explorer-save-as" pIcon={<SaveAs />} onClick={() => pSetIsSaveModal(true)} />
                         {pIsSave ? (
                             <IconButton pIsToopTip pToolTipContent="Copy link" pToolTipId="dsh-tab-explorer-copy-link" pIcon={<MdLink size={18} />} onClick={handleCopyLink} />
                         ) : null}
