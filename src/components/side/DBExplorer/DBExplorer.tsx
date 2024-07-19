@@ -100,17 +100,19 @@ const DBExplorer = ({ pServer }: any) => {
                 <div className="files-open-option">
                     <span className="title-text">DB EXPLORER</span>
                     <span className="sub-title-navi">
-                        <IconButton
-                            pPlace="bottom-end"
-                            pIsToopTip
-                            pToolTipContent={`Database mount`}
-                            pToolTipId="db-explorer-mount"
-                            pWidth={20}
-                            pHeight={20}
-                            pIsActive={!sShowHiddenObj}
-                            pIcon={<TbDatabasePlus size={13} />}
-                            onClick={mountDB}
-                        />
+                        {(localStorage.getItem('experimentMode') === 'true' ?? false) && (
+                            <IconButton
+                                pPlace="bottom-end"
+                                pIsToopTip
+                                pToolTipContent={`Database mount`}
+                                pToolTipId="db-explorer-mount"
+                                pWidth={20}
+                                pHeight={20}
+                                pIsActive={!sShowHiddenObj}
+                                pIcon={<TbDatabasePlus size={13} />}
+                                onClick={mountDB}
+                            />
+                        )}
                         <IconButton
                             pIsToopTip
                             pToolTipContent={`${sShowHiddenObj ? 'Show hidden' : 'Hide'} table`}
