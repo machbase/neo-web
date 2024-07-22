@@ -100,7 +100,7 @@ const DBExplorer = ({ pServer }: any) => {
                 <div className="files-open-option">
                     <span className="title-text">DB EXPLORER</span>
                     <span className="sub-title-navi">
-                        {(localStorage.getItem('experimentMode') === 'true' ?? false) && (
+                        {(localStorage.getItem('experimentMode') === 'true' ?? false) && getUserName() === 'sys' && (
                             <IconButton
                                 pPlace="bottom-end"
                                 pIsToopTip

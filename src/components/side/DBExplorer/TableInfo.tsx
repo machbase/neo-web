@@ -35,7 +35,7 @@ const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate }: any) => {
             {pValue && pValue.dbName && (
                 <div className="db-wrap db-exp-comm" onClick={() => setCollapseTree(!sCollapseTree)}>
                     {DBDiv(<FaDatabase />, pValue.dbName, sCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow')}
-                    {(localStorage.getItem('experimentMode') === 'true' ?? false) && pValue.dbName !== 'MACHBASEDB' && (
+                    {(localStorage.getItem('experimentMode') === 'true' ?? false) && getUserName() === 'sys' && pValue.dbName !== 'MACHBASEDB' && (
                         <IconButton
                             pIsToopTip
                             pToolTipContent="Database unmount"
