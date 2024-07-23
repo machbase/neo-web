@@ -131,13 +131,6 @@ const postShell = (aInfo: any) => {
         data: aInfo,
     });
 };
-export const getDBSPath = () => {
-    const queryString = `/machbase?q=select * from v$PROPERTY WHERE NAME = 'DBS_PATH'`;
-    return request({
-        method: 'GET',
-        url: queryString,
-    });
-};
 export const mountDB = (name: string, path: string) => {
     const sPath = path.replaceAll('\\', '/');
     const queryString = `/machbase?q=MOUNT DATABASE '${sPath}' TO ${name}`;
@@ -151,6 +144,12 @@ export const unMountDB = (name: string) => {
     return request({
         method: 'GET',
         url: queryString,
+    });
+};
+export const backupDBList = () => {
+    return request({
+        method: 'GET',
+        url: `/api/backup/archives`,
     });
 };
 

@@ -1,4 +1,8 @@
 .db-mount-modal {
+    .modal {
+        max-width: 500px;
+    }
+
     svg {
         cursor: pointer;
     }
@@ -75,8 +79,13 @@
                 background-color: rgba(38, 40, 49, 0.5);
                 color: #fff;
                 border-radius: 0px;
+                padding: 8px;
                 font-size: small;
                 cursor: pointer;
+
+                svg {
+                    margin-right: 4px;
+                }
 
                 span {
                     display: flex;
