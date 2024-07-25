@@ -54,7 +54,7 @@ export const isRollup = (aRollups: any, aTableName: string, aInterval: number, a
     const sSplitTableName = aTableName.split('.');
     let sUserName: string = ADMIN_ID;
     const sTableName: string = sSplitTableName.at(-1) as string;
-    if (sSplitTableName.length > 2) sUserName = sSplitTableName.at(-2) as string;
+    if (sSplitTableName.length > 1) sUserName = sSplitTableName.at(-2) as string;
     if (!isEmpty(aRollups) && aRollups[sUserName] && aRollups[sUserName][sTableName] && aRollups[sUserName][sTableName][aColumnName] && aInterval > 0) {
         const aValue = aRollups[sUserName][sTableName][aColumnName];
         const aResult = aValue.find((aRollupTime: any) => aInterval % aRollupTime === 0);
