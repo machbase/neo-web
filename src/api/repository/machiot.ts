@@ -162,7 +162,7 @@ const fetchCalculationData = async (params: any) => {
     const sLastQuery = `SQL("${sMainQuery}")\nCSV()`;
     const sData = await request({
         method: 'POST',
-        url: '/api/tql',
+        url: '/api/tql/taz',
         data: sLastQuery,
     });
 
@@ -261,7 +261,7 @@ const fetchRawData = async (params: any) => {
 
     const sData = await request({
         method: 'POST',
-        url: '/api/tql',
+        url: '/api/tql/taz',
         data: sLastQuery,
     });
 
@@ -345,12 +345,17 @@ export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
     return sData.data.rows;
 };
 
+const getTableName = (targetTxt: string) => {
+    if (targetTxt.includes('.')) return targetTxt.split('.').at(-1);
+    else return targetTxt;
+};
+
 export const fetchTimeMinMax = async (aTargetInfo: any) => {
     let sQuery: string | undefined = undefined;
     // Query tag table
     if (aTargetInfo.type === 'tag') {
         const sIsVirtualTable = aTargetInfo.table.includes('V$');
-        const sTableName = sIsVirtualTable ? removeV$Table(aTargetInfo.table) : aTargetInfo.table;
+        const sTableName = sIsVirtualTable ? removeV$Table(aTargetInfo.table) : getTableName(aTargetInfo.table);
         sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
     }
     // Query log table
@@ -381,9 +386,10 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
 
 export const fetchVirtualStatTable = async (aTable: string, aTagList: string[], aTagSet?: any) => {
     const sTime = aTagSet ? aTagSet.colName.time : 'TIME';
-    const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
-
-    let query: string = `select min_time, max_time from ${sCurrentUserName}.V$${aTable}_STAT WHERE NAME IN ('${aTagList.join("','")}')`;
+    const sSplitTable = aTable.split('.');
+    let query: string = `select min_time, max_time from ${sSplitTable.length === 1 ? ADMIN_ID : sSplitTable[0]}.V$${sSplitTable.at(-1)}_STAT WHERE NAME IN ('${aTagList.join(
+        "','"
+    )}')`;
 
     if (aTable.split('.').length > 2) {
         query = `select min(${sTime}), max(${sTime}) from ${aTable}`;

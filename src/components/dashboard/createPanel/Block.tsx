@@ -100,68 +100,80 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         }
     };
     const getColumnList = async (aTable: string) => {
-        const sTable = pTableList.find((aItem: any) => aItem[3] === aTable || `V$${aItem[3]}_STAT` === aTable);
+        const sTable = pTableList.find(
+            (aItem: any) =>
+                aItem[3] === aTable ||
+                `V$${aItem[3]}_STAT` === aTable ||
+                (aItem[3].split('.').length === 2 && `${aItem[1]}.V$${aItem[3].split('.').at(-1)}_STAT` === pBlockInfo.table)
+        );
         const sIsVirtualTable = aTable.includes('V$');
-        const sData = sIsVirtualTable ? await getVirtualTableInfo(sTable[6], aTable) : await getTableInfo(sTable[6], sTable[2]);
-        if (pType === 'create') {
-            pSetPanelOption((aPrev: any) => {
-                return {
-                    ...aPrev,
-                    blockList: aPrev.blockList.map((aItem: any) => {
-                        return aItem.id === pBlockInfo.id
-                            ? {
-                                  ...aItem,
-                                  name: sData.data.rows.filter((aItem: any) => {
-                                      return aItem[1] === 5;
-                                  })[0][0],
-                                  time: sData.data.rows.filter((aItem: any) => {
-                                      return aItem[1] === 6;
-                                  })[0][0],
-                                  value: sData.data.rows.filter((aItem: any) => {
-                                      return isNumberTypeColumn(aItem[1]);
-                                  })[0][0],
-                                  type: getTableType(sTable[4]),
-                                  tableInfo: sData.data.rows,
-                                  values: aItem.values.map((aItem: any) => {
-                                      return {
-                                          ...aItem,
-                                          value: sData.data.rows.filter((aItem: any) => {
-                                              return isNumberTypeColumn(aItem[1]);
-                                          })[0][0],
-                                      };
-                                  }),
-                                  filter: [
-                                      {
-                                          ...aItem.filter[0],
-                                          column: sData.data.rows.filter((aItem: any) => {
-                                              return aItem[1] === 5;
-                                          })[0][0],
-                                      },
-                                  ],
-                              }
-                            : aItem;
-                    }),
-                };
-            });
+        const sData = sIsVirtualTable
+            ? await getVirtualTableInfo(sTable[6], aTable?.includes('.') ? (aTable.split('.').at(-1) as string) : aTable, sTable[1])
+            : await getTableInfo(sTable[6], sTable[2]);
+        if (sData && sData?.data?.rows && sData?.data?.rows?.length > 0) {
+            if (pType === 'create') {
+                pSetPanelOption((aPrev: any) => {
+                    return {
+                        ...aPrev,
+                        blockList: aPrev.blockList.map((aItem: any) => {
+                            return aItem.id === pBlockInfo.id
+                                ? {
+                                      ...aItem,
+                                      name: sData.data.rows.filter((aItem: any) => {
+                                          return aItem[1] === 5;
+                                      })[0][0],
+                                      time: sData.data.rows.filter((aItem: any) => {
+                                          return aItem[1] === 6;
+                                      })[0][0],
+                                      value: sData.data.rows.filter((aItem: any) => {
+                                          return isNumberTypeColumn(aItem[1]);
+                                      })[0][0],
+                                      type: getTableType(sTable[4]),
+                                      tableInfo: sData.data.rows,
+                                      values: aItem.values.map((aItem: any) => {
+                                          return {
+                                              ...aItem,
+                                              value: sData.data.rows.filter((aItem: any) => {
+                                                  return isNumberTypeColumn(aItem[1]);
+                                              })[0][0],
+                                          };
+                                      }),
+                                      filter: [
+                                          {
+                                              ...aItem.filter[0],
+                                              column: sData.data.rows.filter((aItem: any) => {
+                                                  return aItem[1] === 5;
+                                              })[0][0],
+                                          },
+                                      ],
+                                  }
+                                : aItem;
+                        }),
+                    };
+                });
+            } else {
+                pSetPanelOption((aPrev: any) => {
+                    return {
+                        ...aPrev,
+                        blockList: aPrev.blockList.map((aItem: any) => {
+                            return aItem.id === pBlockInfo.id
+                                ? {
+                                      ...aItem,
+                                      name: sData.data.rows[0][0],
+                                      type: getTableType(sTable[4]),
+                                      tableInfo: sData.data.rows,
+                                  }
+                                : aItem;
+                        }),
+                    };
+                });
+            }
+            setTimeList(sData.data.rows.filter((aItem: any) => aItem[1] === 6));
+            setColumnList(sData.data.rows);
         } else {
-            pSetPanelOption((aPrev: any) => {
-                return {
-                    ...aPrev,
-                    blockList: aPrev.blockList.map((aItem: any) => {
-                        return aItem.id === pBlockInfo.id
-                            ? {
-                                  ...aItem,
-                                  name: sData.data.rows[0][0],
-                                  type: getTableType(sTable[4]),
-                                  tableInfo: sData.data.rows,
-                              }
-                            : aItem;
-                    }),
-                };
-            });
+            setTimeList([]);
+            setColumnList([]);
         }
-        setTimeList(sData.data.rows.filter((aItem: any) => aItem[1] === 6));
-        setColumnList(sData.data.rows);
     };
     const changeValueOption = (aKey: string, aData: any, aId: string, aChangedKey: string) => {
         pSetPanelOption((aPrev: any) => {
@@ -362,7 +374,15 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         const sTableList = pTableList.map((aItem: any) => aItem[3]);
         if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
             const sTagTableList = JSON.parse(JSON.stringify(pTableList)).filter((aTable: any) => getTableType(aTable[4]) === 'tag' && aTable[6] === -1);
-            sTagTableList.filter((aTagTable: any) => aTagTable.splice(3, 0, `V$${aTagTable[3]}_STAT`));
+            sTagTableList.filter((aTagTable: any) => {
+                // check user
+                if (aTagTable[3].includes('.')) {
+                    const sSplitInfo = aTagTable[3].split('.');
+                    const sTable = sSplitInfo[1];
+                    const sUser = sSplitInfo[0];
+                    return aTagTable.splice(3, 0, `${sUser}.V$${sTable}_STAT`);
+                } else return aTagTable.splice(3, 0, `V$${aTagTable[3]}_STAT`);
+            });
             const sResult = sTableList.concat(sTagTableList.map((bTagTable: any) => bTagTable[3]));
             return sResult;
         } else {
@@ -382,7 +402,13 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     }, [pPanelOption.type]);
     /** init */
     const init = async () => {
-        const sTable = pTableList.find((aItem: any) => aItem[3] === pBlockInfo.table || `V$${aItem[3]}_STAT` === pBlockInfo.table);
+        const sTable = pTableList.find(
+            (aItem: any) =>
+                aItem[3] === pBlockInfo.table ||
+                `V$${aItem[3]}_STAT` === pBlockInfo.table ||
+                (aItem[3].split('.').length === 2 && `${aItem[1]}.V$${aItem[3].split('.').at(-1)}_STAT` === pBlockInfo.table)
+        );
+        if (!sTable) return;
         const sIsVirtualTable = pBlockInfo.table.includes('V$');
         const sTableType = getTableType(sTable[4]);
         const sSelectedType = sIsVirtualTable ? 'vir_tag' : sTableType;

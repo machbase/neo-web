@@ -94,8 +94,8 @@ export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
     const sDbIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'DB');
     const sUserIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'USER');
     const sTableIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'NAME');
-
     let sParseTables = aTableInfo.rows.filter((aItem: any) => aItem[4] === 'Tag Table');
+
     if (!sIsAdmin) {
         sParseTables = sParseTables.filter((aItem: any) => aItem[sDbIdx].toLowerCase() === DEFAULT_DB_NAME);
     }
@@ -104,7 +104,7 @@ export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
         if (aItem[sDbIdx].toLowerCase() !== DEFAULT_DB_NAME) {
             return aItem[sDbIdx] + '.' + aItem[sUserIdx] + '.' + aItem[sTableIdx];
         } else {
-            if (aItem[sUserIdx].toUpperCase() === sCurrentUserName.toUpperCase()) {
+            if (aItem[sUserIdx].toUpperCase() === ADMIN_ID.toUpperCase()) {
                 return aItem[sTableIdx];
             } else {
                 return aItem[sUserIdx] + '.' + aItem[sTableIdx];
@@ -130,7 +130,7 @@ export const parseDashboardTables = (aTableInfo: { columns: any[]; rows: any[] }
     return sParseTables.map((aItem: any) => {
         // MACHBASE_DB
         if (aItem[sMount] === -1) {
-            if (aItem[sUserIdx].toUpperCase() === sCurrentUserName.toUpperCase()) {
+            if (aItem[sUserIdx].toUpperCase() === ADMIN_ID.toUpperCase()) {
                 return aItem;
             } else {
                 aItem[sTableIdx] = aItem[sUserIdx] + '.' + aItem[sTableIdx];

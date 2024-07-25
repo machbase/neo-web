@@ -20,19 +20,18 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
             {!pFilterInfo.useTyping && (
                 <>
                     <div className="series-table">
-                        {pColumnList[0] && (
-                            <Select
-                                pFontSize={12}
-                                pWidth={175}
-                                pBorderRadius={4}
-                                pHeight={26}
-                                pInitValue={pFilterInfo.column}
-                                onChange={(aEvent: any) => pChangeValueOption('column', aEvent, pFilterInfo.id, 'filter')}
-                                pOptions={pColumnList.map((aItem: any) => {
-                                    return aItem[0];
-                                })}
-                            />
-                        )}
+                        <Select
+                            pFontSize={12}
+                            pWidth={175}
+                            pBorderRadius={4}
+                            pHeight={26}
+                            pIsDisabled={!pColumnList[0]}
+                            pInitValue={pFilterInfo.column}
+                            onChange={(aEvent: any) => pChangeValueOption('column', aEvent, pFilterInfo.id, 'filter')}
+                            pOptions={pColumnList.map((aItem: any) => {
+                                return aItem[0];
+                            })}
+                        />
                     </div>
                     <div className="series-table operator">
                         {
@@ -80,6 +79,7 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                     pHeight={20}
                     pIsActive={pFilterInfo.useTyping}
                     pIsToopTip
+                    pDisabled={!pColumnList[0]}
                     pToolTipContent={pFilterInfo.useTyping ? 'Selecting' : 'Typing'}
                     pToolTipId={pBlockInfo.id + '-block-filter-pencil' + pIdx}
                     pIcon={<GoPencil />}

@@ -20,25 +20,17 @@ any) => {
     return (
         <div className="values">
             <div className="series-table">
-                <span className="series-title">
-                    Value field
-                    {/* {pIdx === pBlockInfo.values.length - 1 ? (
-                        <IconButton pDisabled={pValueLimit} pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={pValueLimit ? () => {} : () => pAddValue()} />
-                    ) : (
-                        <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => pRemoveValue(pValue.id)}></IconButton>
-                    )} */}
-                </span>
-                {pColumnList[0] && (
-                    <Select
-                        pFontSize={12}
-                        pWidth={175}
-                        pBorderRadius={4}
-                        pInitValue={pValue.value}
-                        pHeight={26}
-                        onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
-                        pOptions={pColumnList.map((aItem: any) => aItem[0])}
-                    />
-                )}
+                <span className="series-title">Value field</span>
+                <Select
+                    pFontSize={12}
+                    pWidth={175}
+                    pBorderRadius={4}
+                    pInitValue={pValue.value}
+                    pHeight={26}
+                    pIsDisabled={!pColumnList[0]}
+                    onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
+                    pOptions={pColumnList.map((aItem: any) => aItem[0])}
+                />
             </div>
 
             <div className="series-table">

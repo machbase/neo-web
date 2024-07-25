@@ -1,4 +1,5 @@
 import { isRollup } from '.';
+import { ADMIN_ID } from './constants';
 
 interface BlockTimeType {
     interval: {
@@ -33,6 +34,12 @@ export const DashboardQueryParser = async (aChartType: string, aBlockList: any, 
     const [sParsedQueryList, sAliasList] = QueryParser(sTranspose, sQueryBlock, aTime, sResDataType);
     return [sParsedQueryList, sAliasList];
 };
+/** Combine table and user */
+const CombineTableUser = (table: string) => {
+    // Admin
+    if (table.split('.').length === 1) return `${ADMIN_ID}.${table}`;
+    else return table;
+};
 /** Block Parser */
 const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) => {
     // opt funnel
@@ -49,7 +56,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             time: bBlock.time,
             type: bBlock.type,
             userName: bBlock.userName,
-            tableName: bBlock.table,
+            tableName: CombineTableUser(bBlock.table),
             filterList: bBlock.filter,
             valueList: bBlock.values,
             useRollup: isRollup(aRollupList, bBlock.table, getInterval(aTime.interval.IntervalType, aTime.interval.IntervalValue), bBlock.values[0]?.value),
@@ -271,7 +278,8 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         // PIE | GAUGE | LIQUIDFILL
         if (aResDataType === 'NAME_VALUE') {
             if (sIsVirtualTable) {
-                sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''}`;
+                const sTable = aQuery.tableName.split('.').length > 1 ? aQuery.tableName : ADMIN_ID + '.' + aQuery.tableName;
+                sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${sTable} ${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''}`;
             } else {
                 sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''}`;
             }
