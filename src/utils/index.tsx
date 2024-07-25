@@ -52,7 +52,7 @@ export const generateUUID = () => {
 
 export const isRollup = (aRollups: any, aTableName: string, aInterval: number, aColumnName: string) => {
     const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
-    if (!isEmpty(aRollups) && aRollups[sCurrentUserName][aTableName] && aRollups[sCurrentUserName][aTableName][aColumnName] && aInterval > 0) {
+    if (!isEmpty(aRollups) && aRollups[sCurrentUserName] && aRollups[sCurrentUserName][aTableName] && aRollups[sCurrentUserName][aTableName][aColumnName] && aInterval > 0) {
         const aValue = aRollups[sCurrentUserName][aTableName][aColumnName];
         const aResult = aValue.find((aRollupTime: any) => aInterval % aRollupTime === 0);
         return !!aResult;
