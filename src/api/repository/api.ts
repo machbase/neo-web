@@ -61,7 +61,7 @@ const getTableList = async () => {
     const U_NAME = getUserName();
     let queryString;
     if (U_NAME !== 'sys')
-        queryString = `/machbase?q=SELECT case a.DATABASE_ID when -1 then 'MACHBASEDB' end as DB_NAME, u.name as user_name, a.ID as table_id, a.NAME as table_NAME, a.TYPE as table_TYPE, a.FLAG as table_FLAG, a.DATABASE_ID as DBID from M$SYS_TABLES a left join m$sys_users u on u.user_id=a.user_id where u.name='${U_NAME.toUpperCase()}' and a.database_id=-1`;
+        queryString = `/machbase?q=SELECT case a.DATABASE_ID when -1 then 'MACHBASEDB' end as DB_NAME, u.name as USER_NAME, a.ID as TABLE_ID, a.NAME as TABLE_NAME, a.TYPE as TABLE_TYPE, a.FLAG as TABLE_FLAG, a.DATABASE_ID as DBID from M$SYS_TABLES a left join m$sys_users u on u.user_id=a.user_id where u.name='${U_NAME.toUpperCase()}' and a.database_id=-1`;
     else
         queryString = `/machbase?q=SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, case a.DATABASE_ID  when -1 then 'MACHBASEDB' else d.MOUNTDB end as DB_NAME from M$SYS_TABLES a left join V$STORAGE_MOUNT_DATABASES d on a.DATABASE_ID = d.BACKUP_TBSID) as j where u.USER_ID = j.USER_ID order by j.NAME`;
     return await request({
@@ -76,8 +76,8 @@ const getTableInfo = async (aDataBaseId: string, aTableId: string) => {
         url: queryString,
     });
 };
-export const getVirtualTableInfo = async (aDataBaseId: string, aTableName: string) => {
-    const queryString = `/machbase?q=select * from v$columns WHERE DATABASE_ID = ${aDataBaseId} AND ID > 0 AND ID < 65534 AND TABLE_ID = (select ID from v$tables where name = '${aTableName}') ORDER BY ID`;
+export const getVirtualTableInfo = async (aDataBaseId: string, aTableName: string, aUserName: string) => {
+    const queryString = `/machbase?q=select * from v$columns WHERE DATABASE_ID = ${aDataBaseId} AND ID > 0 AND ID < 65534 AND TABLE_ID = (select ID from v$tables where name = '${aTableName}' and user_ID = (select USER_ID from M$sys_users where name = '${aUserName}')) ORDER BY ID`;
     return await request({
         method: 'GET',
         url: queryString,

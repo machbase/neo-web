@@ -16,6 +16,7 @@ import Menu from '@/components/contextMenu/Menu';
 import moment from 'moment';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { IconButton } from '@/components/buttons/IconButton';
+import { ADMIN_ID } from '@/utils/constants';
 
 const Panel = ({
     pPanelInfo,
@@ -212,6 +213,14 @@ any) => {
             }
         }
     };
+    const checkTableUser = (table: string): string => {
+        const sSplitTable = table.split('.');
+        // KEV.TAG => KEV.TAG
+        // MOUNT.KEV.TAG => MOUNT.KEV.TAG
+        if (sSplitTable.length > 1) return table;
+        // TAG => sys.TAG
+        else return `${ADMIN_ID}.${table}`;
+    };
     const fetchNavigatorData = async (aTimeRange: any, aRaw?: any) => {
         const sChartWidth = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
         const sRaw = aRaw === undefined ? sIsRaw : aRaw;
@@ -251,7 +260,7 @@ any) => {
             let sFetchResult: any = [];
             if (sRaw) {
                 sFetchResult = await fetchRawData({
-                    Table: sTagSetElement.table,
+                    Table: checkTableUser(sTagSetElement.table),
                     TagNames: sTagSetElement.tagName,
                     Start: sTimeRange.startTime,
                     End: sTimeRange.endTime,
@@ -265,7 +274,7 @@ any) => {
                 });
             } else {
                 sFetchResult = await fetchCalculationData({
-                    Table: sTagSetElement.table,
+                    Table: checkTableUser(sTagSetElement.table),
                     TagNames: sTagSetElement.tagName,
                     Start: sTimeRange.startTime,
                     End: sTimeRange.endTime,
@@ -332,7 +341,7 @@ any) => {
             let sFetchResult: any = [];
             if (sRaw) {
                 sFetchResult = await fetchRawData({
-                    Table: sTagSetElement.table,
+                    Table: checkTableUser(sTagSetElement.table),
                     TagNames: sTagSetElement.tagName,
                     Start: sTimeRange.startTime,
                     End: sTimeRange.endTime,
@@ -350,7 +359,7 @@ any) => {
                 }
             } else {
                 sFetchResult = await fetchCalculationData({
-                    Table: sTagSetElement.table,
+                    Table: checkTableUser(sTagSetElement.table),
                     TagNames: sTagSetElement.tagName,
                     Start: sTimeRange.startTime,
                     End: sTimeRange.endTime,

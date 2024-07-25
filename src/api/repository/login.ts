@@ -22,6 +22,13 @@ export const reLogin = async () => {
         data: { refreshToken: localStorage.getItem('refreshToken') },
     });
 };
+export const getAdminName = async () => {
+    return await request({
+        method: 'POST',
+        url: '/api/query',
+        data: { q: 'select name from m$sys_users where user_id = 1' },
+    });
+};
 
 export const logOut = async () => {
     return await request({

@@ -299,7 +299,7 @@ const CreatePanel = ({
     };
     const getTables = async (aStatus: boolean) => {
         const sResult: any = await getTableList();
-        if (sResult.success) {
+        if (sResult && sResult?.success) {
             const newTable = sResult.data.rows.filter((aItem: any) => getTableType(aItem[4]) === 'log' || getTableType(aItem[4]) === 'tag');
             const sParesdTable = parseDashboardTables({ columns: sResult.data.columns, rows: newTable });
             setTableList(sParesdTable);

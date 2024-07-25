@@ -49,7 +49,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
         setTimeout(() => {
             setNewLog(false);
         }, 2000);
-        sConsoleList[sConsoleList.length - 1] && sConsoleList[sConsoleList.length - 1].level === 'ERROR' && setSelectedTab(sConsoleTab[0].id);
+        sConsoleList[sConsoleList.length - 1] && sConsoleList[sConsoleList.length - 1].level === 'ERROR' && setSelectedTab(sConsoleTab[0]?.id);
         if (consoleRef.current) {
             consoleRef.current.scrollTo({
                 top: consoleRef.current.scrollHeight + consoleRef.current.clientHeight,

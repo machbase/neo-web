@@ -32,6 +32,7 @@ const LiquidNameValueFunc = (aChartOptions: any) => {
 export const DashboardChartCodeParser = async (aChartOptions: any, aChartType: string, aParsedQuery: any) => {
     const sDataType = aParsedQuery[0].dataType;
     const sAccToken = localStorage.getItem('accessToken');
+    const sXConsoleId = localStorage.getItem('consoleId');
     let sInjectFunc = null;
 
     if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc();
@@ -50,7 +51,7 @@ export const DashboardChartCodeParser = async (aChartOptions: any, aChartType: s
     const sFunction = `function getData(aTql, aIdx) {
         \tfetch("${window.location.origin}/web/api/tql", {
             \tmethod: "POST",
-            \theaders: {"Accept": "application/json, text/plain, */*", "Content-Type": "text/plain", "Authorization": "Bearer ${sAccToken}"},
+            \theaders: {"Accept": "application/json, text/plain, */*", "Content-Type": "text/plain", "Authorization": "Bearer ${sAccToken}", "X-Console-Id": "${sXConsoleId}, console-log-level=NONE"},
             \tbody: aTql
         \t})
         \t.then((rsp) => rsp.json())

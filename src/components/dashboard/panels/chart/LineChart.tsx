@@ -73,8 +73,8 @@ const LineChart = ({
             sStartTime = sTimeMinMax.min;
             sEndTime = sTimeMinMax.max;
         } else {
-            sStartTime = pBoardTimeMinMax.min;
-            sEndTime = pBoardTimeMinMax.max;
+            sStartTime = pBoardTimeMinMax?.min;
+            sEndTime = pBoardTimeMinMax?.max;
         }
 
         const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
@@ -90,6 +90,7 @@ const LineChart = ({
                 setIsChartData(false);
             }
         } else {
+            if (!sStartTime || !sEndTime) return;
             const [sParsedQuery, sAliasList] = await DashboardQueryParser(chartTypeConverter(pPanelInfo.type), pPanelInfo.blockList, sRollupTableList, pPanelInfo.xAxisOptions, {
                 interval: sIntervalInfo,
                 start: sStartTime,
