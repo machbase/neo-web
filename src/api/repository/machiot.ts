@@ -336,10 +336,10 @@ export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
         }
     }
 
-    if (!sData.data?.rows || sData.data.rows.length === 0) {
+    if (!sData?.data || !sData.data?.rows || sData.data.rows.length === 0) {
         const sNowTime = moment().unix() * 1000000;
         const sNowTimeMinMax = [moment(sNowTime).subtract(1, 'h').unix() * 1000000, sNowTime];
-        return sNowTimeMinMax;
+        return [sNowTimeMinMax];
     }
 
     return sData.data.rows;
@@ -375,10 +375,10 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
         }
     }
 
-    if (!sData.data?.rows || sData.data.rows.length === 0) {
+    if (!sData?.data || !sData.data?.rows || sData.data.rows.length === 0) {
         const sNowTime = moment().unix() * 1000000;
         const sNowTimeMinMax = [moment(sNowTime).subtract(1, 'h').unix() * 1000000, sNowTime];
-        return sNowTimeMinMax;
+        return [sNowTimeMinMax];
     }
 
     return sData.data.rows;

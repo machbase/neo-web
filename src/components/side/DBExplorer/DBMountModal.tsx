@@ -57,7 +57,9 @@ export const DBMountModal = ({ setIsOpen, pRefresh }: { setIsOpen: (status: bool
     };
     /** Select backup item */
     const selectBackupItem = (backupItem: any) => {
-        setMountDBInfo({ ...mountDBInfo, path: backupItem });
+        const sTmpItem = { ...mountDBInfo, path: backupItem };
+        if (mountDBInfo?.name === '') sTmpItem.name = backupItem;
+        setMountDBInfo(sTmpItem);
     };
     const init = async () => {
         getBackupDBList();
@@ -100,23 +102,18 @@ export const DBMountModal = ({ setIsOpen, pRefresh }: { setIsOpen: (status: bool
                                 </div>
                                 {/* Backup database list */}
                                 <div className="backup-db-list-wrap">
-                                    {backupList.length > 0 ? (
-                                        backupList.map((backupItem: string, idx: number) => {
-                                            return (
-                                                <button className="backup-db-item" key={idx} onClick={() => selectBackupItem(backupItem)}>
-                                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                                        <FaDatabase size={12} />
-                                                        <span>{backupItem}</span>
-                                                    </div>
-                                                </button>
-                                            );
-                                        })
-                                    ) : (
-                                        // no data
-                                        <button className="backup-db-item">
-                                            <span>no-data</span>
-                                        </button>
-                                    )}
+                                    {backupList.length > 0
+                                        ? backupList.map((backupItem: string, idx: number) => {
+                                              return (
+                                                  <button className="backup-db-item" key={idx} onClick={() => selectBackupItem(backupItem)}>
+                                                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                          <FaDatabase size={12} />
+                                                          <span>{backupItem}</span>
+                                                      </div>
+                                                  </button>
+                                              );
+                                          })
+                                        : null}
                                 </div>
                             </div>
                             {mountState && (
