@@ -158,9 +158,33 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             return aItem.id === pBlockInfo.id
                                 ? {
                                       ...aItem,
-                                      name: sData.data.rows[0][0],
+                                      name: sData.data.rows.filter((aItem: any) => {
+                                          return aItem[1] === 5;
+                                      })[0][0],
+                                      time: sData.data.rows.filter((aItem: any) => {
+                                          return aItem[1] === 6;
+                                      })[0][0],
+                                      value: sData.data.rows.filter((aItem: any) => {
+                                          return isNumberTypeColumn(aItem[1]);
+                                      })[0][0],
                                       type: getTableType(sTable[4]),
                                       tableInfo: sData.data.rows,
+                                      values: aItem.values.map((aItem: any) => {
+                                          return {
+                                              ...aItem,
+                                              value: sData.data.rows.filter((aItem: any) => {
+                                                  return isNumberTypeColumn(aItem[1]);
+                                              })[0][0],
+                                          };
+                                      }),
+                                      filter: [
+                                          {
+                                              ...aItem.filter[0],
+                                              column: sData.data.rows.filter((aItem: any) => {
+                                                  return aItem[1] === 5;
+                                              })[0][0],
+                                          },
+                                      ],
                                   }
                                 : aItem;
                         }),
