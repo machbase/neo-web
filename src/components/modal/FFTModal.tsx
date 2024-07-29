@@ -85,7 +85,7 @@ export const FFTModal = (props: FFTModalProps) => {
     }, []);
 
     const handleSelectedTag = (aEvent: any) => {
-        const sFindIndex = pInfo.findIndex((info: FFTInfo) => info.name === aEvent.target.value);
+        const sFindIndex = pInfo.findIndex((info: FFTInfo) => info.table.toUpperCase() === aEvent.target.value.toUpperCase());
         if (sFindIndex !== -1) {
             setSelectedInfo(pInfo[sFindIndex]);
             setSelectedColInfo(pTagColInfo[sFindIndex].colName);
