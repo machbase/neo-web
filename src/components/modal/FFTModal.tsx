@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Modal } from '@/components/modal/Modal';
 import { Select } from '@/components/inputs/Select';
 import { Input } from '@/components/inputs/Input';
-import { Close, LineChart, Play } from '@/assets/icons/Icon';
+import { ArrowDown, Close, LineChart, Play } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { getTqlChart } from '@/api/repository/machiot';
 import { ShowChart } from '@/components/tql/ShowChart';
@@ -11,6 +11,8 @@ import { Spinner } from '@/components/spinner/Spinner';
 import { convertMsUnitTime } from '@/utils/index';
 import moment from 'moment';
 import { Error } from '../toast/Toast';
+import { Tooltip } from 'react-tooltip';
+import useOutsideClick from '@/hooks/useOutsideClick';
 
 interface FFTInfo {
     table: string;
@@ -46,6 +48,8 @@ export const FFTModal = (props: FFTModalProps) => {
     const sNewStartTime = moment(pStartTime).format('yyyy-MM-DD HH:mm:ss');
     const sNewEndTime = moment(pEndTime).format('yyyy-MM-DD HH:mm:ss');
     const sWindowWidth = window.innerWidth;
+    const optionRef = useRef<HTMLDivElement>(null);
+    const [isDropboxOpen, setIsDropboxOpen] = useState<boolean>(false);
     const sTql2DQuery = `SQL("select {time}, {value} from {tableName} where {name} in ('{tagName}') AND {time} between to_date('${sNewStartTime}') AND to_date('${sNewEndTime}')")
     \nMAPKEY('fft')
     \nGROUPBYKEY()
@@ -85,7 +89,8 @@ export const FFTModal = (props: FFTModalProps) => {
     }, []);
 
     const handleSelectedTag = (aEvent: any) => {
-        const sFindIndex = pInfo.findIndex((info: FFTInfo) => info.name === aEvent.target.value);
+        // CHECK NAME && TABLE
+        const sFindIndex = pInfo.findIndex((info: FFTInfo) => info.name.toUpperCase() === aEvent.name.toUpperCase() && info.table.toUpperCase() === aEvent.table.toUpperCase());
         if (sFindIndex !== -1) {
             setSelectedInfo(pInfo[sFindIndex]);
             setSelectedColInfo(pTagColInfo[sFindIndex].colName);
@@ -151,6 +156,12 @@ export const FFTModal = (props: FFTModalProps) => {
         }
         setIsLoading(false);
     };
+    const handleClick = (aEvent: React.MouseEvent<HTMLDivElement>) => {
+        aEvent.stopPropagation();
+        setIsDropboxOpen(!isDropboxOpen);
+    };
+
+    useOutsideClick(optionRef, () => setIsDropboxOpen(false));
 
     return (
         <div ref={modalRef} className="fft-modal-wrapper">
@@ -165,13 +176,41 @@ export const FFTModal = (props: FFTModalProps) => {
                     </div>
                     <div className="tool-bar">
                         <div className="select-group">
-                            <Select
-                                pInitValue={pInfo[0].alias || pInfo[0].name}
-                                pOptions={pInfo.map((info: FFTInfo) => info.alias || info.name)}
-                                pHeight={32}
-                                onChange={(aEvent) => handleSelectedTag(aEvent)}
-                                pWidth={200}
-                            />
+                            <div
+                                className="custom-select-wrapper"
+                                style={{
+                                    borderRadius: '8px',
+                                    width: '200px',
+                                    minWidth: '200px',
+                                    height: '40px',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                <div className="select-input" onClick={handleClick}>
+                                    <input readOnly value={sSelectedInfo?.alias || sSelectedInfo?.name} style={{ fontSize: '13', cursor: 'pointer' }} placeholder="Select..." />
+                                    <ArrowDown />
+                                </div>
+                                <div
+                                    ref={optionRef}
+                                    className="select-options"
+                                    style={{ display: isDropboxOpen ? 'block' : 'none', maxHeight: '200px', borderRadius: '8px' }}
+                                    onClick={(aEvent) => aEvent.stopPropagation()}
+                                >
+                                    <div className="select-options-item-wrapper" style={{ maxHeight: '160px' }}>
+                                        {pInfo.map((aOption: FFTInfo, aIdx: number) => (
+                                            <button
+                                                key={aIdx}
+                                                className={`select-tooltip-${aIdx} options-item`}
+                                                onClick={() => handleSelectedTag(aOption)}
+                                                style={{ fontSize: '13' }}
+                                            >
+                                                <Tooltip anchorSelect={`.select-tooltip-${aIdx}`} content={aOption.alias || aOption.name} />
+                                                <div className="select-text">{aOption.alias || aOption.name}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
                             <div className="button-group">
                                 <IconButton onClick={handle2DChart} pIcon={<div>{sIsChart2D ? '2D' : '3D'}</div>} pIsActiveHover />
                                 <IconButton onClick={handleRunCode} pIcon={<Play />} pIsActiveHover />
