@@ -17,7 +17,7 @@ import {
     gShellList,
 } from '@/recoil/recoil';
 import ReferenceList from '@/components/side/ReferenceList';
-import DBExplorer from '@/components/side/DBExplorer/DBExplorer';
+import { DBExplorer } from '@/components/side/DBExplorer/DBExplorer';
 import { SecurityKey } from '@/components/side/SecurityKey';
 import { UncaughtErrorObserver } from '@/utils/UncaughtErrorHelper';
 import { TimerSide } from '@/components/side/Timer';

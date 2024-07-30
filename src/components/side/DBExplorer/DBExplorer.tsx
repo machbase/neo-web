@@ -1,20 +1,23 @@
-import { getTableList } from '@/api/repository/api';
+import { getBackupDBList, getTableList } from '@/api/repository/api';
 import { TbEyeMinus, MdRefresh } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { useEffect, useState } from 'react';
 import { VscChevronDown, VscChevronRight } from '@/assets/icons/Icon';
-import TableInfo from './TableInfo';
+import { BackupTableInfo, TableInfo } from './TableInfo';
 import { getUserName } from '@/utils';
 import { TbDatabasePlus } from 'react-icons/tb';
 import { DBMountModal } from './DBMountModal';
+import { ADMIN_ID } from '@/utils/constants';
 
-const DBExplorer = ({ pServer }: any) => {
+export const DBExplorer = ({ pServer }: any) => {
     const [sDBList, setDBList] = useState<any>([]);
+    const [sBackupDBList, setBackupDBList] = useState<[] | any[]>([]);
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sShowHiddenObj, setShowHiddenObj] = useState(true);
     const [sRefresh, setRefresh] = useState<number>(0);
     const [mountModalOpen, setMountModalOpen] = useState<boolean>(false);
 
+    /** Converte table type */
     const TableTypeConverter = (aType: number): string => {
         switch (aType) {
             case 0:
@@ -33,10 +36,8 @@ const DBExplorer = ({ pServer }: any) => {
                 return '';
         }
     };
-
-    const init = async (aEvent?: any) => {
-        setDBList([]);
-        if (aEvent) aEvent.stopPropagation();
+    /** Get database list (with mounted database)*/
+    const getDatabaseList = async () => {
         setRefresh(sRefresh + 1);
         const sData = await getTableList();
         if (sData && sData.data) {
@@ -76,14 +77,30 @@ const DBExplorer = ({ pServer }: any) => {
             setDBList(DB_LIST);
         } else setDBList([]);
     };
-
+    /** Get backup database list */
+    const getBackupDatabaseList = async () => {
+        const IS_ADMIN = getUserName().toUpperCase() === ADMIN_ID.toUpperCase();
+        if (!IS_ADMIN) return;
+        const sBackupListRes: any = await getBackupDBList();
+        if (sBackupListRes && sBackupListRes?.success) {
+            setBackupDBList(sBackupListRes?.data || []);
+        } else setBackupDBList([]);
+    };
+    /** Handle hidden table */
     const setHiddenObj = (aEvent: any) => {
         aEvent.stopPropagation();
         setShowHiddenObj(!sShowHiddenObj);
     };
-    const mountDB = (e: React.MouseEvent) => {
+    /** Handle mount db modal */
+    const mountDBModal = (e: React.MouseEvent) => {
         e.stopPropagation();
         setMountModalOpen(true);
+    };
+    const init = (aEvent?: any) => {
+        setDBList([]);
+        if (aEvent) aEvent.stopPropagation();
+        getDatabaseList();
+        getBackupDatabaseList();
     };
 
     useEffect(() => {
@@ -108,9 +125,8 @@ const DBExplorer = ({ pServer }: any) => {
                                 pToolTipId="db-explorer-mount"
                                 pWidth={20}
                                 pHeight={20}
-                                pIsActive={!sShowHiddenObj}
                                 pIcon={<TbDatabasePlus size={13} />}
-                                onClick={mountDB}
+                                onClick={mountDBModal}
                             />
                         )}
                         <IconButton
@@ -142,9 +158,10 @@ const DBExplorer = ({ pServer }: any) => {
                     sDBList.map((aDB: any, aIdx: number) => {
                         return <TableInfo pShowHiddenObj={sShowHiddenObj} key={aIdx} pValue={aDB} pRefresh={sRefresh} pUpdate={init} />;
                     })}
+                {/* BACKUP DB LIST */}
+                {sCollapseTree && sBackupDBList && sBackupDBList.length !== 0 && <BackupTableInfo pValue={sBackupDBList} pRefresh={init} />}
             </div>
             {mountModalOpen && <DBMountModal setIsOpen={setMountModalOpen} pRefresh={init} />}
         </div>
     );
 };
-export default DBExplorer;

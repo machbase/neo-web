@@ -56,7 +56,30 @@ const postLicense = (aItem: any) => {
         data: aItem,
     });
 };
-
+export interface MOUNTED_DB {
+    backupBeginTime: string;
+    backupEndTime: string;
+    dbBeginTime: string;
+    dbEndTime: string;
+    flag: number;
+    mountdb: string;
+    name: string;
+    path: string;
+    scn: number;
+    tbsid: number;
+}
+export const getMountedList = async () => {
+    return await request({
+        method: 'GET',
+        url: '/api/backup/mounts',
+    });
+};
+export const getBackupDBList = async () => {
+    return await request({
+        method: 'GET',
+        url: '/api/backup/archives',
+    });
+};
 const getTableList = async () => {
     const U_NAME = getUserName();
     let queryString;
@@ -132,18 +155,16 @@ const postShell = (aInfo: any) => {
     });
 };
 export const mountDB = (name: string, path: string) => {
-    const sPath = path.replaceAll('\\', '/');
-    const queryString = `/machbase?q=MOUNT DATABASE '${sPath}' TO ${name}`;
     return request({
-        method: 'GET',
-        url: queryString,
+        method: 'POST',
+        url: `/api/backup/mounts/${name}`,
+        data: { path },
     });
 };
 export const unMountDB = (name: string) => {
-    const queryString = `/machbase?q=UNMOUNT DATABASE ${name}`;
     return request({
-        method: 'GET',
-        url: queryString,
+        method: 'DELETE',
+        url: `/api/backup/mounts/${name}`,
     });
 };
 export const backupDBList = () => {
