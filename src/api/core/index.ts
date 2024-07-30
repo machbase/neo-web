@@ -35,8 +35,10 @@ request.interceptors.request.use(
         const sFileJs = sUrlSplit[0].indexOf('.js');
         const sFileImg = isImage(sUrlSplit[0]);
         const sViewMode = window.location.pathname.includes('/web/ui/view');
-        const sDshFetch = config.url.includes('/api/tql/dsh');
-        const sTazFetch = config.url.includes('/api/tql/taz');
+        // const sDshFetch = config.url.includes('/api/tql/dsh');
+        const sDshFetch = config.url.match(/\/api\/tql\/dsh$/gm);
+        // const sTazFetch = config.url.includes('/api/tql/taz');
+        const sTazFetch = config.url.match(/\/api\/tql\/taz$/gm);
 
         if (
             !sTazFetch &&
