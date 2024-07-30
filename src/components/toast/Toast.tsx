@@ -12,7 +12,7 @@ export const Error = (aMessage: string) => {
                 <div className="toast-custom-text"> {aMessage} </div>
             </div>
         ),
-        { className: 'toast-custom-outside' }
+        { className: 'toast-custom-outside', duration: 3000 }
     );
 };
 
@@ -26,6 +26,6 @@ export const Success = (aMessage: string) => {
                 <div className="toast-custom-text"> {aMessage} </div>
             </div>
         ),
-        { className: 'toast-custom-outside' }
+        { className: 'toast-custom-outside', duration: 3000 }
     );
 };
