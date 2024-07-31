@@ -53,9 +53,14 @@
 
             .comfirm-input-wrap {
                 display: flex;
+                align-items: baseline;
                 margin-top: 8px;
                 height: 27px;
-                width: 250px;
+                width: 215px;
+
+                label {
+                    width: 60px;
+                }
 
                 input {
                     height: 25px;

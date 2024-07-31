@@ -43,16 +43,15 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
     const [isUnmount, setIsUnmount] = useState<boolean>(false);
     const [isMount, setIsMount] = useState<boolean>(false);
     const [sMountState, setMountState] = useState<string>('');
-    const [sMountAlias, setMountAlias] = useState<string>(backupInfo.path);
+    const [sMountAlias, setMountAlias] = useState<string>(backupInfo.path.toUpperCase());
 
     const mountBackupDB = async () => {
         setIsMount(false);
         setMountState('LOADING');
         const sResMount: any = await mountDB(sMountAlias, backupInfo.path);
-        if (sResMount && sResMount?.success) {
-            setMountState('');
-            pUpdate();
-        } else Error(sResMount?.data?.reason ?? sResMount.statusText);
+        if (sResMount && sResMount?.success) pUpdate();
+        else Error(sResMount?.data?.reason ?? sResMount.statusText);
+        setMountState('');
     };
     const unmountDB = async () => {
         const sResUnmount: any = await unMountDB(backupInfo.mountName);
@@ -66,12 +65,12 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
     };
     const handleMountModal = (e: React.MouseEvent) => {
         e.stopPropagation();
-        setMountAlias(() => backupInfo.path);
+        setMountAlias(() => backupInfo.path.toUpperCase());
         setIsMount(true);
     };
     const handleMountName = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!MountNameRegEx.test(e.target.value) && e.target.value !== '') return;
-        setMountAlias(() => e.target.value);
+        setMountAlias(() => e.target.value.toUpperCase());
     };
 
     return (
@@ -122,9 +121,10 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
                     pCallback={mountBackupDB}
                     pContents={
                         <div className="body-content">
-                            <span>{`Do you want to mount this database (${sMountAlias.toUpperCase()})`}</span>
+                            <span>{`Do you want to mount this database?`}</span>
                             <div className="comfirm-input-wrap">
-                                <input autoFocus value={sMountAlias} onChange={handleMountName} />
+                                <label htmlFor="mount-db-name">Name</label>
+                                <input id="mount-db-name" autoFocus value={sMountAlias} onChange={handleMountName} />
                             </div>
                         </div>
                     }
