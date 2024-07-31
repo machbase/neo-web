@@ -1,29 +1,193 @@
-import { getTableInfo, getColumnIndexInfo, getRollupTable, getRecordCount } from '@/api/repository/api';
-import { useEffect, useState } from 'react';
+import { getTableInfo, getColumnIndexInfo, getRollupTable, getRecordCount, unMountDB, mountDB } from '@/api/repository/api';
+import React, { useEffect, useState } from 'react';
 import { GoDotFill, FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser } from '@/assets/icons/Icon';
 import { getUserName } from '@/utils';
 import { getColumnType } from '@/utils/dashboardUtil';
 import { IconButton } from '@/components/buttons/IconButton';
+import { TbDatabaseMinus, TbDatabasePlus, TbFileDatabase } from 'react-icons/tb';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { ADMIN_ID } from '@/utils/constants';
+import { PiFolderOpenFill, PiFolderSimpleFill } from 'react-icons/pi';
+import { Loader } from '@/components/loader';
+import { Error } from '@/components/toast/Toast';
+import { MountNameRegEx } from '@/utils/database';
 import './TableInfo.scss';
 
-const TableInfo = ({ pShowHiddenObj, pValue, pRefresh }: any) => {
-    const [sCollapseTree, setCollapseTree] = useState(true);
-    const DBDiv = (aIcon: React.ReactElement, aName: string, aClassName: string): JSX.Element => {
-        return (
-            <div className="db-folder-wrap">
-                <VscChevronRight className={`${aClassName}`} />
-                <span className="icons">{aIcon}</span>
-                <span className="db-folder-wrap-name">{aName}</span>
+export const BackupTableInfo = ({ pValue, pRefresh }: any) => {
+    const [sBkCollapseTree, setBkCollapseTree] = useState(true);
+
+    return (
+        <div className="backup-database-wrapper">
+            <div className="db-wrap db-exp-comm" onClick={() => setBkCollapseTree(!sBkCollapseTree)}>
+                {DBDiv(
+                    !sBkCollapseTree ? <PiFolderSimpleFill fill="rgb(196,196,196)" className="size-16" /> : <PiFolderOpenFill fill="rgb(196,196,196)" className="size-16" />,
+                    'BACKUP DATABASE',
+                    sBkCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow'
+                )}
             </div>
-        );
+            {sBkCollapseTree && (
+                <div className="backup-wrap db-exp-comm">
+                    {pValue.map((aBackup: any, aIdx: number) => {
+                        return (
+                            <div key={aBackup.path + '-backup' + aIdx}>
+                                <BACKUP_DB_DIV backupInfo={aBackup} pUpdate={pRefresh} />
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
+const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; isMount: boolean; mountName: string }; pUpdate: any }) => {
+    const [isUnmount, setIsUnmount] = useState<boolean>(false);
+    const [isMount, setIsMount] = useState<boolean>(false);
+    const [sMountState, setMountState] = useState<string>('');
+    const [sMountAlias, setMountAlias] = useState<string>(backupInfo.path.toUpperCase());
+
+    const mountBackupDB = async () => {
+        setIsMount(false);
+        setMountState('LOADING');
+        const sResMount: any = await mountDB(sMountAlias, backupInfo.path);
+        if (sResMount && sResMount?.success) pUpdate();
+        else Error(sResMount?.data?.reason ?? sResMount.statusText);
+        setMountState('');
     };
+    const unmountDB = async () => {
+        const sResUnmount: any = await unMountDB(backupInfo.mountName);
+        if (sResUnmount && sResUnmount?.success) pUpdate();
+        else Error(sResUnmount?.data?.reason ?? sResUnmount.statusText);
+        setIsUnmount(false);
+    };
+    const handleUnmountModal = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsUnmount(true);
+    };
+    const handleMountModal = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setMountAlias(() => backupInfo.path.toUpperCase());
+        setIsMount(true);
+    };
+    const handleMountName = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!MountNameRegEx.test(e.target.value) && e.target.value !== '') return;
+        setMountAlias(() => e.target.value.toUpperCase());
+    };
+
+    return (
+        <>
+            <div className="backup-item">
+                <div className="backup-item-l">
+                    <TbFileDatabase className="size-16" color={backupInfo.isMount ? 'rgb(196,196,196)' : '#939498'} />
+                    <span className="backup-item-path" style={{ color: backupInfo.isMount ? 'rgb(196,196,196)' : '#939498' }}>
+                        {backupInfo?.path}
+                    </span>
+                </div>
+                <div className="backup-item-r">
+                    {sMountState !== 'LOADING' ? (
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent={backupInfo.isMount ? 'Database unmount' : 'Database mount'}
+                            pToolTipId={'db-mount-unmount' + backupInfo.path}
+                            pWidth={20}
+                            pHeight={20}
+                            pIcon={backupInfo.isMount ? <TbDatabaseMinus size={13} /> : <TbDatabasePlus size={13} />}
+                            onClick={backupInfo.isMount ? handleUnmountModal : handleMountModal}
+                        />
+                    ) : (
+                        <div style={{ marginRight: '4px' }}>
+                            <Loader width="12px" height="12px" borderRadius="90%" />
+                        </div>
+                    )}
+                </div>
+            </div>
+            {/* DELETE CONFIRM MODAL */}
+            {isUnmount && (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={setIsUnmount}
+                    pCallback={unmountDB}
+                    pContents={
+                        <div className="body-content">
+                            <span>{`Do you want to unmount this database (${backupInfo.path} = ${backupInfo.mountName ?? ''})?`}</span>
+                        </div>
+                    }
+                />
+            )}
+            {/* MOUNT CONFIRM MODAL */}
+            {isMount && (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={setIsMount}
+                    pCallback={mountBackupDB}
+                    pContents={
+                        <div className="body-content">
+                            <span>{`Do you want to mount this database?`}</span>
+                            <div className="comfirm-input-wrap">
+                                <label htmlFor="mount-db-name">Name</label>
+                                <input id="mount-db-name" autoFocus value={sMountAlias} onChange={handleMountName} />
+                            </div>
+                        </div>
+                    }
+                />
+            )}
+        </>
+    );
+};
+const DBDiv = (aIcon: React.ReactElement, aName: string, aClassName: string): JSX.Element => {
+    return (
+        <div className="db-folder-wrap">
+            <VscChevronRight className={`${aClassName}`} />
+            <span className="icons">{aIcon}</span>
+            <span className="db-folder-wrap-name">{aName}</span>
+        </div>
+    );
+};
+export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate }: any) => {
+    const [sCollapseTree, setCollapseTree] = useState(true);
+    const [isUnmount, setIsUnmount] = useState<boolean>(false);
+
+    const handleUnmountModal = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsUnmount(true);
+    };
+    const unmountDB = async () => {
+        await unMountDB(pValue.dbName);
+        pUpdate();
+    };
+
     return (
         <>
             {/* DB */}
             {pValue && pValue.dbName && (
-                <div className="db-wrap db-exp-comm" style={{ alignItems: 'baseline' }} onClick={() => setCollapseTree(!sCollapseTree)}>
+                <div className="db-wrap db-exp-comm" onClick={() => setCollapseTree(!sCollapseTree)}>
                     {DBDiv(<FaDatabase />, pValue.dbName, sCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow')}
+                    {(localStorage.getItem('experimentMode') === 'true' ?? false) && getUserName().toUpperCase() === ADMIN_ID.toUpperCase() && pValue.dbName !== 'MACHBASEDB' && (
+                        <div className="table-unmount">
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Database unmount"
+                                pToolTipId="db-unmount"
+                                pWidth={20}
+                                pHeight={20}
+                                pIcon={<TbDatabaseMinus size={13} />}
+                                onClick={handleUnmountModal}
+                            />
+                        </div>
+                    )}
                 </div>
+            )}
+            {/* DELETE CONFIRM MODAL */}
+            {isUnmount && (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={setIsUnmount}
+                    pCallback={unmountDB}
+                    pContents={
+                        <div className="body-content">
+                            <span>{`Do you want to unmount this database (${pValue?.dbName})?`}</span>
+                        </div>
+                    }
+                />
             )}
             {/* USER */}
             {pValue && sCollapseTree && (
@@ -345,5 +509,3 @@ interface LabelDivPropsType {
 const LabelDiv = (props: LabelDivPropsType): JSX.Element => {
     return <div className="table-wrap-label-content">{props.pTxt}</div>;
 };
-
-export default TableInfo;

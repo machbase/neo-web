@@ -17,7 +17,7 @@ import {
     gShellList,
 } from '@/recoil/recoil';
 import ReferenceList from '@/components/side/ReferenceList';
-import DBExplorer from '@/components/side/DBExplorer/DBExplorer';
+import { DBExplorer } from '@/components/side/DBExplorer/DBExplorer';
 import { SecurityKey } from '@/components/side/SecurityKey';
 import { UncaughtErrorObserver } from '@/utils/UncaughtErrorHelper';
 import { TimerSide } from '@/components/side/Timer';
@@ -51,6 +51,7 @@ const Home = () => {
         }
         const sResult: any = await getLogin();
         if (sResult?.reason === 'success') {
+            localStorage.setItem('experimentMode', sResult?.experimentMode ?? false);
             const sTermTypeList = sResult?.shells.filter((aShell: any) => aShell.type === 'term');
             setShellList(sTermTypeList);
             const sId = getId();
@@ -103,8 +104,7 @@ const Home = () => {
 
     const getInfo = async () => {
         const sResult: any = await getLogin();
-        if (sResult && sResult?.experimentMode) localStorage.setItem('experimentMode', sResult.experimentMode);
-        else localStorage.removeItem('experimentMode');
+        localStorage.setItem('experimentMode', sResult?.experimentMode ?? false);
         setServer(sResult.server);
         const sortAttributes = (aItem: string, bItem: string) => {
             const sOrder = ['editable', 'cloneable', 'removable'];

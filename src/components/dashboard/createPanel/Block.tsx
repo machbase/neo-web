@@ -77,7 +77,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                     blockList: sTempTableList,
                 };
             });
-            // getColumnList(aData.target.value);
         } else if (aKey === 'aggregator' && !SEPARATE_DIFF) {
             const sDiffVal: boolean = aData.target.value.includes('diff');
             pSetPanelOption((aPrev: any) => {
@@ -110,7 +109,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         const sData = sIsVirtualTable
             ? await getVirtualTableInfo(sTable[6], aTable?.includes('.') ? (aTable.split('.').at(-1) as string) : aTable, sTable[1])
             : await getTableInfo(sTable[6], sTable[2]);
-        if (sData && sData?.data?.rows && sData?.data?.rows?.length > 0) {
+        if (sData && sData?.data && sData?.data?.rows && sData?.data?.rows.length > 0) {
             if (pType === 'create') {
                 pSetPanelOption((aPrev: any) => {
                     return {
@@ -159,9 +158,33 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             return aItem.id === pBlockInfo.id
                                 ? {
                                       ...aItem,
-                                      name: sData.data.rows[0][0],
+                                      name: sData.data.rows.filter((aItem: any) => {
+                                          return aItem[1] === 5;
+                                      })[0][0],
+                                      time: sData.data.rows.filter((aItem: any) => {
+                                          return aItem[1] === 6;
+                                      })[0][0],
+                                      value: sData.data.rows.filter((aItem: any) => {
+                                          return isNumberTypeColumn(aItem[1]);
+                                      })[0][0],
                                       type: getTableType(sTable[4]),
                                       tableInfo: sData.data.rows,
+                                      values: aItem.values.map((aItem: any) => {
+                                          return {
+                                              ...aItem,
+                                              value: sData.data.rows.filter((aItem: any) => {
+                                                  return isNumberTypeColumn(aItem[1]);
+                                              })[0][0],
+                                          };
+                                      }),
+                                      filter: [
+                                          {
+                                              ...aItem.filter[0],
+                                              column: sData.data.rows.filter((aItem: any) => {
+                                                  return aItem[1] === 5;
+                                              })[0][0],
+                                          },
+                                      ],
                                   }
                                 : aItem;
                         }),
@@ -373,6 +396,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         }
         const sTableList = pTableList.map((aItem: any) => aItem[3]);
         if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
+            // sTagTableList has only MACHBASEDB
             const sTagTableList = JSON.parse(JSON.stringify(pTableList)).filter((aTable: any) => getTableType(aTable[4]) === 'tag' && aTable[6] === -1);
             sTagTableList.filter((aTagTable: any) => {
                 // check user

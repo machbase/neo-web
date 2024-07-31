@@ -37,7 +37,41 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            padding: 0px 10px;
+            max-width: 396px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            span {
+                max-width: 380px;
+                display: block;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                overflow: hidden;
+            }
+
+            .comfirm-input-wrap {
+                display: flex;
+                align-items: baseline;
+                margin-top: 8px;
+                height: 27px;
+                width: 215px;
+
+                label {
+                    width: 60px;
+                }
+
+                input {
+                    height: 25px;
+                    width: 100%;
+                    padding: 0 8px;
+                    border-radius: 3px;
+                    border: solid 1px #f1f1f125;
+                    background-color: rgba(255, 255, 255, 0.13);
+                    color: #f1f1f1;
+                }
+            }
         }
     }
 

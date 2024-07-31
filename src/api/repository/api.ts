@@ -56,7 +56,30 @@ const postLicense = (aItem: any) => {
         data: aItem,
     });
 };
-
+export interface MOUNTED_DB {
+    backupBeginTime: string;
+    backupEndTime: string;
+    dbBeginTime: string;
+    dbEndTime: string;
+    flag: number;
+    mountdb: string;
+    name: string;
+    path: string;
+    scn: number;
+    tbsid: number;
+}
+export const getMountedList = async () => {
+    return await request({
+        method: 'GET',
+        url: '/api/backup/mounts',
+    });
+};
+export const getBackupDBList = async () => {
+    return await request({
+        method: 'GET',
+        url: '/api/backup/archives',
+    });
+};
 const getTableList = async () => {
     const U_NAME = getUserName();
     let queryString;
@@ -129,6 +152,25 @@ const postShell = (aInfo: any) => {
         method: 'post',
         url: `/api/shell/${aInfo.id}`,
         data: aInfo,
+    });
+};
+export const mountDB = (name: string, path: string) => {
+    return request({
+        method: 'POST',
+        url: `/api/backup/mounts/${name}`,
+        data: { path },
+    });
+};
+export const unMountDB = (name: string) => {
+    return request({
+        method: 'DELETE',
+        url: `/api/backup/mounts/${name}`,
+    });
+};
+export const backupDBList = () => {
+    return request({
+        method: 'GET',
+        url: `/api/backup/archives`,
     });
 };
 

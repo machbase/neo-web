@@ -1,3 +1,8 @@
+.backup-database-wrapper {
+    margin-top: 5px;
+    border-top: 1px solid #4c4c4c;
+    padding-top: 5px;
+}
 .db-exp-comm {
     display: -webkit-box;
     display: -webkit-flex;
@@ -25,16 +30,10 @@
         svg {
             width: 16px;
         }
-        .fill-enable {
-            fill: #00ff00;
-        }
-        .fill-disable {
-            fill: #ff0000;
-        }
     }
 }
 .db-wrap {
-    padding: 2px 16px 2px 16px;
+    padding: 2px 6px 2px 16px;
     overflow: hidden;
     cursor: pointer;
 
@@ -53,6 +52,56 @@
         }
     }
 }
+.size-16 {
+    width: 16px;
+    height: 16px;
+}
+.backup-wrap {
+    flex-direction: column;
+    display: flex;
+
+    .backup-item {
+        padding-left: 36px;
+        cursor: pointer;
+        display: flex;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        align-items: center;
+        word-break: break-all;
+        justify-content: space-between;
+
+        &:hover {
+            background-color: #242424;
+        }
+
+        &-path {
+            font-size: 14px;
+            margin-left: 4px;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            word-break: break-all;
+            overflow: hidden;
+        }
+        &-l {
+            display: flex;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            word-break: break-all;
+            overflow: hidden;
+            min-width: 4px;
+            margin: 0;
+
+            svg {
+                min-width: 18px;
+            }
+        }
+        &-r {
+            padding-right: 4px;
+        }
+    }
+}
+
 .db-wrap:hover {
     background-color: #242424;
 }
@@ -83,6 +132,12 @@
             background-color: #242424;
         }
     }
+}
+.table-unmount {
+    display: flex;
+    justify-content: end !important;
+    align-items: end !important;
+    margin-right: -2px;
 }
 .table-wrap {
     flex-direction: column;
