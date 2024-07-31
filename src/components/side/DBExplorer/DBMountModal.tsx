@@ -3,13 +3,13 @@ import { useState } from 'react';
 import { TextButton } from '@/components/buttons/TextButton';
 import { mountDB } from '@/api/repository/api';
 import Modal from '@/components/modal/Modal';
+import { MountNameRegEx } from '@/utils/database';
 import './DBMountModal.scss';
 
 export const DBMountModal = ({ setIsOpen, pRefresh }: { setIsOpen: (status: boolean) => void; pRefresh: () => void }) => {
     const [mountDBInfo, setMountDBInfo] = useState<{ name: string; path: string }>({ name: '', path: '' });
     const [mountState, setMountState] = useState<undefined | string>(undefined);
     const [mountLoad, setMountLoad] = useState<boolean>(false);
-    const sNameRegEx = new RegExp(/^[aA-zZ0-9]+$/, 'gm');
 
     /** Close Modal */
     const handleClose = () => {
@@ -34,7 +34,7 @@ export const DBMountModal = ({ setIsOpen, pRefresh }: { setIsOpen: (status: bool
         }
     };
     const handleMountDBInfo = (target: string, e: React.ChangeEvent<HTMLInputElement>) => {
-        if (target === 'name' && !sNameRegEx.test(e.target.value) && e.target.value !== '') return;
+        if (target === 'name' && !MountNameRegEx.test(e.target.value) && e.target.value !== '') return;
         else
             setMountDBInfo((prev) => {
                 return {

@@ -1,3 +1,6 @@
+.backup-database-wrapper {
+    margin-top: 10px;
+}
 .db-exp-comm {
     display: -webkit-box;
     display: -webkit-flex;
@@ -24,12 +27,6 @@
         align-items: center;
         svg {
             width: 16px;
-        }
-        .fill-enable {
-            fill: #00ff00;
-        }
-        .fill-disable {
-            fill: #ff0000;
         }
     }
 }

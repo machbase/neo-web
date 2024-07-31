@@ -10,13 +10,14 @@ import { ADMIN_ID } from '@/utils/constants';
 import { PiFolderOpenFill, PiFolderSimpleFill } from 'react-icons/pi';
 import { Loader } from '@/components/loader';
 import { Error } from '@/components/toast/Toast';
+import { MountNameRegEx } from '@/utils/database';
 import './TableInfo.scss';
 
 export const BackupTableInfo = ({ pValue, pRefresh }: any) => {
     const [sBkCollapseTree, setBkCollapseTree] = useState(true);
 
     return (
-        <>
+        <div className="backup-database-wrapper">
             <div className="db-wrap db-exp-comm" onClick={() => setBkCollapseTree(!sBkCollapseTree)}>
                 {DBDiv(
                     !sBkCollapseTree ? <PiFolderSimpleFill fill="rgb(196,196,196)" className="size-16" /> : <PiFolderOpenFill fill="rgb(196,196,196)" className="size-16" />,
@@ -35,18 +36,19 @@ export const BackupTableInfo = ({ pValue, pRefresh }: any) => {
                     })}
                 </div>
             )}
-        </>
+        </div>
     );
 };
 const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; isMount: boolean; mountName: string }; pUpdate: any }) => {
     const [isUnmount, setIsUnmount] = useState<boolean>(false);
     const [isMount, setIsMount] = useState<boolean>(false);
     const [sMountState, setMountState] = useState<string>('');
+    const [sMountAlias, setMountAlias] = useState<string>(backupInfo.path);
 
     const mountBackupDB = async () => {
         setIsMount(false);
         setMountState('LOADING');
-        const sResMount: any = await mountDB(backupInfo.path, backupInfo.path);
+        const sResMount: any = await mountDB(sMountAlias, backupInfo.path);
         if (sResMount && sResMount?.success) {
             setMountState('');
             pUpdate();
@@ -64,7 +66,12 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
     };
     const handleMountModal = (e: React.MouseEvent) => {
         e.stopPropagation();
+        setMountAlias(() => backupInfo.path);
         setIsMount(true);
+    };
+    const handleMountName = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!MountNameRegEx.test(e.target.value) && e.target.value !== '') return;
+        setMountAlias(() => e.target.value);
     };
 
     return (
@@ -100,7 +107,11 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
                     pIsDarkMode
                     setIsOpen={setIsUnmount}
                     pCallback={unmountDB}
-                    pContents={<div className="body-content">{`Do you want to unmount this database (${backupInfo.path} = ${backupInfo.mountName ?? ''})?`}</div>}
+                    pContents={
+                        <div className="body-content">
+                            <span>{`Do you want to unmount this database (${backupInfo.path} = ${backupInfo.mountName ?? ''})?`}</span>
+                        </div>
+                    }
                 />
             )}
             {/* MOUNT CONFIRM MODAL */}
@@ -109,7 +120,14 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
                     pIsDarkMode
                     setIsOpen={setIsMount}
                     pCallback={mountBackupDB}
-                    pContents={<div className="body-content">{`Do you want to mount this database (${backupInfo.path.toUpperCase()})?`}</div>}
+                    pContents={
+                        <div className="body-content">
+                            <span>{`Do you want to mount this database (${sMountAlias.toUpperCase()})`}</span>
+                            <div className="comfirm-input-wrap">
+                                <input autoFocus value={sMountAlias} onChange={handleMountName} />
+                            </div>
+                        </div>
+                    }
                 />
             )}
         </>
@@ -164,7 +182,11 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate }: any) =>
                     pIsDarkMode
                     setIsOpen={setIsUnmount}
                     pCallback={unmountDB}
-                    pContents={<div className="body-content">{`Do you want to unmount this database (${pValue?.dbName})?`}</div>}
+                    pContents={
+                        <div className="body-content">
+                            <span>{`Do you want to unmount this database (${pValue?.dbName})?`}</span>
+                        </div>
+                    }
                 />
             )}
             {/* USER */}
