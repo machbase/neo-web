@@ -23,7 +23,7 @@ const Panel = ({
 }: any) => {
     const [sRefreshCount, setRefreshCount] = useState<number>(0);
     return (
-        <div className="panel-wrap" style={{ backgroundColor: ChartThemeBackgroundColor[pPanelInfo.theme] }}>
+        <div className="panel-wrap" style={{ backgroundColor: ChartThemeBackgroundColor[pPanelInfo.theme], zIndex: 10000 - pPanelInfo.y }}>
             <PanelHeader
                 pRefreshCount={sRefreshCount}
                 pSetRefreshCount={setRefreshCount}

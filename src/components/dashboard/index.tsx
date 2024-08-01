@@ -297,7 +297,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                 pInfo.dashboard.panels &&
                                 pInfo.dashboard.panels.map((aItem: any) => {
                                     return (
-                                        <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }} style={{ zIndex: 10000 - aItem.y }}>
+                                        <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
                                             <Panel
                                                 pLoopMode={pInfo.dashboard.timeRange.refresh !== 'Off' || aItem.timeRange.refresh !== 'Off' ? true : false}
                                                 pDragStat={pDragStat}
