@@ -27,6 +27,7 @@ any) => {
                     pBorderRadius={4}
                     pInitValue={pValue.value}
                     pHeight={26}
+                    pAutoChanged={false}
                     pIsDisabled={!pColumnList[0]}
                     onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
                     pOptions={pColumnList.map((aItem: any) => aItem[0])}
