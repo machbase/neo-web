@@ -20,8 +20,9 @@ export interface FolderModalProps {
 export const FolderModal = (props: FolderModalProps) => {
     const { setIsOpen, pIsDarkMode, pIsGit } = props;
     const [sGitUrl, setGitUrl] = useState<string>('');
+    const [sIsLoad, setIsLoad] = useState<boolean>(false);
     const sRecentDirectory = useRecoilValue(gRecentDirectory);
-    const [sFolderPath, setFolderPath] = useState<string>('');
+    const [sFolderPath, setFolderPath] = useState<string>(sRecentDirectory ?? '/');
     const sGitUrlRef: any = useRef(null);
     const sInputRef = useRef<HTMLInputElement>(null);
     const [sValResult, setValResut] = useState<boolean>(true);
@@ -32,9 +33,10 @@ export const FolderModal = (props: FolderModalProps) => {
     };
 
     const handleSave = async () => {
+        if (sIsLoad) return;
         if (!sFolderPath) return;
         let sPayload: any = {};
-
+        setIsLoad(true);
         if (pIsGit) {
             if (sGitUrl) sPayload = { url: sGitUrl, command: 'clone' };
             else sPayload = undefined;
@@ -51,6 +53,7 @@ export const FolderModal = (props: FolderModalProps) => {
         } else {
             setValResut(false);
         }
+        setIsLoad(false);
     };
 
     const handleFoldername = () => {
@@ -90,12 +93,6 @@ export const FolderModal = (props: FolderModalProps) => {
     }, []);
 
     useDebounce([sGitUrl], handleFoldername);
-
-    useEffect(() => {
-        if (setIsOpen) {
-            setFolderPath(sRecentDirectory as string);
-        }
-    }, [setIsOpen]);
 
     return (
         <div className="FolderModal">
@@ -139,7 +136,7 @@ export const FolderModal = (props: FolderModalProps) => {
                 </Modal.Body>
                 <Modal.Footer>
                     <div className="button-group">
-                        <TextButton pText="OK" pBackgroundColor="#4199ff" pIsDisabled={pIsGit ? !sGitUrl : !sFolderPath} onClick={handleSave} />
+                        <TextButton pText="OK" pBackgroundColor="#4199ff" pIsLoad={sIsLoad} pIsDisabled={pIsGit ? !sGitUrl : !sFolderPath} onClick={handleSave} />
                         <div style={{ width: '10px' }}></div>
                         <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />
                     </div>
