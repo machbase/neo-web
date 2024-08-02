@@ -1,3 +1,4 @@
+import moment from 'moment';
 import { isRollup } from '.';
 import { ADMIN_ID } from './constants';
 
@@ -64,6 +65,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             color: bBlock.color,
             tableInfo: bBlock.tableInfo,
             math: bBlock?.math ?? '',
+            duration: bBlock?.duration ?? { from: '', to: '' },
         };
     });
     return sParsedBlock;
@@ -248,6 +250,74 @@ export const mathValueConverter = (aTargetValueIndex: string, aMath: string): st
     if (pattern5.test(aMath)) return aMath.replace(pattern5, `value(${aTargetValueIndex}) `);
     return aMath;
 };
+const convertUnit = (unit: any) => {
+    return -moment(0).subtract(1, unit).unix() * 1000;
+};
+
+const GetDuration = (baseTime: any, aTime: string) => {
+    // Default unit sec
+    const sUnit = aTime.match(/[a-zA-Z]/g)?.join('') ?? 's';
+    // Get number
+    const sNumber = Number(aTime.replace(sUnit, ''));
+    // Abs number
+    const sAbsNumber = Math.abs(sNumber);
+    // Check sign (positive negative)
+    const sSign = Math.sign(sNumber) >= 0 ? '' : '-';
+    const sConvertedUnit = convertUnit(sUnit);
+    return baseTime + Number(sSign + sAbsNumber * sConvertedUnit);
+};
+const GetConbineWhere = (
+    aResDataType: string,
+    aQuery: any,
+    aTime: { interval: any; start: any; end: any },
+    sTimeWhere: string,
+    sFilterWhere: string,
+    sGroupBy: string,
+    sOrderBy: string,
+    sUseAgg: boolean,
+    sUseCountAll: boolean,
+    sIsVirtualTable: boolean
+) => {
+    let sReturnWhere: string = '';
+    // Use Duration
+    if (
+        (aQuery.type.toLowerCase() === 'log' && aQuery.time.toUpperCase() === '_ARRIVAL_TIME') ||
+        (aQuery.type.toLowerCase() === 'log' && aQuery.time.toUpperCase() !== '_ARRIVAL_TIME' && (aQuery?.duration?.from !== '' || aQuery?.duration?.to !== ''))
+    ) {
+        // Check _arrival_time
+        if (aQuery.time.toUpperCase() === '_ARRIVAL_TIME') {
+            const sDuration = `DURATION FROM FROM_TIMESTAMP(${aTime.start}000000) TO FROM_TIMESTAMP(${aTime.end}000000)`;
+            // BAR | LINE | SCATTER
+            if (aResDataType === 'TIME_VALUE')
+                sReturnWhere = `${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''} ${sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''} ${sOrderBy} ${sDuration}`;
+            // PIE | GAUGE | LIQUIDFILL
+            if (aResDataType === 'NAME_VALUE') sReturnWhere = `${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''} ${sDuration}`;
+        }
+        // Custom time column
+        else {
+            const sFromTime = aQuery?.duration?.from ? GetDuration(aTime.start, aQuery?.duration?.from) : aTime.start;
+            const sToTime = aQuery?.duration?.to ? GetDuration(aTime.end, aQuery?.duration?.to) : aTime.end;
+            const sDuration = `DURATION FROM FROM_TIMESTAMP(${sFromTime}000000) TO FROM_TIMESTAMP(${sToTime}000000)`;
+            // BAR | LINE | SCATTER
+            if (aResDataType === 'TIME_VALUE')
+                sReturnWhere = `WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''} ${
+                    sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''
+                } ${sOrderBy} ${sDuration}`;
+            // PIE | GAUGE | LIQUIDFILL
+            if (aResDataType === 'NAME_VALUE') sReturnWhere = `WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''} ${sDuration}`;
+        }
+    } else {
+        // BAR | LINE | SCATTER
+        if (aResDataType === 'TIME_VALUE')
+            sReturnWhere = `WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''} ${sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''} ${sOrderBy}`;
+        // PIE | GAUGE | LIQUIDFILL
+        if (aResDataType === 'NAME_VALUE') {
+            if (sIsVirtualTable) sReturnWhere = `${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''}`;
+            else sReturnWhere = `WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''}`;
+        }
+    }
+    return sReturnWhere;
+};
 
 const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string) => {
     const sAliasList: any[] = [];
@@ -263,15 +333,18 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         const sAlias = GetAlias(aQuery.valueList[0]);
         const sUseCountAll = UseCountAll(aQuery.valueList);
         const sIsVirtualTable = aQuery.tableName.includes('V$');
+        const sConbineWhere = GetConbineWhere(aResDataType, aQuery, aTime, sTimeWhere, sFilterWhere, sGroupBy, sOrderBy, sUseAgg, sUseCountAll, sIsVirtualTable);
         let sSql: string = '';
         let sTql: string = '';
 
+        // Set alias & color (tag)
         sAliasList.push({ name: sAlias, color: aQuery.color });
         // BAR | LINE | SCATTER
         if (aResDataType === 'TIME_VALUE') {
-            sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${
-                sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''
-            } ${sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''} ${sOrderBy}`;
+            // sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${
+            //     sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''
+            // } ${sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''} ${sOrderBy}`;
+            sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
             if (sUseDiff) sTql += `MAP_${changeDiffText(aQuery.valueList[0]?.diff)}(1, value(1))`;
             if (aQuery?.math && aQuery?.math !== '') sTql += `${sUseDiff ? `\n` : ''}MAPVALUE(2, ${mathValueConverter('1', aQuery?.math)}, "VALUE")\nPOPVALUE(1)`;
         }
@@ -279,10 +352,13 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         if (aResDataType === 'NAME_VALUE') {
             if (sIsVirtualTable) {
                 const sTable = aQuery.tableName.split('.').length > 1 ? aQuery.tableName : ADMIN_ID + '.' + aQuery.tableName;
-                sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${sTable} ${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''}`;
+                // sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${sTable} ${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''}`;
+                sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${sTable} ${sConbineWhere}`;
             } else {
-                sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''}`;
+                // sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''}`;
+                sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
             }
+
             if (aQuery?.math && aQuery?.math !== '') sTql += `MAPVALUE(1, ${mathValueConverter('0', aQuery?.math)}, "VALUE")\nPOPVALUE(0)\n`;
             sTql += `MAPVALUE(1, dict("name", "${sAlias}", "value", value(0)))\nPOPVALUE(0)`;
         }

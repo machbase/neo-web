@@ -29,6 +29,7 @@ import { SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser
 import { Error } from '@/components/toast/Toast';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { TagSearchSelect } from '@/components/inputs/TagSearchSelect';
+import { Duration } from './Duration';
 
 export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
@@ -69,7 +70,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                 sDefaultBlockOption[0].values = [{ id: sDefaultBlockOption[0].values[0].id, aggregator: 'sum', value: '', alias: '' }];
             }
             const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any) => {
-                return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID() } : aTable;
+                return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID(), color: aTable.color } : aTable;
             });
             pSetPanelOption((aPrev: any) => {
                 return {
@@ -92,7 +93,14 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                 return {
                     ...aPrev,
                     blockList: aPrev.blockList.map((aItem: any) => {
-                        return aItem.id === pBlockInfo.id ? { ...aItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value } : aItem;
+                        if (aItem.id === pBlockInfo.id) {
+                            const sTmpItem = {
+                                ...aItem,
+                                [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value,
+                            };
+                            if (aKey === 'time') sTmpItem.duration = { from: '', to: '' };
+                            return sTmpItem;
+                        } else return aItem;
                     }),
                 };
             });
@@ -158,31 +166,41 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             return aItem.id === pBlockInfo.id
                                 ? {
                                       ...aItem,
-                                      name: sData.data.rows.filter((aItem: any) => {
-                                          return aItem[1] === 5;
-                                      })[0][0],
-                                      time: sData.data.rows.filter((aItem: any) => {
-                                          return aItem[1] === 6;
-                                      })[0][0],
-                                      value: sData.data.rows.filter((aItem: any) => {
-                                          return isNumberTypeColumn(aItem[1]);
-                                      })[0][0],
+                                      name:
+                                          aItem?.name ??
+                                          sData.data.rows.filter((aItem: any) => {
+                                              return aItem[1] === 5;
+                                          })[0][0],
+                                      time:
+                                          aItem?.time ??
+                                          sData.data.rows.filter((aItem: any) => {
+                                              return aItem[1] === 6;
+                                          })[0][0],
+                                      value:
+                                          aItem?.value ??
+                                          sData.data.rows.filter((aItem: any) => {
+                                              return isNumberTypeColumn(aItem[1]);
+                                          })[0][0],
                                       type: getTableType(sTable[4]),
                                       tableInfo: sData.data.rows,
                                       values: aItem.values.map((aItem: any) => {
                                           return {
                                               ...aItem,
-                                              value: sData.data.rows.filter((aItem: any) => {
-                                                  return isNumberTypeColumn(aItem[1]);
-                                              })[0][0],
+                                              value:
+                                                  aItem.value ??
+                                                  sData.data.rows.filter((bItem: any) => {
+                                                      return isNumberTypeColumn(bItem[1]);
+                                                  })[0][0],
                                           };
                                       }),
                                       filter: [
                                           {
                                               ...aItem.filter[0],
-                                              column: sData.data.rows.filter((aItem: any) => {
-                                                  return aItem[1] === 5;
-                                              })[0][0],
+                                              column:
+                                                  aItem.filter[0].column ??
+                                                  sData.data.rows.filter((aItem: any) => {
+                                                      return aItem[1] === 5;
+                                                  })[0][0],
                                           },
                                       ],
                                   }
@@ -424,6 +442,11 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             return sTableList;
         }
     }, [pPanelOption.type]);
+    /** return use duration */
+    const getUseDuration = () => {
+        if (pBlockInfo.type.toUpperCase() === 'LOG' && pBlockInfo.time.toUpperCase() !== '_ARRIVAL_TIME') return true;
+        else return false;
+    };
     /** init */
     const init = async () => {
         const sTable = pTableList.find(
@@ -450,6 +473,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     return (
         <div className="series" id={Date()}>
             <div className="row">
+                {/* TABLE */}
                 <div className="row-header">
                     {pBlockInfo.useCustom && (
                         <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="row-header-left">
@@ -654,6 +678,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                         />
                     </div>
                 </div>
+                {/* VALUE */}
                 {pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
                 <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
                     <div>
@@ -675,8 +700,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                         })}
                     </div>
                 </div>
+                {/* FILTER */}
                 {pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
-
                 <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
                     <div>
                         {pBlockInfo.filter.map((aItem: any, aIdx: number) => {
@@ -695,6 +720,13 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                         })}
                     </div>
                 </div>
+                {/* DURATION */}
+                {pBlockInfo.useCustom && getUseDuration() && (
+                    <>
+                        <div className="divider" style={{ margin: '6px 4px' }}></div>
+                        <Duration pBlockInfo={pBlockInfo} pSetPanelOption={pSetPanelOption} />
+                    </>
+                )}
             </div>
         </div>
     );

@@ -35,6 +35,7 @@ const DashboardCompatibility = (aData: any) => {
                 }
 
                 if (aBlock.useCustom) {
+                    // Values
                     const sValueList = aBlock.values;
                     const sVaildValueList = sValueList.map((aValue: any) => {
                         if (sAggList.includes(aValue.aggregator)) return aValue;
@@ -46,6 +47,9 @@ const DashboardCompatibility = (aData: any) => {
                         }
                     });
                     sResult.values = sVaildValueList;
+                    // Duration
+                    sResult.duration = sResult?.duration ?? { from: '', to: '' };
+                    // if (aBlock.type.toUpperCase() === 'LOG' && aBlock.time.toUpperCase() !== '_ARRIVAL_TIME' && !sResult?.duration) sResult.duration = { from: '', to: '' };
                 } else {
                     // NAME column
                     if (aBlock.name === '' || typeof aBlock.name !== 'string') sResult.name = aBlock.tableInfo[0][0];
