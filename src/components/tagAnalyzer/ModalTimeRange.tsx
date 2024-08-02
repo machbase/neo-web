@@ -20,7 +20,6 @@ const ModalTimeRange = ({ pType, pSetTimeRangeModal, pSaveCallback }: any) => {
     const [sRefresh, setRefresh] = useState<any>('');
 
     useEffect(() => {
-        console.log('sBoardList', sBoardList);
         const sBoardStartTime =
             pType === 'dashboard'
                 ? sBoardList.filter((aItem) => sSelectedTab === aItem.id)[0].dashboard.timeRange.start
