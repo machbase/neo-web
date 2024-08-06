@@ -41,6 +41,7 @@
                         align-items: center;
 
                         .worksheet-ctr-lang-content-list {
+                            border: solid 1px #5e5e5e;
                             z-index: $worksheet-dropdown-form-idx;
                             fill: #f8f8f8;
                             position: absolute;
@@ -54,6 +55,7 @@
                                 white-space: nowrap;
                                 padding: 6px;
                                 font-size: 12px;
+                                border-radius: 10px;
                             }
                         }
 
@@ -100,6 +102,23 @@
             height: auto;
             margin: 1rem 0;
 
+            .shell-result-wrapper {
+                .shell-result {
+                    padding: 8px;
+                    &-command-wrapper {
+                        border-left: solid 4px #393b41;
+                        margin-bottom: 4px;
+                        pre {
+                            margin-left: 8px;
+                        }
+                    }
+                    &-contents-wrapper {
+                        pre {
+                            margin-left: 16px;
+                        }
+                    }
+                }
+            }
             .result-worksheet {
                 .result-wrapper {
                     border-radius: 10px !important;

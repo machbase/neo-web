@@ -18,10 +18,10 @@ import { ShowMap } from '../tql/ShowMap';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { ConfirmModal } from '../modal/ConfirmModal';
 
-type Lang = 'SQL' | 'TQL' | 'Markdown';
-type MonacoLang = 'sql' | 'markdown' | 'go';
-type ServerLang = 'markdown' | 'SQL' | 'go';
-type ServerLangType = 'tql' | 'mrk' | 'sql';
+type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell';
+type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell';
+type ServerLang = 'markdown' | 'SQL' | 'go' | 'shell';
+type ServerLangType = 'tql' | 'mrk' | 'sql' | 'shell';
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 type ShowResultType = 'brief' | 'all';
 
@@ -68,6 +68,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sShowLang, setShowLang] = useState<boolean>(false);
     const [sTqlResultType, setTqlResultType] = useState<'html' | 'csv' | 'mrk' | 'text' | 'xhtml' | 'map'>(pData.tqlType ?? 'text');
     const [sTqlTextResult, setTqlTextResult] = useState<string>('');
+    const [sShellResult, setShellTextResult] = useState<string[] | undefined>(undefined);
     const [sTqlChartData, setTqlChartData] = useState<string>('');
     const [sTqlMapData, setTqlMapData] = useState<string>('');
     const [sTqlMarkdown, setTqlMarkdown] = useState<any>('');
@@ -110,6 +111,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 ['markdown', 'Markdown'],
                 ['SQL', 'SQL'],
                 ['go', 'TQL'],
+                ['shell', 'Shell'],
             ],
             result: '',
             status: true,
@@ -144,6 +146,10 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 return;
             case 'tql':
                 setSelectedLang('TQL');
+                setMonacoLanguage('go');
+                return;
+            case 'shell':
+                setSelectedLang('Shell');
                 setMonacoLanguage('go');
                 return;
             default:
@@ -189,6 +195,16 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setMarkdown(aText);
         }
         if (sSelectedLang === 'SQL') getSqlData(aText, aLocation);
+        if (sSelectedLang === 'Shell') getShellData(aText);
+    };
+    const getShellData = async (aText: string) => {
+        const sShellQuery = `FAKE(once(1))\nSHELL(${'`' + aText + '`'})\nJSON(rowsFlatten(true))`;
+        const sResult: any = await getTqlChart(sShellQuery);
+        if (sResult?.data && typeof sResult?.data === 'object' && sResult?.data?.success && sResult?.data?.data?.rows) {
+            setShellTextResult(sResult?.data?.data?.rows);
+        } else {
+            setShellTextResult([sResult?.data]);
+        }
     };
     const changeLanguage = (aLang: ServerLang) => {
         setSqlReason('');
@@ -198,6 +214,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setMonacoLanguage('sql');
         } else if (aLang === 'go') {
             setSelectedLang('TQL');
+            setMonacoLanguage('go');
+        } else if (aLang === 'shell') {
+            setSelectedLang('Shell');
             setMonacoLanguage('go');
         } else {
             setSelectedLang('Markdown');
@@ -369,6 +388,41 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 {sSelectedLang === 'TQL' ? TqlResult() : null}
                 {sSelectedLang === 'SQL' ? SqlResult() : null}
                 {sSelectedLang === 'Markdown' ? <Markdown pIdx={pIdx} pContents={sMarkdown} pType="wrk-mrk" pData={pWrkId} /> : null}
+                {sSelectedLang === 'Shell' ? ShellResult() : null}
+            </div>
+        );
+    };
+    const ShellResult = () => {
+        if (!sShellResult) return;
+        const sParsedShellResult: any = [];
+        let sContentsNum: number = 0;
+        let sIsCommand: boolean = true;
+
+        sShellResult.map((aLine: string) => {
+            if (aLine !== '' && sIsCommand) {
+                sParsedShellResult[sContentsNum] = { command: aLine, contents: '' };
+                sIsCommand = false;
+            } else if (aLine !== '' && !sIsCommand) {
+                sParsedShellResult[sContentsNum].contents += aLine + '\n';
+            } else if (aLine === '') {
+                sIsCommand = true;
+                sContentsNum += 1;
+            }
+        });
+        return (
+            <div className="shell-result-wrapper">
+                {sParsedShellResult.map((aItem: any, aIdx: number) => {
+                    return (
+                        <div className="shell-result" key={'wrk-shell-result-' + aIdx}>
+                            <div className="shell-result-command-wrapper">
+                                <pre>{aItem.command}</pre>
+                            </div>
+                            <div className="shell-result-contents-wrapper">
+                                <pre>{aItem.contents}</pre>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         );
     };
