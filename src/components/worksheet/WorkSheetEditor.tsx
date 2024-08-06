@@ -411,9 +411,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         });
         return (
             <div className="shell-result-wrapper">
-                {sParsedShellResult.map((aItem: any) => {
+                {sParsedShellResult.map((aItem: any, aIdx: number) => {
                     return (
-                        <div className="shell-result">
+                        <div className="shell-result" key={'wrk-shell-result-' + aIdx}>
                             <div className="shell-result-command-wrapper">
                                 <pre>{aItem.command}</pre>
                             </div>
