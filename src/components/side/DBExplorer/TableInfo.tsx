@@ -1,7 +1,7 @@
-import { getTableInfo, getColumnIndexInfo, getRollupTable, getRecordCount, unMountDB, mountDB } from '@/api/repository/api';
+import { getTableInfo, getColumnIndexInfo, getRollupTable, getRecordCount, unMountDB, mountDB, backupStatus } from '@/api/repository/api';
 import React, { useEffect, useState } from 'react';
 import { GoDotFill, FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser } from '@/assets/icons/Icon';
-import { getUserName } from '@/utils';
+import { generateUUID, getUserName } from '@/utils';
 import { getColumnType } from '@/utils/dashboardUtil';
 import { IconButton } from '@/components/buttons/IconButton';
 import { TbDatabaseMinus, TbDatabasePlus, TbFileDatabase } from 'react-icons/tb';
@@ -12,9 +12,87 @@ import { Loader } from '@/components/loader';
 import { Error } from '@/components/toast/Toast';
 import { MountNameRegEx } from '@/utils/database';
 import './TableInfo.scss';
+import { LuDatabaseBackup } from 'react-icons/lu';
+import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { useRecoilState, useSetRecoilState } from 'recoil';
 
-export const BackupTableInfo = ({ pValue, pRefresh }: any) => {
+export const BackupTableInfo = ({ pValue, pRefresh, pBackupRefresh }: any) => {
     const [sBkCollapseTree, setBkCollapseTree] = useState(true);
+    const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
+
+    const handleBackup = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        const sResBackupStatus: any = await backupStatus();
+        let sStatusCode: any = undefined;
+        if (sResBackupStatus && sResBackupStatus?.success) {
+            // Set default
+            if (!sResBackupStatus.data?.type)
+                sStatusCode = {
+                    type: 'database',
+                    duration: {
+                        type: 'full',
+                        after: '',
+                        from: '',
+                        to: '',
+                    },
+                    path: '',
+                    tableName: '',
+                };
+            else sStatusCode = sResBackupStatus.data;
+        } else
+            sStatusCode = {
+                type: 'database',
+                duration: {
+                    type: 'full',
+                    after: '',
+                    from: '',
+                    to: '',
+                },
+                path: '',
+                tableName: '',
+            };
+        
+        if (sStatusCode.path === '') pBackupRefresh();
+        
+        const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
+            return prev || cur.type === 'backupdb';
+        }, false);
+
+        if (sExistKeyTab) {
+            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'backupdb');
+            setBoardList((aBoardList: any) => {
+                return aBoardList.map((aBoard: any) => {
+                    if (aBoard.id === aTarget.id) {
+                        return {
+                            ...aTarget,
+                            name: `DATABASE: backup`,
+                            code: sStatusCode,
+                            savedCode: undefined,
+                        };
+                    }
+                    return aBoard;
+                });
+            });
+            setSelectedTab(aTarget.id);
+            return;
+        } else {
+            const sId = generateUUID();
+            setBoardList([
+                ...sBoardList,
+                {
+                    id: sId,
+                    type: 'backupdb',
+                    name: `DATABASE: backup`,
+                    code: sStatusCode,
+                    savedCode: undefined,
+                },
+            ]);
+            setSelectedTab(sId);
+            return;
+        }
+    };
 
     return (
         <div className="backup-database-wrapper">
@@ -24,6 +102,17 @@ export const BackupTableInfo = ({ pValue, pRefresh }: any) => {
                     'BACKUP DATABASE',
                     sBkCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow'
                 )}
+                <div className="backup-db-icon">
+                    <IconButton
+                        pIsToopTip
+                        pToolTipContent="Database backup"
+                        pToolTipId="db-backup"
+                        pWidth={18}
+                        pHeight={20}
+                        pIcon={<LuDatabaseBackup size={12} />}
+                        onClick={handleBackup}
+                    />
+                </div>
             </div>
             {sBkCollapseTree && (
                 <div className="backup-wrap db-exp-comm">

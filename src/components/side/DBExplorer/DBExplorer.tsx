@@ -1,13 +1,16 @@
-import { getBackupDBList, getTableList } from '@/api/repository/api';
+import { backupStatus, getBackupDBList, getTableList } from '@/api/repository/api';
 import { TbEyeMinus, MdRefresh } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { useEffect, useState } from 'react';
 import { VscChevronDown, VscChevronRight } from '@/assets/icons/Icon';
 import { BackupTableInfo, TableInfo } from './TableInfo';
-import { getUserName } from '@/utils';
+import { generateUUID, getUserName } from '@/utils';
 import { TbDatabasePlus } from 'react-icons/tb';
 import { DBMountModal } from './DBMountModal';
 import { ADMIN_ID } from '@/utils/constants';
+import { LuDatabaseBackup } from 'react-icons/lu';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 
 export const DBExplorer = ({ pServer }: any) => {
     const [sDBList, setDBList] = useState<any>([]);
@@ -16,6 +19,8 @@ export const DBExplorer = ({ pServer }: any) => {
     const [sShowHiddenObj, setShowHiddenObj] = useState(true);
     const [sRefresh, setRefresh] = useState<number>(0);
     const [mountModalOpen, setMountModalOpen] = useState<boolean>(false);
+    const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
 
     /** Converte table type */
     const TableTypeConverter = (aType: number): string => {
@@ -102,6 +107,79 @@ export const DBExplorer = ({ pServer }: any) => {
         getDatabaseList();
         getBackupDatabaseList();
     };
+    /** handle backup page */
+    const handleBackupPage = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        const sResBackupStatus: any = await backupStatus();
+        let sStatusCode: any = undefined;
+        if (sResBackupStatus && sResBackupStatus?.success) {
+            // Set default
+            if (!sResBackupStatus.data?.type)
+                sStatusCode = {
+                    type: 'database',
+                    duration: {
+                        type: 'full',
+                        after: '',
+                        from: '',
+                        to: '',
+                    },
+                    path: '',
+                    tableName: '',
+                };
+            else sStatusCode = sResBackupStatus.data;
+        } else
+            sStatusCode = {
+                type: 'database',
+                duration: {
+                    type: 'full',
+                    after: '',
+                    from: '',
+                    to: '',
+                },
+                path: '',
+                tableName: '',
+            };
+
+        if (sStatusCode.path === '') getBackupDatabaseList();
+
+        const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
+            return prev || cur.type === 'backupdb';
+        }, false);
+
+        if (sExistKeyTab) {
+            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'backupdb');
+            setBoardList((aBoardList: any) => {
+                return aBoardList.map((aBoard: any) => {
+                    if (aBoard.id === aTarget.id) {
+                        return {
+                            ...aTarget,
+                            name: `DATABASE: backup`,
+                            code: sStatusCode,
+                            savedCode: undefined,
+                        };
+                    }
+                    return aBoard;
+                });
+            });
+            setSelectedTab(aTarget.id);
+            return;
+        } else {
+            const sId = generateUUID();
+            setBoardList([
+                ...sBoardList,
+                {
+                    id: sId,
+                    type: 'backupdb',
+                    name: `DATABASE: backup`,
+                    code: sStatusCode,
+                    savedCode: undefined,
+                },
+            ]);
+            setSelectedTab(sId);
+            return;
+        }
+    };
 
     useEffect(() => {
         init();
@@ -118,16 +196,28 @@ export const DBExplorer = ({ pServer }: any) => {
                     <span className="title-text">DB EXPLORER</span>
                     <span className="sub-title-navi">
                         {(localStorage.getItem('experimentMode') === 'true' ?? false) && getUserName() === 'sys' && (
-                            <IconButton
-                                pPlace="bottom-end"
-                                pIsToopTip
-                                pToolTipContent={`Database mount`}
-                                pToolTipId="db-explorer-mount"
-                                pWidth={20}
-                                pHeight={20}
-                                pIcon={<TbDatabasePlus size={13} />}
-                                onClick={mountDBModal}
-                            />
+                            <>
+                                <IconButton
+                                    pPlace="bottom-end"
+                                    pIsToopTip
+                                    pToolTipContent={`Database backup`}
+                                    pToolTipId="db-explorer-backup"
+                                    pWidth={20}
+                                    pHeight={20}
+                                    pIcon={<LuDatabaseBackup size={12} />}
+                                    onClick={handleBackupPage}
+                                />
+                                <IconButton
+                                    pPlace="bottom-end"
+                                    pIsToopTip
+                                    pToolTipContent={`Database mount`}
+                                    pToolTipId="db-explorer-mount"
+                                    pWidth={20}
+                                    pHeight={20}
+                                    pIcon={<TbDatabasePlus size={13} />}
+                                    onClick={mountDBModal}
+                                />
+                            </>
                         )}
                         <IconButton
                             pIsToopTip
@@ -159,7 +249,7 @@ export const DBExplorer = ({ pServer }: any) => {
                         return <TableInfo pShowHiddenObj={sShowHiddenObj} key={aIdx} pValue={aDB} pRefresh={sRefresh} pUpdate={init} />;
                     })}
                 {/* BACKUP DB LIST */}
-                {sCollapseTree && sBackupDBList && sBackupDBList.length !== 0 && <BackupTableInfo pValue={sBackupDBList} pRefresh={init} />}
+                {sCollapseTree && sBackupDBList && sBackupDBList.length !== 0 && <BackupTableInfo pValue={sBackupDBList} pRefresh={init} pBackupRefresh={getBackupDatabaseList} />}
             </div>
             {mountModalOpen && <DBMountModal setIsOpen={setMountModalOpen} pRefresh={init} />}
         </div>

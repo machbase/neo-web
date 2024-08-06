@@ -154,6 +154,7 @@ const postShell = (aInfo: any) => {
         data: aInfo,
     });
 };
+// DATABASE
 export const mountDB = (name: string, path: string) => {
     return request({
         method: 'POST',
@@ -171,6 +172,36 @@ export const backupDBList = () => {
     return request({
         method: 'GET',
         url: `/api/backup/archives`,
+    });
+};
+export const backupStatus = () => {
+    return request({
+        method: 'GET',
+        url: `/api/backup/archive/status`,
+    });
+};
+/**
+ * BACKUP
+ * Full backup: Backup of entire data
+ * Incremental backup: Backup of the data added after the full or previous incremental backup
+ * Time Duration backup: Backup of data for a specific period
+ * @returns
+ */
+export const databaseBackup = (backupInfo: { type: string; duration: { type: string; after: string; from: string; to: string }; path: string }) => {
+    return request({
+        method: 'POST',
+        url: `/api/backup/archive`,
+        data: backupInfo,
+    });
+};
+/** GET TABLE (LOG | TAG | Lookup) */
+export const getAllowBackupTable = () => {
+    return request({
+        method: 'POST',
+        url: '/api/query',
+        data: {
+            q: 'SELECT u.USER_ID, u.NAME as USER_NAME, m.ID as TABLE_ID, m.NAME as TABLE_NAME, m.TYPE as TABLE_TYPE from M$SYS_USERS u, (select * from M$SYS_TABLES where database_id = -1 and flag = 0 and type in (0,4,6)) as m where u.USER_ID = m.USER_ID order by m.NAME',
+        },
     });
 };
 
