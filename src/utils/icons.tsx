@@ -40,6 +40,7 @@ import {
 } from '@/assets/icons/Mui';
 import { BsSignpost } from 'react-icons/bs';
 import { GiTallBridge } from 'react-icons/gi';
+import { LuDatabaseBackup } from 'react-icons/lu';
 import { PiDatabaseLight } from 'react-icons/pi';
 import { RxLapTimer } from 'react-icons/rx';
 import { SiMqtt, SiNatsdotio } from 'react-icons/si';
@@ -139,6 +140,8 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'subscriber':
         case 'bridge-child':
             return <BsSignpost />;
+        case 'backupdb':
+            return <LuDatabaseBackup />;
         default:
             return <GoTerminal />;
     }

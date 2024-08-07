@@ -27,6 +27,7 @@ import { useNavigate } from 'react-router-dom';
 import { SSHKey } from '../sshkey';
 import { Subscriber } from '../bridge/subscriber';
 import './Body.scss';
+import { BackupDatabase } from '../database/backup';
 
 const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -258,6 +259,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                             {aItem.type === 'bridge' && <Bridge pCode={aItem.code} />}
                             {aItem.type === 'ssh-key' && <SSHKey />}
                             {aItem.type === 'subscriber' && <Subscriber pCode={aItem.code} />}
+                            {aItem.type === 'backupdb' && <BackupDatabase pCode={aItem} />}
                             {isImage(aItem.name) && <ImageBox pBase64Code={aItem.code} pType={aItem.type} />}
                         </div>
                     );

@@ -353,6 +353,11 @@
                     .Mui-selected {
                         background-color: #005fb8;
                     }
+                    .MuiPickersYear-root {
+                        button {
+                            font-size: 12px !important;
+                        }
+                    }
                 }
                 .time-clock {
                     padding: 0;
@@ -389,6 +394,11 @@
                     }
                     .Mui-selected {
                         background-color: #005fb8;
+                    }
+                    .MuiPickersYear-root {
+                        button {
+                            font-size: 12px !important;
+                        }
                     }
                 }
                 .time-clock {

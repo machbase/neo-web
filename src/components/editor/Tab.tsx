@@ -135,6 +135,9 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
             case 'subscriber':
                 setIsSaved(pBoard.savedCode);
                 break;
+            case 'backupdb':
+                setIsSaved(pBoard?.code?.path !== '' ?? false);
+                break;
             default:
                 setIsSaved(aBoard.code === pBoard.savedCode);
                 break;
