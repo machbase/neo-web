@@ -283,3 +283,9 @@ export const gStateSubr = selector({
         set(gBridgeList, sApplyBridgeList);
     },
 });
+
+// Database backup list
+export const gBackupList = atom<any>({
+    key: 'gBackupList',
+    default: [] as any,
+});

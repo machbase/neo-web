@@ -10,16 +10,16 @@ import { DBMountModal } from './DBMountModal';
 import { ADMIN_ID } from '@/utils/constants';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { gBackupList, gBoardList, gSelectedTab } from '@/recoil/recoil';
 
 export const DBExplorer = ({ pServer }: any) => {
     const [sDBList, setDBList] = useState<any>([]);
-    const [sBackupDBList, setBackupDBList] = useState<[] | any[]>([]);
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sShowHiddenObj, setShowHiddenObj] = useState(true);
     const [sRefresh, setRefresh] = useState<number>(0);
     const [mountModalOpen, setMountModalOpen] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    const [sBackupList, setBackupList] = useRecoilState<any[]>(gBackupList);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
 
     /** Converte table type */
@@ -88,8 +88,8 @@ export const DBExplorer = ({ pServer }: any) => {
         if (!IS_ADMIN) return;
         const sBackupListRes: any = await getBackupDBList();
         if (sBackupListRes && sBackupListRes?.success) {
-            setBackupDBList(sBackupListRes?.data || []);
-        } else setBackupDBList([]);
+            setBackupList(sBackupListRes?.data || []);
+        } else setBackupList([]);
     };
     /** Handle hidden table */
     const setHiddenObj = (aEvent: any) => {
@@ -249,7 +249,7 @@ export const DBExplorer = ({ pServer }: any) => {
                         return <TableInfo pShowHiddenObj={sShowHiddenObj} key={aIdx} pValue={aDB} pRefresh={sRefresh} pUpdate={init} />;
                     })}
                 {/* BACKUP DB LIST */}
-                {sCollapseTree && sBackupDBList && sBackupDBList.length !== 0 && <BackupTableInfo pValue={sBackupDBList} pRefresh={init} pBackupRefresh={getBackupDatabaseList} />}
+                {sCollapseTree && sBackupList && sBackupList.length !== 0 && <BackupTableInfo pValue={sBackupList} pRefresh={init} pBackupRefresh={getBackupDatabaseList} />}
             </div>
             {mountModalOpen && <DBMountModal setIsOpen={setMountModalOpen} pRefresh={init} />}
         </div>

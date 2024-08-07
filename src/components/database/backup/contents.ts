@@ -20,7 +20,7 @@ export const exampleBackup = `-- Full backup backup
 BACKUP DATABASE INTO DISK = 'backup_dir_name';
 
 -- Incremental backup
-BACKUP DATABASE INTO DISK = 'previous_backup_dir' INTO DISK = 'path/backup_name';
+BACKUP DATABASE AFTER 'previous_backup_dir' INTO DISK = 'path/backup_name';
 
 -- Time range backup
 BACKUP DATABASE FROM TO_DATE('2015-07-14 00:00:00','YYYY-MM-DD HH24:MI:SS')

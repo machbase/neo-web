@@ -2,13 +2,14 @@ import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { Pane, SashContent } from 'split-pane-react';
 import { useEffect, useState } from 'react';
 import SplitPane from 'split-pane-react/esm/SplitPane';
-import { backupStatus, databaseBackup, getAllowBackupTable } from '@/api/repository/api';
+import { backupStatus, databaseBackup, getAllowBackupTable, getBackupDBList } from '@/api/repository/api';
 import { IconButton } from '@/components/buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
 import { backupSyntax, backupTable, exampleBackup, explainEtc1, explainEtc2, explainEtc3, explainPathAndTime } from './contents';
-import { VscWarning } from 'react-icons/vsc';
-import { useRecoilState } from 'recoil';
-import { gBoardList } from '@/recoil/recoil';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import { gBackupList, gBoardList } from '@/recoil/recoil';
+import { MdRefresh } from 'react-icons/md';
+import moment from 'moment';
 
 export const BackupDatabase = ({ pCode }: { pCode: any }) => {
     const [sPayload, setPayload] = useState<any>(pCode);
@@ -18,6 +19,9 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
     const [sTableList, setTableList] = useState<any[]>([]);
     const [sCreateRes, setCreateRes] = useState<any>(undefined);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    const setBackupList = useSetRecoilState<any[]>(gBackupList);
+    const [sTimestampErr, setTimestampErr] = useState<any>({ from: undefined, to: undefined });
+    const NANO_SEC = 1000000000;
 
     const setDurationTypeSelect = (aSelectedItem: 'Full' | 'Incremental' | 'Time') => {
         setPayload((prev: any) => {
@@ -39,7 +43,24 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
             return { ...prev, path: (aEvent.target as HTMLInputElement).value };
         });
     };
+    /** convert timestamp format */
+    const convertTimestamp = (aTime: string) => {
+        const sUnixTimestamp = moment(aTime).unix();
+        if (!isNaN(sUnixTimestamp)) return sUnixTimestamp * NANO_SEC;
+        else return aTime;
+    };
     const handleTime = (aKey: string, aTime: string) => {
+        const sMomentValid = ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY-MM-DD HH', 'YYYY-MM-DD', 'YYYY-MM', 'YYYY'];
+        const sIsVaildTime = moment(aTime, sMomentValid, true).isValid() || aTime === '';
+        if (!sIsVaildTime)
+            setTimestampErr((prev: any) => {
+                return { ...prev, [aKey]: 'Please check the entered time.' };
+            });
+        else
+            setTimestampErr((prev: any) => {
+                return { ...prev, [aKey]: undefined };
+            });
+
         setPayload((prev: any) => {
             return { ...prev, duration: { ...prev.duration, [aKey]: aTime } };
         });
@@ -91,6 +112,12 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                 tableName: '',
             };
 
+        if (!sResBackupStatus || !sResBackupStatus?.success) {
+            setCreateRes(sResBackupStatus?.data?.reason ?? sResBackupStatus?.statusText);
+            return;
+        }
+        setCreateRes(undefined);
+
         const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'backupdb');
         setBoardList((aBoardList: any) => {
             return aBoardList.map((aBoard: any) => {
@@ -107,20 +134,73 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
         });
         return;
     };
+    const updateBakcupList = async () => {
+        const sBackupListRes: any = await getBackupDBList();
+        if (sBackupListRes && sBackupListRes?.success) setBackupList(sBackupListRes?.data || []);
+        else setBackupList([]);
+    };
+    const handleStatusRefresh = async () => {
+        const sResBackupStatus: any = await backupStatus();
+        let sStatusCode: any = undefined;
+        if (sResBackupStatus && sResBackupStatus?.success) {
+            // Set default
+            if (!sResBackupStatus.data?.type)
+                sStatusCode = {
+                    type: 'database',
+                    duration: {
+                        type: 'full',
+                        after: '',
+                        from: '',
+                        to: '',
+                    },
+                    path: '',
+                    tableName: '',
+                };
+            else sStatusCode = sResBackupStatus.data;
+        } else
+            sStatusCode = {
+                type: 'database',
+                duration: {
+                    type: 'full',
+                    after: '',
+                    from: '',
+                    to: '',
+                },
+                path: '',
+                tableName: '',
+            };
+
+        if (sStatusCode.path === '') updateBakcupList();
+
+        const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'backupdb');
+        setBoardList((aBoardList: any) => {
+            return aBoardList.map((aBoard: any) => {
+                if (aBoard.id === aTarget.id) {
+                    return {
+                        ...aTarget,
+                        name: `DATABASE: backup`,
+                        code: sStatusCode,
+                        savedCode: undefined,
+                    };
+                }
+                return aBoard;
+            });
+        });
+    };
     const createBackup = async () => {
-        // Common
-        if (sPayload?.type === '' || sPayload?.path === '') return;
-        // Table name
-        if (sPayload?.type === 'table' && sPayload?.tableName === '') return;
-        // FULL BACKUP
-        if (sPayload?.duration && sPayload?.duration?.type === '') return;
-        // INCREMENTAL BACKUP
-        if (sPayload?.duration && sPayload?.duration?.type === 'incremental' && sPayload?.duration?.after === '') return;
-        // TIME BACKUP
-        const sResBackup: any = await databaseBackup(sPayload);
+        const sVaildPayload = JSON.parse(JSON.stringify(sPayload));
+        if (sVaildPayload?.type === '' || sVaildPayload?.path === '') return; // Common
+        if (sVaildPayload?.type === 'table' && sVaildPayload?.tableName === '') return; // Table name
+        if (sVaildPayload?.duration && sVaildPayload?.duration?.type === '') return; // FULL BACKUP
+        if (sVaildPayload?.duration && sVaildPayload?.duration?.type === 'incremental' && sVaildPayload?.duration?.after === '') return; // INCREMENTAL BACKUP
+        if (sTimestampErr.from || sTimestampErr.to) return;
+        if (sVaildPayload?.duration && sVaildPayload?.duration?.type === 'time') {
+            sVaildPayload.duration.from = convertTimestamp(sVaildPayload.duration.from);
+            sVaildPayload.duration.to = convertTimestamp(sVaildPayload.duration.to);
+        }
+        const sResBackup: any = await databaseBackup(sVaildPayload);
         if (sResBackup && sResBackup?.success) {
-            handleBackup();
-            setCreateRes(undefined);
+            await handleBackup();
         } else setCreateRes(sResBackup?.data && sResBackup?.data !== '' ? sResBackup?.data?.reason : sResBackup?.statusText);
     };
     const Resizer = () => {
@@ -128,6 +208,8 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
     };
 
     useEffect(() => {
+        setCreateRes(undefined);
+        setTimestampErr({ from: undefined, to: undefined });
         if (pCode?.code?.path !== '') setPageMode('VIEW');
         else setPageMode('CREATE');
         setPayload(pCode.code);
@@ -139,7 +221,19 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                 <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                     {
                         <Pane minSize={400}>
-                            <ExtensionTab.Header />
+                            <ExtensionTab.Header>
+                                {sPageMode === 'VIEW' && (
+                                    <IconButton
+                                        pIsToopTip
+                                        pToolTipContent="Refresh"
+                                        pToolTipId="bridge-explorer-refresh"
+                                        pWidth={20}
+                                        pHeight={20}
+                                        pIcon={<MdRefresh size={15} />}
+                                        onClick={handleStatusRefresh}
+                                    />
+                                )}
+                            </ExtensionTab.Header>
                             <ExtensionTab.Body>
                                 {/* Backup type */}
                                 <ExtensionTab.ContentBlock>
@@ -210,6 +304,13 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                             <ExtensionTab.DateTimePicker pTime={sPayload?.duration?.from} pSetApply={(e: any) => handleTime('from', e)} />
                                             <ExtensionTab.ContentText pContent="to"></ExtensionTab.ContentText>
                                             <ExtensionTab.DateTimePicker pTime={sPayload?.duration?.to} pSetApply={(e: any) => handleTime('to', e)} />
+                                            {((sTimestampErr?.from && String(sTimestampErr?.from)) || (sTimestampErr?.to && String(sTimestampErr?.to))) && (
+                                                <ExtensionTab.ContentDesc>
+                                                    <div style={{ marginTop: '-10px' }}>
+                                                        <ExtensionTab.TextResErr pText={sTimestampErr?.from ?? sTimestampErr?.to} />
+                                                    </div>
+                                                </ExtensionTab.ContentDesc>
+                                            )}
                                         </ExtensionTab.ContentBlock>
                                     )}
                                 </ExtensionTab.ContentBlock>
@@ -247,12 +348,13 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                 {/* Create btn */}
                                 {sPageMode === 'CREATE' && (
                                     <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.TextButton pText="Create" pType="CREATE" pCallback={createBackup} />
+                                        <ExtensionTab.TextButton pText="Backup" pType="CREATE" pCallback={createBackup} />
                                         {sCreateRes && (
-                                            <ExtensionTab.DpRow>
-                                                <VscWarning style={{ fill: '#ff5353' }} />
-                                                <span style={{ margin: '8px', color: '#ff5353' }}>{sCreateRes}</span>
-                                            </ExtensionTab.DpRow>
+                                            <ExtensionTab.ContentDesc>
+                                                <div style={{ marginTop: '-10px' }}>
+                                                    <ExtensionTab.TextResErr pText={sCreateRes} />
+                                                </div>
+                                            </ExtensionTab.ContentDesc>
                                         )}
                                     </ExtensionTab.ContentBlock>
                                 )}
