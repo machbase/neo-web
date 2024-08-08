@@ -194,13 +194,13 @@ export const databaseBackup = (backupInfo: { type: string; duration: { type: str
         data: backupInfo,
     });
 };
-/** GET TABLE (LOG | TAG | Lookup) */
+/** GET TABLE (LOG | TAG) */
 export const getAllowBackupTable = () => {
     return request({
         method: 'POST',
         url: '/api/query',
         data: {
-            q: 'SELECT u.USER_ID, u.NAME as USER_NAME, m.ID as TABLE_ID, m.NAME as TABLE_NAME, m.TYPE as TABLE_TYPE from M$SYS_USERS u, (select * from M$SYS_TABLES where database_id = -1 and flag = 0 and type in (0,4,6)) as m where u.USER_ID = m.USER_ID order by m.NAME',
+            q: `SELECT u.USER_ID, u.NAME as USER_NAME, m.ID as TABLE_ID, decode(u.name, 'SYS', m.NAME, u.name || '.' || m.NAME) as TABLE_NAME, m.TYPE as TABLE_TYPE, decode(u.name, 'SYS',  ' ', u.name) as un from M$SYS_USERS u, (select * from M$SYS_TABLES where database_id = -1 and flag = 0 and type in (0,6)) as m where u.USER_ID = m.USER_ID order by un, m.NAME`,
         },
     });
 };
