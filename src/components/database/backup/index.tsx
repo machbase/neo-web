@@ -5,11 +5,12 @@ import SplitPane from 'split-pane-react/esm/SplitPane';
 import { backupStatus, databaseBackup, getAllowBackupTable, getBackupDBList } from '@/api/repository/api';
 import { IconButton } from '@/components/buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
-import { backupSyntax, backupTable, exampleBackup, explainEtc1, explainEtc2, explainEtc3, explainPathAndTime } from './contents';
-import { useRecoilState, useSetRecoilState } from 'recoil';
-import { gBackupList, gBoardList } from '@/recoil/recoil';
-import { MdRefresh } from 'react-icons/md';
+import { backupSyntax, backupTable, exampleBackup, explainEtc1, explainEtc2, explainEtc3, explainEtc4, explainPathAndTime } from './contents';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { gBackupList, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import moment from 'moment';
+import { changeUtcToText } from '@/utils/helpers/date';
+import { useSchedule } from '@/hooks/useSchedule';
 
 export const BackupDatabase = ({ pCode }: { pCode: any }) => {
     const [sPayload, setPayload] = useState<any>(pCode);
@@ -21,9 +22,10 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const setBackupList = useSetRecoilState<any[]>(gBackupList);
     const [sTimestampErr, setTimestampErr] = useState<any>({ from: undefined, to: undefined });
-    const NANO_SEC = 1000000000;
+    const sSelectedTab = useRecoilValue<any>(gSelectedTab);
+    const [sLastCheckTime, setLastCheckTime] = useState<any>(undefined);
 
-    const setDurationTypeSelect = (aSelectedItem: 'Full' | 'Incremental' | 'Time') => {
+    const setDurationTypeSelect = (aSelectedItem: 'full' | 'incremental' | 'time range') => {
         setPayload((prev: any) => {
             return { ...prev, duration: { type: aSelectedItem, after: '', from: '', to: '' } };
         });
@@ -46,7 +48,7 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
     /** convert timestamp format */
     const convertTimestamp = (aTime: string) => {
         const sUnixTimestamp = moment(aTime).unix();
-        if (!isNaN(sUnixTimestamp)) return sUnixTimestamp * NANO_SEC;
+        if (!isNaN(sUnixTimestamp)) return sUnixTimestamp;
         else return aTime;
     };
     const handleTime = (aKey: string, aTime: string) => {
@@ -73,16 +75,12 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
     const getTableNameList = async () => {
         if (sTableList.length > 0) return;
         const sResTableList = await getAllowBackupTable();
-        if (sResTableList && sResTableList?.data && sResTableList?.data?.rows) {
-            const sParsedBackupList = sResTableList.data.rows.map((aItem: any) => {
-                if (aItem[0] > 1) aItem[3] = aItem[1] + '.' + aItem[3];
-                return aItem;
-            });
-            setTableList(sParsedBackupList);
-        } else setTableList([]);
+        if (sResTableList && sResTableList?.data && sResTableList?.data?.rows) setTableList(sResTableList.data.rows);
+        else setTableList([]);
     };
     const handleBackup = async () => {
         const sResBackupStatus: any = await backupStatus();
+        updateLastCheckTime();
         let sStatusCode: any = undefined;
         if (sResBackupStatus && sResBackupStatus?.success) {
             // Set default
@@ -139,6 +137,10 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
         if (sBackupListRes && sBackupListRes?.success) setBackupList(sBackupListRes?.data || []);
         else setBackupList([]);
     };
+    const updateLastCheckTime = () => {
+        const sDate = new Date();
+        setLastCheckTime(moment(sDate).format('yyyy-MM-DD HH:mm:ss'));
+    };
     const handleStatusRefresh = async () => {
         const sResBackupStatus: any = await backupStatus();
         let sStatusCode: any = undefined;
@@ -169,7 +171,7 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                 path: '',
                 tableName: '',
             };
-
+        updateLastCheckTime();
         if (sStatusCode.path === '') updateBakcupList();
 
         const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'backupdb');
@@ -194,14 +196,15 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
         if (sVaildPayload?.duration && sVaildPayload?.duration?.type === '') return; // FULL BACKUP
         if (sVaildPayload?.duration && sVaildPayload?.duration?.type === 'incremental' && sVaildPayload?.duration?.after === '') return; // INCREMENTAL BACKUP
         if (sTimestampErr.from || sTimestampErr.to) return;
-        if (sVaildPayload?.duration && sVaildPayload?.duration?.type === 'time') {
-            sVaildPayload.duration.from = convertTimestamp(sVaildPayload.duration.from);
-            sVaildPayload.duration.to = convertTimestamp(sVaildPayload.duration.to);
+        if (sVaildPayload?.duration && sVaildPayload?.duration?.type === 'time range') {
+            sVaildPayload.duration.from = convertTimestamp(sVaildPayload.duration.from) + '';
+            sVaildPayload.duration.to = convertTimestamp(sVaildPayload.duration.to) + '';
+            sVaildPayload.duration.type = 'time';
         }
         const sResBackup: any = await databaseBackup(sVaildPayload);
         if (sResBackup && sResBackup?.success) {
             await handleBackup();
-        } else setCreateRes(sResBackup?.data && sResBackup?.data !== '' ? sResBackup?.data?.reason : sResBackup?.statusText);
+        } else setCreateRes(sResBackup?.data?.reason ?? sResBackup?.statusText);
     };
     const Resizer = () => {
         return <SashContent className={`security-key-sash-style`} />;
@@ -214,6 +217,11 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
         else setPageMode('CREATE');
         setPayload(pCode.code);
     }, [pCode]);
+    useEffect(() => {
+        if (pCode.id === sSelectedTab && sPageMode === 'VIEW') handleStatusRefresh();
+    }, [sSelectedTab]);
+
+    useSchedule(pCode.id === sSelectedTab && sPageMode === 'VIEW' ? handleStatusRefresh : undefined, 1000 * 30);
 
     return (
         <>
@@ -221,23 +229,25 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                 <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                     {
                         <Pane minSize={400}>
-                            <ExtensionTab.Header>
-                                {sPageMode === 'VIEW' && (
-                                    <IconButton
-                                        pIsToopTip
-                                        pToolTipContent="Refresh"
-                                        pToolTipId="bridge-explorer-refresh"
-                                        pWidth={20}
-                                        pHeight={20}
-                                        pIcon={<MdRefresh size={15} />}
-                                        onClick={handleStatusRefresh}
-                                    />
-                                )}
-                            </ExtensionTab.Header>
+                            <ExtensionTab.Header />
                             <ExtensionTab.Body>
+                                {/* VIEW Backup in progress */}
+                                {sPageMode === 'VIEW' && (
+                                    <ExtensionTab.ContentBlock>
+                                        <ExtensionTab.DpRowBetween>
+                                            <ExtensionTab.SubTitle>Backup in progress...</ExtensionTab.SubTitle>
+                                            <div style={{ display: 'flex', marginTop: '12px', flexDirection: 'column', alignItems: 'end' }}>
+                                                <ExtensionTab.TextButton pText="Check" pType="CREATE" pCallback={handleStatusRefresh} />
+                                                <div style={{ marginRight: '16px', marginTop: '-12px' }}>
+                                                    <span style={{ fontSize: '10px', color: '#5d5d5d' }}>last checked at {sLastCheckTime}</span>
+                                                </div>
+                                            </div>
+                                        </ExtensionTab.DpRowBetween>
+                                    </ExtensionTab.ContentBlock>
+                                )}
                                 {/* Backup type */}
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>type</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentTitle>backup type</ExtensionTab.ContentTitle>
                                     {sPageMode === 'CREATE' && (
                                         <>
                                             <ExtensionTab.Selector
@@ -278,17 +288,21 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                 )}
                                 {/* Backup duration type  */}
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Destination</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentTitle>time duration</ExtensionTab.ContentTitle>
                                     {sPageMode === 'CREATE' && (
                                         <ExtensionTab.Selector
-                                            pList={['full', 'incremental', 'time']}
+                                            pList={['full', 'incremental', 'time range']}
                                             pSelectedItem={sPayload?.duration?.type}
                                             pCallback={(aSelectedItem: any) => {
                                                 setDurationTypeSelect(aSelectedItem);
                                             }}
                                         />
                                     )}
-                                    {sPageMode === 'VIEW' && <ExtensionTab.ContentDesc>{sPayload.duration.type.toUpperCase()}</ExtensionTab.ContentDesc>}
+                                    {sPageMode === 'VIEW' && (
+                                        <ExtensionTab.ContentDesc>
+                                            {sPayload.duration.type === 'time' ? 'time range'.toUpperCase() : sPayload.duration.type}
+                                        </ExtensionTab.ContentDesc>
+                                    )}
                                     {/* Incremental backup */}
                                     {sPayload?.duration?.type === 'incremental' && sPageMode === 'CREATE' && (
                                         <ExtensionTab.ContentBlock>
@@ -298,7 +312,7 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                         </ExtensionTab.ContentBlock>
                                     )}
                                     {/* Time Duration backup */}
-                                    {sPayload?.duration?.type === 'time' && sPageMode === 'CREATE' && (
+                                    {sPayload?.duration?.type === 'time range' && sPageMode === 'CREATE' && (
                                         <ExtensionTab.ContentBlock>
                                             <ExtensionTab.ContentText pContent="From"></ExtensionTab.ContentText>
                                             <ExtensionTab.DateTimePicker pTime={sPayload?.duration?.from} pSetApply={(e: any) => handleTime('from', e)} />
@@ -326,17 +340,21 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                     <>
                                         <ExtensionTab.ContentBlock>
                                             <ExtensionTab.ContentTitle>From</ExtensionTab.ContentTitle>
-                                            <ExtensionTab.ContentDesc>{sPayload.duration.from}</ExtensionTab.ContentDesc>
+                                            <ExtensionTab.ContentDesc>
+                                                {sPayload.duration.from ? changeUtcToText(Number(sPayload.duration.from)) : sPayload.duration.from}
+                                            </ExtensionTab.ContentDesc>
                                         </ExtensionTab.ContentBlock>
                                         <ExtensionTab.ContentBlock>
                                             <ExtensionTab.ContentTitle>to</ExtensionTab.ContentTitle>
-                                            <ExtensionTab.ContentDesc>{sPayload.duration.to}</ExtensionTab.ContentDesc>
+                                            <ExtensionTab.ContentDesc>
+                                                {sPayload.duration.to ? changeUtcToText(Number(sPayload.duration.to)) : sPayload.duration.to}
+                                            </ExtensionTab.ContentDesc>
                                         </ExtensionTab.ContentBlock>
                                     </>
                                 )}
                                 {/* Backup path */}
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>path</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentTitle>destination Path</ExtensionTab.ContentTitle>
                                     {sPageMode === 'CREATE' && (
                                         <>
                                             <ExtensionTab.ContentDesc>Absolute and relative path can be used for backup directory.</ExtensionTab.ContentDesc>
@@ -408,16 +426,17 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                     <ExtensionTab.CopyBlock pContent={exampleBackup} />
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Type</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentTitle>backup type</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>{explainEtc1}</ExtensionTab.ContentDesc>
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Destination</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentTitle>Time Duration</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>{explainEtc2}</ExtensionTab.ContentDesc>
                                 </ExtensionTab.ContentBlock>
                                 <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Path</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentTitle>destination Path</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>{explainEtc3}</ExtensionTab.ContentDesc>
+                                    <ExtensionTab.ContentDesc>{explainEtc4}</ExtensionTab.ContentDesc>
                                 </ExtensionTab.ContentBlock>
                             </ExtensionTab.Body>
                         )}

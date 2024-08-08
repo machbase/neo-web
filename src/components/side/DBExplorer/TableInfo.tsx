@@ -53,9 +53,9 @@ export const BackupTableInfo = ({ pValue, pRefresh, pBackupRefresh }: any) => {
                 path: '',
                 tableName: '',
             };
-        
+
         if (sStatusCode.path === '') pBackupRefresh();
-        
+
         const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
             return prev || cur.type === 'backupdb';
         }, false);
@@ -250,7 +250,7 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate }: any) =>
             {pValue && pValue.dbName && (
                 <div className="db-wrap db-exp-comm" onClick={() => setCollapseTree(!sCollapseTree)}>
                     {DBDiv(<FaDatabase />, pValue.dbName, sCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow')}
-                    {(localStorage.getItem('experimentMode') === 'true' ?? false) && getUserName().toUpperCase() === ADMIN_ID.toUpperCase() && pValue.dbName !== 'MACHBASEDB' && (
+                    {getUserName().toUpperCase() === ADMIN_ID.toUpperCase() && pValue.dbName !== 'MACHBASEDB' && (
                         <div className="table-unmount">
                             <IconButton
                                 pIsToopTip

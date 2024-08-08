@@ -508,6 +508,11 @@
         justify-content: start;
         align-items: start;
     }
+    .extension-tab-dp-row-bt {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
     .extension-tab-group {
         width: 50%;

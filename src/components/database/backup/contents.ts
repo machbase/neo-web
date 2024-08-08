@@ -31,4 +31,6 @@ export const explainEtc1 =
 export const explainEtc2 =
     'You can specify the backup destination using the time_duration clause. Specify the start time and end time of the backup target data in the FROM and TO clauses. In the example above, “2015-07-14 00:00:00” is defined as FROM and “2015-07-14 23:59:59” is defined as TO, so the user will be able to see all data for July 14, 2015 Quot; Duration If you do not specify a time condition, “1970-01-01 00:00:00” is set to FROM and the current time at which it is executed is set in the TO clause.';
 export const explainEtc3 =
-    'Note that when specifying a backup path, backup files are created under “$ MACHBASE_HOME / dbs” when a relative path is specified. To specify an absolute path, you must always set a path that starts with “/”.';
+    'Note that when specifying a backup path, backup files are created under “default backup folder” when a relative path is specified. To specify an absolute path, you must always set a path that starts with “/”.';
+export const explainEtc4 =
+    'The "default backup folder" can be set using the "--backup-dir" option when running Machbase Neo. If the "--backup-dir" option is not specified, it will default to "{neo installation folder}/backups".';

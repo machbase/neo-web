@@ -158,6 +158,9 @@ const DpRow = ({ children }: { children: React.ReactNode }) => {
 const DpRowTL = ({ children }: { children: React.ReactNode }) => {
     return <div className="extension-tab-dp-row-tl ">{children}</div>;
 };
+const DpRowBetween = ({ children }: { children: React.ReactNode }) => {
+    return <div className="extension-tab-dp-row-bt">{children}</div>;
+};
 const ContentText = ({ pContent }: { pContent: string }) => {
     return (
         <div className="extension-tab-content-block-text">
@@ -600,3 +603,4 @@ ExtensionTab.CopyButton = CopyButton;
 ExtensionTab.CopyBlock = CopyBlock;
 ExtensionTab.Space = Space;
 ExtensionTab.HoverBg = HoverBg;
+ExtensionTab.DpRowBetween = DpRowBetween;
