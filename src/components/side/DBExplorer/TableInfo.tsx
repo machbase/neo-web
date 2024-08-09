@@ -99,7 +99,7 @@ export const BackupTableInfo = ({ pValue, pRefresh, pBackupRefresh }: any) => {
             <div className="db-wrap db-exp-comm" onClick={() => setBkCollapseTree(!sBkCollapseTree)}>
                 {DBDiv(
                     !sBkCollapseTree ? <PiFolderSimpleFill fill="rgb(196,196,196)" className="size-16" /> : <PiFolderOpenFill fill="rgb(196,196,196)" className="size-16" />,
-                    'BACKUP DATABASE',
+                    'BACKUPS',
                     sBkCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow'
                 )}
                 <div className="backup-db-icon">
