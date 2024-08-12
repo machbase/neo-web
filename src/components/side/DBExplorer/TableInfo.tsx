@@ -1,5 +1,5 @@
 import { getTableInfo, getColumnIndexInfo, getRollupTable, getRecordCount, unMountDB, mountDB, backupStatus } from '@/api/repository/api';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { GoDotFill, FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser } from '@/assets/icons/Icon';
 import { generateUUID, getUserName } from '@/utils';
 import { getColumnType } from '@/utils/dashboardUtil';
@@ -135,6 +135,7 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
     const [isMount, setIsMount] = useState<boolean>(false);
     const [sMountState, setMountState] = useState<string>('');
     const [sMountAlias, setMountAlias] = useState<string>(backupInfo.path.toUpperCase());
+    const sMountAliasRef = useRef<any>(undefined);
 
     const mountBackupDB = async () => {
         setIsMount(false);
@@ -160,7 +161,10 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
         setIsMount(true);
     };
     const handleMountName = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!MountNameRegEx.test(e.target.value) && e.target.value !== '') return;
+        const start = e.target.selectionStart ?? 0;
+        const end = e.target.selectionEnd ?? 0;
+        if (!MountNameRegEx.test(e.target.value) && e.target.value !== '') return sMountAliasRef.current.setSelectionRange(start - 1 ?? 0, end - 1 ?? 0);
+        sMountAliasRef.current.setSelectionRange(start, end);
         setMountAlias(() => e.target.value.toUpperCase());
     };
 
@@ -215,7 +219,15 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
                             <span>{`Do you want to mount this database?`}</span>
                             <div className="comfirm-input-wrap">
                                 <label htmlFor="mount-db-name">Name</label>
-                                <input id="mount-db-name" autoFocus type="text" defaultValue={sMountAlias} onChange={handleMountName} autoComplete="off" />
+                                <input
+                                    ref={sMountAliasRef}
+                                    value={sMountAliasRef?.current?.value ?? sMountAlias}
+                                    onChange={handleMountName}
+                                    autoComplete="off"
+                                    id="mount-db-name"
+                                    autoFocus
+                                    type="text"
+                                />
                             </div>
                         </div>
                     }
