@@ -88,7 +88,12 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
     const wrkEditorRef = useRef<HTMLDivElement>(null);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
-
+    const LANG = [
+        ['markdown', 'Markdown'],
+        ['SQL', 'SQL'],
+        ['go', 'TQL'],
+        ['shell', 'Shell'],
+    ];
     useEffect(() => {
         if (pAllRunCodeList.length > 0 && pAllRunCodeStatus && typeof pAllRunCodeTargetIdx === 'number' && pAllRunCodeList[pIdx] && pIdx === pAllRunCodeTargetIdx) {
             handleRunCode(sText);
@@ -107,12 +112,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             minimal: sCollapse,
             type: sSelectedLang === 'Markdown' ? 'mrk' : sSelectedLang.toLowerCase(),
             tqlType: sSelectedLang === 'TQL' ? sTqlResultType : null,
-            lang: [
-                ['markdown', 'Markdown'],
-                ['SQL', 'SQL'],
-                ['go', 'TQL'],
-                ['shell', 'Shell'],
-            ],
+            lang: LANG,
             result: '',
             status: true,
         };
@@ -492,7 +492,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     <ArrowDown style={{ transform: sShowLang ? 'rotate(180deg)' : '' }} />
                     {sShowLang && (
                         <div className="worksheet-ctr-lang-content-list">
-                            {pData.lang.map((aLang: string[]) => {
+                            {LANG.map((aLang: string[]) => {
                                 return (
                                     <div key={aLang[0]} className="worksheet-ctr-lang-content" onClick={() => changeLanguage(aLang[0] as ServerLang)}>
                                         {aLang[1]}
