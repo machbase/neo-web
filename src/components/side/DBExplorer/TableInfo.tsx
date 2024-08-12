@@ -215,7 +215,7 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
                             <span>{`Do you want to mount this database?`}</span>
                             <div className="comfirm-input-wrap">
                                 <label htmlFor="mount-db-name">Name</label>
-                                <input id="mount-db-name" autoFocus type="text" value={sMountAlias} onChange={handleMountName} />
+                                <input id="mount-db-name" autoFocus type="text" defaultValue={sMountAlias} onChange={handleMountName} autoComplete="off" />
                             </div>
                         </div>
                     }
