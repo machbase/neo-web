@@ -1,5 +1,5 @@
 import { getTableInfo, getColumnIndexInfo, getRollupTable, getRecordCount, unMountDB, mountDB, backupStatus } from '@/api/repository/api';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { GoDotFill, FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser } from '@/assets/icons/Icon';
 import { generateUUID, getUserName } from '@/utils';
 import { getColumnType } from '@/utils/dashboardUtil';
@@ -7,7 +7,6 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { TbDatabaseMinus, TbDatabasePlus, TbFileDatabase } from 'react-icons/tb';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { ADMIN_ID } from '@/utils/constants';
-import { PiFolderOpenFill, PiFolderSimpleFill } from 'react-icons/pi';
 import { Loader } from '@/components/loader';
 import { Error } from '@/components/toast/Toast';
 import { MountNameRegEx } from '@/utils/database';
@@ -96,22 +95,25 @@ export const BackupTableInfo = ({ pValue, pRefresh, pBackupRefresh }: any) => {
 
     return (
         <div className="backup-database-wrapper">
-            <div className="db-wrap db-exp-comm" onClick={() => setBkCollapseTree(!sBkCollapseTree)}>
-                {DBDiv(
-                    !sBkCollapseTree ? <PiFolderSimpleFill fill="rgb(196,196,196)" className="size-16" /> : <PiFolderOpenFill fill="rgb(196,196,196)" className="size-16" />,
-                    'BACKUP DATABASE',
-                    sBkCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow'
-                )}
-                <div className="backup-db-icon">
-                    <IconButton
-                        pIsToopTip
-                        pToolTipContent="Database backup"
-                        pToolTipId="db-backup"
-                        pWidth={18}
-                        pHeight={20}
-                        pIcon={<LuDatabaseBackup size={12} />}
-                        onClick={handleBackup}
-                    />
+            <div className="bk-wrap db-exp-comm" onClick={() => setBkCollapseTree(!sBkCollapseTree)}>
+                <div className="backup-db-header">
+                    <div className="bk-folder-wrap">
+                        <div className="bk-folder-wrap-icon">
+                            <VscChevronRight className={`${sBkCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow'}`} />
+                        </div>
+                        <span className="bk-folder-wrap-name">BACKUPS</span>
+                    </div>
+                    <div className="backup-db-icon">
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="Database backup"
+                            pToolTipId="db-backup"
+                            pWidth={18}
+                            pHeight={20}
+                            pIcon={<LuDatabaseBackup size={12} />}
+                            onClick={handleBackup}
+                        />
+                    </div>
                 </div>
             </div>
             {sBkCollapseTree && (
@@ -133,6 +135,7 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
     const [isMount, setIsMount] = useState<boolean>(false);
     const [sMountState, setMountState] = useState<string>('');
     const [sMountAlias, setMountAlias] = useState<string>(backupInfo.path.toUpperCase());
+    const sMountAliasRef = useRef<any>(undefined);
 
     const mountBackupDB = async () => {
         setIsMount(false);
@@ -158,7 +161,10 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
         setIsMount(true);
     };
     const handleMountName = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!MountNameRegEx.test(e.target.value) && e.target.value !== '') return;
+        const start = e.target.selectionStart ?? 0;
+        const end = e.target.selectionEnd ?? 0;
+        if (!MountNameRegEx.test(e.target.value) && e.target.value !== '') return sMountAliasRef.current.setSelectionRange(start - 1 ?? 0, end - 1 ?? 0);
+        sMountAliasRef.current.setSelectionRange(start, end);
         setMountAlias(() => e.target.value.toUpperCase());
     };
 
@@ -213,7 +219,15 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
                             <span>{`Do you want to mount this database?`}</span>
                             <div className="comfirm-input-wrap">
                                 <label htmlFor="mount-db-name">Name</label>
-                                <input id="mount-db-name" autoFocus value={sMountAlias} onChange={handleMountName} />
+                                <input
+                                    ref={sMountAliasRef}
+                                    value={sMountAliasRef?.current?.value ?? sMountAlias}
+                                    onChange={handleMountName}
+                                    autoComplete="off"
+                                    id="mount-db-name"
+                                    autoFocus
+                                    type="text"
+                                />
                             </div>
                         </div>
                     }
