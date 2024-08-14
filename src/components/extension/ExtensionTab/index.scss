@@ -253,6 +253,9 @@
         width: 100%;
     }
     .extension-tab-text-button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
         width: 80px;
         height: 25px;
         color: #f1f1f1;

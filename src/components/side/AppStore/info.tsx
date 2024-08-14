@@ -12,6 +12,8 @@ import { Markdown } from '@/components/worksheet/Markdown';
 import { gSearchPkgs } from '@/recoil/appStore';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
+import { MdDelete, MdDownload } from 'react-icons/md';
+import { Play } from '@/assets/icons/Icon';
 
 export const AppInfo = ({ pCode }: { pCode: any }) => {
     // Recoil
@@ -89,11 +91,51 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         const sShowInstallBtn = sInstallTxt === 'Install' && pCode?.app?.installed_version && pCode?.app?.installed_version !== '' ? false : true;
         return (
             <ExtensionTab.DpRow>
-                {sShowInstallBtn && <ExtensionTab.TextButton pText={sInstallTxt} pType="CREATE" pCallback={() => sendCommand('install')} mr="8px" mb="0px" mt="4px" />}
+                {sShowInstallBtn && (
+                    <ExtensionTab.TextButton
+                        pIcon={
+                            <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                <MdDownload />
+                            </div>
+                        }
+                        pText={sInstallTxt}
+                        pType="CREATE"
+                        pWidth="65px"
+                        pCallback={() => sendCommand('install')}
+                        mr="8px"
+                        mb="0px"
+                        mt="4px"
+                    />
+                )}
                 {pCode?.app?.installed_version && pCode?.app?.installed_version !== '' && (
                     <>
-                        <ExtensionTab.TextButton pText={'Uninstall'} pType="DELETE" pCallback={() => sendCommand('uninstall')} mr="8px" mb="0px" mt="4px" />
-                        <ExtensionTab.TextButton pWidth="120px" pText={'Open in browser'} pType="COPY" pCallback={handleOpenBrowser} mr="8px" mb="0px" mt="4px" />
+                        <ExtensionTab.TextButton
+                            pIcon={
+                                <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    <MdDelete />
+                                </div>
+                            }
+                            pText={'Uninstall'}
+                            pType="DELETE"
+                            pCallback={() => sendCommand('uninstall')}
+                            mr="8px"
+                            mb="0px"
+                            mt="4px"
+                        />
+                        <ExtensionTab.TextButton
+                            pIcon={
+                                <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    <Play />
+                                </div>
+                            }
+                            pWidth="130px"
+                            pText={'Open in browser'}
+                            pType="COPY"
+                            pCallback={handleOpenBrowser}
+                            mr="8px"
+                            mb="0px"
+                            mt="4px"
+                        />
                     </>
                 )}
             </ExtensionTab.DpRow>

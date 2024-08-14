@@ -75,6 +75,7 @@ const TextButton = ({
     mr = '16px',
     mb = '8px',
     mt = '0px',
+    pIcon = undefined,
 }: {
     pText: string;
     pType: string;
@@ -85,6 +86,7 @@ const TextButton = ({
     mr?: string;
     mb?: string;
     mt?: string;
+    pIcon?: any;
 }) => {
     const getColor = () => {
         switch (pType) {
@@ -107,6 +109,7 @@ const TextButton = ({
             onClick={handleCallback}
             onMouseOut={onMouseOut}
         >
+            {pIcon && pIcon}
             {pText}
         </button>
     );
