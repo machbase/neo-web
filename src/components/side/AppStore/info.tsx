@@ -1,10 +1,10 @@
 import './info.scss';
 import { IconButton } from '@/components/buttons/IconButton';
-import { LuFlipVertical } from 'react-icons/lu';
+import { LuFlipVertical, LuScale } from 'react-icons/lu';
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { Pane, SashContent } from 'split-pane-react';
 import SplitPane from 'split-pane-react/esm/SplitPane';
-import { VscExtensions } from 'react-icons/vsc';
+import { VscExtensions, VscPackage, VscRepoForked } from 'react-icons/vsc';
 import moment from 'moment';
 import { getCommandPkgs, getPkgMarkdown, getSearchPkgs, INSTALL, SEARCH_RES, UNINSTALL } from '@/api/repository/appStore';
 import { useEffect, useRef, useState } from 'react';
@@ -13,7 +13,7 @@ import { gSearchPkgName, gSearchPkgs } from '@/recoil/appStore';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { MdDelete, MdDownload } from 'react-icons/md';
-import { Play } from '@/assets/icons/Icon';
+import { BiLink, Play } from '@/assets/icons/Icon';
 import { getUserName } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 
@@ -89,7 +89,8 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         } else setCommandResLog(res?.data?.log ? res?.data?.log : undefined);
     };
     const tzTimeConverter = (time: string) => {
-        return moment(time).format('YYYY-MM-DD HH:mm:ss');
+        return moment(time).fromNow(); // 'A year ago'
+        // return moment(time).format('YYYY-MM-DD HH:mm:ss');
     };
     const STATUS_ICON = () => {
         const sInstallTxt = pCode?.app?.installed_version !== '' && pCode?.app?.installed_version !== pCode?.app?.latest_version ? 'Update' : 'Install';
@@ -183,6 +184,19 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         const sOpenUrl = window.location.origin + '/web/apps/' + pCode?.app?.name;
         window.open(sOpenUrl);
     };
+    const byteConverter = (byte: number) => {
+        const sSquared = Math.abs(Math.trunc(byte)).toString().length - 1;
+        const sOverflow = byte.toString().includes('+');
+        if (sOverflow || sSquared >= 15) return byte / Math.pow(1000, 5) + ' PB';
+        if (byte === 0) return byte;
+        if (sSquared === 0) return byte + ' B';
+        if (sSquared < 3) return byte + ' B';
+        if (sSquared < 6) return byte / 1000 + ' kB';
+        if (sSquared < 9) return byte / Math.pow(1000, 2) + ' MB';
+        if (sSquared < 12) return byte / Math.pow(1000, 3) + ' GB';
+        if (sSquared < 15) return byte / Math.pow(1000, 4) + ' TB';
+        return byte;
+    };
 
     useEffect(() => {
         if (fixBlockRef && fixBlockRef?.current && (fixBlockRef?.current as any)?.clientHeight > 0) setBracketHeight((fixBlockRef?.current as any)?.clientHeight + 'px');
@@ -212,23 +226,56 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                                     )}
                                                 </div>
                                                 <div className="app-store-item-info-contents">
+                                                    {/* TITLE & VERSION */}
                                                     <ExtensionTab.DpRow>
                                                         <ExtensionTab.ContentTitle>{pCode?.app?.name ?? ''}</ExtensionTab.ContentTitle>
                                                         <div className="app-store-item-info-contents-top-version">
                                                             <span>v{pCode?.app?.latest_version ?? ''}</span>
                                                         </div>
                                                     </ExtensionTab.DpRow>
-                                                    <div style={{ display: 'flex' }}>
-                                                        <div style={{ marginRight: '8px' }}>{pCode?.app?.github.organization}</div>
+                                                    {/* DESC */}
+                                                    <ExtensionTab.ContentDesc>{pCode?.app?.github.description ?? ''}</ExtensionTab.ContentDesc>
+                                                    {/* ORGANIZ & PUBS TIME */}
+                                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                        <div style={{ marginRight: '8px', marginTop: '-2px' }}>
+                                                            <ExtensionTab.ContentText pContent={pCode?.app?.github.organization} />
+                                                        </div>
                                                         <ExtensionTab.ContentDesc>
-                                                            published at {pCode?.app?.published_at ? tzTimeConverter(pCode?.app?.published_at) : ''}
+                                                            Published {pCode?.app?.published_at ? tzTimeConverter(pCode?.app?.published_at) : ''}
                                                         </ExtensionTab.ContentDesc>
                                                     </div>
-                                                    <ExtensionTab.ContentDesc>{pCode?.app?.github.description ?? ''}</ExtensionTab.ContentDesc>
                                                     {STATUS_ICON()}
                                                 </div>
                                             </div>
                                         </ExtensionTab.DpRow>
+                                        <div style={{ display: 'flex', flexDirection: 'row', marginTop: '8px', width: '100%' }}>
+                                            {/* HOMEPAGE */}
+                                            {pCode?.app?.github?.homepage && pCode?.app?.github?.homepage !== '' && (
+                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
+                                                    <BiLink style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
+                                                    <a href={pCode?.app?.github?.homepage} style={{ fontSize: '13px', marginTop: '4px' }}>
+                                                        {pCode?.app?.github?.homepage}
+                                                    </a>
+                                                </div>
+                                            )}
+                                            {/* LICENSE */}
+                                            {pCode?.app?.github?.license?.name && pCode?.app?.github?.license?.name !== '' && (
+                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
+                                                    <LuScale style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
+                                                    <ExtensionTab.ContentText pContent={pCode?.app?.github?.license?.name ?? ''} />
+                                                </div>
+                                            )}
+                                            {/* FORKS COUNT */}
+                                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
+                                                <VscRepoForked style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
+                                                <ExtensionTab.ContentText pContent={pCode?.app?.github?.forks_count + ' forks' ?? ''} />
+                                            </div>
+                                            {/* SIZE */}
+                                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
+                                                <VscPackage style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
+                                                <ExtensionTab.ContentText pContent={byteConverter(pCode?.app?.latest_release_size)?.toString()} />
+                                            </div>
+                                        </div>
                                     </ExtensionTab.ContentBlock>
                                     <ExtensionTab.Hr />
                                 </ExtensionTab.Body>

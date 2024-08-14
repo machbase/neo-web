@@ -1,6 +1,6 @@
 import './index.scss';
 import { MdRefresh } from 'react-icons/md';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { SideTitle } from '../SideForm';
 import { IconButton } from '@/components/buttons/IconButton';
@@ -52,14 +52,8 @@ export const AppStore = ({ pServer }: any) => {
     const handleSearchTxt = (e: React.FormEvent<HTMLInputElement>) => {
         setSearchTxt((e.target as HTMLInputElement).value);
     };
-    const refreshFetch = async () => {
-        await pkgsUpdate();
-    };
 
     useDebounce([sEnter, sSearchTxt], pkgsSearch, 500);
-    useEffect(() => {
-        refreshFetch();
-    }, []);
 
     return (
         <div className="side-form">
@@ -85,12 +79,17 @@ export const AppStore = ({ pServer }: any) => {
                 <div ref={searchRef} className="app-search-warp">
                     <input placeholder="Search" autoFocus onChange={handleSearchTxt} className="app-search-input" onKeyDown={(e) => EnterCallback(e, () => setEnter(sEnter + 1))} />
                 </div>
-                {/* EXACT */}
-                <AppList pList={sExactPkgList} pTitle="EXACT" pStatus="EXACT" />
-                {/* POSSIBLE */}
-                <AppList pList={sPossiblePkgList} pTitle="POSSIBLE" pStatus="POSSIBLE" />
-                {/* BROKEN */}
-                <AppList pList={sBrokenPkgList} pTitle="BROKEN" pStatus="BROKEN" />
+                {sSearchTxt === '' && <AppList pList={sPossiblePkgList} pTitle="FEATURED" pStatus="POSSIBLE" />}
+                {sSearchTxt && sSearchTxt !== '' && (
+                    <>
+                        {/* EXACT */}
+                        <AppList pList={sExactPkgList} pTitle="FOUND" pStatus="EXACT" />
+                        {/* POSSIBLE */}
+                        <AppList pList={sPossiblePkgList} pTitle="SEARCH" pStatus="POSSIBLE" />
+                        {/* BROKEN */}
+                        <AppList pList={sBrokenPkgList} pTitle="BROKEN" pStatus="BROKEN" />
+                    </>
+                )}
             </div>
         </div>
     );
