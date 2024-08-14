@@ -30,3 +30,8 @@ export const gBrokenPkgs = selector({
         return get(gSearchPkgs).broken ?? [];
     },
 });
+/** Search pkg name */
+export const gSearchPkgName = atom({
+    key: 'gSearchPkgName',
+    default: '',
+});

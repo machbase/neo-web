@@ -9,8 +9,8 @@ import moment from 'moment';
 import { getCommandPkgs, getPkgMarkdown, getSearchPkgs, INSTALL, SEARCH_RES, UNINSTALL } from '@/api/repository/appStore';
 import { useEffect, useRef, useState } from 'react';
 import { Markdown } from '@/components/worksheet/Markdown';
-import { gSearchPkgs } from '@/recoil/appStore';
-import { useRecoilState, useSetRecoilState } from 'recoil';
+import { gSearchPkgName, gSearchPkgs } from '@/recoil/appStore';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { MdDelete, MdDownload } from 'react-icons/md';
 import { Play } from '@/assets/icons/Icon';
@@ -21,6 +21,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     // Recoil
     const setPkgs = useSetRecoilState<SEARCH_RES>(gSearchPkgs);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    const sSearchPkgName = useRecoilValue(gSearchPkgName);
     // Scoped
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sGroupWidth, setGroupWidth] = useState<any[]>(['60%', '40%']);
@@ -82,7 +83,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         if (!sIsAdmin) return;
         const res: any = await getCommandPkgs(command, pCode.app.name);
         if (res && res?.success && res?.data) {
-            pkgsUpdate('');
+            pkgsUpdate(sSearchPkgName);
             pkgDetailUpdate(pCode.app.name, 1);
             setCommandResLog(res.data.log);
         } else setCommandResLog(res?.data?.log ? res?.data?.log : undefined);

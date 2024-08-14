@@ -5,12 +5,12 @@ import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { SideTitle } from '../SideForm';
 import { IconButton } from '@/components/buttons/IconButton';
 import { getPkgsSync, getSearchPkgs, SEARCH_RES } from '@/api/repository/appStore';
-import EnterCallback from '@/hooks/useEnter';
-import { gSearchPkgs, gExactPkgs, gPossiblePkgs, gBrokenPkgs } from '@/recoil/appStore';
+import { gSearchPkgs, gExactPkgs, gPossiblePkgs, gBrokenPkgs, gSearchPkgName } from '@/recoil/appStore';
 import { AppList } from './item';
 import { CgExtensionAdd } from 'react-icons/cg';
 import { getUserName } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
+import useDebounce from '@/hooks/useDebounce';
 
 export const AppStore = ({ pServer }: any) => {
     // RECOIL var
@@ -18,6 +18,7 @@ export const AppStore = ({ pServer }: any) => {
     const sPossiblePkgList = useRecoilValue(gPossiblePkgs);
     const sBrokenPkgList = useRecoilValue(gBrokenPkgs);
     const setPkgs = useSetRecoilState<SEARCH_RES>(gSearchPkgs);
+    const setSearchPkgName = useSetRecoilState(gSearchPkgName);
     // SCOPED var
     const [sSearchTxt, setSearchTxt] = useState<string>('');
     const searchRef = useRef(null);
@@ -29,8 +30,9 @@ export const AppStore = ({ pServer }: any) => {
         await getPkgsSync();
     };
     // pkgs search
-    const pkgsSearch = async (searchTxt: string) => {
-        const sSearchRes: any = await getSearchPkgs(searchTxt);
+    const pkgsSearch = async () => {
+        const sSearchRes: any = await getSearchPkgs(sSearchTxt);
+        setSearchPkgName(sSearchTxt);
         if (sSearchRes && sSearchRes?.success && sSearchRes?.data) {
             setPkgs({
                 exact: (sSearchRes?.data as SEARCH_RES).exact ?? [],
@@ -49,14 +51,11 @@ export const AppStore = ({ pServer }: any) => {
     const handleSearchTxt = (e: React.FormEvent<HTMLInputElement>) => {
         setSearchTxt((e.target as HTMLInputElement).value);
     };
-    const searchReq = () => {
-        pkgsSearch(sSearchTxt);
-    };
     const refreshFetch = async () => {
         await pkgsUpdate();
-        await pkgsSearch(sSearchTxt);
     };
 
+    useDebounce([sSearchTxt], pkgsSearch, 500);
     useEffect(() => {
         refreshFetch();
     }, []);
@@ -85,14 +84,14 @@ export const AppStore = ({ pServer }: any) => {
                         pWidth={20}
                         pHeight={20}
                         pIcon={<MdRefresh size={15} />}
-                        onClick={() => pkgsSearch(sSearchTxt)}
+                        onClick={() => pkgsSearch()}
                     />
                 </span>
             </div>
             <div className="app-store-wrap" style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
                 {/* SEARCH */}
                 <div ref={searchRef} className="app-search-warp">
-                    <input placeholder="Search" autoFocus onChange={handleSearchTxt} className="app-search-input" onKeyDown={(e) => EnterCallback(e, searchReq)} />
+                    <input placeholder="Search" autoFocus onChange={handleSearchTxt} className="app-search-input" />
                 </div>
                 {/* EXACT */}
                 <AppList pList={sExactPkgList} pTitle="EXACT" pStatus="EXACT" />
