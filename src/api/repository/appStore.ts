@@ -37,6 +37,7 @@ export type IMG_URL = string;
 export type PKG_STATUS = 'EXACT' | 'POSSIBLE' | 'BROKEN';
 // INTERFACES
 export interface SEARCH_RES {
+    installed: null | APP_INFO[];
     broken: null | APP_INFO[];
     exact: null | APP_INFO[];
     possibles: null | APP_INFO[];

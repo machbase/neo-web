@@ -29,13 +29,14 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     const [sBracketHeight, setBracketHeight] = useState<string>('0px');
     const [sReadme, setReadme] = useState<string | undefined>(undefined);
     const [sCommandResLog, setCommandResLog] = useState<string | undefined>(undefined);
-    const sIsAdmin = getUserName().toUpperCase() === ADMIN_ID.toUpperCase();
+    const sIsAdmin = getUserName() ? getUserName().toUpperCase() === ADMIN_ID.toUpperCase() : false;
 
     // Update pkgs list (side)
     const pkgsUpdate = async (searchTxt: string) => {
         const sSearchRes: any = await getSearchPkgs(searchTxt);
         if (sSearchRes && sSearchRes?.success && sSearchRes?.data) {
             setPkgs({
+                installed: (sSearchRes?.data as SEARCH_RES).installed ?? [],
                 exact: (sSearchRes?.data as SEARCH_RES).exact ?? [],
                 possibles: (sSearchRes?.data as SEARCH_RES).possibles ?? [],
                 // TODO (response string[])
@@ -43,6 +44,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
             });
         } else
             setPkgs({
+                installed: [],
                 exact: [],
                 possibles: [],
                 broken: [],

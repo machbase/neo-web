@@ -4,10 +4,18 @@ import { atom, selector } from 'recoil';
 export const gSearchPkgs = atom({
     key: 'gSearchPkgs',
     default: {
+        installed: [],
         exact: [],
         possibles: [],
         broken: [],
     } as SEARCH_RES,
+});
+/** Installed pkgs */
+export const gInstalledPkgs = selector({
+    key: 'gInstalledPkgs',
+    get: ({ get }) => {
+        return get(gSearchPkgs).installed ?? [];
+    },
 });
 /** Exact (Usable) pkgs */
 export const gExactPkgs = selector({
