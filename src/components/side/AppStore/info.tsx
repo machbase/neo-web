@@ -4,7 +4,8 @@ import { LuFlipVertical, LuScale } from 'react-icons/lu';
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { Pane, SashContent } from 'split-pane-react';
 import SplitPane from 'split-pane-react/esm/SplitPane';
-import { VscExtensions, VscPackage, VscRepoForked } from 'react-icons/vsc';
+import { SlStar } from 'react-icons/sl';
+import { VscExtensions, VscHome, VscPackage, VscRepoForked } from 'react-icons/vsc';
 import moment from 'moment';
 import { getCommandPkgs, getPkgMarkdown, getSearchPkgs, INSTALL, SEARCH_RES, UNINSTALL } from '@/api/repository/appStore';
 import { useEffect, useRef, useState } from 'react';
@@ -238,10 +239,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                                     {/* DESC */}
                                                     <ExtensionTab.ContentDesc>{pCode?.app?.github.description ?? ''}</ExtensionTab.ContentDesc>
                                                     {/* ORGANIZ & PUBS TIME */}
-                                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                                        <div style={{ marginRight: '8px', marginTop: '-2px' }}>
-                                                            <ExtensionTab.ContentText pContent={pCode?.app?.github.organization} />
-                                                        </div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', marginRight: '8px' }}>
                                                         <ExtensionTab.ContentDesc>
                                                             Published {pCode?.app?.published_at ? tzTimeConverter(pCode?.app?.published_at) : ''}
                                                         </ExtensionTab.ContentDesc>
@@ -251,12 +249,29 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                             </div>
                                         </ExtensionTab.DpRow>
                                         <div style={{ display: 'flex', flexDirection: 'row', marginTop: '8px', width: '100%' }}>
+                                            {/* PUBLISHED BY */}
+                                            {pCode?.app?.github?.homepage && pCode?.app?.github?.homepage !== '' && (
+                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
+                                                    <ExtensionTab.ContentText pContent={`Published by ${pCode?.app?.github?.organization}`} />
+                                                </div>
+                                            )}
                                             {/* HOMEPAGE */}
                                             {pCode?.app?.github?.homepage && pCode?.app?.github?.homepage !== '' && (
                                                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
-                                                    <BiLink style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
+                                                    <VscHome style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
                                                     <a href={pCode?.app?.github?.homepage} style={{ fontSize: '13px', marginTop: '4px' }}>
                                                         {pCode?.app?.github?.homepage}
+                                                    </a>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'row', marginTop: '8px', width: '100%' }}>
+                                            {/* GIT PAGE */}
+                                            {pCode?.app?.github?.full_name && pCode?.app?.github?.full_name !== '' && (
+                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
+                                                    <BiLink style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
+                                                    <a href={'https://github.com/' + pCode?.app?.github?.full_name} style={{ fontSize: '13px', marginTop: '4px' }}>
+                                                        {'https://github.com/' + pCode?.app?.github?.full_name}
                                                     </a>
                                                 </div>
                                             )}
@@ -269,6 +284,11 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                                     </a>
                                                 </div>
                                             )}
+                                            {/* STAR */}
+                                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
+                                                <SlStar style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
+                                                <ExtensionTab.ContentText pContent={pCode?.app?.github?.star_count ?? '0'} />
+                                            </div>
                                             {/* FORKS COUNT */}
                                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
                                                 <VscRepoForked style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />

@@ -1,5 +1,10 @@
 a {
-    color: #0471d6 !important;
+    color: #dfdfdf !important;
+    text-decoration: underline !important;
+
+    &:hover {
+        color: #0471d6 !important;
+    }
 }
 .app-store-item-info {
     width: 100%;
@@ -23,7 +28,10 @@ a {
     &-contents {
         margin-left: 8px;
         width: 100%;
+        height: 100px;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
 
         &-top {
             width: 100%;
