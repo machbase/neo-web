@@ -24,7 +24,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     const sSearchPkgName = useRecoilValue(gSearchPkgName);
     // Scoped
     const [isVertical, setIsVertical] = useState<boolean>(true);
-    const [sGroupWidth, setGroupWidth] = useState<any[]>(['60%', '40%']);
+    const [sGroupWidth, setGroupWidth] = useState<any[]>(['50%', '50%']);
     const fixBlockRef = useRef(null);
     const [sBracketHeight, setBracketHeight] = useState<string>('0px');
     const [sReadme, setReadme] = useState<string | undefined>(undefined);
@@ -95,7 +95,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         // return moment(time).format('YYYY-MM-DD HH:mm:ss');
     };
     const STATUS_ICON = () => {
-        const sInstallTxt = pCode?.app?.installed_version !== '' && pCode?.app?.installed_version !== pCode?.app?.latest_version ? 'Update' : 'Install';
+        const sInstallTxt = pCode?.app?.installed_version !== '' && pCode?.app?.installed_version !== pCode?.app?.latest_version ? 'Upgrade' : 'Install';
         const sShowInstallBtn = sInstallTxt === 'Install' && pCode?.app?.installed_version && pCode?.app?.installed_version !== '' ? false : true;
         return (
             <ExtensionTab.DpRow>
@@ -109,7 +109,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                         }
                         pText={sInstallTxt}
                         pType="CREATE"
-                        pWidth="65px"
+                        pWidth="80px"
                         pCallback={() => sendCommand('install')}
                         mr="8px"
                         mb="0px"
@@ -190,13 +190,13 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         const sSquared = Math.abs(Math.trunc(byte)).toString().length - 1;
         const sOverflow = byte.toString().includes('+');
         if (sOverflow || sSquared >= 15) return byte / Math.pow(1000, 5) + ' PB';
-        if (byte === 0) return byte;
-        if (sSquared === 0) return byte + ' B';
-        if (sSquared < 3) return byte + ' B';
-        if (sSquared < 6) return byte / 1000 + ' kB';
-        if (sSquared < 9) return byte / Math.pow(1000, 2) + ' MB';
-        if (sSquared < 12) return byte / Math.pow(1000, 3) + ' GB';
-        if (sSquared < 15) return byte / Math.pow(1000, 4) + ' TB';
+        if (byte === 0) return byte.toFixed(0);
+        if (sSquared === 0) return byte.toFixed(0) + ' B';
+        if (sSquared < 3) return byte.toFixed(0) + ' B';
+        if (sSquared < 6) return (byte / 1000).toFixed(0) + ' kB';
+        if (sSquared < 9) return (byte / Math.pow(1000, 2)).toFixed(0) + ' MB';
+        if (sSquared < 12) return (byte / Math.pow(1000, 3)).toFixed(0) + ' GB';
+        if (sSquared < 15) return (byte / Math.pow(1000, 4)).toFixed(0) + ' TB';
         return byte;
     };
 
@@ -217,7 +217,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                             <ExtensionTab.Header />
                             <div ref={fixBlockRef}>
                                 <ExtensionTab.Body fixed>
-                                    <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.ContentBlock pHoverNone>
                                         <ExtensionTab.DpRow>
                                             <div className="app-store-item-info">
                                                 <div className="app-store-item-info-thumb">
@@ -264,7 +264,9 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                             {pCode?.app?.github?.license?.name && pCode?.app?.github?.license?.name !== '' && (
                                                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
                                                     <LuScale style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
-                                                    <ExtensionTab.ContentText pContent={pCode?.app?.github?.license?.name ?? ''} />
+                                                    <a href={pCode?.app?.github?.license?.url} style={{ fontSize: '13px', marginTop: '4px' }}>
+                                                        {pCode?.app?.github?.license?.name}
+                                                    </a>
                                                 </div>
                                             )}
                                             {/* FORKS COUNT */}

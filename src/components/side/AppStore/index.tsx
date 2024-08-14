@@ -87,7 +87,7 @@ export const AppStore = ({ pServer }: any) => {
                 {/* EXACT */}
                 <AppList pList={sExactPkgList} pTitle="FOUND" pStatus="EXACT" />
                 {/* POSSIBLE */}
-                <AppList pList={sPossiblePkgList} pTitle="SEARCH" pStatus="POSSIBLE" />
+                <AppList pList={sPossiblePkgList} pTitle={sSearchTxt === '' ? 'FEATURED' : 'SEARCH'} pStatus="POSSIBLE" />
                 {/* BROKEN */}
                 <AppList pList={sBrokenPkgList} pTitle="BROKEN" pStatus="BROKEN" />
             </div>
