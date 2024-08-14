@@ -138,6 +138,9 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
             case 'backupdb':
                 setIsSaved(pBoard?.code?.path !== '' ?? false);
                 break;
+            case 'appStore':
+                setIsSaved(true);
+                break;
             default:
                 setIsSaved(aBoard.code === pBoard.savedCode);
                 break;

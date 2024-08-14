@@ -1,0 +1,157 @@
+.app-store-list-wrap {
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    font-size: 13px;
+
+    .app-store {
+        display: flex;
+        padding: 0 11px 0 0px;
+        width: 100%;
+        background-color: #242424;
+
+        &-collapse-icon {
+            min-width: 20px;
+            min-height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        &-list-title {
+        }
+    }
+
+    .app-store-list {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+
+        .app-store-item {
+            padding: 2px 11px 2px 16px;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            min-height: 60px;
+
+            .app-store-item-contents {
+                margin-left: 8px;
+                width: 100%;
+                overflow: hidden;
+
+                span {
+                    overflow: hidden;
+                    display: block;
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
+                }
+
+                &-top {
+                    width: 100%;
+
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+
+                    &-title {
+                        overflow: hidden;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        font-size: 14px;
+                        color: #dfdfdf;
+                    }
+                    &-version {
+                        display: block;
+                        padding: 0px 6px;
+                        border-radius: 4px;
+                        font-size: 10px;
+                        background-color: #232323;
+                    }
+                }
+
+                &-desc {
+                    font-size: 12px;
+                    color: #a3a3a3;
+                }
+                &-bottom {
+                    display: flex;
+                    width: 100%;
+                    justify-content: space-between;
+                    align-items: center;
+                    font-size: 10px;
+
+                    &-publisher {
+                        overflow: hidden;
+                        display: block;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        color: #aaaaaa;
+                    }
+                    &-status {
+                        .install {
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            min-width: 30px;
+                            padding: 0 4px;
+                            border-radius: 4px;
+                            background-color: #005fb8;
+
+                            &:hover {
+                                background-color: #004fb8;
+                            }
+                        }
+                        .uninstall {
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            min-width: 32px;
+                            padding: 0 4px;
+                            border-radius: 4px;
+                            background-color: #c15000;
+
+                            &:hover {
+                                background-color: #c14000;
+                            }
+                        }
+                    }
+                    &-cog {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        width: 20px;
+                        height: 20px;
+                        svg {
+                            min-width: 16px;
+                            min-height: 16px;
+                        }
+
+                        &:hover {
+                            background-color: #404457;
+                            border-radius: 4px;
+                        }
+                    }
+                }
+            }
+
+            &-thumb {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+
+                svg {
+                    width: 40px;
+                    height: 40px;
+                }
+                img {
+                    width: 40px;
+                    height: 40px;
+                }
+            }
+            &:hover {
+                background-color: #242424;
+            }
+        }
+    }
+}

@@ -14,6 +14,7 @@ import { GiTallBridge } from 'react-icons/gi';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { Password } from '../password';
 import './index.scss';
+import { VscExtensions } from 'react-icons/vsc';
 
 const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const sNavigate = useNavigate();
@@ -78,6 +79,8 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                 return <GoTerminal />;
             case 'BRIDGE':
                 return <GiTallBridge />;
+            case 'APPSTORE':
+                return <VscExtensions />;
             default:
                 return <Cmd />;
         }
