@@ -14,6 +14,8 @@ import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { MdDelete, MdDownload } from 'react-icons/md';
 import { Play } from '@/assets/icons/Icon';
+import { getUserName } from '@/utils';
+import { ADMIN_ID } from '@/utils/constants';
 
 export const AppInfo = ({ pCode }: { pCode: any }) => {
     // Recoil
@@ -26,6 +28,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     const [sBracketHeight, setBracketHeight] = useState<string>('0px');
     const [sReadme, setReadme] = useState<string | undefined>(undefined);
     const [sCommandResLog, setCommandResLog] = useState<string | undefined>(undefined);
+    const sIsAdmin = getUserName().toUpperCase() === ADMIN_ID.toUpperCase();
 
     // Update pkgs list (side)
     const pkgsUpdate = async (searchTxt: string) => {
@@ -76,6 +79,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     };
     // Send command (install | uninstall)
     const sendCommand = async (command: INSTALL | UNINSTALL) => {
+        if (!sIsAdmin) return;
         const res: any = await getCommandPkgs(command, pCode.app.name);
         if (res && res?.success && res?.data) {
             pkgsUpdate('');
@@ -91,7 +95,8 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         const sShowInstallBtn = sInstallTxt === 'Install' && pCode?.app?.installed_version && pCode?.app?.installed_version !== '' ? false : true;
         return (
             <ExtensionTab.DpRow>
-                {sShowInstallBtn && (
+                {/* INSTALL || UPDATE */}
+                {sShowInstallBtn && sIsAdmin && (
                     <ExtensionTab.TextButton
                         pIcon={
                             <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -109,19 +114,23 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                 )}
                 {pCode?.app?.installed_version && pCode?.app?.installed_version !== '' && (
                     <>
-                        <ExtensionTab.TextButton
-                            pIcon={
-                                <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                    <MdDelete />
-                                </div>
-                            }
-                            pText={'Uninstall'}
-                            pType="DELETE"
-                            pCallback={() => sendCommand('uninstall')}
-                            mr="8px"
-                            mb="0px"
-                            mt="4px"
-                        />
+                        {/* UNINSTALL */}
+                        {sIsAdmin && (
+                            <ExtensionTab.TextButton
+                                pIcon={
+                                    <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                        <MdDelete />
+                                    </div>
+                                }
+                                pText={'Uninstall'}
+                                pType="DELETE"
+                                pCallback={() => sendCommand('uninstall')}
+                                mr="8px"
+                                mb="0px"
+                                mt="4px"
+                            />
+                        )}
+                        {/* OPEN BROWSER */}
                         <ExtensionTab.TextButton
                             pIcon={
                                 <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>

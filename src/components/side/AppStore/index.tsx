@@ -9,6 +9,8 @@ import EnterCallback from '@/hooks/useEnter';
 import { gSearchPkgs, gExactPkgs, gPossiblePkgs, gBrokenPkgs } from '@/recoil/appStore';
 import { AppList } from './item';
 import { CgExtensionAdd } from 'react-icons/cg';
+import { getUserName } from '@/utils';
+import { ADMIN_ID } from '@/utils/constants';
 
 export const AppStore = ({ pServer }: any) => {
     // RECOIL var
@@ -19,9 +21,11 @@ export const AppStore = ({ pServer }: any) => {
     // SCOPED var
     const [sSearchTxt, setSearchTxt] = useState<string>('');
     const searchRef = useRef(null);
+    const sIsAdmin = getUserName().toUpperCase() === ADMIN_ID.toUpperCase();
 
     // pkgs update (ADMIN)
     const pkgsUpdate = async () => {
+        if (!sIsAdmin) return;
         await getPkgsSync();
     };
     // pkgs search
@@ -63,15 +67,17 @@ export const AppStore = ({ pServer }: any) => {
             <div className="app-sotre-sub-title">
                 <span className="title-text">APP STORE</span>
                 <span className="sub-title-navi">
-                    <IconButton
-                        pIsToopTip
-                        pToolTipContent="Update"
-                        pToolTipId="app-store-update"
-                        pWidth={20}
-                        pHeight={20}
-                        pIcon={<CgExtensionAdd size={15} />}
-                        onClick={pkgsUpdate}
-                    />
+                    {sIsAdmin && (
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="Update"
+                            pToolTipId="app-store-update"
+                            pWidth={20}
+                            pHeight={20}
+                            pIcon={<CgExtensionAdd size={15} />}
+                            onClick={pkgsUpdate}
+                        />
+                    )}
                     <IconButton
                         pIsToopTip
                         pToolTipContent="Refresh"
