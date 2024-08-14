@@ -234,7 +234,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                 </ExtensionTab.Body>
                             </div>
                             <ExtensionTab.Body>
-                                <ExtensionTab.ContentBlock>
+                                <ExtensionTab.ContentBlock pHoverNone>
                                     <Markdown pIdx={1} pContents={sReadme ?? ''} pType="mrk" />
                                 </ExtensionTab.ContentBlock>
                                 <div style={{ height: sBracketHeight }} />

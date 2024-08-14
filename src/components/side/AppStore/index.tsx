@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { SideTitle } from '../SideForm';
 import { IconButton } from '@/components/buttons/IconButton';
-import { getPkgsSync, getSearchPkgs, SEARCH_RES } from '@/api/repository/appStore';
+import { APP_INFO, getPkgsSync, getSearchPkgs, SEARCH_RES } from '@/api/repository/appStore';
 import { gSearchPkgs, gExactPkgs, gPossiblePkgs, gBrokenPkgs, gSearchPkgName } from '@/recoil/appStore';
 import { AppList } from './item';
-import { CgExtensionAdd } from 'react-icons/cg';
+import EnterCallback from '@/hooks/useEnter';
 import { getUserName } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import useDebounce from '@/hooks/useDebounce';
@@ -21,6 +21,7 @@ export const AppStore = ({ pServer }: any) => {
     const setSearchPkgName = useSetRecoilState(gSearchPkgName);
     // SCOPED var
     const [sSearchTxt, setSearchTxt] = useState<string>('');
+    const [sEnter, setEnter] = useState<number>(0);
     const searchRef = useRef(null);
     const sIsAdmin = getUserName().toUpperCase() === ADMIN_ID.toUpperCase();
 
@@ -35,7 +36,7 @@ export const AppStore = ({ pServer }: any) => {
         setSearchPkgName(sSearchTxt);
         if (sSearchRes && sSearchRes?.success && sSearchRes?.data) {
             setPkgs({
-                exact: (sSearchRes?.data as SEARCH_RES).exact ?? [],
+                exact: (sSearchRes?.data as SEARCH_RES)?.exact ? [sSearchRes?.data?.exact as APP_INFO] : [],
                 possibles: (sSearchRes?.data as SEARCH_RES).possibles ?? [],
                 // TODO (response string[])
                 broken: (sSearchRes?.data as SEARCH_RES).broken ?? [],
@@ -55,7 +56,7 @@ export const AppStore = ({ pServer }: any) => {
         await pkgsUpdate();
     };
 
-    useDebounce([sSearchTxt], pkgsSearch, 500);
+    useDebounce([sEnter, sSearchTxt], pkgsSearch, 500);
     useEffect(() => {
         refreshFetch();
     }, []);
@@ -64,7 +65,7 @@ export const AppStore = ({ pServer }: any) => {
         <div className="side-form">
             <SideTitle pServer={pServer} />
             <div className="app-sotre-sub-title">
-                <span className="title-text">APP STORE</span>
+                <span className="title-text">PACKAGES</span>
                 <span className="sub-title-navi">
                     {sIsAdmin && (
                         <IconButton
@@ -73,25 +74,16 @@ export const AppStore = ({ pServer }: any) => {
                             pToolTipId="app-store-update"
                             pWidth={20}
                             pHeight={20}
-                            pIcon={<CgExtensionAdd size={15} />}
+                            pIcon={<MdRefresh size={15} />}
                             onClick={pkgsUpdate}
                         />
                     )}
-                    <IconButton
-                        pIsToopTip
-                        pToolTipContent="Refresh"
-                        pToolTipId="app-store-refresh"
-                        pWidth={20}
-                        pHeight={20}
-                        pIcon={<MdRefresh size={15} />}
-                        onClick={() => pkgsSearch()}
-                    />
                 </span>
             </div>
             <div className="app-store-wrap" style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
                 {/* SEARCH */}
                 <div ref={searchRef} className="app-search-warp">
-                    <input placeholder="Search" autoFocus onChange={handleSearchTxt} className="app-search-input" />
+                    <input placeholder="Search" autoFocus onChange={handleSearchTxt} className="app-search-input" onKeyDown={(e) => EnterCallback(e, () => setEnter(sEnter + 1))} />
                 </div>
                 {/* EXACT */}
                 <AppList pList={sExactPkgList} pTitle="EXACT" pStatus="EXACT" />

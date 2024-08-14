@@ -43,10 +43,12 @@ const SubTitle = ({ children }: { children: React.ReactNode }) => {
         </div>
     );
 };
-const ContentBlock = ({ children, pActive = false }: { children: React.ReactNode; pActive?: boolean }) => {
+const ContentBlock = ({ children, pActive = false, pHoverNone = false }: { children: React.ReactNode; pActive?: boolean; pHoverNone?: boolean }) => {
     return (
         <div className="extension-tab-block-wrapper">
-            <div className={pActive ? 'extension-tab-content-block active-content-block' : 'extension-tab-content-block'}>{children}</div>
+            <div className={pActive ? `extension-tab-content-block${pHoverNone ? '-none' : ''} active-content-block` : `extension-tab-content-block${pHoverNone ? '-none' : ''}`}>
+                {children}
+            </div>
         </div>
     );
 };
