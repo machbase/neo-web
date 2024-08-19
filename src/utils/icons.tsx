@@ -44,6 +44,7 @@ import { LuDatabaseBackup } from 'react-icons/lu';
 import { PiDatabaseLight } from 'react-icons/pi';
 import { RxLapTimer } from 'react-icons/rx';
 import { SiMqtt, SiNatsdotio } from 'react-icons/si';
+import { VscExtensions } from 'react-icons/vsc';
 // import { VscMail } from 'react-icons/vsc';
 
 const icons = (aType: string, aIsHome?: boolean) => {
@@ -142,6 +143,8 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <BsSignpost />;
         case 'backupdb':
             return <LuDatabaseBackup />;
+        case 'appStore':
+            return <VscExtensions />;
         default:
             return <GoTerminal />;
     }

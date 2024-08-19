@@ -18,6 +18,7 @@
     .extension-tab-copy-block-wrapper {
         display: flex;
         margin: 8px 0px 8px 0px;
+        position: relative;
 
         .extension-tab-copy-block {
             overflow-x: scroll;
@@ -39,6 +40,12 @@
             }
             &-btn {
                 margin-left: 24px;
+            }
+
+            .extension-tab-text-button {
+                position: absolute;
+                top: 10px;
+                right: 10px;
             }
         }
     }
@@ -253,6 +260,9 @@
         width: 100%;
     }
     .extension-tab-text-button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
         width: 80px;
         height: 25px;
         color: #f1f1f1;
@@ -260,6 +270,14 @@
         font-size: 13px;
         padding: 4px;
         margin-bottom: 8px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+
+        span {
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
 
         &:hover {
             border: 1px solid rgba(255, 255, 255, 0.13);
@@ -559,7 +577,9 @@
     .extension-tab-block-wrapper {
         margin: 10px 20px;
     }
-
+    .extension-tab-content-block-none {
+        padding: 12px 16px;
+    }
     .extension-tab-content-block {
         padding: 12px 16px;
         &:hover {
@@ -583,6 +603,13 @@
             width: 100%;
             font-size: 13px;
             white-space: break-spaces;
+        }
+        &-text-nowrap {
+            margin-top: 4px;
+            width: 100%;
+            font-size: 13px;
+            white-space: nowrap;
+            text-overflow: ellipsis;
             overflow-wrap: break-word;
             color: #dfdfdf;
             overflow: hidden;

@@ -73,6 +73,11 @@ export const gExtensionList = atom<any>({
             label: 'KEY',
         },
         {
+            id: 'APPSTORE',
+            type: 'APPSTORE',
+            label: 'APPSTORE',
+        },
+        {
             id: 'REFERENCE',
             type: 'REFERENCE',
             label: 'REFERENCE',

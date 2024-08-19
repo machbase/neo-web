@@ -24,6 +24,7 @@ import { TimerSide } from '@/components/side/Timer';
 import { Shell } from '@/components/side/Shell';
 import { useToken } from '@/hooks/useToken';
 import { BridgeSide } from '@/components/side/Bridge';
+import { AppStore } from '@/components/side/AppStore';
 
 const Home = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);
@@ -165,22 +166,6 @@ const Home = () => {
                     onDragStart={setStatus}
                 >
                     <Pane minSize={0} maxSize="50%">
-                        {/* {sHome &&
-                            sExtensionList &&
-                            sExtensionList.length !== 0 &&
-                            sExtensionList.map((aItem: any) => {
-                                return (
-                                    <div key={aItem.id} style={aItem.id === sSelectedExtension ? { width: '100%', height: '100%' } : { display: 'none' }}>
-                                        {aItem.id === 'EXPLORER' && <Side pServer={sServer} pGetInfo={getInfo} pSavedPath={sSavedPath} />}
-                                        {aItem.id === 'REFERENCE' && <ReferenceList pServer={sServer} />}
-                                        {aItem.id === 'DBEXPLORER' && <DBExplorer pServer={sServer} />}
-                                        {aItem.id === 'KEY' && <SecurityKey pServer={sServer} />}
-                                        {aItem.id === 'TIMER' && <TimerSide pServer={sServer} />}
-                                        {aItem.id === 'SHELL' && <Shell pServer={sServer} />}
-                                        {aItem.id === 'BRIDGE' && <BridgeSide pServer={sServer} />}
-                                    </div>
-                                );
-                            })} */}
                         {sHome && (
                             <div key={sSelectedExtension} style={{ height: '100%' }}>
                                 {sSelectedExtension === 'EXPLORER' && <Side pServer={sServer} pGetInfo={getInfo} pSavedPath={sSavedPath} />}
@@ -190,6 +175,7 @@ const Home = () => {
                                 {sSelectedExtension === 'TIMER' && <TimerSide pServer={sServer} />}
                                 {sSelectedExtension === 'SHELL' && <Shell pServer={sServer} />}
                                 {sSelectedExtension === 'BRIDGE' && <BridgeSide pServer={sServer} />}
+                                {sSelectedExtension === 'APPSTORE' && <AppStore pServer={sServer} />}
                             </div>
                         )}
                     </Pane>

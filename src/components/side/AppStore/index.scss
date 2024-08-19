@@ -1,0 +1,38 @@
+.app-sotre-sub-title {
+    height: 22px;
+    font-weight: 600;
+    padding: 0 11px 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    background-color: #242424;
+
+    svg {
+        color: #c4c4c4;
+    }
+    svg:hover {
+        color: #f8f8f8;
+    }
+    .sub-title-navi {
+        height: 20px;
+        display: flex;
+        align-items: center;
+    }
+}
+.app-search-warp {
+    display: flex;
+    height: 43px;
+    width: 100%;
+    padding: 8px;
+
+    .app-search-input {
+        height: 25px;
+        width: 100%;
+        padding: 0 8px;
+        border-radius: 3px;
+        border: solid 1px #f1f1f125;
+        background-color: rgba(255, 255, 255, 0.13);
+        color: #f1f1f1;
+    }
+}

@@ -23,9 +23,9 @@ export const ExtensionTab = ({ children, pRef }: { children: React.ReactNode; pR
 const Header = ({ children }: { children?: React.ReactNode }) => {
     return <div className="extension-tab-header-wrapper">{children}</div>;
 };
-const Body = ({ children, pSpyder, pSpyderChildren }: { children: React.ReactNode; pSpyder?: boolean; pSpyderChildren?: React.ReactNode }) => {
+const Body = ({ children, pSpyder, pSpyderChildren, fixed = false }: { children: React.ReactNode; pSpyder?: boolean; pSpyderChildren?: React.ReactNode; fixed?: boolean }) => {
     return (
-        <div className="extension-tab-body-wrapper">
+        <div className="extension-tab-body-wrapper" style={fixed ? { height: 'auto' } : {}}>
             {pSpyder && <ScrollSpyder>{pSpyderChildren}</ScrollSpyder>}
             <div className="extension-tab-body-content">{children}</div>
         </div>
@@ -43,10 +43,12 @@ const SubTitle = ({ children }: { children: React.ReactNode }) => {
         </div>
     );
 };
-const ContentBlock = ({ children, pActive = false }: { children: React.ReactNode; pActive?: boolean }) => {
+const ContentBlock = ({ children, pActive = false, pHoverNone = false }: { children: React.ReactNode; pActive?: boolean; pHoverNone?: boolean }) => {
     return (
         <div className="extension-tab-block-wrapper">
-            <div className={pActive ? 'extension-tab-content-block active-content-block' : 'extension-tab-content-block'}>{children}</div>
+            <div className={pActive ? `extension-tab-content-block${pHoverNone ? '-none' : ''} active-content-block` : `extension-tab-content-block${pHoverNone ? '-none' : ''}`}>
+                {children}
+            </div>
         </div>
     );
 };
@@ -73,6 +75,9 @@ const TextButton = ({
     pIsDisable = false,
     onMouseOut = () => {},
     mr = '16px',
+    mb = '8px',
+    mt = '0px',
+    pIcon = undefined,
 }: {
     pText: string;
     pType: string;
@@ -81,6 +86,9 @@ const TextButton = ({
     pIsDisable?: boolean;
     onMouseOut?: (e: React.MouseEvent) => void;
     mr?: string;
+    mb?: string;
+    mt?: string;
+    pIcon?: any;
 }) => {
     const getColor = () => {
         switch (pType) {
@@ -99,11 +107,12 @@ const TextButton = ({
     return (
         <button
             className="extension-tab-text-button"
-            style={{ backgroundColor: pIsDisable ? '#6f7173' : getColor(), width: pWidth, marginRight: mr }}
+            style={{ backgroundColor: pIsDisable ? '#6f7173' : getColor(), width: pWidth, marginRight: mr, marginBottom: mb, marginTop: mt }}
             onClick={handleCallback}
             onMouseOut={onMouseOut}
         >
-            {pText}
+            {pIcon && pIcon}
+            <span>{pText}</span>
         </button>
     );
 };
@@ -161,9 +170,9 @@ const DpRowTL = ({ children }: { children: React.ReactNode }) => {
 const DpRowBetween = ({ children }: { children: React.ReactNode }) => {
     return <div className="extension-tab-dp-row-bt">{children}</div>;
 };
-const ContentText = ({ pContent }: { pContent: string }) => {
+const ContentText = ({ pContent, pWrap = false }: { pContent: string; pWrap?: boolean }) => {
     return (
-        <div className="extension-tab-content-block-text">
+        <div className={`extension-tab-content-block-text${pWrap ? '-nowrap' : ''}`}>
             <span>{pContent}</span>
         </div>
     );

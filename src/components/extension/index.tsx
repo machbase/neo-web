@@ -14,6 +14,7 @@ import { GiTallBridge } from 'react-icons/gi';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { Password } from '../password';
 import './index.scss';
+import { VscExtensions } from 'react-icons/vsc';
 
 const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const sNavigate = useNavigate();
@@ -78,6 +79,8 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                 return <GoTerminal />;
             case 'BRIDGE':
                 return <GiTallBridge />;
+            case 'APPSTORE':
+                return <VscExtensions />;
             default:
                 return <Cmd />;
         }
@@ -143,9 +146,11 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                         sExtensionList.length !== 0 &&
                         sExtensionList.map((aItem: any, aIdx: number) => {
                             return (
-                                <div key={aIdx} className={`extension-top-list-item`} onClick={() => selectExtension(aItem)}>
-                                    <ExtensionBtn pLabel={aItem.label} pIcon={setIcon(aItem.id)} />
-                                </div>
+                                ((localStorage.getItem('experimentMode') === 'true' && aItem.label === 'APPSTORE') || aItem.label !== 'APPSTORE') && (
+                                    <div key={aIdx} className={`extension-top-list-item`} onClick={() => selectExtension(aItem)}>
+                                        <ExtensionBtn pLabel={aItem.label} pIcon={setIcon(aItem.id)} />
+                                    </div>
+                                )
                             );
                         })}
                 </div>
