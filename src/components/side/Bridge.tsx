@@ -24,9 +24,9 @@ export const BridgeSide = ({ pServer }: any) => {
 
     const getBridgeList = async () => {
         const sResBridge = await getBridge();
-        if (sResBridge.success) {
+        if (sResBridge?.success) {
             const sResSubr = await getSubr();
-            if (sResSubr.success) setBridge(setBridgeTree(sResBridge.data, sResSubr.data));
+            if (sResSubr?.success) setBridge(setBridgeTree(sResBridge.data, sResSubr.data));
             else setBridge(setBridgeTree(sResBridge.data, []));
         } else setBridge([]);
     };

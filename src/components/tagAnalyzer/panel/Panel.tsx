@@ -714,6 +714,8 @@ any) => {
                 // pGetBgnEndTime={resetData}
                 pCtrMinMaxPopupModal={ctrMinMaxPopupModal}
                 pIsMinMaxMenuOpen={sIsMinMaxMenu}
+                pChartData={sChartData?.datasets}
+                pChartRef={sChartRef}
             />
             <div className="chart">
                 <div style={{ height: '100px', display: 'flex' }}>

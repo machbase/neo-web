@@ -167,10 +167,12 @@ export const setBridgeTree = (aBridgeList: any, aSubrList: any) => {
         else sSubrMap[bridgeName] = [aInfo];
     });
 
-    const sParedTree = aBridgeList.map((aBridge: any) => {
-        if (aBridge.name in sSubrMap) return { ...aBridge, childs: sSubrMap[aBridge.name] };
-        else return aBridge;
-    });
+    const sParedTree = aBridgeList
+        ? aBridgeList.map((aBridge: any) => {
+              if (aBridge.name in sSubrMap) return { ...aBridge, childs: sSubrMap[aBridge.name] };
+              else return aBridge;
+          })
+        : [];
 
     return sParedTree;
 };

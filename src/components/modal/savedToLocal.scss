@@ -1,0 +1,45 @@
+.saved-to-local-modal {
+    .modal {
+        width: 300px !important;
+        padding: 20px;
+
+        .title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: default;
+
+            .title-content {
+                display: flex;
+                align-items: center;
+            }
+            .title-close {
+                cursor: pointer;
+            }
+        }
+
+        .save-option {
+            display: flex;
+            align-items: baseline;
+            margin-top: 8px;
+            padding: 12px 0px;
+
+            input {
+                margin-left: 8px;
+                height: 25px;
+                height: 27px;
+                padding: 0 8px;
+                border-radius: 3px;
+                border: solid 1px #f1f1f125;
+                background-color: rgba(255, 255, 255, 0.13);
+                color: #f1f1f1;
+            }
+        }
+
+        .button-group {
+            padding: 12px 0 0 0;
+            display: flex;
+            justify-content: center;
+        }
+    }
+}
