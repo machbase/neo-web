@@ -4,9 +4,10 @@ import { changeUtcToText } from '@/utils/helpers/date';
 import EditPanel from './edit/EditPanel';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { Refresh, GearFill, Delete, MdRawOn, MdFlagCircle, PiSelectionPlusBold, LineChart, LuTimerReset } from '@/assets/icons/Icon';
+import { Refresh, GearFill, Delete, MdRawOn, MdFlagCircle, PiSelectionPlusBold, LineChart, LuTimerReset, Download } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 
 const PanelHeader = ({
     pResetData,
@@ -28,12 +29,15 @@ const PanelHeader = ({
     pSetSaveEditedInfo,
     pNavigatorRange,
     pIsMinMaxMenuOpen,
+    pChartData,
+    pChartRef,
 }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sPanelRange, setPanelRage] = useState<any>({ startTime: 0, endTime: 0 });
     const [sEditPanel, setEditPanel] = useState<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
+    const [sIsSavedToLocalModal, setIsSavedToLocalModal] = useState<boolean>(false);
 
     const clickHeader = () => {
         pGetChartInfo(pPanelRange.startTime, pPanelRange.endTime, pPanelInfo, pIsRaw);
@@ -58,6 +62,9 @@ const PanelHeader = ({
     };
     const handleRefreshTime = async () => {
         pResetData();
+    };
+    const handleSavedToLocal = () => {
+        setIsSavedToLocalModal(true);
     };
 
     useEffect(() => {
@@ -157,6 +164,18 @@ const PanelHeader = ({
                         onClick={() => setEditPanel(true)}
                     />
                 )}
+                {/* Saved to local */}
+                {!pIsEdit && (
+                    <IconButton
+                        pWidth={25}
+                        pHeight={25}
+                        pIsToopTip
+                        pToolTipContent={'Saved to local'}
+                        pToolTipId={'saved-to-local-taz-panel-' + JSON.stringify(pIsEdit)}
+                        pIcon={<Download size={18} />}
+                        onClick={handleSavedToLocal}
+                    />
+                )}
                 {!pIsEdit && (
                     <IconButton
                         pWidth={25}
@@ -180,6 +199,7 @@ const PanelHeader = ({
                     pContents={<div className="body-content">{`Do you want to delete this panel?`}</div>}
                 />
             )}
+            {sIsSavedToLocalModal && <SavedToLocalModal pPanelInfo={pChartData} pChartRef={pChartRef} pIsDarkMode setIsOpen={setIsSavedToLocalModal} />}
         </div>
     );
 };
