@@ -263,6 +263,14 @@
         font-size: 13px;
         padding: 4px;
         margin-bottom: 8px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+
+        span {
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
 
         &:hover {
             border: 1px solid rgba(255, 255, 255, 0.13);
@@ -587,7 +595,9 @@
             margin-top: 4px;
             width: 100%;
             font-size: 13px;
-            white-space: break-spaces;
+            // white-space: break-spaces;
+            white-space: nowrap;
+            text-overflow: ellipsis;
             overflow-wrap: break-word;
             color: #dfdfdf;
             overflow: hidden;

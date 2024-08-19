@@ -69,7 +69,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                         if (aBoard.id === aTarget.id) {
                             return {
                                 ...aTarget,
-                                name: `APP: ${pCode.app.name}`,
+                                name: `PKG: ${pCode.app.name}`,
                                 code: { app: sPkgRes?.data?.exact, status: 'EXACT' },
                                 savedCode: { app: sPkgRes?.data?.exact, status: 'EXACT' },
                             };
@@ -251,35 +251,44 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                         <div style={{ display: 'flex', flexDirection: 'row', marginTop: '8px', width: '100%' }}>
                                             {/* PUBLISHED BY */}
                                             {pCode?.app?.github?.homepage && pCode?.app?.github?.homepage !== '' && (
-                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden' }}>
                                                     <ExtensionTab.ContentText pContent={`Published by ${pCode?.app?.github?.organization}`} />
                                                 </div>
                                             )}
                                             {/* HOMEPAGE */}
                                             {pCode?.app?.github?.homepage && pCode?.app?.github?.homepage !== '' && (
-                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden' }}>
                                                     <VscHome style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
-                                                    <a href={pCode?.app?.github?.homepage} style={{ fontSize: '13px', marginTop: '4px' }}>
+                                                    <a
+                                                        href={pCode?.app?.github?.homepage}
+                                                        style={{ fontSize: '13px', marginTop: '4px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
+                                                    >
                                                         {pCode?.app?.github?.homepage}
                                                     </a>
                                                 </div>
                                             )}
                                         </div>
-                                        <div style={{ display: 'flex', flexDirection: 'row', marginTop: '8px', width: '100%' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'row', marginTop: '8px', width: '100%', flexWrap: 'wrap' }}>
                                             {/* GIT PAGE */}
                                             {pCode?.app?.github?.full_name && pCode?.app?.github?.full_name !== '' && (
-                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden' }}>
                                                     <BiLink style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
-                                                    <a href={'https://github.com/' + pCode?.app?.github?.full_name} style={{ fontSize: '13px', marginTop: '4px' }}>
+                                                    <a
+                                                        href={'https://github.com/' + pCode?.app?.github?.full_name}
+                                                        style={{ fontSize: '13px', marginTop: '4px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
+                                                    >
                                                         {'https://github.com/' + pCode?.app?.github?.full_name}
                                                     </a>
                                                 </div>
                                             )}
                                             {/* LICENSE */}
                                             {pCode?.app?.github?.license?.name && pCode?.app?.github?.license?.name !== '' && (
-                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden' }}>
                                                     <LuScale style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
-                                                    <a href={pCode?.app?.github?.license?.url} style={{ fontSize: '13px', marginTop: '4px' }}>
+                                                    <a
+                                                        href={pCode?.app?.github?.license?.url}
+                                                        style={{ fontSize: '13px', marginTop: '4px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
+                                                    >
                                                         {pCode?.app?.github?.license?.name}
                                                     </a>
                                                 </div>
@@ -287,7 +296,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                             {/* STAR */}
                                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
                                                 <SlStar style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
-                                                <ExtensionTab.ContentText pContent={pCode?.app?.github?.star_count ?? '0'} />
+                                                <ExtensionTab.ContentText pContent={pCode?.app?.github?.stargazers_count ?? '0'} />
                                             </div>
                                             {/* FORKS COUNT */}
                                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>

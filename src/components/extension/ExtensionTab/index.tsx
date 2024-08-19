@@ -112,7 +112,7 @@ const TextButton = ({
             onMouseOut={onMouseOut}
         >
             {pIcon && pIcon}
-            {pText}
+            <span>{pText}</span>
         </button>
     );
 };

@@ -33,6 +33,22 @@ a {
         display: flex;
         flex-direction: column;
 
+        .extension-tab-dp-row {
+            white-space: nowrap;
+            .extension-tab-content-block-title {
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+        .extension-tab-content-block-desc {
+            display: flex;
+            white-space: nowrap;
+            span {
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+
         &-top {
             width: 100%;
             display: flex;

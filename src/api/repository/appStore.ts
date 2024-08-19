@@ -68,6 +68,7 @@ export interface APP_GITHUB {
     organization: string;
     private: boolean;
     repo: string;
+    stargazers_count: number;
 }
 export interface GIHUB_OWNER {
     avatar_url: IMG_URL;

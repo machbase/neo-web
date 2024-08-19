@@ -65,7 +65,7 @@ export const AppList = ({ pList, pTitle, pStatus }: { pList: APP_INFO[] | string
                     if (aBoard.id === aTarget.id) {
                         return {
                             ...aTarget,
-                            name: `APP: ${app.name}`,
+                            name: `PKG: ${app.name}`,
                             code: { app, status: pStatus },
                             savedCode: { app, status: pStatus },
                         };
@@ -82,7 +82,7 @@ export const AppList = ({ pList, pTitle, pStatus }: { pList: APP_INFO[] | string
                 {
                     id: sId,
                     type: TAB_TYPE,
-                    name: `APP: ${app.name}`,
+                    name: `PKG: ${app.name}`,
                     code: { app, status: pStatus },
                     savedCode: { app, status: pStatus },
                 },
