@@ -252,7 +252,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                             {/* PUBLISHED BY */}
                                             {pCode?.app?.github?.homepage && pCode?.app?.github?.homepage !== '' && (
                                                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden' }}>
-                                                    <ExtensionTab.ContentText pContent={`Published by ${pCode?.app?.github?.organization}`} />
+                                                    <ExtensionTab.ContentText pContent={`Published by ${pCode?.app?.github?.organization}`} pWrap />
                                                 </div>
                                             )}
                                             {/* HOMEPAGE */}

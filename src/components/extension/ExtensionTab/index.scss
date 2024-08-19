@@ -602,7 +602,12 @@
             margin-top: 4px;
             width: 100%;
             font-size: 13px;
-            // white-space: break-spaces;
+            white-space: break-spaces;
+        }
+        &-text-nowrap {
+            margin-top: 4px;
+            width: 100%;
+            font-size: 13px;
             white-space: nowrap;
             text-overflow: ellipsis;
             overflow-wrap: break-word;

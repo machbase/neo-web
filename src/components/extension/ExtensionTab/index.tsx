@@ -170,9 +170,9 @@ const DpRowTL = ({ children }: { children: React.ReactNode }) => {
 const DpRowBetween = ({ children }: { children: React.ReactNode }) => {
     return <div className="extension-tab-dp-row-bt">{children}</div>;
 };
-const ContentText = ({ pContent }: { pContent: string }) => {
+const ContentText = ({ pContent, pWrap = false }: { pContent: string; pWrap?: boolean }) => {
     return (
-        <div className="extension-tab-content-block-text">
+        <div className={`extension-tab-content-block-text${pWrap ? '-nowrap' : ''}`}>
             <span>{pContent}</span>
         </div>
     );
