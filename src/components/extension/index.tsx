@@ -146,7 +146,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                         sExtensionList.length !== 0 &&
                         sExtensionList.map((aItem: any, aIdx: number) => {
                             return (
-                                !(localStorage.getItem('experimentMode') && aItem.label === 'APPSTORE') && (
+                                ((localStorage.getItem('experimentMode') === 'true' && aItem.label === 'APPSTORE') || aItem.label !== 'APPSTORE') && (
                                     <div key={aIdx} className={`extension-top-list-item`} onClick={() => selectExtension(aItem)}>
                                         <ExtensionBtn pLabel={aItem.label} pIcon={setIcon(aItem.id)} />
                                     </div>
