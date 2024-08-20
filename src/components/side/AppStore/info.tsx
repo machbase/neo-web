@@ -260,8 +260,15 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden' }}>
                                                     <VscHome style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
                                                     <a
-                                                        href={pCode?.app?.github?.homepage}
-                                                        style={{ fontSize: '13px', marginTop: '4px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
+                                                        onClick={() => window.open(pCode?.app?.github?.homepage, '_blank')}
+                                                        style={{
+                                                            fontSize: '13px',
+                                                            marginTop: '4px',
+                                                            overflow: 'hidden',
+                                                            whiteSpace: 'nowrap',
+                                                            textOverflow: 'ellipsis',
+                                                            cursor: 'pointer',
+                                                        }}
                                                     >
                                                         {pCode?.app?.github?.homepage}
                                                     </a>
@@ -274,8 +281,15 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden' }}>
                                                     <BiLink style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
                                                     <a
-                                                        href={'https://github.com/' + pCode?.app?.github?.full_name}
-                                                        style={{ fontSize: '13px', marginTop: '4px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
+                                                        onClick={() => window.open('https://github.com/' + pCode?.app?.github?.full_name, '_blank')}
+                                                        style={{
+                                                            fontSize: '13px',
+                                                            marginTop: '4px',
+                                                            overflow: 'hidden',
+                                                            whiteSpace: 'nowrap',
+                                                            textOverflow: 'ellipsis',
+                                                            cursor: 'pointer',
+                                                        }}
                                                     >
                                                         {'https://github.com/' + pCode?.app?.github?.full_name}
                                                     </a>
@@ -286,8 +300,15 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden' }}>
                                                     <LuScale style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
                                                     <a
-                                                        href={pCode?.app?.github?.license?.url}
-                                                        style={{ fontSize: '13px', marginTop: '4px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
+                                                        onClick={() => window.open(pCode?.app?.github?.license?.url, '_blank')}
+                                                        style={{
+                                                            fontSize: '13px',
+                                                            marginTop: '4px',
+                                                            overflow: 'hidden',
+                                                            whiteSpace: 'nowrap',
+                                                            textOverflow: 'ellipsis',
+                                                            cursor: 'pointer',
+                                                        }}
                                                     >
                                                         {pCode?.app?.github?.license?.name}
                                                     </a>

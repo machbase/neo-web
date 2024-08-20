@@ -114,7 +114,10 @@
                     }
                     &-contents-wrapper {
                         pre {
+                            line-height: normal;
+                            font-family: D2Coding, Monaco, 'Lucida Console', 'Courier New', D2Coding, sans-serif, monospace;
                             margin-left: 16px;
+                            font-size: 13px;
                         }
                     }
                 }

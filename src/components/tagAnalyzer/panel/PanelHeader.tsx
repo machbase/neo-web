@@ -165,7 +165,7 @@ const PanelHeader = ({
                     />
                 )}
                 {/* Saved to local */}
-                {!pIsEdit && (
+                {!pIsEdit && localStorage.getItem('experimentMode') === 'true' && (
                     <IconButton
                         pWidth={25}
                         pHeight={25}
