@@ -277,6 +277,7 @@
             white-space: nowrap;
             text-overflow: ellipsis;
             overflow: hidden;
+            cursor: inherit;
         }
 
         &:hover {
