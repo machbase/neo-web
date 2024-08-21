@@ -5,15 +5,17 @@ import { VscChevronDown, VscChevronRight, VscExtensions } from 'react-icons/vsc'
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { generateUUID } from '@/utils';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { Loader } from '@/components/loader';
 
 export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     const STATUS_ICON = () => {
-        if (pItem?.installed_version && pItem?.installed_version !== '')
+        if (pItem?.installed_version && pItem?.installed_version !== '' && !pItem?.work_in_progress)
             return (
                 <div className="app-store-item-contents-bottom-status">
                     <span className="install">Installed v{pItem?.installed_version}</span>
                 </div>
             );
+        else if (pItem?.work_in_progress) return <Loader width="12px" height="12px" />;
         else return <></>;
     };
 

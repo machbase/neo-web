@@ -11,6 +11,7 @@ import { VscCheck, VscCircleFilled, VscPass } from 'react-icons/vsc';
 import { generateUUID } from '@/utils';
 import { MdKeyboardArrowRight, MdOutlineKeyboardArrowDown } from 'react-icons/md';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
+import { Loader } from '@/components/loader';
 
 export const ExtensionTab = ({ children, pRef }: { children: React.ReactNode; pRef?: React.MutableRefObject<any> }) => {
     return (
@@ -77,6 +78,7 @@ const TextButton = ({
     mr = '16px',
     mb = '8px',
     mt = '0px',
+    pLoad = false,
     pIcon = undefined,
 }: {
     pText: string;
@@ -89,6 +91,7 @@ const TextButton = ({
     mb?: string;
     mt?: string;
     pIcon?: any;
+    pLoad?: boolean;
 }) => {
     const getColor = () => {
         switch (pType) {
@@ -111,7 +114,7 @@ const TextButton = ({
             onClick={handleCallback}
             onMouseOut={onMouseOut}
         >
-            {pIcon && pIcon}
+            {pLoad ? <Loader width="12px" height="12px" /> : pIcon && pIcon}
             <span>{pText}</span>
         </button>
     );

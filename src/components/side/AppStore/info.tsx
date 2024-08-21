@@ -31,6 +31,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     const [sReadme, setReadme] = useState<string | undefined>(undefined);
     const [sCommandResLog, setCommandResLog] = useState<string | undefined>(undefined);
     const sIsAdmin = getUserName() ? getUserName().toUpperCase() === ADMIN_ID.toUpperCase() : false;
+    const [sIsBtnLoad, setIsBtnLoad] = useState<boolean>(false);
 
     // Update pkgs list (side)
     const pkgsUpdate = async (searchTxt: string) => {
@@ -83,13 +84,16 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     };
     // Send command (install | uninstall)
     const sendCommand = async (command: INSTALL | UNINSTALL) => {
+        if (sIsBtnLoad) return;
         if (!sIsAdmin) return;
+        setIsBtnLoad(true);
         const res: any = await getCommandPkgs(command, pCode.app.name);
+        pkgsUpdate(sSearchPkgName);
         if (res && res?.success && res?.data) {
-            pkgsUpdate(sSearchPkgName);
             pkgDetailUpdate(pCode.app.name, 1);
             setCommandResLog(res.data.log);
         } else setCommandResLog(res?.data?.log ? res?.data?.log : undefined);
+        setIsBtnLoad(false);
     };
     const tzTimeConverter = (time: string) => {
         return moment(time).fromNow(); // 'A year ago'
@@ -115,6 +119,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                         mr="8px"
                         mb="0px"
                         mt="4px"
+                        pLoad={sIsBtnLoad}
                     />
                 )}
                 {pCode?.app?.installed_version && pCode?.app?.installed_version !== '' && (
@@ -133,6 +138,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                 mr="8px"
                                 mb="0px"
                                 mt="4px"
+                                pLoad={sIsBtnLoad}
                             />
                         )}
                         {/* OPEN BROWSER */}
@@ -205,8 +211,9 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         if (fixBlockRef && fixBlockRef?.current && (fixBlockRef?.current as any)?.clientHeight > 0) setBracketHeight((fixBlockRef?.current as any)?.clientHeight + 'px');
     }, [(fixBlockRef?.current as any)?.clientHeight]);
     useEffect(() => {
-        setCommandResLog(undefined);
+        setIsBtnLoad(!!pCode?.work_in_progress);
         getReadme();
+        setCommandResLog(undefined);
     }, [pCode]);
 
     return (
