@@ -273,6 +273,10 @@
         text-overflow: ellipsis;
         overflow: hidden;
 
+        .loader {
+            margin-right: 4px;
+        }
+
         span {
             white-space: nowrap;
             text-overflow: ellipsis;

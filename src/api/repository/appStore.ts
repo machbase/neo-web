@@ -53,6 +53,7 @@ export interface APP_INFO {
     strip_components: number;
     installed_path: string;
     installed_version: string;
+    work_in_progress: boolean;
 }
 export interface APP_GITHUB {
     license: GITHUB_LICENSE | null;
