@@ -15,16 +15,22 @@ export interface SelectionType {
     startLineNumber: number;
 }
 /** REMOVE ANNOTATION */
-const removeAnnotation = (aSplitQuery: string[]): string[] => {
-    return aSplitQuery
-        .map((aQuery: string) => {
+const removeAnnotation = (aSplitQuery: string[], aSelection: SelectionType): { annotationList: string[]; columnNum: number } => {
+    let sColumnNum: number = aSelection.startColumn;
+    const sResultArr = aSplitQuery
+        .map((aQuery: string, aIdx: number) => {
+            if (aIdx === aSelection.startLineNumber - 1) {
+                const sPureLen = aQuery.split('--')[0].trim().length;
+                if (sPureLen < aSelection.startColumn) sColumnNum = sPureLen;
+            }
             if (aQuery.includes('--') && !!aQuery.split('--')[0].trim()) {
-                return aQuery.split('--')[0];
+                return aQuery.split('--')[0].trim();
             }
             if (aQuery.includes('--')) return;
-            return aQuery;
+            return aQuery.trim();
         })
         .filter((aItem: string | undefined) => aItem !== undefined) as string[];
+    return { annotationList: sResultArr, columnNum: sColumnNum };
 };
 /** CHECK SELECTION ANNOTATION LINE */
 const isSelectAnnotationLine = (aSplitQuery: string[], aPosition: PositionType): boolean => {
@@ -68,19 +74,19 @@ const findStartNEndLine = (aSplitQueryList: string[], aSelection: SelectionType)
     return { sStartLine, sEndLine };
 };
 /** FIND CURSOR LENGTH */
-const findCursorLength = (aNoAnnotationList: string[], aStartLine: number, aEndLine: number, aSelection: SelectionType) => {
+const findCursorLength = (aNoAnnotationList: string[], aStartLine: number, aEndLine: number, aColumn: number) => {
     let rTotalLen = 0;
-    let sSelectionLen = 0;
+    let sSelectionLen = 1;
 
     aNoAnnotationList.map((aRow: string, aIdx: number) => {
         if (aStartLine <= aIdx && aIdx <= aEndLine) {
-            if (aRow.trimEnd()[aRow.trimEnd().length - 1] === ';') {
-                sSelectionLen = rTotalLen + aSelection.endColumn - 1 + aIdx - (aRow.length - aRow.trimEnd().length);
-            } else sSelectionLen = rTotalLen + aSelection.endColumn - 1 + aIdx;
-            if (sSelectionLen <= 0) sSelectionLen = 1;
+            if (aRow.trimEnd()[aRow.trimEnd().length - 1] === ';') sSelectionLen = rTotalLen + aColumn - 1 + aIdx - (aRow.length - aRow.trimEnd().length);
+            else sSelectionLen = rTotalLen + aColumn - 1 + aIdx;
         }
         rTotalLen += aRow.length;
     });
+
+    if (sSelectionLen <= 0) sSelectionLen = 1;
 
     return sSelectionLen;
 };
@@ -100,18 +106,16 @@ const findTargetQuery = (
         if (semiTotalLen < aSelectionLen) {
             targetQuery = sSemiList[aIdx];
             if (sSemiList[aIdx].trim() === '') targetQuery = sSemiList[aIdx - 1];
+
             if (aVariableList.length > 0 && targetQuery && targetQuery.includes("'")) {
                 aVariableList.map((aVar, aIdx: number) => {
-                    if (targetQuery.includes(aVar.replaceValue)) {
-                        targetQuery = targetQuery.replace(aVariableList[aIdx].replaceValue, aVariableList[aIdx].value);
-                    }
+                    if (targetQuery.includes(aVar.replaceValue)) targetQuery = targetQuery.replace(aVariableList[aIdx].replaceValue, aVariableList[aIdx].value);
                 });
             }
         }
 
         semiTotalLen += aRow.length + 1;
     });
-
     return targetQuery.split('\n').join(' ').trim();
 };
 /**
@@ -126,10 +130,10 @@ export const sqlQueryParser = (aQueryTxt: string, aPosition: PositionType, aSele
     if (!aSelection) return '';
     const sSplitQueryList = JSON.parse(JSON.stringify(aQueryTxt)).split('\n');
     if (isSelectAnnotationLine(sSplitQueryList, aPosition)) return '';
-    const sNoAnnotationList = removeAnnotation(sSplitQueryList);
+    const { annotationList, columnNum } = removeAnnotation(sSplitQueryList, aSelection);
     const { sStartLine, sEndLine } = findStartNEndLine(sSplitQueryList, aSelection);
-    const { sParsedQuery, sVariableList } = findVariableNParsedQuery(sNoAnnotationList);
-    const sSelectionLen = findCursorLength(sNoAnnotationList, sStartLine, sEndLine, aSelection);
+    const { sParsedQuery, sVariableList } = findVariableNParsedQuery(annotationList);
+    const sSelectionLen = findCursorLength(annotationList, sStartLine, sEndLine, columnNum);
     return findTargetQuery(sParsedQuery, sSelectionLen, sVariableList);
 };
 /** REMOVE LIMIT KEYWORD
