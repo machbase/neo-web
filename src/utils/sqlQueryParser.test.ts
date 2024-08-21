@@ -132,7 +132,7 @@ test.each([
         `select * from example;\n\nselect\n* from\nexample\nlimit\n2;\n`,
         { lineNumber: 2, column: 1 },
         { endColumn: 1, endLineNumber: 2, positionColumn: 1, positionLineNumber: 2, selectionStartColumn: 1, selectionStartLineNumber: 2, startColumn: 1, startLineNumber: 2 },
-        `select * from example limit 2`,
+        `select * from example`,
     ],
     [
         `SQL 입력시 마지막에 스페이스가 있으면 정상작동하지 않는 문제 - https://github.com/machbase/neo/issues/320`,
@@ -223,6 +223,30 @@ test.each([
             startLineNumber: 1,
         },
         `select * from example`,
+    ],
+    [
+        `issues 838`,
+        `BACKUP TABLE TAG INTO DISK = 'TB_TAG';                              -- 테이블 백업을 수행 ( TB_TAG 폴더 아래에 테이블 백업 파일을 저장 )
+
+mount database 'TB_TAG' to mntdb;                                   -- 테이블 백업 데이터를 마운트
+
+select count(*) from mntdb.sys.tag;                                 -- 마운트한 테이블의 건수 확인
+
+select to_char(min(time)), to_char(max(time)) from mntdb.sys.tag;   -- 마운트한 테이블의 데이터 시간 범위 확인
+
+umount database mntdb;                                              -- 마운트 해제`,
+        { lineNumber: 9, column: 1 },
+        {
+            endColumn: 1,
+            endLineNumber: 9,
+            positionColumn: 1,
+            positionLineNumber: 9,
+            selectionStartColumn: 1,
+            selectionStartLineNumber: 9,
+            startColumn: 1,
+            startLineNumber: 9,
+        },
+        `umount database mntdb`,
     ],
 ])('SQL - %s', (_, aQueryText, aPosition, aSelection, expected) => {
     expect(sqlQueryParser(aQueryText, aPosition, aSelection)).toEqual(expected);
