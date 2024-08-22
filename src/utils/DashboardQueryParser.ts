@@ -38,7 +38,7 @@ export const DashboardQueryParser = async (aChartType: string, aBlockList: any, 
 /** Combine table and user */
 const CombineTableUser = (table: string) => {
     // Admin
-    if (table.split('.').length === 1) return `${ADMIN_ID}.${table}`;
+    if (table.split('.').length === 1) return `${ADMIN_ID.toUpperCase()}.${table}`;
     else return table;
 };
 /** Block Parser */

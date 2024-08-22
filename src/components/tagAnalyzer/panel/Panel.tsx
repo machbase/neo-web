@@ -219,7 +219,7 @@ any) => {
         // MOUNT.KEV.TAG => MOUNT.KEV.TAG
         if (sSplitTable.length > 1) return table;
         // TAG => sys.TAG
-        else return `${ADMIN_ID}.${table}`;
+        else return `${ADMIN_ID.toUpperCase()}.${table}`;
     };
     const fetchNavigatorData = async (aTimeRange: any, aRaw?: any) => {
         const sChartWidth = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
