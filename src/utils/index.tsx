@@ -52,7 +52,7 @@ export const generateUUID = () => {
 
 export const isRollup = (aRollups: any, aTableName: string, aInterval: number, aColumnName: string) => {
     const sSplitTableName = aTableName.split('.');
-    let sUserName: string = ADMIN_ID;
+    let sUserName: string = ADMIN_ID.toUpperCase();
     const sTableName: string = sSplitTableName.at(-1) as string;
     if (sSplitTableName.length > 1) sUserName = sSplitTableName.at(-2) as string;
     if (!isEmpty(aRollups) && aRollups[sUserName] && aRollups[sUserName][sTableName] && aRollups[sUserName][sTableName][aColumnName] && aInterval > 0) {
@@ -93,18 +93,18 @@ export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
     if (!aTableInfo.rows) return [];
 
     const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub;
-    const sIsAdmin = sCurrentUserName.toLowerCase() === ADMIN_ID;
+    const sIsAdmin = sCurrentUserName.toUpperCase() === ADMIN_ID.toUpperCase();
     const sDbIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'DB');
     const sUserIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'USER');
     const sTableIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'NAME');
     let sParseTables = aTableInfo.rows.filter((aItem: any) => aItem[4] === 'Tag Table');
 
     if (!sIsAdmin) {
-        sParseTables = sParseTables.filter((aItem: any) => aItem[sDbIdx].toLowerCase() === DEFAULT_DB_NAME);
+        sParseTables = sParseTables.filter((aItem: any) => aItem[sDbIdx].toUpperCase() === DEFAULT_DB_NAME.toUpperCase());
     }
 
     return sParseTables.map((aItem: any) => {
-        if (aItem[sDbIdx].toLowerCase() !== DEFAULT_DB_NAME) {
+        if (aItem[sDbIdx].toUpperCase() !== DEFAULT_DB_NAME.toUpperCase()) {
             return aItem[sDbIdx] + '.' + aItem[sUserIdx] + '.' + aItem[sTableIdx];
         } else {
             if (aItem[sUserIdx].toUpperCase() === ADMIN_ID.toUpperCase()) {
@@ -119,7 +119,7 @@ export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
 export const parseDashboardTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
     if (!aTableInfo.rows) return [];
     const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub;
-    const sIsAdmin = sCurrentUserName.toLowerCase() === ADMIN_ID;
+    const sIsAdmin = sCurrentUserName.toUpperCase() === ADMIN_ID.toUpperCase();
     const sMount = aTableInfo.columns.findIndex((aItem: any) => aItem === 'DBID');
     const sDbIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'DB_NAME');
     const sUserIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'USER_NAME');
@@ -127,7 +127,7 @@ export const parseDashboardTables = (aTableInfo: { columns: any[]; rows: any[] }
 
     let sParseTables: any = aTableInfo.rows;
     if (!sIsAdmin) {
-        sParseTables = aTableInfo.rows.filter((aItem: any) => aItem[sDbIdx].toLowerCase() === DEFAULT_DB_NAME);
+        sParseTables = aTableInfo.rows.filter((aItem: any) => aItem[sDbIdx].toUpperCase() === DEFAULT_DB_NAME.toUpperCase());
     }
 
     return sParseTables.map((aItem: any) => {

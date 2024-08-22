@@ -55,7 +55,7 @@ const fetchData = async (aSql: string, aFormat: string, aTimezone: any, aLimit?:
 const fetchTableName = async (aTable: string) => {
     let DBName = '';
     let sTableName = aTable;
-    let sUserName = ADMIN_ID;
+    let sUserName = ADMIN_ID.toUpperCase();
     const sTableInfos = aTable.split('.');
     if (aTable.indexOf('.') === -1 || sTableInfos.length < 3) {
         DBName = String(-1);
@@ -83,7 +83,7 @@ const fetchTableName = async (aTable: string) => {
 const fetchCalculationData = async (params: any) => {
     const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue, Rollup, colName } = params;
     const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
-    const sTableName = sCurrentUserName === ADMIN_ID ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
+    const sTableName = sCurrentUserName === ADMIN_ID.toUpperCase() ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
     const sName = colName.name;
     const sTime = colName.time;
     const sValue = colName.value;
