@@ -27,6 +27,7 @@ import {
 import { IconButton } from '../buttons/IconButton';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
+import { Loader } from '../loader';
 interface TqlProps {
     pCode: string;
     pIsSave: any;
@@ -54,6 +55,7 @@ const Tql = (props: TqlProps) => {
     const [sMapData, setMapData] = useState<any>(undefined);
     const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
     const tqlResultBodyRef = useRef(null);
+    const [sLoadState, setLoadState] = useState<boolean>(false);
 
     useEffect(() => {
         setText(pCode);
@@ -88,6 +90,8 @@ const Tql = (props: TqlProps) => {
     };
 
     const getTqlData = async (aText: string) => {
+        setLoadState(true);
+        HandleResutTypeAndTxt('Processing...', false);
         const sResult: any = await getTqlChart(aText);
 
         if (sResult.status === 200 && sResult.headers && sResult.headers['x-chart-type'] === 'echarts') {
@@ -148,6 +152,7 @@ const Tql = (props: TqlProps) => {
             if (sResult.status === 200) HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
             else HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
         }
+        setLoadState(false);
     };
 
     const handleChangeText = (aText: any) => {
@@ -268,7 +273,14 @@ const Tql = (props: TqlProps) => {
                                 sIsPrettier && isValidJSON(sTextField) ? (
                                     <pre>{JSON.stringify(JSON.parse(sTextField), null, 4)}</pre>
                                 ) : (
-                                    <div style={{ padding: '0 1rem' }}>{sTextField}</div>
+                                    <div style={!sLoadState ? { padding: '0 1rem' } : { padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
+                                        {sTextField}{' '}
+                                        {sLoadState && (
+                                            <div style={{ marginLeft: '4px' }}>
+                                                <Loader width="12px" height="12px" borderRadius="90%" />
+                                            </div>
+                                        )}
+                                    </div>
                                 )
                             ) : null}
                             {sResultType === 'html' ? <ShowChart pData={sChartData} pLoopMode={false} /> : null}
