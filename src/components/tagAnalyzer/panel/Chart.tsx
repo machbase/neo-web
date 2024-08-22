@@ -111,7 +111,7 @@ const Chart = ({
             plotOptions: {
                 boost: {
                     useGPUTranslations: true,
-                    seriesThreshold: 1,
+                    seriesThreshold: 5,
                 },
                 series: {
                     showInNavigator: false,
