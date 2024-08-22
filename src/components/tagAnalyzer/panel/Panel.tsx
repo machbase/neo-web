@@ -228,7 +228,7 @@ any) => {
         let sCount = -1;
 
         if (sLimit < 0) {
-            if (sRaw) {
+            if (pPanelInfo.use_sampling && sRaw) {
                 if (pPanelInfo.pixels_per_tick_raw > 0) {
                     sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick_raw);
                 } else {
@@ -258,7 +258,7 @@ any) => {
         for (let index = 0; index < sTagSet.length; index++) {
             const sTagSetElement = sTagSet[index];
             let sFetchResult: any = [];
-            if (sRaw) {
+            if (pPanelInfo.use_sampling && sRaw) {
                 sFetchResult = await fetchRawData({
                     Table: checkTableUser(sTagSetElement.table),
                     TagNames: sTagSetElement.tagName,
@@ -661,7 +661,8 @@ any) => {
             });
         }
         fetchPanelData(sPanelRange, !sIsRaw);
-        fetchNavigatorData(sNavigatorRange, !sIsRaw);
+
+        pPanelInfo.use_sampling && fetchNavigatorData(sNavigatorRange, !sIsRaw);
     };
     const getDuration = (aStartTime: number, aEndTime: number): string => {
         const sDuration = moment.duration(aEndTime - aStartTime);
