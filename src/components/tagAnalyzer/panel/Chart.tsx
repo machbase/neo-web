@@ -114,6 +114,7 @@ const Chart = ({
                     seriesThreshold: 5,
                 },
                 series: {
+                    boostThreshold: 20000,
                     showInNavigator: false,
                     lineWidth: pPanelInfo.stroke,
                     fillOpacity: pPanelInfo.fill,
