@@ -7,7 +7,7 @@ import SplitPane from 'split-pane-react/esm/SplitPane';
 import { SlStar } from 'react-icons/sl';
 import { VscExtensions, VscHome, VscPackage, VscRepoForked } from 'react-icons/vsc';
 import moment from 'moment';
-import { getCommandPkgs, getPkgMarkdown, getSearchPkgs, INSTALL, SEARCH_RES, UNINSTALL } from '@/api/repository/appStore';
+import { getCommandPkgs, getPkgAction, getPkgMarkdown, getSearchPkgs, INSTALL, PKG_ACTION, SEARCH_RES, UNINSTALL } from '@/api/repository/appStore';
 import { useEffect, useRef, useState } from 'react';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { gSearchPkgName, gSearchPkgs } from '@/recoil/appStore';
@@ -17,6 +17,7 @@ import { MdDelete, MdDownload } from 'react-icons/md';
 import { BiLink, Play } from '@/assets/icons/Icon';
 import { getUserName } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
+import { BiPause } from 'react-icons/bi';
 
 export const AppInfo = ({ pCode }: { pCode: any }) => {
     // Recoil
@@ -32,6 +33,8 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     const [sCommandResLog, setCommandResLog] = useState<string | undefined>(undefined);
     const sIsAdmin = getUserName() ? getUserName().toUpperCase() === ADMIN_ID.toUpperCase() : false;
     const [sIsBtnLoad, setIsBtnLoad] = useState<boolean>(false);
+    const [sPkgBEStatus, setPkgBEStatus] = useState<string | undefined>(undefined);
+    const PKG_RUNNING = 'running';
 
     // Update pkgs list (side)
     const pkgsUpdate = async (searchTxt: string) => {
@@ -142,24 +145,49 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                             />
                         )}
                         {/* OPEN BROWSER */}
-                        <ExtensionTab.TextButton
-                            pIcon={
-                                <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                    <Play />
-                                </div>
-                            }
-                            pWidth="130px"
-                            pText={'Open in browser'}
-                            pType="COPY"
-                            pCallback={handleOpenBrowser}
-                            mr="8px"
-                            mb="0px"
-                            mt="4px"
-                        />
+                        {/* FE indicator */}
+                        {pCode?.app?.installed_frontend && (
+                            <ExtensionTab.TextButton
+                                pIcon={
+                                    <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                        <Play />
+                                    </div>
+                                }
+                                pWidth="130px"
+                                pText={'Open in browser'}
+                                pType="COPY"
+                                pCallback={handleOpenBrowser}
+                                mr="8px"
+                                mb="0px"
+                                mt="4px"
+                            />
+                        )}
+                        {/* BE indicator */}
+                        {pCode?.app?.installed_backend && (
+                            <ExtensionTab.TextButton
+                                pIcon={
+                                    <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                        {sPkgBEStatus === PKG_RUNNING ? <BiPause /> : <Play />}
+                                    </div>
+                                }
+                                pWidth="60px"
+                                pText={sPkgBEStatus === PKG_RUNNING ? 'Stop' : 'Start'}
+                                pType="COPY"
+                                pCallback={() => handlePkgSvrAction(sPkgBEStatus === PKG_RUNNING ? 'stop' : 'start')}
+                                mr="8px"
+                                mb="0px"
+                                mt="4px"
+                            />
+                        )}
                     </>
                 )}
             </ExtensionTab.DpRow>
         );
+    };
+    const handlePkgSvrAction = async (aStatus: PKG_ACTION) => {
+        const sResPkgStatus: any = await getPkgAction(pCode?.app.name, aStatus);
+        if (sResPkgStatus && sResPkgStatus?.success && sResPkgStatus?.data) setPkgBEStatus(sResPkgStatus?.data?.status);
+        else setPkgBEStatus(undefined);
     };
     const Resizer = () => {
         return <SashContent className={`security-key-sash-style`} />;
@@ -214,6 +242,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         setIsBtnLoad(!!pCode?.work_in_progress);
         getReadme();
         setCommandResLog(undefined);
+        pCode?.app?.installed_backend && handlePkgSvrAction('status');
     }, [pCode]);
 
     return (
