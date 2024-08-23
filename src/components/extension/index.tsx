@@ -118,6 +118,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                     name: `SSH KEYS`,
                     code: '',
                     savedCode: '',
+                    path: '',
                 },
             ]);
             setSelectedTab(sId);

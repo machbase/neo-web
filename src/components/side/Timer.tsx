@@ -55,6 +55,7 @@ export const TimerSide = ({ pServer }: any) => {
                     name: `TIMER: ${aTimerInfo.name}`,
                     code: aTimerInfo,
                     savedCode: aTimerInfo,
+                    path: '',
                 },
             ]);
             setSelectedTab(sId);
@@ -81,6 +82,7 @@ export const TimerSide = ({ pServer }: any) => {
                             name: `TIMER: create`,
                             code: undefined,
                             savedCode: false,
+                            path: '',
                         };
                     }
                     return aBoard;
@@ -98,6 +100,7 @@ export const TimerSide = ({ pServer }: any) => {
                     name: `TIMER: create`,
                     code: undefined,
                     savedCode: false,
+                    path: '',
                 },
             ]);
             setSelectedTab(sId);

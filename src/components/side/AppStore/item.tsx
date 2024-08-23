@@ -87,6 +87,7 @@ export const AppList = ({ pList, pTitle, pStatus }: { pList: APP_INFO[] | string
                     name: `PKG: ${app.name}`,
                     code: { app, status: pStatus },
                     savedCode: { app, status: pStatus },
+                    path: '',
                 },
             ]);
             setSelectedTab(sId);

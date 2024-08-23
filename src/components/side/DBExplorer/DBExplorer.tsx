@@ -174,6 +174,7 @@ export const DBExplorer = ({ pServer }: any) => {
                     name: `DATABASE: backup`,
                     code: sStatusCode,
                     savedCode: undefined,
+                    path: '',
                 },
             ]);
             setSelectedTab(sId);

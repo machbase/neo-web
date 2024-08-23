@@ -81,6 +81,7 @@ export const SecurityKey = ({ pServer }: any) => {
                             name: `KEY: create`,
                             code: undefined,
                             savedCode: false,
+                            path: '',
                         };
                     }
                     return aBoard;
@@ -98,6 +99,7 @@ export const SecurityKey = ({ pServer }: any) => {
                     name: `KEY: create`,
                     code: undefined,
                     savedCode: false,
+                    path: '',
                 },
             ]);
             setSelectedTab(sId);

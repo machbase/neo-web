@@ -802,8 +802,8 @@ const DirDiv = ({
     onDragOver: (key: string) => void;
 }) => {
     const sDirectoryIcon = (): string => {
-        if (directory.isOpen) return directory.gitClone ? 'gitOpenDirectory' : 'openDirectory';
-        else return directory.gitClone ? 'gitClosedDirectory' : 'closedDirectory';
+        if (directory.isOpen) return directory.gitClone ? 'gitOpenDirectory' : (directory as any)?.readOnly ? 'readOnlyOpenDirectory' : 'openDirectory';
+        else return directory.gitClone ? 'gitClosedDirectory' : (directory as any)?.readOnly ? 'readOnlyClosedDirectory' : 'closedDirectory';
     };
     return (
         <>

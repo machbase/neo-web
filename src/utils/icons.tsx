@@ -39,6 +39,7 @@ import {
     MuiFolderOpen,
 } from '@/assets/icons/Mui';
 import { BsSignpost } from 'react-icons/bs';
+import { FaBox, FaBoxOpen } from 'react-icons/fa';
 import { GiTallBridge } from 'react-icons/gi';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { PiDatabaseLight } from 'react-icons/pi';
@@ -117,6 +118,10 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <MuiFolderGit />;
         case 'gitOpenDirectory':
             return <MuiFolderGitOpen />;
+        case 'readOnlyClosedDirectory':
+            return <FaBox style={{ width: '13px', height: '13px', fill: '#FF9800', display: 'flex', justifyContent: 'center', alignItems: 'center' }} />;
+        case 'readOnlyOpenDirectory':
+            return <FaBoxOpen style={{ width: '16px', height: '16px', color: 'FF9800', display: 'flex', justifyContent: 'center', alignItems: 'center' }} />;
         case 'key':
             return <VscKey />;
         case 'timer':

@@ -122,6 +122,7 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                     name: `SUBR: create`,
                     code: { bridge: pCode, subr: {} },
                     savedCode: false,
+                    path: '',
                 },
             ]);
             setSelectedTab(sId);

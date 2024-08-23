@@ -625,20 +625,24 @@ any) => {
                                                 <span>Duplicate</span>
                                             </Menu.Item>
                                         )}
-                                        <Menu.Item onClick={handleRename}>
-                                            <Rename />
-                                            <span>Rename</span>
-                                        </Menu.Item>
+                                        {!(selectedContextFile as any)?.readOnly && (
+                                            <Menu.Item onClick={handleRename}>
+                                                <Rename />
+                                                <span>Rename</span>
+                                            </Menu.Item>
+                                        )}
                                         {(selectedContextFile as any)?.gitClone ? (
                                             <Menu.Item onClick={updateGitFolder}>
                                                 <Update />
                                                 <span>Update</span>
                                             </Menu.Item>
                                         ) : null}
-                                        <Menu.Item onClick={deleteFile}>
-                                            <Delete />
-                                            <span>Delete</span>
-                                        </Menu.Item>
+                                        {!(selectedContextFile as any)?.readOnly && (
+                                            <Menu.Item onClick={deleteFile}>
+                                                <Delete />
+                                                <span>Delete</span>
+                                            </Menu.Item>
+                                        )}
                                         {(selectedContextFile as any)?.content ? (
                                             <Menu.Item onClick={downloadFile}>
                                                 <Download />

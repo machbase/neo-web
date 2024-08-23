@@ -68,6 +68,7 @@ export const BridgeSide = ({ pServer }: any) => {
                     name: `SUBR: ${aInfo.name}`,
                     code: { bridge: aItem, subr: aInfo },
                     savedCode: { bridge: aItem, subr: aInfo },
+                    path: '',
                 },
             ]);
             setSelectedTab(sId);
@@ -106,6 +107,7 @@ export const BridgeSide = ({ pServer }: any) => {
                     name: `BRIDGE: ${aInfo.name}`,
                     code: aInfo,
                     savedCode: aInfo,
+                    path: '',
                 },
             ]);
             setSelectedTab(sId);
@@ -129,6 +131,7 @@ export const BridgeSide = ({ pServer }: any) => {
                             name: `BRIDGE: create`,
                             code: undefined,
                             savedCode: false,
+                            path: '',
                         };
                     }
                     return aBoard;
@@ -146,6 +149,7 @@ export const BridgeSide = ({ pServer }: any) => {
                     name: `BRIDGE: create`,
                     code: undefined,
                     savedCode: false,
+                    path: '',
                 },
             ]);
             setSelectedTab(sId);
