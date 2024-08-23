@@ -172,6 +172,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                         name: `SHELL: ${sTargetItem.label}`,
                         code: sTargetItem,
                         savedCode: sTargetItem,
+                        path: '',
                     },
                 ]);
             }

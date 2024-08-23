@@ -62,6 +62,7 @@ export const Shell = ({ pServer }: any) => {
                     name: `SHELL: ${aValue.label}`,
                     code: aValue,
                     savedCode: aValue,
+                    path: '',
                 },
             ]);
             setSelectedTab(sId);
@@ -95,6 +96,7 @@ export const Shell = ({ pServer }: any) => {
                                 name: `SHELL: ${sTargetItem.label}`,
                                 code: sTargetItem,
                                 savedCode: sTargetItem,
+                                path: '',
                             };
                         }
                         return aBoard;
@@ -109,6 +111,7 @@ export const Shell = ({ pServer }: any) => {
                         name: `SHELL: ${sTargetItem.label}`,
                         code: sTargetItem,
                         savedCode: sTargetItem,
+                        path: '',
                     },
                 ]);
             }

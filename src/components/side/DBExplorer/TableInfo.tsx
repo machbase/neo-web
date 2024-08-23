@@ -86,6 +86,7 @@ export const BackupTableInfo = ({ pValue, pRefresh, pBackupRefresh }: any) => {
                     name: `DATABASE: backup`,
                     code: sStatusCode,
                     savedCode: undefined,
+                    path: '',
                 },
             ]);
             setSelectedTab(sId);
