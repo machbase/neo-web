@@ -157,8 +157,8 @@ const Chart = ({
                 height: 24,
                 maskFill: 'rgba(119, 119, 119, .3)',
                 series:
-                    pNavigatorData && pNavigatorData.datasets
-                        ? pNavigatorData.datasets.map((i: any) => {
+                    pNavigatorData && pNavigatorData?.datasets
+                        ? pNavigatorData?.datasets.map((i: any) => {
                               return { data: i.data, marker: i.marker, type: 'line', fillOpacity: 1, lineWidth: 1, dataGrouping: { enabled: false }, animation: false };
                           })
                         : [],
@@ -387,6 +387,7 @@ const Chart = ({
     };
 
     useEffect(() => {
+        pChartWrap?.current?.container?.current && pChartWrap.current.container.current.getElementsByClassName('highcharts-series-group')[0]?.removeAttribute('clip-path');
         pAreaChart && pAreaChart?.current && pAreaChart?.current?.removeAttribute('data-processed');
         setValue();
     }, [pChartData, pNavigatorData, pPanelInfo, pIsRaw, pIsUpdate]);
