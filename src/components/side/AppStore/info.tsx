@@ -18,6 +18,7 @@ import { BiLink, Play } from '@/assets/icons/Icon';
 import { getUserName } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { BiPause } from 'react-icons/bi';
+import { Tooltip } from 'react-tooltip';
 
 export const AppInfo = ({ pCode }: { pCode: any }) => {
     // Recoil
@@ -101,6 +102,9 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     const tzTimeConverter = (time: string) => {
         return moment(time).fromNow(); // 'A year ago'
         // return moment(time).format('YYYY-MM-DD HH:mm:ss');
+    };
+    const tzTimeFormatter = (time: string) => {
+        return moment(time).format('YYYY-MM-DD HH:mm:ss');
     };
     const STATUS_ICON = () => {
         const sInstallTxt = pCode?.app?.installed_version !== '' && pCode?.app?.installed_version !== pCode?.app?.latest_version ? 'Upgrade' : 'Install';
@@ -277,7 +281,10 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                                     {/* ORGANIZ & PUBS TIME */}
                                                     <div style={{ display: 'flex', alignItems: 'center', marginRight: '8px' }}>
                                                         <ExtensionTab.ContentDesc>
-                                                            Published {pCode?.app?.published_at ? tzTimeConverter(pCode?.app?.published_at) : ''}
+                                                            <div className="pkg-published-time-tooltip">
+                                                                Published {pCode?.app?.published_at ? tzTimeConverter(pCode?.app?.published_at) : ''}
+                                                            </div>
+                                                            <Tooltip anchorSelect={`.pkg-published-time-tooltip`} content={tzTimeFormatter(pCode?.app?.published_at)} />
                                                         </ExtensionTab.ContentDesc>
                                                     </div>
                                                     {STATUS_ICON()}
