@@ -167,7 +167,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                             />
                         )}
                         {/* BE indicator */}
-                        {pCode?.app?.installed_backend && (
+                        {sIsAdmin && pCode?.app?.installed_backend && (
                             <ExtensionTab.TextButton
                                 pIcon={
                                     <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -246,7 +246,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         setIsBtnLoad(!!pCode?.work_in_progress);
         getReadme();
         setCommandResLog(undefined);
-        pCode?.app?.installed_backend && handlePkgSvrAction('status');
+        sIsAdmin && pCode?.app?.installed_backend && handlePkgSvrAction('status');
     }, [pCode]);
 
     return (
