@@ -29,12 +29,20 @@ export const getPkgMarkdown = async (aPath: string) => {
     const gitRawUrl = `https://raw.githubusercontent.com/${aPath}`;
     return await fetch(gitRawUrl).then((res) => res.text());
 };
+/** Get Pkg action */
+export const getPkgAction = async (aPkgName: string, aAction: PKG_ACTION) => {
+    return request({
+        method: 'GET',
+        url: `/api/pkgs/process/${aPkgName}/${aAction}`,
+    });
+};
 
 // TYPES
 export type INSTALL = 'install';
 export type UNINSTALL = 'uninstall';
 export type IMG_URL = string;
 export type PKG_STATUS = 'EXACT' | 'POSSIBLE' | 'BROKEN';
+export type PKG_ACTION = 'status' | 'start' | 'stop';
 // INTERFACES
 export interface SEARCH_RES {
     installed: null | APP_INFO[];
@@ -53,6 +61,8 @@ export interface APP_INFO {
     strip_components: number;
     installed_path: string;
     installed_version: string;
+    installed_backend: boolean;
+    installed_frontend: boolean;
     work_in_progress: boolean;
 }
 export interface APP_GITHUB {

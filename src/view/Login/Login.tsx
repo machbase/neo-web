@@ -55,6 +55,8 @@ const Login = () => {
             } else {
                 localStorage.removeItem('rememberId');
             }
+            // PKG URL REDIRECTION
+            const sPkg = localStorage.getItem('package');
             const sIsView = localStorage.getItem('view');
             localStorage.setItem('accessToken', sReturn.accessToken);
             localStorage.setItem('refreshToken', sReturn.refreshToken);
@@ -62,6 +64,9 @@ const Login = () => {
             if (sIsView) {
                 sNavigate(JSON.parse(sIsView).path);
                 localStorage.removeItem('view');
+            } else if (sPkg) {
+                window.location.replace(sPkg);
+                localStorage.removeItem('package');
             } else {
                 sNavigate('/');
             }
