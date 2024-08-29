@@ -217,11 +217,15 @@ any) => {
         closeContextMenu();
         if (!sIsFetch) {
             setIsFetch(true);
-            let sReturn = null;
+            let sReturn: any = null;
             let sParedData = null;
 
             if (aIsOpen) {
                 sReturn = await getFiles(`${aSelectedDir.path}${aSelectedDir.name}/`);
+                if (!sReturn?.success) {
+                    setIsFetch(false);
+                    return;
+                }
                 sParedData = fileTreeParser(sReturn.data, `${aSelectedDir.path}${aSelectedDir.name}/`, aSelectedDir.depth, aSelectedDir.name);
             } else {
                 sParedData = aSelectedDir;

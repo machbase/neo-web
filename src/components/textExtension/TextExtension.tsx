@@ -52,7 +52,10 @@ export const TextExtension = (props: TextExtensionProps) => {
 
     const handleWindowOpen = () => {
         const sTargetBoard = sBoardList.find((aBoard) => aBoard.id === sSelectedTab);
-        const sOpenUrl = window.location.origin + '/db/tql' + sTargetBoard!.path + sTargetBoard!.name;
+        const isPkg = /\/apps\//.test(sTargetBoard?.path);
+        let sOpenUrl: string = '';
+        if (isPkg) sOpenUrl = window.location.origin + '/web' + sTargetBoard?.path;
+        else sOpenUrl = window.location.origin + '/db/tql' + sTargetBoard!.path + sTargetBoard!.name;
         // url, target
         window.open(sOpenUrl, sOpenUrl);
     };
