@@ -114,7 +114,7 @@ const Chart = ({
                     seriesThreshold: 5,
                 },
                 series: {
-                    boostThreshold: 20000,
+                    boostThreshold: 5000,
                     showInNavigator: false,
                     lineWidth: pPanelInfo.stroke,
                     fillOpacity: pPanelInfo.fill,
@@ -387,7 +387,10 @@ const Chart = ({
     };
 
     useEffect(() => {
-        pChartWrap?.current?.container?.current && pChartWrap.current.container.current.getElementsByClassName('highcharts-series-group')[0]?.removeAttribute('clip-path');
+        // RM clip-path
+        if (pChartWrap?.current?.container?.current)
+            pChartWrap?.current?.container?.current?.getElementsByClassName('highcharts-root')[0]?.getElementsByTagName('defs')[0]?.remove();
+
         pAreaChart && pAreaChart?.current && pAreaChart?.current?.removeAttribute('data-processed');
         setValue();
     }, [pChartData, pNavigatorData, pPanelInfo, pIsRaw, pIsUpdate]);
