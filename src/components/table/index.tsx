@@ -1,4 +1,3 @@
-import { generateUUID } from '@/utils';
 import './index.scss';
 import { IconButton } from '../buttons/IconButton';
 import { PiFileSqlThin } from 'react-icons/pi';
@@ -12,10 +11,16 @@ interface TableProps {
     pMaxShowLen?: boolean;
     pHelpText?: string;
     pMaxWidth?: number;
-    clickEvent: (e: any, aRowData: string) => void;
+    clickEvent?: (e: any, aRowData: string) => void;
 }
 
-const TABLE = ({ pTableData, pMaxShowLen, pHelpText, pMaxWidth, clickEvent }: TableProps) => {
+const TABLE = ({
+    pTableData,
+    pMaxShowLen,
+    pHelpText,
+    pMaxWidth,
+}: // clickEvent
+TableProps) => {
     const MaxLenDiv = () => {
         return (
             <tr key="tbody-row5" className="result-body-tr">
@@ -81,9 +86,13 @@ const TABLE = ({ pTableData, pMaxShowLen, pHelpText, pMaxWidth, clickEvent }: Ta
                                   <td>
                                       <span className="row-num">{aIdx + 1}</span>
                                   </td>
-                                  {aRowList.map((aRowData: any) => {
+                                  {aRowList.map((aRowData: any, bIdx: number) => {
                                       return (
-                                          <td className="result-table-item" key={generateUUID()} onContextMenu={(e) => clickEvent(e, aRowData)}>
+                                          <td
+                                              className="result-table-item"
+                                              key={'table-' + aIdx + '-' + bIdx}
+                                              //   onContextMenu={(e) => clickEvent(e, aRowData)}
+                                          >
                                               <span>{'' + aRowData}</span>
                                           </td>
                                       );
