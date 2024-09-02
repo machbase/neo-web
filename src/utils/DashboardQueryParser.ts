@@ -289,7 +289,7 @@ const GetConbineWhere = (
             const sDuration = `DURATION FROM FROM_TIMESTAMP(${aTime.start}000000) TO FROM_TIMESTAMP(${aTime.end}000000)`;
             // BAR | LINE | SCATTER
             if (aResDataType === 'TIME_VALUE')
-                sReturnWhere = `${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''} ${sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''} ${sOrderBy} ${sDuration}`;
+                sReturnWhere = `${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''} ${sDuration} ${sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''} ${sOrderBy}`;
             // PIE | GAUGE | LIQUIDFILL
             if (aResDataType === 'NAME_VALUE') sReturnWhere = `${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''} ${sDuration}`;
         }
@@ -300,9 +300,9 @@ const GetConbineWhere = (
             const sDuration = `DURATION FROM FROM_TIMESTAMP(${sFromTime}000000) TO FROM_TIMESTAMP(${sToTime}000000)`;
             // BAR | LINE | SCATTER
             if (aResDataType === 'TIME_VALUE')
-                sReturnWhere = `WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''} ${
+                sReturnWhere = `WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''} ${sDuration} ${
                     sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''
-                } ${sOrderBy} ${sDuration}`;
+                } ${sOrderBy}`;
             // PIE | GAUGE | LIQUIDFILL
             if (aResDataType === 'NAME_VALUE') sReturnWhere = `WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''} ${sDuration}`;
         }
