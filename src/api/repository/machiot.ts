@@ -248,7 +248,7 @@ const fetchRawData = async (params: any) => {
 
     if (sampleValue) {
         if (sampleValue) {
-            sQuery = 'select * from (' + sQuery + ') LIMIT ' + 100000;
+            sQuery = 'select * from (' + sQuery + ') LIMIT ' + 200000;
         }
     } else {
         if (Count > 0) {

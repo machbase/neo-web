@@ -188,7 +188,7 @@ const CreatePanel = ({
         else return { ...aPanelInfo, isAxisInterval: true };
     };
     // Preview
-    const applyPanel = async () => {
+    const applyPanel = async (aTime?: any) => {
         const sTmpPanelOption = checkXAxisInterval(sPanelOption);
         if (sPanelOption.type === 'Tql chart') {
             if (sTmpPanelOption.useCustomTime) {
@@ -255,7 +255,7 @@ const CreatePanel = ({
                     setAppliedPanelOption(sTmpPanelOption);
                 }
                 if (pType === 'create' && (!pBoardTimeMinMax || sChartPanelList.length === 0)) {
-                    const sTime = await getTimeMinMax(pBoardInfo.dashboard.timeRange);
+                    const sTime = await getTimeMinMax(aTime ?? pBoardInfo.dashboard.timeRange);
                     if (sChartPanelList.length === 0) {
                         setCreateModeTimeMinMax(sTime);
                         setIsPreview(() => true);
@@ -277,12 +277,16 @@ const CreatePanel = ({
         const sTargetPanel = pType === 'create' ? sPanelOption : pBoardInfo?.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart')[0];
         const sTargetTag = sTargetPanel?.blockList ? sTargetPanel.blockList[0] : { tag: '' };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
+        const sIsCreateModeFirstPanel =
+            pType === 'create' &&
+            pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart').length === pBoardInfo?.dashboard?.panels?.length &&
+            pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart').length <= 0;
         const sCustomTag =
             sIsTagName &&
             sTargetTag.filter.filter((aFilter: any) => {
                 if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
             })[0]?.value;
-        if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
+        if (sIsTagName || (sTargetTag.useCustom && sCustomTag) || sIsCreateModeFirstPanel) {
             let sSvrResult: any = undefined;
             if (sTargetTag.table.split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
@@ -363,7 +367,7 @@ const CreatePanel = ({
     useEffect(() => {
         if (sTableList.length > 0 && JSON.stringify(sBoardTimeRange) !== JSON.stringify(pBoardInfo?.dashboard?.timeRange)) {
             setBoardTimeRange(() => pBoardInfo?.dashboard?.timeRange);
-            applyPanel();
+            applyPanel(pBoardInfo?.dashboard?.timeRange);
         }
     }, [pBoardInfo?.dashboard?.timeRange]);
 
