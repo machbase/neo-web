@@ -142,7 +142,6 @@ any) => {
     const setNavigatorExtremes = (aEvent: any) => {
         const sStart = aEvent.min;
         let sEnd = aEvent.max;
-
         if (sStart === sEnd) sEnd += 10;
         setNavigatorRange({ startTime: sStart, endTime: sEnd });
         fetchNavigatorData({ startTime: sStart, endTime: sEnd });
@@ -221,12 +220,14 @@ any) => {
         // TAG => sys.TAG
         else return `${ADMIN_ID.toUpperCase()}.${table}`;
     };
-    const fetchNavigatorData = async (aTimeRange: any, aRaw?: any) => {
+    const fetchNavigatorData = async (
+        // aTimeRange: any,
+        aRaw?: any
+    ) => {
         const sChartWidth = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
         const sRaw = aRaw === undefined ? sIsRaw : aRaw;
         const sLimit = pPanelInfo.count;
         let sCount = -1;
-
         if (sLimit < 0) {
             if (pPanelInfo.use_sampling && sRaw) {
                 if (pPanelInfo.pixels_per_tick_raw > 0) {
@@ -249,12 +250,11 @@ any) => {
             return;
         }
 
-        const sTimeRange: any = getDateRange(pPanelInfo, pBoardInfo, aTimeRange);
+        const sTimeRange: any = getDateRange(pPanelInfo, pBoardInfo);
         const sIntervalTime =
             pPanelInfo.interval_type.toLowerCase() === ''
-                ? calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, sRaw)
+                ? calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, sRaw, true)
                 : { IntervalType: convertInterType(pPanelInfo.interval_type?.toLowerCase()), IntervalValue: 0 };
-
         for (let index = 0; index < sTagSet.length; index++) {
             const sTagSetElement = sTagSet[index];
             let sFetchResult: any = [];
@@ -391,10 +391,10 @@ any) => {
             sChartRef && sChartRef.current && sChartRef.current.chart.xAxis[0].setExtremes(sDatasets[0].data[0][0], sChangeLimitEnd);
         }
     };
-    const calcInterval = (aBgn: number, aEnd: number, aWidth: number, aIsRaw: boolean): { IntervalType: string; IntervalValue: number } => {
+    const calcInterval = (aBgn: number, aEnd: number, aWidth: number, aIsRaw: boolean, aIsNavi?: boolean): { IntervalType: string; IntervalValue: number } => {
         const sDiff = aEnd - aBgn;
         const sSecond = Math.floor(sDiff / 1000);
-        const sCalc = sSecond / (aWidth / (aIsRaw ? pPanelInfo.pixels_per_tick_raw : pPanelInfo.pixels_per_tick));
+        const sCalc = sSecond / (aWidth / (aIsRaw && !aIsNavi ? pPanelInfo.pixels_per_tick_raw : pPanelInfo.pixels_per_tick));
         const sRet = { type: 'sec', value: 1 };
         if (sCalc > 60 * 60 * 12) {
             // interval > 12H
@@ -662,7 +662,11 @@ any) => {
         }
         fetchPanelData(sPanelRange, !sIsRaw);
 
-        pPanelInfo.use_sampling && fetchNavigatorData(sNavigatorRange, !sIsRaw);
+        pPanelInfo.use_sampling &&
+            fetchNavigatorData(
+                // sNavigatorRange,
+                !sIsRaw
+            );
     };
     const getDuration = (aStartTime: number, aEndTime: number): string => {
         const sDuration = moment.duration(aEndTime - aStartTime);
