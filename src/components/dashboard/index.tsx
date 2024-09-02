@@ -144,7 +144,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         GenChartVariableId();
     };
     const handleDashboardTimeRange = async (sStart: any, sEnd: any) => {
-        if (pInfo.dashboard.panels.length < 1) return;
+        // if (pInfo.dashboard.panels.length < 1) return;
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
         const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes);
         setBoardTimeMinMax(() => sTimeMinMax);
