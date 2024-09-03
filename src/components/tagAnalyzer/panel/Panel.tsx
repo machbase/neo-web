@@ -153,7 +153,10 @@ any) => {
     const setButtonRange = (aType: string, aZoom: number) => {
         const sCalcTime = (sPanelRange.endTime - sPanelRange.startTime) * aZoom;
         if (aType === 'I') {
-            sChartRef.current.chart.xAxis[0].setExtremes(sPanelRange.startTime + sCalcTime, sPanelRange.endTime - sCalcTime);
+            const startCal = sPanelRange.startTime + sCalcTime;
+            let endCal = sPanelRange.endTime - sCalcTime;
+            if (endCal - startCal < 10) endCal = startCal + 10;
+            sChartRef.current.chart.xAxis[0].setExtremes(startCal, endCal);
         } else if (aType === 'O') {
             let sStartTime = sPanelRange.startTime - sCalcTime;
             let sEndTime = sPanelRange.endTime + sCalcTime;
@@ -171,6 +174,7 @@ any) => {
 
             sChartRef.current.chart.xAxis[0].setExtremes(sStartTime, sEndTime);
         } else {
+            if (sPanelRange.endTime - sPanelRange.startTime < 1000) return;
             const sStartTime = sPanelRange.startTime;
             const sEndTime = sPanelRange.endTime;
 
