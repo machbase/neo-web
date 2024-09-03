@@ -144,7 +144,11 @@ any) => {
         let sEnd = aEvent.max;
         if (sStart === sEnd) sEnd += 10;
         setNavigatorRange({ startTime: sStart, endTime: sEnd });
-        fetchNavigatorData({ timeRange: { startTime: sStart, endTime: sEnd }, raw: undefined });
+        if (
+            sStart.toString().slice(0, 10) !== sNavigatorRange.startTime.toString().slice(0, 10) ||
+            sEnd.toString().slice(0, 10) !== sNavigatorRange.endTime.toString().slice(0, 10)
+        )
+            fetchNavigatorData({ timeRange: { startTime: sStart, endTime: sEnd }, raw: undefined });
     };
     const setButtonRange = (aType: string, aZoom: number) => {
         const sCalcTime = (sPanelRange.endTime - sPanelRange.startTime) * aZoom;
