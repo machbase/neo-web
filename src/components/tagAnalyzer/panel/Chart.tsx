@@ -92,6 +92,7 @@ const Chart = ({
                     selection: pIsUpdate ? pViewMinMaxPopup : false,
                     // load | redraw | render
                     render() {
+                        pChartWrap && pChartWrap?.current?.container?.current?.getElementsByClassName('highcharts-series-group')[0]?.setAttribute('clip-path', 'none');
                         pAreaChart && pAreaChart?.current && pAreaChart?.current?.setAttribute('data-processed', true);
                     },
                 },
@@ -387,10 +388,6 @@ const Chart = ({
     };
 
     useEffect(() => {
-        // RM clip-path
-        if (pChartWrap?.current?.container?.current)
-            pChartWrap?.current?.container?.current?.getElementsByClassName('highcharts-root')[0]?.getElementsByTagName('defs')[0]?.remove();
-
         pAreaChart && pAreaChart?.current && pAreaChart?.current?.removeAttribute('data-processed');
         setValue();
     }, [pChartData, pNavigatorData, pPanelInfo, pIsRaw, pIsUpdate]);
