@@ -142,7 +142,7 @@ any) => {
     const setNavigatorExtremes = (aEvent: any) => {
         const sStart = aEvent.min;
         let sEnd = aEvent.max;
-        if (sStart === sEnd) sEnd += 10;
+        if (sStart.toString().slice(0, 10) === sEnd.toString().slice(0, 10)) sEnd = sStart + 1000;
         setNavigatorRange({ startTime: sStart, endTime: sEnd });
         if (
             sStart.toString().slice(0, 10) !== sNavigatorRange.startTime.toString().slice(0, 10) ||
