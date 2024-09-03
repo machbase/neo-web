@@ -144,7 +144,7 @@ any) => {
         let sEnd = aEvent.max;
         if (sStart === sEnd) sEnd += 10;
         setNavigatorRange({ startTime: sStart, endTime: sEnd });
-        fetchNavigatorData({ startTime: sStart, endTime: sEnd });
+        fetchNavigatorData({ timeRange: { startTime: sStart, endTime: sEnd }, raw: undefined });
     };
     const setButtonRange = (aType: string, aZoom: number) => {
         const sCalcTime = (sPanelRange.endTime - sPanelRange.startTime) * aZoom;
@@ -220,12 +220,9 @@ any) => {
         // TAG => sys.TAG
         else return `${ADMIN_ID.toUpperCase()}.${table}`;
     };
-    const fetchNavigatorData = async (
-        // aTimeRange: any,
-        aRaw?: any
-    ) => {
+    const fetchNavigatorData = async (params: { timeRange?: any; raw?: any }) => {
         const sChartWidth = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
-        const sRaw = aRaw === undefined ? sIsRaw : aRaw;
+        const sRaw = params?.raw === undefined ? sIsRaw : params?.raw;
         const sLimit = pPanelInfo.count;
         let sCount = -1;
         if (sLimit < 0) {
@@ -250,7 +247,8 @@ any) => {
             return;
         }
 
-        const sTimeRange: any = getDateRange(pPanelInfo, pBoardInfo);
+        const sTimeRange: any = getDateRange(pPanelInfo, pBoardInfo, params?.timeRange ?? undefined);
+
         const sIntervalTime =
             pPanelInfo.interval_type.toLowerCase() === ''
                 ? calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, sRaw, true)
@@ -605,8 +603,8 @@ any) => {
                 endTime: pPanelInfo.time_keeper.endPanelTime,
             });
             fetchNavigatorData({
-                startTime: pPanelInfo.time_keeper.startNaviTime,
-                endTime: pPanelInfo.time_keeper.endNaviTime,
+                timeRange: { startTime: pPanelInfo.time_keeper.startNaviTime, endTime: pPanelInfo.time_keeper.endNaviTime },
+                raw: undefined,
             });
             setNavigatorRange({
                 startTime: pPanelInfo.time_keeper.startNaviTime,
@@ -626,8 +624,8 @@ any) => {
                 endTime: sData.endTime,
             });
             fetchNavigatorData({
-                startTime: sData.startTime,
-                endTime: sData.endTime,
+                timeRange: { startTime: sData.startTime, endTime: sData.endTime },
+                raw: undefined,
             });
             setNavigatorRange({
                 startTime: sData.startTime,
@@ -662,11 +660,7 @@ any) => {
         }
         fetchPanelData(sPanelRange, !sIsRaw);
 
-        pPanelInfo.use_sampling &&
-            fetchNavigatorData(
-                // sNavigatorRange,
-                !sIsRaw
-            );
+        pPanelInfo.use_sampling && fetchNavigatorData({ timeRange: undefined, raw: !sIsRaw });
     };
     const getDuration = (aStartTime: number, aEndTime: number): string => {
         const sDuration = moment.duration(aEndTime - aStartTime);
