@@ -30,6 +30,7 @@ export const AppStore = ({ pServer }: any) => {
     const pkgsUpdate = async () => {
         if (!sIsAdmin) return;
         await getPkgsSync();
+        await pkgsSearch();
     };
     // pkgs search
     const pkgsSearch = async () => {
