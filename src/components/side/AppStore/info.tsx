@@ -19,12 +19,16 @@ import { getUserName } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { BiPause } from 'react-icons/bi';
 import { Tooltip } from 'react-tooltip';
+import { getFiles } from '@/api/repository/fileTree';
+import { fileTreeParser } from '@/utils/fileTreeParser';
+import { gFileTree } from '@/recoil/fileTree';
 
 export const AppInfo = ({ pCode }: { pCode: any }) => {
     // Recoil
     const setPkgs = useSetRecoilState<SEARCH_RES>(gSearchPkgs);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const sSearchPkgName = useRecoilValue(gSearchPkgName);
+    const setFileTree = useSetRecoilState(gFileTree);
     // Scoped
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sGroupWidth, setGroupWidth] = useState<any[]>(['50%', '50%']);
@@ -96,9 +100,19 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         if (res && res?.success && res?.data) {
             pkgDetailUpdate(pCode.app.name, 1);
             setCommandResLog(res.data.log);
+            updateFileTree();
         } else setCommandResLog(res?.data?.log ? res?.data?.log : undefined);
         setIsBtnLoad(false);
     };
+    // update file explorer
+    const updateFileTree = async () => {
+        const sReturn = await getFiles('/');
+        if (sReturn && sReturn?.data) {
+            const sParedData = fileTreeParser(sReturn.data, '/', 0, '0');
+            setFileTree(JSON.parse(JSON.stringify(sParedData)));
+        }
+    };
+
     const tzTimeConverter = (time: string) => {
         return moment(time).fromNow(); // 'A year ago'
         // return moment(time).format('YYYY-MM-DD HH:mm:ss');
