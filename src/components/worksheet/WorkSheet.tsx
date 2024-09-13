@@ -73,6 +73,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
             setRunCodeTarget(undefined);
             setAllRunCodeList([]);
             setAllRunCodeStatus(false);
+            return;
         }
         const sTmp = JSON.parse(JSON.stringify(sAllRunCodeList));
         sTmp.splice(aIdx + 1, 1, aStatus);
@@ -91,7 +92,6 @@ export const WorkSheet = (props: WorkSheetProps) => {
 
     useEffect(() => {
         if (sAllRunCodeStatus) {
-            sWorkSheets.length;
             const sTmp = new Array(sWorkSheets.length).fill(false);
             sTmp.splice(0, 1, true);
             setRunCodeTarget(0);
