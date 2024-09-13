@@ -164,7 +164,7 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
     const handleMountName = (e: React.ChangeEvent<HTMLInputElement>) => {
         const start = e.target.selectionStart ?? 0;
         const end = e.target.selectionEnd ?? 0;
-        if (!MountNameRegEx.test(e.target.value) && e.target.value !== '') return sMountAliasRef.current.setSelectionRange(start - 1 ?? 0, end - 1 ?? 0);
+        if (!MountNameRegEx.test(e.target.value) && e.target.value !== '') return sMountAliasRef.current.setSelectionRange(start - 1, end - 1);
         sMountAliasRef.current.setSelectionRange(start, end);
         setMountAlias(() => e.target.value.toUpperCase());
     };

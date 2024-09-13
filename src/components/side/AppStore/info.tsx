@@ -379,7 +379,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                             {/* FORKS COUNT */}
                                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
                                                 <VscRepoForked style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
-                                                <ExtensionTab.ContentText pContent={pCode?.app?.github?.forks_count + ' forks' ?? ''} />
+                                                <ExtensionTab.ContentText pContent={pCode?.app?.github?.forks_count + ' forks'} />
                                             </div>
                                             {/* SIZE */}
                                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
