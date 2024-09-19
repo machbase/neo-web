@@ -17,6 +17,7 @@ import { sqlMultiQueryParser } from '@/utils/sqlMultiQueryParser';
 import { ShowMap } from '../tql/ShowMap';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { ConfirmModal } from '../modal/ConfirmModal';
+import { Loader } from '../loader';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell';
 type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell';
@@ -88,6 +89,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
     const wrkEditorRef = useRef<HTMLDivElement>(null);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
+    const [sProcessing, setProcessing] = useState<boolean>(false);
     const LANG = [
         ['markdown', 'Markdown'],
         ['SQL', 'SQL'],
@@ -187,12 +189,14 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             selection: SelectionType;
         }
     ) => {
+        setProcessing(true);
         if (sSelectedLang === 'TQL') getTqlData(aText);
         if (sSelectedLang === 'Markdown') {
             if (pAllRunCodeStatus) {
                 pAllRunCodeCallback(true);
             }
             setMarkdown(aText);
+            setProcessing(false);
         }
         if (sSelectedLang === 'SQL') getSqlData(aText, aLocation);
         if (sSelectedLang === 'Shell') getShellData(aText);
@@ -202,9 +206,12 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         const sResult: any = await getTqlChart(sShellQuery);
         if (sResult?.data && typeof sResult?.data === 'object' && sResult?.data?.success && sResult?.data?.data?.rows) {
             setShellTextResult(sResult?.data?.data?.rows);
+            pAllRunCodeCallback(true);
         } else {
             setShellTextResult([sResult?.data]);
+            pAllRunCodeCallback(false);
         }
+        setProcessing(false);
     };
     const changeLanguage = (aLang: ServerLang) => {
         setSqlReason('');
@@ -278,6 +285,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         } else {
             if (pAllRunCodeStatus) pAllRunCodeCallback(false);
         }
+        setProcessing(false);
     };
     const ErrorConsole = (aMessage: string) => {
         setConsoleList((prev: any) => [
@@ -378,6 +386,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             if (sResult.status === 200) HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
             else HandleResutTypeAndTxt(typeof sResult.data === 'object' ? (sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data)) : sResult.data, false);
         }
+
+        setProcessing(false);
     };
     const VerticalDivision = () => {
         return <div className="worksheet-ctr-verti-divi" />;
@@ -601,7 +611,15 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         <div className="drag-stick" draggable onDragStart={initValue} onDrag={resize} onDragEnd={setHeight}></div>
                     </div>
                 </div>
-                {Result()}
+                {!sProcessing && Result()}
+                {sProcessing && (
+                    <div style={{ display: 'flex', flexDirection: 'row', padding: '8px' }}>
+                        <span>Processing...</span>
+                        <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
+                            <Loader width="12px" height="12px" borderRadius="90%" />
+                        </div>
+                    </div>
+                )}
             </div>
             <div style={{ marginLeft: '5px' }}>
                 <IconButton

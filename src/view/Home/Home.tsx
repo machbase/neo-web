@@ -167,8 +167,8 @@ const Home = () => {
                 >
                     <Pane minSize={0} maxSize="50%">
                         {sHome && (
-                            <div key={sSelectedExtension} style={{ height: '100%' }}>
-                                {sSelectedExtension === 'EXPLORER' && <Side pServer={sServer} pGetInfo={getInfo} pSavedPath={sSavedPath} />}
+                            <div style={{ height: '100%' }}>
+                                <Side pServer={sServer} pGetInfo={getInfo} pSavedPath={sSavedPath} pDisplay={sSelectedExtension === 'EXPLORER'} />
                                 {sSelectedExtension === 'REFERENCE' && <ReferenceList pServer={sServer} />}
                                 {sSelectedExtension === 'DBEXPLORER' && <DBExplorer pServer={sServer} />}
                                 {sSelectedExtension === 'KEY' && <SecurityKey pServer={sServer} />}

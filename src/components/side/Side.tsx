@@ -44,6 +44,7 @@ const Side = ({
     pGetInfo,
     pSavedPath,
     pServer,
+    pDisplay,
 }: // pExtensionList
 any) => {
     const sParedData: FileTreeType = {
@@ -120,6 +121,12 @@ any) => {
             false
         );
     }, [pSavedPath]);
+    useEffect(() => {
+        if (sFileTree.name && sFileTree.id) {
+            setRootDir(JSON.parse(JSON.stringify(sFileTree)));
+            // if (sSearchFilter) handleSearch(sSearchTxt);
+        }
+    }, [sFileTree]);
 
     const handleIsOpenModal = (aBool: boolean, aEvent?: any) => {
         if (aEvent) {
@@ -129,13 +136,6 @@ any) => {
         setIsOpenModal(aBool);
         pGetInfo();
     };
-
-    useEffect(() => {
-        if (sFileTree.name && sFileTree.id) {
-            setRootDir(JSON.parse(JSON.stringify(sFileTree)));
-            // if (sSearchFilter) handleSearch(sSearchTxt);
-        }
-    }, [sFileTree]);
 
     function removeLastItem(array: string[]) {
         if (!Array.isArray(array) || array.length === 0) {
@@ -492,7 +492,7 @@ any) => {
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
 
     return (
-        <div className="side-form">
+        <div className="side-form" style={{ display: pDisplay ? '' : 'none' }}>
             <div className="side-title">
                 <span>machbase-neo {pServer && pServer.version}</span>
             </div>
