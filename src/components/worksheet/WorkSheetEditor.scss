@@ -1,11 +1,13 @@
 @import '../../assets/scss/theme.scss';
 .worksheet-editor-wrapper {
     display: flex;
+    position: relative;
 
     .worksheet-editor {
         width: 100%;
 
         .worksheet-content {
+            width: 100%;
             border: solid 1px #393b41;
             border-radius: 10px;
 
@@ -94,6 +96,16 @@
                     -webkit-user-drag: element;
                 }
             }
+        }
+
+        .wrk-result-processed-wrap {
+            position: absolute;
+            left: 40%;
+            top: 40%;
+        }
+
+        .result-processed {
+            opacity: 0.3;
         }
 
         .result {

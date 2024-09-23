@@ -18,6 +18,7 @@ import { ShowMap } from '../tql/ShowMap';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { ConfirmModal } from '../modal/ConfirmModal';
 import { Loader } from '../loader';
+import { GrClearOption } from 'react-icons/gr';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell';
 type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell';
@@ -231,7 +232,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
     };
     const getSqlData = (aText: string, aLocation?: LocationType) => {
-        setSql('');
         let parsedQuery: any = '';
         if (!aLocation) {
             // SINGLE
@@ -394,7 +394,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     };
     const Result = () => {
         return (
-            <div className="result">
+            <div className={`result${sProcessing ? ' result-processed' : ''}`}>
                 {sSelectedLang === 'TQL' ? TqlResult() : null}
                 {sSelectedLang === 'SQL' ? SqlResult() : null}
                 {sSelectedLang === 'Markdown' ? <Markdown pIdx={pIdx} pContents={sMarkdown} pType="wrk-mrk" pData={pWrkId} /> : null}
@@ -540,6 +540,17 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             <></>
         );
     };
+    const handleResultClear = () => {
+        setSql('');
+        setSqlReason('');
+        setShellTextResult(undefined);
+        setMarkdown('');
+        setTqlTextResult('');
+        setTqlMapData('');
+        setTqlChartData('');
+        setTqlCsvHeader([]);
+        setTqlCsv([]);
+    };
 
     useOutsideClick(dropDownRef, () => setShowLang(false));
     useOutsideClick(ResultContentTypeRef, () => setShowResultContentType(false));
@@ -547,91 +558,107 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     return (
         <div className="worksheet-editor-wrapper">
             <div ref={wrkEditorRef} className="worksheet-editor">
-                <div className="worksheet-content" style={{ display: !sCollapse ? 'block' : 'none' }}>
-                    <div className="worksheet-ctr">
-                        {DropDown()}
-                        {VerticalDivision()}
-                        {ResultContentType()}
-                        <IconButton pIsToopTip pToolTipContent="Run code" pToolTipId="wrk-tab-panel-run" pIcon={<Play />} pIsActiveHover onClick={() => handleRunCode(sText)} />
-                        {VerticalDivision()}
-                        <IconButton
-                            pIsToopTip
-                            pToolTipContent="Move to upper"
-                            pToolTipId="wrk-tab-panel-move-up"
-                            pIcon={<ArrowUpDouble />}
-                            pIsActiveHover
-                            onClick={() => pCallback({ id: pData.id, event: 'LocUp' })}
-                        />
-                        <IconButton
-                            pIsToopTip
-                            pToolTipContent="Move to down"
-                            pToolTipId="wrk-tab-panel-move-down"
-                            pIcon={<ArrowUpDouble style={{ transform: 'rotate(180deg)' }} />}
-                            pIsActiveHover
-                            onClick={() => pCallback({ id: pData.id, event: 'LocDown' })}
-                        />
-                        {VerticalDivision()}
-                        <IconButton
-                            pIsToopTip
-                            pToolTipContent="Add to upper"
-                            pToolTipId="wrk-tab-panel-add-up"
-                            pIcon={<InsertRowTop />}
-                            pIsActiveHover
-                            onClick={() => pCallback({ id: pData.id, event: 'AddTop' })}
-                        />
-                        <IconButton
-                            pIsToopTip
-                            pToolTipContent="Add to down"
-                            pToolTipId="wrk-tab-panel-add-down"
-                            pIcon={<InsertRowTop style={{ transform: 'rotate(180deg)' }} />}
-                            pIsActiveHover
-                            onClick={() => pCallback({ id: pData.id, event: 'AddBottom' })}
-                        />
-                        {VerticalDivision()}
-                        <IconButton
-                            pIsToopTip
-                            pToolTipContent="Delete"
-                            pToolTipId="wrk-tab-panel-delete"
-                            pIcon={<Delete />}
-                            pDisabled={!(pWorkSheets.length > 1)}
-                            pIsActiveHover
-                            // onClick={pWorkSheets.length > 1 ? () => pCallback({ id: pData.id, event: 'Delete' }) : () => null}
-                            onClick={pWorkSheets.length > 1 ? handleDelete : () => null}
-                        />
-                    </div>
-                    <div ref={resizeRef} className="editor">
-                        <MonacoEditor
-                            pText={sText}
-                            pLang={sMonacoLanguage ?? 'Markdown'}
-                            onChange={handleText}
-                            onRunCode={handleRunCode}
-                            onSelectLine={sMonacoLanguage === 'sql' ? setSqlLocation : () => {}}
-                            setLineHeight={setMonacoLineHeight}
-                        />
-                        <div className="drag-stick" draggable onDragStart={initValue} onDrag={resize} onDragEnd={setHeight}></div>
-                    </div>
-                </div>
-                {!sProcessing && Result()}
-                {sProcessing && (
-                    <div style={{ display: 'flex', flexDirection: 'row', padding: '8px' }}>
-                        <span>Processing...</span>
-                        <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
-                            <Loader width="12px" height="12px" borderRadius="90%" />
+                <div style={{ display: 'flex', width: '100%', justifyContent: 'end' }}>
+                    <div className="worksheet-content" style={{ display: !sCollapse ? 'block' : 'none' }}>
+                        <div className="worksheet-ctr">
+                            {DropDown()}
+                            {VerticalDivision()}
+                            {ResultContentType()}
+                            <IconButton pIsToopTip pToolTipContent="Run code" pToolTipId="wrk-tab-panel-run" pIcon={<Play />} pIsActiveHover onClick={() => handleRunCode(sText)} />
+                            {VerticalDivision()}
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Move to upper"
+                                pToolTipId="wrk-tab-panel-move-up"
+                                pIcon={<ArrowUpDouble />}
+                                pIsActiveHover
+                                onClick={() => pCallback({ id: pData.id, event: 'LocUp' })}
+                            />
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Move to down"
+                                pToolTipId="wrk-tab-panel-move-down"
+                                pIcon={<ArrowUpDouble style={{ transform: 'rotate(180deg)' }} />}
+                                pIsActiveHover
+                                onClick={() => pCallback({ id: pData.id, event: 'LocDown' })}
+                            />
+                            {VerticalDivision()}
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Add to upper"
+                                pToolTipId="wrk-tab-panel-add-up"
+                                pIcon={<InsertRowTop />}
+                                pIsActiveHover
+                                onClick={() => pCallback({ id: pData.id, event: 'AddTop' })}
+                            />
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Add to down"
+                                pToolTipId="wrk-tab-panel-add-down"
+                                pIcon={<InsertRowTop style={{ transform: 'rotate(180deg)' }} />}
+                                pIsActiveHover
+                                onClick={() => pCallback({ id: pData.id, event: 'AddBottom' })}
+                            />
+                            {VerticalDivision()}
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Delete"
+                                pToolTipId="wrk-tab-panel-delete"
+                                pIcon={<Delete />}
+                                pDisabled={!(pWorkSheets.length > 1)}
+                                pIsActiveHover
+                                // onClick={pWorkSheets.length > 1 ? () => pCallback({ id: pData.id, event: 'Delete' }) : () => null}
+                                onClick={pWorkSheets.length > 1 ? handleDelete : () => null}
+                            />
+                        </div>
+                        <div ref={resizeRef} className="editor">
+                            <MonacoEditor
+                                pText={sText}
+                                pLang={sMonacoLanguage ?? 'Markdown'}
+                                onChange={handleText}
+                                onRunCode={handleRunCode}
+                                onSelectLine={sMonacoLanguage === 'sql' ? setSqlLocation : () => {}}
+                                setLineHeight={setMonacoLineHeight}
+                            />
+                            <div className="drag-stick" draggable onDragStart={initValue} onDrag={resize} onDragEnd={setHeight}></div>
                         </div>
                     </div>
-                )}
-            </div>
-            <div style={{ marginLeft: '5px' }}>
-                <IconButton
-                    pIsToopTip
-                    pToolTipContent={`${!sCollapse ? 'Collapse' : 'Expand'}`}
-                    pToolTipId="wrk-tab-panel-collapse"
-                    pWidth={40}
-                    pHeight={40}
-                    pIcon={!sCollapse ? <HideOn size={18} /> : <HideOff size={18} style={{ transform: 'rotate(90deg)' }} />}
-                    pIsActiveHover
-                    onClick={() => setCollapse(!sCollapse)}
-                />
+                    <div style={{ marginLeft: '5px', justifyContent: 'end' }}>
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent={`${!sCollapse ? 'Collapse' : 'Expand'}`}
+                            pToolTipId="wrk-tab-panel-collapse"
+                            pWidth={40}
+                            pHeight={40}
+                            pIcon={!sCollapse ? <HideOn size={18} /> : <HideOff size={18} style={{ transform: 'rotate(90deg)' }} />}
+                            pIsActiveHover
+                            onClick={() => setCollapse(!sCollapse)}
+                        />
+                    </div>
+                </div>
+                <div style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
+                    {Result()}
+                    <div style={{ margin: '1rem 0' }}>
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="Clear"
+                            pToolTipId="wrk-tab-panel-clear"
+                            pWidth={40}
+                            pHeight={40}
+                            pIcon={<GrClearOption size={18} />}
+                            pIsActiveHover
+                            onClick={handleResultClear}
+                        />
+                    </div>
+                    {sProcessing && (
+                        <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
+                            <span>Processing...</span>
+                            <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
+                                <Loader width="12px" height="12px" borderRadius="90%" />
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
             {sIsDeleteModal && (
                 <ConfirmModal
