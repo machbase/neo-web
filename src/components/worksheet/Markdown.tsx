@@ -110,7 +110,7 @@ export const Markdown = (props: MarkdownProps) => {
             } else {
                 setMdxText(`<article>${pContents}</article>`);
             }
-        }
+        } else setMdxText('');
     };
 
     return (
