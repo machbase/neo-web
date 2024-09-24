@@ -22,6 +22,7 @@ import { Tooltip } from 'react-tooltip';
 import { getFiles } from '@/api/repository/fileTree';
 import { fileTreeParser } from '@/utils/fileTreeParser';
 import { gFileTree } from '@/recoil/fileTree';
+import { MdRefresh } from 'react-icons/md';
 
 export const AppInfo = ({ pCode }: { pCode: any }) => {
     // Recoil
@@ -31,7 +32,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     const setFileTree = useSetRecoilState(gFileTree);
     // Scoped
     const [isVertical, setIsVertical] = useState<boolean>(true);
-    const [sGroupWidth, setGroupWidth] = useState<any[]>(['50%', '50%']);
+    const [sGroupWidth, setGroupWidth] = useState<any[]>(['75%', '25%']);
     const fixBlockRef = useRef(null);
     const [sBracketHeight, setBracketHeight] = useState<string>('0px');
     const [sReadme, setReadme] = useState<string | undefined>(undefined);
@@ -171,9 +172,10 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                         <Play />
                                     </div>
                                 }
+                                pIsDisable={pCode?.app?.installed_backend && typeof sPkgBEStatus === 'string' && sPkgBEStatus === 'stopped'}
                                 pWidth="130px"
                                 pText={'Open in browser'}
-                                pType="COPY"
+                                pType={pCode?.app?.installed_backend && typeof sPkgBEStatus === 'string' && sPkgBEStatus === 'stopped' ? 'COPY' : 'STATUS'}
                                 pCallback={handleOpenBrowser}
                                 mr="8px"
                                 mb="0px"
@@ -190,11 +192,23 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                 }
                                 pWidth="60px"
                                 pText={sPkgBEStatus === PKG_RUNNING ? 'Stop' : 'Start'}
-                                pType="COPY"
+                                pType="STATUS"
                                 pCallback={() => handlePkgSvrAction(sPkgBEStatus === PKG_RUNNING ? 'stop' : 'start')}
                                 mr="8px"
                                 mb="0px"
                                 mt="4px"
+                            />
+                        )}
+                        {/* BE status refresh */}
+                        {sIsAdmin && pCode?.app?.installed_backend && (
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Refresh"
+                                pToolTipId="pkg-be-status-refresh"
+                                pWidth={20}
+                                pHeight={20}
+                                pIcon={<MdRefresh size={15} />}
+                                onClick={() => handlePkgSvrAction('status')}
                             />
                         )}
                     </>
