@@ -101,6 +101,10 @@ const TextButton = ({
                 return '#005fb8';
             case 'COPY':
                 return '#6f7173';
+            case 'STATUS':
+                return '#009688';
+            default:
+                return '';
         }
     };
     const handleCallback = (e: any) => {
@@ -110,7 +114,14 @@ const TextButton = ({
     return (
         <button
             className="extension-tab-text-button"
-            style={{ backgroundColor: pIsDisable ? '#6f7173' : getColor(), width: pWidth, marginRight: mr, marginBottom: mb, marginTop: mt }}
+            style={{
+                backgroundColor: pIsDisable ? '#6f7173' : getColor(),
+                width: pWidth,
+                marginRight: mr,
+                marginBottom: mb,
+                marginTop: mt,
+                cursor: pIsDisable ? 'no-drop' : 'pointer',
+            }}
             onClick={handleCallback}
             onMouseOut={onMouseOut}
         >
