@@ -11,6 +11,11 @@ const DashboardCompatibility = (aData: any) => {
         const sVaildPanelList = sPanelList.map((aPanel: any) => {
             if (aPanel.type === 'Tql') aPanel.type = 'Tql chart';
             if (aPanel.xAxisOptions[0].type === 'category') aPanel.xAxisOptions[0].type = 'time';
+            // X-Axis opt
+            aPanel.xAxisOptions = aPanel.xAxisOptions.map((xAxisOpt: any) => {
+                if (xAxisOpt?.axisLabel) return xAxisOpt;
+                else return { ...xAxisOpt, axisLabel: { hideOverlap: true } };
+            });
             const sResultPanel = aPanel;
             const sBlockList: any = aPanel.blockList;
             const sChartType: string = chartTypeConverter(aPanel.type);
