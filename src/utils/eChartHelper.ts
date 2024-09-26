@@ -34,6 +34,7 @@ export const DefaultXAxisOption = {
     axisTick: {
         alignWithLabel: true as boolean,
     },
+    axisLabel: { hideOverlap: true },
     // axisLine: {
     //     lineStyle: {
     //         color: '#fff'
@@ -211,7 +212,7 @@ export const DefaultTagTableOption = {
     value: 'VALUE',
     alias: '',
     math: '',
-    duration: {from: '', to: ''}
+    duration: { from: '', to: '' },
 };
 
 export const DefaultLogTableOption = {
@@ -232,7 +233,7 @@ export const DefaultLogTableOption = {
     value: '',
     alias: '',
     math: '',
-    duration: {from: '', to: ''}
+    duration: { from: '', to: '' },
 };
 
 export const getDefaultSeriesOption = (aChartType: ChartType) => {
