@@ -143,10 +143,8 @@ const Tql = (props: TqlProps) => {
             }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('ndjson')) {
             if (sResult.data && typeof sResult.data === 'string') {
-                const sJsonList = sResult.data.split('\n').filter((txt: string) => txt);
-                const rawTxt = `[${sJsonList.join(',')}]`;
-                setResultType('text');
-                setTextField(rawTxt);
+                setResultType('ndjson');
+                setTextField(sResult.data);
             } else {
                 HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
             }
@@ -227,7 +225,7 @@ const Tql = (props: TqlProps) => {
                                 <div className="round_right_wrap">
                                     <div className="round_right" />
                                 </div>
-                                {sResultType === 'text' ? <AiOutlineFileDone color="#fdb532" /> : null}
+                                {sResultType === 'text' || sResultType === 'ndjson' ? <AiOutlineFileDone color="#fdb532" /> : null}
                                 {sResultType === 'mrk' ? <AiOutlineFileMarkdown color="#fdb532" /> : null}
                                 {sResultType === 'csv' ? <PiFileCsvThin color="#fdb532" /> : null}
                                 {sResultType === 'html' ? <BarChart color="#fdb532" /> : null}
@@ -283,7 +281,7 @@ const Tql = (props: TqlProps) => {
                                     <pre>{JSON.stringify(JSON.parse(sTextField), null, 4)}</pre>
                                 ) : (
                                     <div style={!sLoadState ? { padding: '0 1rem' } : { padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
-                                        {sTextField}{' '}
+                                        {sTextField}
                                         {sLoadState && (
                                             <div style={{ marginLeft: '4px' }}>
                                                 <Loader width="12px" height="12px" borderRadius="90%" />
@@ -292,6 +290,7 @@ const Tql = (props: TqlProps) => {
                                     </div>
                                 )
                             ) : null}
+                            {sResultType === 'ndjson' && <pre>{sTextField}</pre>}
                             {sResultType === 'html' ? <ShowChart pData={sChartData} pLoopMode={false} /> : null}
                             {sResultType === 'map' ? <ShowMap pData={sMapData} pBodyRef={tqlResultBodyRef} /> : null}
                             {sResultType === 'mrk' ? <Markdown pIdx={1} pContents={sMarkdown} pType="mrk" /> : null}
