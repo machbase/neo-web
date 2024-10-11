@@ -7,9 +7,6 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Config
-vite.config.ts
-
 node_modules
 dist
 dist-ssr
