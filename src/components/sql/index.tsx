@@ -6,7 +6,7 @@ import AUTOCOMBOBOX from './autoCombobox';
 import { gBoardList } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import { getTqlChart } from '@/api/repository/machiot';
-import { sqlBasicFormatter } from '@/utils/sqlFormatter';
+import { SQL_BASE_LIMIT, sqlBasicFormatter } from '@/utils/sqlFormatter';
 import { IANA_TIMEZONES } from '@/assets/ts/timezones';
 import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 import './index.scss';
@@ -133,7 +133,7 @@ const Sql = ({
         const sQueryReslutList: any = [];
         try {
             const fetchQuery = (aQuery: string) => {
-                let sTakeLimit: number = 50;
+                let sTakeLimit: number = SQL_BASE_LIMIT;
                 if (aQuery.toLowerCase().includes('limit')) {
                     sTakeLimit = sqlRemoveLimitKeyword(aQuery) as number;
                 }
@@ -180,7 +180,7 @@ const Sql = ({
 
         if (sQueryReslutList[sQueryReslutList.length - 1].data.success === true) {
             setErrLog(null);
-            setEndRecord(sQueryReslutList.at(-1).data.data.rows.length < 50);
+            setEndRecord(sQueryReslutList.at(-1).data.data.rows.length < SQL_BASE_LIMIT);
             setSelectedSubTab('RESULT');
             setOldFetchTxt(sLowerQuery);
             return true;
@@ -222,7 +222,7 @@ const Sql = ({
                     })
                 )
             );
-            setEndRecord(sParsedSqlResult.data.rows.length < 50);
+            setEndRecord(sParsedSqlResult.data.rows.length < SQL_BASE_LIMIT);
             // setLogList([...sLogList, `${paredQuery}\n${sParsedSqlResult.elapse} : ${sParsedSqlResult.success}`]);
         }
     };

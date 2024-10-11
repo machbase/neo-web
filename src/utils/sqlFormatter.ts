@@ -1,11 +1,13 @@
+export const SQL_BASE_LIMIT = 50;
+
 /** basicFormatter
  * @argument aSql       string;
  * @argument aLimit     number;
  * @argument aFormat    string;
  * @argument aTimezone  string;
  */
-export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string, aTimezone: string, aTake: number | undefined = 50) => {
-    return 'SQL(`' + aSql + '`)\n' + 'DROP(' + (aLimit * 50 - 50) + `)\nTAKE(${aTake})\nJSON(timeformat('` + aFormat + `'), tz('` + aTimezone + `'))`;
+export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string, aTimezone: string, aTake: number | undefined = SQL_BASE_LIMIT) => {
+    return 'SQL(`' + aSql + '`)\n' + 'DROP(' + (aLimit * SQL_BASE_LIMIT - SQL_BASE_LIMIT) + `)\nTAKE(${aTake})\nJSON(timeformat('` + aFormat + `'), tz('` + aTimezone + `'))`;
 };
 
 export const sqlSheetFormatter = (aSql: string, aBrief: boolean) => {
