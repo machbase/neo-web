@@ -2,7 +2,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import svgr from 'vite-plugin-svgr';
-const TestTarget = '192.168.1.89:5654';
+// 192.168.0.104
+// 192.168.1.89
+const TestTarget = '192.168.0.104:5654';
 const TestSecurity = '';
 
 export default defineConfig({
@@ -50,6 +52,12 @@ export default defineConfig({
                         }
                     });
                 },
+            },
+            '/web/apps': {
+                target: `http${TestSecurity}://${TestTarget}`,
+                changeOrigin: true,
+                secure: false,
+                ws: false,
             },
             '/web/machbase': {
                 target: `http${TestSecurity}://${TestTarget}`,
