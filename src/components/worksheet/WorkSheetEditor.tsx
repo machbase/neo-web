@@ -68,7 +68,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [initialSize, setInitialSize] = useState<number>(pData.height ?? sInitHeight);
     const [sSelectedLang, setSelectedLang] = useState<Lang | undefined>(undefined);
     const [sShowLang, setShowLang] = useState<boolean>(false);
-    const [sTqlResultType, setTqlResultType] = useState<'html' | 'csv' | 'mrk' | 'text' | 'xhtml' | 'map'>(pData.tqlType ?? 'text');
+    const [sTqlResultType, setTqlResultType] = useState<'html' | 'csv' | 'mrk' | 'text' | 'xhtml' | 'map' | 'ndjson'>(pData.tqlType ?? 'text');
     const [sTqlTextResult, setTqlTextResult] = useState<string>('');
     const [sShellResult, setShellTextResult] = useState<string[] | undefined>(undefined);
     const [sTqlChartData, setTqlChartData] = useState<string>('');
@@ -364,9 +364,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('ndjson')) {
             if (sResult.data && typeof sResult.data === 'string') {
-                const sJsonList = sResult.data.split('\n').filter((txt: string) => txt);
-                const rawTxt = `[${sJsonList.join(',')}]`;
-                HandleResutTypeAndTxt(rawTxt, false);
+                setTqlResultType('ndjson');
+                setTqlTextResult(sResult.data);
             } else {
                 HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
             }
@@ -499,6 +498,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         </div>
                     )
                 ) : null}
+                {sTqlResultType === 'ndjson' && <pre>{sTqlTextResult}</pre>}
             </>
         );
     };
