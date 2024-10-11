@@ -362,6 +362,14 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 setTqlCsv(sParsedCsvBody);
                 setTqlCsvHeader(sParsedCsvHeader);
             }
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('ndjson')) {
+            if (sResult.data && typeof sResult.data === 'string') {
+                const sJsonList = sResult.data.split('\n').filter((txt: string) => txt);
+                const rawTxt = `[${sJsonList.join(',')}]`;
+                HandleResutTypeAndTxt(rawTxt, false);
+            } else {
+                HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
+            }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('json')) {
             if (sResult.data && typeof sResult.data === 'object' && sResult.data.success) {
                 if (sResult.data.data.rows && sResult.data.data.rows.length > 10) {
