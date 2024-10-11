@@ -180,7 +180,7 @@ const Sql = ({
 
         if (sQueryReslutList[sQueryReslutList.length - 1].data.success === true) {
             setErrLog(null);
-            setEndRecord(sQueryReslutList.at(-1).data.data.rows.length < SQL_BASE_LIMIT);
+            setEndRecord(sQueryReslutList.at(-1).data.data.rows.length <= SQL_BASE_LIMIT);
             setSelectedSubTab('RESULT');
             setOldFetchTxt(sLowerQuery);
             return true;
@@ -222,7 +222,7 @@ const Sql = ({
                     })
                 )
             );
-            setEndRecord(sParsedSqlResult.data.rows.length < SQL_BASE_LIMIT);
+            setEndRecord(sParsedSqlResult.data.rows.length <= SQL_BASE_LIMIT);
             // setLogList([...sLogList, `${paredQuery}\n${sParsedSqlResult.elapse} : ${sParsedSqlResult.success}`]);
         }
     };
