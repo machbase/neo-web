@@ -46,6 +46,7 @@ const Sql = ({
     const sSaveCommand = useRef<any>(null);
     const sNavi = useRef(null);
     const [sOldFetchTxt, setOldFetchTxt] = useState<string | undefined>(undefined);
+    const [sEndRecord, setEndRecord] = useState<boolean>(false);
     const [sSqlLocation, setSqlLocation] = useState<{
         position: PositionType;
         selection: SelectionType;
@@ -128,6 +129,7 @@ const Sql = ({
     };
 
     const fetchSql = async (aParsedQuery: string[]) => {
+        setEndRecord(() => false);
         const sQueryReslutList: any = [];
         try {
             const fetchQuery = (aQuery: string) => {
@@ -178,6 +180,7 @@ const Sql = ({
 
         if (sQueryReslutList[sQueryReslutList.length - 1].data.success === true) {
             setErrLog(null);
+            setEndRecord(sQueryReslutList.at(-1).data.data.rows.length < 50);
             setSelectedSubTab('RESULT');
             setOldFetchTxt(sLowerQuery);
             return true;
@@ -205,8 +208,9 @@ const Sql = ({
     const fetchMoreResult = async () => {
         const paredQuery = sOldFetchTxt ?? getTargetQuery();
         if (paredQuery.toLowerCase().includes('limit')) return;
+        if (sEndRecord) return;
         const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery, sResultLimit, sTimeRange, sTimeZone));
-        const sParsedSqlResult = await JSON.parse(isJsonString(sSqlResult.request.response) ? sSqlResult.request.response : '{}');
+        const sParsedSqlResult = JSON.parse(isJsonString(sSqlResult.request.response) ? sSqlResult.request.response : '{}');
         if (sSqlResult.data.data && sParsedSqlResult) {
             setResultLimit(sResultLimit + 1);
             setSqlResponseData(
@@ -218,6 +222,7 @@ const Sql = ({
                     })
                 )
             );
+            setEndRecord(sParsedSqlResult.data.rows.length < 50);
             // setLogList([...sLogList, `${paredQuery}\n${sParsedSqlResult.elapse} : ${sParsedSqlResult.success}`]);
         }
     };
