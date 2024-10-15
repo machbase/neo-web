@@ -84,30 +84,30 @@ const getTableList = async () => {
     const U_NAME = getUserName();
     let queryString;
     if (U_NAME !== 'sys')
-        queryString = `/machbase?q=SELECT case a.DATABASE_ID when -1 then 'MACHBASEDB' end as DB_NAME, u.name as USER_NAME, a.ID as TABLE_ID, a.NAME as TABLE_NAME, a.TYPE as TABLE_TYPE, a.FLAG as TABLE_FLAG, a.DATABASE_ID as DBID from M$SYS_TABLES a left join m$sys_users u on u.user_id=a.user_id where u.name='${U_NAME.toUpperCase()}' and a.database_id=-1`;
+        queryString = `/api/query?q=SELECT case a.DATABASE_ID when -1 then 'MACHBASEDB' end as DB_NAME, u.name as USER_NAME, a.ID as TABLE_ID, a.NAME as TABLE_NAME, a.TYPE as TABLE_TYPE, a.FLAG as TABLE_FLAG, a.DATABASE_ID as DBID from M$SYS_TABLES a left join m$sys_users u on u.user_id=a.user_id where u.name='${U_NAME.toUpperCase()}' and a.database_id=-1`;
     else
-        queryString = `/machbase?q=SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, case a.DATABASE_ID  when -1 then 'MACHBASEDB' else d.MOUNTDB end as DB_NAME from M$SYS_TABLES a left join V$STORAGE_MOUNT_DATABASES d on a.DATABASE_ID = d.BACKUP_TBSID) as j where u.USER_ID = j.USER_ID order by j.NAME`;
+        queryString = `/api/query?q=SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, case a.DATABASE_ID  when -1 then 'MACHBASEDB' else d.MOUNTDB end as DB_NAME from M$SYS_TABLES a left join V$STORAGE_MOUNT_DATABASES d on a.DATABASE_ID = d.BACKUP_TBSID) as j where u.USER_ID = j.USER_ID order by j.NAME`;
     return await request({
         method: 'GET',
         url: queryString,
     });
 };
 const getTableInfo = async (aDataBaseId: string, aTableId: string) => {
-    const queryString = `/machbase?q=select name, type, length, id from M$SYS_COLUMNS where table_id = ${aTableId} and database_id = ${aDataBaseId} order by id`;
+    const queryString = `/api/query?q=select name, type, length, id from M$SYS_COLUMNS where table_id = ${aTableId} and database_id = ${aDataBaseId} order by id`;
     return await request({
         method: 'GET',
         url: queryString,
     });
 };
 export const getVirtualTableInfo = async (aDataBaseId: string, aTableName: string, aUserName: string) => {
-    const queryString = `/machbase?q=select * from v$columns WHERE DATABASE_ID = ${aDataBaseId} AND ID > 0 AND ID < 65534 AND TABLE_ID = (select ID from v$tables where name = '${aTableName}' and user_ID = (select USER_ID from M$sys_users where name = '${aUserName}')) ORDER BY ID`;
+    const queryString = `/api/query?q=select * from v$columns WHERE DATABASE_ID = ${aDataBaseId} AND ID > 0 AND ID < 65534 AND TABLE_ID = (select ID from v$tables where name = '${aTableName}' and user_ID = (select USER_ID from M$sys_users where name = '${aUserName}')) ORDER BY ID`;
     return await request({
         method: 'GET',
         url: queryString,
     });
 };
 const getColumnIndexInfo = async (aDataBaseId: string, aTableId: string) => {
-    const queryString = `/machbase?q=select c.name as col_name, i.name as index_name, i.type as index_type from m$sys_index_columns c inner join m$sys_indexes i on c.database_id=i.database_id and c.table_id=i.table_id and c.index_id=i.id where c.database_id=${aDataBaseId} and c.table_id=${aTableId}`;
+    const queryString = `/api/query?q=select c.name as col_name, i.name as index_name, i.type as index_type from m$sys_index_columns c inner join m$sys_indexes i on c.database_id=i.database_id and c.table_id=i.table_id and c.index_id=i.id where c.database_id=${aDataBaseId} and c.table_id=${aTableId}`;
     return await request({
         method: 'GET',
         url: queryString,
@@ -115,14 +115,14 @@ const getColumnIndexInfo = async (aDataBaseId: string, aTableId: string) => {
 };
 const getRollupTable = async (aTableName: string, aUserName: string) => {
     // select root_table, interval_time, rollup_table, enabled, m.name as user_name from v$rollup as v, m$sys_users as m where v.user_id=m.user_id and m.name='${aUserName}' and root_table='${aTableName}' group by user_name, root_table, enabled, interval_time, rollup_table order by interval_time asc;
-    const queryString = `/machbase?q=select root_table, interval_time, rollup_table, enabled, m.name as user_name from v$rollup as v, m$sys_users as m where v.user_id=m.user_id and m.name='${aUserName}' and root_table='${aTableName}' group by user_name, root_table, enabled, interval_time, rollup_table order by interval_time asc`;
+    const queryString = `/api/query?q=select root_table, interval_time, rollup_table, enabled, m.name as user_name from v$rollup as v, m$sys_users as m where v.user_id=m.user_id and m.name='${aUserName}' and root_table='${aTableName}' group by user_name, root_table, enabled, interval_time, rollup_table order by interval_time asc`;
     return await request({
         method: 'GET',
         url: queryString,
     });
 };
 export const getRecordCount = (aTableName: string, aUserName: string) => {
-    const queryString = `/machbase?q=select count(*) from ${aUserName}.${aTableName}`;
+    const queryString = `/api/query?q=select count(*) from ${aUserName}.${aTableName}`;
     return request({
         method: 'GET',
         url: queryString,

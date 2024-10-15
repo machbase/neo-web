@@ -70,7 +70,7 @@ const fetchTableName = async (aTable: string) => {
     }
     const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER('${sUserName}') AND MC.DATABASE_ID = ${DBName} AND MT.NAME = '${sTableName}' AND MC.NAME <> '_RID' ORDER BY MC.ID`;
 
-    const queryString = `/machbase?q=${sSql}`;
+    const queryString = `/api/query?q=${sSql}`;
 
     const sData = await request({
         method: 'GET',
@@ -308,7 +308,7 @@ const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
     const query = createMinMaxQuery(convert, userName);
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=` + encodeURIComponent(`select MIN(min_tm), MAX(max_tm) from (${query})`),
+        url: `/api/query?q=` + encodeURIComponent(`select MIN(min_tm), MAX(max_tm) from (${query})`),
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -325,7 +325,7 @@ export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
     const sQuery = `select min(${sTime}), max(${sTime}) from ${aTargetInfo.table}`;
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=` + encodeURIComponent(sQuery),
+        url: `/api/query?q=` + encodeURIComponent(sQuery),
     });
 
     if (sData.status >= 400) {
@@ -364,7 +364,7 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
 
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=` + encodeURIComponent(sQuery),
+        url: `/api/query?q=` + encodeURIComponent(sQuery),
     });
 
     if (sData.status >= 400) {
@@ -397,7 +397,7 @@ export const fetchVirtualStatTable = async (aTable: string, aTagList: string[], 
 
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=` + encodeURIComponent(query),
+        url: `/api/query?q=` + encodeURIComponent(query),
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -476,7 +476,7 @@ const fetchRollUp = async (table: string) => {
 const fetchOnRollupTable = async (table: string) => {
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=select * from v$rollup where root_table = '${table}' and ENABLED = 1 `,
+        url: `/api/query?q=select * from v$rollup where root_table = '${table}' and ENABLED = 1 `,
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -490,7 +490,7 @@ const fetchOnRollupTable = async (table: string) => {
 const getRollupTableList = async () => {
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=select u.name as user_name, root_table, interval_time, column_name from v$rollup as v, m$sys_users as u where v.user_id = u.user_id group by root_table, interval_time, user_name, column_name order by user_name, root_table asc, interval_time desc`,
+        url: `/api/query?q=select u.name as user_name, root_table, interval_time, column_name from v$rollup as v, m$sys_users as u where v.user_id = u.user_id group by root_table, interval_time, user_name, column_name order by user_name, root_table asc, interval_time desc`,
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -534,7 +534,7 @@ export const getTagPagination = async (aTable: string, aFilter: string, aPage: n
     const sData = await request({
         method: 'GET',
         url:
-            `/machbase?q=` +
+            `/api/query?q=` +
             encodeURIComponent(`select * from ${sTableName}${sFilter !== '' ? ' where ' + sFilter + ` ORDER BY ${aColName} ` : ` ORDER BY ${aColName} `} LIMIT ${sLimit}`),
     });
     if (sData.status >= 400) {
@@ -560,7 +560,7 @@ export const getTagTotal = async (aTable: string, aFilter: string, aColName: str
     const sFilter = aFilter ? `${aColName} like '%${aFilter}%'` : '';
     const sData = await request({
         method: 'GET',
-        url: `/machbase?q=` + encodeURIComponent(`select count(*) from ${sTableName}${sFilter !== '' ? ' where ' + sFilter : ''}`),
+        url: `/api/query?q=` + encodeURIComponent(`select count(*) from ${sTableName}${sFilter !== '' ? ' where ' + sFilter : ''}`),
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
