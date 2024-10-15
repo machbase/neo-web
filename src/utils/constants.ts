@@ -433,6 +433,7 @@ export const TABLE_COLUMN_TYPE = [
     { key: 49, value: 'TEXT' },
     { key: 53, value: 'CLOB' },
     { key: 57, value: 'BLOB' },
+    { key: 61, value: 'JSON' },
     { key: 97, value: 'BINARY' },
     { key: 104, value: 'USHORT' },
     { key: 108, value: 'UINTEGER' },

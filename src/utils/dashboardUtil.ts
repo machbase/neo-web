@@ -755,42 +755,10 @@ export const getTableType = (aTypeNumber: number) => {
 };
 
 export const getColumnType = (columnId: number) => {
-    switch (columnId) {
-        case 104:
-            return 'ushort';
-        case 8:
-            return 'integer';
-        case 108:
-            return 'uinteger';
-        case 12:
-            return 'long';
-        case 112:
-            return 'ulong';
-        case 16:
-            return 'float';
-        case 20:
-            return 'double';
-        case 5:
-            return 'varchar';
-        case 49:
-            return 'text';
-        case 53:
-            return 'clob';
-        case 57:
-            return 'blob';
-        case 97:
-            return 'binary';
-        case 6:
-            return 'datetime';
-        case 32:
-            return 'ipv4';
-        case 36:
-            return 'ipv6';
-        case 61:
-            return 'json';
-        default:
-            return 'unknown ' + `(${columnId})`;
-    }
+    const targetColumn = TABLE_COLUMN_TYPE.find((column) => column.key === columnId);
+
+    if (targetColumn) return targetColumn.value.toLowerCase();
+    else return 'unknown ' + `(${columnId})`;
 };
 
 export const isNumberTypeColumn = (aType: number) => {
