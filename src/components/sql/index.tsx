@@ -10,7 +10,7 @@ import { SQL_BASE_LIMIT, sqlBasicFormatter } from '@/utils/sqlFormatter';
 import { IANA_TIMEZONES } from '@/assets/ts/timezones';
 import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 import './index.scss';
-import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, SaveAs } from '@/assets/icons/Icon';
+import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, SaveAs, Download } from '@/assets/icons/Icon';
 import { isJsonString } from '@/utils/utils';
 import { PositionType, SelectionType, sqlQueryParser, sqlRemoveLimitKeyword } from '@/utils/sqlQueryParser';
 import { sqlMultiQueryParser } from '@/utils/sqlMultiQueryParser';
@@ -226,6 +226,13 @@ const Sql = ({
             // setLogList([...sLogList, `${paredQuery}\n${sParsedSqlResult.elapse} : ${sParsedSqlResult.success}`]);
         }
     };
+    const handleDownloadCSV = () => {
+        if (sSqlQueryTxt && sSqlQueryTxt !== '' && sSqlResponseData) {
+            const url = window.location.origin + '/db/tql';
+            const sql = `${url}?$=SQL("${sSqlQueryTxt.replaceAll(';', '')}")${encodeURI('\u000A')}CSV(httpHeader("Content-Disposition", "attachment"))`;
+            window.location.assign(sql);
+        }
+    };
 
     useEffect(() => {
         if (sMoreResult) {
@@ -309,6 +316,14 @@ const Sql = ({
                                 })}
                             </div>
                             <div className="sub-tab-header-icon-ctr">
+                                <IconButton
+                                    pIsToopTip
+                                    pToolTipContent="Download CSV"
+                                    pToolTipId="sql-tab-divider-explorer-download"
+                                    pIcon={<Download />}
+                                    pDisabled={!sSqlResponseData}
+                                    onClick={handleDownloadCSV}
+                                />
                                 <IconButton
                                     pIsToopTip
                                     pToolTipContent="Vertical"
