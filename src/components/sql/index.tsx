@@ -16,6 +16,7 @@ import { PositionType, SelectionType, sqlQueryParser, sqlRemoveLimitKeyword } fr
 import { sqlMultiQueryParser } from '@/utils/sqlMultiQueryParser';
 import { MonacoEditor } from '../monaco/MonacoEditor';
 import { IconButton } from '@/components/buttons/IconButton';
+import moment from 'moment';
 
 const Sql = ({
     pInfo,
@@ -228,8 +229,11 @@ const Sql = ({
     };
     const handleDownloadCSV = () => {
         if (sSqlQueryTxt && sSqlQueryTxt !== '' && sSqlResponseData) {
+            const fileName = moment(new Date()).format('YYYY-MM-DD HHmmss');
             const url = window.location.origin + '/db/tql';
-            const sql = `${url}?$=SQL("${sSqlQueryTxt.replaceAll(';', '')}")${encodeURI('\u000A')}CSV(httpHeader("Content-Disposition", "attachment"))`;
+            const sql = `${url}?$=SQL("${sSqlQueryTxt.replaceAll(';', '')}")${encodeURI('\u000A')}CSV(httpHeader("Content-Disposition", "attachment${encodeURIComponent(
+                ';'
+            )} filename=${fileName}.csv"))`;
             window.open(sql);
         }
     };
