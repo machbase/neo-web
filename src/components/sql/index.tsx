@@ -230,7 +230,7 @@ const Sql = ({
         if (sSqlQueryTxt && sSqlQueryTxt !== '' && sSqlResponseData) {
             const url = window.location.origin + '/db/tql';
             const sql = `${url}?$=SQL("${sSqlQueryTxt.replaceAll(';', '')}")${encodeURI('\u000A')}CSV(httpHeader("Content-Disposition", "attachment"))`;
-            window.location.assign(sql);
+            window.open(sql);
         }
     };
 
