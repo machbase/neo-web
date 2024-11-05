@@ -26,8 +26,8 @@ const TABLE = ({
     pTableData,
     pMaxShowLen,
     pHelpText,
-    pMaxWidth,
-}: // clickEvent
+}: // pMaxWidth,
+// clickEvent
 TableProps) => {
     const stringTypeIdx = useMemo(() => {
         return pTableData?.types?.findIndex((val: string) => val === COLUMN_TYPE.STRING);
