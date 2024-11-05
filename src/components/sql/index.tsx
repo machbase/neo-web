@@ -229,9 +229,11 @@ const Sql = ({
     };
     const handleDownloadCSV = () => {
         if (sOldFetchTxt && sOldFetchTxt !== '' && sSqlResponseData) {
-            const url = window.location.origin + '/db/tql';
+            const url = window.location.origin + '/web/api/tql-exec';
             const token = localStorage.getItem('accessToken');
-            const sql = encodeURI(`${url}?$=SQL("${sOldFetchTxt.replaceAll(';', '')}")\u000ACSV(httpHeader("Content-Disposition", "attachment"), heading(true))&token=${token}`);
+            const sql = encodeURI(
+                `${url}?$=SQL("${sOldFetchTxt.replaceAll(';', '')}")\u000ACSV(httpHeader("Content-Disposition", "attachment"), heading(true))\u0026$token=${token}`
+            );
             sqlOriginDataDownloader(sql, DOWNLOADER_EXTENSION.CSV);
         }
     };
