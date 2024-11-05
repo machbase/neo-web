@@ -1,6 +1,10 @@
 import './index.scss';
-import { IconButton } from '../buttons/IconButton';
 import { PiFileSqlThin } from 'react-icons/pi';
+import { useMemo, useState } from 'react';
+import { ClipboardCopy } from '@/utils/ClipboardCopy';
+import { Copy } from '@/assets/icons/Icon';
+import { FaCheck } from 'react-icons/fa';
+
 /**
  * @param pTableData
  * @returns
@@ -14,6 +18,10 @@ interface TableProps {
     clickEvent?: (e: any, aRowData: string) => void;
 }
 
+enum COLUMN_TYPE {
+    STRING = 'string', // equal => COLUMN_TYPE_VARCHAR, COLUMN_TYPE_TEXT, COLUMN_TYPE_JSON
+}
+
 const TABLE = ({
     pTableData,
     pMaxShowLen,
@@ -21,6 +29,9 @@ const TABLE = ({
     pMaxWidth,
 }: // clickEvent
 TableProps) => {
+    const stringTypeIdx = useMemo(() => {
+        return pTableData?.types?.findIndex((val: string) => val === COLUMN_TYPE.STRING);
+    }, [pTableData?.columns]);
     const MaxLenDiv = () => {
         return (
             <tr key="tbody-row5" className="result-body-tr">
@@ -43,24 +54,7 @@ TableProps) => {
             <thead className="table-header header-fix">
                 {pTableData && pTableData.columns ? (
                     <tr>
-                        <th>
-                            {pHelpText !== undefined && pHelpText ? (
-                                <IconButton
-                                    pWidth={20}
-                                    pHeight={20}
-                                    pIsActive={false}
-                                    pIsActiveHover={false}
-                                    pIsToopTip
-                                    pToolTipMaxWidth={pMaxWidth}
-                                    pToolTipContent={pHelpText}
-                                    pToolTipId="sql-result-tab"
-                                    pIcon={<div style={{ width: '16px', height: '16px', marginLeft: '32px', cursor: 'default' }}>{<PiFileSqlThin />}</div>}
-                                    onClick={() => {}}
-                                />
-                            ) : (
-                                <span style={{ marginLeft: '20px', cursor: 'default' }} />
-                            )}
-                        </th>
+                        <th>{pHelpText !== undefined && pHelpText ? <PiFileSqlThin /> : <span style={{ marginLeft: '20px', cursor: 'default' }} />}</th>
                         {pTableData.columns.map((aColumn: string) => {
                             return (
                                 <th key={aColumn} style={{ cursor: 'default' }}>
@@ -76,9 +70,7 @@ TableProps) => {
             <tbody className="table-body">
                 {pTableData && pTableData.rows
                     ? pTableData.rows.map((aRowList: any, aIdx: number) => {
-                          if (!!pMaxShowLen && aIdx + 1 === 6) {
-                              return MaxLenDiv();
-                          }
+                          if (!!pMaxShowLen && aIdx + 1 === 6) return MaxLenDiv();
                           if (pMaxShowLen && aIdx + 1 > 6) return <></>;
                           if (aRowList.length === 1 && aRowList[0] === '') return;
                           return (
@@ -88,12 +80,11 @@ TableProps) => {
                                   </td>
                                   {aRowList.map((aRowData: any, bIdx: number) => {
                                       return (
-                                          <td
-                                              className="result-table-item"
-                                              key={'table-' + aIdx + '-' + bIdx}
-                                              //   onContextMenu={(e) => clickEvent(e, aRowData)}
-                                          >
-                                              <span>{'' + aRowData}</span>
+                                          <td className="result-table-item" key={'table-' + aIdx + '-' + bIdx}>
+                                              <div className="result-table-item-copy-button" style={bIdx === stringTypeIdx && aRowData.length > 31 ? { display: 'flex' } : {}}>
+                                                  <span>{aRowData}</span>
+                                                  {bIdx === stringTypeIdx && aRowData.length > 31 && <Text aRowData={aRowData} />}
+                                              </div>
                                           </td>
                                       );
                                   })}
@@ -103,6 +94,25 @@ TableProps) => {
                     : null}
             </tbody>
         </table>
+    );
+};
+
+const Text = ({ aRowData }: { aRowData: string }) => {
+    const [copy, setCopy] = useState(false);
+
+    const handle = () => {
+        if (copy) return;
+        setCopy(true);
+        ClipboardCopy(aRowData);
+        setTimeout(() => {
+            setCopy(false);
+        }, 600);
+    };
+    return (
+        <div onClick={handle}>
+            {copy && <FaCheck />}
+            {!copy && <Copy />}
+        </div>
     );
 };
 

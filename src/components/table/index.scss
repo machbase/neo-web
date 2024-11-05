@@ -23,17 +23,26 @@
                 max-width: 300px;
                 font-weight: bold;
                 padding: 0 16px;
-                min-width: 100px;
+                max-width: 20vw;
                 height: 25px;
                 text-align: start;
                 vertical-align: center !important;
                 text-overflow: ellipsis;
                 white-space: nowrap;
+                overflow: hidden;
+
+                span {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
             }
         }
     }
 
     .table-body {
+        content-visibility: auto;
+
         tr {
             td {
                 overflow: hidden;
@@ -49,9 +58,24 @@
 
             .result-table-item {
                 cursor: default;
-
+                overflow: hidden;
                 :hover {
                     color: #fdb532;
+                }
+
+                &-copy-button {
+                    max-width: 220px;
+                    flex-direction: row;
+                    overflow: hidden;
+                    align-items: center;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+
+                    span {
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
                 }
             }
         }

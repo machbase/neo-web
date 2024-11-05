@@ -1,3 +1,4 @@
+import './result.scss';
 import { useRef, useEffect, useState } from 'react';
 import useObserver from '@/hooks/useObserver';
 import useOutsideClick from '@/hooks/useOutsideClick';
@@ -5,10 +6,7 @@ import { Menu } from '@/components/contextMenu/Menu';
 import { Copy, Monitor, Close } from '@/assets/icons/Icon';
 import Modal from '../modal/Modal';
 import TABLE from '@/components/table';
-
-import './result.scss';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
-
 interface ResultProps {
     pDisplay: string;
     pSqlResponseData: any;
