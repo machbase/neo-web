@@ -16,6 +16,7 @@ import { PositionType, SelectionType, sqlQueryParser, sqlRemoveLimitKeyword } fr
 import { sqlMultiQueryParser } from '@/utils/sqlMultiQueryParser';
 import { MonacoEditor } from '../monaco/MonacoEditor';
 import { IconButton } from '@/components/buttons/IconButton';
+import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader } from '@/utils/sqlOriginDataDownloader';
 
 const Sql = ({
     pInfo,
@@ -227,10 +228,13 @@ const Sql = ({
         }
     };
     const handleDownloadCSV = () => {
-        if (sSqlQueryTxt && sSqlQueryTxt !== '' && sSqlResponseData) {
-            const url = window.location.origin + '/db/tql';
-            const sql = `${url}?$=SQL("${sSqlQueryTxt.replaceAll(';', '')}")${encodeURI('\u000A')}CSV(httpHeader("Content-Disposition", "attachment"))`;
-            window.open(sql);
+        if (sOldFetchTxt && sOldFetchTxt !== '' && sSqlResponseData) {
+            const url = window.location.origin + '/web/api/tql-exec';
+            const token = localStorage.getItem('accessToken');
+            const sql = encodeURI(
+                `${url}?$=SQL("${sOldFetchTxt.replaceAll(';', '')}")\u000ACSV(httpHeader("Content-Disposition", "attachment"), heading(true))\u0026$token=${token}`
+            );
+            sqlOriginDataDownloader(sql, DOWNLOADER_EXTENSION.CSV);
         }
     };
 
@@ -321,7 +325,7 @@ const Sql = ({
                                     pToolTipContent="Download CSV"
                                     pToolTipId="sql-tab-divider-explorer-download"
                                     pIcon={<Download />}
-                                    pDisabled={!sSqlResponseData}
+                                    pDisabled={!sOldFetchTxt}
                                     onClick={handleDownloadCSV}
                                 />
                                 <IconButton
