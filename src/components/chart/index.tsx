@@ -1,6 +1,6 @@
 import { getTqlChart } from '@/api/repository/machiot';
 import { useRef, useState, useEffect } from 'react';
-import { sqlBasicChartFormatter } from '@/utils/sqlFormatter';
+import { sqlBasicChartFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
 import { Play } from '@/assets/icons/Icon';
 import './index.scss';
 import { ExistCommonScript, loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
@@ -11,7 +11,7 @@ const CHART = ({
     pDisplay,
     pSqlQueryTxt,
 }: {
-    pQueryList: string[] | [];
+    pQueryList: STATEMENT_TYPE[] | [];
     pChartAixsList: string[];
     pIsVertical?: boolean;
     pDisplay: string;
@@ -52,7 +52,7 @@ const CHART = ({
     }, [pDisplay]);
 
     useEffect(() => {
-        if (pChartAixsList.length > 0) {
+        if (pChartAixsList?.length > 0) {
             setSelectedXAxis(pChartAixsList[0]);
             setSelectedYAxis(pChartAixsList[1]);
         }

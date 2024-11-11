@@ -1,6 +1,6 @@
 import './index.scss';
 import { PiFileSqlThin } from 'react-icons/pi';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Copy } from '@/assets/icons/Icon';
 import { FaCheck } from 'react-icons/fa';
@@ -19,10 +19,6 @@ interface TableProps {
     clickEvent?: (e: any, aRowData: string) => void;
 }
 
-enum COLUMN_TYPE {
-    STRING = 'string', // equal => COLUMN_TYPE_VARCHAR, COLUMN_TYPE_TEXT, COLUMN_TYPE_JSON
-}
-
 const TABLE = ({
     pTableData,
     pMaxShowLen,
@@ -30,9 +26,6 @@ const TABLE = ({
     pMaxWidth = 25,
 }: // clickEvent
 TableProps) => {
-    const stringTypeIdx = useMemo(() => {
-        return pTableData?.types?.findIndex((val: string) => val === COLUMN_TYPE.STRING);
-    }, [pTableData?.columns]);
     const MaxLenDiv = () => {
         return (
             <tr key="tbody-row5" className="result-body-tr">
@@ -99,9 +92,9 @@ TableProps) => {
                                   {aRowList.map((aRowData: any, bIdx: number) => {
                                       return (
                                           <td className="result-table-item" key={'table-' + aIdx + '-' + bIdx}>
-                                              <div className="result-table-item-copy-button" style={bIdx === stringTypeIdx && aRowData.length > 31 ? { display: 'flex' } : {}}>
+                                              <div className="result-table-item-copy-button" style={{ display: 'flex' }}>
                                                   <span>{aRowData}</span>
-                                                  {bIdx === stringTypeIdx && aRowData.length > 31 && <Text aRowData={aRowData} />}
+                                                  <Text aRowData={aRowData} />
                                               </div>
                                           </td>
                                       );
@@ -127,7 +120,7 @@ const Text = ({ aRowData }: { aRowData: string }) => {
         }, 600);
     };
     return (
-        <div onClick={handle}>
+        <div className="result-table-item-copy-button-icon" onClick={handle}>
             {copy && <FaCheck />}
             {!copy && <Copy />}
         </div>
