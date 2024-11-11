@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Copy } from '@/assets/icons/Icon';
 import { FaCheck } from 'react-icons/fa';
+import { IconButton } from '../buttons/IconButton';
 
 /**
  * @param pTableData
@@ -26,8 +27,8 @@ const TABLE = ({
     pTableData,
     pMaxShowLen,
     pHelpText,
-}: // pMaxWidth,
-// clickEvent
+    pMaxWidth = 25,
+}: // clickEvent
 TableProps) => {
     const stringTypeIdx = useMemo(() => {
         return pTableData?.types?.findIndex((val: string) => val === COLUMN_TYPE.STRING);
@@ -54,7 +55,24 @@ TableProps) => {
             <thead className="table-header header-fix">
                 {pTableData && pTableData.columns ? (
                     <tr>
-                        <th>{pHelpText !== undefined && pHelpText ? <PiFileSqlThin /> : <span style={{ marginLeft: '20px', cursor: 'default' }} />}</th>
+                        <th>
+                            {pHelpText !== undefined && pHelpText ? (
+                                <IconButton
+                                    pWidth={20}
+                                    pHeight={20}
+                                    pIsActive={false}
+                                    pIsActiveHover={false}
+                                    pIsToopTip
+                                    pToolTipMaxWidth={pMaxWidth}
+                                    pToolTipContent={pHelpText}
+                                    pToolTipId="sql-result-tab"
+                                    pIcon={<div style={{ width: '16px', height: '16px', marginLeft: '32px', cursor: 'default' }}>{<PiFileSqlThin />}</div>}
+                                    onClick={() => {}}
+                                />
+                            ) : (
+                                <span style={{ marginLeft: '20px', cursor: 'default' }} />
+                            )}
+                        </th>
                         {pTableData.columns.map((aColumn: string) => {
                             return (
                                 <th key={aColumn} style={{ cursor: 'default' }}>

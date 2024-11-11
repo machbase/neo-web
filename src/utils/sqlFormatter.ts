@@ -1,17 +1,43 @@
 export const SQL_BASE_LIMIT = 50;
 
+export interface STATEMENT_TYPE {
+    beginLine: number;
+    endLine: number;
+    env: {
+        bridge?: string;
+        error?: string;
+    };
+    isComment: boolean;
+    text: string;
+}
+
 /** basicFormatter
  * @argument aSql       string;
  * @argument aLimit     number;
  * @argument aFormat    string;
  * @argument aTimezone  string;
  */
-export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string, aTimezone: string, aTake: number | undefined = SQL_BASE_LIMIT) => {
-    return 'SQL(`' + aSql + '`)\n' + 'DROP(' + (aLimit * SQL_BASE_LIMIT - SQL_BASE_LIMIT) + `)\nTAKE(${aTake})\nJSON(timeformat('` + aFormat + `'), tz('` + aTimezone + `'))`;
+export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string, aTimezone: string, aTake: number | undefined = SQL_BASE_LIMIT, bridge?: string) => {
+    const bridgeText = bridge ? `bridge('${bridge}'),` : '';
+    return (
+        'SQL(' +
+        bridgeText +
+        '`' +
+        aSql +
+        '`)\n' +
+        'DROP(' +
+        (aLimit * SQL_BASE_LIMIT - SQL_BASE_LIMIT) +
+        `)\nTAKE(${aTake})\nJSON(timeformat('` +
+        aFormat +
+        `'), tz('` +
+        aTimezone +
+        `'))`
+    );
 };
 
-export const sqlSheetFormatter = (aSql: string, aBrief: boolean) => {
-    return 'SQL(`' + aSql + '`)\n' + `MARKDOWN(html(true), rownum(true), heading(true), brief(${aBrief}))`;
+export const sqlSheetFormatter = (aSql: string, aBrief: boolean, bridge?: string) => {
+    const bridgeText = bridge ? `bridge('${bridge}'),` : '';
+    return 'SQL(' + bridgeText + '`' + aSql + '`)\n' + `MARKDOWN(html(true), rownum(true), heading(true), brief(${aBrief}))`;
 };
 
 const Animation = `"animation": false`;

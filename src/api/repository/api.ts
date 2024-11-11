@@ -204,6 +204,14 @@ export const getAllowBackupTable = () => {
         },
     });
 };
+/** POST SPLITTER */
+export const postSplitter = (txt: string) => {
+    return request({
+        method: 'POST',
+        url: '/api/splitter/sql',
+        data: txt,
+    });
+};
 
 export {
     getColumnIndexInfo,

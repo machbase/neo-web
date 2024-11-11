@@ -95,6 +95,10 @@ request.interceptors.request.use(
             sHeaders['Content-Type'] = 'text/plain';
             config.responseType = 'text';
         }
+        if (config.url === '/api/splitter/sql') {
+            sHeaders['Content-Type'] = 'text/plain';
+        }
+
         if (sHeaders && config.url !== `${baseURL}/api/login` && config.url !== `${baseURL}/api/login`) {
             const accessToken = localStorage.getItem('accessToken');
             if (accessToken) {
