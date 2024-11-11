@@ -43,7 +43,7 @@ const Sql = ({
     const [sErrLog, setErrLog] = useState<string | null>(null);
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
     const [sChartAxisList, setChartAxisList] = useState<string[]>([]);
-    const [sChartQueryList, setChartQueryList] = useState<string[]>([]);
+    const [sChartQueryList, setChartQueryList] = useState<STATEMENT_TYPE[] | []>([]);
     const sSaveCommand = useRef<any>(null);
     const sNavi = useRef(null);
     const [sOldFetchTxt, setOldFetchTxt] = useState<STATEMENT_TYPE | undefined>(undefined);
@@ -117,7 +117,7 @@ const Sql = ({
         // SINGLE
         if (location.selection.endColumn === location.selection.startColumn && location.selection.endLineNumber === location.selection.startLineNumber) {
             parsedQuery = splitList.filter((statement: any) => {
-                if (!statement.isComment && (location.selection.startLineNumber === statement.beginLine || location.selection.endLineNumber === statement.endLine)) {
+                if (!statement.isComment && statement.beginLine <= location.selection.startLineNumber && location.selection.startLineNumber <= statement.endLine) {
                     return statement;
                 }
             });
@@ -125,12 +125,7 @@ const Sql = ({
         // MULTIPLE
         else {
             parsedQuery = splitList.filter((statement: any) => {
-                if (
-                    !statement.isComment &&
-                    ((location.selection.startLineNumber <= statement.beginLine && location.selection.endLineNumber >= statement.beginLine) ||
-                        (location.selection.startLineNumber <= statement.endLine && location.selection.endLineNumber >= statement.endLine))
-                )
-                    return statement;
+                if (!statement.isComment && statement.endLine >= location.selection.startLineNumber && statement.beginLine <= location.selection.endLineNumber) return statement;
             });
         }
         setSqlLocation(location);
@@ -180,17 +175,21 @@ const Sql = ({
         }
 
         const sLowerQuery = aParsedQuery[sQueryReslutList.length - 1];
-        if (!sLowerQuery.text.toLowerCase().includes('delete') && !sLowerQuery.text.toLowerCase().includes('update') && !sLowerQuery.text.toLowerCase().includes('insert')) {
-            setChartQueryList([sLowerQuery.text]);
-        } else setChartQueryList([]);
-        if (sQueryReslutList[sQueryReslutList.length - 1].data.data) setChartAxisList(sQueryReslutList[sQueryReslutList.length - 1].data.data.columns);
-        else setChartAxisList([]);
+
+        // insert, create, delete, update...
+        if (sQueryReslutList.at(-1)?.data?.success && sQueryReslutList.at(-1)?.data?.data && sQueryReslutList.at(-1)?.data?.data?.columns) {
+            setChartQueryList([sLowerQuery]);
+            setChartAxisList(sQueryReslutList.at(-1).data.data.columns);
+        } else {
+            setChartQueryList([]);
+            setChartAxisList([]);
+        }
 
         setResultLimit(2);
-        setSqlResponseData(sQueryReslutList[sQueryReslutList.length - 1].data.data);
+        setSqlResponseData(sQueryReslutList.at(-1).data.data);
         // setLogList([...sLogList, `${aParsedQuery}\n${sQueryReslutList[sQueryReslutList.length - 1].data.reason} : ${sQueryReslutList[sQueryReslutList.length - 1].data.success}`]);
 
-        if (sQueryReslutList[sQueryReslutList.length - 1].data.success === true) {
+        if (sQueryReslutList.at(-1).data.success === true) {
             setErrLog(null);
             setEndRecord(sQueryReslutList.at(-1).data.data.rows.length < SQL_BASE_LIMIT);
             setSelectedSubTab('RESULT');

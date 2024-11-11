@@ -250,7 +250,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         // SINGLE
         if (location.selection.endColumn === location.selection.startColumn && location.selection.endLineNumber === location.selection.startLineNumber) {
             parsedQuery = splitList.filter((statement: any) => {
-                if (!statement.isComment && (location.selection.startLineNumber === statement.beginLine || location.selection.endLineNumber === statement.endLine)) {
+                if (!statement.isComment && statement.beginLine <= location.selection.startLineNumber && location.selection.startLineNumber <= statement.endLine) {
                     return statement;
                 }
             });
@@ -258,12 +258,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         // MULTIPLE
         else {
             parsedQuery = splitList.filter((statement: any) => {
-                if (
-                    !statement.isComment &&
-                    ((location.selection.startLineNumber <= statement.beginLine && location.selection.endLineNumber >= statement.beginLine) ||
-                        (location.selection.startLineNumber <= statement.endLine && location.selection.endLineNumber >= statement.endLine))
-                )
-                    return statement;
+                if (!statement.isComment && statement.endLine >= location.selection.startLineNumber && statement.beginLine <= location.selection.endLineNumber) return statement;
             });
         }
         setSqlLocation(location);

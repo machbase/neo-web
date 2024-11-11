@@ -70,11 +70,25 @@
                     align-items: center;
                     text-overflow: ellipsis;
                     white-space: nowrap;
+                    gap: 8px;
+
+                    &:hover {
+                        .result-table-item-copy-button-icon {
+                            opacity: 1;
+                        }
+                    }
 
                     span {
                         overflow: hidden;
                         text-overflow: ellipsis;
                         white-space: nowrap;
+                    }
+
+                    &-icon {
+                        display: flex;
+                        opacity: 0;
+                        justify-content: center;
+                        align-items: center;
                     }
                 }
             }
