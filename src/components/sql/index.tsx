@@ -6,17 +6,17 @@ import AUTOCOMBOBOX from './autoCombobox';
 import { gBoardList } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import { getTqlChart } from '@/api/repository/machiot';
-import { SQL_BASE_LIMIT, sqlBasicFormatter } from '@/utils/sqlFormatter';
+import { SQL_BASE_LIMIT, sqlBasicFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
 import { IANA_TIMEZONES } from '@/assets/ts/timezones';
 import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 import './index.scss';
 import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, SaveAs, Download } from '@/assets/icons/Icon';
 import { isJsonString } from '@/utils/utils';
-import { PositionType, SelectionType, sqlQueryParser, sqlRemoveLimitKeyword } from '@/utils/sqlQueryParser';
-import { sqlMultiQueryParser } from '@/utils/sqlMultiQueryParser';
+import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 import { MonacoEditor } from '../monaco/MonacoEditor';
 import { IconButton } from '@/components/buttons/IconButton';
 import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader } from '@/utils/sqlOriginDataDownloader';
+import { postSplitter } from '@/api/repository/api';
 
 const Sql = ({
     pInfo,
@@ -46,7 +46,7 @@ const Sql = ({
     const [sChartQueryList, setChartQueryList] = useState<string[]>([]);
     const sSaveCommand = useRef<any>(null);
     const sNavi = useRef(null);
-    const [sOldFetchTxt, setOldFetchTxt] = useState<string | undefined>(undefined);
+    const [sOldFetchTxt, setOldFetchTxt] = useState<STATEMENT_TYPE | undefined>(undefined);
     const [sEndRecord, setEndRecord] = useState<boolean>(false);
     const [sSqlLocation, setSqlLocation] = useState<{
         position: PositionType;
@@ -100,10 +100,10 @@ const Sql = ({
     };
 
     const getTargetQuery = (): string => {
-        return sqlQueryParser(sSqlQueryTxt, sSqlLocation.position, sSqlLocation.selection);
+        return sOldFetchTxt?.text ?? '';
     };
 
-    const sqlMultiLineParser = (
+    const sqlMultiLineParser = async (
         _?: string,
         aLocation?: {
             position: PositionType;
@@ -111,36 +111,47 @@ const Sql = ({
         }
     ) => {
         let parsedQuery: any = '';
-        if (!aLocation) {
-            // SINGLE
-            if (sSqlLocation.selection.endColumn === sSqlLocation.selection.startColumn && sSqlLocation.selection.endLineNumber === sSqlLocation.selection.startLineNumber)
-                parsedQuery = [sqlQueryParser(sSqlQueryTxt, sSqlLocation.position, sSqlLocation.selection)];
-            // MULTIPLE
-            else parsedQuery = sqlMultiQueryParser(sSqlQueryTxt, sSqlLocation.position, sSqlLocation.selection);
-        } else {
-            // SINGLE
-            if (aLocation.selection.endColumn === aLocation.selection.startColumn && aLocation.selection.endLineNumber === aLocation.selection.startLineNumber)
-                parsedQuery = [sqlQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection)];
-            // MULTIPLE
-            else parsedQuery = sqlMultiQueryParser(sSqlQueryTxt, aLocation.position, aLocation.selection);
-            setSqlLocation(aLocation);
+        const splitList = await fetchSplitter();
+        const location = aLocation ?? sSqlLocation;
+
+        // SINGLE
+        if (location.selection.endColumn === location.selection.startColumn && location.selection.endLineNumber === location.selection.startLineNumber) {
+            parsedQuery = splitList.filter((statement: any) => {
+                if (!statement.isComment && (location.selection.startLineNumber === statement.beginLine || location.selection.endLineNumber === statement.endLine)) {
+                    return statement;
+                }
+            });
         }
+        // MULTIPLE
+        else {
+            parsedQuery = splitList.filter((statement: any) => {
+                if (
+                    !statement.isComment &&
+                    ((location.selection.startLineNumber <= statement.beginLine && location.selection.endLineNumber >= statement.beginLine) ||
+                        (location.selection.startLineNumber <= statement.endLine && location.selection.endLineNumber >= statement.endLine))
+                )
+                    return statement;
+            });
+        }
+        setSqlLocation(location);
         if (!parsedQuery || parsedQuery.length === 0 || (parsedQuery.length === 1 && parsedQuery[0].length === 0)) return;
         fetchSql(parsedQuery);
     };
 
-    const fetchSql = async (aParsedQuery: string[]) => {
+    const fetchSplitter = async () => {
+        const splitRes: any = await postSplitter(sSqlQueryTxt);
+        if (splitRes?.success) return splitRes.data.statements;
+        return undefined;
+    };
+
+    const fetchSql = async (aParsedQuery: STATEMENT_TYPE[]) => {
         setEndRecord(() => false);
         const sQueryReslutList: any = [];
         try {
-            const fetchQuery = (aQuery: string) => {
-                let sTakeLimit: number = SQL_BASE_LIMIT;
-                if (aQuery.toLowerCase().includes('limit')) {
-                    sTakeLimit = sqlRemoveLimitKeyword(aQuery) as number;
-                }
+            const fetchQuery = (aQuery: STATEMENT_TYPE) => {
                 return new Promise((resolve, reject) => {
                     setTimeout(async () => {
-                        const sQueryResult = await getTqlChart(sqlBasicFormatter(aQuery.trim(), 1, sTimeRange, sTimeZone, sTakeLimit));
+                        const sQueryResult = await getTqlChart(sqlBasicFormatter(aQuery.text, 1, sTimeRange, sTimeZone, SQL_BASE_LIMIT, aQuery.env?.bridge));
                         sQueryReslutList.push(sQueryResult);
                         if (sQueryResult.data.success) resolve(true);
                         else reject(false);
@@ -148,7 +159,7 @@ const Sql = ({
                 });
             };
 
-            await aParsedQuery.reduce(async (previousPromise: any, curQuery: string) => {
+            await aParsedQuery.reduce(async (previousPromise: any, curQuery: STATEMENT_TYPE) => {
                 await previousPromise;
                 return fetchQuery(curQuery);
             }, Promise.resolve());
@@ -168,9 +179,9 @@ const Sql = ({
             sQueryReslutList[sQueryReslutList.length - 1].data.data.columns[1] += ` (${sAddTimezoneTxt})`;
         }
 
-        const sLowerQuery = aParsedQuery[sQueryReslutList.length - 1].toLowerCase();
-        if (!sLowerQuery.includes('delete') && !sLowerQuery.includes('update') && !sLowerQuery.includes('insert')) {
-            setChartQueryList([aParsedQuery[sQueryReslutList.length - 1]]);
+        const sLowerQuery = aParsedQuery[sQueryReslutList.length - 1];
+        if (!sLowerQuery.text.toLowerCase().includes('delete') && !sLowerQuery.text.toLowerCase().includes('update') && !sLowerQuery.text.toLowerCase().includes('insert')) {
+            setChartQueryList([sLowerQuery.text]);
         } else setChartQueryList([]);
         if (sQueryReslutList[sQueryReslutList.length - 1].data.data) setChartAxisList(sQueryReslutList[sQueryReslutList.length - 1].data.data.columns);
         else setChartAxisList([]);
@@ -207,10 +218,12 @@ const Sql = ({
     };
 
     const fetchMoreResult = async () => {
-        const paredQuery = sOldFetchTxt ?? getTargetQuery();
-        if (paredQuery.toLowerCase().includes('limit')) return;
+        // const paredQuery = sOldFetchTxt ?? getTargetQuery();
+        const paredQuery = sOldFetchTxt;
+        if (!paredQuery?.text) return;
+        if (paredQuery?.text?.toLowerCase().includes('limit')) return;
         if (sEndRecord) return;
-        const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery, sResultLimit, sTimeRange, sTimeZone));
+        const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery?.text, sResultLimit, sTimeRange, sTimeZone));
         const sParsedSqlResult = JSON.parse(isJsonString(sSqlResult.request.response) ? sSqlResult.request.response : '{}');
         if (sSqlResult.data.data && sParsedSqlResult) {
             setResultLimit(sResultLimit + 1);
@@ -228,11 +241,11 @@ const Sql = ({
         }
     };
     const handleDownloadCSV = () => {
-        if (sOldFetchTxt && sOldFetchTxt !== '' && sSqlResponseData) {
+        if (sOldFetchTxt && sOldFetchTxt?.text !== '' && sSqlResponseData) {
             const url = window.location.origin + '/web/api/tql-exec';
             const token = localStorage.getItem('accessToken');
             const sql = encodeURI(
-                `${url}?$=SQL("${sOldFetchTxt.replaceAll(';', '')}")\u000ACSV(httpHeader("Content-Disposition", "attachment"), heading(true))\u0026$token=${token}`
+                `${url}?$=SQL("${sOldFetchTxt.text.replaceAll(';', '')}")\u000ACSV(httpHeader("Content-Disposition", "attachment"), heading(true))\u0026$token=${token}`
             );
             sqlOriginDataDownloader(sql, DOWNLOADER_EXTENSION.CSV);
         }
@@ -356,7 +369,7 @@ const Sql = ({
                                     pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'}
                                     pSqlResponseData={sSqlResponseData}
                                     onMoreResult={() => onMoreResult()}
-                                    pHelpTxt={sOldFetchTxt}
+                                    pHelpTxt={sOldFetchTxt?.text ?? ''}
                                 />
                             )
                         ) : null}

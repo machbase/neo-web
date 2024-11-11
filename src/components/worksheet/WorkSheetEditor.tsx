@@ -5,20 +5,20 @@ import { ShowChart } from '@/components/tql/ShowChart';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { getId, isValidJSON, getMonacoLines } from '@/utils';
 import useOutsideClick from '@/hooks/useOutsideClick';
-import { sqlSheetFormatter } from '@/utils/sqlFormatter';
+import { sqlSheetFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
 import TABLE from '@/components/table';
 import './WorkSheetEditor.scss';
 import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
-import { PositionType, SelectionType, sqlQueryParser } from '@/utils/sqlQueryParser';
+import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 import { IconButton } from '../buttons/IconButton';
 import { useSetRecoilState } from 'recoil';
 import { gConsoleSelector } from '@/recoil/recoil';
-import { sqlMultiQueryParser } from '@/utils/sqlMultiQueryParser';
 import { ShowMap } from '../tql/ShowMap';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { ConfirmModal } from '../modal/ConfirmModal';
 import { Loader } from '../loader';
 import { GrClearOption } from 'react-icons/gr';
+import { postSplitter } from '@/api/repository/api';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell';
 type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell';
@@ -190,17 +190,21 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             selection: SelectionType;
         }
     ) => {
-        setProcessing(true);
-        if (sSelectedLang === 'TQL') getTqlData(aText);
+        if (sSelectedLang === 'TQL') {
+            setProcessing(true);
+            getTqlData(aText);
+        }
         if (sSelectedLang === 'Markdown') {
             if (pAllRunCodeStatus) {
                 pAllRunCodeCallback(true);
             }
             setMarkdown(aText);
-            setProcessing(false);
         }
         if (sSelectedLang === 'SQL') getSqlData(aText, aLocation);
-        if (sSelectedLang === 'Shell') getShellData(aText);
+        if (sSelectedLang === 'Shell') {
+            setProcessing(true);
+            getShellData(aText);
+        }
     };
     const getShellData = async (aText: string) => {
         const sShellQuery = `FAKE(once(1))\nSHELL(${'`' + aText + '`'})\nJSON(rowsFlatten(true))`;
@@ -231,42 +235,59 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setMonacoLanguage('markdown');
         }
     };
-    const getSqlData = (aText: string, aLocation?: LocationType) => {
+    const fetchSplitter = async (atxt: string) => {
+        const splitRes: any = await postSplitter(atxt);
+        if (splitRes?.success) return splitRes.data.statements;
+        return undefined;
+    };
+    const getSqlData = async (aText: string, aLocation?: LocationType) => {
         let parsedQuery: any = '';
-        if (!aLocation) {
-            // SINGLE
-            if (sSqlLocation.selection.endColumn === sSqlLocation.selection.startColumn && sSqlLocation.selection.endLineNumber === sSqlLocation.selection.startLineNumber)
-                parsedQuery = [sqlQueryParser(aText, sSqlLocation.position, sSqlLocation.selection)];
-            // MULTIPLE
-            else parsedQuery = sqlMultiQueryParser(aText, sSqlLocation.position, sSqlLocation.selection);
-        } else {
-            // SINGLE
-            if (aLocation.selection.endColumn === aLocation.selection.startColumn && aLocation.selection.endLineNumber === aLocation.selection.startLineNumber)
-                parsedQuery = [sqlQueryParser(aText, aLocation.position, aLocation.selection)];
-            // MULTIPLE
-            else parsedQuery = sqlMultiQueryParser(aText, aLocation.position, aLocation.selection);
-            setSqlLocation(aLocation);
+        const splitList = await fetchSplitter(aText);
+        const location = aLocation ?? sSqlLocation;
+
+        setProcessing(true);
+
+        // SINGLE
+        if (location.selection.endColumn === location.selection.startColumn && location.selection.endLineNumber === location.selection.startLineNumber) {
+            parsedQuery = splitList.filter((statement: any) => {
+                if (!statement.isComment && (location.selection.startLineNumber === statement.beginLine || location.selection.endLineNumber === statement.endLine)) {
+                    return statement;
+                }
+            });
         }
+        // MULTIPLE
+        else {
+            parsedQuery = splitList.filter((statement: any) => {
+                if (
+                    !statement.isComment &&
+                    ((location.selection.startLineNumber <= statement.beginLine && location.selection.endLineNumber >= statement.beginLine) ||
+                        (location.selection.startLineNumber <= statement.endLine && location.selection.endLineNumber >= statement.endLine))
+                )
+                    return statement;
+            });
+        }
+        setSqlLocation(location);
         if (!parsedQuery || parsedQuery.length === 0 || (parsedQuery.length === 1 && parsedQuery[0].length === 0)) {
+            setProcessing(false);
             if (pAllRunCodeStatus) pAllRunCodeCallback(true);
             return;
         }
         fetchSql(parsedQuery);
     };
-    const fetchSql = async (aParsedQuery: string[]) => {
+    const fetchSql = async (aParsedQuery: STATEMENT_TYPE[]) => {
         const sQueryReslutList: any = [];
         try {
-            const fetchQuery = (aQuery: string) => {
+            const fetchQuery = (aQuery: STATEMENT_TYPE) => {
                 return new Promise((resolve, reject) => {
                     setTimeout(async () => {
-                        const sQueryResult = await getTqlChart(sqlSheetFormatter(aQuery.trim(), sResultContentType === 'brief'));
+                        const sQueryResult = await getTqlChart(sqlSheetFormatter(aQuery.text, sResultContentType === 'brief', aQuery.env?.bridge));
                         sQueryReslutList.push(sQueryResult);
                         if (sQueryResult.status === 200) resolve(true);
                         else reject(false);
                     }, 1);
                 });
             };
-            await aParsedQuery.reduce(async (previousPromise: any, curQuery: string) => {
+            await aParsedQuery.reduce(async (previousPromise: any, curQuery: STATEMENT_TYPE) => {
                 await previousPromise;
                 return fetchQuery(curQuery);
             }, Promise.resolve());
