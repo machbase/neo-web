@@ -222,7 +222,7 @@ const Sql = ({
         if (!paredQuery?.text) return;
         if (paredQuery?.text?.toLowerCase().includes('limit')) return;
         if (sEndRecord) return;
-        const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery?.text, sResultLimit, sTimeRange, sTimeZone));
+        const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery?.text, sResultLimit, sTimeRange, sTimeZone, SQL_BASE_LIMIT, paredQuery?.env?.bridge));
         const sParsedSqlResult = JSON.parse(isJsonString(sSqlResult.request.response) ? sSqlResult.request.response : '{}');
         if (sSqlResult.data.data && sParsedSqlResult) {
             setResultLimit(sResultLimit + 1);
