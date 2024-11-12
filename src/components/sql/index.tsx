@@ -243,8 +243,12 @@ const Sql = ({
         if (sOldFetchTxt && sOldFetchTxt?.text !== '' && sSqlResponseData) {
             const url = window.location.origin + '/web/api/tql-exec';
             const token = localStorage.getItem('accessToken');
+            const bridgeText = sOldFetchTxt?.env?.bridge ? `bridge("${sOldFetchTxt?.env?.bridge}"),` : '';
             const sql = encodeURI(
-                `${url}?$=SQL("${sOldFetchTxt.text.replaceAll(';', '')}")\u000ACSV(httpHeader("Content-Disposition", "attachment"), heading(true))\u0026$token=${token}`
+                `${url}?$=SQL(${bridgeText}"${sOldFetchTxt.text.replaceAll(
+                    ';',
+                    ''
+                )}")\u000ACSV(httpHeader("Content-Disposition", "attachment"), heading(true))\u0026$token=${token}`
             );
             sqlOriginDataDownloader(sql, DOWNLOADER_EXTENSION.CSV);
         }
