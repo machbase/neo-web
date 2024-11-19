@@ -69,7 +69,7 @@ TableProps) => {
                         {pTableData.columns.map((aColumn: string) => {
                             return (
                                 <th key={aColumn} style={{ cursor: 'default' }}>
-                                    <span>{aColumn}</span>
+                                    <span>{aColumn.toString()}</span>
                                 </th>
                             );
                         })}
@@ -93,7 +93,7 @@ TableProps) => {
                                       return (
                                           <td className="result-table-item" key={'table-' + aIdx + '-' + bIdx}>
                                               <div className="result-table-item-copy-button" style={{ display: 'flex' }}>
-                                                  <span>{aRowData}</span>
+                                                  <span>{aRowData.toString()}</span>
                                                   <Text aRowData={aRowData} />
                                               </div>
                                           </td>
