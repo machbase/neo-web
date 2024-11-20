@@ -248,7 +248,7 @@ const Sql = ({
                 `${url}?$=SQL(${bridgeText}"${sOldFetchTxt.text.replaceAll(
                     ';',
                     ''
-                )}")\u000ACSV(httpHeader("Content-Disposition", "attachment"), heading(true))\u0026$token=${token}`
+                )}")\u000ACSV(timeformat("${sTimeRange}"), tz("${sTimeZone}"), httpHeader("Content-Disposition", "attachment"), heading(true))\u0026$token=${token}`
             );
             sqlOriginDataDownloader(sql, DOWNLOADER_EXTENSION.CSV);
         }
