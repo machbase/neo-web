@@ -240,7 +240,7 @@ const Sql = ({
         }
     };
     const handleDownloadCSV = () => {
-        if (sOldFetchTxt && sOldFetchTxt?.text !== '' && sSqlResponseData) {
+        if (sOldFetchTxt && sOldFetchTxt?.text !== '' && sSqlResponseData && !(sSqlResponseData?.rows?.length === 1 && sSqlResponseData?.columns?.length === 1)) {
             const url = window.location.origin + '/web/api/tql-exec';
             const token = localStorage.getItem('accessToken');
             const bridgeText = sOldFetchTxt?.env?.bridge ? `bridge("${sOldFetchTxt?.env?.bridge}"),` : '';
@@ -341,7 +341,7 @@ const Sql = ({
                                     pToolTipContent="Download CSV"
                                     pToolTipId="sql-tab-divider-explorer-download"
                                     pIcon={<Download />}
-                                    pDisabled={!sOldFetchTxt}
+                                    pDisabled={!sOldFetchTxt || !sSqlResponseData || (sSqlResponseData?.rows?.length === 1 && sSqlResponseData?.columns?.length === 1)}
                                     onClick={handleDownloadCSV}
                                 />
                                 <IconButton
