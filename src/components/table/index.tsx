@@ -110,7 +110,6 @@ TableProps) => {
 
 const Text = ({ aRowData }: { aRowData: string }) => {
     const [copy, setCopy] = useState(false);
-    console.log('dfdfdfdfdfdfaRowData', aRowData);
     const handle = () => {
         if (copy) return;
         setCopy(true);
