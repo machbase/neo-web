@@ -94,7 +94,7 @@ TableProps) => {
                                           <td className="result-table-item" key={'table-' + aIdx + '-' + bIdx}>
                                               <div className="result-table-item-copy-button" style={{ display: 'flex' }}>
                                                   <span>{aRowData?.toString()}</span>
-                                                  {aRowData && <Text aRowData={aRowData} />}
+                                                  {!(aRowData === null) && aRowData?.toString().trim() !== '' && <Text aRowData={aRowData} />}
                                               </div>
                                           </td>
                                       );
@@ -110,7 +110,7 @@ TableProps) => {
 
 const Text = ({ aRowData }: { aRowData: string }) => {
     const [copy, setCopy] = useState(false);
-
+    console.log('dfdfdfdfdfdfaRowData', aRowData);
     const handle = () => {
         if (copy) return;
         setCopy(true);
