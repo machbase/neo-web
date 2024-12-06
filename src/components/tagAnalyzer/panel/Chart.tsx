@@ -22,22 +22,22 @@ const Chart = ({
 }: any) => {
     const [options, setOptions] = useState<any>({});
 
-    const getMaxValue = (array: number[][]) => {
+    const getMaxValue = (array: number[][],  zeroBaseCondition: boolean) => {
         return array.reduce(
             (result: number, current: any) => {
                 if (current[1] > result) result = current[1];
                 return result;
             },
-            pPanelInfo.zero_base === 'Y' ? 0 : array[0]?.[1]
+            zeroBaseCondition? 0 : array[0]?.[1]
         );
     };
-    const getMinValue = (array: number[][]) => {
+    const getMinValue = (array: number[][], zeroBaseCondition: boolean) => {
         return array.reduce(
             (result: number, current: any) => {
                 if (current[1] < result) result = current[1];
                 return result;
             },
-            pPanelInfo.zero_base === 'Y' ? 0 : array[0]?.[1]
+            zeroBaseCondition ? 0 : array[0]?.[1]
         );
     };
     const updateYaxis = () => {
@@ -49,19 +49,23 @@ const Chart = ({
         const newData = pChartData && JSON.parse(JSON.stringify(pChartData));
         newData?.forEach((item: any) => {
             if (item.yAxis === 0) {
-                if (!yAxis.left[0] || yAxis.left[0] > getMinValue(item.data)) {
-                    yAxis.left[0] = getMinValue(item.data);
+                const yAxisLeftMin = getMinValue(item.data,  pPanelInfo.zero_base === 'Y');
+                const yAxisLeftMax = getMaxValue(item.data,  pPanelInfo.zero_base === 'Y');
+                if (!yAxis.left[0] || yAxis.left[0] > yAxisLeftMin) {
+                    yAxis.left[0] = yAxisLeftMin;
                 }
-                if (!yAxis.left[1] || yAxis.left[1] < getMaxValue(item.data)) {
-                    yAxis.left[1] = getMaxValue(item.data);
+                if (!yAxis.left[1] || yAxis.left[1] < yAxisLeftMax) {
+                    yAxis.left[1] = yAxisLeftMax;
                 }
             }
             if (item.yAxis === 1) {
-                if (!yAxis.right[0] || yAxis.right[0] > getMinValue(item.data)) {
-                    yAxis.right[0] = getMinValue(item.data);
+                const yAxisLeftMin = getMinValue(item.data, pPanelInfo.zero_base2 === 'Y');
+                const yAxisLeftMax = getMaxValue(item.data, pPanelInfo.zero_base2 === 'Y');
+                if (!yAxis.right[0] || yAxis.right[0] > yAxisLeftMin) {
+                    yAxis.right[0] = yAxisLeftMin;
                 }
-                if (!yAxis.right[1] || yAxis.right[1] < getMaxValue(item.data)) {
-                    yAxis.right[1] = getMaxValue(item.data);
+                if (!yAxis.right[1] || yAxis.right[1] < yAxisLeftMax) {
+                    yAxis.right[1] = yAxisLeftMax;
                 }
             }
         });
@@ -274,23 +278,23 @@ const Chart = ({
                         ? Number(pPanelInfo.custom_min2) === 0 && Number(pPanelInfo.custom_max2) === 0
                             ? pPanelInfo.use_normalize === 'Y'
                                 ? 0
-                                : updateYaxis().left[0]
+                                : updateYaxis().right[0]
                             : Number(pPanelInfo.custom_min2)
                         : Number(pPanelInfo.custom_drilldown_min2) === 0 && Number(pPanelInfo.custom_drilldown_max2) === 0
                         ? pPanelInfo.use_normalize === 'Y'
                             ? 0
-                            : updateYaxis().left[0]
+                            : updateYaxis().right[0]
                         : Number(pPanelInfo.custom_drilldown_min2),
                     max: !pIsRaw
                         ? Number(pPanelInfo.custom_min2) === 0 && Number(pPanelInfo.custom_max2) === 0
                             ? pPanelInfo.use_normalize === 'Y'
                                 ? 100
-                                : updateYaxis().left[1]
+                                : updateYaxis().right[1]
                             : Number(pPanelInfo.custom_max2)
                         : Number(pPanelInfo.custom_drilldown_min2) === 0 && Number(pPanelInfo.custom_drilldown_max2) === 0
                         ? pPanelInfo.use_normalize === 'Y'
                             ? 100
-                            : updateYaxis().left[1]
+                            : updateYaxis().right[1]
                         : Number(pPanelInfo.custom_drilldown_max2),
                     showLastLabel: pPanelInfo.use_normalize === 'N',
                     gridLineWidth: 1,
