@@ -27,6 +27,7 @@ import { useToken } from '@/hooks/useToken';
 import { BridgeSide } from '@/components/side/Bridge';
 import { AppStore } from '@/components/side/AppStore';
 import { GlobalChecker } from '@/components/GlobalChecker';
+import { EulaModal } from '@/components/modal/EulaModal';
 
 const Home = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);
@@ -45,7 +46,8 @@ const Home = () => {
     const timer: any = useRef();
     const sWebSoc: any = useRef(null);
     const setShellList = useSetRecoilState<any>(gShellList);
-    const setLicense = useSetRecoilState(gLicense)
+    const [getLicense, setLicense] = useRecoilState(gLicense);
+    const [openEula, setOpenEula] = useState<boolean>(false);
 
     let count = 0;
     const init = async () => {
@@ -140,6 +142,9 @@ const Home = () => {
     };
 
     useEffect(() => {
+        setOpenEula(true)
+    }, [])
+    useEffect(() => {
         sHome && getInfo();
     }, [sHome]);
     useEffect(() => {
@@ -158,7 +163,7 @@ const Home = () => {
 
     return (
         <div className={sDragStat ? 'check-draged home-form' : 'home-form'}>
-            <Extension pSetSideSizes={setSideSizes} pIsSidebar={sIsSidebar} pHandleSideBar={setIsSidebar} />
+            <Extension pSetSideSizes={setSideSizes} pIsSidebar={sIsSidebar} pHandleSideBar={setIsSidebar} pSetEula={setOpenEula} />
             <div className="body-form">
                 <SplitPane
                     sashRender={() => <></>}
@@ -236,6 +241,7 @@ const Home = () => {
                 </SplitPane>
             </div>
             {sHome && <GlobalChecker />}
+            {getLicense?.eulaRequired && openEula && <EulaModal set={setOpenEula} />}
         </div>
     );
 };

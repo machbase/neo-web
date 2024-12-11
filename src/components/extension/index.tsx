@@ -15,9 +15,9 @@ import { GiTallBridge } from 'react-icons/gi';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { Password } from '../password';
 import { VscExtensions } from 'react-icons/vsc';
-import { EulaModal } from '../modal/EulaModal';
+import { BadgeStatus } from '../badge';
 
-const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
+const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any) => {
     const sNavigate = useNavigate();
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const MenuRef = useRef<HTMLDivElement>(null);
@@ -28,11 +28,11 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const getGLicense = useRecoilValue(gLicense);
-    const [openEula, setOpenEula] = useState<boolean>(false);
+
 
     const selectExtension = async (aItem: any) => {
         // EULA TEST
-        setOpenEula(true);
+        pSetEula(true);
         if (getGLicense?.eulaRequired) return;
 
         if (aItem.label === sSelectedExtension) {
@@ -176,7 +176,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                                 <Menu.Item onClick={() => setIsLicenseModal(true)}>
                                     <Key />
                                     <span>License</span>
-                                    {getGLicense?.licenseStatus !== BADGE_KEYWORD && <div className="ext-btn-badge" style={{width: '6px', height: '6px', borderRadius: '3px', backgroundColor: '#ff4747', boxShadow: '0 0 3px 3px #ff4747'}} />}
+                                    {getGLicense?.licenseStatus !== BADGE_KEYWORD && <BadgeStatus />}
                                 </Menu.Item>
                                 <Menu.Item onClick={handleSSHKeys}>
                                     <VscKey />
@@ -197,7 +197,6 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
             </div>
             {sIsLicenseModal ? <LicenseModal pIsDarkMode setIsOpen={setIsLicenseModal} /> : null}
             {sIsPWDModal && <Password setIsOpen={setIsPWDModal} />}
-            {getGLicense?.eulaRequired && openEula && <EulaModal set={setOpenEula} />}
         </>
     );
 };

@@ -1,6 +1,7 @@
 import { gSelectedExtension } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import './ExtensionBtn.scss';
+import { BadgeStatus } from '../badge';
 
 interface ExtensionBtnProps {
     isBadge?: boolean;
@@ -22,7 +23,9 @@ const ExtensionBtn = ({ isBadge = false, pLabel, pIcon, onClick }: ExtensionBtnP
             onClick={onClick}
         >
             {pIcon}
-            {isBadge && <div className='ext-btn-badge' />}
+            {isBadge && <div className='ext-btn-badge'>
+                    <BadgeStatus />
+                </div>}
         </div>
     );
 };
