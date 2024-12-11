@@ -1,0 +1,64 @@
+.eula-license-modal {
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+
+    .modal {
+        padding: 16px;
+        max-width: 790px !important;
+        max-height: 900px !important;
+    }
+
+    .res-err {
+        padding-top: 16px;
+        display: flex;
+        align-items: start;
+        justify-content: start;
+        margin-left: 4px;
+        flex-direction: row;
+
+        svg {
+            margin-top: 4px;
+            width: 14px;
+            height: 14px;
+            min-width: 14px;
+            min-height: 14px;
+        }
+        .res-err-text {
+            margin-left: 8px;
+            color: #ff5353;
+        }
+    }
+
+    &-header {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 16px;
+
+        .title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+    }
+    &-body-wrap {
+        display: flex;
+        flex-grow: 1;
+        overflow: hidden;
+        max-height: 600px;
+        width: 100%;
+
+        .eula-license-modal-body {
+            width: 100%;
+            overflow-y: auto;
+        }
+    }
+    &-footer {
+        padding-top: 16px;
+        display: flex;
+        justify-content: end;
+        gap: 8px;
+    }
+}

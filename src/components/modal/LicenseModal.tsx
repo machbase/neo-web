@@ -78,8 +78,12 @@ export const LicenseModal = (props: LicenseModalProps) => {
                             <div>{sLicense?.project}</div>
                         </div>
                         <div className="content">
-                            <div>install Date</div>
+                            <div>Install Date</div>
                             <div>{sLicense?.installDate}</div>
+                        </div>
+                        <div className="content">
+                            <div>License Status</div>
+                            <span> {sLicense?.licenseStatus}</span>
                         </div>
                     </div>
                 </Modal.Body>

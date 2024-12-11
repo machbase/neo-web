@@ -296,3 +296,13 @@ export const gBackupList = atom<any>({
     key: 'gBackupList',
     default: [] as any,
 });
+
+export const BADGE_KEYWORD = 'VALID';
+// License global
+export const gLicense = atom<any>({
+    key: 'gLicense',
+    default: {
+        licenseStatus: BADGE_KEYWORD,
+        eulaRequired: true
+    } as any,
+});

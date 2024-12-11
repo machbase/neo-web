@@ -5,4 +5,17 @@
     justify-content: center;
     align-items: center;
     font-size: 22px;
+    position: relative;
+
+    .ext-btn-badge {
+        position: absolute;
+        top: 4px;
+        right: 6px;
+        width: 6px;
+        height: 6px;
+        border-radius: 3px;
+        background-color: #ff4747;
+        box-shadow: 0 0 3px 3px #ff4747, 
+    }
 }
+

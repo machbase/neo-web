@@ -1,8 +1,9 @@
+import './index.scss';
 import { useState, useRef, useEffect } from 'react';
 import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase, VscKey, GoTerminal } from '@/assets/icons/Icon';
 import ExtensionBtn from '@/components/extension/ExtensionBtn';
-import { useRecoilState, useSetRecoilState } from 'recoil';
-import { gBoardList, gExtensionList, gSelectedExtension, gSelectedTab } from '@/recoil/recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { BADGE_KEYWORD, gBoardList, gExtensionList, gLicense, gSelectedExtension, gSelectedTab } from '@/recoil/recoil';
 import Menu from '../contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { LicenseModal } from '@/components/modal/LicenseModal';
@@ -13,8 +14,8 @@ import { generateUUID, getId } from '@/utils';
 import { GiTallBridge } from 'react-icons/gi';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { Password } from '../password';
-import './index.scss';
 import { VscExtensions } from 'react-icons/vsc';
+import { EulaModal } from '../modal/EulaModal';
 
 const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const sNavigate = useNavigate();
@@ -26,8 +27,14 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const [sIsPWDModal, setIsPWDModal] = useState<boolean>(false);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    const getGLicense = useRecoilValue(gLicense);
+    const [openEula, setOpenEula] = useState<boolean>(false);
 
-    const selectExtension = (aItem: any) => {
+    const selectExtension = async (aItem: any) => {
+        // EULA TEST
+        setOpenEula(true);
+        if (getGLicense?.eulaRequired) return;
+
         if (aItem.label === sSelectedExtension) {
             setSelectedExtension('');
             pHandleSideBar(false);
@@ -163,12 +170,13 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                             cursor: 'pointer',
                         }}
                     >
-                        <ExtensionBtn pIcon={<Gear />} onClick={() => setIsOpen(!isOpen)} />
+                        <ExtensionBtn isBadge={getGLicense?.licenseStatus !== BADGE_KEYWORD} pIcon={<Gear />} onClick={() => setIsOpen(!isOpen)} />
                         <div style={{ position: 'absolute', bottom: 1, left: '100%' }}>
                             <Menu isOpen={isOpen}>
                                 <Menu.Item onClick={() => setIsLicenseModal(true)}>
                                     <Key />
                                     <span>License</span>
+                                    {getGLicense?.licenseStatus !== BADGE_KEYWORD && <div className="ext-btn-badge" style={{width: '6px', height: '6px', borderRadius: '3px', backgroundColor: '#ff4747', boxShadow: '0 0 3px 3px #ff4747'}} />}
                                 </Menu.Item>
                                 <Menu.Item onClick={handleSSHKeys}>
                                     <VscKey />
@@ -189,6 +197,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
             </div>
             {sIsLicenseModal ? <LicenseModal pIsDarkMode setIsOpen={setIsLicenseModal} /> : null}
             {sIsPWDModal && <Password setIsOpen={setIsPWDModal} />}
+            {getGLicense?.eulaRequired && openEula && <EulaModal set={setOpenEula} />}
         </>
     );
 };

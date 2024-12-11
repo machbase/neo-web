@@ -12,6 +12,7 @@ import { getId } from '@/utils';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import {
     gConsoleSelector,
+    gLicense,
     // gExtensionList,
     gSelectedExtension,
     gShellList,
@@ -25,6 +26,7 @@ import { Shell } from '@/components/side/Shell';
 import { useToken } from '@/hooks/useToken';
 import { BridgeSide } from '@/components/side/Bridge';
 import { AppStore } from '@/components/side/AppStore';
+import { GlobalChecker } from '@/components/GlobalChecker';
 
 const Home = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);
@@ -43,6 +45,7 @@ const Home = () => {
     const timer: any = useRef();
     const sWebSoc: any = useRef(null);
     const setShellList = useSetRecoilState<any>(gShellList);
+    const setLicense = useSetRecoilState(gLicense)
 
     let count = 0;
     const init = async () => {
@@ -106,7 +109,8 @@ const Home = () => {
     const getInfo = async () => {
         const sResult: any = await getLogin();
         localStorage.setItem('experimentMode', sResult?.experimentMode ?? false);
-        setServer(sResult.server);
+        setLicense({eulaRequired: sResult?.eulaRequired ,licenseStatus: sResult?.licenseStatus?.toUpperCase()})
+        setServer(sResult?.server);
         const sortAttributes = (aItem: string, bItem: string) => {
             const sOrder = ['editable', 'cloneable', 'removable'];
             return sOrder.indexOf(aItem) - sOrder.indexOf(bItem);
@@ -231,6 +235,7 @@ const Home = () => {
                     </Pane>
                 </SplitPane>
             </div>
+            {sHome && <GlobalChecker />}
         </div>
     );
 };
