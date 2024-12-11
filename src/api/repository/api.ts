@@ -56,6 +56,20 @@ const postLicense = (aItem: any) => {
         data: aItem,
     });
 };
+/** EULA */
+export const apiGetEula = () => {
+    return request({
+        method: 'GET',
+        url: `/api/license/eula`,
+    });
+}
+/** EULA Accept */
+export const apiPostEulaAccept = () => {
+    return request({
+        method: 'POST',
+        url: `/api/license/eula`,
+    });
+}
 export interface MOUNTED_DB {
     backupBeginTime: string;
     backupEndTime: string;

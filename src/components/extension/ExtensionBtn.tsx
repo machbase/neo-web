@@ -1,14 +1,16 @@
 import { gSelectedExtension } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import './ExtensionBtn.scss';
+import { BadgeStatus } from '../badge';
 
 interface ExtensionBtnProps {
+    isBadge?: boolean;
     pLabel?: string;
     pIcon: React.ReactNode;
     onClick?: React.MouseEventHandler<HTMLDivElement>;
 }
 
-const ExtensionBtn = ({ pLabel, pIcon, onClick }: ExtensionBtnProps) => {
+const ExtensionBtn = ({ isBadge = false, pLabel, pIcon, onClick }: ExtensionBtnProps) => {
     const [sSelectedExtension] = useRecoilState<string>(gSelectedExtension);
     return (
         <div
@@ -21,6 +23,9 @@ const ExtensionBtn = ({ pLabel, pIcon, onClick }: ExtensionBtnProps) => {
             onClick={onClick}
         >
             {pIcon}
+            {isBadge && <div className='ext-btn-badge'>
+                    <BadgeStatus />
+                </div>}
         </div>
     );
 };

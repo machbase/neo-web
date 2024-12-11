@@ -1,0 +1,14 @@
+.badge-status {
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    background-color: #ff4747;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+
+    span {
+        color: #FFFFFF;
+        font-size: 14px;
+    }
+}

@@ -12,6 +12,7 @@ import { getId } from '@/utils';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import {
     gConsoleSelector,
+    gLicense,
     // gExtensionList,
     gSelectedExtension,
     gShellList,
@@ -25,6 +26,8 @@ import { Shell } from '@/components/side/Shell';
 import { useToken } from '@/hooks/useToken';
 import { BridgeSide } from '@/components/side/Bridge';
 import { AppStore } from '@/components/side/AppStore';
+import { GlobalChecker } from '@/components/GlobalChecker';
+import { EulaModal } from '@/components/modal/EulaModal';
 
 const Home = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);
@@ -43,6 +46,8 @@ const Home = () => {
     const timer: any = useRef();
     const sWebSoc: any = useRef(null);
     const setShellList = useSetRecoilState<any>(gShellList);
+    const [getLicense, setLicense] = useRecoilState(gLicense);
+    const [openEula, setOpenEula] = useState<boolean>(false);
 
     let count = 0;
     const init = async () => {
@@ -106,7 +111,8 @@ const Home = () => {
     const getInfo = async () => {
         const sResult: any = await getLogin();
         localStorage.setItem('experimentMode', sResult?.experimentMode ?? false);
-        setServer(sResult.server);
+        setLicense({eulaRequired: sResult?.eulaRequired ,licenseStatus: sResult?.licenseStatus?.toUpperCase()})
+        setServer(sResult?.server);
         const sortAttributes = (aItem: string, bItem: string) => {
             const sOrder = ['editable', 'cloneable', 'removable'];
             return sOrder.indexOf(aItem) - sOrder.indexOf(bItem);
@@ -136,6 +142,9 @@ const Home = () => {
     };
 
     useEffect(() => {
+        setOpenEula(true)
+    }, [])
+    useEffect(() => {
         sHome && getInfo();
     }, [sHome]);
     useEffect(() => {
@@ -154,7 +163,7 @@ const Home = () => {
 
     return (
         <div className={sDragStat ? 'check-draged home-form' : 'home-form'}>
-            <Extension pSetSideSizes={setSideSizes} pIsSidebar={sIsSidebar} pHandleSideBar={setIsSidebar} />
+            <Extension pSetSideSizes={setSideSizes} pIsSidebar={sIsSidebar} pHandleSideBar={setIsSidebar} pSetEula={setOpenEula} />
             <div className="body-form">
                 <SplitPane
                     sashRender={() => <></>}
@@ -231,6 +240,8 @@ const Home = () => {
                     </Pane>
                 </SplitPane>
             </div>
+            {sHome && <GlobalChecker />}
+            {getLicense?.eulaRequired && openEula && <EulaModal set={setOpenEula} />}
         </div>
     );
 };

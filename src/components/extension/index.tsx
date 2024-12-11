@@ -1,8 +1,9 @@
+import './index.scss';
 import { useState, useRef, useEffect } from 'react';
 import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase, VscKey, GoTerminal } from '@/assets/icons/Icon';
 import ExtensionBtn from '@/components/extension/ExtensionBtn';
-import { useRecoilState, useSetRecoilState } from 'recoil';
-import { gBoardList, gExtensionList, gSelectedExtension, gSelectedTab } from '@/recoil/recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { BADGE_KEYWORD, gBoardList, gExtensionList, gLicense, gSelectedExtension, gSelectedTab } from '@/recoil/recoil';
 import Menu from '../contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { LicenseModal } from '@/components/modal/LicenseModal';
@@ -13,10 +14,10 @@ import { generateUUID, getId } from '@/utils';
 import { GiTallBridge } from 'react-icons/gi';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { Password } from '../password';
-import './index.scss';
 import { VscExtensions } from 'react-icons/vsc';
+import { BadgeStatus } from '../badge';
 
-const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
+const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any) => {
     const sNavigate = useNavigate();
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const MenuRef = useRef<HTMLDivElement>(null);
@@ -26,8 +27,14 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
     const [sIsPWDModal, setIsPWDModal] = useState<boolean>(false);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    const getGLicense = useRecoilValue(gLicense);
 
-    const selectExtension = (aItem: any) => {
+
+    const selectExtension = async (aItem: any) => {
+        // EULA TEST
+        pSetEula(true);
+        if (getGLicense?.eulaRequired) return;
+
         if (aItem.label === sSelectedExtension) {
             setSelectedExtension('');
             pHandleSideBar(false);
@@ -163,12 +170,13 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar }: any) => {
                             cursor: 'pointer',
                         }}
                     >
-                        <ExtensionBtn pIcon={<Gear />} onClick={() => setIsOpen(!isOpen)} />
+                        <ExtensionBtn isBadge={getGLicense?.licenseStatus !== BADGE_KEYWORD} pIcon={<Gear />} onClick={() => setIsOpen(!isOpen)} />
                         <div style={{ position: 'absolute', bottom: 1, left: '100%' }}>
                             <Menu isOpen={isOpen}>
                                 <Menu.Item onClick={() => setIsLicenseModal(true)}>
                                     <Key />
                                     <span>License</span>
+                                    {getGLicense?.licenseStatus !== BADGE_KEYWORD && <BadgeStatus />}
                                 </Menu.Item>
                                 <Menu.Item onClick={handleSSHKeys}>
                                     <VscKey />

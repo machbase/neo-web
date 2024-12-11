@@ -5,4 +5,12 @@
     justify-content: center;
     align-items: center;
     font-size: 22px;
+    position: relative;
+
+    .ext-btn-badge {
+        position: absolute;
+        top: 4px;
+        right: 6px;
+    }
 }
+

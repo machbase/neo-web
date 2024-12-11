@@ -9,7 +9,8 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
         if (aEvent.target.checked === true) {
             pSetCopyPanelInfo({ ...pPanelInfo, [aType]: 'Y' });
         } else {
-            pSetCopyPanelInfo({ ...pPanelInfo, [aType]: 'N' });
+            if (aType === 'use_right_y2') pSetCopyPanelInfo({ ...pPanelInfo, [aType]: 'N', tag_set: pPanelInfo.tag_set.map((tag: any) => { return {...tag, use_y2: 'N'}}) });
+            else pSetCopyPanelInfo({ ...pPanelInfo, [aType]: 'N' });
         }
     };
 
