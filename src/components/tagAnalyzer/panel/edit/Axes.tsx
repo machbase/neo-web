@@ -291,8 +291,8 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                                     .filter((aItem: any) => aItem.use_y2 === 'N')
                                     .map((bItem: any) => {
                                         return (
-                                            <option key={bItem.key} value={bItem.key}>
-                                                {bItem.tagName}
+                                            <option key={bItem.key} value={bItem.key}  >
+                                                {bItem?.alias && bItem?.alias !== '' ? bItem?.alias : `${bItem?.tagName}(${bItem?.calculationMode})`}
                                             </option>
                                         );
                                     })}
@@ -305,8 +305,8 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                                 .filter((aItem: any) => aItem.use_y2 === 'Y')
                                 .map((bItem: any) => {
                                     return (
-                                        <div onClick={() => setRemoveY2TagList(bItem.key)} key={bItem.key}>
-                                            {bItem.tagName}
+                                        <div onClick={() => setRemoveY2TagList(bItem.key)} key={bItem.key} style={{padding: '2px', gap: '4px'}}>
+                                            <span style={{borderLeft: `solid 2px ${bItem.color}`, paddingLeft: '8px'}}>{bItem?.alias && bItem?.alias !== '' ? bItem?.alias : `${bItem?.tagName}(${bItem?.calculationMode})`}</span>
                                         </div>
                                     );
                                 })}
