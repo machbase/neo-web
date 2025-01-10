@@ -6,6 +6,16 @@
     align-items: center;
     font-size: 22px;
     position: relative;
+    cursor: pointer !important;
+
+    &:hover {
+        svg {
+            fill: #FFFFFF;
+            path {
+                fill: #FFFFFF
+            }
+        }
+    }
 
     .ext-btn-badge {
         position: absolute;
