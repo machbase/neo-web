@@ -222,7 +222,8 @@ const Chart = ({
             },
             yAxis: [
                 {
-                    tickAmount: updateYaxis().left[0] === updateYaxis().left[1] && 1,
+                    // tickAmount: updateYaxis().left[0] === updateYaxis().left[1] && 1,
+                    tickAmount: 5,
                     tickPositions: updateYaxis().left[0] === updateYaxis().left[1] && [updateYaxis().left[0]],
                     min: !pIsRaw
                         ? Number(pPanelInfo.custom_min) === 0 && Number(pPanelInfo.custom_max) === 0
@@ -272,7 +273,8 @@ const Chart = ({
                     ],
                 },
                 {
-                    tickAmount: updateYaxis().right[0] === updateYaxis().right[1] && 1,
+                    // tickAmount: updateYaxis().right[0] === updateYaxis().right[1] && 1,
+                    tickAmount: 5,
                     tickPositions: updateYaxis().right[0] === updateYaxis().right[1] && [updateYaxis().right[0]],
                     min: !pIsRaw
                         ? Number(pPanelInfo.custom_min2) === 0 && Number(pPanelInfo.custom_max2) === 0
@@ -297,7 +299,8 @@ const Chart = ({
                             : updateYaxis().right[1]
                         : Number(pPanelInfo.custom_drilldown_max2),
                     showLastLabel: pPanelInfo.use_normalize === 'N',
-                    gridLineWidth: 1,
+                    // gridLineWidth: 1,
+                    gridLineWidth: pPanelInfo.show_y_tickline2 === 'Y' ? 1 : 0,
                     gridLineColor: '#323333',
                     lineColor: '#323333',
                     startOnTick: true,

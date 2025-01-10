@@ -184,7 +184,7 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                     </div>
                     <div className="scale-box-form pt-12">
                         <input
-                            defaultChecked={pPanelInfo.zero_base2}
+                            defaultChecked={pPanelInfo.zero_base2  === 'Y'}
                             onChange={(aEvent: any) => getCheckboxValue(aEvent, 'zero_base2')}
                             disabled={pPanelInfo.use_right_y2 !== 'Y'}
                             type="checkbox"
@@ -193,7 +193,7 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                     </div>
                     <div className="scale-tick-line-form pt-12">
                         <input
-                            defaultChecked={pPanelInfo.show_y_tickline2}
+                            defaultChecked={pPanelInfo.show_y_tickline2  === 'Y'}
                             disabled={pPanelInfo.use_right_y2 !== 'Y'}
                             onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_y_tickline2')}
                             type="checkbox"
