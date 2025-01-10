@@ -31,8 +31,6 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
         });
     };
 
-    console.log('pPanelInfo', pPanelInfo)
-
     return (
         <div className="axes-form">
             <div className="x-axis">
