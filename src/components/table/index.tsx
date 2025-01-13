@@ -66,9 +66,9 @@ TableProps) => {
                                 <span style={{ marginLeft: '20px', cursor: 'default' }} />
                             )}
                         </th>
-                        {pTableData.columns.map((aColumn: string) => {
+                        {pTableData.columns.map((aColumn: string, idx: number) => {
                             return (
-                                <th key={aColumn} style={{ cursor: 'default' }}>
+                                <th key={`${aColumn}-${idx.toString()}`} style={{ cursor: 'default' }}>
                                     <span>{aColumn?.toString()}</span>
                                 </th>
                             );
