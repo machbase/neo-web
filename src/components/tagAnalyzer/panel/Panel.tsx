@@ -691,7 +691,7 @@ any) => {
     }, [pPanelInfo]);
     // update time range & preview & init
     useEffect(() => {
-        if (sChartRef.current) setRange();
+        if (sChartRef.current) resetData();
     }, [pBgnEndTimeRange]);
     useEffect(() => {
         if (sActiveTabId === pBoardInfo.id && sAreaChart && sAreaChart.current && !sAreaChart.current?.dataset?.processed) setRange();
