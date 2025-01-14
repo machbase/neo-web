@@ -39,6 +39,7 @@ import { UrlDownloadModal } from '../modal/UrlDownloadModal';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { VscCopy } from 'react-icons/vsc';
 import { FileCopy } from '@/utils/UpdateTree';
+import axios from 'axios';
 
 const Side = ({
     pGetInfo,
@@ -163,7 +164,7 @@ any) => {
         } else {
             const sContentResult: any = await getFiles(`${file.path}${file.name}`);
             const sFileExtension = extractionExtension(file.id);
-            if (typeof sContentResult === 'object' && !isImage(file.id)) return;
+            if (axios.isAxiosError(sContentResult)) return;
             let sTmpBoard: any = { id: sTmpId, name: file.name, type: sFileExtension, path: file.path, savedCode: sContentResult, code: '' };
             if (sFileExtension === 'wrk') {
                 const sTmpData = JSON.parse(sContentResult);
