@@ -194,6 +194,27 @@ export const DefaultChartOption = {
     h: 7 as number, // height
 };
 
+export const DefaultVariableTableOption = {
+    id: generateUUID(),
+    table: '' as string | undefined,
+    userName: '' as string | undefined,
+    color: getDefaultColor(),
+    type: '',
+    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    values: [{ id: generateUUID(), alias: '', value: '', aggregator: 'value' }],
+    useRollup: false,
+    name: '',
+    time: '',
+    useCustom: false,
+    aggregator: '',
+    diff: '',
+    tag: '',
+    value: 'VALUE',
+    alias: '',
+    math: '',
+    duration: { from: '', to: '' },
+};
+
 export const DefaultTagTableOption = {
     id: generateUUID(),
     table: undefined as string | undefined,

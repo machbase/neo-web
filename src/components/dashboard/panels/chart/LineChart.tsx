@@ -28,6 +28,7 @@ const LineChart = ({
     pParentWidth,
     pIsHeader,
     pBoardTimeMinMax,
+    pBoardInfo,
 }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
     const [sChartData, setChartData] = useState<any>({});
@@ -91,11 +92,18 @@ const LineChart = ({
             }
         } else {
             if (!sStartTime || !sEndTime) return;
-            const [sParsedQuery, sAliasList] = await DashboardQueryParser(chartTypeConverter(pPanelInfo.type), pPanelInfo.blockList, sRollupTableList, pPanelInfo.xAxisOptions, {
-                interval: sIntervalInfo,
-                start: sStartTime,
-                end: sEndTime,
-            });
+            const [sParsedQuery, sAliasList] = await DashboardQueryParser(
+                chartTypeConverter(pPanelInfo.type),
+                pPanelInfo.blockList,
+                sRollupTableList,
+                pPanelInfo.xAxisOptions,
+                {
+                    interval: sIntervalInfo,
+                    start: sStartTime,
+                    end: sEndTime,
+                },
+                pBoardInfo.dashboard.variables
+            );
             const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
             const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
 

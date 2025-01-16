@@ -13,6 +13,7 @@ const Value = ({
     pColumnList,
     pChangeValueOption,
     pAggList,
+    pVariableList,
 }: // pBlockInfo,
 // pIdx, pAddValue, pRemoveValue,
 // ,pValueLimits
@@ -28,9 +29,9 @@ any) => {
                     pInitValue={pValue.value}
                     pHeight={26}
                     pAutoChanged={false}
-                    pIsDisabled={!pColumnList[0]}
+                    pIsDisabled={!pColumnList[0] && !pVariableList}
                     onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
-                    pOptions={pColumnList.map((aItem: any) => aItem[0])}
+                    pOptions={pColumnList.map((aItem: any) => aItem[0]).concat(pVariableList)}
                 />
             </div>
 

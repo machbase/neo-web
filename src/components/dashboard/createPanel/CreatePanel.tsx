@@ -117,7 +117,6 @@ const CreatePanel = ({
                     return sSaveTarget;
                 } else return aItem;
             });
-
             setBoardList(() => sTabList);
         }
 
@@ -472,7 +471,14 @@ const CreatePanel = ({
                             </Pane>
                             <Pane>
                                 {sPanelOption.id && (
-                                    <CreatePanelFooter pType={pType} pGetTables={getTables} pTableList={sTableList} pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} />
+                                    <CreatePanelFooter
+                                        pVariableList={pBoardInfo.dashboard.variables}
+                                        pType={pType}
+                                        pGetTables={getTables}
+                                        pTableList={sTableList}
+                                        pPanelOption={sPanelOption}
+                                        pSetPanelOption={setPanelOption}
+                                    />
                                 )}
                             </Pane>
                         </SplitPane>

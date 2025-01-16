@@ -9,7 +9,7 @@ import { gBoardList, gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import Panel from './panels/Panel';
 import CreatePanel from './createPanel/CreatePanel';
 import { IconButton } from '../buttons/IconButton';
-import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, VscSync, MdLink } from '@/assets/icons/Icon';
+import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, VscSync, MdLink, Gear, VscChevronDown } from '@/assets/icons/Icon';
 import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
 import moment from 'moment';
 import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
@@ -21,6 +21,8 @@ import { Input } from '../inputs/Input';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { Error } from '../toast/Toast';
+import { Variable } from './variable';
+import { VariableHeader } from './variable/header';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
@@ -36,6 +38,8 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const [sChartVariableId, setChartVariableId] = useState<string>('');
     const [sBoardTimeMinMax, setBoardTimeMinMax] = useState<any>(undefined);
     const sActiveTabId = useRecoilValue<any>(gSelectedTab);
+    const [sVariableModal, setVariableModal] = useState<boolean>(false);
+    const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
 
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
@@ -182,7 +186,6 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
             return getNowMinMax();
         }
     };
-
     const getNowMinMax = () => {
         const sNowTime = moment().unix() * 1000;
         const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
@@ -216,6 +219,12 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
             <div ref={sBoardRef} className="dashboard-form">
                 <div className="board-header">
                     <div className="board-header-l">
+                        <div className="board-header-variable-collapse" onClick={() => setVariableCollapse(!sVariableCollapse)}>
+                            {sVariableCollapse ? <VscChevronDown /> : <VscChevronRight />}
+                            <span>Variables</span>
+                        </div>
+                        <IconButton pIsToopTip pToolTipContent="Variable config" pToolTipId="dsh-variable" pIcon={<Gear />} onClick={() => setVariableModal(!sVariableModal)} />
+                        <div style={{ padding: '0 20px' }}></div>
                         <Input pBorderRadius={4} pWidth={175} pHeight={26} pType="text" pValue={pInfo.dashboard.title} pSetValue={() => null} onChange={changeDashboardName} />
                     </div>
                     <div className="board-header-r">
@@ -225,7 +234,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                             pToolTipId="dsh-tab-explorer-new-panel"
                             pIcon={<TbSquarePlus />}
                             onClick={() => showEditPanel('create')}
-                        ></IconButton>
+                        />
                         {/* <IconButton pIcon={<MdDevicesFold style={{ transform: 'rotate(-90deg)' }} />} pIsActive={!sIsPanelHeader} onClick={HandlePanelHeader} /> */}
                         <IconButton
                             pIsToopTip
@@ -278,6 +287,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         ) : null}
                     </div>
                 </div>
+                {sVariableCollapse && !sVariableModal && !sThisPanelStatus && <VariableHeader pBoardInfo={pInfo} />}
                 {pWidth && (
                     <div className="board-body">
                         <GridLayout
@@ -343,6 +353,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         pSetBoardTimeMinMax={setBoardTimeMinMax}
                     />
                 )}
+                {sVariableModal && <Variable pBoardInfo={pInfo} pSetModal={setVariableModal} />}
             </div>
         )
     );

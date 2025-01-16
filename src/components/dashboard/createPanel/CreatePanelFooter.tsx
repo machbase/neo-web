@@ -12,7 +12,7 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { TqlBlock } from './TqlBlock';
 import { getTagColor, getUseColorList } from '@/utils/helpers/tags';
 
-const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
+const CreatePanelFooter = ({ pVariableList, pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
     const [sTab, setTab] = useState('Query');
     const VALUE_LIMIT: number = 1;
 
@@ -96,6 +96,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                             pBlockInfo={aItem}
                                             pSetPanelOption={pSetPanelOption}
                                             pValueLimit={VALUE_LIMIT}
+                                            pVariableList={pVariableList}
                                         />
                                     );
                                 })}

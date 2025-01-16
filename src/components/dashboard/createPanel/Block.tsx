@@ -30,8 +30,9 @@ import { Error } from '@/components/toast/Toast';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { TagSearchSelect } from '@/components/inputs/TagSearchSelect';
 import { Duration } from './Duration';
+import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 
-export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
+export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
@@ -44,6 +45,10 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     const sColorPickerRef = useRef<any>(null);
     const sMathRef = useRef<any>(null);
 
+    /** return variable list */
+    const getVariableList = useMemo((): string[] => {
+        return pVariableList?.map((variable: any) => variable.key);
+    }, [pVariableList]);
     const setOption = (aKey: string, aData: any) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -59,19 +64,32 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             const sIsVirtualTable = aData.target.value.includes('V$');
             const sTargetTableName = sIsVirtualTable ? aData.target.value.replace('V$', '').replace('_STAT', '') : aData.target.value;
             const sTargetTable = pTableList.find((aItem: any) => aItem[3] === sTargetTableName);
+            const sIsVariable = aData.target.value.match(VARIABLE_REGEX);
 
             if (sIsVirtualTable) setSelectedTableType('vir_tag');
+            else if (sIsVariable) setSelectedTableType('variable_tag');
             else setSelectedTableType(getTableType(sTargetTable[4]));
 
-            const sDefaultBlockOption = createDefaultTagTableOption(sTargetTable[1], sTargetTable, getTableType(sTargetTable[4]), '');
+            const sDefaultBlockOption = sTargetTable
+                ? // TAG | LOG | VIR
+                  createDefaultTagTableOption(sTargetTable[1], sTargetTable, getTableType(sTargetTable[4]), '')
+                : // VARIABLE
+                  createDefaultTagTableOption('', ['', '', '', aData.target.value], '', '');
+
             if (sIsVirtualTable) {
                 sDefaultBlockOption[0].useCustom = true;
                 sDefaultBlockOption[0].table = aData.target.value;
                 sDefaultBlockOption[0].values = [{ id: sDefaultBlockOption[0].values[0].id, aggregator: 'sum', value: '', alias: '' }];
             }
+            if (sIsVariable) {
+                sDefaultBlockOption[0].useCustom = true;
+                sDefaultBlockOption[0].table = aData.target.value;
+            }
+
             const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any) => {
                 return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID(), color: aTable.color } : aTable;
             });
+
             pSetPanelOption((aPrev: any) => {
                 return {
                     ...aPrev,
@@ -412,7 +430,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                 };
             });
         }
-        const sTableList = pTableList.map((aItem: any) => aItem[3]);
+        let sTableList = pTableList.map((aItem: any) => aItem[3]);
+        sTableList = sTableList.concat(getVariableList);
+
         if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
             // sTagTableList has only MACHBASEDB
             const sTagTableList = JSON.parse(JSON.stringify(pTableList)).filter((aTable: any) => getTableType(aTable[4]) === 'tag' && aTable[6] === -1);
@@ -497,19 +517,20 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 <div className="details">
                                     <div className="series-table">
                                         <span className="series-title">Time field</span>
-                                        {sTimeList[0] && (
-                                            <Select
-                                                pFontSize={12}
-                                                pWidth={175}
-                                                pBorderRadius={4}
-                                                pInitValue={pBlockInfo.time}
-                                                pHeight={26}
-                                                onChange={(aEvent: any) => changedOption('time', aEvent)}
-                                                pOptions={sTimeList.map((aItem: any) => {
+                                        <Select
+                                            pIsDisabled={!sTimeList[0] && !getVariableList}
+                                            pFontSize={12}
+                                            pWidth={175}
+                                            pBorderRadius={4}
+                                            pInitValue={pBlockInfo.time}
+                                            pHeight={26}
+                                            onChange={(aEvent: any) => changedOption('time', aEvent)}
+                                            pOptions={sTimeList
+                                                .map((aItem: any) => {
                                                     return aItem[0];
-                                                })}
-                                            />
-                                        )}
+                                                })
+                                                .concat(getVariableList)}
+                                        />
                                     </div>
                                 </div>
                             )}
@@ -695,6 +716,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                     pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
                                     pValueLimit={pValueLimit}
                                     pAggList={getAggregatorList}
+                                    pVariableList={getVariableList}
                                 />
                             );
                         })}
@@ -715,6 +737,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                     pIdx={aIdx}
                                     pAddFilter={addFilter}
                                     pRemoveFilter={removeFilter}
+                                    pVariableList={getVariableList}
                                 />
                             );
                         })}

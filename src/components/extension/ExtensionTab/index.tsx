@@ -9,7 +9,7 @@ import moment from 'moment';
 import './index.scss';
 import { VscCheck, VscCircleFilled, VscPass } from 'react-icons/vsc';
 import { generateUUID } from '@/utils';
-import { MdKeyboardArrowRight, MdOutlineKeyboardArrowDown } from 'react-icons/md';
+import { MdDelete, MdKeyboardArrowRight, MdOutlineKeyboardArrowDown } from 'react-icons/md';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Loader } from '@/components/loader';
 
@@ -385,9 +385,25 @@ const Checkbox = ({ pCallback, pValue, pDisable }: { pCallback?: (value: any) =>
         </div>
     );
 };
-const Selector = ({ pList, pSelectedItem, pCallback, pWidth = '400px' }: { pList: any; pSelectedItem: any; pCallback: (eTarget: string) => void; pWidth?: string }) => {
+const Selector = ({
+    pList,
+    pSelectedItem,
+    pCallback,
+    pWidth = '400px',
+    disable = false,
+}: {
+    pList: any;
+    pSelectedItem: any;
+    pCallback: (eTarget: string) => void;
+    pWidth?: string;
+    disable?: boolean;
+}) => {
     const [sIsOpen, setIsOpen] = useState<boolean>(false);
 
+    const handleOpen = () => {
+        if (disable) return;
+        setIsOpen(!sIsOpen);
+    };
     const handleCallback = (aItem: string) => {
         pCallback(aItem);
         setIsOpen(false);
@@ -395,7 +411,7 @@ const Selector = ({ pList, pSelectedItem, pCallback, pWidth = '400px' }: { pList
 
     return (
         <div className="extension-tab-selector-wrapper" style={{ width: 'auto', maxWidth: pWidth }}>
-            <div className="extension-tab-selector-header" onClick={() => setIsOpen(!sIsOpen)}>
+            <div className="extension-tab-selector-header" onClick={handleOpen}>
                 <span>{pSelectedItem}</span>
                 <ArrowDown />
             </div>
@@ -435,9 +451,42 @@ const TextResSuccess = ({ pText }: { pText: string }) => {
         </div>
     );
 };
-const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
+const Table = ({
+    pList,
+    dotted,
+    activeRow = false,
+    rowSelectCallback = () => {},
+    rowDeleteCallback = undefined,
+}: {
+    pList: any;
+    dotted?: boolean;
+    activeRow?: boolean;
+    rowSelectCallback?: (item: string[]) => void;
+    rowDeleteCallback?: (item: string[]) => void | undefined;
+}) => {
+    const tableRef = useRef<any>(null);
+    const [active, setActive] = useState<string[]>();
+
+    const checkActiveRow = (item: string[], idx: number): string => {
+        const result: string[] = ['result-body-tr'];
+        if (activeRow && active && item?.join() === active.join()) result.push('active-row');
+        if (Number(idx) % 2 !== 0) result.push('dark-odd');
+        return result?.join(' ');
+    };
+    const handleDelete = (e: React.MouseEvent, item: string[]) => {
+        e.stopPropagation();
+        rowDeleteCallback && rowDeleteCallback(item);
+    };
+    const handleRowClick = (e: React.MouseEvent, item: string[]) => {
+        e.stopPropagation();
+        setActive(item);
+        rowSelectCallback(item);
+    };
+
+    useOutsideClick(tableRef, () => setActive([]));
+
     return (
-        <div className="extension-tab-table-wrapper">
+        <div ref={tableRef} className="extension-tab-table-wrapper">
             <table className="extension-tab-table">
                 <thead className="extension-tab-table-header">
                     {pList && pList.columns ? (
@@ -450,6 +499,7 @@ const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
                                     </th>
                                 );
                             })}
+                            {rowDeleteCallback && <th className="extension-tab-table-header-action" style={{ cursor: 'default' }}></th>}
                         </tr>
                     ) : (
                         <></>
@@ -459,7 +509,7 @@ const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
                     {pList && pList.rows
                         ? pList.rows.map((aRowList: any, aIdx: number) => {
                               return (
-                                  <tr key={'tbody-row' + aIdx} className={Number(aIdx) % 2 === 0 ? 'result-body-tr' : 'result-body-tr dark-odd'}>
+                                  <tr key={'tbody-row' + aIdx} className={checkActiveRow(aRowList, aIdx)} onClick={(e) => handleRowClick(e, aRowList)}>
                                       {dotted && (
                                           <td className="result-table-item" style={{ cursor: 'default' }}>
                                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -468,12 +518,18 @@ const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
                                           </td>
                                       )}
                                       {aRowList.map((aRowData: any) => {
+                                          if (typeof aRowData === 'object') return null;
                                           return (
                                               <td className="result-table-item" key={generateUUID()}>
                                                   <span>{aRowData + ''}</span>
                                               </td>
                                           );
                                       })}
+                                      {rowDeleteCallback && (
+                                          <td className="result-table-item action" onClick={(e) => handleDelete(e, aRowList)}>
+                                              <MdDelete />
+                                          </td>
+                                      )}
                                   </tr>
                               );
                           })

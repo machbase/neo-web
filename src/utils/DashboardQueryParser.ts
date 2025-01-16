@@ -1,6 +1,8 @@
 import moment from 'moment';
 import { isRollup } from '.';
 import { ADMIN_ID } from './constants';
+import { VARIABLE_REGEX } from './CheckDataCompatibility';
+import { VARIABLE_TYPE } from '@/components/dashboard/variable';
 
 interface BlockTimeType {
     interval: {
@@ -27,16 +29,26 @@ export const SqlResDataType = (aChartType: string): string => {
     return sResDataType;
 };
 
+const VariableParser = (aVariables: VARIABLE_TYPE[]) => {
+    const result = aVariables.map((variable: any) => {
+        return { key: variable.key, value: variable.use.value };
+    });
+    return result;
+};
+
 /** Dashboard QUERY PARSER */
-export const DashboardQueryParser = async (aChartType: string, aBlockList: any, aRollupList: any, aXaxis: any, aTime: BlockTimeType) => {
+export const DashboardQueryParser = async (aChartType: string, aBlockList: any, aRollupList: any, aXaxis: any, aTime: BlockTimeType, aVariables: VARIABLE_TYPE[]) => {
     const sResDataType = SqlResDataType(aChartType);
     const sTranspose = sResDataType === 'TIME_VALUE' && aXaxis[0].type === 'category';
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
-    const [sParsedQueryList, sAliasList] = QueryParser(sTranspose, sQueryBlock, aTime, sResDataType);
+    const sVariables = VariableParser(aVariables);
+    const [sParsedQueryList, sAliasList] = QueryParser(sTranspose, sQueryBlock, aTime, sResDataType, sVariables);
     return [sParsedQueryList, sAliasList];
 };
 /** Combine table and user */
 const CombineTableUser = (table: string) => {
+    // Variable
+    if (table.match(VARIABLE_REGEX)) return table;
     // Admin
     if (table.split('.').length === 1) return `${ADMIN_ID.toUpperCase()}.${table}`;
     else return table;
@@ -319,7 +331,20 @@ const GetConbineWhere = (
     return sReturnWhere;
 };
 
-const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string) => {
+const ReplaceVariables = (sql: string, variables: { key: string; value: string }[]) => {
+    // if (!variables || variables?.length < 1) return sql;
+    // return sql;
+    if (!variables || variables.length < 1) return sql;
+
+    variables.forEach((variable) => {
+        const regex = new RegExp(variable.key, 'g');
+        sql = sql.replaceAll(regex, variable.value);
+    });
+
+    return sql;
+};
+
+const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string, aVariables: { key: string; value: string }[]) => {
     const sAliasList: any[] = [];
     const sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
@@ -333,6 +358,9 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         const sAlias = GetAlias(aQuery.valueList[0]);
         const sUseCountAll = UseCountAll(aQuery.valueList);
         const sIsVirtualTable = aQuery.tableName.includes('V$');
+        // const sConbineWhere = aQuery.tableName.match(VARIABLE_REGEX)
+        //     ? ''
+        //     : GetConbineWhere(aResDataType, aQuery, aTime, sTimeWhere, sFilterWhere, sGroupBy, sOrderBy, sUseAgg, sUseCountAll, sIsVirtualTable);
         const sConbineWhere = GetConbineWhere(aResDataType, aQuery, aTime, sTimeWhere, sFilterWhere, sGroupBy, sOrderBy, sUseAgg, sUseCountAll, sIsVirtualTable);
         let sSql: string = '';
         let sTql: string = '';
@@ -362,6 +390,8 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
             if (aQuery?.math && aQuery?.math !== '') sTql += `MAPVALUE(1, ${mathValueConverter('0', aQuery?.math)}, "VALUE")\nPOPVALUE(0)\n`;
             sTql += `MAPVALUE(1, dict("name", "${sAlias}", "value", value(0)))\nPOPVALUE(0)`;
         }
+
+        sSql = ReplaceVariables(sSql, aVariables);
 
         return {
             query: `SQL("${sSql}")${sTql !== '' ? '\n' + sTql : ''}\nJSON()`,

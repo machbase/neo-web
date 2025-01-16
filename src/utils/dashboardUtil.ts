@@ -16,6 +16,7 @@ import {
     StructureOfLineVisualMapOption,
     DefaultLogTableOption,
     chartTypeConverter,
+    DefaultVariableTableOption,
 } from '@/utils/eChartHelper';
 import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartAxisTooltipFormatter } from '@/utils/constants';
 import { ChartType } from '@/type/eChart';
@@ -321,8 +322,12 @@ export const nameValueVirtualAggList = ['count', 'sum', 'min', 'max', 'avg'];
 
 export const refreshTimeList = ['Off', '3 seconds', '5 seconds', '10 seconds', '30 seconds', '1 minute', '5 minutes', '10 minutes', '1 hour'];
 
-export const createDefaultTagTableOption = (aUser: string, aTable: string, aTableType: string, aTag: string) => {
-    const sDefaultTableOpt = aTableType === 'tag' ? DefaultTagTableOption : DefaultLogTableOption;
+export const createDefaultTagTableOption = (aUser: string, aTable: any, aTableType: string, aTag: string) => {
+    let sDefaultTableOpt = undefined;
+    if (aTableType === 'tag') sDefaultTableOpt = DefaultTagTableOption;
+    else if (aTableType === 'log') sDefaultTableOpt = DefaultLogTableOption;
+    else sDefaultTableOpt = DefaultVariableTableOption;
+
     const sOption = [{ ...sDefaultTableOpt, userName: aUser, table: aTable ? aTable[3] : '', type: aTableType, tag: aTag }];
     return sOption;
 };
