@@ -31,19 +31,45 @@ export const SqlResDataType = (aChartType: string): string => {
 
 const VariableParser = (aVariables: VARIABLE_TYPE[]) => {
     const result = aVariables.map((variable: any) => {
-        return { key: variable.key, value: variable.use.value };
+        return { key: variable.key, value: variable.use.value, regEx: new RegExp(variable.key, 'g') };
     });
     return result;
 };
 
+const ReplaceVariables = (sParsedQueryList: any[], variables: { key: string; value: string; regEx: RegExp }[], alias: { color: string; name: string }[]) => {
+    let tmpQueryList: any = JSON.parse(JSON.stringify(sParsedQueryList));
+    let tmpAliasList: any = JSON.parse(JSON.stringify(alias));
+
+    variables.map((variable) => {
+        const tmpList: any = [];
+        const tmpAsList: any = [];
+        tmpQueryList.map((query: any, idx: number) => {
+            if (!query.query.match(variable.regEx)) {
+                tmpList.push({ ...query, idx: tmpList.length });
+                tmpAsList.push(tmpAliasList[idx]);
+                return;
+            }
+            const tmpValuelist = variable.value.split(',');
+            tmpValuelist.map((value) => {
+                tmpList.push({ ...query, idx: tmpList.length, query: query.query.replaceAll(variable.regEx, value.trim()) });
+                tmpAsList.push({ color: '', name: value.trim() });
+            });
+        });
+        tmpQueryList = tmpList;
+        tmpAliasList = tmpAsList;
+    });
+    return [tmpQueryList, tmpAliasList];
+};
+
 /** Dashboard QUERY PARSER */
-export const DashboardQueryParser = async (aChartType: string, aBlockList: any, aRollupList: any, aXaxis: any, aTime: BlockTimeType, aVariables: VARIABLE_TYPE[]) => {
+export const DashboardQueryParser = async (aChartType: string, aBlockList: any, aRollupList: any, aXaxis: any, aTime: BlockTimeType, aVariables?: VARIABLE_TYPE[]) => {
     const sResDataType = SqlResDataType(aChartType);
     const sTranspose = sResDataType === 'TIME_VALUE' && aXaxis[0].type === 'category';
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
-    const sVariables = VariableParser(aVariables);
-    const [sParsedQueryList, sAliasList] = QueryParser(sTranspose, sQueryBlock, aTime, sResDataType, sVariables);
-    return [sParsedQueryList, sAliasList];
+    const sVariables = aVariables ? VariableParser(aVariables) : [];
+    const [sParsedQueryList, sAliasList] = QueryParser(sTranspose, sQueryBlock, aTime, sResDataType);
+    const [sReplaceQueryList, sReplaceAliasList] = ReplaceVariables(sParsedQueryList, sVariables, sAliasList);
+    return [sReplaceQueryList, sReplaceAliasList];
 };
 /** Combine table and user */
 const CombineTableUser = (table: string) => {
@@ -331,20 +357,7 @@ const GetConbineWhere = (
     return sReturnWhere;
 };
 
-const ReplaceVariables = (sql: string, variables: { key: string; value: string }[]) => {
-    // if (!variables || variables?.length < 1) return sql;
-    // return sql;
-    if (!variables || variables.length < 1) return sql;
-
-    variables.forEach((variable) => {
-        const regex = new RegExp(variable.key, 'g');
-        sql = sql.replaceAll(regex, variable.value);
-    });
-
-    return sql;
-};
-
-const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string, aVariables: { key: string; value: string }[]) => {
+const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string) => {
     const sAliasList: any[] = [];
     const sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
@@ -391,7 +404,7 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
             sTql += `MAPVALUE(1, dict("name", "${sAlias}", "value", value(0)))\nPOPVALUE(0)`;
         }
 
-        sSql = ReplaceVariables(sSql, aVariables);
+        // sSql = ReplaceVariables(sSql, aVariables);
 
         return {
             query: `SQL("${sSql}")${sTql !== '' ? '\n' + sTql : ''}\nJSON()`,

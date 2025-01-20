@@ -60,7 +60,7 @@
         &-item {
             display: flex;
             flex-direction: row;
-            align-items: center;
+            align-items: start;
             border-radius: 4px;
             gap: 2px;
             font-size: 14px;
@@ -69,141 +69,28 @@
             &-label {
                 color: rgba(255, 255, 255, 0.5);
                 padding-right: 4px;
+                display: flex;
+                align-items: center;
+                min-height: 27px;
             }
             &-key {
                 border: solid 1px rgba(255, 255, 255, 0.5);
                 border-radius: 4px;
-                padding: 0 8px;
+                padding: 2px 8px;
                 color: #f1f1f1;
                 background-color: rgb(0, 95, 184);
+                cursor: default;
             }
             &-value {
+                min-height: 27px;
                 padding: 0 8px;
                 border: solid 1px rgba(255, 255, 255, 0.5);
                 border-radius: 4px;
                 background-color: #323644;
+                display: flex;
+                align-items: center;
+                cursor: default;
             }
         }
     }
 }
-
-// @import '/src/assets/scss/theme.scss';
-// .create-panel-form {
-//     position: absolute;
-//     width: 100%;
-//     height: 100%;
-//     top: 0;
-//     left: 0;
-//     z-index: $dsh-edit-page-idx;
-//     background-color: #262831;
-//     .header {
-//         height: 40px;
-//         display: flex;
-//         align-items: center;
-//         justify-content: space-between;
-//         padding: 0 16px;
-//         .left {
-//             svg {
-//                 cursor: pointer;
-//             }
-//             display: flex;
-//             align-items: center;
-//             span {
-//                 margin-left: 8px;
-//             }
-//         }
-//         .right {
-//             display: flex;
-//             font-size: 13px;
-//             gap: 8px;
-//             .move-timerange-wrapper {
-//                 display: flex;
-//                 .set-global-option-btn {
-//                     &:hover {
-//                         color: #f8f8f8;
-//                     }
-//                     color: #939498;
-//                     display: flex;
-//                     align-items: center;
-//                     background-color: transparent;
-//                     border: 0.5px solid rgba(255, 255, 255, 0.5);
-//                     height: 26px;
-//                     font-size: 13px;
-//                     border-radius: 6px;
-//                     padding: 0 8px;
-
-//                     svg {
-//                         margin-right: 4px;
-//                         height: 16px;
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//     .body {
-//         height: calc(100% - 40px);
-
-//         .split-side {
-//             .react-split__sash:hover::before {
-//                 border-color: rgba(87, 148, 242, 0.6);
-//             }
-//             .react-split__sash:hover::after {
-//                 background-color: transparent;
-//             }
-//             .react-split__sash::before {
-//                 border-right: 1px solid transparent;
-//                 height: 100%;
-//                 left: 50%;
-//                 transform: translateX(-50%);
-//                 content: '';
-//                 position: absolute;
-//                 transition: border-color 0.2s ease-in-out 0s;
-//             }
-//             .react-split__sash::after {
-//                 height: 200px;
-//                 width: 4px;
-//                 background: #4199ff;
-//                 opacity: 0.3;
-//                 content: '';
-//                 position: absolute;
-//                 left: 50%;
-//                 top: 50%;
-//                 transition: background 0.2s ease-in-out 0s;
-//                 transform: translate(-50%, -50%);
-//                 border-radius: 4px;
-//             }
-//         }
-//         .split-bottom {
-//             .react-split__sash:hover::before {
-//                 border-color: rgba(87, 148, 242, 0.6);
-//             }
-//             .react-split__sash:hover::after {
-//                 background-color: transparent;
-//             }
-//             .react-split__sash::before {
-//                 border-right: 0;
-
-//                 border-top: 1px solid transparent;
-//                 top: 50%;
-//                 width: 100%;
-//                 content: '';
-//                 position: absolute;
-//                 transition: border-color 0.2s ease-in-out 0s;
-//                 z-index: $dsh-split-panel-handler-before-idx;
-//             }
-//             .react-split__sash::after {
-//                 z-index: $dsh-split-panel-handler-after-idx;
-//                 background: #4199ff;
-//                 content: '';
-//                 position: absolute;
-//                 left: 50%;
-//                 top: 50%;
-//                 transition: background 0.2s ease-in-out 0s;
-//                 transform: translate(-50%, -50%);
-//                 border-radius: 4px;
-//                 height: 4px;
-//                 width: 200px;
-//             }
-//         }
-//     }
-// }

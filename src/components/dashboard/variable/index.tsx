@@ -9,6 +9,7 @@ import { generateUUID } from '@/utils';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { postFileList } from '@/api/repository/api';
+import { Close, PlusCircle } from '@/assets/icons/Icon';
 
 export interface VARIABLE_TYPE {
     id: string;
@@ -25,33 +26,35 @@ export interface VARIABLE_ITEM_TYPE {
 }
 type MODE_TYPE = 'CREATE' | 'EDIT';
 
+const DEFAULT_VARIABLE = {
+    open: false,
+    mode: 'CREATE' as MODE_TYPE,
+    data: {
+        id: '',
+        label: '',
+        key: '',
+        type: 'SELECT',
+        use: {
+            id: '',
+            type: 'CSV',
+            value: '',
+        },
+        valueList: [
+            {
+                id: '',
+                type: 'CSV',
+                value: '',
+            },
+        ],
+    } as VARIABLE_TYPE,
+};
+
 export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal: React.Dispatch<React.SetStateAction<boolean>> }) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sBodyRef: any = useRef(null);
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
-    const [sUpdateVariable, setUpdateVariable] = useState<{ open: boolean; mode: MODE_TYPE; data: VARIABLE_TYPE }>({
-        open: false,
-        mode: 'CREATE',
-        data: {
-            id: '',
-            label: '',
-            key: '',
-            type: 'SELECT',
-            use: {
-                id: '',
-                type: 'CSV',
-                value: '',
-            },
-            valueList: [
-                {
-                    id: '',
-                    type: 'CSV',
-                    value: '',
-                },
-            ],
-        },
-    });
+    const [sUpdateVariable, setUpdateVariable] = useState<{ open: boolean; mode: MODE_TYPE; data: VARIABLE_TYPE }>(DEFAULT_VARIABLE);
 
     const updateVariableCode = (updateVarList: VARIABLE_TYPE[]) => {
         let sSaveTarget = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
@@ -96,12 +99,14 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
         if (sUpdateVariable.mode === 'EDIT') {
             tmpVarList = pBoardInfo?.dashboard?.variables?.map((varInfo: VARIABLE_TYPE) => {
                 if (sUpdateVariable.data.id === varInfo.id) {
-                    return { ...sUpdateVariable.data, id: generateUUID() };
+                    const tmpValue = sUpdateVariable.data.valueList?.filter((value) => value.id === sUpdateVariable.data.use.id);
+                    if (tmpValue?.length > 0) return { ...sUpdateVariable.data, use: tmpValue[0] };
+                    else return { ...sUpdateVariable.data, use: sUpdateVariable.data.valueList[0] };
                 } else return varInfo;
             });
         }
         if (sUpdateVariable.mode === 'CREATE') {
-            tmpVarList = pBoardInfo?.dashboard?.variables?.concat({ ...sUpdateVariable.data, id: generateUUID() });
+            tmpVarList = pBoardInfo?.dashboard?.variables?.concat({ ...sUpdateVariable.data, use: sUpdateVariable.data.valueList[0], id: generateUUID() });
         }
         updateVariableCode(tmpVarList ?? []);
         handleResetUpdateVariable();
@@ -109,56 +114,25 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
     const handleResetUpdateVariable = () => {
         setUpdateVariable((prev) => {
             return {
-                open: !prev.open,
-                mode: 'CREATE',
+                ...DEFAULT_VARIABLE,
                 data: {
-                    id: '',
-                    label: '',
-                    type: 'SELECT',
-                    key: '',
-                    use: {
-                        id: '',
-                        type: 'CSV',
-                        value: '',
-                    },
+                    ...DEFAULT_VARIABLE.data,
                     valueList: [
                         {
-                            id: '',
+                            id: generateUUID(),
                             type: 'CSV',
                             value: '',
                         },
                     ],
                 },
+                open: !prev.open,
             };
         });
     };
     const handleVariableDelete = (item: any[]) => {
         const tmpVarList = pBoardInfo?.dashboard?.variables?.filter((varInfo: VARIABLE_TYPE) => item.at(-1).id !== varInfo.id);
         updateVariableCode(tmpVarList ?? []);
-        setUpdateVariable(() => {
-            return {
-                open: false,
-                mode: 'CREATE',
-                data: {
-                    id: '',
-                    label: '',
-                    type: 'SELECT',
-                    key: '',
-                    use: {
-                        id: '',
-                        type: 'CSV',
-                        value: '',
-                    },
-                    valueList: [
-                        {
-                            id: '',
-                            type: 'CSV',
-                            value: '',
-                        },
-                    ],
-                },
-            };
-        });
+        setUpdateVariable(DEFAULT_VARIABLE);
     };
     const handleVariableRowSelect = (item: any[]) => {
         setUpdateVariable({
@@ -169,7 +143,7 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                 label: item.at(-1).label,
                 type: 'SELECT',
                 key: item.at(-1).key,
-                use: item.at(-1).valueList[0],
+                use: item.at(-1).use,
                 valueList: item.at(-1).valueList,
             },
         });
@@ -189,21 +163,21 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
 
         return result;
     };
-    const handleVarOpt = (key: string, item: React.FormEvent<HTMLInputElement>) => {
+    const handleValueUse = (variable: VARIABLE_TYPE, item: VARIABLE_ITEM_TYPE) => {
+        const tmpVarList = pBoardInfo?.dashboard?.variables?.map((varInfo: VARIABLE_TYPE) => {
+            if (variable.id === varInfo.id) {
+                varInfo;
+                return { ...varInfo, use: item };
+            } else return varInfo;
+        });
+        updateVariableCode(tmpVarList ?? []);
+    };
+    const handleVarOpt = (key: string, item: React.FormEvent<HTMLInputElement>, idx?: number) => {
         if (key === 'value') {
-            sUpdateVariable.data.valueList[0].value;
             setUpdateVariable((prev) => {
-                return {
-                    ...prev,
-                    data: {
-                        ...prev.data,
-                        use: {
-                            ...prev.data.use,
-                            value: (item.target as HTMLInputElement).value,
-                        },
-                        valueList: [{ ...prev.data.valueList[0], value: (item.target as HTMLInputElement).value }],
-                    },
-                };
+                const tmp = JSON.parse(JSON.stringify(prev.data.valueList));
+                tmp.splice(idx, 1, { ...tmp[idx as number], value: (item.target as HTMLInputElement).value });
+                return { ...prev, data: { ...prev.data, valueList: tmp } };
             });
         } else {
             setUpdateVariable((prev) => {
@@ -211,15 +185,35 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                     ...prev,
                     data: {
                         ...prev.data,
-                        use: {
-                            ...prev.data.use,
-                            [key]: (item.target as HTMLInputElement).value,
-                        },
                         [key]: (item.target as HTMLInputElement).value,
                     },
                 };
             });
         }
+    };
+    const handleValue = (key: 'DELETE' | 'CREATE', idx: number) => {
+        // CREATE
+        if (key === 'CREATE')
+            setUpdateVariable((prev) => {
+                return {
+                    ...prev,
+                    data: {
+                        ...prev.data,
+                        valueList: prev.data.valueList.concat({
+                            id: generateUUID(),
+                            type: 'CSV',
+                            value: '',
+                        }),
+                    },
+                };
+            });
+        // DELETE
+        if (key === 'DELETE')
+            setUpdateVariable((prev) => {
+                const tmp = JSON.parse(JSON.stringify(prev.data.valueList));
+                tmp.splice(idx, 1);
+                return { ...prev, data: { ...prev.data, valueList: tmp } };
+            });
     };
     const handleClose = () => {
         pSetModal(false);
@@ -255,7 +249,13 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                                             <div className="board-preview-variable-item" key={'board-variable-item-' + idx.toString()}>
                                                 <label className="board-preview-variable-item-label">{variable.label}</label>
                                                 <div className="board-preview-variable-item-key">{variable.key}</div>
-                                                <div className="board-preview-variable-item-value">{variable.use.value}</div>
+                                                <ExtensionTab.Selector
+                                                    pList={variable.valueList.map((value) => {
+                                                        return { name: value.value, data: value };
+                                                    })}
+                                                    pSelectedItem={variable.use.value}
+                                                    pCallback={(item: VARIABLE_ITEM_TYPE) => handleValueUse(variable, item)}
+                                                />
                                             </div>
                                         );
                                     })}
@@ -282,8 +282,15 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                                     <ExtensionTab.ContentBlock>
                                         <ExtensionTab.ContentTitle>Type</ExtensionTab.ContentTitle>
                                         <ExtensionTab.ContentDesc>Variable type</ExtensionTab.ContentDesc>
-                                        sBoardList
-                                        <ExtensionTab.Selector disable pList={['SELECT', 'QUERY']} pSelectedItem={sUpdateVariable.data.type} pCallback={() => {}} />
+                                        <ExtensionTab.Selector
+                                            disable
+                                            pList={[
+                                                { name: 'SELECT', data: 'SELECT' },
+                                                { name: 'QUERY', data: 'QUERY' },
+                                            ]}
+                                            pSelectedItem={sUpdateVariable.data.type}
+                                            pCallback={() => {}}
+                                        />
                                     </ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentBlock>
                                         <ExtensionTab.ContentTitle>Name</ExtensionTab.ContentTitle>
@@ -298,7 +305,20 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                                     <ExtensionTab.ContentBlock>
                                         <ExtensionTab.ContentTitle>Value</ExtensionTab.ContentTitle>
                                         <ExtensionTab.ContentDesc>Value desc</ExtensionTab.ContentDesc>
-                                        <ExtensionTab.Input pValue={sUpdateVariable.data.valueList[0].value} pCallback={(item) => handleVarOpt('value', item)} />
+                                        {sUpdateVariable.data.valueList.map((valueDetail: VARIABLE_ITEM_TYPE, idx: number) => {
+                                            return (
+                                                <ExtensionTab.DpRow key={`variable-value-${idx.toString()}`}>
+                                                    <ExtensionTab.Input pValue={valueDetail.value} pCallback={(item) => handleVarOpt('value', item, idx)} />
+                                                    {sUpdateVariable.data.valueList.length > 1 && (
+                                                        <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => handleValue('DELETE', idx)} />
+                                                    )}
+                                                    {sUpdateVariable.data.valueList.length === idx + 1 && (
+                                                        <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={() => handleValue('CREATE', idx)} />
+                                                    )}
+                                                    <ExtensionTab.ContentBlock />
+                                                </ExtensionTab.DpRow>
+                                            );
+                                        })}
                                     </ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentBlock>
                                         <ExtensionTab.DpRow>

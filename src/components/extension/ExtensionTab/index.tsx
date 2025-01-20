@@ -44,7 +44,7 @@ const SubTitle = ({ children }: { children: React.ReactNode }) => {
         </div>
     );
 };
-const ContentBlock = ({ children, pActive = false, pHoverNone = false }: { children: React.ReactNode; pActive?: boolean; pHoverNone?: boolean }) => {
+const ContentBlock = ({ children, pActive = false, pHoverNone = false }: { children?: React.ReactNode; pActive?: boolean; pHoverNone?: boolean }) => {
     return (
         <div className="extension-tab-block-wrapper">
             <div className={pActive ? `extension-tab-content-block${pHoverNone ? '-none' : ''} active-content-block` : `extension-tab-content-block${pHoverNone ? '-none' : ''}`}>
@@ -385,16 +385,16 @@ const Checkbox = ({ pCallback, pValue, pDisable }: { pCallback?: (value: any) =>
         </div>
     );
 };
-const Selector = ({
+const Selector = <T,>({
     pList,
     pSelectedItem,
     pCallback,
     pWidth = '400px',
     disable = false,
 }: {
-    pList: any;
+    pList: { name: string; data: T }[];
     pSelectedItem: any;
-    pCallback: (eTarget: string) => void;
+    pCallback: (eTarget: T) => void;
     pWidth?: string;
     disable?: boolean;
 }) => {
@@ -404,7 +404,7 @@ const Selector = ({
         if (disable) return;
         setIsOpen(!sIsOpen);
     };
-    const handleCallback = (aItem: string) => {
+    const handleCallback = (aItem: T) => {
         pCallback(aItem);
         setIsOpen(false);
     };
@@ -417,16 +417,16 @@ const Selector = ({
             </div>
             {sIsOpen && (
                 <div className="extension-tab-selector-body">
-                    {pList.map((pItem: string, aIdx: number) => {
+                    {pList.map((pItem, aIdx: number) => {
                         return (
                             <div
-                                key={pItem + aIdx + ''}
+                                key={pItem.name + aIdx + ''}
                                 className={
                                     pSelectedItem === pItem ? 'extension-tab-selector-body-item extension-tab-selector-body-item-selected' : 'extension-tab-selector-body-item'
                                 }
-                                onClick={() => handleCallback(pItem)}
+                                onClick={() => handleCallback(pItem.data)}
                             >
-                                <span>{pItem}</span>
+                                <span>{pItem.name}</span>
                             </div>
                         );
                     })}

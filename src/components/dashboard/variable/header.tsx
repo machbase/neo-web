@@ -1,7 +1,59 @@
 import './header.scss';
-import { VARIABLE_TYPE } from '.';
+import { VARIABLE_ITEM_TYPE, VARIABLE_TYPE } from '.';
+import { gBoardList } from '@/recoil/recoil';
+import { useRecoilState } from 'recoil';
+import { postFileList } from '@/api/repository/api';
+import { ExtensionTab } from '@/components/extension/ExtensionTab';
 
 export const VariableHeader = ({ pBoardInfo }: { pBoardInfo: any }) => {
+    const [sBoardList, setBoardList] = useRecoilState(gBoardList);
+
+    const updateVariableCode = (updateVarList: VARIABLE_TYPE[]) => {
+        let sSaveTarget = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+
+        if (sSaveTarget?.path !== '') {
+            const sTabList = sBoardList.map((aItem) => {
+                if (aItem.id === pBoardInfo.id) {
+                    const sTmpDashboard = {
+                        ...aItem.dashboard,
+                        variables: updateVarList,
+                    };
+                    sSaveTarget = {
+                        ...aItem,
+                        dashboard: sTmpDashboard,
+                        savedCode: JSON.stringify(sTmpDashboard),
+                    };
+                    return sSaveTarget;
+                } else return aItem;
+            });
+            setBoardList(() => sTabList);
+            postFileList(sSaveTarget, sSaveTarget?.path, sSaveTarget?.name);
+        } else {
+            const sTabList = sBoardList.map((aItem) => {
+                if (aItem.id === pBoardInfo.id) {
+                    const sTmpDashboard = {
+                        ...aItem.dashboard,
+                        variables: updateVarList,
+                    };
+                    sSaveTarget = {
+                        ...aItem,
+                        dashboard: sTmpDashboard,
+                    };
+                    return sSaveTarget;
+                } else return aItem;
+            });
+            setBoardList(() => sTabList);
+        }
+    };
+    const handleValueUse = (variable: VARIABLE_TYPE, item: VARIABLE_ITEM_TYPE) => {
+        const tmpVarList = pBoardInfo?.dashboard?.variables?.map((varInfo: VARIABLE_TYPE) => {
+            if (variable.id === varInfo.id) {
+                varInfo;
+                return { ...varInfo, use: item };
+            } else return varInfo;
+        });
+        updateVariableCode(tmpVarList ?? []);
+    };
     return (
         <div className="board-header-variable-wrap">
             <div className="board-header-variable">
@@ -13,7 +65,15 @@ export const VariableHeader = ({ pBoardInfo }: { pBoardInfo: any }) => {
                             <div className="board-header-variable-item" key={'board-variable-item-' + idx.toString()}>
                                 <label className="board-header-variable-item-label">{variable.label}</label>
                                 <div className="board-header-variable-item-key">{variable.key}</div>
-                                <div className="board-header-variable-item-value">{variable.use.value}</div>
+                                <ExtensionTab>
+                                    <ExtensionTab.Selector
+                                        pList={variable.valueList.map((value) => {
+                                            return { name: value.value, data: value };
+                                        })}
+                                        pSelectedItem={variable.use.value}
+                                        pCallback={(item: VARIABLE_ITEM_TYPE) => handleValueUse(variable, item)}
+                                    />
+                                </ExtensionTab>
                             </div>
                         );
                     })}
