@@ -2,7 +2,6 @@ import { Close, GoPencil, PlusCircle } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { Input } from '@/components/inputs/Input';
 import { InputSelector } from '@/components/inputs/InputSelector';
-import { Select } from '@/components/inputs/Select';
 
 const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pBlockInfo, pColumnList, pVariableList }: any) => {
     const sFliterList = ['=', '<>', '>', '>=', '<', '<=', 'in', 'like'];
@@ -37,17 +36,15 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                         />
                     </div>
                     <div className="series-table operator">
-                        {
-                            <Select
-                                pFontSize={12}
-                                pWidth={70}
-                                pBorderRadius={4}
-                                pInitValue={pFilterInfo.operator ?? sFliterList[0]}
-                                pHeight={26}
-                                onChange={(aEvent: any) => pChangeValueOption('operator', aEvent, pFilterInfo.id, 'filter')}
-                                pOptions={sFliterList}
-                            />
-                        }
+                        <InputSelector
+                            pFontSize={12}
+                            pWidth={70}
+                            pBorderRadius={4}
+                            pInitValue={pFilterInfo.operator ?? sFliterList[0]}
+                            pHeight={26}
+                            onChange={(aEvent: any) => pChangeValueOption('operator', aEvent, pFilterInfo.id, 'filter')}
+                            pOptions={sFliterList.concat(pVariableList)}
+                        />
                     </div>
                 </>
             )}
@@ -65,14 +62,13 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                 </div>
             ) : (
                 <div className="series-table">
-                    <Input
+                    <InputSelector
                         pBorderRadius={4}
                         pWidth={175}
                         pHeight={26}
-                        pType="text"
-                        pValue={pFilterInfo.value}
-                        pSetValue={() => null}
+                        pInitValue={pFilterInfo.value}
                         onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
+                        pOptions={pVariableList}
                     />
                 </div>
             )}
@@ -82,7 +78,7 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                     pHeight={20}
                     pIsActive={pFilterInfo.useTyping}
                     pIsToopTip
-                    pDisabled={!pColumnList[0]}
+                    // pDisabled={!pColumnList[0]}
                     pToolTipContent={pFilterInfo.useTyping ? 'Selecting' : 'Typing'}
                     pToolTipId={pBlockInfo.id + '-block-filter-pencil' + pIdx}
                     pIcon={<GoPencil />}

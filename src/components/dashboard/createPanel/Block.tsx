@@ -266,6 +266,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                           aKey === 'operator' && bItem.column !== '' && bItem.value !== '' && aData.target.value !== '' && (sUseFilter = true);
                                       } else sUseFilter = bItem.useFilter;
                                       if (aKey === 'useTyping' && aData.target.value && bItem.useFilter) {
+                                          if (pBlockInfo.customTable) return { ...bItem, useFilter: sUseFilter, typingValue: '', [aKey]: aData.target.value };
                                           // Check varchar type
                                           const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)[1] === 5;
                                           const sValue = sUseQuote ? `"${bItem.value.includes(',') ? bItem.value.split(',').join('","') : bItem.value}"` : bItem.value;
@@ -582,7 +583,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                             <div className="series-table">
                                 <span className="series-title"> Aggregator </span>
                                 {pBlockInfo.aggregator && (
-                                    <Select
+                                    <InputSelector
                                         pFontSize={12}
                                         pAutoChanged={false}
                                         pWidth={140}
@@ -596,7 +597,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                 {SEPARATE_DIFF && (
                                     <div className="series-table">
                                         <span className="series-title"> Diff </span>
-                                        <Select
+                                        <InputSelector
                                             pFontSize={12}
                                             pAutoChanged={true}
                                             pWidth={175}

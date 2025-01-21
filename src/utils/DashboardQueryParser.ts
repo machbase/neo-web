@@ -29,7 +29,7 @@ export const SqlResDataType = (aChartType: string): string => {
     return sResDataType;
 };
 
-const VariableParser = (aVariables: VARIABLE_TYPE[]) => {
+export const VariableParser = (aVariables: VARIABLE_TYPE[]) => {
     const result = aVariables.map((variable: any) => {
         return { key: variable.key, value: variable.use.value, regEx: new RegExp(variable.key, 'g') };
     });

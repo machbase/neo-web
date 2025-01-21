@@ -14,6 +14,7 @@ import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import './LineChart.scss';
 import { TqlChartParser } from '@/utils/DashboardTqlChartParser';
 import moment from 'moment';
+import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 
 const LineChart = ({
     pIsActiveTab,
@@ -80,7 +81,7 @@ const LineChart = ({
 
         const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
         if (pPanelInfo.type === 'Tql chart') {
-            const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange(), sIntervalInfo));
+            const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange(), sIntervalInfo, pBoardInfo.dashboard.variables));
             if (!sResult?.data?.reason) {
                 setChartData(sResult);
                 setIsError(false);
@@ -106,6 +107,19 @@ const LineChart = ({
             );
             const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
             const sParsedChartCode = DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
+
+            const checkUndefinedVariable = sParsedQuery.reduce((prev: string, curv: any) => {
+                const tmpMatch = curv.query.match(VARIABLE_REGEX);
+                return tmpMatch ? tmpMatch[0] : prev;
+            }, '');
+
+            if (checkUndefinedVariable) {
+                setIsMessage(checkUndefinedVariable + ' is not defined');
+                setIsError(true);
+                setIsChartData(false);
+                setIsLoading(false);
+                return;
+            }
 
             const sResult: any = await getTqlChart(
                 `FAKE(linspace(0, 1, 1))

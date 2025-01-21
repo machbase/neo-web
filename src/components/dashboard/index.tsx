@@ -287,7 +287,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         ) : null}
                     </div>
                 </div>
-                {sVariableCollapse && !sVariableModal && !sThisPanelStatus && <VariableHeader pBoardInfo={pInfo} />}
+                {sVariableCollapse && !sVariableModal && !sThisPanelStatus && <VariableHeader pBoardInfo={pInfo} callback={initDashboard} />}
                 {pWidth && (
                     <div className="board-body">
                         <GridLayout

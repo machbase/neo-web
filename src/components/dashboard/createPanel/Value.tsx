@@ -38,14 +38,14 @@ any) => {
 
             <div className="series-table">
                 <span className="series-title"> Aggregator </span>
-                <Select
+                <InputSelector
                     pFontSize={12}
                     pWidth={175}
                     pBorderRadius={4}
                     pInitValue={pValue.aggregator ?? 'avg'}
                     pHeight={26}
                     onChange={(aEvent: any) => pChangeValueOption('aggregator', aEvent, pValue.id, 'values')}
-                    pOptions={pAggList}
+                    pOptions={pAggList.concat(pVariableList)}
                 />
             </div>
             {SEPARATE_DIFF && (

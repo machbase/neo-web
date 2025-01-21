@@ -11,6 +11,21 @@
         font-weight: bold;
     }
 
+    &-l {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        .board-header-variable-collapse {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.5);
+            &:hover {
+                color: #f8f8f8;
+            }
+        }
+    }
+
     .calendar-group {
         display: flex;
         .calendar {

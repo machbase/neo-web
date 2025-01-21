@@ -1,10 +1,11 @@
+import './DashboardView.scss';
 import { getFiles } from '@/api/repository/fileTree';
 import Panel from '@/components/dashboard/panels/Panel';
 import { useEffect, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
 import { useParams } from 'react-router-dom';
 import moment from 'moment';
-import { Calendar, VscChevronLeft, VscChevronRight, VscSync } from '@/assets/icons/Icon';
+import { Calendar, VscChevronDown, VscChevronLeft, VscChevronRight, VscSync } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
@@ -13,7 +14,8 @@ import ViewTimeRangeModal from '@/components/modal/ViewTimeRangeModal';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
-import './DashboardView.scss';
+import { VariableHeader } from '@/components/dashboard/variable/header';
+import { VARIABLE_TYPE } from '@/components/dashboard/variable';
 
 const DashboardView = () => {
     const sParams = useParams();
@@ -24,6 +26,7 @@ const DashboardView = () => {
     const sIsMobile = isMobile();
     const [sBoardTimeMinMax, setBoardTimeMinMax] = useState<any>(undefined);
     const sBoardRef = useRef<any>(undefined);
+    const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
 
     const getDshFile = async (aFileName: string | undefined) => {
         if (!aFileName) return;
@@ -37,12 +40,25 @@ const DashboardView = () => {
             setNotFound(true);
         }
     };
+    const handleUpdateVariable = (updateVarList: VARIABLE_TYPE[]) => {
+        const updateBoardInfo = {
+            ...sBoardInformation,
+            dashboard: { ...sBoardInformation?.dashboard, variables: updateVarList },
+        };
+        setBoardInformation(updateBoardInfo as any);
+        handleRefresh();
+    };
     const handleDashboardTimeRange = async (sStart: any, sEnd: any, aBoardInfo?: any) => {
         const sBoard: any = aBoardInfo ?? sBoardInformation;
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax(sBoard);
         const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes);
         setBoardTimeMinMax(() => sTimeMinMax);
         return;
+    };
+    const defaultMinMax = () => {
+        const sNowTime = moment().unix() * 1000;
+        const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
+        return sNowTimeMinMax;
     };
     const fetchTableTimeMinMax = async (aBoardInfo: any): Promise<{ min: number; max: number }> => {
         const sTargetPanel = aBoardInfo.dashboard.panels[0];
@@ -52,6 +68,7 @@ const DashboardView = () => {
             if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
         })[0]?.value;
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
+            if (sTargetTag.customTable) return defaultMinMax();
             let sSvrResult: any = undefined;
             if (sTargetTag.table.split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
@@ -60,11 +77,7 @@ const DashboardView = () => {
             }
             const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
             return sResult;
-        } else {
-            const sNowTime = moment().unix() * 1000;
-            const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
-            return sNowTimeMinMax;
-        }
+        } else return defaultMinMax();
     };
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = sBoardInformation?.dashboard.timeRange.start;
@@ -142,7 +155,13 @@ const DashboardView = () => {
         <>
             <div ref={sLayoutRef} style={{ width: '100vw', height: '100vh' }}>
                 <div className="dashboard-view-header">
-                    <span className="title">{sBoardInformation?.dashboard?.title || ''}</span>
+                    <div className="dashboard-view-header-l">
+                        <span className="title">{sBoardInformation?.dashboard?.title || ''}</span>
+                        <div className="board-header-variable-collapse" onClick={() => setVariableCollapse(!sVariableCollapse)}>
+                            {sVariableCollapse ? <VscChevronDown /> : <VscChevronRight />}
+                            <span>Variables</span>
+                        </div>
+                    </div>
                     <div className="header-menu">
                         <div className="list-menu">
                             <IconButton pWidth={20} pHeight={20} pIcon={<VscSync />} onClick={handleRefresh} />
@@ -172,6 +191,7 @@ const DashboardView = () => {
                         </div>
                     </div>
                 </div>
+                {sVariableCollapse && <VariableHeader pBoardInfo={sBoardInformation} pViewMode callback={handleUpdateVariable} />}
                 <GridLayout
                     className="layout"
                     useCSSTransforms={false}

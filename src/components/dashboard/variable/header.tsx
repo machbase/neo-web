@@ -5,44 +5,49 @@ import { useRecoilState } from 'recoil';
 import { postFileList } from '@/api/repository/api';
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
 
-export const VariableHeader = ({ pBoardInfo }: { pBoardInfo: any }) => {
+export const VariableHeader = ({ pBoardInfo, pViewMode = false, callback = undefined }: { pBoardInfo: any; pViewMode?: boolean; callback?: (item: VARIABLE_TYPE[]) => void }) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
     const updateVariableCode = (updateVarList: VARIABLE_TYPE[]) => {
-        let sSaveTarget = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
-
-        if (sSaveTarget?.path !== '') {
-            const sTabList = sBoardList.map((aItem) => {
-                if (aItem.id === pBoardInfo.id) {
-                    const sTmpDashboard = {
-                        ...aItem.dashboard,
-                        variables: updateVarList,
-                    };
-                    sSaveTarget = {
-                        ...aItem,
-                        dashboard: sTmpDashboard,
-                        savedCode: JSON.stringify(sTmpDashboard),
-                    };
-                    return sSaveTarget;
-                } else return aItem;
-            });
-            setBoardList(() => sTabList);
-            postFileList(sSaveTarget, sSaveTarget?.path, sSaveTarget?.name);
+        if (pViewMode) {
+            callback && callback(updateVarList);
         } else {
-            const sTabList = sBoardList.map((aItem) => {
-                if (aItem.id === pBoardInfo.id) {
-                    const sTmpDashboard = {
-                        ...aItem.dashboard,
-                        variables: updateVarList,
-                    };
-                    sSaveTarget = {
-                        ...aItem,
-                        dashboard: sTmpDashboard,
-                    };
-                    return sSaveTarget;
-                } else return aItem;
-            });
-            setBoardList(() => sTabList);
+            let sSaveTarget = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+
+            if (sSaveTarget?.path !== '') {
+                const sTabList = sBoardList.map((aItem) => {
+                    if (aItem.id === pBoardInfo.id) {
+                        const sTmpDashboard = {
+                            ...aItem.dashboard,
+                            variables: updateVarList,
+                        };
+                        sSaveTarget = {
+                            ...aItem,
+                            dashboard: sTmpDashboard,
+                            savedCode: JSON.stringify(sTmpDashboard),
+                        };
+                        return sSaveTarget;
+                    } else return aItem;
+                });
+                setBoardList(() => sTabList);
+                postFileList(sSaveTarget, sSaveTarget?.path, sSaveTarget?.name);
+            } else {
+                const sTabList = sBoardList.map((aItem) => {
+                    if (aItem.id === pBoardInfo.id) {
+                        const sTmpDashboard = {
+                            ...aItem.dashboard,
+                            variables: updateVarList,
+                        };
+                        sSaveTarget = {
+                            ...aItem,
+                            dashboard: sTmpDashboard,
+                        };
+                        return sSaveTarget;
+                    } else return aItem;
+                });
+                setBoardList(() => sTabList);
+            }
+            callback && callback(updateVarList);
         }
     };
     const handleValueUse = (variable: VARIABLE_TYPE, item: VARIABLE_ITEM_TYPE) => {
