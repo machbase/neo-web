@@ -92,7 +92,7 @@ const LineChart = ({
             }
         } else {
             if (!sStartTime || !sEndTime) return;
-            const [sParsedQuery, sAliasList] = await DashboardQueryParser(
+            const [sParsedQuery, sAliasList] = DashboardQueryParser(
                 chartTypeConverter(pPanelInfo.type),
                 pPanelInfo.blockList,
                 sRollupTableList,
@@ -104,8 +104,8 @@ const LineChart = ({
                 },
                 pBoardInfo.dashboard.variables
             );
-            const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
-            const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
+            const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
+            const sParsedChartCode = DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
 
             const sResult: any = await getTqlChart(
                 `FAKE(linspace(0, 1, 1))

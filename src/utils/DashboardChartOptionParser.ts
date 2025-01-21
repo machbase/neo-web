@@ -345,7 +345,7 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
     return sResult;
 };
 
-export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any, aTime: { startTime: number; endTime: number }) => {
+export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTime: { startTime: number; endTime: number }) => {
     const sConvertedChartType = chartTypeConverter(aOptionInfo.type);
     const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, SqlResDataType(sConvertedChartType));
     // Animation false (TIME_VALUE TYPE)

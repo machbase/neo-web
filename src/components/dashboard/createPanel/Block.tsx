@@ -31,6 +31,7 @@ import { chartTypeConverter } from '@/utils/eChartHelper';
 import { TagSearchSelect } from '@/components/inputs/TagSearchSelect';
 import { Duration } from './Duration';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
+import { InputSelector } from '@/components/inputs/InputSelector';
 
 export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
@@ -59,12 +60,25 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
             };
         });
     };
-    const changedOption = async (aKey: string, aData: any) => {
+    const changedOption = (aKey: string, aData: any) => {
         if (aKey === 'table') {
             const sIsVirtualTable = aData.target.value.includes('V$');
             const sTargetTableName = sIsVirtualTable ? aData.target.value.replace('V$', '').replace('_STAT', '') : aData.target.value;
             const sTargetTable = pTableList.find((aItem: any) => aItem[3] === sTargetTableName);
             const sIsVariable = aData.target.value.match(VARIABLE_REGEX);
+
+            if (aData.target.name === 'customInput') {
+                pSetPanelOption((aPrev: any) => {
+                    return {
+                        ...aPrev,
+                        blockList: aPrev.blockList.map((block: any) => {
+                            if (block.id === pBlockInfo.id) return { ...block, table: aData.target.value, userName: '', tableInfo: [], customTable: true };
+                            else return block;
+                        }),
+                    };
+                });
+                return;
+            }
 
             if (sIsVirtualTable) setSelectedTableType('vir_tag');
             else if (sIsVariable) setSelectedTableType('variable_tag');
@@ -87,7 +101,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
             }
 
             const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any) => {
-                return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID(), color: aTable.color } : aTable;
+                return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID(), color: aTable.color, customTable: false } : aTable;
             });
 
             pSetPanelOption((aPrev: any) => {
@@ -502,7 +516,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                 <span className="series-title">
                                     Table <IconButton pDisabled={sIsLoadingRollup} pWidth={25} pHeight={26} pIcon={<Refresh />} onClick={HandleTable} />
                                 </span>
-                                <Select
+                                <InputSelector
                                     pFontSize={12}
                                     pWidth={175}
                                     pBorderRadius={4}
@@ -510,14 +524,13 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                     pHeight={26}
                                     onChange={(aEvent: any) => changedOption('table', aEvent)}
                                     pOptions={getTableList}
-                                    pIsToolTip
                                 />
                             </div>
                             {sSelectedTableType !== 'vir_tag' && (
                                 <div className="details">
                                     <div className="series-table">
                                         <span className="series-title">Time field</span>
-                                        <Select
+                                        <InputSelector
                                             pIsDisabled={!sTimeList[0] && !getVariableList}
                                             pFontSize={12}
                                             pWidth={175}
@@ -542,7 +555,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                 <span className="series-title">
                                     Table <IconButton pDisabled={sIsLoadingRollup} pWidth={25} pHeight={26} pIcon={<Refresh />} onClick={HandleTable} />
                                 </span>
-                                <Select
+                                <InputSelector
                                     pFontSize={12}
                                     pWidth={175}
                                     pBorderRadius={4}
@@ -550,7 +563,6 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                     pHeight={26}
                                     onChange={(aEvent: any) => changedOption('table', aEvent)}
                                     pOptions={getTableList}
-                                    pIsToolTip
                                 />
                             </div>
                             <div className="series-table">

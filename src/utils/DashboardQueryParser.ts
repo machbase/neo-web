@@ -52,7 +52,7 @@ const ReplaceVariables = (sParsedQueryList: any[], variables: { key: string; val
             const tmpValuelist = variable.value.split(',');
             tmpValuelist.map((value) => {
                 tmpList.push({ ...query, idx: tmpList.length, query: query.query.replaceAll(variable.regEx, value.trim()) });
-                tmpAsList.push({ color: '', name: value.trim() });
+                tmpAsList.push({ color: tmpAliasList[idx].color, name: value.trim() });
             });
         });
         tmpQueryList = tmpList;
@@ -62,7 +62,7 @@ const ReplaceVariables = (sParsedQueryList: any[], variables: { key: string; val
 };
 
 /** Dashboard QUERY PARSER */
-export const DashboardQueryParser = async (aChartType: string, aBlockList: any, aRollupList: any, aXaxis: any, aTime: BlockTimeType, aVariables?: VARIABLE_TYPE[]) => {
+export const DashboardQueryParser = (aChartType: string, aBlockList: any, aRollupList: any, aXaxis: any, aTime: BlockTimeType, aVariables?: VARIABLE_TYPE[]) => {
     const sResDataType = SqlResDataType(aChartType);
     const sTranspose = sResDataType === 'TIME_VALUE' && aXaxis[0].type === 'category';
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
@@ -72,7 +72,9 @@ export const DashboardQueryParser = async (aChartType: string, aBlockList: any, 
     return [sReplaceQueryList, sReplaceAliasList];
 };
 /** Combine table and user */
-const CombineTableUser = (table: string) => {
+const CombineTableUser = (table: string, customTable: boolean = false) => {
+    // Typing table
+    if (customTable) return table;
     // Variable
     if (table.match(VARIABLE_REGEX)) return table;
     // Admin
@@ -95,7 +97,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             time: bBlock.time,
             type: bBlock.type,
             userName: bBlock.userName,
-            tableName: CombineTableUser(bBlock.table),
+            tableName: CombineTableUser(bBlock.table, bBlock?.customTable),
             filterList: bBlock.filter,
             valueList: bBlock.values,
             useRollup: isRollup(aRollupList, bBlock.table, getInterval(aTime.interval.IntervalType, aTime.interval.IntervalValue), bBlock.values[0]?.value),
@@ -371,9 +373,6 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         const sAlias = GetAlias(aQuery.valueList[0]);
         const sUseCountAll = UseCountAll(aQuery.valueList);
         const sIsVirtualTable = aQuery.tableName.includes('V$');
-        // const sConbineWhere = aQuery.tableName.match(VARIABLE_REGEX)
-        //     ? ''
-        //     : GetConbineWhere(aResDataType, aQuery, aTime, sTimeWhere, sFilterWhere, sGroupBy, sOrderBy, sUseAgg, sUseCountAll, sIsVirtualTable);
         const sConbineWhere = GetConbineWhere(aResDataType, aQuery, aTime, sTimeWhere, sFilterWhere, sGroupBy, sOrderBy, sUseAgg, sUseCountAll, sIsVirtualTable);
         let sSql: string = '';
         let sTql: string = '';
@@ -382,9 +381,6 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         sAliasList.push({ name: sAlias, color: aQuery.color });
         // BAR | LINE | SCATTER
         if (aResDataType === 'TIME_VALUE') {
-            // sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${
-            //     sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''
-            // } ${sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''} ${sOrderBy}`;
             sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
             if (sUseDiff) sTql += `MAP_${changeDiffText(aQuery.valueList[0]?.diff)}(1, value(1))`;
             if (aQuery?.math && aQuery?.math !== '') sTql += `${sUseDiff ? `\n` : ''}MAPVALUE(2, ${mathValueConverter('1', aQuery?.math)}, "VALUE")\nPOPVALUE(1)`;
@@ -393,18 +389,14 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         if (aResDataType === 'NAME_VALUE') {
             if (sIsVirtualTable) {
                 const sTable = aQuery.tableName.split('.').length > 1 ? aQuery.tableName : ADMIN_ID + '.' + aQuery.tableName;
-                // sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${sTable} ${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''}`;
                 sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${sTable} ${sConbineWhere}`;
             } else {
-                // sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''}`;
                 sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
             }
 
             if (aQuery?.math && aQuery?.math !== '') sTql += `MAPVALUE(1, ${mathValueConverter('0', aQuery?.math)}, "VALUE")\nPOPVALUE(0)\n`;
             sTql += `MAPVALUE(1, dict("name", "${sAlias}", "value", value(0)))\nPOPVALUE(0)`;
         }
-
-        // sSql = ReplaceVariables(sSql, aVariables);
 
         return {
             query: `SQL("${sSql}")${sTql !== '' ? '\n' + sTql : ''}\nJSON()`,

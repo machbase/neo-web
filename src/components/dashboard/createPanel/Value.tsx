@@ -1,6 +1,7 @@
 // import { Close, PlusCircle } from '@/assets/icons/Icon';
 // import { IconButton } from '@/components/buttons/IconButton';
 import { Input } from '@/components/inputs/Input';
+import { InputSelector } from '@/components/inputs/InputSelector';
 import { Select } from '@/components/inputs/Select';
 import {
     DIFF_LIST,
@@ -22,7 +23,7 @@ any) => {
         <div className="values">
             <div className="series-table">
                 <span className="series-title">Value field</span>
-                <Select
+                <InputSelector
                     pFontSize={12}
                     pWidth={175}
                     pBorderRadius={4}

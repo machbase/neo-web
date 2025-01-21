@@ -1,6 +1,7 @@
 import { Close, GoPencil, PlusCircle } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { Input } from '@/components/inputs/Input';
+import { InputSelector } from '@/components/inputs/InputSelector';
 import { Select } from '@/components/inputs/Select';
 
 const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pBlockInfo, pColumnList, pVariableList }: any) => {
@@ -20,7 +21,7 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
             {!pFilterInfo.useTyping && (
                 <>
                     <div className="series-table">
-                        <Select
+                        <InputSelector
                             pFontSize={12}
                             pWidth={175}
                             pBorderRadius={4}
