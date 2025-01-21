@@ -2,7 +2,6 @@ import { getTableInfo, getVirtualTableInfo } from '@/api/repository/api';
 import { getRollupTableList, getTqlChart } from '@/api/repository/machiot';
 import { BsArrowsCollapse, BsArrowsExpand, Close, Refresh, TbMath, TbMathOff } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
-import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
 import {
     DIFF_LIST,
@@ -426,25 +425,25 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
     }, [pPanelOption.type]);
     /** return table list + virtual table list */
     const getTableList = useMemo((): string[] => {
-        const sUseCustom = pBlockInfo.useCustom;
-        const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
-        let sAggList: string[] = [];
-        if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
-        if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
-        const sIsVaildAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0].aggregator : pBlockInfo.aggregator);
+        // const sUseCustom = pBlockInfo.useCustom;
+        // const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
+        // let sAggList: string[] = [];
+        // if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
+        // if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
+        // const sIsVaildAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0].aggregator : pBlockInfo.aggregator);
         // Set vaild agg
-        if (!sIsVaildAgg) {
-            const sTempBlockList = JSON.parse(JSON.stringify(pBlockInfo));
-            sTempBlockList.aggregator = 'count';
-            sTempBlockList.values[0]?.aggregator && (sTempBlockList.values[0].aggregator = 'count');
-            // Set option
-            pSetPanelOption((aPrev: any) => {
-                return {
-                    ...aPrev,
-                    blockList: [sTempBlockList],
-                };
-            });
-        }
+        // if (!sIsVaildAgg) {
+        //     const sTempBlockList = JSON.parse(JSON.stringify(pBlockInfo));
+        //     // sTempBlockList.aggregator = 'count';
+        //     // sTempBlockList.values[0]?.aggregator && (sTempBlockList.values[0].aggregator = 'count');
+        //     // Set option
+        //     // pSetPanelOption((aPrev: any) => {
+        //     //     return {
+        //     //         ...aPrev,
+        //     //         blockList: [sTempBlockList],
+        //     //     };
+        //     // });
+        // }
         let sTableList = pTableList.map((aItem: any) => aItem[3]);
         sTableList = sTableList.concat(getVariableList);
 
@@ -582,18 +581,16 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                             </div>
                             <div className="series-table">
                                 <span className="series-title"> Aggregator </span>
-                                {pBlockInfo.aggregator && (
-                                    <InputSelector
-                                        pFontSize={12}
-                                        pAutoChanged={false}
-                                        pWidth={140}
-                                        pBorderRadius={4}
-                                        pInitValue={pBlockInfo.aggregator}
-                                        pHeight={26}
-                                        onChange={(aEvent: any) => changedOption('aggregator', aEvent)}
-                                        pOptions={getAggregatorList}
-                                    />
-                                )}
+                                <InputSelector
+                                    pFontSize={12}
+                                    pAutoChanged={false}
+                                    pWidth={140}
+                                    pBorderRadius={4}
+                                    pInitValue={pBlockInfo.aggregator}
+                                    pHeight={26}
+                                    onChange={(aEvent: any) => changedOption('aggregator', aEvent)}
+                                    pOptions={getAggregatorList.concat(getVariableList)}
+                                />
                                 {SEPARATE_DIFF && (
                                     <div className="series-table">
                                         <span className="series-title"> Diff </span>
@@ -699,7 +696,6 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                             pToolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                             pToolTipId={pBlockInfo.id + '-block-expand'}
                             pDisabled={sSelectedTableType !== 'tag'}
-                            // BsArrowsExpand, BsArrowsCollapse
                             pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={16} /> : <BsArrowsExpand size={16} />}
                             onClick={sSelectedTableType !== 'tag' ? () => {} : () => HandleFold()}
                         />

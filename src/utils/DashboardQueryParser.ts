@@ -50,10 +50,15 @@ const ReplaceVariables = (sParsedQueryList: any[], variables: { key: string; val
                 return;
             }
             const tmpValuelist = variable.value.split(',');
-            tmpValuelist.map((value) => {
-                tmpList.push({ ...query, idx: tmpList.length, query: query.query.replaceAll(variable.regEx, value.trim()) });
-                tmpAsList.push({ color: tmpAliasList[idx].color, name: value.trim() });
-            });
+            if (tmpValuelist.length > 1) {
+                tmpValuelist.map((value) => {
+                    tmpList.push({ ...query, idx: tmpList.length, query: query.query.replaceAll(variable.regEx, value.trim()) });
+                    tmpAsList.push({ color: '', name: tmpAliasList[idx].name + '(' + value.trim() + ')' });
+                });
+            } else {
+                tmpList.push({ ...query, idx: tmpList.length, query: query.query.replaceAll(variable.regEx, variable.value) });
+                tmpAsList.push(tmpAliasList[idx]);
+            }
         });
         tmpQueryList = tmpList;
         tmpAliasList = tmpAsList;
