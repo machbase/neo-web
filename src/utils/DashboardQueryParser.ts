@@ -36,7 +36,7 @@ export const VariableParser = (aVariables: VARIABLE_TYPE[]) => {
     return result;
 };
 
-const ReplaceVariables = (sParsedQueryList: any[], variables: { key: string; value: string; regEx: RegExp }[], alias: { color: string; name: string }[]) => {
+const ReplaceVariables = (sParsedQueryList: any[], variables: { key: string; value: string; regEx: RegExp }[], alias: { color: string; name: string }[], aChartType: string) => {
     let tmpQueryList: any = JSON.parse(JSON.stringify(sParsedQueryList));
     let tmpAliasList: any = JSON.parse(JSON.stringify(alias));
 
@@ -63,6 +63,10 @@ const ReplaceVariables = (sParsedQueryList: any[], variables: { key: string; val
         tmpQueryList = tmpList;
         tmpAliasList = tmpAsList;
     });
+    if (aChartType.toUpperCase() === 'GAUGE') {
+        tmpQueryList = [tmpQueryList[0]];
+        tmpAliasList = [tmpAliasList[0]];
+    }
     return [tmpQueryList, tmpAliasList];
 };
 
@@ -73,7 +77,7 @@ export const DashboardQueryParser = (aChartType: string, aBlockList: any, aRollu
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
     const sVariables = aVariables ? VariableParser(aVariables) : [];
     const [sParsedQueryList, sAliasList] = QueryParser(sTranspose, sQueryBlock, aTime, sResDataType);
-    const [sReplaceQueryList, sReplaceAliasList] = ReplaceVariables(sParsedQueryList, sVariables, sAliasList);
+    const [sReplaceQueryList, sReplaceAliasList] = ReplaceVariables(sParsedQueryList, sVariables, sAliasList, aChartType);
     return [sReplaceQueryList, sReplaceAliasList];
 };
 /** Combine table and user */

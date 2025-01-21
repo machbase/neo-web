@@ -273,7 +273,7 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
             {
                 ...aTypeOpt.series,
                 type: aChartType,
-                color: aTagList.map((aTagInfo: any) => aTagInfo.color),
+                color: aTagList.map((aTagInfo: any, aIdx: number) => (aTagInfo.color !== '' ? aTagInfo.color : ChartSeriesColorList[aIdx])),
                 // data: [],
             },
         ];
