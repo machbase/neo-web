@@ -4,13 +4,15 @@ import { gBoardList } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import { postFileList } from '@/api/repository/api';
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
+import { useEffect, useState } from 'react';
 
 export const VariableHeader = ({ pBoardInfo, pViewMode = false, callback = undefined }: { pBoardInfo: any; pViewMode?: boolean; callback?: (item: VARIABLE_TYPE[]) => void }) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
+    const [sUpdateVarList, setUpdateVarList] = useState<VARIABLE_TYPE[]>(pBoardInfo?.dashboard?.variables ?? []);
 
-    const updateVariableCode = (updateVarList: VARIABLE_TYPE[]) => {
+    const updateVariableCode = () => {
         if (pViewMode) {
-            callback && callback(updateVarList);
+            callback && callback(sUpdateVarList);
         } else {
             let sSaveTarget = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
 
@@ -19,7 +21,7 @@ export const VariableHeader = ({ pBoardInfo, pViewMode = false, callback = undef
                     if (aItem.id === pBoardInfo.id) {
                         const sTmpDashboard = {
                             ...aItem.dashboard,
-                            variables: updateVarList,
+                            variables: sUpdateVarList,
                         };
                         sSaveTarget = {
                             ...aItem,
@@ -36,7 +38,7 @@ export const VariableHeader = ({ pBoardInfo, pViewMode = false, callback = undef
                     if (aItem.id === pBoardInfo.id) {
                         const sTmpDashboard = {
                             ...aItem.dashboard,
-                            variables: updateVarList,
+                            variables: sUpdateVarList,
                         };
                         sSaveTarget = {
                             ...aItem,
@@ -47,7 +49,7 @@ export const VariableHeader = ({ pBoardInfo, pViewMode = false, callback = undef
                 });
                 setBoardList(() => sTabList);
             }
-            callback && callback(updateVarList);
+            callback && callback(sUpdateVarList);
         }
     };
     const handleValueUse = (variable: VARIABLE_TYPE, item: VARIABLE_ITEM_TYPE) => {
@@ -57,31 +59,40 @@ export const VariableHeader = ({ pBoardInfo, pViewMode = false, callback = undef
                 return { ...varInfo, use: item };
             } else return varInfo;
         });
-        updateVariableCode(tmpVarList ?? []);
+        setUpdateVarList(tmpVarList);
     };
+
+    useEffect(() => {
+        setUpdateVarList(pBoardInfo?.dashboard?.variables ?? []);
+    }, [pBoardInfo?.dashboard?.variables]);
+
     return (
         <div className="board-header-variable-wrap">
-            <div className="board-header-variable">
-                {pBoardInfo &&
-                    pBoardInfo?.dashboard &&
-                    pBoardInfo?.dashboard?.variables &&
-                    pBoardInfo?.dashboard?.variables?.map((variable: VARIABLE_TYPE, idx: number) => {
-                        return (
-                            <div className="board-header-variable-item" key={'board-variable-item-' + idx.toString()}>
-                                <label className="board-header-variable-item-label">{variable.label}</label>
-                                <div className="board-header-variable-item-key">{variable.key}</div>
-                                <ExtensionTab>
-                                    <ExtensionTab.Selector
-                                        pList={variable.valueList.map((value) => {
-                                            return { name: value.value, data: value };
-                                        })}
-                                        pSelectedItem={variable.use.value}
-                                        pCallback={(item: VARIABLE_ITEM_TYPE) => handleValueUse(variable, item)}
-                                    />
-                                </ExtensionTab>
-                            </div>
-                        );
-                    })}
+            <div className="board-header-variable-overflow">
+                <div className="board-header-variable">
+                    {sUpdateVarList &&
+                        sUpdateVarList.map((variable: VARIABLE_TYPE, idx: number) => {
+                            return (
+                                <div className="board-header-variable-item" key={'board-variable-item-' + idx.toString()}>
+                                    <label className="board-header-variable-item-label">{variable.label}</label>
+                                    <ExtensionTab>
+                                        <ExtensionTab.Selector
+                                            pList={variable.valueList.map((value) => {
+                                                return { name: value.value, data: value };
+                                            })}
+                                            pSelectedItem={variable.use.value}
+                                            pCallback={(item: VARIABLE_ITEM_TYPE) => handleValueUse(variable, item)}
+                                        />
+                                    </ExtensionTab>
+                                </div>
+                            );
+                        })}
+                </div>
+            </div>
+            <div className="board-header-variable-action">
+                <ExtensionTab>
+                    <ExtensionTab.TextButton pText={'Save'} pType={'CREATE'} pCallback={updateVariableCode} pWidth="120px" />
+                </ExtensionTab>
             </div>
         </div>
     );

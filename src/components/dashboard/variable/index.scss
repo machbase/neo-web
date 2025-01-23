@@ -7,6 +7,13 @@
     left: 0;
     z-index: 9999;
     background-color: #262831;
+
+    .variable-export-wrapper {
+        .extension-tab-text-button {
+            background-color: #6f7173 !important;
+        }
+    }
+
     .variable-selector-wrapper,
     .variable-open-selector-wrapper {
         font-size: 13px;

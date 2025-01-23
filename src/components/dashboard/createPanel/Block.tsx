@@ -67,6 +67,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
             const sIsVariable = aData.target.value.match(VARIABLE_REGEX);
 
             if (aData.target.name === 'customInput') {
+                setSelectedTableType('variable_tag');
                 pSetPanelOption((aPrev: any) => {
                     return {
                         ...aPrev,
@@ -95,12 +96,11 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                 sDefaultBlockOption[0].values = [{ id: sDefaultBlockOption[0].values[0].id, aggregator: 'sum', value: '', alias: '' }];
             }
             if (sIsVariable) {
-                sDefaultBlockOption[0].useCustom = true;
                 sDefaultBlockOption[0].table = aData.target.value;
             }
 
             const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any) => {
-                return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID(), color: aTable.color, customTable: false } : aTable;
+                return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID(), color: aTable.color } : aTable;
             });
 
             pSetPanelOption((aPrev: any) => {
@@ -110,6 +110,8 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                 };
             });
         } else if (aKey === 'aggregator' && !SEPARATE_DIFF) {
+            if (aData.target.name === 'customInput') setSelectedTableType('variable_tag');
+
             const sDiffVal: boolean = aData.target.value.includes('diff');
             pSetPanelOption((aPrev: any) => {
                 return {
@@ -120,6 +122,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                 };
             });
         } else {
+            if (aData.target.name === 'customInput') setSelectedTableType('variable_tag');
             pSetPanelOption((aPrev: any) => {
                 return {
                     ...aPrev,
@@ -266,6 +269,8 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                       } else sUseFilter = bItem.useFilter;
                                       if (aKey === 'useTyping' && aData.target.value && bItem.useFilter) {
                                           if (pBlockInfo.customTable) return { ...bItem, useFilter: sUseFilter, typingValue: '', [aKey]: aData.target.value };
+
+                                          if (pBlockInfo.tableInfo?.length < 1) return { ...bItem, useFilter: sUseFilter, typingValue: '', [aKey]: aData.target.value };
                                           // Check varchar type
                                           const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)[1] === 5;
                                           const sValue = sUseQuote ? `"${bItem.value.includes(',') ? bItem.value.split(',').join('","') : bItem.value}"` : bItem.value;
@@ -567,17 +572,30 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                             </div>
                             <div className="series-table">
                                 <span className="series-title"> Tag </span>
-                                <div className="tag-search-select-wrapper-custom">
-                                    <Input
-                                        pWidth={175}
-                                        pHeight={26}
-                                        pBorderRadius={4}
-                                        pType="text"
-                                        pValue={pBlockInfo.tag}
-                                        onChange={(aEvent: any) => changedOption('tag', aEvent)}
-                                    />
-                                    <TagSearchSelect pTable={pBlockInfo.table} pCallback={handleTagSelect} pBlockOption={pBlockInfo} />
-                                </div>
+                                {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
+                                    <div className="tag-search-select-wrapper-custom">
+                                        <Input
+                                            pWidth={175}
+                                            pHeight={26}
+                                            pBorderRadius={4}
+                                            pType="text"
+                                            pValue={pBlockInfo.tag}
+                                            onChange={(aEvent: any) => changedOption('tag', aEvent)}
+                                        />
+                                        <TagSearchSelect pTable={pBlockInfo.table} pCallback={handleTagSelect} pBlockOption={pBlockInfo} />
+                                    </div>
+                                ) : (
+                                    <div className="tag-search-select-wrapper-custom">
+                                        <InputSelector
+                                            pBorderRadius={4}
+                                            pWidth={175}
+                                            pHeight={26}
+                                            pInitValue={pBlockInfo.tag}
+                                            onChange={(aEvent: any) => changedOption('tag', aEvent)}
+                                            pOptions={getVariableList}
+                                        />
+                                    </div>
+                                )}
                             </div>
                             <div className="series-table">
                                 <span className="series-title"> Aggregator </span>
@@ -695,9 +713,9 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                             pIsToopTip
                             pToolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                             pToolTipId={pBlockInfo.id + '-block-expand'}
-                            pDisabled={sSelectedTableType !== 'tag'}
+                            pDisabled={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag'}
                             pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={16} /> : <BsArrowsExpand size={16} />}
-                            onClick={sSelectedTableType !== 'tag' ? () => {} : () => HandleFold()}
+                            onClick={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
                         />
                         <IconButton
                             pDisabled={pPanelOption.blockList.length === 1}

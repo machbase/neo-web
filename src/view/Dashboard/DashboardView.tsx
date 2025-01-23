@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
 import { useParams } from 'react-router-dom';
 import moment from 'moment';
-import { Calendar, VscChevronDown, VscChevronLeft, VscChevronRight, VscSync } from '@/assets/icons/Icon';
+import { Calendar, VscChevronLeft, VscChevronRight, VscSync } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
@@ -16,6 +16,10 @@ import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot'
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { VariableHeader } from '@/components/dashboard/variable/header';
 import { VARIABLE_TYPE } from '@/components/dashboard/variable';
+import { IoMdOptions } from 'react-icons/io';
+import { VariablePreview } from '@/components/dashboard/variable/preview';
+import SplitPane, { Pane } from 'split-pane-react';
+import { IoClose } from 'react-icons/io5';
 
 const DashboardView = () => {
     const sParams = useParams();
@@ -27,6 +31,7 @@ const DashboardView = () => {
     const [sBoardTimeMinMax, setBoardTimeMinMax] = useState<any>(undefined);
     const sBoardRef = useRef<any>(undefined);
     const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
+    const [sSideSizes, setSideSizes] = useState<any>(['0%', '100%']);
 
     const getDshFile = async (aFileName: string | undefined) => {
         if (!aFileName) return;
@@ -134,6 +139,14 @@ const DashboardView = () => {
             handleDashboardTimeRange(aTimeRange.start, aTimeRange.end);
         }, setIntervalTime(aTimeRange));
     };
+    const handleSplitPaneSize = () => {
+        if (sVariableCollapse) setSideSizes(['0%', '100%']);
+        else {
+            if (sIsMobile) setSideSizes(['100%', '0%']);
+            else setSideSizes(['20%', '80%']);
+        }
+        setVariableCollapse(!sVariableCollapse);
+    };
 
     useEffect(() => {
         if (sBoardInformation && sBoardInformation.dashboard.timeRange && sBoardInformation.dashboard.timeRange.refresh !== 'Off')
@@ -153,14 +166,26 @@ const DashboardView = () => {
         </div>
     ) : (
         <>
-            <div ref={sLayoutRef} style={{ width: '100vw', height: '100vh' }}>
+            <div className="dashboard-view-wrap" ref={sLayoutRef} style={{ width: '100vw', height: '100vh' }}>
                 <div className="dashboard-view-header">
                     <div className="dashboard-view-header-l">
                         <span className="title">{sBoardInformation?.dashboard?.title || ''}</span>
-                        <div className="board-header-variable-collapse" onClick={() => setVariableCollapse(!sVariableCollapse)}>
-                            {sVariableCollapse ? <VscChevronDown /> : <VscChevronRight />}
-                            <span>Variables</span>
-                        </div>
+                        {sBoardInformation && sBoardInformation?.dashboard && sBoardInformation?.dashboard?.variables && sBoardInformation?.dashboard?.variables?.length > 0 && (
+                            <>
+                                <div className="board-header-variable-collapse">
+                                    <IconButton
+                                        pIsToopTip
+                                        pToolTipContent="Variables"
+                                        pToolTipId="variables-show-btn"
+                                        pWidth={20}
+                                        pHeight={20}
+                                        pIcon={<IoMdOptions />}
+                                        onClick={handleSplitPaneSize}
+                                    />
+                                </div>
+                                {!sIsMobile && <VariablePreview pBoardInfo={sBoardInformation} />}
+                            </>
+                        )}
                     </div>
                     <div className="header-menu">
                         <div className="list-menu">
@@ -191,39 +216,69 @@ const DashboardView = () => {
                         </div>
                     </div>
                 </div>
-                {sVariableCollapse && <VariableHeader pBoardInfo={sBoardInformation} pViewMode callback={handleUpdateVariable} />}
-                <GridLayout
-                    className="layout"
-                    useCSSTransforms={false}
-                    layout={sBoardInformation && sBoardInformation.dashboard.panels}
-                    cols={GRID_LAYOUT_COLS}
-                    autoSize={true}
-                    rowHeight={GRID_LAYOUT_ROW_HEIGHT}
-                    width={sLayoutRef.current?.clientWidth}
-                    isResizable={false}
-                    isDraggable={false}
-                >
-                    {sBoardInformation &&
-                        sBoardInformation.dashboard &&
-                        sBoardInformation.dashboard.panels &&
-                        sBoardInformation.dashboard.panels.map((aItem: any) => {
-                            return (
-                                <div key={aItem.id} data-grid={{ x: sIsMobile ? 0 : aItem.x, y: aItem.y, w: sIsMobile ? sLayoutRef.current?.clientWidth : aItem.w, h: aItem.h }}>
-                                    <Panel
-                                        pIsView
-                                        pBoardInfo={sBoardInformation}
-                                        pPanelInfo={aItem}
-                                        pModifyState={{ id: '', state: false }}
-                                        pSetModifyState={() => null}
-                                        pIsHeader={false}
-                                        pLoopMode={sBoardInformation?.dashboard.timeRange.refresh !== 'Off' || aItem?.timeRange?.refresh !== 'Off' ? true : false}
-                                        pBoardTimeMinMax={sBoardTimeMinMax}
-                                        pIsActiveTab={true}
-                                    />
-                                </div>
-                            );
-                        })}
-                </GridLayout>
+                <SplitPane sashRender={() => <></>} split={'vertical'} sizes={sSideSizes} onChange={() => {}}>
+                    <Pane>
+                        <div className="variable-header-close">
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Close"
+                                pToolTipId="variables-close-btn"
+                                pWidth={20}
+                                pHeight={20}
+                                pIcon={<IoClose />}
+                                onClick={handleSplitPaneSize}
+                            />
+                        </div>
+                        <VariableHeader pBoardInfo={sBoardInformation} callback={handleUpdateVariable} />
+                    </Pane>
+                    <Pane>
+                        <div className="board-body">
+                            <GridLayout
+                                className="layout"
+                                useCSSTransforms={false}
+                                layout={sBoardInformation && sBoardInformation.dashboard.panels}
+                                cols={GRID_LAYOUT_COLS}
+                                autoSize={true}
+                                rowHeight={GRID_LAYOUT_ROW_HEIGHT}
+                                width={sVariableCollapse && sLayoutRef?.current?.clientWidth ? sLayoutRef.current.clientWidth * 0.8 : sLayoutRef.current?.clientWidth}
+                                isResizable={false}
+                                isDraggable={false}
+                            >
+                                {sBoardInformation &&
+                                    sBoardInformation.dashboard &&
+                                    sBoardInformation.dashboard.panels &&
+                                    sBoardInformation.dashboard.panels.map((aItem: any) => {
+                                        return (
+                                            <div
+                                                key={aItem.id}
+                                                data-grid={{
+                                                    x: sIsMobile ? 0 : aItem.x,
+                                                    y: aItem.y,
+                                                    w: sIsMobile ? sLayoutRef.current?.clientWidth : aItem.w,
+                                                    h: aItem.h,
+                                                }}
+                                            >
+                                                <Panel
+                                                    pIsView
+                                                    pBoardInfo={sBoardInformation}
+                                                    pPanelInfo={aItem}
+                                                    pModifyState={{ id: '', state: false }}
+                                                    pSetModifyState={() => null}
+                                                    pParentWidth={
+                                                        !sIsMobile && sVariableCollapse && sLayoutRef?.current?.clientWidth ? sLayoutRef.current.clientWidth * 0.8 : aItem.w
+                                                    }
+                                                    pIsHeader={false}
+                                                    pLoopMode={sBoardInformation?.dashboard.timeRange.refresh !== 'Off' || aItem?.timeRange?.refresh !== 'Off' ? true : false}
+                                                    pBoardTimeMinMax={sBoardTimeMinMax}
+                                                    pIsActiveTab={true}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                            </GridLayout>
+                        </div>
+                    </Pane>
+                </SplitPane>
             </div>
             {sIsTimeRangeModal && (
                 <ViewTimeRangeModal

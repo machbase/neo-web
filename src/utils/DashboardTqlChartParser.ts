@@ -48,7 +48,7 @@ export const TqlChartParser = (
         }
     };
     const paramsFilter = (aParamList: any, aVariableList: VARIABLE_TYPE[]) => {
-        const parsedVariableList = VariableParser(aVariableList);
+        const parsedVariableList = VariableParser(aVariableList, { start: aTimeParams.start, end: aTimeParams.end, interval: aInterval });
         const useParamList = aParamList.filter((aParam: any) => aParam.name !== '' && aParam.value !== '');
         let parsedParamList = useParamList.map((bParam: any) => {
             if (PARAM_LIST.includes(bParam.name)) return `${bParam.value}=${valueConverter(bParam.name)}`;

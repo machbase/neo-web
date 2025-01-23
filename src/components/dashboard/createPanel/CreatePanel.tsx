@@ -16,6 +16,7 @@ import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper
 import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import moment from 'moment';
+import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 
 const CreatePanel = ({
     pLoopMode,
@@ -286,7 +287,7 @@ const CreatePanel = ({
                 if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
             })[0]?.value;
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag) || sIsCreateModeFirstPanel) {
-            if (sTargetTag.customTable) return defaultMinMax();
+            if (sTargetTag?.customTable || sTargetTag?.tag?.match(VARIABLE_REGEX) || !sTargetTag?.tag) return defaultMinMax();
             let sSvrResult: any = undefined;
             if (sTargetTag.table.split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);

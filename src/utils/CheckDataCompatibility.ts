@@ -4,7 +4,6 @@ import { chartTypeConverter } from './eChartHelper';
 import { concatTagSet } from './helpers/tags';
 
 export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
-
 const DashboardCompatibility = (aData: any) => {
     const sDashboardInfo = JSON.parse(aData);
 

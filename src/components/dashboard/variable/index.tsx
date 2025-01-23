@@ -10,6 +10,33 @@ import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { postFileList } from '@/api/repository/api';
 import { Close, PlusCircle } from '@/assets/icons/Icon';
+import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader as Downloader } from '@/utils/sqlOriginDataDownloader';
+import Papa from 'papaparse';
+
+export enum VARIABLE_DEFAULT_TYPE {
+    DEFAULT_DEFINED = 'DEFAULT_DEFINED',
+}
+const defaultVariableList: string[] = ['from_str', 'from_s', 'from_ms', 'from_us', 'from_ns', 'to_str', 'to_s', 'to_ms', 'to_us', 'to_ns', 'period', 'period_unit', 'period_value'];
+export const DEFAULT_VARIABLE_LIST: VARIABLE_TYPE[] = defaultVariableList.map((defaultVariable) => {
+    return {
+        id: `default_variable-${defaultVariable}`,
+        label: defaultVariable,
+        key: `{{${defaultVariable}}}`,
+        type: 'SELECT',
+        use: {
+            id: `default_variable-${defaultVariable}-value`,
+            type: VARIABLE_DEFAULT_TYPE.DEFAULT_DEFINED,
+            value: '',
+        },
+        valueList: [
+            {
+                id: `default_variable-${defaultVariable}-value`,
+                type: VARIABLE_DEFAULT_TYPE.DEFAULT_DEFINED,
+                value: '',
+            },
+        ],
+    };
+});
 
 export interface VARIABLE_TYPE {
     id: string;
@@ -55,6 +82,7 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [sUpdateVariable, setUpdateVariable] = useState<{ open: boolean; mode: MODE_TYPE; data: VARIABLE_TYPE }>(DEFAULT_VARIABLE);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const updateVariableCode = (updateVarList: VARIABLE_TYPE[]) => {
         let sSaveTarget = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
@@ -93,7 +121,6 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
             setBoardList(() => sTabList);
         }
     };
-
     const handleUpdateVarOrigin = () => {
         let tmpVarList;
         if (sUpdateVariable.mode === 'EDIT') {
@@ -158,20 +185,20 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                           return valueInfo.value;
                       })
                     : [];
-            result.push([varInfo.label, varInfo.type, varInfo.key, child?.join(', '), varInfo]);
+            result.push([varInfo.label, varInfo.key, child?.join(', '), varInfo]);
         });
 
         return result;
     };
-    const handleValueUse = (variable: VARIABLE_TYPE, item: VARIABLE_ITEM_TYPE) => {
-        const tmpVarList = pBoardInfo?.dashboard?.variables?.map((varInfo: VARIABLE_TYPE) => {
-            if (variable.id === varInfo.id) {
-                varInfo;
-                return { ...varInfo, use: item };
-            } else return varInfo;
-        });
-        updateVariableCode(tmpVarList ?? []);
-    };
+    // const handleValueUse = (variable: VARIABLE_TYPE, item: VARIABLE_ITEM_TYPE) => {
+    //     const tmpVarList = pBoardInfo?.dashboard?.variables?.map((varInfo: VARIABLE_TYPE) => {
+    //         if (variable.id === varInfo.id) {
+    //             varInfo;
+    //             return { ...varInfo, use: item };
+    //         } else return varInfo;
+    //     });
+    //     updateVariableCode(tmpVarList ?? []);
+    // };
     const handleVarOpt = (key: string, item: React.FormEvent<HTMLInputElement>, idx?: number) => {
         if (key === 'value') {
             setUpdateVariable((prev) => {
@@ -215,6 +242,60 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                 return { ...prev, data: { ...prev.data, valueList: tmp } };
             });
     };
+    const createVariableList = (result: unknown[]) => {
+        try {
+            const checkColumn = result.shift();
+            if ((checkColumn as string[]).join(',') !== 'LABEL,VARIABLE NAME,VALUES') return;
+
+            const rowList = result.filter((row: any) => row[0] && row[1] && row[2]);
+            const tmpRes: VARIABLE_TYPE[] = rowList.map((row: any) => {
+                const useComma = row[2] ? row[2]?.split(',') : [];
+                const valList = useComma?.map((value: string) => {
+                    return {
+                        id: generateUUID(),
+                        type: 'CSV',
+                        value: value,
+                    };
+                });
+                return { id: generateUUID(), label: row[0], key: row[1], type: 'SELECT', use: valList[0], valueList: valList };
+            });
+            updateVariableCode(tmpRes ?? []);
+        } catch {
+            return;
+        }
+    };
+    const handleExport = () => {
+        const DEFAULT_COLUMN = 'LABEL,VARIABLE NAME,VALUES\n';
+        const tmpExportCSV = pBoardInfo?.dashboard?.variables
+            .map((variable: VARIABLE_TYPE) => {
+                const valueStringList = variable?.valueList.map((value) => value.value).join(',');
+                return `${variable.label},${variable.key},"${valueStringList}"`;
+            })
+            .join('\n');
+        const sBlob = new Blob([DEFAULT_COLUMN + tmpExportCSV], { type: `text/csv` });
+        Downloader(URL.createObjectURL(sBlob), DOWNLOADER_EXTENSION.CSV);
+    };
+    const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target?.result as string;
+                Papa.parse(text, {
+                    header: false,
+                    complete: (result) => {
+                        createVariableList(result.data);
+                    },
+                });
+            };
+            reader.readAsText(file);
+        }
+    };
+    const handleFileButtonWrapperClick = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
     const handleClose = () => {
         pSetModal(false);
     };
@@ -242,7 +323,7 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                                 <ExtensionTab.SubTitle>Variables</ExtensionTab.SubTitle>
                                 <ExtensionTab.ContentDesc>Variables can make your dashboard more dynamic.</ExtensionTab.ContentDesc>
                             </ExtensionTab.ContentBlock>
-                            <ExtensionTab.ContentBlock>
+                            {/* <ExtensionTab.ContentBlock>
                                 <div className="board-preview-variable">
                                     {pBoardInfo?.dashboard?.variables?.map((variable: VARIABLE_TYPE, idx: number) => {
                                         return (
@@ -260,12 +341,24 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                                         );
                                     })}
                                 </div>
-                            </ExtensionTab.ContentBlock>
+                            </ExtensionTab.ContentBlock> */}
                             <ExtensionTab.ContentBlock>
+                                <ExtensionTab.DpRowBetween>
+                                    <div />
+                                    <ExtensionTab.DpRow>
+                                        <ExtensionTab.TextButton pText={'Export'} pType="COPY" pCallback={handleExport} pWidth="80px" />
+                                        <div className="variable-export-wrapper">
+                                            <button className="extension-tab-text-button" onClick={handleFileButtonWrapperClick}>
+                                                Import
+                                            </button>
+                                            <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImport} />
+                                        </div>
+                                    </ExtensionTab.DpRow>
+                                </ExtensionTab.DpRowBetween>
                                 <ExtensionTab.Table
                                     activeRow
                                     pList={{
-                                        columns: ['NAME', 'TYPE', 'KEY', 'VALUE'],
+                                        columns: ['LABEL', 'VARIABLE NAME', 'VALUE'],
                                         rows: tableFormatVariableList(),
                                     }}
                                     rowSelectCallback={handleVariableRowSelect}
@@ -279,7 +372,7 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                             )}
                             {sUpdateVariable.open && (
                                 <>
-                                    <ExtensionTab.ContentBlock>
+                                    {/* <ExtensionTab.ContentBlock>
                                         <ExtensionTab.ContentTitle>Type</ExtensionTab.ContentTitle>
                                         <ExtensionTab.ContentDesc>Variable type</ExtensionTab.ContentDesc>
                                         <ExtensionTab.Selector
@@ -291,20 +384,26 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                                             pSelectedItem={sUpdateVariable.data.type}
                                             pCallback={() => {}}
                                         />
-                                    </ExtensionTab.ContentBlock>
+                                    </ExtensionTab.ContentBlock> */}
+
                                     <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Name</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>Name desc</ExtensionTab.ContentDesc>
+                                        <ExtensionTab.ContentTitle>Label</ExtensionTab.ContentTitle>
+                                        <ExtensionTab.ContentDesc>Label is a descriptive name that helps you identify the variable.</ExtensionTab.ContentDesc>
                                         <ExtensionTab.Input pValue={sUpdateVariable.data.label} pCallback={(item) => handleVarOpt('label', item)} />
                                     </ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Key</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>Key desc</ExtensionTab.ContentDesc>
+                                        <ExtensionTab.ContentTitle>Variable name</ExtensionTab.ContentTitle>
+                                        <ExtensionTab.ContentDesc>{`Variables in this system follow a specific syntax format to ensure consistency and ease of use.`}</ExtensionTab.ContentDesc>
+                                        <ExtensionTab.ContentDesc>{`The syntax for defining a variable is as follows:`}</ExtensionTab.ContentDesc>
+                                        <ExtensionTab.ContentDesc>{`ex) {{VARIABLE_NAME}}`}</ExtensionTab.ContentDesc>
                                         <ExtensionTab.Input pValue={sUpdateVariable.data.key} pCallback={(item) => handleVarOpt('key', item)} />
                                     </ExtensionTab.ContentBlock>
                                     <ExtensionTab.ContentBlock>
                                         <ExtensionTab.ContentTitle>Value</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>Value desc</ExtensionTab.ContentDesc>
+                                        <ExtensionTab.ContentDesc>
+                                            Each variable can have multiple values. These values can be used interchangeably within the system.
+                                        </ExtensionTab.ContentDesc>
+                                        <ExtensionTab.ContentDesc>The values are stored in a list and can be accessed or modified as needed.</ExtensionTab.ContentDesc>
                                         {sUpdateVariable.data.valueList.map((valueDetail: VARIABLE_ITEM_TYPE, idx: number) => {
                                             return (
                                                 <ExtensionTab.DpRow key={`variable-value-${idx.toString()}`}>
