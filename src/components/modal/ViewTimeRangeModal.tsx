@@ -121,7 +121,7 @@ const ViewTimeRangeModal = (props: ViewTimeRangeModalProps) => {
                             <span className="span-to">To </span>
                             <DatePicker pTopPixel={32} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date)} pSetApply={(date: any) => setEndTime(date)}></DatePicker>
                         </div>
-                        <div className="to">
+                        <div className="refresh">
                             <span className="span-to">Refresh </span>
                             <Select pInitValue={sRefresh} pFontSize={12} pWidth={200} pBorderRadius={4} pHeight={30} onChange={HandleRefresh} pOptions={refreshTimeList} />
                         </div>

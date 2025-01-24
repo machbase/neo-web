@@ -1,6 +1,8 @@
 import moment from 'moment';
 import { isRollup } from '.';
 import { ADMIN_ID } from './constants';
+import { VARIABLE_REGEX } from './CheckDataCompatibility';
+import { DEFAULT_VARIABLE_LIST, VARIABLE_TYPE } from '@/components/dashboard/variable';
 
 interface BlockTimeType {
     interval: {
@@ -26,17 +28,132 @@ export const SqlResDataType = (aChartType: string): string => {
     }
     return sResDataType;
 };
+const timeConverter = (aTime: string | number, aReturnTypeString: boolean) => {
+    if (aReturnTypeString) {
+        const sTmpTime = new Date(aTime);
+        return moment(sTmpTime).format('YYYY-MM-DD HH:mm:ss');
+    } else return Math.floor((aTime as number) / 1000);
+};
+const variableValueConverter = (aValue: string, aTime: BlockTimeType) => {
+    switch (aValue) {
+        case '{{from_str}}':
+            return timeConverter(aTime.start, true);
+        case '{{from_s}}':
+            return timeConverter(aTime.start, false);
+        case '{{from_ms}}':
+            return (timeConverter(aTime.start, false) as number) * 1000;
+        case '{{from_us}}':
+            return (timeConverter(aTime.start, false) as number) * 1000000;
+        case '{{from_ns}}':
+            return (timeConverter(aTime.start, false) as number) * 1000000000;
+        case '{{to_str}}':
+            return timeConverter(aTime.end, true);
+        case '{{to_s}}':
+            return timeConverter(aTime.end, false);
+        case '{{to_ms}}':
+            return (timeConverter(aTime.end, false) as number) * 1000;
+        case '{{to_us}}':
+            return (timeConverter(aTime.end, false) as number) * 1000000;
+        case '{{to_ns}}':
+            return (timeConverter(aTime.end, false) as number) * 1000000000;
+        case '{{period}}':
+            return aTime.interval.IntervalValue + aTime.interval.IntervalType[0];
+        case '{{period_unit}}':
+            return aTime.interval.IntervalType;
+        case '{{period_value}}':
+            return aTime.interval.IntervalValue;
+        default:
+            return aValue;
+    }
+};
+export const VariableParser = (aVariables: VARIABLE_TYPE[], aTime: BlockTimeType) => {
+    const defineVar = aVariables?.map((variable: any) => {
+        return { key: variable.key, value: variable.use.value, regEx: new RegExp(variable.key, 'g') };
+    });
+    const defaultVar = DEFAULT_VARIABLE_LIST.map((defVar) => {
+        return { key: defVar.key, value: variableValueConverter(defVar.key, aTime), regEx: new RegExp(defVar.key, 'g') };
+    });
+    return defineVar.concat(defaultVar);
+};
+
+const ReplaceVariables = (
+    sParsedQueryList: any[],
+    variables: { key: string; value: string; regEx: RegExp }[],
+    alias: { color: string; name: string }[]
+    // , aChartType: string
+) => {
+    let tmpQueryList: any = JSON.parse(JSON.stringify(sParsedQueryList));
+    let tmpAliasList: any = JSON.parse(JSON.stringify(alias));
+
+    /////////////////////Variable v1///////////////////////////
+    variables.map((variable) => {
+        const tmpList: any = [];
+        const tmpAsList: any = [];
+        tmpQueryList.map((query: any, idx: number) => {
+            tmpList.push({ ...query, idx: tmpList.length, query: query.query.replaceAll(variable.regEx, variable.value) });
+            tmpAsList.push(tmpAliasList[idx]);
+        });
+        tmpQueryList = tmpList;
+        tmpAliasList = tmpAsList;
+    });
+
+    //////////////////////Variable v2//////////////////////////
+    // // Iterate over the variables array and process each variable.
+    // variables.map((variable) => {
+    //     const tmpList: any = [];
+    //     const tmpAsList: any = [];
+    //     tmpQueryList.map((query: any, idx: number) => {
+    // // If the query does not match the variable's regex, add it as is.
+    //         if (!query.query.match(variable.regEx)) {
+    //             tmpList.push({ ...query, idx: tmpList.length });
+    //             tmpAsList.push(tmpAliasList[idx]);
+    //             return;
+    //         }
+    // // Split the variable value by comma and create queries for each value.
+    //         const tmpValuelist = variable.value.split(',');
+    //         if (tmpValuelist.length > 1) {
+    //             tmpValuelist.map((value) => {
+    //                 tmpList.push({ ...query, idx: tmpList.length, query: query.query.replaceAll(variable.regEx, value.trim()) });
+    //                 tmpAsList.push({ color: '', name: tmpAliasList[idx].name + '(' + value.trim() + ')' });
+    //             });
+    //         } else {
+    //             tmpList.push({ ...query, idx: tmpList.length, query: query.query.replaceAll(variable.regEx, variable.value) });
+    //             tmpAsList.push(tmpAliasList[idx]);
+    //         }
+    //     });
+    //     tmpQueryList = tmpList;
+    //     tmpAliasList = tmpAsList;
+    // });
+    // // If the chart type is 'GAUGE', use only the first query and alias.
+    // if (aChartType.toUpperCase() === 'GAUGE') {
+    //     tmpQueryList = [tmpQueryList[0]];
+    //     tmpAliasList = [tmpAliasList[0]];
+    // }
+
+    return [tmpQueryList, tmpAliasList];
+};
 
 /** Dashboard QUERY PARSER */
-export const DashboardQueryParser = async (aChartType: string, aBlockList: any, aRollupList: any, aXaxis: any, aTime: BlockTimeType) => {
+export const DashboardQueryParser = (aChartType: string, aBlockList: any, aRollupList: any, aXaxis: any, aTime: BlockTimeType, aVariables?: VARIABLE_TYPE[]) => {
     const sResDataType = SqlResDataType(aChartType);
     const sTranspose = sResDataType === 'TIME_VALUE' && aXaxis[0].type === 'category';
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
+    const sVariables = VariableParser(aVariables ?? [], aTime);
     const [sParsedQueryList, sAliasList] = QueryParser(sTranspose, sQueryBlock, aTime, sResDataType);
-    return [sParsedQueryList, sAliasList];
+    const [sReplaceQueryList, sReplaceAliasList] = ReplaceVariables(
+        sParsedQueryList,
+        sVariables,
+        sAliasList
+        // , aChartType
+    );
+    return [sReplaceQueryList, sReplaceAliasList];
 };
 /** Combine table and user */
-const CombineTableUser = (table: string) => {
+const CombineTableUser = (table: string, customTable: boolean = false) => {
+    // Typing table
+    if (customTable) return table;
+    // Variable
+    if (table.match(VARIABLE_REGEX)) return table;
     // Admin
     if (table.split('.').length === 1) return `${ADMIN_ID.toUpperCase()}.${table}`;
     else return table;
@@ -57,7 +174,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             time: bBlock.time,
             type: bBlock.type,
             userName: bBlock.userName,
-            tableName: CombineTableUser(bBlock.table),
+            tableName: CombineTableUser(bBlock.table, bBlock?.customTable),
             filterList: bBlock.filter,
             valueList: bBlock.values,
             useRollup: isRollup(aRollupList, bBlock.table, getInterval(aTime.interval.IntervalType, aTime.interval.IntervalValue), bBlock.values[0]?.value),
@@ -341,9 +458,6 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         sAliasList.push({ name: sAlias, color: aQuery.color });
         // BAR | LINE | SCATTER
         if (aResDataType === 'TIME_VALUE') {
-            // sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${
-            //     sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''
-            // } ${sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''} ${sOrderBy}`;
             sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
             if (sUseDiff) sTql += `MAP_${changeDiffText(aQuery.valueList[0]?.diff)}(1, value(1))`;
             if (aQuery?.math && aQuery?.math !== '') sTql += `${sUseDiff ? `\n` : ''}MAPVALUE(2, ${mathValueConverter('1', aQuery?.math)}, "VALUE")\nPOPVALUE(1)`;
@@ -352,10 +466,8 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         if (aResDataType === 'NAME_VALUE') {
             if (sIsVirtualTable) {
                 const sTable = aQuery.tableName.split('.').length > 1 ? aQuery.tableName : ADMIN_ID + '.' + aQuery.tableName;
-                // sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${sTable} ${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''}`;
                 sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${sTable} ${sConbineWhere}`;
             } else {
-                // sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''}`;
                 sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
             }
 

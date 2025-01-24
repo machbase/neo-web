@@ -273,7 +273,7 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
             {
                 ...aTypeOpt.series,
                 type: aChartType,
-                color: aTagList.map((aTagInfo: any) => aTagInfo.color),
+                color: aTagList.map((aTagInfo: any, aIdx: number) => (aTagInfo.color !== '' ? aTagInfo.color : ChartSeriesColorList[aIdx])),
                 // data: [],
             },
         ];
@@ -345,7 +345,7 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
     return sResult;
 };
 
-export const DashboardChartOptionParser = async (aOptionInfo: any, aTagList: any, aTime: { startTime: number; endTime: number }) => {
+export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTime: { startTime: number; endTime: number }) => {
     const sConvertedChartType = chartTypeConverter(aOptionInfo.type);
     const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, SqlResDataType(sConvertedChartType));
     // Animation false (TIME_VALUE TYPE)

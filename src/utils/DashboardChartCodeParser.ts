@@ -29,7 +29,7 @@ const LiquidNameValueFunc = (aChartOptions: any) => {
         \t\t_chart.setOption(_chartOption)}`;
 };
 
-export const DashboardChartCodeParser = async (aChartOptions: any, aChartType: string, aParsedQuery: any, isSave: boolean = false) => {
+export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string, aParsedQuery: any, isSave: boolean = false) => {
     const sDataType = aParsedQuery[0].dataType;
     const sAccToken = localStorage.getItem('accessToken');
     const sXConsoleId = localStorage.getItem('consoleId');
@@ -49,9 +49,11 @@ export const DashboardChartCodeParser = async (aChartOptions: any, aChartType: s
 
     // GEN func
     const sFunction = `function getData(aTql, aIdx) {
-        \tfetch("${window.location.origin}/${isSave ? 'db': 'web/api'}/tql", {
+        \tfetch("${window.location.origin}/${isSave ? 'db' : 'web/api'}/tql", {
             \tmethod: "POST",
-            \theaders: {"Accept": "application/json, text/plain, */*", "Content-Type": "text/plain" ${isSave ? "" : `, "Authorization": "Bearer ${sAccToken}", "X-Console-Id": "${sXConsoleId}, console-log-level=NONE"`}},
+            \theaders: {"Accept": "application/json, text/plain, */*", "Content-Type": "text/plain" ${
+                isSave ? '' : `, "Authorization": "Bearer ${sAccToken}", "X-Console-Id": "${sXConsoleId}, console-log-level=NONE"`
+            }},
             \tbody: aTql
         \t})
         \t.then((rsp) => rsp.json())
