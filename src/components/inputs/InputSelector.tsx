@@ -7,7 +7,6 @@ import { Tooltip } from 'react-tooltip';
 export interface SelectProps {
     pOptions: string[];
     onChange: React.ChangeEventHandler<HTMLInputElement>;
-    pIsReadonly?: boolean;
     pWidth?: number | string;
     pHeight?: number;
     pIsFullWidth?: boolean;
@@ -30,7 +29,6 @@ export const InputSelector = (props: SelectProps) => {
         pOptions,
         pIsFullWidth = false,
         pBorderRadius = 8,
-        pIsReadonly = true,
         pInitValue = '',
         onChange,
     } = props;

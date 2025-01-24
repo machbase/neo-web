@@ -89,6 +89,7 @@
                         border: none;
                         height: 100%;
                         color: #f8f8f8;
+                        flex-grow: 1;
                     }
 
                     .react-datepicker {
@@ -109,6 +110,15 @@
                             background: #464b5c !important;
                         }
                     }
+                }
+            }
+
+            .refresh {
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                .span-to {
+                    width: 100px;
                 }
             }
         }

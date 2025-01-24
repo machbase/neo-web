@@ -401,9 +401,9 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                                     <ExtensionTab.ContentBlock>
                                         <ExtensionTab.ContentTitle>Value</ExtensionTab.ContentTitle>
                                         <ExtensionTab.ContentDesc>
-                                            Each variable can have multiple values. These values can be used interchangeably within the system.
+                                            Each variable can have multiple options. These options can be used interchangeably within the system.
                                         </ExtensionTab.ContentDesc>
-                                        <ExtensionTab.ContentDesc>The values are stored in a list and can be accessed or modified as needed.</ExtensionTab.ContentDesc>
+                                        <ExtensionTab.ContentDesc>The options are stored in a list and can be accessed or modified as needed.</ExtensionTab.ContentDesc>
                                         {sUpdateVariable.data.valueList.map((valueDetail: VARIABLE_ITEM_TYPE, idx: number) => {
                                             return (
                                                 <ExtensionTab.DpRow key={`variable-value-${idx.toString()}`}>

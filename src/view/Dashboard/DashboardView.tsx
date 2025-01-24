@@ -32,6 +32,7 @@ const DashboardView = () => {
     const sBoardRef = useRef<any>(undefined);
     const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
     const [sSideSizes, setSideSizes] = useState<any>(['0%', '100%']);
+    const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
 
     const getDshFile = async (aFileName: string | undefined) => {
         if (!aFileName) return;
@@ -139,7 +140,9 @@ const DashboardView = () => {
             handleDashboardTimeRange(aTimeRange.start, aTimeRange.end);
         }, setIntervalTime(aTimeRange));
     };
-    const handleSplitPaneSize = () => {
+    const handleSplitPaneSize = (varId: string = 'ALL') => {
+        setSelectVariable(varId);
+        if (varId !== sSelectVariable && sVariableCollapse) return;
         if (sVariableCollapse) setSideSizes(['0%', '100%']);
         else {
             if (sIsMobile) setSideSizes(['100%', '0%']);
@@ -180,10 +183,10 @@ const DashboardView = () => {
                                         pWidth={20}
                                         pHeight={20}
                                         pIcon={<IoMdOptions />}
-                                        onClick={handleSplitPaneSize}
+                                        onClick={() => handleSplitPaneSize()}
                                     />
                                 </div>
-                                {!sIsMobile && <VariablePreview pBoardInfo={sBoardInformation} />}
+                                {!sIsMobile && <VariablePreview pBoardInfo={sBoardInformation} callback={(selectVarId) => handleSplitPaneSize(selectVarId)} />}
                             </>
                         )}
                     </div>
@@ -226,10 +229,10 @@ const DashboardView = () => {
                                 pWidth={20}
                                 pHeight={20}
                                 pIcon={<IoClose />}
-                                onClick={handleSplitPaneSize}
+                                onClick={() => handleSplitPaneSize()}
                             />
                         </div>
-                        <VariableHeader pBoardInfo={sBoardInformation} callback={handleUpdateVariable} />
+                        <VariableHeader pBoardInfo={sBoardInformation} callback={handleUpdateVariable} pSelectVariable={sSelectVariable} />
                     </Pane>
                     <Pane>
                         <div className="board-body">

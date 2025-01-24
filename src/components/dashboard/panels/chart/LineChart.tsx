@@ -15,6 +15,7 @@ import './LineChart.scss';
 import { TqlChartParser } from '@/utils/DashboardTqlChartParser';
 import moment from 'moment';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
+import { Error } from '@/components/toast/Toast';
 
 const LineChart = ({
     pIsActiveTab,
@@ -114,11 +115,8 @@ const LineChart = ({
             }, '');
 
             if (checkUndefinedVariable) {
-                setIsMessage(checkUndefinedVariable + ' is not defined');
-                setIsError(true);
+                pType === 'edit' && Error(checkUndefinedVariable + ' is not defined');
                 setIsChartData(false);
-                setIsLoading(false);
-                return;
             }
 
             const sResult: any = await getTqlChart(

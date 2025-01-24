@@ -2,7 +2,7 @@ import moment from 'moment';
 import { isRollup } from '.';
 import { ADMIN_ID } from './constants';
 import { VARIABLE_REGEX } from './CheckDataCompatibility';
-import { DEFAULT_VARIABLE_LIST, VARIABLE_DEFAULT_TYPE, VARIABLE_TYPE } from '@/components/dashboard/variable';
+import { DEFAULT_VARIABLE_LIST, VARIABLE_TYPE } from '@/components/dashboard/variable';
 
 interface BlockTimeType {
     interval: {
@@ -76,7 +76,12 @@ export const VariableParser = (aVariables: VARIABLE_TYPE[], aTime: BlockTimeType
     return defineVar.concat(defaultVar);
 };
 
-const ReplaceVariables = (sParsedQueryList: any[], variables: { key: string; value: string; regEx: RegExp }[], alias: { color: string; name: string }[], aChartType: string) => {
+const ReplaceVariables = (
+    sParsedQueryList: any[],
+    variables: { key: string; value: string; regEx: RegExp }[],
+    alias: { color: string; name: string }[]
+    // , aChartType: string
+) => {
     let tmpQueryList: any = JSON.parse(JSON.stringify(sParsedQueryList));
     let tmpAliasList: any = JSON.parse(JSON.stringify(alias));
 
@@ -135,7 +140,12 @@ export const DashboardQueryParser = (aChartType: string, aBlockList: any, aRollu
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
     const sVariables = VariableParser(aVariables ?? [], aTime);
     const [sParsedQueryList, sAliasList] = QueryParser(sTranspose, sQueryBlock, aTime, sResDataType);
-    const [sReplaceQueryList, sReplaceAliasList] = ReplaceVariables(sParsedQueryList, sVariables, sAliasList, aChartType);
+    const [sReplaceQueryList, sReplaceAliasList] = ReplaceVariables(
+        sParsedQueryList,
+        sVariables,
+        sAliasList
+        // , aChartType
+    );
     return [sReplaceQueryList, sReplaceAliasList];
 };
 /** Combine table and user */

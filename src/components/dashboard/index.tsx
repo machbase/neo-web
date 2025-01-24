@@ -46,6 +46,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const [sVariableModal, setVariableModal] = useState<boolean>(false);
     const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
     const [sSideSizes, setSideSizes] = useState<any>(['0%', '100%']);
+    const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
 
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
@@ -210,7 +211,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         initDashboard();
     }, []);
 
-    const handleSplitPaneSize = () => {
+    const handleSplitPaneSize = (varId: string = 'ALL') => {
+        setSelectVariable(varId);
+        if (varId !== sSelectVariable && sVariableCollapse) return;
         if (sVariableCollapse) setSideSizes(['0%', '100%']);
         else setSideSizes(['20%', '100%']);
         setVariableCollapse(!sVariableCollapse);
@@ -243,10 +246,10 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                         pWidth={20}
                                         pHeight={20}
                                         pIcon={<IoMdOptions />}
-                                        onClick={handleSplitPaneSize}
+                                        onClick={() => handleSplitPaneSize()}
                                     />
                                 </div>
-                                <VariablePreview pBoardInfo={pInfo} />
+                                <VariablePreview pBoardInfo={pInfo} callback={(selectVarId) => handleSplitPaneSize(selectVarId)} />
                             </>
                         )}
                     </div>
@@ -329,10 +332,10 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                     pWidth={20}
                                     pHeight={20}
                                     pIcon={<IoClose />}
-                                    onClick={handleSplitPaneSize}
+                                    onClick={() => handleSplitPaneSize()}
                                 />
                             </div>
-                            <VariableHeader pBoardInfo={pInfo} callback={initDashboard} />
+                            <VariableHeader pBoardInfo={pInfo} callback={initDashboard} pSelectVariable={sSelectVariable} />
                         </Pane>
                         <Pane>
                             <div className="board-body">
