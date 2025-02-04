@@ -16,6 +16,7 @@ import { GaugeOptions } from './option/GaugeOptions';
 import { ChartType } from '@/type/eChart';
 import { LiquidfillOptions } from './option/LiquidfillOptions';
 import { TqlOptions } from './option/TqlOptions';
+import { TextOptions } from './option/TextOptions';
 
 interface CreatePanelRightProps {
     pPanelOption: any;
@@ -104,6 +105,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                             {chartTypeConverter(pPanelOption.type) === 'pie' ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                             {chartTypeConverter(pPanelOption.type) === 'gauge' ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                             {chartTypeConverter(pPanelOption.type) === 'liquidFill' ? <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {chartTypeConverter(pPanelOption.type) === 'text' ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                         </Collapse>
                     )}
 
