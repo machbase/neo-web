@@ -72,12 +72,14 @@ export const DefaultTextchartOpntion = {
     symbol: 'circle' as string,
     isSymbol: true as boolean,
     symbolSize: 1 as number,
-    color: '#FFFFFF' as string,
+    color: [[0, '#FFFFFF']] as [number, string][],
     chartType: 'line' as string,
     chartColor: '#367FEB' as string,
     fillOpacity: 0.1 as number,
     digit: 3 as number,
     unit: '' as string,
+    min: 0 as number,
+    max: 100 as number,
 };
 export const DefaultTqlChartOption = {
     theme: 'white' as string,

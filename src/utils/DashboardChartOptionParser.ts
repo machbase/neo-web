@@ -142,22 +142,30 @@ const StructureSeriesOption: any = {
         "grid": [{ "width": "100%", "bottom": "50%", "left": 0 }, { "width": "100%", "height": "50%", "bottom": 0, "left": 0 }],
         "series": [
             {
+                "type": "gauge",
                 "yAxisIndex": 0,
                 "xAxisIndex": 0,
-                "type": "scatter",
-                "symbolSize": 0,
-                "data": [
-                    {
-                        "value": [0, 0],
-                        "label": {
-                            "show": true,
-                            "formatter": "",
-                            "align": "center",
-                            "color": "$color$",
-                            "fontSize": $fontSize$
-                        }
+                "data": [{"value": 0}],
+                "min": "$min$",
+                "max": "$max$",
+                "axisLine": {
+                    "show": false,
+                    "lineStyle": {
+                        "width": 0,
+                        "color": $color$
                     }
-                ]
+			    },
+                "pointer": {"show": false},
+                "title": {"show": false},
+                "splitLine": {"show": false},
+                "axisTick": {"show": false},
+                "axisLabel": {"show": false, "width": 0},
+                "detail": {
+                    "color": "inherit",
+                    "fontSize": $fontSize$,
+                    "offsetCenter": [0, 0],
+                    "formatter": "function (params) { if (isNaN(params)) return 'No-data'; else return params + '$unit$' }"
+                }
             },
             {
                 "xAxisIndex": 1,
@@ -245,6 +253,7 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
             sChartSeriesStructure = aChartOption[aOpt]
                 ? sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: aChartOption['axisLineStyleColor'] } }))
                 : sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: [[1, '#c2c2c2']] } }));
+        else if (aOpt === 'color' && aChartType === 'text') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
         else sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, aChartOption[aOpt]);
     });
 

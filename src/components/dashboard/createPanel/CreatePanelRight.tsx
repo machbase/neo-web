@@ -97,7 +97,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                         </>
                     )}
                     <div className="divider" />
-                    {chartTypeConverter(pPanelOption.type) !== 'tql' && (
+                    {chartTypeConverter(pPanelOption.type) !== 'tql' && chartTypeConverter(pPanelOption.type) !== 'text' && (
                         <Collapse title="Chart option" isOpen>
                             {chartTypeConverter(pPanelOption.type) === 'line' ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                             {chartTypeConverter(pPanelOption.type) === 'bar' ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
@@ -105,10 +105,10 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                             {chartTypeConverter(pPanelOption.type) === 'pie' ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                             {chartTypeConverter(pPanelOption.type) === 'gauge' ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                             {chartTypeConverter(pPanelOption.type) === 'liquidFill' ? <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === 'text' ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                         </Collapse>
                     )}
 
+                    {chartTypeConverter(pPanelOption.type) === 'text' ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                     {chartTypeConverter(pPanelOption.type) === 'tql' ? <TqlOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                     <div className="divider" />
                 </div>

@@ -31,9 +31,8 @@ const LiquidNameValueFunc = (aChartOptions: any) => {
 /** TEXT func */
 const TextFunc = (aChartOptions: any) => {
     return `(obj) => {
-        \t\tif (aIdx === 0) _chartOption.series[aIdx].data[0].label.formatter = obj?.data?.rows[0][0]?.value ? obj?.data?.rows[0][0]?.value.toFixed(${aChartOptions?.digit}) + "${
-        aChartOptions?.unit ?? ''
-    }"?.toString() : 'no-data'
+        \t\tif (aIdx === 0){
+        \t\t_chartOption.series[aIdx].data[0].value = obj?.data?.rows[0][0]?.value ? obj?.data?.rows[0][0]?.value.toFixed(${aChartOptions?.digit}) : 'no-data';}
         \t\telse _chartOption.series[aIdx].data = obj?.data?.rows ?? [];
         \t\t_chart.setOption(_chartOption);
         \t}`;

@@ -1,12 +1,8 @@
 @import '/src/assets/scss/theme.scss';
-.liquid-fill-options-wrape {
-    .color-picker {
-        position: absolute !important;
-        z-index: $color-dropdown-idx;
-    }
-}
 
-.gauge-options-wrape {
+.text-options-wrap,
+.gauge-options-wrape,
+.liquid-fill-options-wrape {
     .color-picker {
         position: absolute !important;
         z-index: $color-dropdown-idx;
