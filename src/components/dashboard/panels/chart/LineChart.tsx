@@ -131,7 +131,7 @@ const LineChart = ({
                 )`,
                 'dsh'
             );
-            if (!sResult.data.reason) {
+            if (!sResult?.data?.reason) {
                 setChartData(sResult.data);
                 setIsError(false);
                 setIsChartData(true);

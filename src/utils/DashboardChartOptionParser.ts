@@ -139,33 +139,15 @@ const StructureSeriesOption: any = {
         "animation": false,
         "xAxis": [{ "type": "category", "data": [], "show": false, "gridIndex": 0, "boundaryGap": false }, { "type": "time", "data": "column(0)", "show": false, "gridIndex": 1, "boundaryGap": false }],
         "yAxis": [{ "show": false, "gridIndex": 0 }, { "show": false, "gridIndex": 1, "type": "value" }],
-        "grid": [{ "width": "100%", "bottom": "50%", "left": 0 }, { "width": "100%", "height": "50%", "bottom": 0, "left": 0 }],
+        "grid": [{ "width": "100%", "bottom": "50%", "left": 0 }, { "width": "100%", "height": "100%%", "bottom": 0, "left": 0 }],
         "series": [
             {
-                "type": "gauge",
+                "type": "custom",
                 "yAxisIndex": 0,
                 "xAxisIndex": 0,
-                "data": [{"value": 0}],
-                "min": "$min$",
-                "max": "$max$",
-                "axisLine": {
-                    "show": false,
-                    "lineStyle": {
-                        "width": 0,
-                        "color": $color$
-                    }
-			    },
-                "pointer": {"show": false},
-                "title": {"show": false},
-                "splitLine": {"show": false},
-                "axisTick": {"show": false},
-                "axisLabel": {"show": false, "width": 0},
-                "detail": {
-                    "color": "inherit",
-                    "fontSize": $fontSize$,
-                    "offsetCenter": [0, 0],
-                    "formatter": "function (params) { if (isNaN(params)) return 'No-data'; else return params + '$unit$' }"
-                }
+                "z": 100,
+                "data": [],
+                "renderItem": $render$
             },
             {
                 "xAxisIndex": 1,
@@ -272,7 +254,50 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
     }
 
     // Return Text chart
-    if (aChartType === 'text') return JSON.parse('{' + sChartSeriesStructure + '}');
+    if (aChartType === 'text') {
+        const tmpColorSet = JSON.parse(JSON.stringify(aChartOption.color));
+        const tmpPop = tmpColorSet.shift();
+        tmpColorSet.sort((a: any, b: any) => parseInt(b[0]) - parseInt(a[0]));
+        tmpColorSet.push(tmpPop);
+
+        const colorInjectTxt = tmpColorSet.map((aChartOption: any, aIdx: number) => {
+            if (aChartOption[0] === 'default') return `${aIdx === 0 ? '' : 'else '}return '${aChartOption[1]}';`;
+            if (aIdx === 0) return `if (aValue > ${parseInt(aChartOption[0])}) return '${aChartOption[1]}';`;
+            else return `else if (aValue > ${parseInt(aChartOption[0])}) return '${aChartOption[1]}';`;
+        });
+
+        sChartSeriesStructure = sChartSeriesStructure.replace(
+            '$render$',
+            JSON.stringify(
+                `function (params, api) {` +
+                    `const setColor = (aValue) => {` +
+                    colorInjectTxt.join('') +
+                    `};` +
+                    `var sFontsize = ${aChartOption?.fontSize ?? 100};` +
+                    `const sValue = api?.value(1)${aChartOption?.digit ? '.toFixed(' + aChartOption.digit + ')' : ''};` +
+                    // toFixed()
+                    `const sColor = setColor(sValue);` +
+                    `const sLen = isNaN(sValue) ? 5 : sValue.toString().length${aChartOption?.unit ? '+' + aChartOption.unit.length : ''};` +
+                    `const sClientH = api.getHeight();` +
+                    `const sClientW = api.getWidth();` +
+                    `const sCenterX = (sClientW - (sFontsize / 2 * sLen)) / 2;` +
+                    `const sCenterY = (sClientH - sFontsize) / 2;` +
+                    `const sStyle = api.style({` +
+                    `fontSize: sFontsize,` +
+                    `textFill: sColor,` +
+                    `text: isNaN(sValue) ? 'no-data': sValue${aChartOption?.unit ? "+ '" + aChartOption.unit + "'" : ''},` +
+                    `x: sCenterX,` +
+                    `y: sCenterY` +
+                    `});` +
+                    `return {` +
+                    `type: 'text',` +
+                    `style: sStyle` +
+                    `};` +
+                    `}`
+            )
+        );
+        return JSON.parse('{' + sChartSeriesStructure + '}');
+    }
 
     const sParsedSeries = JSON.parse('{' + sChartSeriesStructure + '}');
     const sParsedPolar = JSON.parse(sPolarStructure);

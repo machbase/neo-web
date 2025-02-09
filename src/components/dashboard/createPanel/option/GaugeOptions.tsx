@@ -119,6 +119,8 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                                     HandleItemColor={HandleItemColor}
                                     HandleItem={HandleItem}
                                     itemLen={pPanelOption.chartOptions?.axisLineStyleColor.length}
+                                    min={0}
+                                    max={1}
                                 />
                             );
                         })}

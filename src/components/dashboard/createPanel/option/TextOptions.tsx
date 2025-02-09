@@ -6,6 +6,7 @@ import useOutsideClick from '@/hooks/useOutsideClick';
 import { useRef, useState } from 'react';
 import CompactPicker from 'react-color/lib/components/compact/Compact';
 import { MultiColorPkr } from './MultiColorPkr';
+import { PlusCircle } from '@/assets/icons/Icon';
 
 interface LiquidfillOptionProps {
     pPanelOption: any;
@@ -17,7 +18,9 @@ export const TextOptions = (props: LiquidfillOptionProps) => {
     const sChartColorPickerRef = useRef<any>(null);
     const sColorPickerRef = useRef<any>(null);
     const [sIsChartColorPicker, setIsChartColorPicker] = useState<boolean>(false);
+    const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
 
+    useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
     useOutsideClick(sChartColorPickerRef, () => setIsChartColorPicker(false));
 
     const HandleOption = (aEvent: any, aKey: any) => {
@@ -34,7 +37,7 @@ export const TextOptions = (props: LiquidfillOptionProps) => {
 
     const HandleItem = (key: string, idx: number) => {
         const sNewList = JSON.parse(JSON.stringify(pPanelOption.chartOptions.color));
-        if (key === 'add') sNewList.push(sNewList.at(-1));
+        if (key === 'add') sNewList.push([0, sNewList.at(-1)[1]]);
         else sNewList.splice(idx, 1);
 
         pSetPanelOption((aPrev: any) => {
@@ -106,48 +109,70 @@ export const TextOptions = (props: LiquidfillOptionProps) => {
                         onChange={(aEvent: any) => HandleOption(aEvent, 'digit')}
                     />
                 </div>
-                <div className="menu-style">
-                    <span>Min</span>
-                    <Input
-                        pType="number"
-                        pWidth={100}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pValue={pPanelOption.chartOptions?.min ?? 0}
-                        pSetValue={() => null}
-                        onChange={(aEvent: any) => HandleOption(aEvent, 'min')}
-                    />
-                </div>
-                <div className="menu-style">
-                    <span>Max</span>
-                    <Input
-                        pType="number"
-                        pWidth={100}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pValue={pPanelOption.chartOptions?.max ?? 0}
-                        pSetValue={() => null}
-                        onChange={(aEvent: any) => HandleOption(aEvent, 'max')}
-                    />
-                </div>
-                <div style={{ height: '10px', marginRight: '0 !important' }} />
-                <div className="menu-style" ref={sColorPickerRef} style={{ position: 'relative' }}>
-                    <span>Color</span>
-                </div>
-                <>
-                    {pPanelOption.chartOptions?.color.map((aAxisColor: any, aIdx: number) => {
-                        return (
-                            <MultiColorPkr
-                                key={aIdx}
-                                aIdx={aIdx}
-                                aAxisColor={aAxisColor}
-                                HandleItemColor={HandleItemColor}
-                                HandleItem={HandleItem}
-                                itemLen={pPanelOption.chartOptions?.color.length}
-                            />
-                        );
-                    })}
-                </>
+                <div className="divider" />
+                <Collapse title="Color">
+                    <>
+                        {pPanelOption.chartOptions?.color.map((aAxisColor: any, aIdx: number) => {
+                            if (aIdx === 0)
+                                return (
+                                    <div key={aIdx}>
+                                        <div className="menu-style" ref={sColorPickerRef} style={{ position: 'relative' }}>
+                                            <span>Default</span>
+                                            <IconButton
+                                                pWidth={20}
+                                                pHeight={20}
+                                                pIcon={
+                                                    <div
+                                                        style={{
+                                                            width: '14px',
+                                                            cursor: 'pointer',
+                                                            height: '14px',
+                                                            marginRight: '4px',
+                                                            borderRadius: '50%',
+                                                            backgroundColor: pPanelOption.chartOptions?.color[0][1] as string,
+                                                        }}
+                                                    ></div>
+                                                }
+                                                onClick={() => setIsColorPicker(!sIsColorPicker)}
+                                            />
+                                        </div>
+                                        <>
+                                            {sIsColorPicker && (
+                                                <div className="color-picker">
+                                                    <CompactPicker
+                                                        color={pPanelOption.chartOptions?.color as string}
+                                                        onChangeComplete={(aInfo: any) => {
+                                                            HandleItemColor('r', aInfo.hex, 0);
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                            {pPanelOption.chartOptions?.color.length === 1 && (
+                                                <div className="menu-style" style={{ justifyContent: 'end', flexGrow: 1 }}>
+                                                    <div />
+                                                    <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={() => HandleItem('add', 1)} />
+                                                </div>
+                                            )}
+                                        </>
+                                    </div>
+                                );
+
+                            return (
+                                <div key={aIdx}>
+                                    <MultiColorPkr
+                                        alwayRmBtn
+                                        prefix="Over"
+                                        aIdx={aIdx}
+                                        aAxisColor={aAxisColor}
+                                        HandleItemColor={HandleItemColor}
+                                        HandleItem={HandleItem}
+                                        itemLen={pPanelOption.chartOptions?.color.length}
+                                    />
+                                </div>
+                            );
+                        })}
+                    </>
+                </Collapse>
             </Collapse>
             <div className="divider" />
             <Collapse title="Chart option" isOpen isDisable={pPanelOption.blockList.length < 2}>

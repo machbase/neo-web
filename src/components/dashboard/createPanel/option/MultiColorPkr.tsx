@@ -11,10 +11,14 @@ interface MultiColorPkrStyle {
     HandleItemColor: (key: string, target: any, idx: number) => void;
     HandleItem: (key: string, idx: number) => void;
     itemLen: number;
+    prefix?: string;
+    alwayRmBtn?: boolean;
+    min?: number;
+    max?: number;
 }
 
 export const MultiColorPkr = (props: MultiColorPkrStyle) => {
-    const { aIdx, aAxisColor, HandleItemColor, HandleItem, itemLen } = props;
+    const { aIdx, aAxisColor, HandleItemColor, HandleItem, itemLen, alwayRmBtn, min = undefined, max = undefined } = props;
     const sColorPickerRef = useRef<any>(null);
     const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
 
@@ -24,21 +28,22 @@ export const MultiColorPkr = (props: MultiColorPkrStyle) => {
         <div className="gauge-options-wrape">
             <div className="menu-style">
                 <div ref={sColorPickerRef} style={{ position: 'relative', display: 'flex' }}>
+                    {props?.prefix && <span style={{ marginRight: '30px', height: '25px', alignItems: 'center', display: 'flex' }}>{props.prefix}</span>}
                     <div style={{ marginRight: '10px' }}>
                         <Input
                             pType="number"
                             pWidth={100}
                             pHeight={25}
                             pBorderRadius={4}
-                            pMin={0}
-                            pMax={1}
+                            pMin={min}
+                            pMax={max}
                             pValue={aAxisColor[0] as string}
                             onChange={(aEvent) => HandleItemColor('l', aEvent.target.value, aIdx)}
                         />
                     </div>
                     <IconButton
                         pWidth={20}
-                        pHeight={20}
+                        pHeight={25}
                         pIcon={
                             <div
                                 style={{
@@ -65,11 +70,14 @@ export const MultiColorPkr = (props: MultiColorPkrStyle) => {
                         </div>
                     )}
                 </div>
-                {itemLen === aIdx + 1 ? (
-                    <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={() => HandleItem('add', aIdx)} />
-                ) : (
-                    <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => HandleItem('remove', aIdx)} />
-                )}
+                <div style={{ display: 'flex', flexDirection: 'row' }}>
+                    {itemLen === aIdx + 1 ? (
+                        <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={() => HandleItem('add', aIdx)} />
+                    ) : (
+                        <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => HandleItem('remove', aIdx)} />
+                    )}
+                    {itemLen === aIdx + 1 && alwayRmBtn && <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => HandleItem('remove', aIdx)} />}
+                </div>
             </div>
         </div>
     );

@@ -604,7 +604,7 @@ export const removeColumnQuotes = (aStr: string) => {
 };
 
 export const decodeFormatterFunction = (aStr: string) => {
-    return aStr.replace(/"(function \(params\) \{.*?\})"/g, (aMatch) => {
+    return aStr.replace(/"(function \((params)(, api)?\) \{.*?\})"/g, (aMatch) => {
         if (aMatch.startsWith('"') && aMatch.endsWith('"')) {
             return aMatch.slice(1, -1);
         }

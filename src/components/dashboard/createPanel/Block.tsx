@@ -45,6 +45,8 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
     const sColorPickerRef = useRef<any>(null);
     const sMathRef = useRef<any>(null);
 
+    console.log('pPanelOption', pPanelOption);
+
     /** return variable list */
     const getVariableList = useMemo((): string[] => {
         return pVariableList?.map((variable: any) => variable.key);
@@ -683,6 +685,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                         </div>
                         <div ref={sColorPickerRef} style={{ position: 'relative' }}>
                             <IconButton
+                                pDisabled={pPanelOption.type === 'Text'}
                                 pWidth={20}
                                 pHeight={20}
                                 pIsToopTip

@@ -29,10 +29,10 @@ const LiquidNameValueFunc = (aChartOptions: any) => {
         \t\t_chart.setOption(_chartOption)}`;
 };
 /** TEXT func */
-const TextFunc = (aChartOptions: any) => {
+const TextFunc = () => {
     return `(obj) => {
         \t\tif (aIdx === 0){
-        \t\t_chartOption.series[aIdx].data[0].value = obj?.data?.rows[0][0]?.value ? obj?.data?.rows[0][0]?.value.toFixed(${aChartOptions?.digit}) : 'no-data';}
+        \t\t_chartOption.series[aIdx].data[0] = obj?.data?.rows[0][0]?.value ? obj?.data?.rows[0][0]?.value : 'no-data';}
         \t\telse _chartOption.series[aIdx].data = obj?.data?.rows ?? [];
         \t\t_chart.setOption(_chartOption);
         \t}`;
@@ -47,7 +47,7 @@ export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string,
     if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc();
     if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc(aChartType);
     if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidNameValueFunc(aChartOptions);
-    if (aChartType === 'text') sInjectFunc = TextFunc(aChartOptions);
+    if (aChartType === 'text') sInjectFunc = TextFunc();
 
     // GEN variable
     const sDynamicVariable = aParsedQuery.map((aQuery: any) => {
