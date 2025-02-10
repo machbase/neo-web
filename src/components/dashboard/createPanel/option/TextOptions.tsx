@@ -115,8 +115,8 @@ export const TextOptions = (props: LiquidfillOptionProps) => {
                         {pPanelOption.chartOptions?.color.map((aAxisColor: any, aIdx: number) => {
                             if (aIdx === 0)
                                 return (
-                                    <div key={aIdx}>
-                                        <div className="menu-style" ref={sColorPickerRef} style={{ position: 'relative' }}>
+                                    <div key={aIdx} ref={sColorPickerRef}>
+                                        <div className="menu-style" style={{ position: 'relative' }}>
                                             <span>Default</span>
                                             <IconButton
                                                 pWidth={20}
@@ -140,7 +140,7 @@ export const TextOptions = (props: LiquidfillOptionProps) => {
                                             {sIsColorPicker && (
                                                 <div className="color-picker">
                                                     <CompactPicker
-                                                        color={pPanelOption.chartOptions?.color as string}
+                                                        color={pPanelOption.chartOptions?.color[0][1] as string}
                                                         onChangeComplete={(aInfo: any) => {
                                                             HandleItemColor('r', aInfo.hex, 0);
                                                         }}
