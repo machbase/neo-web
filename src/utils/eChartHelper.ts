@@ -66,6 +66,19 @@ export const DefaultYAxisOption = {
     // }
 };
 
+export const DefaultTextchartOpntion = {
+    tagLimit: 2 as number,
+    fontSize: 100 as number,
+    symbol: 'circle' as string,
+    isSymbol: true as boolean,
+    symbolSize: 1 as number,
+    color: [['default', '#FFFFFF']] as [number | string, string][],
+    chartType: 'line' as string,
+    chartColor: '#367FEB' as string,
+    fillOpacity: 0.1 as number,
+    digit: 3 as number,
+    unit: '' as string,
+};
 export const DefaultTqlChartOption = {
     theme: 'white' as string,
 };
@@ -273,6 +286,8 @@ export const getDefaultSeriesOption = (aChartType: ChartType) => {
             return DefaultLiquidfillChartOption;
         case 'tql':
             return DefaultTqlChartOption;
+        case 'text':
+            return DefaultTextchartOpntion;
         default:
             return DefaultLineChartOption;
     }

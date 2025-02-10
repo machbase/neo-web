@@ -16,6 +16,7 @@ import { GaugeOptions } from './option/GaugeOptions';
 import { ChartType } from '@/type/eChart';
 import { LiquidfillOptions } from './option/LiquidfillOptions';
 import { TqlOptions } from './option/TqlOptions';
+import { TextOptions } from './option/TextOptions';
 
 interface CreatePanelRightProps {
     pPanelOption: any;
@@ -96,7 +97,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                         </>
                     )}
                     <div className="divider" />
-                    {chartTypeConverter(pPanelOption.type) !== 'tql' && (
+                    {chartTypeConverter(pPanelOption.type) !== 'tql' && chartTypeConverter(pPanelOption.type) !== 'text' && (
                         <Collapse title="Chart option" isOpen>
                             {chartTypeConverter(pPanelOption.type) === 'line' ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                             {chartTypeConverter(pPanelOption.type) === 'bar' ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
@@ -107,6 +108,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                         </Collapse>
                     )}
 
+                    {chartTypeConverter(pPanelOption.type) === 'text' ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                     {chartTypeConverter(pPanelOption.type) === 'tql' ? <TqlOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                     <div className="divider" />
                 </div>

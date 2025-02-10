@@ -134,6 +134,35 @@ const StructureSeriesOption: any = {
         },
         "data": []
     `,
+    text: `
+        "tooltip": { "show": false },
+        "animation": false,
+        "xAxis": [{ "type": "category", "data": [], "show": false, "gridIndex": 0, "boundaryGap": false }, { "type": "time", "data": "column(0)", "show": false, "gridIndex": 1, "boundaryGap": false }],
+        "yAxis": [{ "show": false, "gridIndex": 0 }, { "show": false, "gridIndex": 1, "type": "value" }],
+        "grid": [{ "width": "100%", "bottom": "50%", "left": 0 }, { "width": "100%", "height": "100%%", "bottom": 0, "left": 0 }],
+        "series": [
+            {
+                "type": "custom",
+                "yAxisIndex": 0,
+                "xAxisIndex": 0,
+                "z": 100,
+                "data": [],
+                "renderItem": $render$
+            },
+            {
+                "xAxisIndex": 1,
+                "yAxisIndex": 1,
+                "type": "$chartType$",
+                "smooth": false,
+                "symbolSize": "$symbolSize$",
+                "color": "$chartColor$",
+                "areaStyle": {
+                    "opacity": "$fillOpacity$"
+                },
+                "data": []
+            }
+        ]
+    `,
 };
 // Polar structure
 const PolarOption: any = {
@@ -175,7 +204,7 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
         });
     }
     // Set xAxis | yAxis
-    if (aDataType === 'TIME_VALUE' && !aChartOption['isPolar']) {
+    if (aDataType === 'TIME_VALUE' && !aChartOption['isPolar'] && aChartType !== 'text') {
         // Set min max time
         const sTempXAxis: any = JSON.parse(JSON.stringify(aXAxis[0]));
         sTempXAxis.min = aTime.startTime;
@@ -183,7 +212,7 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
         sXAxis = JSON.stringify({ xAxis: [sTempXAxis] });
         sYAxis = JSON.stringify({ yAxis: aYAxis });
     }
-    if (aDataType === 'NAME_VALUE' || (aDataType === 'TIME_VALUE' && aChartOption['isPolar'])) {
+    if ((aDataType === 'NAME_VALUE' || (aDataType === 'TIME_VALUE' && aChartOption['isPolar'])) && aChartType !== 'text') {
         sXAxis = `{}`;
         sYAxis = `{}`;
     }
@@ -206,6 +235,7 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
             sChartSeriesStructure = aChartOption[aOpt]
                 ? sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: aChartOption['axisLineStyleColor'] } }))
                 : sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: [[1, '#c2c2c2']] } }));
+        else if (aOpt === 'color' && aChartType === 'text') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
         else sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, aChartOption[aOpt]);
     });
 
@@ -221,6 +251,52 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
         }, []);
         sVisualMapStructure = sVisualMapStructure.replace(`$seriesIndex$`, JSON.stringify(sSeriesIndexArray));
         sVisualMapStructure = sVisualMapStructure.replace(`$pieces$`, JSON.stringify(sPieces));
+    }
+
+    // Return Text chart
+    if (aChartType === 'text') {
+        const tmpColorSet = JSON.parse(JSON.stringify(aChartOption.color));
+        const tmpPop = tmpColorSet.shift();
+        tmpColorSet.sort((a: any, b: any) => parseInt(b[0]) - parseInt(a[0]));
+        tmpColorSet.push(tmpPop);
+
+        const colorInjectTxt = tmpColorSet.map((aChartOption: any, aIdx: number) => {
+            if (aChartOption[0] === 'default') return `${aIdx === 0 ? '' : 'else '}return '${aChartOption[1]}';`;
+            if (aIdx === 0) return `if (aValue > ${parseInt(aChartOption[0])}) return '${aChartOption[1]}';`;
+            else return `else if (aValue > ${parseInt(aChartOption[0])}) return '${aChartOption[1]}';`;
+        });
+
+        sChartSeriesStructure = sChartSeriesStructure.replace(
+            '$render$',
+            JSON.stringify(
+                `function (params, api) {` +
+                    `const setColor = (aValue) => {` +
+                    colorInjectTxt.join('') +
+                    `};` +
+                    `var sFontsize = ${aChartOption?.fontSize ?? 100};` +
+                    `const sValue = api?.value(1)${aChartOption?.digit ? '.toFixed(' + aChartOption.digit + ')' : ''};` +
+                    // toFixed()
+                    `const sColor = setColor(sValue);` +
+                    `const sLen = isNaN(sValue) ? 5 : sValue.toString().length${aChartOption?.unit ? '+' + aChartOption.unit.length : ''};` +
+                    `const sClientH = api.getHeight();` +
+                    `const sClientW = api.getWidth();` +
+                    `const sCenterX = (sClientW - (sFontsize / 2 * sLen)) / 2;` +
+                    `const sCenterY = (sClientH - sFontsize) / 2;` +
+                    `const sStyle = api.style({` +
+                    `fontSize: sFontsize,` +
+                    `textFill: sColor,` +
+                    `text: isNaN(sValue) ? 'no-data': sValue${aChartOption?.unit ? "+ '" + aChartOption.unit + "'" : ''},` +
+                    `x: sCenterX,` +
+                    `y: sCenterY` +
+                    `});` +
+                    `return {` +
+                    `type: 'text',` +
+                    `style: sStyle` +
+                    `};` +
+                    `}`
+            )
+        );
+        return JSON.parse('{' + sChartSeriesStructure + '}');
     }
 
     const sParsedSeries = JSON.parse('{' + sChartSeriesStructure + '}');
@@ -253,14 +329,16 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
     const sResultOpt: any = { ...aCommonOpt, ...aTypeOpt.polar, ...aTypeOpt.visualMap, ...aTypeOpt.xAxis, ...aTypeOpt.yAxis };
     const sXLen: number = sResultOpt.xAxis && sResultOpt.xAxis.length;
     const sYLen: number = sResultOpt.yAxis && sResultOpt.yAxis.length;
-    const sIsVisualMap = !isObjectEmpty(aTypeOpt.visualMap);
+    const sIsVisualMap = !isObjectEmpty(aTypeOpt?.visualMap ?? {});
 
-    if (aDataType === 'TIME_VALUE') {
+    // Return Text chart
+    if (aChartType === 'text') return { title: aCommonOpt.title, ...aTypeOpt };
+
+    if (aDataType === 'TIME_VALUE' && aChartType !== 'text') {
         sResultOpt.series = aTagList.map((aTag: { name: string; color: string }, aIdx: number) => {
             return {
                 ...aTypeOpt.series,
                 type: aChartType,
-                // data: [],
                 name: aTag.name,
                 color: aTag.color,
                 xAxisIndex: sXLen > aIdx ? aIdx : 0,
@@ -268,16 +346,14 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
                 lineStyle: sIsVisualMap ? { color: ChartSeriesColorList[aIdx] } : null,
             };
         });
-    } else if (aDataType === 'NAME_VALUE') {
+    } else if (aDataType === 'NAME_VALUE' && aChartType !== 'text') {
         sResultOpt.series = [
             {
                 ...aTypeOpt.series,
                 type: aChartType,
                 color: aTagList.map((aTagInfo: any, aIdx: number) => (aTagInfo.color !== '' ? aTagInfo.color : ChartSeriesColorList[aIdx])),
-                // data: [],
             },
         ];
-        // sResultOpt.dataset = { dataset: [] };
     }
     return sResultOpt;
 };

@@ -683,6 +683,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                         </div>
                         <div ref={sColorPickerRef} style={{ position: 'relative' }}>
                             <IconButton
+                                pDisabled={pPanelOption.type === 'Text'}
                                 pWidth={20}
                                 pHeight={20}
                                 pIsToopTip
