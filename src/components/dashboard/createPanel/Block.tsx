@@ -45,8 +45,6 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
     const sColorPickerRef = useRef<any>(null);
     const sMathRef = useRef<any>(null);
 
-    console.log('pPanelOption', pPanelOption);
-
     /** return variable list */
     const getVariableList = useMemo((): string[] => {
         return pVariableList?.map((variable: any) => variable.key);
