@@ -14,7 +14,7 @@ export const ShowMap = (props: ShowMapProps) => {
             await loadScriptsSequentially({ jsAssets: pData.jsAssets ? (ExistCommonScript(pData.jsAssets) as string[]) : [], jsCodeAssets: [] });
 
         const MapDiv = document.createElement('div');
-        MapDiv.id = pData.ID;
+        MapDiv.id = pData.geomapID;
         MapDiv.style.width = pBodyRef.current.clientWidth + 'px';
         MapDiv.style.height = pBodyRef.current.clientHeight + 'px';
         wrapRef.current?.appendChild(MapDiv);

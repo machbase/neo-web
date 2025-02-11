@@ -104,7 +104,7 @@ const Tql = (props: TqlProps) => {
                 HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['x-chart-type'] === 'geomap') {
-            if (sResult.data && sResult.data.ID) {
+            if (sResult.data && sResult.data.geomapID) {
                 setResultType('map');
                 setMapData(sResult.data);
             } else {
