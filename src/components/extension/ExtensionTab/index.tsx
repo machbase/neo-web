@@ -9,7 +9,7 @@ import moment from 'moment';
 import './index.scss';
 import { VscCheck, VscCircleFilled, VscPass } from 'react-icons/vsc';
 import { generateUUID } from '@/utils';
-import { MdKeyboardArrowRight, MdOutlineKeyboardArrowDown } from 'react-icons/md';
+import { MdDelete, MdKeyboardArrowRight, MdOutlineKeyboardArrowDown } from 'react-icons/md';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Loader } from '@/components/loader';
 
@@ -44,7 +44,7 @@ const SubTitle = ({ children }: { children: React.ReactNode }) => {
         </div>
     );
 };
-const ContentBlock = ({ children, pActive = false, pHoverNone = false }: { children: React.ReactNode; pActive?: boolean; pHoverNone?: boolean }) => {
+const ContentBlock = ({ children, pActive = false, pHoverNone = false }: { children?: React.ReactNode; pActive?: boolean; pHoverNone?: boolean }) => {
     return (
         <div className="extension-tab-block-wrapper">
             <div className={pActive ? `extension-tab-content-block${pHoverNone ? '-none' : ''} active-content-block` : `extension-tab-content-block${pHoverNone ? '-none' : ''}`}>
@@ -385,32 +385,48 @@ const Checkbox = ({ pCallback, pValue, pDisable }: { pCallback?: (value: any) =>
         </div>
     );
 };
-const Selector = ({ pList, pSelectedItem, pCallback, pWidth = '400px' }: { pList: any; pSelectedItem: any; pCallback: (eTarget: string) => void; pWidth?: string }) => {
+const Selector = <T,>({
+    pList,
+    pSelectedItem,
+    pCallback,
+    pWidth = '400px',
+    disable = false,
+}: {
+    pList: { name: string; data: T }[];
+    pSelectedItem: any;
+    pCallback: (eTarget: T) => void;
+    pWidth?: string;
+    disable?: boolean;
+}) => {
     const [sIsOpen, setIsOpen] = useState<boolean>(false);
 
-    const handleCallback = (aItem: string) => {
+    const handleOpen = () => {
+        if (disable) return;
+        setIsOpen(!sIsOpen);
+    };
+    const handleCallback = (aItem: T) => {
         pCallback(aItem);
         setIsOpen(false);
     };
 
     return (
         <div className="extension-tab-selector-wrapper" style={{ width: 'auto', maxWidth: pWidth }}>
-            <div className="extension-tab-selector-header" onClick={() => setIsOpen(!sIsOpen)}>
+            <div className="extension-tab-selector-header" onClick={handleOpen}>
                 <span>{pSelectedItem}</span>
                 <ArrowDown />
             </div>
             {sIsOpen && (
                 <div className="extension-tab-selector-body">
-                    {pList.map((pItem: string, aIdx: number) => {
+                    {pList.map((pItem, aIdx: number) => {
                         return (
                             <div
-                                key={pItem + aIdx + ''}
+                                key={pItem.name + aIdx + ''}
                                 className={
                                     pSelectedItem === pItem ? 'extension-tab-selector-body-item extension-tab-selector-body-item-selected' : 'extension-tab-selector-body-item'
                                 }
-                                onClick={() => handleCallback(pItem)}
+                                onClick={() => handleCallback(pItem.data)}
                             >
-                                <span>{pItem}</span>
+                                <span>{pItem.name}</span>
                             </div>
                         );
                     })}
@@ -435,9 +451,42 @@ const TextResSuccess = ({ pText }: { pText: string }) => {
         </div>
     );
 };
-const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
+const Table = ({
+    pList,
+    dotted,
+    activeRow = false,
+    rowSelectCallback = () => {},
+    rowDeleteCallback = undefined,
+}: {
+    pList: any;
+    dotted?: boolean;
+    activeRow?: boolean;
+    rowSelectCallback?: (item: string[]) => void;
+    rowDeleteCallback?: (item: string[]) => void | undefined;
+}) => {
+    const tableRef = useRef<any>(null);
+    const [active, setActive] = useState<string[]>();
+
+    const checkActiveRow = (item: string[], idx: number): string => {
+        const result: string[] = ['result-body-tr'];
+        if (activeRow && active && item?.join() === active.join()) result.push('active-row');
+        if (Number(idx) % 2 !== 0) result.push('dark-odd');
+        return result?.join(' ');
+    };
+    const handleDelete = (e: React.MouseEvent, item: string[]) => {
+        e.stopPropagation();
+        rowDeleteCallback && rowDeleteCallback(item);
+    };
+    const handleRowClick = (e: React.MouseEvent, item: string[]) => {
+        e.stopPropagation();
+        setActive(item);
+        rowSelectCallback(item);
+    };
+
+    useOutsideClick(tableRef, () => setActive([]));
+
     return (
-        <div className="extension-tab-table-wrapper">
+        <div ref={tableRef} className="extension-tab-table-wrapper">
             <table className="extension-tab-table">
                 <thead className="extension-tab-table-header">
                     {pList && pList.columns ? (
@@ -450,6 +499,7 @@ const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
                                     </th>
                                 );
                             })}
+                            {rowDeleteCallback && <th className="extension-tab-table-header-action" style={{ cursor: 'default' }}></th>}
                         </tr>
                     ) : (
                         <></>
@@ -459,7 +509,7 @@ const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
                     {pList && pList.rows
                         ? pList.rows.map((aRowList: any, aIdx: number) => {
                               return (
-                                  <tr key={'tbody-row' + aIdx} className={Number(aIdx) % 2 === 0 ? 'result-body-tr' : 'result-body-tr dark-odd'}>
+                                  <tr key={'tbody-row' + aIdx} className={checkActiveRow(aRowList, aIdx)} onClick={(e) => handleRowClick(e, aRowList)}>
                                       {dotted && (
                                           <td className="result-table-item" style={{ cursor: 'default' }}>
                                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -468,12 +518,18 @@ const Table = ({ pList, dotted }: { pList: any; dotted?: boolean }) => {
                                           </td>
                                       )}
                                       {aRowList.map((aRowData: any) => {
+                                          if (typeof aRowData === 'object') return null;
                                           return (
                                               <td className="result-table-item" key={generateUUID()}>
                                                   <span>{aRowData + ''}</span>
                                               </td>
                                           );
                                       })}
+                                      {rowDeleteCallback && (
+                                          <td className="result-table-item action" onClick={(e) => handleDelete(e, aRowList)}>
+                                              <MdDelete />
+                                          </td>
+                                      )}
                                   </tr>
                               );
                           })

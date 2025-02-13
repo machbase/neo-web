@@ -28,8 +28,17 @@ const LiquidNameValueFunc = (aChartOptions: any) => {
         \t\t}
         \t\t_chart.setOption(_chartOption)}`;
 };
+/** TEXT func */
+const TextFunc = () => {
+    return `(obj) => {
+        \t\tif (aIdx === 0){
+        \t\t_chartOption.series[aIdx].data[0] = obj?.data?.rows[0][0]?.value ? obj?.data?.rows[0][0]?.value : 'no-data';}
+        \t\telse _chartOption.series[aIdx].data = obj?.data?.rows ?? [];
+        \t\t_chart.setOption(_chartOption);
+        \t}`;
+};
 
-export const DashboardChartCodeParser = async (aChartOptions: any, aChartType: string, aParsedQuery: any, isSave: boolean = false) => {
+export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string, aParsedQuery: any, isSave: boolean = false) => {
     const sDataType = aParsedQuery[0].dataType;
     const sAccToken = localStorage.getItem('accessToken');
     const sXConsoleId = localStorage.getItem('consoleId');
@@ -38,6 +47,7 @@ export const DashboardChartCodeParser = async (aChartOptions: any, aChartType: s
     if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc();
     if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc(aChartType);
     if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidNameValueFunc(aChartOptions);
+    if (aChartType === 'text') sInjectFunc = TextFunc();
 
     // GEN variable
     const sDynamicVariable = aParsedQuery.map((aQuery: any) => {
@@ -49,9 +59,11 @@ export const DashboardChartCodeParser = async (aChartOptions: any, aChartType: s
 
     // GEN func
     const sFunction = `function getData(aTql, aIdx) {
-        \tfetch("${window.location.origin}/${isSave ? 'db': 'web/api'}/tql", {
+        \tfetch("${window.location.origin}/${isSave ? 'db' : 'web/api'}/tql", {
             \tmethod: "POST",
-            \theaders: {"Accept": "application/json, text/plain, */*", "Content-Type": "text/plain" ${isSave ? "" : `, "Authorization": "Bearer ${sAccToken}", "X-Console-Id": "${sXConsoleId}, console-log-level=NONE"`}},
+            \theaders: {"Accept": "application/json, text/plain, */*", "Content-Type": "text/plain" ${
+                isSave ? '' : `, "Authorization": "Bearer ${sAccToken}", "X-Console-Id": "${sXConsoleId}, console-log-level=NONE"`
+            }},
             \tbody: aTql
         \t})
         \t.then((rsp) => rsp.json())

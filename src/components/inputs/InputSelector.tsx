@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import './Select.scss';
+import './InputSelector.scss';
 import { ArrowDown } from '@/assets/icons/Icon';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { Tooltip } from 'react-tooltip';
@@ -7,7 +7,6 @@ import { Tooltip } from 'react-tooltip';
 export interface SelectProps {
     pOptions: string[];
     onChange: React.ChangeEventHandler<HTMLInputElement>;
-    pIsReadonly?: boolean;
     pWidth?: number | string;
     pHeight?: number;
     pIsFullWidth?: boolean;
@@ -17,10 +16,9 @@ export interface SelectProps {
     pIsDisabled?: boolean;
     pAutoChanged?: boolean;
     pNoneValue?: string;
-    pIsToolTip?: boolean;
 }
 
-export const Select = (props: SelectProps) => {
+export const InputSelector = (props: SelectProps) => {
     const {
         pWidth = 120,
         pNoneValue,
@@ -31,63 +29,66 @@ export const Select = (props: SelectProps) => {
         pOptions,
         pIsFullWidth = false,
         pBorderRadius = 8,
-        pIsReadonly = true,
         pInitValue = '',
         onChange,
-        pIsToolTip = false,
     } = props;
     const [isOpen, setIsOpen] = useState<boolean>(false);
-    const [selectValue, setSelectValue] = useState<string>(pInitValue);
+    const [sValue, setValue] = useState<string>(pInitValue);
     const optionRef = useRef<HTMLDivElement>(null);
     const isMounted = useRef(false);
-    const handleSelect = (aValue: string) => {
-        if (pNoneValue && pNoneValue === aValue) setSelectValue('');
-        else setSelectValue(aValue);
+
+    const handleSelect = (aValue: string, aEventName: 'customSelect' | 'customInput') => {
+        if (pNoneValue && pNoneValue === aValue) setValue('');
+        else setValue(aValue);
         setIsOpen(false);
 
         const changeEvent = {
             target: {
                 value: aValue,
-                name: 'customSelect',
+                name: aEventName,
             },
         };
         onChange(changeEvent as any);
     };
-
     const handleClick = (aEvent: React.MouseEvent<HTMLDivElement>) => {
-        if (pIsDisabled) return;
         aEvent.stopPropagation();
         setIsOpen(!isOpen);
     };
 
     useOutsideClick(optionRef, () => setIsOpen(false));
-
     useEffect(() => {
-        setSelectValue(pInitValue);
+        setValue(pInitValue);
     }, [pInitValue]);
-
     useEffect(() => {
         if (isMounted.current) {
-            pAutoChanged && setSelectValue(pOptions[0]);
+            pAutoChanged && setValue(pOptions[0]);
         } else {
             isMounted.current = true;
         }
     }, [pOptions[0]]);
+
     return (
         <div
-            className="custom-select-wrapper"
+            className="custom-input-selector-wrapper"
             style={{
                 borderRadius: pBorderRadius + 'px',
                 width: pIsFullWidth ? '100%' : typeof pWidth === 'string' ? pWidth : pWidth + 'px',
                 minWidth: pIsFullWidth ? '100%' : pWidth + 'px',
                 height: pHeight + 'px',
                 opacity: pIsDisabled ? 0.6 : 1,
-                cursor: pIsDisabled ? 'default' : 'pointer',
             }}
         >
-            <div className="select-input" onClick={handleClick}>
-                <input disabled={pIsDisabled} readOnly={pIsReadonly} value={selectValue} style={{ fontSize: pFontSize, cursor: 'inherit' }} placeholder="Select..." />
-                <ArrowDown />
+            <div className="select-input">
+                <input
+                    value={sValue}
+                    disabled={pIsDisabled}
+                    style={{ fontSize: pFontSize }}
+                    placeholder="Select..."
+                    onChange={(e) => handleSelect(e.target.value, 'customInput')}
+                />
+                <div className="select-input-svg" onClick={handleClick}>
+                    <ArrowDown />
+                </div>
             </div>
             <div
                 ref={optionRef}
@@ -96,19 +97,12 @@ export const Select = (props: SelectProps) => {
                 onClick={(aEvent) => aEvent.stopPropagation()}
             >
                 <div className="select-options-item-wrapper" style={{ maxHeight: pHeight * 4 + 'px' }}>
-                    {!pIsToolTip &&
-                        pOptions.map((aOption: string, aIdx) => (
-                            <div key={aOption + aIdx} className="options-item" onClick={() => handleSelect(aOption)} style={{ fontSize: pFontSize }}>
-                                {aOption}
-                            </div>
-                        ))}
-                    {pIsToolTip &&
-                        pOptions.map((aOption: string, aIdx) => (
-                            <button key={aIdx} className={`select-tooltip-${aIdx} options-item`} onClick={() => handleSelect(aOption)} style={{ fontSize: pFontSize }}>
-                                <Tooltip anchorSelect={`.select-tooltip-${aIdx}`} content={aOption} />
-                                <div className="select-text">{aOption}</div>
-                            </button>
-                        ))}
+                    {pOptions.map((aOption: string, aIdx) => (
+                        <button key={aIdx} className={`select-tooltip-${aIdx} options-item`} onClick={() => handleSelect(aOption, 'customSelect')} style={{ fontSize: pFontSize }}>
+                            <Tooltip anchorSelect={`.select-tooltip-${aIdx}`} content={aOption} />
+                            <div className="select-text">{aOption}</div>
+                        </button>
+                    ))}
                 </div>
             </div>
         </div>
