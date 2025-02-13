@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import { getTqlChart } from '@/api/repository/machiot';
-import { ShowChart } from '@/components/tql/ShowChart';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { getId, isValidJSON, getMonacoLines } from '@/utils';
 import useOutsideClick from '@/hooks/useOutsideClick';
@@ -13,12 +12,13 @@ import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 import { IconButton } from '../buttons/IconButton';
 import { useSetRecoilState } from 'recoil';
 import { gConsoleSelector } from '@/recoil/recoil';
-import { ShowMap } from '../tql/ShowMap';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { ConfirmModal } from '../modal/ConfirmModal';
 import { Loader } from '../loader';
 import { GrClearOption } from 'react-icons/gr';
 import { postSplitter } from '@/api/repository/api';
+import { ShowVisualization } from '../tql/ShowVisualization';
+import { CheckObjectKey, E_VISUAL_LOAD_ID } from '@/utils/dashboardUtil';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell';
 type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell';
@@ -68,11 +68,11 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [initialSize, setInitialSize] = useState<number>(pData.height ?? sInitHeight);
     const [sSelectedLang, setSelectedLang] = useState<Lang | undefined>(undefined);
     const [sShowLang, setShowLang] = useState<boolean>(false);
-    const [sTqlResultType, setTqlResultType] = useState<'html' | 'csv' | 'mrk' | 'text' | 'xhtml' | 'map' | 'ndjson'>(pData.tqlType ?? 'text');
+    const [sTqlResultType, setTqlResultType] = useState<'html' | 'csv' | 'mrk' | 'text' | 'xhtml' | 'visual' | 'ndjson'>(pData.tqlType ?? 'text');
     const [sTqlTextResult, setTqlTextResult] = useState<string>('');
     const [sShellResult, setShellTextResult] = useState<string[] | undefined>(undefined);
-    const [sTqlChartData, setTqlChartData] = useState<string>('');
-    const [sTqlMapData, setTqlMapData] = useState<string>('');
+    // const [sTqlChartData, setTqlChartData] = useState<string>('');
+    const [sTqlVisualData, setTqlVisualData] = useState<string>('');
     const [sTqlMarkdown, setTqlMarkdown] = useState<any>('');
     const [sTqlCsv, setTqlCsv] = useState<string[][]>([]);
     const [sTqlCsvHeader, setTqlCsvHeader] = useState<string[]>([]);
@@ -333,23 +333,13 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             if (pAllRunCodeStatus) pAllRunCodeCallback(false);
         }
 
-        if (sResult.status === 200 && sResult.headers && sResult.data && sResult.headers['x-chart-type'] === 'echarts') {
-            if (sResult.data && sResult.data.chartID) {
-                setTqlResultType('html');
-                setTqlChartData(sResult.data);
+        if (sResult.status === 200 && sResult.headers && (sResult.headers['x-chart-type'] === 'echarts' || sResult.headers['x-chart-type'] === 'geomap')) {
+            if (sResult.data && (CheckObjectKey(sResult.data, E_VISUAL_LOAD_ID.CHART) || CheckObjectKey(sResult.data, E_VISUAL_LOAD_ID.MAP))) {
+                setTqlResultType('visual');
+                setTqlVisualData(sResult.data);
             } else {
-                setTqlChartData('');
-                // SyntaxError: CHART
-                HandleResutTypeAndTxt(sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data), false);
-            }
-        } else if (sResult.status === 200 && sResult.headers && sResult.data && sResult.headers['x-chart-type'] === 'geomap') {
-            if (sResult.data && sResult.data.ID) {
-                setTqlResultType('map');
-                setTqlMapData(sResult.data);
-            } else {
-                setTqlMapData('');
-                // SyntaxError: GEOMAP
-                HandleResutTypeAndTxt(sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data), false);
+                setTqlVisualData('');
+                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('markdown')) {
             if (sResult.data && typeof sResult.data === 'string') {
@@ -491,18 +481,14 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         </div>
                     )
                 ) : null}
-                {sTqlResultType === 'map' && sTqlMapData && (
-                    <ShowMap
-                        pData={sTqlMapData}
-                        pBodyRef={{
-                            current: {
-                                clientWidth: wrkEditorRef && wrkEditorRef.current && wrkEditorRef.current.clientWidth ? wrkEditorRef.current.clientWidth : 500,
-                                clientHeight: 500,
-                            },
-                        }}
+                {sTqlResultType === 'visual' ? (
+                    <ShowVisualization
+                        pData={sTqlVisualData}
+                        pIsCenter
+                        pLoopMode={false}
+                        pSize={{ w: wrkEditorRef && wrkEditorRef.current && wrkEditorRef.current.clientWidth ? wrkEditorRef.current.clientWidth - 40 : 500, h: 300 }}
                     />
-                )}
-                {sTqlResultType === 'html' && sTqlChartData ? <ShowChart pData={sTqlChartData} pIsCenter pLoopMode={false} /> : null}
+                ) : null}
                 {sTqlResultType === 'mrk' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} pType="wrk-mrk" /> : null}
                 {sTqlResultType === 'xhtml' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} /> : null}
                 {sTqlResultType === 'text' && sTqlTextResult ? (
@@ -570,8 +556,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setShellTextResult(undefined);
         setMarkdown('');
         setTqlTextResult('');
-        setTqlMapData('');
-        setTqlChartData('');
+        setTqlVisualData('');
         setTqlCsvHeader([]);
         setTqlCsv([]);
     };

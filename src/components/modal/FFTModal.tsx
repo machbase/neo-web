@@ -6,13 +6,13 @@ import { Input } from '@/components/inputs/Input';
 import { ArrowDown, Close, LineChart, Play } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { getTqlChart } from '@/api/repository/machiot';
-import { ShowChart } from '@/components/tql/ShowChart';
 import { Spinner } from '@/components/spinner/Spinner';
 import { convertMsUnitTime } from '@/utils/index';
 import moment from 'moment';
 import { Error } from '../toast/Toast';
 import { Tooltip } from 'react-tooltip';
 import useOutsideClick from '@/hooks/useOutsideClick';
+import { ShowVisualization } from '../tql/ShowVisualization';
 
 interface FFTInfo {
     table: string;
@@ -187,7 +187,7 @@ export const FFTModal = (props: FFTModalProps) => {
                                 }}
                             >
                                 <div className="select-input" onClick={handleClick}>
-                                    <input readOnly value={sSelectedInfo?.alias || sSelectedInfo?.name} style={{ fontSize: '13', cursor: 'pointer' }} placeholder="Select..." />
+                                    <span style={{ fontSize: '13', cursor: 'pointer', flexGrow: 1 }}>{sSelectedInfo?.alias || sSelectedInfo?.name}</span>
                                     <ArrowDown />
                                 </div>
                                 <div
@@ -248,7 +248,7 @@ export const FFTModal = (props: FFTModalProps) => {
                                 <Spinner />
                             </div>
                         ) : null}
-                        {!sIsLoading && sChartData ? <ShowChart pData={sChartData} pLoopMode={false} /> : null}
+                        {!sIsLoading && sChartData ? <ShowVisualization pData={sChartData} pLoopMode={false} /> : null}
                     </div>
                 </Modal.Body>
             </Modal>
