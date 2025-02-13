@@ -12,6 +12,7 @@ interface ChartCommonOptionsProps {
 
 export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
     const { pPanelOption, pSetPanelOption } = props;
+
     const handleCustomOption = (aValue: string | boolean, aKey: string) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -76,149 +77,145 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                     />
                 </div>
             </Collapse>
-            {pPanelOption?.type !== 'Text' && (
-                <>
-                    <div className="divider" />
-                    <Collapse title="Legend">
-                        <CheckBox
-                            pText="Show legend"
-                            pDefaultChecked={pPanelOption.commonOptions.isLegend}
-                            onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isLegend')}
-                        />
-                        <div style={{ height: '10px' }} />
-                        <div className="menu-style">
-                            <span>Vertical</span>
-                            <Select
-                                pFontSize={14}
-                                pWidth={100}
-                                pBorderRadius={4}
-                                pIsDisabled={!pPanelOption.commonOptions.isLegend}
-                                pInitValue={pPanelOption.commonOptions.legendTop}
-                                pHeight={25}
-                                onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'legendTop')}
-                                pOptions={ChartLegendTopList}
-                            />
-                        </div>
-                        <div className="menu-style">
-                            <span>Horizontal</span>
-                            <Select
-                                pFontSize={14}
-                                pWidth={100}
-                                pBorderRadius={4}
-                                pIsDisabled={!pPanelOption.commonOptions.isLegend}
-                                pInitValue={pPanelOption.commonOptions.legendLeft}
-                                pHeight={25}
-                                onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'legendLeft')}
-                                pOptions={ChartLegendLeftList}
-                            />
-                        </div>
-                        <div className="menu-style">
-                            <span>Alignment type</span>
-                            <Select
-                                pFontSize={14}
-                                pWidth={100}
-                                pBorderRadius={4}
-                                pIsDisabled={!pPanelOption.commonOptions.isLegend}
-                                pInitValue={pPanelOption.commonOptions.legendOrient}
-                                pHeight={25}
-                                onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'legendOrient')}
-                                pOptions={ChartLegendOrientList}
-                            />
-                        </div>
-                    </Collapse>
-                    <div className="divider" />
-                    <Collapse title="Panel padding">
-                        <div className="menu-style">
-                            <span>Top</span>
-                            <Input
-                                pWidth={100}
-                                pHeight={25}
-                                pBorderRadius={4}
-                                pValue={pPanelOption.commonOptions.gridTop}
-                                onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridTop')}
-                            />
-                        </div>
-                        <div className="menu-style">
-                            <span>Bottom</span>
-                            <Input
-                                pWidth={100}
-                                pHeight={25}
-                                pBorderRadius={4}
-                                pValue={pPanelOption.commonOptions.gridBottom}
-                                onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridBottom')}
-                            />
-                        </div>
-                        <div className="menu-style">
-                            <span>Left</span>
-                            <Input
-                                pWidth={100}
-                                pHeight={25}
-                                pBorderRadius={4}
-                                pValue={pPanelOption.commonOptions.gridLeft}
-                                onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridLeft')}
-                            />
-                        </div>
-                        <div className="menu-style">
-                            <span>Right</span>
-                            <Input
-                                pWidth={100}
-                                pHeight={25}
-                                pBorderRadius={4}
-                                pValue={pPanelOption.commonOptions.gridRight}
-                                onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridRight')}
-                            />
-                        </div>
-                    </Collapse>
-                    <div className="divider" />
-                    <Collapse title="Tooltip">
-                        <CheckBox
-                            pText="Show tooltip"
-                            pDefaultChecked={pPanelOption.commonOptions.isTooltip}
-                            onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isTooltip')}
-                        />
-                        <div style={{ height: '10px' }} />
-                        <div className="menu-style">
-                            <span>Type</span>
-                            <Select
-                                pWidth={100}
-                                pHeight={25}
-                                pFontSize={14}
-                                pBorderRadius={4}
-                                pIsDisabled={!pPanelOption.commonOptions.isTooltip}
-                                pInitValue={pPanelOption.commonOptions.tooltipTrigger}
-                                onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'tooltipTrigger')}
-                                pOptions={ChartTooltipTriggerList}
-                            />
-                        </div>
-                        <div className="menu-style">
-                            <div>Unit</div>
-                            <Input
-                                pType="text"
-                                pWidth={100}
-                                pHeight={25}
-                                pPlaceHolder="none"
-                                pIsDisabled={!pPanelOption.commonOptions.isTooltip}
-                                pBorderRadius={4}
-                                pValue={pPanelOption.commonOptions?.tooltipUnit ?? ''}
-                                onChange={(aEvent) => handleCommonOption(aEvent.target.value, 'tooltipUnit')}
-                            />
-                        </div>
-                        <div className="menu-style">
-                            <div>Decimals</div>
-                            <Input
-                                pType="number"
-                                pWidth={100}
-                                pHeight={25}
-                                pPlaceHolder="auto"
-                                pBorderRadius={4}
-                                pIsDisabled={!pPanelOption.commonOptions.isTooltip}
-                                pValue={pPanelOption.commonOptions?.tooltipDecimals ?? ''}
-                                onChange={(aEvent) => handleCommonOption(aEvent.target.value, 'tooltipDecimals')}
-                            />
-                        </div>
-                    </Collapse>
-                </>
-            )}
+            <div className="divider" />
+            <Collapse title="Legend">
+                <CheckBox
+                    pText="Show legend"
+                    pDefaultChecked={pPanelOption.commonOptions.isLegend}
+                    onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isLegend')}
+                />
+                <div style={{ height: '10px' }} />
+                <div className="menu-style">
+                    <span>Vertical</span>
+                    <Select
+                        pFontSize={14}
+                        pWidth={100}
+                        pBorderRadius={4}
+                        pIsDisabled={!pPanelOption.commonOptions.isLegend}
+                        pInitValue={pPanelOption.commonOptions.legendTop}
+                        pHeight={25}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'legendTop')}
+                        pOptions={ChartLegendTopList}
+                    />
+                </div>
+                <div className="menu-style">
+                    <span>Horizontal</span>
+                    <Select
+                        pFontSize={14}
+                        pWidth={100}
+                        pBorderRadius={4}
+                        pIsDisabled={!pPanelOption.commonOptions.isLegend}
+                        pInitValue={pPanelOption.commonOptions.legendLeft}
+                        pHeight={25}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'legendLeft')}
+                        pOptions={ChartLegendLeftList}
+                    />
+                </div>
+                <div className="menu-style">
+                    <span>Alignment type</span>
+                    <Select
+                        pFontSize={14}
+                        pWidth={100}
+                        pBorderRadius={4}
+                        pIsDisabled={!pPanelOption.commonOptions.isLegend}
+                        pInitValue={pPanelOption.commonOptions.legendOrient}
+                        pHeight={25}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'legendOrient')}
+                        pOptions={ChartLegendOrientList}
+                    />
+                </div>
+            </Collapse>
+            <div className="divider" />
+            <Collapse title="Panel padding">
+                <div className="menu-style">
+                    <span>Top</span>
+                    <Input
+                        pWidth={100}
+                        pHeight={25}
+                        pBorderRadius={4}
+                        pValue={pPanelOption.commonOptions.gridTop}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridTop')}
+                    />
+                </div>
+                <div className="menu-style">
+                    <span>Bottom</span>
+                    <Input
+                        pWidth={100}
+                        pHeight={25}
+                        pBorderRadius={4}
+                        pValue={pPanelOption.commonOptions.gridBottom}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridBottom')}
+                    />
+                </div>
+                <div className="menu-style">
+                    <span>Left</span>
+                    <Input
+                        pWidth={100}
+                        pHeight={25}
+                        pBorderRadius={4}
+                        pValue={pPanelOption.commonOptions.gridLeft}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridLeft')}
+                    />
+                </div>
+                <div className="menu-style">
+                    <span>Right</span>
+                    <Input
+                        pWidth={100}
+                        pHeight={25}
+                        pBorderRadius={4}
+                        pValue={pPanelOption.commonOptions.gridRight}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridRight')}
+                    />
+                </div>
+            </Collapse>
+            <div className="divider" />
+            <Collapse title="Tooltip">
+                <CheckBox
+                    pText="Show tooltip"
+                    pDefaultChecked={pPanelOption.commonOptions.isTooltip}
+                    onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isTooltip')}
+                />
+                <div style={{ height: '10px' }} />
+                <div className="menu-style">
+                    <span>Type</span>
+                    <Select
+                        pWidth={100}
+                        pHeight={25}
+                        pFontSize={14}
+                        pBorderRadius={4}
+                        pIsDisabled={!pPanelOption.commonOptions.isTooltip}
+                        pInitValue={pPanelOption.commonOptions.tooltipTrigger}
+                        onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'tooltipTrigger')}
+                        pOptions={ChartTooltipTriggerList}
+                    />
+                </div>
+                <div className="menu-style">
+                    <div>Unit</div>
+                    <Input
+                        pType="text"
+                        pWidth={100}
+                        pHeight={25}
+                        pPlaceHolder="none"
+                        pIsDisabled={!pPanelOption.commonOptions.isTooltip}
+                        pBorderRadius={4}
+                        pValue={pPanelOption.commonOptions?.tooltipUnit ?? ''}
+                        onChange={(aEvent) => handleCommonOption(aEvent.target.value, 'tooltipUnit')}
+                    />
+                </div>
+                <div className="menu-style">
+                    <div>Decimals</div>
+                    <Input
+                        pType="number"
+                        pWidth={100}
+                        pHeight={25}
+                        pPlaceHolder="auto"
+                        pBorderRadius={4}
+                        pIsDisabled={!pPanelOption.commonOptions.isTooltip}
+                        pValue={pPanelOption.commonOptions?.tooltipDecimals ?? ''}
+                        onChange={(aEvent) => handleCommonOption(aEvent.target.value, 'tooltipDecimals')}
+                    />
+                </div>
+            </Collapse>
         </>
     );
 };

@@ -1,8 +1,12 @@
-import './options.scss';
 import { Collapse } from '@/components/collapse/Collapse';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
-import { MultiColorPkr } from './MultiColorPkr';
+import { CompactPicker } from 'react-color';
+import { IconButton } from '@/components/buttons/IconButton';
+import { useState, useRef } from 'react';
+import useOutsideClick from '@/hooks/useOutsideClick';
+import { Close, PlusCircle } from '@/assets/icons/Icon';
+import './options.scss';
 
 interface GaugeOptionProps {
     pPanelOption: any;
@@ -112,15 +116,13 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                         <div style={{ height: '10px', marginRight: '0 !important' }} />
                         {pPanelOption.chartOptions?.axisLineStyleColor.map((aAxisColor: any, aIdx: number) => {
                             return (
-                                <MultiColorPkr
+                                <LineStyleValue
                                     key={aIdx}
                                     aIdx={aIdx}
                                     aAxisColor={aAxisColor}
                                     HandleItemColor={HandleItemColor}
                                     HandleItem={HandleItem}
                                     itemLen={pPanelOption.chartOptions?.axisLineStyleColor.length}
-                                    min={0}
-                                    max={1}
                                 />
                             );
                         })}
@@ -189,6 +191,74 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                     onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'valueAnimation')}
                 />
             </Collapse>
+        </div>
+    );
+};
+
+interface LineStyle {
+    aIdx: number;
+    aAxisColor: (string | number)[];
+    HandleItemColor: (key: string, target: any, idx: number) => void;
+    HandleItem: (key: string, idx: number) => void;
+    itemLen: number;
+}
+
+const LineStyleValue = (props: LineStyle) => {
+    const { aIdx, aAxisColor, HandleItemColor, HandleItem, itemLen } = props;
+    const sColorPickerRef = useRef<any>(null);
+    const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
+    useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
+    return (
+        <div className="gauge-options-wrape">
+            <div className="menu-style">
+                <div ref={sColorPickerRef} style={{ position: 'relative', display: 'flex' }}>
+                    <div style={{ marginRight: '10px' }}>
+                        <Input
+                            pType="number"
+                            pWidth={100}
+                            pHeight={25}
+                            pBorderRadius={4}
+                            pMin={0}
+                            pMax={1}
+                            pValue={aAxisColor[0] as string}
+                            onChange={(aEvent) => HandleItemColor('l', aEvent.target.value, aIdx)}
+                        />
+                    </div>
+                    <IconButton
+                        pWidth={20}
+                        pHeight={20}
+                        pIcon={
+                            <div
+                                style={{
+                                    width: '14px',
+                                    cursor: 'pointer',
+                                    height: '14px',
+                                    marginRight: '4px',
+                                    borderRadius: '50%',
+                                    backgroundColor: aAxisColor[1] as any,
+                                }}
+                            ></div>
+                        }
+                        onClick={() => setIsColorPicker(!sIsColorPicker)}
+                    />
+
+                    {sIsColorPicker && (
+                        <div className="color-picker">
+                            <CompactPicker
+                                color={aAxisColor[1] as any}
+                                onChangeComplete={(aInfo: any) => {
+                                    HandleItemColor('r', aInfo.hex, aIdx);
+                                }}
+                            />
+                        </div>
+                    )}
+                </div>
+                {itemLen === aIdx + 1 ? (
+                    <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={() => HandleItem('add', aIdx)} />
+                ) : (
+                    <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => HandleItem('remove', aIdx)} />
+                )}
+            </div>
         </div>
     );
 };

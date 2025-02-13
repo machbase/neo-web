@@ -16,7 +16,6 @@ import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper
 import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import moment from 'moment';
-import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 
 const CreatePanel = ({
     pLoopMode,
@@ -118,6 +117,7 @@ const CreatePanel = ({
                     return sSaveTarget;
                 } else return aItem;
             });
+
             setBoardList(() => sTabList);
         }
 
@@ -287,14 +287,12 @@ const CreatePanel = ({
                 if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
             })[0]?.value;
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag) || sIsCreateModeFirstPanel) {
-            if (sTargetTag?.customTable || sTargetTag?.tag?.match(VARIABLE_REGEX) || !sTargetTag?.tag) return defaultMinMax();
             let sSvrResult: any = undefined;
             if (sTargetTag.table.split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
             } else {
                 sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
             }
-            if (!sSvrResult) return defaultMinMax();
             const sSvrMinMax: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
             const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrMinMax);
             setCreateModeTimeMinMax(() => sTimeMinMax);
@@ -474,14 +472,7 @@ const CreatePanel = ({
                             </Pane>
                             <Pane>
                                 {sPanelOption.id && (
-                                    <CreatePanelFooter
-                                        pVariableList={pBoardInfo.dashboard.variables}
-                                        pType={pType}
-                                        pGetTables={getTables}
-                                        pTableList={sTableList}
-                                        pPanelOption={sPanelOption}
-                                        pSetPanelOption={setPanelOption}
-                                    />
+                                    <CreatePanelFooter pType={pType} pGetTables={getTables} pTableList={sTableList} pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} />
                                 )}
                             </Pane>
                         </SplitPane>

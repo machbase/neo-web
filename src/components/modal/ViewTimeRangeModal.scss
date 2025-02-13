@@ -59,7 +59,9 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+
             height: 40%;
+
             width: 100%;
             .to,
             .from {
@@ -68,7 +70,6 @@
                 justify-content: center;
                 align-items: center;
                 margin-bottom: 8px;
-                overflow: auto;
                 .span-from,
                 .span-to {
                     width: 100px;
@@ -89,7 +90,6 @@
                         border: none;
                         height: 100%;
                         color: #f8f8f8;
-                        flex-grow: 1;
                     }
 
                     .react-datepicker {
@@ -110,15 +110,6 @@
                             background: #464b5c !important;
                         }
                     }
-                }
-            }
-
-            .refresh {
-                width: 100%;
-                display: flex;
-                justify-content: center;
-                .span-to {
-                    width: 100px;
                 }
             }
         }

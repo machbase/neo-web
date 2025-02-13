@@ -251,10 +251,7 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                     {sPageMode === 'CREATE' && (
                                         <>
                                             <ExtensionTab.Selector
-                                                pList={[
-                                                    { name: 'database', data: 'database' },
-                                                    { name: 'table', data: 'table' },
-                                                ]}
+                                                pList={['database', 'table']}
                                                 pSelectedItem={sPayload?.type}
                                                 pCallback={(aSelectedItem: any) => {
                                                     setTypeSelect(aSelectedItem);
@@ -271,11 +268,7 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                                 <div onClick={getTableNameList}>
                                                     <ExtensionTab.Selector
                                                         pWidth="365px"
-                                                        pList={
-                                                            sTableList.map((aItem: any) => {
-                                                                return { name: aItem[3], data: aItem[3] };
-                                                            }) ?? []
-                                                        }
+                                                        pList={sTableList.map((aItem: any) => aItem[3]) ?? []}
                                                         pSelectedItem={sPayload?.tableName || ''}
                                                         pCallback={(aSelectedItem: any) => {
                                                             setTableName(aSelectedItem);
@@ -298,11 +291,7 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                     <ExtensionTab.ContentTitle>time duration</ExtensionTab.ContentTitle>
                                     {sPageMode === 'CREATE' && (
                                         <ExtensionTab.Selector
-                                            pList={[
-                                                { name: 'full', data: 'full' },
-                                                { name: 'incremental', data: 'incremental' },
-                                                { name: 'time range', data: 'time range' },
-                                            ]}
+                                            pList={['full', 'incremental', 'time range']}
                                             pSelectedItem={sPayload?.duration?.type}
                                             pCallback={(aSelectedItem: any) => {
                                                 setDurationTypeSelect(aSelectedItem);
