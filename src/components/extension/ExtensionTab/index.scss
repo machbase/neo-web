@@ -155,9 +155,8 @@
         height: 5px;
     }
     .extension-tab-table-wrapper {
-        overflow-x: auto;
+        overflow-x: scroll;
         width: 100%;
-        min-height: 32px;
         .extension-tab-table {
             width: 100%;
             &-header {
@@ -168,50 +167,15 @@
                 color: #dbdbdb;
                 th {
                     min-width: 20px;
-                    padding: 4px;
-                    padding-left: 8px;
-                    background-color: rgb(43, 43, 43);
-                }
-
-                &-action {
-                    width: 10px;
+                    padding: 0 4px 4px 4px;
                 }
             }
             &-body {
                 color: #c4c4c4;
                 text-align: left;
                 font-size: 13px;
-
-                .active-row {
-                    background-color: rgb(0, 83, 160) !important;
-                    color: rgb(243, 243, 243);
-                }
-                tr {
-                    &:hover {
-                        background-color: rgb(64, 64, 64);
-                    }
-                    .action {
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        padding: 8px;
-                        cursor: pointer;
-
-                        svg {
-                            fill: #c4c4c4;
-                        }
-
-                        &:hover {
-                            background-color: rgb(0, 108, 210);
-                            svg {
-                                fill: #ffffff;
-                            }
-                        }
-                    }
-                }
                 td {
-                    padding: 2px;
-                    padding-left: 8px;
+                    padding: 2px 2px 2px 2px;
                 }
             }
         }

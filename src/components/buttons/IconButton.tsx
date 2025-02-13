@@ -43,7 +43,6 @@ export const IconButton = (props: IconButtonProps) => {
                 minWidth: Number(pWidth) ? pWidth + 'px' : pWidth,
                 height: pHeight + 'px',
                 backgroundColor: pIsActive ? '#52535A' : '',
-                opacity: pDisabled ? 0.4 : 1,
             }}
             onClick={!pDisabled ? onClick : () => null}
         >

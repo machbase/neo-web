@@ -193,10 +193,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 <ExtensionTab.ContentTitle>QoS</ExtensionTab.ContentTitle>
                                 <ExtensionTab.ContentDesc>{'Subscribe to the topic QoS 1, MQTT bridges support QoS 0 and 1.'}</ExtensionTab.ContentDesc>
                                 <ExtensionTab.Selector
-                                    pList={[
-                                        { name: '0', data: '0' },
-                                        { name: '1', data: '1' },
-                                    ]}
+                                    pList={['0', '1']}
                                     pSelectedItem={sCreatePayload.QoS}
                                     pCallback={(aSelectedItem: string) => {
                                         handlePayload('QoS', { target: { value: aSelectedItem } } as any);
@@ -225,10 +222,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 <span style={{ marginLeft: '8px', color: 'dodgerblue', fontSize: '12px' }}>Check the example on the right</span>
                             </ExtensionTab.DpRow>
                             <ExtensionTab.Selector
-                                pList={[
-                                    { name: 'Writing Descriptor', data: 'Writing Descriptor' },
-                                    { name: 'TQL Script', data: 'TQL Script' },
-                                ]}
+                                pList={['Writing Descriptor', 'TQL Script']}
                                 pSelectedItem={sTaskSelect}
                                 pCallback={(aSelectedItem: any) => {
                                     setTaskSelect(aSelectedItem);
@@ -287,10 +281,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                         </ExtensionTab.DpRow>
                                         <ExtensionTab.Selector
                                             pWidth={'364px'}
-                                            pList={[
-                                                { name: 'append', data: 'append' },
-                                                { name: 'write', data: 'write' },
-                                            ]}
+                                            pList={['append', 'write']}
                                             pSelectedItem={sCreatePayload.method}
                                             pCallback={(aSelectedItem: string) => {
                                                 handlePayload('method', { target: { value: aSelectedItem } } as any);
@@ -321,10 +312,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                         </ExtensionTab.DpRow>
                                         <ExtensionTab.Selector
                                             pWidth={'364px'}
-                                            pList={[
-                                                { name: 'json', data: 'json' },
-                                                { name: 'csv', data: 'csv' },
-                                            ]}
+                                            pList={['json', 'csv']}
                                             pSelectedItem={sCreatePayload.format}
                                             pCallback={(aSelectedItem: string) => {
                                                 handlePayload('format', { target: { value: aSelectedItem } } as any);
@@ -336,10 +324,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                         <ExtensionTab.ContentTitle>Compress</ExtensionTab.ContentTitle>
                                         <ExtensionTab.Selector
                                             pWidth={'364px'}
-                                            pList={[
-                                                { name: 'no compress', data: 'no compress' },
-                                                { name: 'gzip', data: 'gzip' },
-                                            ]}
+                                            pList={['no compress', 'gzip']}
                                             pSelectedItem={sCreatePayload.compress}
                                             pCallback={(aSelectedItem: string) => {
                                                 handlePayload('compress', { target: { value: aSelectedItem } } as any);

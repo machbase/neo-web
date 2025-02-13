@@ -1,14 +1,6 @@
-import { VARIABLE_TYPE } from '@/components/dashboard/variable';
 import moment from 'moment';
-import { VariableParser } from './DashboardQueryParser';
-import { VARIABLE_REGEX } from './CheckDataCompatibility';
 
-export const TqlChartParser = (
-    aTqlChartInfo: any,
-    aTimeParams: { start: number | string; end: number | string },
-    aInterval: { IntervalType: string; IntervalValue: number },
-    aVariableList: VARIABLE_TYPE[]
-) => {
+export const TqlChartParser = (aTqlChartInfo: any, aTimeParams: { start: number | string; end: number | string }, aInterval: { IntervalType: string; IntervalValue: number }) => {
     const timeConverter = (aTime: string | number, aReturnTypeString: boolean) => {
         if (aReturnTypeString) {
             const sTmpTime = new Date(aTime);
@@ -47,26 +39,16 @@ export const TqlChartParser = (
                 return aValue;
         }
     };
-    const paramsFilter = (aParamList: any, aVariableList: VARIABLE_TYPE[]) => {
-        const parsedVariableList = VariableParser(aVariableList, { start: aTimeParams.start, end: aTimeParams.end, interval: aInterval });
+    const paramsFilter = (aParamList: any) => {
         const useParamList = aParamList.filter((aParam: any) => aParam.name !== '' && aParam.value !== '');
-        let parsedParamList = useParamList.map((bParam: any) => {
+        const parsedParamList = useParamList.map((bParam: any) => {
             if (PARAM_LIST.includes(bParam.name)) return `${bParam.value}=${valueConverter(bParam.name)}`;
             else return `${bParam.value}=${bParam.name}`;
-        });
-        parsedParamList = parsedParamList.map((parsedParam: string) => {
-            let tmpParam = parsedParam;
-            if (parsedParam.match(VARIABLE_REGEX)) {
-                parsedVariableList.map((parsedVariable) => {
-                    if (parsedParam.match(parsedVariable.regEx)) tmpParam = tmpParam.replaceAll(parsedVariable.regEx, parsedVariable.value);
-                });
-            }
-            return tmpParam;
         });
         return `?${parsedParamList.join('&')}`;
     };
 
-    const sResult = `${aTqlChartInfo.path}${paramsFilter(aTqlChartInfo.params, aVariableList)}`;
+    const sResult = `${aTqlChartInfo.path}${paramsFilter(aTqlChartInfo.params)}`;
     return sResult;
 };
 

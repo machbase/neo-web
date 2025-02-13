@@ -1,7 +1,6 @@
 // import { Close, PlusCircle } from '@/assets/icons/Icon';
 // import { IconButton } from '@/components/buttons/IconButton';
 import { Input } from '@/components/inputs/Input';
-import { InputSelector } from '@/components/inputs/InputSelector';
 import { Select } from '@/components/inputs/Select';
 import {
     DIFF_LIST,
@@ -14,7 +13,6 @@ const Value = ({
     pColumnList,
     pChangeValueOption,
     pAggList,
-    pVariableList,
 }: // pBlockInfo,
 // pIdx, pAddValue, pRemoveValue,
 // ,pValueLimits
@@ -23,29 +21,29 @@ any) => {
         <div className="values">
             <div className="series-table">
                 <span className="series-title">Value field</span>
-                <InputSelector
+                <Select
                     pFontSize={12}
                     pWidth={175}
                     pBorderRadius={4}
                     pInitValue={pValue.value}
                     pHeight={26}
                     pAutoChanged={false}
-                    pIsDisabled={!pColumnList[0] && !pVariableList}
+                    pIsDisabled={!pColumnList[0]}
                     onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
-                    pOptions={pColumnList.map((aItem: any) => aItem[0]).concat(pVariableList)}
+                    pOptions={pColumnList.map((aItem: any) => aItem[0])}
                 />
             </div>
 
             <div className="series-table">
                 <span className="series-title"> Aggregator </span>
-                <InputSelector
+                <Select
                     pFontSize={12}
                     pWidth={175}
                     pBorderRadius={4}
                     pInitValue={pValue.aggregator ?? 'avg'}
                     pHeight={26}
                     onChange={(aEvent: any) => pChangeValueOption('aggregator', aEvent, pValue.id, 'values')}
-                    pOptions={pAggList.concat(pVariableList)}
+                    pOptions={pAggList}
                 />
             </div>
             {SEPARATE_DIFF && (

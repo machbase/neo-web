@@ -28,7 +28,6 @@ const LineChart = ({
     pParentWidth,
     pIsHeader,
     pBoardTimeMinMax,
-    pBoardInfo,
 }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
     const [sChartData, setChartData] = useState<any>(undefined);
@@ -80,7 +79,7 @@ const LineChart = ({
 
         const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
         if (pPanelInfo.type === 'Tql chart') {
-            const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange(), sIntervalInfo, pBoardInfo.dashboard.variables));
+            const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange(), sIntervalInfo));
             if (!sResult?.data?.reason) {
                 setChartData(sResult);
                 setIsError(false);
@@ -92,30 +91,13 @@ const LineChart = ({
             }
         } else {
             if (!sStartTime || !sEndTime) return;
-            const [sParsedQuery, sAliasList] = DashboardQueryParser(
-                chartTypeConverter(pPanelInfo.type),
-                pPanelInfo.blockList,
-                sRollupTableList,
-                pPanelInfo.xAxisOptions,
-                {
-                    interval: sIntervalInfo,
-                    start: sStartTime,
-                    end: sEndTime,
-                },
-                pBoardInfo.dashboard.variables
-            );
-            const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
-            const sParsedChartCode = DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
-
-            const checkUndefinedVariable = sParsedQuery.reduce((prev: string, curv: any) => {
-                const tmpMatch = curv.query.match(VARIABLE_REGEX);
-                return tmpMatch ? tmpMatch[0] : prev;
-            }, '');
-
-            if (checkUndefinedVariable) {
-                pType === 'edit' && Error(checkUndefinedVariable + ' is not defined');
-                setIsChartData(false);
-            }
+            const [sParsedQuery, sAliasList] = await DashboardQueryParser(chartTypeConverter(pPanelInfo.type), pPanelInfo.blockList, sRollupTableList, pPanelInfo.xAxisOptions, {
+                interval: sIntervalInfo,
+                start: sStartTime,
+                end: sEndTime,
+            });
+            const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
+            const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
 
             const sResult: any = await getTqlChart(
                 `FAKE(linspace(0, 1, 1))
@@ -129,7 +111,7 @@ const LineChart = ({
                 )`,
                 'dsh'
             );
-            if (!sResult?.data?.reason) {
+            if (!sResult.data.reason) {
                 setChartData(sResult.data);
                 setIsError(false);
                 setIsChartData(true);
@@ -147,11 +129,6 @@ const LineChart = ({
         if (pPanelInfo.timeRange.refresh !== 'Off') return calcRefreshTime(pPanelInfo.timeRange.refresh);
         return null;
     };
-    const defaultMinMax = () => {
-        const sNowTime = moment().unix() * 1000;
-        const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
-        return sNowTimeMinMax;
-    };
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetPanel = pPanelInfo;
         const sTargetTag = sTargetPanel.blockList[0];
@@ -161,7 +138,6 @@ const LineChart = ({
         })[0]?.value;
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
             let sSvrResult: any = undefined;
-            if (sTargetTag.customTable) return defaultMinMax();
             if (sTargetTag.table.split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
             } else {
@@ -169,7 +145,11 @@ const LineChart = ({
             }
             const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
             return sResult;
-        } else return defaultMinMax();
+        } else {
+            const sNowTime = moment().unix() * 1000;
+            const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
+            return sNowTimeMinMax;
+        }
     };
     const handlePanelTimeRange = async (sStart: any, sEnd: any) => {
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
@@ -177,7 +157,7 @@ const LineChart = ({
     };
 
     useEffect(() => {
-        if (((!pModifyState.state && sIsMounted) || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh)) {
+        if (!pModifyState.state && sIsMounted && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh)) {
             executeTqlChart();
         }
     }, [pBoardTimeMinMax]);
