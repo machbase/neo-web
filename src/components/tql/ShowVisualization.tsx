@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import './ShowVisualization.scss';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ExistCommonScript, loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
 import { CheckObjectKey, E_VISUAL_LOAD_ID, PanelIdParser } from '@/utils/dashboardUtil';
 
@@ -19,6 +19,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
     const { pData, pIsCenter, pLoopMode, pIsTqlPanel, pPanelId, pPanelRef, pSize, pTheme } = props;
     const sTheme = pData?.theme ? pData.theme : 'dark';
     const wrapRef = useRef<HTMLDivElement>(null);
+    const [sMapPreviousUniqueName, setMapPreviousUniqueName] = useState<string | undefined>(undefined);
 
     const GetVisualID = () => (CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) ? E_VISUAL_LOAD_ID.CHART : E_VISUAL_LOAD_ID.MAP);
     const GetPanelSize = () => {
@@ -78,13 +79,10 @@ export const ShowVisualization = (props: ShowChartProps) => {
             sDomElement.style.height = sSize.h;
 
             if (pIsTqlPanel) sDomElement.id = pData[GetVisualID()];
-            CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && EchartInstance('getInstanceByDom', sDomElement, sCommand);
-            // CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && LeafletInstance();
         }
 
-        if (sCommand === 'clear') {
-            CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && EchartInstance('getInstanceByDom', sDomElement, sCommand);
-        }
+        CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && EchartInstance('getInstanceByDom', sDomElement, sCommand);
+        // CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && LeafletInstance();
     };
 
     const LoadCommonScripts = async () => {
@@ -93,9 +91,12 @@ export const ShowVisualization = (props: ShowChartProps) => {
     const LoadCodeScripts = async () => {
         let sCodeAsset = pData.jsCodeAssets;
         // Excluding _opt.js = initialize skip
-        if (pIsTqlPanel || (CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && pLoopMode && pPanelRef?.current.getAttribute('data-processed')))
-            sCodeAsset = sCodeAsset.filter((codeAsset: string) => !codeAsset.includes('_opt'));
-        if (pData?.jsCodeAssets) await loadScriptsSequentially({ jsAssets: [], jsCodeAssets: sCodeAsset });
+        if (CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && pPanelRef?.current.getAttribute('data-processed')) {
+            if (pIsTqlPanel && sMapPreviousUniqueName === wrapRef.current?.firstElementChild?.getAttribute('name')) sCodeAsset = [];
+            else sCodeAsset = sCodeAsset.filter((codeAsset: string) => !codeAsset.includes('_opt.js'));
+        }
+
+        if (sCodeAsset) await loadScriptsSequentially({ jsAssets: [], jsCodeAssets: sCodeAsset });
     };
 
     const LoadScript = async () => {
@@ -104,11 +105,13 @@ export const ShowVisualization = (props: ShowChartProps) => {
         if (IsExistElement()) InstanceController();
         else AppendElement(CreateElement());
 
-        pIsTqlPanel && OverrideChartTheme();
+        pIsTqlPanel && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && OverrideChartTheme();
         (CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) || !pLoopMode) && ShakeNode();
         await LoadCodeScripts();
         pPanelRef && AddRenderCompleteAttr();
         pLoopMode && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && ShakeNode();
+
+        pIsTqlPanel && CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && setMapPreviousUniqueName(PanelIdParser(pPanelId));
     };
 
     useEffect(() => {
@@ -125,7 +128,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
             {pData && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && <div className="chart_container" ref={wrapRef} />}
             {pData && CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && (
                 <>
-                    <style>.leaflet-tile-pane{`{-webkit-filter: grayscale(${pData.style.grayscale}%); filter: grayscale(${pData.style.grayscale}%);}`}</style>
+                    <style>.leaflet-tile-pane{`{-webkit-filter: grayscale(${pData?.style?.grayscale}%); filter: grayscale(${pData?.style?.grayscale}%);}`}</style>
                     <div id="map_container" className="map_container" ref={wrapRef} />
                 </>
             )}
