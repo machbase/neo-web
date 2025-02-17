@@ -107,7 +107,13 @@ const LineChart = ({
                 pBoardInfo.dashboard.variables
             );
             const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
-            const sParsedChartCode = DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
+            const sParsedChartCode = DashboardChartCodeParser(
+                pPanelInfo.chartOptions,
+                chartTypeConverter(pPanelInfo.type),
+                sParsedQuery,
+                false,
+                PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)
+            );
 
             const checkUndefinedVariable = sParsedQuery.reduce((prev: string, curv: any) => {
                 const tmpMatch = curv.query.match(VARIABLE_REGEX);
