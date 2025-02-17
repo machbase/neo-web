@@ -2,7 +2,6 @@ import { getTableInfo, getVirtualTableInfo } from '@/api/repository/api';
 import { getRollupTableList, getTqlChart } from '@/api/repository/machiot';
 import { BsArrowsCollapse, BsArrowsExpand, Close, Refresh, TbMath, TbMathOff } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
-import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
 import {
     DIFF_LIST,
@@ -30,8 +29,10 @@ import { Error } from '@/components/toast/Toast';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { TagSearchSelect } from '@/components/inputs/TagSearchSelect';
 import { Duration } from './Duration';
+import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
+import { InputSelector } from '@/components/inputs/InputSelector';
 
-export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
+export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
@@ -44,6 +45,10 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     const sColorPickerRef = useRef<any>(null);
     const sMathRef = useRef<any>(null);
 
+    /** return variable list */
+    const getVariableList = useMemo((): string[] => {
+        return pVariableList?.map((variable: any) => variable.key);
+    }, [pVariableList]);
     const setOption = (aKey: string, aData: any) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -54,24 +59,50 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             };
         });
     };
-    const changedOption = async (aKey: string, aData: any) => {
+    const changedOption = (aKey: string, aData: any) => {
         if (aKey === 'table') {
             const sIsVirtualTable = aData.target.value.includes('V$');
             const sTargetTableName = sIsVirtualTable ? aData.target.value.replace('V$', '').replace('_STAT', '') : aData.target.value;
             const sTargetTable = pTableList.find((aItem: any) => aItem[3] === sTargetTableName);
+            const sIsVariable = aData.target.value.match(VARIABLE_REGEX);
+
+            if (aData.target.name === 'customInput') {
+                setSelectedTableType('variable_tag');
+                pSetPanelOption((aPrev: any) => {
+                    return {
+                        ...aPrev,
+                        blockList: aPrev.blockList.map((block: any) => {
+                            if (block.id === pBlockInfo.id) return { ...block, table: aData.target.value, userName: '', tableInfo: [], customTable: true };
+                            else return block;
+                        }),
+                    };
+                });
+                return;
+            }
 
             if (sIsVirtualTable) setSelectedTableType('vir_tag');
+            else if (sIsVariable) setSelectedTableType('variable_tag');
             else setSelectedTableType(getTableType(sTargetTable[4]));
 
-            const sDefaultBlockOption = createDefaultTagTableOption(sTargetTable[1], sTargetTable, getTableType(sTargetTable[4]), '');
+            const sDefaultBlockOption = sTargetTable
+                ? // TAG | LOG | VIR
+                  createDefaultTagTableOption(sTargetTable[1], sTargetTable, getTableType(sTargetTable[4]), '')
+                : // VARIABLE
+                  createDefaultTagTableOption('', ['', '', '', aData.target.value], '', '');
+
             if (sIsVirtualTable) {
                 sDefaultBlockOption[0].useCustom = true;
                 sDefaultBlockOption[0].table = aData.target.value;
                 sDefaultBlockOption[0].values = [{ id: sDefaultBlockOption[0].values[0].id, aggregator: 'sum', value: '', alias: '' }];
             }
+            if (sIsVariable) {
+                sDefaultBlockOption[0].table = aData.target.value;
+            }
+
             const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any) => {
                 return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID(), color: aTable.color } : aTable;
             });
+
             pSetPanelOption((aPrev: any) => {
                 return {
                     ...aPrev,
@@ -79,6 +110,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                 };
             });
         } else if (aKey === 'aggregator' && !SEPARATE_DIFF) {
+            if (aData.target.name === 'customInput') setSelectedTableType('variable_tag');
+
             const sDiffVal: boolean = aData.target.value.includes('diff');
             pSetPanelOption((aPrev: any) => {
                 return {
@@ -89,6 +122,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                 };
             });
         } else {
+            if (aData.target.name === 'customInput') setSelectedTableType('variable_tag');
             pSetPanelOption((aPrev: any) => {
                 return {
                     ...aPrev,
@@ -234,6 +268,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                           aKey === 'operator' && bItem.column !== '' && bItem.value !== '' && aData.target.value !== '' && (sUseFilter = true);
                                       } else sUseFilter = bItem.useFilter;
                                       if (aKey === 'useTyping' && aData.target.value && bItem.useFilter) {
+                                          if (pBlockInfo.customTable) return { ...bItem, useFilter: sUseFilter, typingValue: '', [aKey]: aData.target.value };
+
+                                          if (pBlockInfo.tableInfo?.length < 1) return { ...bItem, useFilter: sUseFilter, typingValue: '', [aKey]: aData.target.value };
                                           // Check varchar type
                                           const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)[1] === 5;
                                           const sValue = sUseQuote ? `"${bItem.value.includes(',') ? bItem.value.split(',').join('","') : bItem.value}"` : bItem.value;
@@ -393,26 +430,28 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     }, [pPanelOption.type]);
     /** return table list + virtual table list */
     const getTableList = useMemo((): string[] => {
-        const sUseCustom = pBlockInfo.useCustom;
-        const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
-        let sAggList: string[] = [];
-        if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
-        if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
-        const sIsVaildAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0].aggregator : pBlockInfo.aggregator);
+        // const sUseCustom = pBlockInfo.useCustom;
+        // const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
+        // let sAggList: string[] = [];
+        // if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
+        // if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
+        // const sIsVaildAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0].aggregator : pBlockInfo.aggregator);
         // Set vaild agg
-        if (!sIsVaildAgg) {
-            const sTempBlockList = JSON.parse(JSON.stringify(pBlockInfo));
-            sTempBlockList.aggregator = 'count';
-            sTempBlockList.values[0]?.aggregator && (sTempBlockList.values[0].aggregator = 'count');
-            // Set option
-            pSetPanelOption((aPrev: any) => {
-                return {
-                    ...aPrev,
-                    blockList: [sTempBlockList],
-                };
-            });
-        }
-        const sTableList = pTableList.map((aItem: any) => aItem[3]);
+        // if (!sIsVaildAgg) {
+        //     const sTempBlockList = JSON.parse(JSON.stringify(pBlockInfo));
+        //     // sTempBlockList.aggregator = 'count';
+        //     // sTempBlockList.values[0]?.aggregator && (sTempBlockList.values[0].aggregator = 'count');
+        //     // Set option
+        //     // pSetPanelOption((aPrev: any) => {
+        //     //     return {
+        //     //         ...aPrev,
+        //     //         blockList: [sTempBlockList],
+        //     //     };
+        //     // });
+        // }
+        let sTableList = pTableList.map((aItem: any) => aItem[3]);
+        sTableList = sTableList.concat(getVariableList);
+
         if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
             // sTagTableList has only MACHBASEDB
             const sTagTableList = JSON.parse(JSON.stringify(pTableList)).filter((aTable: any) => getTableType(aTable[4]) === 'tag' && aTable[6] === -1);
@@ -482,7 +521,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 <span className="series-title">
                                     Table <IconButton pDisabled={sIsLoadingRollup} pWidth={25} pHeight={26} pIcon={<Refresh />} onClick={HandleTable} />
                                 </span>
-                                <Select
+                                <InputSelector
                                     pFontSize={12}
                                     pWidth={175}
                                     pBorderRadius={4}
@@ -490,26 +529,26 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                     pHeight={26}
                                     onChange={(aEvent: any) => changedOption('table', aEvent)}
                                     pOptions={getTableList}
-                                    pIsToolTip
                                 />
                             </div>
                             {sSelectedTableType !== 'vir_tag' && (
                                 <div className="details">
                                     <div className="series-table">
                                         <span className="series-title">Time field</span>
-                                        {sTimeList[0] && (
-                                            <Select
-                                                pFontSize={12}
-                                                pWidth={175}
-                                                pBorderRadius={4}
-                                                pInitValue={pBlockInfo.time}
-                                                pHeight={26}
-                                                onChange={(aEvent: any) => changedOption('time', aEvent)}
-                                                pOptions={sTimeList.map((aItem: any) => {
+                                        <InputSelector
+                                            pIsDisabled={!sTimeList[0] && !getVariableList}
+                                            pFontSize={12}
+                                            pWidth={175}
+                                            pBorderRadius={4}
+                                            pInitValue={pBlockInfo.time}
+                                            pHeight={26}
+                                            onChange={(aEvent: any) => changedOption('time', aEvent)}
+                                            pOptions={sTimeList
+                                                .map((aItem: any) => {
                                                     return aItem[0];
-                                                })}
-                                            />
-                                        )}
+                                                })
+                                                .concat(getVariableList)}
+                                        />
                                     </div>
                                 </div>
                             )}
@@ -521,7 +560,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 <span className="series-title">
                                     Table <IconButton pDisabled={sIsLoadingRollup} pWidth={25} pHeight={26} pIcon={<Refresh />} onClick={HandleTable} />
                                 </span>
-                                <Select
+                                <InputSelector
                                     pFontSize={12}
                                     pWidth={175}
                                     pBorderRadius={4}
@@ -529,41 +568,51 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                     pHeight={26}
                                     onChange={(aEvent: any) => changedOption('table', aEvent)}
                                     pOptions={getTableList}
-                                    pIsToolTip
                                 />
                             </div>
                             <div className="series-table">
                                 <span className="series-title"> Tag </span>
-                                <div className="tag-search-select-wrapper-custom">
-                                    <Input
-                                        pWidth={175}
-                                        pHeight={26}
-                                        pBorderRadius={4}
-                                        pType="text"
-                                        pValue={pBlockInfo.tag}
-                                        onChange={(aEvent: any) => changedOption('tag', aEvent)}
-                                    />
-                                    <TagSearchSelect pTable={pBlockInfo.table} pCallback={handleTagSelect} pBlockOption={pBlockInfo} />
-                                </div>
+                                {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
+                                    <div className="tag-search-select-wrapper-custom">
+                                        <Input
+                                            pWidth={175}
+                                            pHeight={26}
+                                            pBorderRadius={4}
+                                            pType="text"
+                                            pValue={pBlockInfo.tag}
+                                            onChange={(aEvent: any) => changedOption('tag', aEvent)}
+                                        />
+                                        <TagSearchSelect pTable={pBlockInfo.table} pCallback={handleTagSelect} pBlockOption={pBlockInfo} />
+                                    </div>
+                                ) : (
+                                    <div className="tag-search-select-wrapper-custom">
+                                        <InputSelector
+                                            pBorderRadius={4}
+                                            pWidth={175}
+                                            pHeight={26}
+                                            pInitValue={pBlockInfo.tag}
+                                            onChange={(aEvent: any) => changedOption('tag', aEvent)}
+                                            pOptions={getVariableList}
+                                        />
+                                    </div>
+                                )}
                             </div>
                             <div className="series-table">
                                 <span className="series-title"> Aggregator </span>
-                                {pBlockInfo.aggregator && (
-                                    <Select
-                                        pFontSize={12}
-                                        pAutoChanged={false}
-                                        pWidth={140}
-                                        pBorderRadius={4}
-                                        pInitValue={pBlockInfo.aggregator}
-                                        pHeight={26}
-                                        onChange={(aEvent: any) => changedOption('aggregator', aEvent)}
-                                        pOptions={getAggregatorList}
-                                    />
-                                )}
+                                <InputSelector
+                                    pFontSize={12}
+                                    pAutoChanged={false}
+                                    pWidth={140}
+                                    pBorderRadius={4}
+                                    pInitValue={pBlockInfo.aggregator}
+                                    pHeight={26}
+                                    onChange={(aEvent: any) => changedOption('aggregator', aEvent)}
+                                    pOptions={getAggregatorList.concat(getVariableList)}
+                                />
                                 {SEPARATE_DIFF && (
                                     <div className="series-table">
                                         <span className="series-title"> Diff </span>
-                                        <Select
+                                        <InputSelector
                                             pFontSize={12}
                                             pAutoChanged={true}
                                             pWidth={175}
@@ -634,6 +683,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                         </div>
                         <div ref={sColorPickerRef} style={{ position: 'relative' }}>
                             <IconButton
+                                pDisabled={pPanelOption.type === 'Text'}
                                 pWidth={20}
                                 pHeight={20}
                                 pIsToopTip
@@ -664,10 +714,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             pIsToopTip
                             pToolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                             pToolTipId={pBlockInfo.id + '-block-expand'}
-                            pDisabled={sSelectedTableType !== 'tag'}
-                            // BsArrowsExpand, BsArrowsCollapse
+                            pDisabled={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag'}
                             pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={16} /> : <BsArrowsExpand size={16} />}
-                            onClick={sSelectedTableType !== 'tag' ? () => {} : () => HandleFold()}
+                            onClick={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
                         />
                         <IconButton
                             pDisabled={pPanelOption.blockList.length === 1}
@@ -695,6 +744,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                     pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
                                     pValueLimit={pValueLimit}
                                     pAggList={getAggregatorList}
+                                    pVariableList={getVariableList}
                                 />
                             );
                         })}
@@ -715,6 +765,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                     pIdx={aIdx}
                                     pAddFilter={addFilter}
                                     pRemoveFilter={removeFilter}
+                                    pVariableList={getVariableList}
                                 />
                             );
                         })}
