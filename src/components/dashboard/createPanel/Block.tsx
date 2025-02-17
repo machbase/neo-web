@@ -157,38 +157,37 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                     return {
                         ...aPrev,
                         blockList: aPrev.blockList.map((aItem: any) => {
-                            return aItem.id === pBlockInfo.id
-                                ? {
-                                      ...aItem,
-                                      name: sData.data.rows.filter((aItem: any) => {
-                                          return aItem[1] === 5;
-                                      })[0][0],
-                                      time: sData.data.rows.filter((aItem: any) => {
-                                          return aItem[1] === 6;
-                                      })[0][0],
-                                      value: sData.data.rows.filter((aItem: any) => {
-                                          return isNumberTypeColumn(aItem[1]);
-                                      })[0][0],
-                                      type: getTableType(sTable[4]),
-                                      tableInfo: sData.data.rows,
-                                      values: aItem.values.map((aItem: any) => {
-                                          return {
-                                              ...aItem,
-                                              value: sData.data.rows.filter((aItem: any) => {
-                                                  return isNumberTypeColumn(aItem[1]);
-                                              })[0][0],
-                                          };
-                                      }),
-                                      filter: [
-                                          {
-                                              ...aItem.filter[0],
-                                              column: sData.data.rows.filter((aItem: any) => {
-                                                  return aItem[1] === 5;
-                                              })[0][0],
-                                          },
-                                      ],
-                                  }
-                                : aItem;
+                            if (aItem.id === pBlockInfo.id) {
+                                const filteredItems = sData.data.rows.filter((aItem: any) => {
+                                    return aItem[1] === 5;
+                                });
+                                return {
+                                    ...aItem,
+                                    name: filteredItems.length > 0 ? filteredItems[0][0] : '',
+                                    time: sData.data.rows.filter((aItem: any) => {
+                                        return aItem[1] === 6;
+                                    })[0][0],
+                                    value: sData.data.rows.filter((aItem: any) => {
+                                        return isNumberTypeColumn(aItem[1]);
+                                    })[0][0],
+                                    type: getTableType(sTable[4]),
+                                    tableInfo: sData.data.rows,
+                                    values: aItem.values.map((aItem: any) => {
+                                        return {
+                                            ...aItem,
+                                            value: sData.data.rows.filter((aItem: any) => {
+                                                return isNumberTypeColumn(aItem[1]);
+                                            })[0][0],
+                                        };
+                                    }),
+                                    filter: [
+                                        {
+                                            ...aItem.filter[0],
+                                            column: filteredItems.length > 0 ? filteredItems[0][0] : '',
+                                        },
+                                    ],
+                                };
+                            } else return aItem;
                         }),
                     };
                 });
