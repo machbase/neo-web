@@ -29,12 +29,34 @@ const LiquidNameValueFunc = (aChartOptions: any) => {
         \t\t_chart.setOption(_chartOption)}`;
 };
 /** TEXT func */
-const TextFunc = () => {
+const TextFunc = (aChartOptions: any) => {
+    const tmpColorSet = JSON.parse(JSON.stringify(aChartOptions.color));
+    const tmpPop = tmpColorSet.shift();
+    tmpColorSet.sort((a: any, b: any) => parseInt(b[0]) - parseInt(a[0]));
+    tmpColorSet.push(tmpPop);
+    const colorInjectTxt = tmpColorSet.map((aChartOption: any, aIdx: number) => {
+        if (aChartOption[0] === 'default') return `${aIdx === 0 ? '' : 'else '}return '${aChartOption[1]}';`;
+        if (aIdx === 0) return `if (aValue > ${parseInt(aChartOption[0])}) return '${aChartOption[1]}';`;
+        else return `else if (aValue > ${parseInt(aChartOption[0])}) return '${aChartOption[1]}';`;
+    });
     return `(obj) => {
-        \t\tif (aIdx === 0){
-        \t\t_chartOption.series[aIdx].data[0] = obj?.data?.rows[0][0]?.value ? obj?.data?.rows[0][0]?.value : 'no-data';}
-        \t\telse _chartOption.series[aIdx].data = obj?.data?.rows ?? [];
-        \t\t_chart.setOption(_chartOption);
+        \t\tconst setColor = (aValue) => {
+        \t\t\t${colorInjectTxt.join('')}
+        \t\t}
+        \t\tif (aIdx === 1) {
+        \t\t\t_chartOption.series[0].data = obj?.data?.rows ?? [];
+        \t\t\t_chart.setOption(_chartOption);
+        \t\t} else {
+        \t\t\tconst sDOM = document.getElementById('text-panel-value');
+        \t\t\tif (sDOM) {
+        \t\t\t\tvar sFontSize = ${aChartOptions?.fontSize ?? 100};
+        \t\t\t\tconst sValue = obj?.data?.rows[0][0]?.value ? obj?.data?.rows[0][0]?.value.toFixed(${aChartOptions?.digit ?? ''}) : '';
+        \t\t\t\tconst sColor = setColor(sValue);
+        \t\t\t\tsDOM.style.color = sColor;
+        \t\t\t\tsDOM.style.fontSize = sFontSize + 'px';
+        \t\t\t\tsDOM.innerText = isNaN(sValue) ? 'no-data' : sValue${aChartOptions?.unit ? ' +"' + aChartOptions.unit + '"' : ''};
+        \t\t\t};
+        \t\t}
         \t}`;
 };
 
@@ -44,10 +66,12 @@ export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string,
     const sXConsoleId = localStorage.getItem('consoleId');
     let sInjectFunc = null;
 
-    if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc();
-    if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc(aChartType);
-    if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidNameValueFunc(aChartOptions);
-    if (aChartType === 'text') sInjectFunc = TextFunc();
+    if (aChartType === 'text') sInjectFunc = TextFunc(aChartOptions);
+    else {
+        if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc();
+        if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc(aChartType);
+        if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidNameValueFunc(aChartOptions);
+    }
 
     // GEN variable
     const sDynamicVariable = aParsedQuery.map((aQuery: any) => {

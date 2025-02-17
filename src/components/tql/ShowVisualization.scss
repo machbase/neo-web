@@ -1,5 +1,18 @@
-.map_container {
-    .leaflet-container {
-        z-index: 1 !important;
+.tql-form {
+    position: relative;
+
+    .text-panel-value {
+        position: absolute;
+        z-index: 9;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        width: 100%;
+    }
+    .map_container {
+        .leaflet-container {
+            z-index: 1 !important;
+        }
     }
 }

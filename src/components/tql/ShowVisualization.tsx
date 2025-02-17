@@ -8,7 +8,7 @@ interface ShowChartProps {
     pData: any;
     pLoopMode: boolean;
     pIsCenter?: boolean;
-    pIsTqlPanel?: boolean;
+    pPanelType?: string;
     pPanelId?: string;
     pPanelRef?: any;
     pSize?: any;
@@ -16,7 +16,7 @@ interface ShowChartProps {
 }
 
 export const ShowVisualization = (props: ShowChartProps) => {
-    const { pData, pIsCenter, pLoopMode, pIsTqlPanel, pPanelId, pPanelRef, pSize, pTheme } = props;
+    const { pData, pIsCenter, pLoopMode, pPanelType, pPanelId, pPanelRef, pSize, pTheme } = props;
     const sTheme = pData?.theme ? pData.theme : 'dark';
     const wrapRef = useRef<HTMLDivElement>(null);
     const [sMapPreviousUniqueName, setMapPreviousUniqueName] = useState<string | undefined>(undefined);
@@ -29,10 +29,11 @@ export const ShowVisualization = (props: ShowChartProps) => {
         return size;
     };
 
+    const GetIsTqlType = () => pPanelType && pPanelType === 'Tql chart';
     const GetElementByResId = () => document.getElementById(pData[GetVisualID()]) as HTMLDivElement | HTMLCanvasElement;
     const GetElementByPanelName = () => document.getElementsByName(PanelIdParser(pPanelId) as string);
     const IsExistElement = () => {
-        if (pIsTqlPanel) return wrapRef.current?.firstElementChild?.getAttribute('name') === PanelIdParser(pPanelId);
+        if (GetIsTqlType()) return wrapRef.current?.firstElementChild?.getAttribute('name') === PanelIdParser(pPanelId);
         return wrapRef.current?.firstElementChild?.id === pData[GetVisualID()];
     };
     const CreateElement = (): HTMLDivElement => {
@@ -44,7 +45,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
         Element.style.margin = pIsCenter ? 'auto' : 'initial';
         Element.style.backgroundColor = sTheme === 'dark' ? '' : '#FFF';
 
-        pIsTqlPanel && Element.setAttribute('name', PanelIdParser(pPanelId) ?? pData[GetVisualID()]);
+        GetIsTqlType() && Element.setAttribute('name', PanelIdParser(pPanelId) ?? pData[GetVisualID()]);
 
         return Element;
     };
@@ -71,14 +72,14 @@ export const ShowVisualization = (props: ShowChartProps) => {
     // };
     const InstanceController = () => {
         const sCommand = pLoopMode ? 'resize' : 'clear';
-        const sDomElement = pIsTqlPanel ? GetElementByPanelName()[0] : GetElementByResId();
+        const sDomElement = GetIsTqlType() ? GetElementByPanelName()[0] : GetElementByResId();
 
         if (sCommand === 'resize') {
             const sSize = GetPanelSize();
             sDomElement.style.width = sSize.w;
             sDomElement.style.height = sSize.h;
 
-            if (pIsTqlPanel) sDomElement.id = pData[GetVisualID()];
+            if (GetIsTqlType()) sDomElement.id = pData[GetVisualID()];
         }
 
         CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && EchartInstance('getInstanceByDom', sDomElement, sCommand);
@@ -92,7 +93,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
         let sCodeAsset = pData.jsCodeAssets;
         // Excluding _opt.js = initialize skip
         if (CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && pPanelRef?.current.getAttribute('data-processed')) {
-            if (pIsTqlPanel && sMapPreviousUniqueName === wrapRef.current?.firstElementChild?.getAttribute('name')) sCodeAsset = [];
+            if (GetIsTqlType() && sMapPreviousUniqueName === wrapRef.current?.firstElementChild?.getAttribute('name')) sCodeAsset = [];
             else sCodeAsset = sCodeAsset.filter((codeAsset: string) => !codeAsset.includes('_opt.js'));
         }
 
@@ -105,13 +106,13 @@ export const ShowVisualization = (props: ShowChartProps) => {
         if (IsExistElement()) InstanceController();
         else AppendElement(CreateElement());
 
-        pIsTqlPanel && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && OverrideChartTheme();
+        GetIsTqlType() && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && OverrideChartTheme();
         (CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) || !pLoopMode) && ShakeNode();
         await LoadCodeScripts();
         pPanelRef && AddRenderCompleteAttr();
         pLoopMode && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && ShakeNode();
 
-        pIsTqlPanel && CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && setMapPreviousUniqueName(PanelIdParser(pPanelId));
+        GetIsTqlType() && CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && setMapPreviousUniqueName(PanelIdParser(pPanelId));
     };
 
     useEffect(() => {
@@ -120,6 +121,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
 
     return (
         <div className="tql-form">
+            {pPanelType === 'Text' && <div className={`${PanelIdParser(pPanelId)}-text text-panel-value`} id="text-panel-value" />}
             {pData &&
                 pData?.cssAssets &&
                 pData?.cssAssets?.map((cssAsset: string, idx: number) => {
