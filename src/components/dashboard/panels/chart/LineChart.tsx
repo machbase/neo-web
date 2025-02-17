@@ -232,7 +232,7 @@ const LineChart = ({
                 <ShowVisualization
                     pLoopMode={pLoopMode}
                     pData={sChartData}
-                    pIsTqlPanel={pPanelInfo.type === 'Tql chart'}
+                    pPanelType={pPanelInfo.type}
                     pPanelId={pChartVariableId + '-' + pPanelInfo.id}
                     pPanelRef={ChartRef}
                     pTheme={pPanelInfo.theme}
