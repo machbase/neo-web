@@ -29,7 +29,7 @@ const LiquidNameValueFunc = (aChartOptions: any) => {
         \t\t_chart.setOption(_chartOption)}`;
 };
 /** TEXT func */
-const TextFunc = (aChartOptions: any) => {
+const TextFunc = (aChartOptions: any, aPanelId?: string) => {
     const tmpColorSet = JSON.parse(JSON.stringify(aChartOptions.color));
     const tmpPop = tmpColorSet.shift();
     tmpColorSet.sort((a: any, b: any) => parseInt(b[0]) - parseInt(a[0]));
@@ -47,7 +47,7 @@ const TextFunc = (aChartOptions: any) => {
         \t\t\t_chartOption.series[0].data = obj?.data?.rows ?? [];
         \t\t\t_chart.setOption(_chartOption);
         \t\t} else {
-        \t\t\tconst sDOM = document.getElementById('text-panel-value');
+        \t\t\tconst sDOM = document.getElementById('${aPanelId}-text');
         \t\t\tif (sDOM) {
         \t\t\t\tvar sFontSize = ${aChartOptions?.fontSize ?? 100};
         \t\t\t\tconst sValue = obj?.data?.rows[0][0]?.value ? obj?.data?.rows[0][0]?.value.toFixed(${aChartOptions?.digit ?? ''}) : '';
@@ -60,13 +60,13 @@ const TextFunc = (aChartOptions: any) => {
         \t}`;
 };
 
-export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string, aParsedQuery: any, isSave: boolean = false) => {
+export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string, aParsedQuery: any, isSave: boolean = false, aPanelId?: string) => {
     const sDataType = aParsedQuery[0].dataType;
     const sAccToken = localStorage.getItem('accessToken');
     const sXConsoleId = localStorage.getItem('consoleId');
     let sInjectFunc = null;
 
-    if (aChartType === 'text') sInjectFunc = TextFunc(aChartOptions);
+    if (aChartType === 'text') sInjectFunc = TextFunc(aChartOptions, aPanelId);
     else {
         if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc();
         if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc(aChartType);

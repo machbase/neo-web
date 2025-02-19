@@ -121,7 +121,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
 
     return (
         <div className="tql-form">
-            {pPanelType === 'Text' && <div className={`${PanelIdParser(pPanelId)}-text text-panel-value`} id="text-panel-value" />}
+            {pPanelType === 'Text' && <div className={'text-panel-value'} id={`${PanelIdParser(pPanelId)}-text`} />}
             {pData &&
                 pData?.cssAssets &&
                 pData?.cssAssets?.map((cssAsset: string, idx: number) => {
