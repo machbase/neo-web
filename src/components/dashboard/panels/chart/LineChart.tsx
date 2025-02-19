@@ -1,8 +1,8 @@
+import './LineChart.scss';
 import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart, getTqlScripts } from '@/api/repository/machiot';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
-import { calcInterval, calcRefreshTime, decodeFormatterFunction, setUnitTime } from '@/utils/dashboardUtil';
+import { calcInterval, calcRefreshTime, decodeFormatterFunction, PanelIdParser, setUnitTime } from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
-import { ShowChart } from '@/components/tql/ShowChart';
 import { DashboardQueryParser } from '@/utils/DashboardQueryParser';
 import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
 import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
@@ -11,9 +11,9 @@ import { gRollupTableList } from '@/recoil/recoil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import './LineChart.scss';
 import { TqlChartParser } from '@/utils/DashboardTqlChartParser';
 import moment from 'moment';
+import { ShowVisualization } from '@/components/tql/ShowVisualization';
 
 const LineChart = ({
     pIsActiveTab,
@@ -30,7 +30,7 @@ const LineChart = ({
     pBoardTimeMinMax,
 }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
-    const [sChartData, setChartData] = useState<any>({});
+    const [sChartData, setChartData] = useState<any>(undefined);
     const [sIsMessage, setIsMessage] = useState<any>('Please set up a Query.');
     const [sIsError, setIsError] = useState<boolean>(false);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
@@ -55,7 +55,7 @@ const LineChart = ({
             return;
         }
         setIsLoading(true);
-        !pLoopMode && setChartData({});
+        !pLoopMode && setChartData(undefined);
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
             sRefClientWidth = ChartRef.current.clientWidth;
         }
@@ -102,7 +102,7 @@ const LineChart = ({
             const sResult: any = await getTqlChart(
                 `FAKE(linspace(0, 1, 1))
                  CHART(
-                    ${`chartID('${pChartVariableId + '-' + pPanelInfo.id}'),`}
+                    ${`chartID('${PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}'),`}
                     ${pPanelInfo.plg ? `plugins('${pPanelInfo.plg}'),` : ''}
                     theme('${pPanelInfo.theme}'),
                     size('${sRefClientWidth}px','${sRefClientHeight}px'),
@@ -206,13 +206,13 @@ const LineChart = ({
             {sIsLoading && !sIsChartData ? <div className="loading">Loading...</div> : null}
             {!sIsLoading && sIsError && sIsMessage ? <div>{sIsMessage}</div> : null}
             {!sIsLoading && !sIsError && !sIsChartData ? <div>{sIsMessage}</div> : null}
-            {sIsChartData ? (
-                <ShowChart
+            {sChartData && sIsChartData ? (
+                <ShowVisualization
                     pLoopMode={pLoopMode}
                     pData={sChartData}
-                    pPanelType={pPanelInfo.type === 'Tql chart'}
+                    pIsTqlPanel={pPanelInfo.type === 'Tql chart'}
                     pPanelId={pChartVariableId + '-' + pPanelInfo.id}
-                    pPanelSize={ChartRef}
+                    pPanelRef={ChartRef}
                     pTheme={pPanelInfo.theme}
                 />
             ) : null}
