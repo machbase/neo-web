@@ -90,7 +90,12 @@ const ReplaceVariables = (
         const tmpList: any = [];
         const tmpAsList: any = [];
         tmpQueryList.map((query: any, idx: number) => {
-            tmpList.push({ ...query, idx: tmpList.length, query: query.query.replaceAll(variable.regEx, variable.value) });
+            tmpList.push({
+                ...query,
+                idx: tmpList.length,
+                query: query.query.replaceAll(variable.regEx, variable.value),
+                sql: query.sql.replaceAll(variable.regEx, variable.value),
+            });
             tmpAsList.push(tmpAliasList[idx]);
         });
         tmpQueryList = tmpList;

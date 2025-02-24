@@ -220,7 +220,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     };
 
     const sSetIntervalTime = () => {
-        if (sThisPanelStatus === 'create' || sThisPanelStatus === 'edit') return null;
+        if (sThisPanelStatus === 'create' || sThisPanelStatus === 'edit' || sActiveTabId !== pInfo.id) return null;
         if (pInfo.dashboard.timeRange.refresh !== 'Off') return calcRefreshTime(pInfo.dashboard.timeRange.refresh);
         return null;
     };

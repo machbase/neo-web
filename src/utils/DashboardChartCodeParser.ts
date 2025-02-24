@@ -1,5 +1,3 @@
-import moment from 'moment';
-
 /** NAME_VALUE func */
 const NameValueFunc = (aChartType: string) => {
     const sIsGauge = aChartType === 'gauge';

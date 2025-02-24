@@ -226,7 +226,7 @@ const LineChart = ({
     };
 
     useEffect(() => {
-        if (((!pModifyState.state && sIsMounted) || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh)) {
+        if (((!pModifyState.state && sIsMounted) || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh || pBoardInfo.dashboard?.variables?.length > 0)) {
             executeTqlChart();
         }
     }, [pBoardTimeMinMax]);
