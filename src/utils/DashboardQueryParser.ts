@@ -242,12 +242,13 @@ const GetFilter = (aTableInfo: any) => {
 };
 
 const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: 'tag' | 'log', aTableInfo: any) => {
-    return aValueList.map((aValue: any) => {
-        if (aValue.aggregator === 'none' || aValue.aggregator === 'value' || aDiff) return `${aValue.value} as VALUE`;
+    return aValueList.map((aValue: any, aIdx: number) => {
+        const sValue = `VALUE${aIdx > 0 ? aIdx + 1 : ''}`;
+        if (aValue.aggregator === 'none' || aValue.aggregator === 'value' || aDiff) return `${aValue.value} as ${sValue}`;
         else {
             if (aValue.aggregator.includes('last') || aValue.aggregator.includes('first'))
-                return `${changeAggText(aValue.aggregator)}(${aTableType === 'tag' ? aTableInfo[1][0] : '_ARRIVAL_TIME'} ,${aValue.value}) as VALUE`;
-            else return `${changeAggText(aValue.aggregator)}(${aValue.value}) as VALUE`;
+                return `${changeAggText(aValue.aggregator)}(${aTableType === 'tag' ? aTableInfo[1][0] : '_ARRIVAL_TIME'} ,${aValue.value}) as ${sValue}`;
+            else return `${changeAggText(aValue.aggregator)}(${aValue.value}) as ${sValue}`;
         }
     });
 };
@@ -447,7 +448,7 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
         const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval);
-        const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo)[0];
+        const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo);
         const sTimeWhere = GetTimeWhere(aQuery.time, aTime);
         const sFilterWhere = GetFilterWhere(aQuery.filterList, aQuery.useCustom, aQuery);
         const sGroupBy = `GROUP BY TIME ${UseGroupByTime(aQuery.valueList)}`;

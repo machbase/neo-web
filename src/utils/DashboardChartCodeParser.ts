@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 /** NAME_VALUE func */
 const NameValueFunc = (aChartType: string) => {
     const sIsGauge = aChartType === 'gauge';
@@ -59,6 +61,33 @@ const TextFunc = (aChartOptions: any, aPanelId?: string) => {
         \t\t}
         \t}`;
 };
+/** GEOMAP func */
+const Geomapfunc = (aChartOptions: any) => {
+    const sTooltipContents =
+        aChartOptions.tooltipTime || aChartOptions.tooltipCoor
+            ? `tooltip: {
+        content: ${aChartOptions.tooltipTime ? `'<b>' + new Date(row[0]).toLocaleString('en-GB') + '</b>' + '<br/>'` : ''}${
+                  aChartOptions.tooltipTime && aChartOptions.tooltipCoor ? ` + ` : ''
+              }${aChartOptions.tooltipCoor ? `'<b>' + 'lat: ' + row[columnIdxList[idx][0] + 1] + '</b>' + '<br/>' + '<b>' + 'lon: ' + row[columnIdxList[idx][1] + 1] + '</b>'` : ''}
+    },`
+            : undefined;
+    // marker | circleMarker | circle | polyline | polygon
+    return `function finalize() {
+        queryList.forEach(function (query, idx) {
+            $.db().query(query.sql).forEach( function (row) {
+                $.yield({
+                    type: shapeList[idx],
+                    coordinates: [row[columnIdxList[idx][0] + 1], row[columnIdxList[idx][1] + 1]],
+                    properties: {
+                        ${sTooltipContents ?? ''}
+                        color: colorList[idx],
+                        radius: radiusList[idx]
+                    }
+                });
+            })
+        })
+    }`;
+};
 
 export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string, aParsedQuery: any, isSave: boolean = false, aPanelId?: string) => {
     const sDataType = aParsedQuery[0].dataType;
@@ -66,6 +95,7 @@ export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string,
     const sXConsoleId = localStorage.getItem('consoleId');
     let sInjectFunc = null;
 
+    if (aChartType === 'geomap') return Geomapfunc(aChartOptions);
     if (aChartType === 'text') sInjectFunc = TextFunc(aChartOptions, aPanelId);
     else {
         if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc();

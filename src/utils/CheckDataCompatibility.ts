@@ -1,5 +1,5 @@
 import { SqlResDataType } from './DashboardQueryParser';
-import { DIFF_LIST, SEPARATE_DIFF, logAggregatorList, nameValueAggregatorList, nameValueVirtualAggList, tagAggregatorList } from './dashboardUtil';
+import { DIFF_LIST, SEPARATE_DIFF, geomapAggregatorList, logAggregatorList, nameValueAggregatorList, nameValueVirtualAggList, tagAggregatorList } from './dashboardUtil';
 import { chartTypeConverter } from './eChartHelper';
 import { concatTagSet } from './helpers/tags';
 
@@ -50,6 +50,10 @@ const DashboardCompatibility = (aData: any) => {
                         DEFAULT_AGGREGATOR = 'last value';
                         sAggList = nameValueAggregatorList;
                     }
+                }
+                if (aPanel.type === 'Geomap') {
+                    DEFAULT_AGGREGATOR = 'value';
+                    sAggList = geomapAggregatorList;
                 }
 
                 if (aBlock.useCustom) {

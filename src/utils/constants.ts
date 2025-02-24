@@ -451,6 +451,7 @@ export const ChartTypeList = [
     { key: 'Pie', value: 'pie' },
     { key: 'Liquid fill', value: 'liquidFill' },
     { key: 'Text', value: 'text' },
+    { key: 'Geomap', value: 'geomap' },
     { key: 'Tql chart', value: 'tql' },
 ];
 export const ChartThemeList = ['dark', 'white', 'vintage', 'macarons', 'infographic', 'shine', 'roma'];

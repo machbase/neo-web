@@ -155,6 +155,14 @@ const StructureSeriesOption: any = {
             }
         ]
     `,
+    geomap: `
+        "tooltipTime": $tooltipTime$,
+        "tooltipCoor": $tooltipCoor$,
+        "intervalType": "$intervalType$",
+        "intervalValue": "$intervalValue$",
+        "coorLat": "$coorLat$",
+        "coorLon": "$coorLon$"
+    `,
 };
 // Polar structure
 const PolarOption: any = {
@@ -247,6 +255,7 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
             sChartSeriesStructure = aChartOption[aOpt]
                 ? sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: aChartOption['axisLineStyleColor'] } }))
                 : sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: [[1, '#c2c2c2']] } }));
+        else if (aOpt === 'coorLat' || aOpt === 'coorLon') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
         else sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, aChartOption[aOpt]);
     });
 

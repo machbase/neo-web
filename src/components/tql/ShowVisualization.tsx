@@ -62,14 +62,14 @@ export const ShowVisualization = (props: ShowChartProps) => {
     const EchartInstance = (key: 'getInstanceByDom' | 'init', domElement: any, command: 'resize' | 'clear') => {
         CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && echarts[key](domElement)[command]();
     };
-    // Currently, geomap type panels are not supported.
-    // const LeafletInstance = () => {
-    //     const sMapContainer = (window as any)[pData[GetVisualID()]];
-    //     // const sMapContainer = (window as any)[GetElementByPanelName()[0].id];
-    //     if (!sMapContainer) return;
-    //     // @ts-ignore
-    //     // L.marker([38.9925, -105.5], {}).addTo(sMapContainer.map);
-    // };
+    const LeafletInstance = (dom: HTMLElement) => {
+        const sDomId = PanelIdParser(pPanelId);
+        const sMapInstance = (window as any)[sDomId];
+        if (!sMapInstance) return;
+        dom.style.height = pData.style.height;
+        dom.style.width = pData.style.width;
+        sMapInstance.map.invalidateSize();
+    };
     const InstanceController = () => {
         const sCommand = pLoopMode ? 'resize' : 'clear';
         const sDomElement = GetIsTqlType() ? GetElementByPanelName()[0] : GetElementByResId();
@@ -83,7 +83,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
         }
 
         CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && EchartInstance('getInstanceByDom', sDomElement, sCommand);
-        // CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && LeafletInstance();
+        CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && LeafletInstance(sDomElement);
     };
 
     const LoadCommonScripts = async () => {

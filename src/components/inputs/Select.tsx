@@ -40,7 +40,7 @@ export const Select = (props: SelectProps) => {
     const [selectValue, setSelectValue] = useState<string>(pInitValue);
     const optionRef = useRef<HTMLDivElement>(null);
     const isMounted = useRef(false);
-    const handleSelect = (aValue: string) => {
+    const handleSelect = (aValue: string, idx: number) => {
         if (pNoneValue && pNoneValue === aValue) setSelectValue('');
         else setSelectValue(aValue);
         setIsOpen(false);
@@ -49,6 +49,7 @@ export const Select = (props: SelectProps) => {
             target: {
                 value: aValue,
                 name: 'customSelect',
+                idx: idx,
             },
         };
         onChange(changeEvent as any);
@@ -98,13 +99,13 @@ export const Select = (props: SelectProps) => {
                 <div className="select-options-item-wrapper" style={{ maxHeight: pHeight * 4 + 'px' }}>
                     {!pIsToolTip &&
                         pOptions.map((aOption: string, aIdx) => (
-                            <div key={aOption + aIdx} className="options-item" onClick={() => handleSelect(aOption)} style={{ fontSize: pFontSize }}>
+                            <div key={aOption + aIdx} className="options-item" onClick={() => handleSelect(aOption, aIdx)} style={{ fontSize: pFontSize }}>
                                 {aOption}
                             </div>
                         ))}
                     {pIsToolTip &&
                         pOptions.map((aOption: string, aIdx) => (
-                            <button key={aIdx} className={`select-tooltip-${aIdx} options-item`} onClick={() => handleSelect(aOption)} style={{ fontSize: pFontSize }}>
+                            <button key={aIdx} className={`select-tooltip-${aIdx} options-item`} onClick={() => handleSelect(aOption, aIdx)} style={{ fontSize: pFontSize }}>
                                 <Tooltip anchorSelect={`.select-tooltip-${aIdx}`} content={aOption} />
                                 <div className="select-text">{aOption}</div>
                             </button>

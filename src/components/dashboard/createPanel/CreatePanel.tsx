@@ -300,7 +300,7 @@ const CreatePanel = ({
             setCreateModeTimeMinMax(() => sTimeMinMax);
             return sTimeMinMax;
         } else {
-            return defaultMinMax();
+            return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
         }
     };
     const getTables = async (aStatus: boolean) => {

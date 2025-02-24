@@ -310,6 +310,7 @@ export const tagTableValue = () => {
 // Time value agg list
 export const tagAggregatorList = ['value', 'count', 'sum', 'min', 'max', 'avg', 'sumsq'];
 export const logAggregatorList = ['value', 'count(*)', 'count', 'sum', 'min', 'max', 'avg', 'sumsq'];
+export const geomapAggregatorList = ['value', 'first value', 'last value'];
 export const DIFF_LIST = ['diff', 'diff (abs)', 'diff (no-negative)'];
 export const SEPARATE_DIFF: boolean = false;
 // Name value agg list
@@ -333,11 +334,13 @@ export const nameValueVirtualAggList = ['count', 'sum', 'min', 'max', 'avg'];
 
 export const refreshTimeList = ['Off', '3 seconds', '5 seconds', '10 seconds', '30 seconds', '1 minute', '5 minutes', '10 minutes', '1 hour'];
 
-export const createDefaultTagTableOption = (aUser: string, aTable: any, aTableType: string, aTag: string) => {
+export const createDefaultTagTableOption = (aUser: string, aTable: any, aTableType: string, aTag: string, aChartType?: string) => {
     let sDefaultTableOpt = undefined;
     if (aTableType === 'tag') sDefaultTableOpt = DefaultTagTableOption;
     else if (aTableType === 'log') sDefaultTableOpt = DefaultLogTableOption;
     else sDefaultTableOpt = DefaultVariableTableOption;
+
+    if (aChartType === 'Geomap') sDefaultTableOpt.useCustom = true;
 
     const sOption = [{ ...sDefaultTableOpt, userName: aUser, table: aTable ? aTable[3] : '', type: aTableType, tag: aTag }];
     return sOption;

@@ -76,7 +76,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                     />
                 </div>
             </Collapse>
-            {pPanelOption?.type !== 'Text' && (
+            {pPanelOption?.type !== 'Text' && pPanelOption?.type !== 'Geomap' && (
                 <>
                     <div className="divider" />
                     <Collapse title="Legend">

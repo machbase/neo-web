@@ -58,7 +58,6 @@ const LineChart = ({
             return;
         }
         setIsLoading(true);
-        !pLoopMode && setChartData(undefined);
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
             sRefClientWidth = ChartRef.current.clientWidth;
         }
@@ -80,8 +79,14 @@ const LineChart = ({
             sEndTime = pBoardTimeMinMax?.max;
         }
 
-        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
+        let sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
+        if (pPanelInfo.type === 'Geomap')
+            sIntervalInfo = {
+                IntervalType: pPanelInfo.chartOptions.intervalType,
+                IntervalValue: pPanelInfo.chartOptions.intervalValue,
+            };
         if (pPanelInfo.type === 'Tql chart') {
+            !pLoopMode && setChartData(undefined);
             const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange(), sIntervalInfo, pBoardInfo.dashboard.variables));
             if (!sResult?.data?.reason) {
                 setChartData(sResult);
@@ -125,24 +130,60 @@ const LineChart = ({
                 setIsChartData(false);
             }
 
-            const sResult: any = await getTqlChart(
-                `FAKE(linspace(0, 1, 1))
-                 CHART(
-                    ${`chartID('${PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}'),`}
-                    ${pPanelInfo.plg ? `plugins('${pPanelInfo.plg}'),` : ''}
-                    theme('${pPanelInfo.theme}'),
-                    size('${sRefClientWidth}px','${sRefClientHeight}px'),
-                    chartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption))}),
-                    chartJSCode(${sParsedChartCode})
-                )`,
-                'dsh'
-            );
-            if (!sResult?.data?.reason) {
+            let sResult: any = undefined;
+
+            if (pPanelInfo.type === 'Geomap') {
+                const sColumnIdxList = pPanelInfo.blockList.map((_block: any, idx: number) => {
+                    if (pPanelInfo.chartOptions.coorLat[idx] === pPanelInfo.chartOptions.coorLon[idx]) return [0, 1];
+                    else return [pPanelInfo.chartOptions.coorLat[idx], pPanelInfo.chartOptions.coorLon[idx]];
+                });
+                const sSqlList = sParsedQuery.map((query: any) => {
+                    return { sql: query.sql };
+                });
+                const sRadiusList = pPanelInfo.chartOptions.marker.map((mkr: { shape: string; radius: number }) => {
+                    return mkr.radius;
+                });
+                const sShapeList = pPanelInfo.chartOptions.marker.map((mkr: { shape: string; radius: number }) => {
+                    return mkr.shape;
+                });
+
+                // var markerList = ${JSON.stringify(pPanelInfo.chartOptions.marker)};
+                sResult = await getTqlChart(
+                    `SCRIPT("js", {
+                        var shapeList = ${JSON.stringify(sShapeList)};
+                        var radiusList = ${JSON.stringify(sRadiusList)};
+                        var colorList = ${JSON.stringify(sAliasList.map((alias: any) => alias.color))};
+                        var columnIdxList = ${JSON.stringify(sColumnIdxList)};
+                        var queryList = ${JSON.stringify(sSqlList)};
+                        ${sParsedChartCode}
+                    })
+                    GEOMAP(
+                        geomapID('${PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}'),
+                        size('${sRefClientWidth}px','${sRefClientHeight}px')
+                    )`,
+                    'dsh'
+                );
+            } else {
+                sResult = await getTqlChart(
+                    `FAKE(linspace(0, 1, 1))
+                     CHART(
+                        ${`chartID('${PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}'),`}
+                        ${pPanelInfo.plg ? `plugins('${pPanelInfo.plg}'),` : ''}
+                        theme('${pPanelInfo.theme}'),
+                        size('${sRefClientWidth}px','${sRefClientHeight}px'),
+                        chartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption))}),
+                        chartJSCode(${sParsedChartCode})
+                    )`,
+                    'dsh'
+                );
+            }
+
+            if (sResult && !sResult?.data?.reason) {
                 setChartData(sResult.data);
                 setIsError(false);
                 setIsChartData(true);
             } else {
-                setIsMessage(sResult.data.reason);
+                setIsMessage(sResult?.data?.reason);
                 setIsError(true);
                 setIsChartData(false);
             }

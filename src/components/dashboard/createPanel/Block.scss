@@ -8,7 +8,7 @@
         border-radius: 4px;
         position: relative;
         font-size: 13px;
-        width: 70px;
+        width: 90px;
     }
     .plus-wrap {
         border: '1px solid #777777';
@@ -32,7 +32,7 @@
             border-radius: 4px;
             position: relative;
             font-size: 13px;
-            width: 86px;
+            width: 106px;
         }
     }
     .series {
@@ -91,7 +91,8 @@
             .values {
                 align-items: center;
                 display: flex;
-                justify-content: space-between;
+                justify-content: start;
+                flex-wrap: wrap;
             }
         }
     }

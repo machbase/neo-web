@@ -66,6 +66,15 @@ export const DefaultYAxisOption = {
     // }
 };
 
+export const DefaultGeomapOpntion = {
+    tooltipTime: true as boolean,
+    tooltipCoor: false as boolean,
+    intervalType: 'none' as string,
+    intervalValue: '' as string,
+    coorLat: [0] as Array<number>,
+    coorLon: [1] as Array<number>,
+    marker: [{ shape: 'circle', radius: 150 }] as Array<{ shape: string; radius: number }>,
+};
 export const DefaultTextchartOpntion = {
     tagLimit: 2 as number,
     fontSize: 100 as number,
@@ -288,6 +297,8 @@ export const getDefaultSeriesOption = (aChartType: ChartType) => {
             return DefaultTqlChartOption;
         case 'text':
             return DefaultTextchartOpntion;
+        case 'geomap':
+            return DefaultGeomapOpntion;
         default:
             return DefaultLineChartOption;
     }

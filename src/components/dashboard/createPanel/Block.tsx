@@ -7,6 +7,7 @@ import {
     DIFF_LIST,
     SEPARATE_DIFF,
     createDefaultTagTableOption,
+    geomapAggregatorList,
     getTableType,
     isNumberTypeColumn,
     logAggregatorList,
@@ -32,7 +33,7 @@ import { Duration } from './Duration';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { InputSelector } from '@/components/inputs/InputSelector';
 
-export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
+export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
@@ -86,9 +87,9 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
 
             const sDefaultBlockOption = sTargetTable
                 ? // TAG | LOG | VIR
-                  createDefaultTagTableOption(sTargetTable[1], sTargetTable, getTableType(sTargetTable[4]), '')
+                  createDefaultTagTableOption(sTargetTable[1], sTargetTable, getTableType(sTargetTable[4]), '', pPanelOption.type)
                 : // VARIABLE
-                  createDefaultTagTableOption('', ['', '', '', aData.target.value], '', '');
+                  createDefaultTagTableOption('', ['', '', '', aData.target.value], '', '', pPanelOption.type);
 
             if (sIsVirtualTable) {
                 sDefaultBlockOption[0].useCustom = true;
@@ -97,6 +98,10 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
             }
             if (sIsVariable) {
                 sDefaultBlockOption[0].table = aData.target.value;
+            }
+
+            if (pPanelOption.type === 'Geomap') {
+                sDefaultBlockOption[0].values = [{ id: sDefaultBlockOption[0].values[0].id, aggregator: 'value', value: '', alias: '' }];
             }
 
             const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any) => {
@@ -280,7 +285,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                           return { ...bItem, useFilter: sUseFilter, typingValue: sTypingValue, [aKey]: aData.target.value };
                                       }
                                       return { ...bItem, useFilter: sUseFilter, [aKey]: aData.target.value };
-                                  } else if (bItem.id === aId && aChangedKey === 'values' && aKey === 'aggregator' && !SEPARATE_DIFF) {
+                                  } else if (aChangedKey === 'values' && aKey === 'aggregator' && !SEPARATE_DIFF) {
                                       const sDiffVal: boolean = aData.target.value.includes('diff');
                                       return { ...bItem, aggregator: aData.target.value, diff: sDiffVal ? aData.target.value : 'none' };
                                   } else
@@ -299,7 +304,9 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
             return {
                 ...aPrev,
                 blockList: aPrev.blockList.map((aItem: any) => {
-                    return aItem.id === pBlockInfo.id ? { ...aItem, values: [...aItem.values, { id: generateUUID(), alias: '', value: '', aggregator: 'avg' }] } : aItem;
+                    return aItem.id === pBlockInfo.id
+                        ? { ...aItem, values: [...aItem.values, { id: generateUUID(), alias: '', value: '', aggregator: aItem.values[0].aggregator }] }
+                        : aItem;
                 }),
             };
         });
@@ -318,10 +325,26 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
     };
     const deleteSeries = () => {
         pSetPanelOption((aPrev: any) => {
-            return {
-                ...aPrev,
-                blockList: aPrev.blockList.filter((aItem: any) => aItem.id !== pBlockInfo.id),
-            };
+            let sDelIdx = undefined;
+            const sTmpPanelOpt = JSON.parse(
+                JSON.stringify({
+                    ...aPrev,
+                    blockList: aPrev.blockList.filter((aItem: any, aIdx: number) => {
+                        if (aItem.id !== pBlockInfo.id) return aItem;
+                        else sDelIdx = aIdx;
+                    }),
+                })
+            );
+            if (aPrev.type === 'Geomap') {
+                const sLat = sTmpPanelOpt.chartOptions.coorLat;
+                const sLon = sTmpPanelOpt.chartOptions.coorLon;
+                const sMarker = sTmpPanelOpt.chartOptions.marker;
+                sLat.splice(sDelIdx, 1);
+                sLon.splice(sDelIdx, 1);
+                sMarker.splice(sDelIdx, 1);
+                sTmpPanelOpt.chartOptions = { ...sTmpPanelOpt.chartOptions, coorLat: sLat, coorLon: sLon, marker: sMarker };
+            }
+            return sTmpPanelOpt;
         });
     };
     const removeValue = (aId: string) => {
@@ -417,6 +440,8 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
     /** return agg list based on chart type */
     const getAggregatorList = useMemo((): string[] => {
         const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
+
+        if (chartTypeConverter(pPanelOption.type) === 'geomap') return geomapAggregatorList;
         if (sChartDataType === 'TIME_VALUE') {
             const sAggregatorList = pBlockInfo.type === 'tag' ? tagAggregatorList : logAggregatorList;
             return SEPARATE_DIFF ? sAggregatorList : sAggregatorList.concat(DIFF_LIST);
@@ -644,6 +669,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                 pWidth={20}
                                 pHeight={20}
                                 pIsToopTip
+                                pDisabled={chartTypeConverter(pPanelOption.type) === 'geomap'}
                                 pIsActive={pBlockInfo?.math && pBlockInfo?.math !== ''}
                                 pToolTipContent={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'Enter formula' : pBlockInfo?.math}
                                 pToolTipId={pBlockInfo.id + '-block-math'}
@@ -713,7 +739,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                             pIsToopTip
                             pToolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                             pToolTipId={pBlockInfo.id + '-block-expand'}
-                            pDisabled={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag'}
+                            pDisabled={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' || pPanelOption.type === 'Geomap'}
                             pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={16} /> : <BsArrowsExpand size={16} />}
                             onClick={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
                         />
@@ -729,7 +755,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                 {/* VALUE */}
                 {pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
                 <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
-                    <div>
+                    <div style={{ width: '100%' }}>
                         {pBlockInfo.values.map((aItem: any, aIdx: number) => {
                             return (
                                 <Value
@@ -741,7 +767,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                     pValue={aItem}
                                     pIdx={aIdx}
                                     pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
-                                    pValueLimit={pValueLimit}
+                                    pPanelOption={pPanelOption}
                                     pAggList={getAggregatorList}
                                     pVariableList={getVariableList}
                                 />
