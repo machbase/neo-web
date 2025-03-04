@@ -235,6 +235,10 @@ export const DefaultVariableTableOption = {
     alias: '',
     math: '',
     duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+    },
 };
 
 export const DefaultTagTableOption = {
@@ -256,6 +260,10 @@ export const DefaultTagTableOption = {
     alias: '',
     math: '',
     duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+    },
 };
 
 export const DefaultLogTableOption = {
@@ -277,6 +285,10 @@ export const DefaultLogTableOption = {
     alias: '',
     math: '',
     duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+    },
 };
 
 export const getDefaultSeriesOption = (aChartType: ChartType) => {

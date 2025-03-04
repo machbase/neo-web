@@ -180,6 +180,12 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
     });
     // parse block
     const sParsedBlock = sBlockFunnelList.map((bBlock: any) => {
+        if (bBlock.customFullTyping.use) {
+            return {
+                text: bBlock.customFullTyping.text,
+                useFullTyping: bBlock.customFullTyping.use,
+            };
+        }
         return {
             time: bBlock.time,
             type: bBlock.type,
@@ -193,6 +199,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             tableInfo: bBlock.tableInfo,
             math: bBlock?.math ?? '',
             duration: bBlock?.duration ?? { from: '', to: '' },
+            useFullTyping: bBlock.customFullTyping.use,
         };
     });
     return sParsedBlock;
@@ -450,6 +457,10 @@ const GetConbineWhere = (
 const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string[]) => {
     const sAliasList: any[] = [];
     const sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
+        if (aQuery.useFullTyping) {
+            sAliasList.push({ name: 'test', color: aQuery.color });
+            return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, dataType: aResDataType[aIdx], sql: aQuery.text };
+        }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
         const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval);

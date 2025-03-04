@@ -60,9 +60,15 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
             if (sIsPlgChart) sResVal.plg = sIsPlgChart.plg;
             else sResVal.plg = undefined;
             if (sConvertedChartType !== 'geomap') {
-                sResVal.blockList = sResVal.blockList.map((block: any) => {
-                    return { ...block, values: [block.values[0]] };
-                });
+                if (sConvertedChartType !== 'line' && sConvertedChartType !== 'bar') {
+                    sResVal.blockList = sResVal.blockList.map((block: any) => {
+                        return { ...block, values: [block.values[0]], customFullTyping: { use: false, text: '' } };
+                    });
+                } else {
+                    sResVal.blockList = sResVal.blockList.map((block: any) => {
+                        return { ...block, values: [block.values[0]] };
+                    });
+                }
             } else {
                 sResVal.blockList = sResVal.blockList.map((block: any) => {
                     const sTmpValues = block.values.map((value: any) => {
