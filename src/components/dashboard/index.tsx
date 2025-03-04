@@ -21,6 +21,13 @@ import { Input } from '../inputs/Input';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { Error } from '../toast/Toast';
+import { Variable } from './variable';
+import { VariableHeader } from './variable/header';
+import { VariablePreview } from './variable/preview';
+import SplitPane, { Pane } from 'split-pane-react';
+import { IoClose } from 'react-icons/io5';
+import { SiVectorworks } from 'react-icons/si';
+import { IoMdOptions } from 'react-icons/io';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
@@ -36,6 +43,10 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const [sChartVariableId, setChartVariableId] = useState<string>('');
     const [sBoardTimeMinMax, setBoardTimeMinMax] = useState<any>(undefined);
     const sActiveTabId = useRecoilValue<any>(gSelectedTab);
+    const [sVariableModal, setVariableModal] = useState<boolean>(false);
+    const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
+    const [sSideSizes, setSideSizes] = useState<any>(['0%', '100%']);
+    const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
 
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
@@ -168,6 +179,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
             })[0]?.value;
 
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
+            if (sTargetTag.customTable) return getNowMinMax();
             let sSvrResult: any = undefined;
             if (sTargetTag.table.split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
@@ -182,7 +194,6 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
             return getNowMinMax();
         }
     };
-
     const getNowMinMax = () => {
         const sNowTime = moment().unix() * 1000;
         const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
@@ -199,6 +210,14 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     useEffect(() => {
         initDashboard();
     }, []);
+
+    const handleSplitPaneSize = (varId: string = 'ALL') => {
+        setSelectVariable(varId);
+        if (varId !== sSelectVariable && sVariableCollapse) return;
+        if (sVariableCollapse) setSideSizes(['0%', '100%']);
+        else setSideSizes(['20%', '100%']);
+        setVariableCollapse(!sVariableCollapse);
+    };
 
     const sSetIntervalTime = () => {
         if (sThisPanelStatus === 'create' || sThisPanelStatus === 'edit' || sActiveTabId !== pInfo.id) return null;
@@ -217,7 +236,24 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                 <div className="board-header">
                     <div className="board-header-l">
                         <Input pBorderRadius={4} pWidth={175} pHeight={26} pType="text" pValue={pInfo.dashboard.title} pSetValue={() => null} onChange={changeDashboardName} />
+                        {pInfo && pInfo?.dashboard && pInfo?.dashboard?.variables && pInfo?.dashboard?.variables?.length > 0 && (
+                            <>
+                                <div className="board-header-variable-collapse">
+                                    <IconButton
+                                        pIsToopTip
+                                        pToolTipContent="Variables"
+                                        pToolTipId="variables-show-btn"
+                                        pWidth={20}
+                                        pHeight={20}
+                                        pIcon={<IoMdOptions />}
+                                        onClick={() => handleSplitPaneSize()}
+                                    />
+                                </div>
+                                <VariablePreview pBoardInfo={pInfo} callback={(selectVarId) => handleSplitPaneSize(selectVarId)} />
+                            </>
+                        )}
                     </div>
+
                     <div className="board-header-r">
                         <IconButton
                             pIsToopTip
@@ -225,7 +261,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                             pToolTipId="dsh-tab-explorer-new-panel"
                             pIcon={<TbSquarePlus />}
                             onClick={() => showEditPanel('create')}
-                        ></IconButton>
+                        />
                         {/* <IconButton pIcon={<MdDevicesFold style={{ transform: 'rotate(-90deg)' }} />} pIsActive={!sIsPanelHeader} onClick={HandlePanelHeader} /> */}
                         <IconButton
                             pIsToopTip
@@ -276,54 +312,80 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         {pIsSave ? (
                             <IconButton pIsToopTip pToolTipContent="Copy link" pToolTipId="dsh-tab-explorer-copy-link" pIcon={<MdLink size={18} />} onClick={handleCopyLink} />
                         ) : null}
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="Variable config"
+                            pToolTipId="dsh-variable"
+                            pIcon={<SiVectorworks />}
+                            onClick={() => setVariableModal(!sVariableModal)}
+                        />
                     </div>
                 </div>
                 {pWidth && (
-                    <div className="board-body">
-                        <GridLayout
-                            className="layout"
-                            useCSSTransforms={false}
-                            layout={pInfo && pInfo.dashboard.panels}
-                            cols={GRID_LAYOUT_COLS}
-                            autoSize={true}
-                            rowHeight={GRID_LAYOUT_ROW_HEIGHT}
-                            width={pWidth}
-                            onDragStart={(aEvent: any) => draging(true, aEvent)}
-                            onDragStop={(aEvent: any) => draging(false, aEvent)}
-                            onResizeStop={changeLayout}
-                            draggableHandle=".board-panel-header, .draggable-panel-header"
-                        >
-                            {pInfo.dashboard &&
-                                pInfo.dashboard.panels &&
-                                pInfo.dashboard.panels.map((aItem: any) => {
-                                    return (
-                                        <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
-                                            <Panel
-                                                pLoopMode={pInfo.dashboard.timeRange.refresh !== 'Off' || aItem.timeRange.refresh !== 'Off' ? true : false}
-                                                pDragStat={pDragStat}
-                                                pType={sThisPanelStatus}
-                                                pShowEditPanel={showEditPanel}
-                                                pBoardInfo={pInfo}
-                                                pPanelInfo={aItem}
-                                                pModifyState={sModifyState}
-                                                pSetModifyState={setModifyState}
-                                                pParentWidth={pWidth}
-                                                pIsHeader={sIsPanelHeader}
-                                                pChartVariableId={sChartVariableId}
-                                                pBoardTimeMinMax={sBoardTimeMinMax}
-                                                pIsActiveTab={sActiveTabId === pInfo.id}
-                                            />
-                                        </div>
-                                    );
-                                })}
-                        </GridLayout>
-                        {isEmpty(pInfo.dashboard.panels) && (
-                            <div className="non-set-panel">
-                                <IconButton pWidth={70} pHeight={70} pIcon={<TbSquarePlus size="70px" />} onClick={() => showEditPanel('create')} />
-                                Create New Panel
+                    <SplitPane sashRender={() => <></>} split={'vertical'} sizes={sSideSizes} onChange={() => {}}>
+                        <Pane>
+                            <div className="variable-header-close">
+                                <IconButton
+                                    pIsToopTip
+                                    pToolTipContent="Close"
+                                    pToolTipId="variables-close-btn"
+                                    pWidth={20}
+                                    pHeight={20}
+                                    pIcon={<IoClose />}
+                                    onClick={() => handleSplitPaneSize()}
+                                />
                             </div>
-                        )}
-                    </div>
+                            <VariableHeader pBoardInfo={pInfo} callback={initDashboard} pSelectVariable={sSelectVariable} />
+                        </Pane>
+                        <Pane>
+                            <div className="board-body">
+                                <GridLayout
+                                    className="layout"
+                                    useCSSTransforms={false}
+                                    layout={pInfo && pInfo.dashboard.panels}
+                                    cols={GRID_LAYOUT_COLS}
+                                    autoSize={true}
+                                    rowHeight={GRID_LAYOUT_ROW_HEIGHT}
+                                    width={sVariableCollapse ? pWidth * 0.8 : pWidth}
+                                    onDragStart={(aEvent: any) => draging(true, aEvent)}
+                                    onDragStop={(aEvent: any) => draging(false, aEvent)}
+                                    onResizeStop={changeLayout}
+                                    draggableHandle=".board-panel-header, .draggable-panel-header"
+                                >
+                                    {pInfo.dashboard &&
+                                        pInfo.dashboard.panels &&
+                                        pInfo.dashboard.panels.map((aItem: any) => {
+                                            return (
+                                                <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
+                                                    <Panel
+                                                        pLoopMode={pInfo.dashboard.timeRange.refresh !== 'Off' || aItem.timeRange.refresh !== 'Off' ? true : false}
+                                                        pDragStat={pDragStat}
+                                                        pType={sThisPanelStatus}
+                                                        pShowEditPanel={showEditPanel}
+                                                        pBoardInfo={pInfo}
+                                                        pPanelInfo={aItem}
+                                                        pModifyState={sModifyState}
+                                                        pSetModifyState={setModifyState}
+                                                        pParentWidth={sVariableCollapse ? pWidth * 0.8 : pWidth}
+                                                        pIsHeader={sIsPanelHeader}
+                                                        pChartVariableId={sChartVariableId}
+                                                        pBoardTimeMinMax={sBoardTimeMinMax}
+                                                        pIsActiveTab={sActiveTabId === pInfo.id}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                </GridLayout>
+
+                                {isEmpty(pInfo.dashboard.panels) && (
+                                    <div className="non-set-panel">
+                                        <IconButton pWidth={70} pHeight={70} pIcon={<TbSquarePlus size="70px" />} onClick={() => showEditPanel('create')} />
+                                        Create New Panel
+                                    </div>
+                                )}
+                            </div>
+                        </Pane>
+                    </SplitPane>
                 )}
                 {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal} pSaveCallback={handleSaveTimeRange} />}
                 {sCreateModal && (
@@ -343,6 +405,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         pSetBoardTimeMinMax={setBoardTimeMinMax}
                     />
                 )}
+                {sVariableModal && <Variable pBoardInfo={pInfo} pSetModal={setVariableModal} />}
             </div>
         )
     );

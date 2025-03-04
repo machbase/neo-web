@@ -30,6 +30,7 @@ const LineChart = ({
     pParentWidth,
     pIsHeader,
     pBoardTimeMinMax,
+    pBoardInfo,
 }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
     const [sChartData, setChartData] = useState<any>(undefined);
@@ -195,6 +196,11 @@ const LineChart = ({
         if (pPanelInfo.timeRange.refresh !== 'Off') return calcRefreshTime(pPanelInfo.timeRange.refresh);
         return null;
     };
+    const defaultMinMax = () => {
+        const sNowTime = moment().unix() * 1000;
+        const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
+        return sNowTimeMinMax;
+    };
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetPanel = pPanelInfo;
         const sTargetTag = sTargetPanel.blockList[0];
@@ -204,6 +210,7 @@ const LineChart = ({
         })[0]?.value;
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
             let sSvrResult: any = undefined;
+            if (sTargetTag.customTable) return defaultMinMax();
             if (sTargetTag.table.split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
             } else {
@@ -211,11 +218,7 @@ const LineChart = ({
             }
             const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
             return sResult;
-        } else {
-            const sNowTime = moment().unix() * 1000;
-            const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
-            return sNowTimeMinMax;
-        }
+        } else return defaultMinMax();
     };
     const handlePanelTimeRange = async (sStart: any, sEnd: any) => {
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();

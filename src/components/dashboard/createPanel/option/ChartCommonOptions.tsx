@@ -12,7 +12,6 @@ interface ChartCommonOptionsProps {
 
 export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
     const { pPanelOption, pSetPanelOption } = props;
-
     const handleCustomOption = (aValue: string | boolean, aKey: string) => {
         pSetPanelOption((aPrev: any) => {
             return {

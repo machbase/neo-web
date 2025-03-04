@@ -216,13 +216,34 @@ export const DefaultChartOption = {
     h: 7 as number, // height
 };
 
+export const DefaultVariableTableOption = {
+    id: generateUUID(),
+    table: '' as string | undefined,
+    userName: '' as string | undefined,
+    color: getDefaultColor(),
+    type: '',
+    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    values: [{ id: generateUUID(), alias: '', value: 'VALUE', aggregator: 'avg' }],
+    useRollup: false,
+    name: '',
+    time: 'TIME',
+    useCustom: false,
+    aggregator: 'avg',
+    diff: 'none',
+    tag: '',
+    value: 'VALUE',
+    alias: '',
+    math: '',
+    duration: { from: '', to: '' },
+};
+
 export const DefaultTagTableOption = {
     id: generateUUID(),
     table: undefined as string | undefined,
     userName: undefined as string | undefined,
     color: getDefaultColor(),
     type: 'tag',
-    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    filter: [{ id: generateUUID(), column: 'NAME', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: 'VALUE', aggregator: 'avg' }],
     useRollup: false,
     name: '',

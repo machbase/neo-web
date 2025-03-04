@@ -24,3 +24,10 @@
         margin-left: 18px;
     }
 }
+.collapse-disable {
+    cursor: default;
+
+    .collapse-body {
+        opacity: 0.4;
+    }
+}

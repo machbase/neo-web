@@ -1,6 +1,8 @@
 import moment from 'moment';
 import { isRollup } from '.';
 import { ADMIN_ID } from './constants';
+import { VARIABLE_REGEX } from './CheckDataCompatibility';
+import { DEFAULT_VARIABLE_LIST, VARIABLE_TYPE } from '@/components/dashboard/variable';
 
 interface BlockTimeType {
     interval: {
@@ -137,15 +139,31 @@ const ReplaceVariables = (
 };
 
 /** Dashboard QUERY PARSER */
-export const DashboardQueryParser = async (aChartType: string, aBlockList: any, aRollupList: any, aXaxis: any, aTime: BlockTimeType) => {
+export const DashboardQueryParser = (aChartType: string, aBlockList: any, aRollupList: any, aXaxis: any, aTime: BlockTimeType, aVariables?: VARIABLE_TYPE[]) => {
     const sResDataType = SqlResDataType(aChartType);
     const sTranspose = sResDataType === 'TIME_VALUE' && aXaxis[0].type === 'category';
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
-    const [sParsedQueryList, sAliasList] = QueryParser(sTranspose, sQueryBlock, aTime, sResDataType);
-    return [sParsedQueryList, sAliasList];
+    const sVariables = VariableParser(aVariables ?? [], aTime);
+    const [sParsedQueryList, sAliasList] = QueryParser(
+        sTranspose,
+        sQueryBlock,
+        aTime,
+        aChartType === 'text' ? ['NAME_VALUE', 'TIME_VALUE'] : (Array.from({ length: sQueryBlock.length }).fill(sResDataType) as string[])
+    );
+    const [sReplaceQueryList, sReplaceAliasList] = ReplaceVariables(
+        sParsedQueryList,
+        sVariables,
+        sAliasList
+        // , aChartType
+    );
+    return [sReplaceQueryList, sReplaceAliasList];
 };
 /** Combine table and user */
-const CombineTableUser = (table: string) => {
+const CombineTableUser = (table: string, customTable: boolean = false) => {
+    // Typing table
+    if (customTable) return table;
+    // Variable
+    if (table.match(VARIABLE_REGEX)) return table;
     // Admin
     if (table.split('.').length === 1) return `${ADMIN_ID.toUpperCase()}.${table}`;
     else return table;
@@ -166,7 +184,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             time: bBlock.time,
             type: bBlock.type,
             userName: bBlock.userName,
-            tableName: CombineTableUser(bBlock.table),
+            tableName: CombineTableUser(bBlock.table, bBlock?.customTable),
             filterList: bBlock.filter,
             valueList: bBlock.values,
             useRollup: isRollup(aRollupList, bBlock.table, getInterval(aTime.interval.IntervalType, aTime.interval.IntervalValue), bBlock.values[0]?.value),
@@ -429,7 +447,7 @@ const GetConbineWhere = (
     return sReturnWhere;
 };
 
-const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string) => {
+const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string[]) => {
     const sAliasList: any[] = [];
     const sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
@@ -443,29 +461,24 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         const sAlias = GetAlias(aQuery.valueList[0]);
         const sUseCountAll = UseCountAll(aQuery.valueList);
         const sIsVirtualTable = aQuery.tableName.includes('V$');
-        const sConbineWhere = GetConbineWhere(aResDataType, aQuery, aTime, sTimeWhere, sFilterWhere, sGroupBy, sOrderBy, sUseAgg, sUseCountAll, sIsVirtualTable);
+        const sConbineWhere = GetConbineWhere(aResDataType[aIdx], aQuery, aTime, sTimeWhere, sFilterWhere, sGroupBy, sOrderBy, sUseAgg, sUseCountAll, sIsVirtualTable);
         let sSql: string = '';
         let sTql: string = '';
 
         // Set alias & color (tag)
         sAliasList.push({ name: sAlias, color: aQuery.color });
         // BAR | LINE | SCATTER
-        if (aResDataType === 'TIME_VALUE') {
-            // sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${
-            //     sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''
-            // } ${sUseAgg ? (sUseCountAll ? 'GROUP BY TIME' : sGroupBy) : ''} ${sOrderBy}`;
+        if (aResDataType[aIdx] === 'TIME_VALUE') {
             sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
             if (sUseDiff) sTql += `MAP_${changeDiffText(aQuery.valueList[0]?.diff)}(1, value(1))`;
             if (aQuery?.math && aQuery?.math !== '') sTql += `${sUseDiff ? `\n` : ''}MAPVALUE(2, ${mathValueConverter('1', aQuery?.math)}, "VALUE")\nPOPVALUE(1)`;
         }
         // PIE | GAUGE | LIQUIDFILL
-        if (aResDataType === 'NAME_VALUE') {
+        if (aResDataType[aIdx] === 'NAME_VALUE') {
             if (sIsVirtualTable) {
                 const sTable = aQuery.tableName.split('.').length > 1 ? aQuery.tableName : ADMIN_ID + '.' + aQuery.tableName;
-                // sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${sTable} ${sFilterWhere !== '' ? 'WHERE ' + sFilterWhere : ''}`;
                 sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${sTable} ${sConbineWhere}`;
             } else {
-                // sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} WHERE ${sTimeWhere} ${sFilterWhere !== '' ? 'AND ' + sFilterWhere : ''}`;
                 sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
             }
 
@@ -477,7 +490,7 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
             query: `SQL("${sSql}")${sTql !== '' ? '\n' + sTql : ''}\nJSON()`,
             alias: sAlias,
             idx: aIdx,
-            dataType: aResDataType,
+            dataType: aResDataType[aIdx],
             sql: sSql,
         };
     });
