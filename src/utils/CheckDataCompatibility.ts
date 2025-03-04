@@ -1,5 +1,14 @@
 import { SqlResDataType } from './DashboardQueryParser';
-import { DIFF_LIST, SEPARATE_DIFF, geomapAggregatorList, logAggregatorList, nameValueAggregatorList, nameValueVirtualAggList, tagAggregatorList } from './dashboardUtil';
+import {
+    CheckObjectKey,
+    DIFF_LIST,
+    SEPARATE_DIFF,
+    geomapAggregatorList,
+    logAggregatorList,
+    nameValueAggregatorList,
+    nameValueVirtualAggList,
+    tagAggregatorList,
+} from './dashboardUtil';
 import { chartTypeConverter } from './eChartHelper';
 import { concatTagSet } from './helpers/tags';
 
@@ -34,8 +43,10 @@ const DashboardCompatibility = (aData: any) => {
                 // Skip validate variableBlock
                 const sIsVariableBlock = aBlock.table.match(VARIABLE_REGEX);
                 if (sIsVariableBlock) return aBlock;
+                // Check full query
+                const sHasKeyFullQuery = CheckObjectKey(aBlock, 'customFullTyping');
 
-                const sResult: any = aBlock;
+                const sResult: any = sHasKeyFullQuery ? aBlock : { ...aBlock, customFullTyping: { use: false, text: '' } };
                 let DEFAULT_AGGREGATOR: string = 'count';
                 let sAggList: string[] = [];
                 if (sResDataType === 'TIME_VALUE') {
@@ -59,7 +70,7 @@ const DashboardCompatibility = (aData: any) => {
                 if (aBlock.useCustom) {
                     // Values
                     const sValueList = aBlock.values;
-                    const sVaildValueList = sValueList.map((aValue: any) => {
+                    const sValidValueList = sValueList.map((aValue: any) => {
                         if (sAggList.includes(aValue.aggregator)) return aValue;
                         else {
                             return {
@@ -68,7 +79,7 @@ const DashboardCompatibility = (aData: any) => {
                             };
                         }
                     });
-                    sResult.values = sVaildValueList;
+                    sResult.values = sValidValueList;
                     // Duration
                     sResult.duration = sResult?.duration ?? { from: '', to: '' };
                     // if (aBlock.type.toUpperCase() === 'LOG' && aBlock.time.toUpperCase() !== '_ARRIVAL_TIME' && !sResult?.duration) sResult.duration = { from: '', to: '' };

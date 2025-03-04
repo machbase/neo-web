@@ -1,6 +1,6 @@
 import { getTableInfo, getVirtualTableInfo } from '@/api/repository/api';
 import { getRollupTableList, getTqlChart } from '@/api/repository/machiot';
-import { BsArrowsCollapse, BsArrowsExpand, Close, Refresh, TbMath, TbMathOff } from '@/assets/icons/Icon';
+import { BsArrowsCollapse, BsArrowsExpand, Close, GoPencil, Refresh, TbMath, TbMathOff } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { generateUUID } from '@/utils';
 import {
@@ -144,6 +144,25 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                 };
             });
         }
+    };
+    const changedOptionFullTyping = (aKey: string, aData: any) => {
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                blockList: aPrev.blockList.map((aItem: any) => {
+                    if (aItem.id === pBlockInfo.id) {
+                        const sTmpItem = {
+                            ...aItem,
+                            customFullTyping: {
+                                ...aItem.customFullTyping,
+                                [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value,
+                            },
+                        };
+                        return sTmpItem;
+                    } else return aItem;
+                }),
+            };
+        });
     };
     const getColumnList = async (aTable: string) => {
         const sTable = pTableList.find(
@@ -538,7 +557,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
             <div className="row">
                 {/* TABLE */}
                 <div className="row-header">
-                    {pBlockInfo.useCustom && (
+                    {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && (
                         <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="row-header-left">
                             {/* TABLE */}
                             <div className="series-table">
@@ -576,6 +595,16 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    )}
+                    {pBlockInfo.customFullTyping.use && (
+                        <div className="row-header-left row-header-left-textarea">
+                            <textarea
+                                placeholder={''}
+                                defaultValue={pBlockInfo.customFullTyping.text}
+                                onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => changedOptionFullTyping('text', event)}
+                                style={{ height: 100 + 'px', width: '100%' }}
+                            />
                         </div>
                     )}
                     {!pBlockInfo.useCustom && (
@@ -664,12 +693,22 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                         </div>
                     )}
                     <div className="row-header-right">
+                        <IconButton
+                            pWidth={20}
+                            pHeight={20}
+                            pIsActive={pBlockInfo.customFullTyping.use}
+                            pDisabled={!(pPanelOption.type === 'Line' || pPanelOption.type === 'Bar')}
+                            pIsToopTip
+                            pToolTipContent={pBlockInfo.customFullTyping.use ? 'Selecting' : 'Typing'}
+                            pIcon={<GoPencil />}
+                            onClick={() => changedOptionFullTyping('use', { target: { value: !pBlockInfo.customFullTyping.use } })}
+                        />
                         <div ref={sMathRef} style={{ position: 'relative', marginRight: '4px' }}>
                             <IconButton
                                 pWidth={20}
                                 pHeight={20}
                                 pIsToopTip
-                                pDisabled={chartTypeConverter(pPanelOption.type) === 'geomap'}
+                                pDisabled={chartTypeConverter(pPanelOption.type) === 'geomap' || pBlockInfo.customFullTyping.use}
                                 pIsActive={pBlockInfo?.math && pBlockInfo?.math !== ''}
                                 pToolTipContent={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'Enter formula' : pBlockInfo?.math}
                                 pToolTipId={pBlockInfo.id + '-block-math'}
@@ -753,49 +792,55 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                     </div>
                 </div>
                 {/* VALUE */}
-                {pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
-                <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
-                    <div style={{ width: '100%' }}>
-                        {pBlockInfo.values.map((aItem: any, aIdx: number) => {
-                            return (
-                                <Value
-                                    key={aItem.id}
-                                    pChangeValueOption={changeValueOption}
-                                    pAddValue={addValue}
-                                    pRemoveValue={removeValue}
-                                    pBlockInfo={pBlockInfo}
-                                    pValue={aItem}
-                                    pIdx={aIdx}
-                                    pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
-                                    pPanelOption={pPanelOption}
-                                    pAggList={getAggregatorList}
-                                    pVariableList={getVariableList}
-                                />
-                            );
-                        })}
+                {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
+                {!pBlockInfo.customFullTyping.use && (
+                    <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
+                        <div style={{ width: '100%' }}>
+                            {pBlockInfo.values.map((aItem: any, aIdx: number) => {
+                                return (
+                                    <Value
+                                        key={aItem.id}
+                                        pChangeValueOption={changeValueOption}
+                                        pAddValue={addValue}
+                                        pRemoveValue={removeValue}
+                                        pBlockInfo={pBlockInfo}
+                                        pValue={aItem}
+                                        pIdx={aIdx}
+                                        pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
+                                        pPanelOption={pPanelOption}
+                                        pAggList={getAggregatorList}
+                                        pVariableList={getVariableList}
+                                    />
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
+                )}
+
                 {/* FILTER */}
-                {pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
-                <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
-                    <div>
-                        {pBlockInfo.filter.map((aItem: any, aIdx: number) => {
-                            return (
-                                <Filter
-                                    key={aItem.id}
-                                    pColumnList={sColumnList}
-                                    pBlockInfo={pBlockInfo}
-                                    pFilterInfo={aItem}
-                                    pChangeValueOption={changeValueOption}
-                                    pIdx={aIdx}
-                                    pAddFilter={addFilter}
-                                    pRemoveFilter={removeFilter}
-                                    pVariableList={getVariableList}
-                                />
-                            );
-                        })}
+                {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
+                {!pBlockInfo.customFullTyping.use && (
+                    <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
+                        <div>
+                            {pBlockInfo.filter.map((aItem: any, aIdx: number) => {
+                                return (
+                                    <Filter
+                                        key={aItem.id}
+                                        pColumnList={sColumnList}
+                                        pBlockInfo={pBlockInfo}
+                                        pFilterInfo={aItem}
+                                        pChangeValueOption={changeValueOption}
+                                        pIdx={aIdx}
+                                        pAddFilter={addFilter}
+                                        pRemoveFilter={removeFilter}
+                                        pVariableList={getVariableList}
+                                    />
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
+                )}
+
                 {/* DURATION */}
                 {pBlockInfo.useCustom && getUseDuration() && (
                     <>

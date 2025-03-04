@@ -60,12 +60,20 @@
                 display: flex;
                 flex-wrap: wrap;
                 align-items: center;
-            }
-            .row-header-left {
+                &-textarea {
+                    flex-grow: 1;
+                    padding-right: 8px;
+                    textarea {
+                        min-height: 32px;
+                        resize: vertical;
+                    }
+                }
             }
             .row-header-right {
+                height: 32px;
                 display: flex;
                 align-items: center;
+                align-self: start;
                 .color-picker {
                     z-index: $color-dropdown-idx;
                     position: absolute;
