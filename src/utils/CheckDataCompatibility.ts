@@ -3,17 +3,8 @@ import { DIFF_LIST, SEPARATE_DIFF, geomapAggregatorList, logAggregatorList, name
 import { chartTypeConverter } from './eChartHelper';
 import { concatTagSet } from './helpers/tags';
 
-export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
 const DashboardCompatibility = (aData: any) => {
     const sDashboardInfo = JSON.parse(aData);
-
-    // Check variables
-    if (!sDashboardInfo?.dashboard?.variables) {
-        sDashboardInfo.dashboard = {
-            ...sDashboardInfo.dashboard,
-            variables: [],
-        };
-    }
 
     if (sDashboardInfo?.dashboard.panels.length > 0) {
         const sPanelList = sDashboardInfo.dashboard.panels;
@@ -31,10 +22,6 @@ const DashboardCompatibility = (aData: any) => {
             const sResDataType: string = SqlResDataType(sChartType);
 
             const sVaildBlockList = sBlockList.map((aBlock: any) => {
-                // Skip validate variableBlock
-                const sIsVariableBlock = aBlock.table.match(VARIABLE_REGEX);
-                if (sIsVariableBlock) return aBlock;
-
                 const sResult: any = aBlock;
                 let DEFAULT_AGGREGATOR: string = 'count';
                 let sAggList: string[] = [];
@@ -85,6 +72,7 @@ const DashboardCompatibility = (aData: any) => {
 
                 return sResult;
             });
+
             sResultPanel.blockList = sVaildBlockList;
             return sResultPanel;
         });

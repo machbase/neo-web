@@ -7,7 +7,6 @@
     left: 0;
     z-index: $dsh-edit-page-idx;
     background-color: #262831;
-
     .header {
         height: 40px;
         display: flex;
@@ -54,9 +53,6 @@
     }
     .body {
         height: calc(100% - 40px);
-        .react-split {
-            height: calc(100%) !important;
-        }
 
         .split-side {
             .react-split__sash:hover::before {

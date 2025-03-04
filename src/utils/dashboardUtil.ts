@@ -16,7 +16,6 @@ import {
     StructureOfLineVisualMapOption,
     DefaultLogTableOption,
     chartTypeConverter,
-    DefaultVariableTableOption,
 } from '@/utils/eChartHelper';
 import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartAxisTooltipFormatter } from '@/utils/constants';
 import { ChartType } from '@/type/eChart';
@@ -618,7 +617,7 @@ export const removeColumnQuotes = (aStr: string) => {
 };
 
 export const decodeFormatterFunction = (aStr: string) => {
-    return aStr.replace(/"(function \((params)(, api)?\) \{.*?\})"/g, (aMatch) => {
+    return aStr.replace(/"(function \(params\) \{.*?\})"/g, (aMatch) => {
         if (aMatch.startsWith('"') && aMatch.endsWith('"')) {
             return aMatch.slice(1, -1);
         }

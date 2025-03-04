@@ -93,9 +93,7 @@ export const CreateBridge = () => {
                                 </ExtensionTab.ContentDesc>
                             </ExtensionTab.DpRow>
                             <ExtensionTab.Selector
-                                pList={SELECTE_TYPE.map((type) => {
-                                    return { name: type, data: type };
-                                })}
+                                pList={SELECTE_TYPE}
                                 pSelectedItem={sCreatePayload.type}
                                 pCallback={(value: string) => handlePayload('type', { target: { value } } as any)}
                             />

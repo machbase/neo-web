@@ -221,9 +221,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                     <ExtensionTab.ContentTitle>theme</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>Terminal color theme</ExtensionTab.ContentDesc>
                                     <ExtensionTab.Selector
-                                        pList={sThemeList.map((theme) => {
-                                            return { name: theme, data: theme };
-                                        })}
+                                        pList={sThemeList}
                                         pSelectedItem={sPayload.theme || 'default'}
                                         pCallback={(eTarget: string) => handlePayload('theme', { target: { value: eTarget } } as any)}
                                     />

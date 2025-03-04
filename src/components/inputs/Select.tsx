@@ -56,7 +56,6 @@ export const Select = (props: SelectProps) => {
     };
 
     const handleClick = (aEvent: React.MouseEvent<HTMLDivElement>) => {
-        if (pIsDisabled) return;
         aEvent.stopPropagation();
         setIsOpen(!isOpen);
     };
@@ -83,11 +82,11 @@ export const Select = (props: SelectProps) => {
                 minWidth: pIsFullWidth ? '100%' : pWidth + 'px',
                 height: pHeight + 'px',
                 opacity: pIsDisabled ? 0.6 : 1,
-                cursor: pIsDisabled ? 'default' : 'pointer',
+                cursor: 'pointer',
             }}
         >
             <div className="select-input" onClick={handleClick}>
-                <input disabled={pIsDisabled} readOnly={pIsReadonly} value={selectValue} style={{ fontSize: pFontSize, cursor: 'inherit' }} placeholder="Select..." />
+                <input readOnly={pIsReadonly} value={selectValue} disabled={pIsDisabled} style={{ fontSize: pFontSize, cursor: 'pointer' }} placeholder="Select..." />
                 <ArrowDown />
             </div>
             <div

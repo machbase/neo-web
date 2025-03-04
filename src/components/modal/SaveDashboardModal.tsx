@@ -52,11 +52,11 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     const [sSelectedBlock, setSelectedBlock] = useState<any>('');
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
-    const GetQuery = () => {
+    const GetQuery = async () => {
         const sStartTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.start ?? '') : setUnitTime(pDashboardTime.start);
         const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.end ?? '') : setUnitTime(pDashboardTime.end);
         const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, pPanelInfo.w * 50);
-        const [sParsedQuery, sAliasList] = DashboardQueryParser(chartTypeConverter(pPanelInfo.type), pPanelInfo.blockList, sRollupTableList, pPanelInfo.xAxisOptions, {
+        const [sParsedQuery, sAliasList] = await DashboardQueryParser(chartTypeConverter(pPanelInfo.type), pPanelInfo.blockList, sRollupTableList, pPanelInfo.xAxisOptions, {
             interval: sIntervalInfo,
             start: sStartTime,
             end: sEndTime,
@@ -64,12 +64,12 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
 
         return [sParsedQuery, sAliasList];
     };
-    const GetSaveChartText = () => {
-        const [sParsedQuery, sAliasList] = GetQuery();
+    const GetSaveChartText = async () => {
+        const [sParsedQuery, sAliasList] = await GetQuery();
         const sStartTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.start ?? '') : setUnitTime(pDashboardTime.start);
         const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.end ?? '') : setUnitTime(pDashboardTime.end);
-        const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
-        const sParsedChartCode = DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery, true);
+        const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
+        const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery, true);
         const sUsePlg: boolean = !!pPanelInfo.plg;
         let sResult: string = `FAKE(linspace(0, 1, 1))\n` + `CHART(\n`;
         if (sUsePlg) sResult += `\tplugins('${pPanelInfo.plg}'),\n`;
@@ -81,8 +81,8 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
             `)`;
         return sResult;
     };
-    const GetSaveDataText = () => {
-        const [sParsedQuery] = GetQuery();
+    const GetSaveDataText = async () => {
+        const [sParsedQuery] = await GetQuery();
         const sOutputStr: string = sOutput === 'CHART' ? `${sOutput}()` : sOutput === 'DATA(JSON)' ? 'JSON()' : 'CSV()';
         const sTargetSql = sParsedQuery.find((aBlock: any) => aBlock.alias === sSelectedBlock).sql;
         const sResult: string = `SQL("${sTargetSql}")\n` + sOutputStr;
@@ -90,7 +90,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     };
     const SetBlockAliasList = async () => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const [_, sAliasList] = GetQuery();
+        const [_, sAliasList] = await GetQuery();
         setBlockList(sAliasList);
     };
     const handleClose = () => {
@@ -171,8 +171,8 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
 
     const saveFile = async () => {
         let sPayload: any = undefined;
-        if (sOutput === 'CHART') sPayload = GetSaveChartText();
-        else sPayload = GetSaveDataText();
+        if (sOutput === 'CHART') sPayload = await GetSaveChartText();
+        else sPayload = await GetSaveDataText();
         const sDupFile = sFileList && sFileList.find((aItem) => aItem.name === sSaveFileName);
 
         if (sDupFile) {
