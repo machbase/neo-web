@@ -14,6 +14,12 @@ const getWindowOs = () => {
     return true;
 };
 
+export const fixedEncodeURIComponent = (str: string) => {
+    return encodeURIComponent(str).replace(/[!'()*]/g, (c) => {
+        return '%' + c.charCodeAt(0).toString(16);
+    });
+};
+
 const formatDate = (date: Date | string): string => {
     let dateStr;
     if (typeof date === 'string') dateStr = date;

@@ -11,7 +11,7 @@ import { IANA_TIMEZONES } from '@/assets/ts/timezones';
 import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 import './index.scss';
 import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, SaveAs, Download } from '@/assets/icons/Icon';
-import { isJsonString } from '@/utils/utils';
+import { fixedEncodeURIComponent, isJsonString } from '@/utils/utils';
 import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 import { MonacoEditor } from '../monaco/MonacoEditor';
 import { IconButton } from '@/components/buttons/IconButton';
@@ -239,17 +239,19 @@ const Sql = ({
             // setLogList([...sLogList, `${paredQuery}\n${sParsedSqlResult.elapse} : ${sParsedSqlResult.success}`]);
         }
     };
+
     const handleDownloadCSV = () => {
         if (sOldFetchTxt && sOldFetchTxt?.text !== '' && sSqlResponseData && !(sSqlResponseData?.rows?.length === 1 && sSqlResponseData?.columns?.length === 1)) {
             const url = window.location.origin + '/web/api/tql-exec';
             const token = localStorage.getItem('accessToken');
-            const bridgeText = sOldFetchTxt?.env?.bridge ? `bridge("${sOldFetchTxt?.env?.bridge}"),` : '';
-            const sql = encodeURI(
-                `${url}?$=SQL(${bridgeText}"${sOldFetchTxt.text.replaceAll(
-                    ';',
-                    ''
-                )}")\u000ACSV(timeformat("${sTimeRange}"), tz("${sTimeZone}"), httpHeader("Content-Disposition", "attachment"), heading(true))\u0026$token=${token}`
-            );
+            const bridgeText = sOldFetchTxt?.env?.bridge ? encodeURI(`bridge("`) + fixedEncodeURIComponent(sOldFetchTxt?.env?.bridge) + encodeURI(`"),`) : '';
+            const sEncodedText = fixedEncodeURIComponent(sOldFetchTxt.text);
+            const sql =
+                encodeURI(`${url}?$=SQL(`) +
+                bridgeText +
+                encodeURI(`\u0060`) +
+                sEncodedText +
+                encodeURI(`\u0060)\u000ACSV(timeformat("${sTimeRange}"), tz("${sTimeZone}"), httpHeader("Content-Disposition", "attachment"), heading(true))\u0026$token=${token}`);
             sqlOriginDataDownloader(sql, DOWNLOADER_EXTENSION.CSV);
         }
     };
