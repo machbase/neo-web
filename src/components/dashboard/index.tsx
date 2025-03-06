@@ -402,6 +402,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         pSetTimeRangeModal={setTimeRangeModal}
                         pSetIsSaveModal={pSetIsSaveModal}
                         pBoardTimeMinMax={sBoardTimeMinMax}
+                        pChartVariableId={sChartVariableId}
                         pSetBoardTimeMinMax={setBoardTimeMinMax}
                     />
                 )}

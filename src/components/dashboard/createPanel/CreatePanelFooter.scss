@@ -74,6 +74,9 @@
                     }
                     .date-picker {
                         display: flex;
+                        input {
+                            width: 100%;
+                        }
                     }
                 }
                 .refresh-form {

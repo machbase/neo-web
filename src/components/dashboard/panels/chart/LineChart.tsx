@@ -231,7 +231,7 @@ const LineChart = ({
         }
     }, [pBoardTimeMinMax]);
     useEffect(() => {
-        if (pModifyState.state && pModifyState.id === pPanelInfo.id) {
+        if (pModifyState.state && pModifyState.id === PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)) {
             executeTqlChart();
         }
     }, [pModifyState]);
