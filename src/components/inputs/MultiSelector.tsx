@@ -1,117 +1,69 @@
-import * as React from 'react';
 import './MultiSelector.scss';
-import { Theme, useTheme } from '@mui/material/styles';
-import Box from '@mui/material/Box';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import MenuItem from '@mui/material/MenuItem';
-import FormControl from '@mui/material/FormControl';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
-import Chip from '@mui/material/Chip';
-import { Input } from './Input';
+import React, { useRef, useState, useMemo, useCallback } from 'react';
 import { ArrowDown } from '@/assets/icons/Icon';
-
-const ITEM_HEIGHT = 48;
-const ITEM_PADDING_TOP = 8;
-const MenuProps = {
-    PaperProps: {
-        style: {
-            maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-            width: 250,
-        },
-    },
-};
-
-const names = [
-    'Oliver Hansen',
-    'Van Henry',
-    'April Tucker',
-    'Ralph Hubbard',
-    'Omar Alexander',
-    'Carlos Abbott',
-    'Miriam Wagner',
-    'Bradley Wilkerson',
-    'Virginia Andrews',
-    'Kelly Snyder',
-];
-
-function getStyles(name: string, personName: readonly string[], theme: Theme) {
-    return {
-        fontWeight: personName.includes(name) ? theme.typography.fontWeightMedium : theme.typography.fontWeightRegular,
-    };
-}
+import useOutsideClick from '@/hooks/useOutsideClick';
+import { Tooltip } from 'react-tooltip';
 
 interface MultiSelectorItemProps {
     item: { name: string; color: string; idx: number };
 }
-
 const MultiSelectorItem: React.FC<MultiSelectorItemProps> = ({ item }) => {
-    console.log('item', item);
     return (
-        //  border-bottom: 2px inset #005fb8;
-        <div className="multi-selector-item" style={{ inset: 'left 1px 1px 1px 1px', backgroundColor: item.color }}>
+        <div className="multi-selector-item" style={{ boxShadow: `inset 4px 0 0 0  ${item.color}` }}>
             <span>{item.name}</span>
         </div>
     );
 };
 
-export const MultipleSelect = ({ pPanelOption }: { pPanelOption: any }) => {
-    console.log('pPanelOption', pPanelOption);
-    const [personName, setPersonName] = React.useState<string[]>([]);
+export const MultipleSelect = ({ pPanelOption, pSetBlockList }: { pPanelOption: any; pSetBlockList: any }) => {
+    const multiSelectorRef = useRef<any>(null);
+    const [sIsOpen, setIsOpen] = useState<boolean>(false);
 
-    const handleChange = (event: SelectChangeEvent<typeof personName>) => {
-        const {
-            target: { value },
-        } = event;
-        setPersonName(
-            // On autofill we get a stringified value.
-            typeof value === 'string' ? value.split(',') : value
+    const getBlockList = useMemo((): any[] => {
+        return (
+            pPanelOption?.blockList?.map((block: any, idx: number) => ({
+                name: block.table,
+                color: block.color,
+                idx: idx,
+            })) ?? []
         );
-    };
-
-    const getBlockList = React.useMemo((): any[] => {
-        const sTmpBlockList = pPanelOption.blockList.map((block: any, idx: number) => {
-            return { name: block.table, color: block.color, idx: idx };
-        });
-        return sTmpBlockList;
     }, [pPanelOption.blockList]);
 
-    const test = ['aaaaaaaa', 'bbbbbbb', 'c', 'eifjedddddfdfd', 'eifdjdddddddfksdf'];
+    const handleOutSideClick = useCallback(() => {
+        setIsOpen(false);
+    }, []);
 
-    console.log('getBlockList', getBlockList);
+    useOutsideClick(multiSelectorRef, () => sIsOpen && handleOutSideClick());
 
     return (
-        <div className="multi-selector">
-            <div className="multi-selector-selected-box">
+        <div ref={multiSelectorRef} className="multi-selector">
+            <div className="multi-selector-selected-box" onClick={() => setIsOpen(!sIsOpen)}>
                 <div className="multi-selector-selected-items">
-                    {getBlockList.map((item: { name: string; color: string; idx: number }) => (
-                        <MultiSelectorItem key={item.name} item={item} />
-                    ))}
+                    {getBlockList.map((item, bIdx) =>
+                        pPanelOption.yAxisOptions[1]?.useBlockList?.includes(bIdx) ? <MultiSelectorItem key={item.name + bIdx.toString()} item={item} /> : null
+                    )}
                 </div>
                 <ArrowDown />
             </div>
-            {/* <FormControl>
-                <Select
-                    labelId="multiple-chip-label"
-                    id="multiple-chip"
-                    multiple
-                    value={personName}
-                    onChange={handleChange}
-                    renderValue={(selected) => (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {selected.map((value) => (
-                                <Chip key={value} label={value} />
-                            ))}
-                        </Box>
-                    )}
-                    MenuProps={MenuProps}
-                >
-                    {names.map((name) => (
-                        <MenuItem key={name} value={name} style={getStyles(name, personName, theme)}>
-                            {name}
-                        </MenuItem>
-                    ))}
-                </Select>
-            </FormControl> */}
+            {sIsOpen && (
+                <div className="multi-selector-list">
+                    <div className="multi-selector-list-box">
+                        {getBlockList.map((aOption, aIdx) => (
+                            <button
+                                key={aIdx}
+                                className={`select-tooltip-${aIdx} multi-selector-list-box-item${
+                                    pPanelOption.yAxisOptions[1]?.useBlockList?.includes(aIdx) ? ' multi-selector-active-item' : ''
+                                }`}
+                                onClick={() => pSetBlockList(aIdx)}
+                                style={{ boxShadow: `inset 4px 0 0 0 ${aOption.color}` }}
+                            >
+                                <Tooltip anchorSelect={`.select-tooltip-${aIdx}`} content={aOption.name} />
+                                <span className="multi-selector-list-box-item-text">{aOption.name}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
