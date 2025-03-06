@@ -1,0 +1,38 @@
+@import '@/assets/scss/theme.scss';
+
+.multi-selector {
+    display: flex;
+    width: 100%;
+    flex-grow: 1;
+
+    &-selected-box {
+        cursor: pointer;
+        padding: 8px 4px 8px 8px;
+        display: flex;
+        flex-grow: 1;
+        background-color: #323644;
+        border: solid 0.5px rgba(255, 255, 255, 0.5);
+        border-radius: 4px;
+        color: $text-w;
+        min-height: 25px;
+        flex-direction: row;
+
+        svg {
+            padding: 0 4px;
+            width: 13px;
+            height: 26px;
+        }
+    }
+    &-selected-items {
+        display: flex;
+        flex-wrap: wrap;
+        flex-grow: 1;
+        width: 100%;
+        gap: 4px;
+    }
+    &-item {
+        padding: 4px 8px;
+        background-color: #575757;
+        border-radius: 4px;
+    }
+}
