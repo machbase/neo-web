@@ -46,6 +46,7 @@ export const DefaultYAxisOption = {
     // value | category | time | log
     type: 'value' as string,
     position: 'left' as 'left' | 'right',
+    offset: '' as string,
     alignTicks: true,
     scale: true,
     useMinMax: false,
@@ -250,7 +251,7 @@ export const DefaultTagTableOption = {
     filter: [{ id: generateUUID(), column: 'NAME', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: 'VALUE', aggregator: 'avg' }],
     useRollup: false,
-    name: '',
+    name: 'NAME',
     time: 'TIME',
     useCustom: false,
     aggregator: 'avg',

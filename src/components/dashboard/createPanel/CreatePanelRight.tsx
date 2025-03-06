@@ -114,7 +114,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     {isTimeSeriesChart(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption.yAxisOptions && (
                         <>
                             <div className="divider" />
-                            <YAxisOptions pYAxis={pPanelOption.yAxisOptions} pSetPanelOption={pSetPanelOption} />
+                            <YAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
                         </>
                     )}
                     <div className="divider" />

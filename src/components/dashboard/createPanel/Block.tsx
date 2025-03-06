@@ -344,7 +344,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
     };
     const deleteSeries = () => {
         pSetPanelOption((aPrev: any) => {
-            let sDelIdx = undefined;
+            let sDelIdx: any = undefined;
             const sTmpPanelOpt = JSON.parse(
                 JSON.stringify({
                     ...aPrev,
@@ -362,6 +362,9 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                 sLon.splice(sDelIdx, 1);
                 sMarker.splice(sDelIdx, 1);
                 sTmpPanelOpt.chartOptions = { ...sTmpPanelOpt.chartOptions, coorLat: sLat, coorLon: sLon, marker: sMarker };
+            }
+            if ((aPrev.type === 'Line' || aPrev.type === 'Bar' || aPrev.type === 'Scatter') && aPrev.yAxisOptions.length > 1) {
+                sTmpPanelOpt.yAxisOptions[1].useBlockList = sTmpPanelOpt.yAxisOptions[1].useBlockList.filter((aItem: any) => aItem !== sDelIdx);
             }
             return sTmpPanelOpt;
         });
@@ -628,7 +631,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                 {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
                                     <div className="tag-search-select-wrapper-custom">
                                         <Input
-                                            pWidth={175}
+                                            pWidth={150}
                                             pHeight={26}
                                             pBorderRadius={4}
                                             pType="text"
@@ -655,7 +658,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                 <InputSelector
                                     pFontSize={12}
                                     pAutoChanged={false}
-                                    pWidth={140}
+                                    pWidth={175}
                                     pBorderRadius={4}
                                     pInitValue={pBlockInfo.aggregator}
                                     pHeight={26}
@@ -682,7 +685,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                 <span className="series-title"> Alias </span>
                                 <Input
                                     pBorderRadius={4}
-                                    pWidth={140}
+                                    pWidth={175}
                                     pHeight={26}
                                     pType="text"
                                     pValue={pBlockInfo.alias}

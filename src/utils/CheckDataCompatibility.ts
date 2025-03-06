@@ -34,6 +34,11 @@ const DashboardCompatibility = (aData: any) => {
                 if (xAxisOpt?.axisLabel) return xAxisOpt;
                 else return { ...xAxisOpt, axisLabel: { hideOverlap: true } };
             });
+            // Y-Axis opt
+            aPanel.yAxisOptions = aPanel.yAxisOptions.map((yAxisOpt: any) => {
+                if (yAxisOpt?.axisLabel) return yAxisOpt;
+                else return { ...yAxisOpt, offset: '' };
+            });
             const sResultPanel = aPanel;
             const sBlockList: any = aPanel.blockList;
             const sChartType: string = chartTypeConverter(aPanel.type);

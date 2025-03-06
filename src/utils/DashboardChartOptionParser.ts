@@ -306,10 +306,8 @@ const ReplaceCommonOpt = (aCommonOpt: any, aPanelType: string) => {
     return sResult;
 };
 
-const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonOpt: any, aTypeOpt: any) => {
+const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonOpt: any, aTypeOpt: any, sUseDualYAxis: number[]) => {
     const sResultOpt: any = { ...aCommonOpt, ...aTypeOpt.polar, ...aTypeOpt.visualMap, ...aTypeOpt.xAxis, ...aTypeOpt.yAxis };
-    const sXLen: number = sResultOpt.xAxis && sResultOpt.xAxis.length;
-    const sYLen: number = sResultOpt.yAxis && sResultOpt.yAxis.length;
     const sIsVisualMap = !isObjectEmpty(aTypeOpt?.visualMap ?? {});
 
     // Return Text chart
@@ -322,8 +320,8 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
                 type: aChartType,
                 name: aTag.name,
                 color: aTag.color,
-                xAxisIndex: sXLen > aIdx ? aIdx : 0,
-                yAxisIndex: sYLen > aIdx ? aIdx : 0,
+                xAxisIndex: 0,
+                yAxisIndex: sUseDualYAxis.length > 0 && sUseDualYAxis.includes(aIdx) ? 1 : 0,
                 lineStyle: sIsVisualMap ? { color: ChartSeriesColorList[aIdx] } : null,
             };
         });
@@ -405,6 +403,7 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
 export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTime: { startTime: number; endTime: number }) => {
     const sConvertedChartType = chartTypeConverter(aOptionInfo.type);
     const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, sConvertedChartType);
+    const sUseDualYAxis = aOptionInfo.yAxisOptions.length === 2;
     // Animation false (TIME_VALUE TYPE)
     if (SqlResDataType(sConvertedChartType) === 'TIME_VALUE') sCommonOpt.animation = false;
     const sTypeOpt = ReplaceTypeOpt(
@@ -416,6 +415,13 @@ export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTim
         CheckYAxisMinMax(aOptionInfo.yAxisOptions),
         aTime
     );
-    const sParsedOpt = ParseOpt(sConvertedChartType, SqlResDataType(sConvertedChartType), aTagList, sCommonOpt, sTypeOpt);
+    const sParsedOpt = ParseOpt(
+        sConvertedChartType,
+        SqlResDataType(sConvertedChartType),
+        aTagList,
+        sCommonOpt,
+        sTypeOpt,
+        sUseDualYAxis ? aOptionInfo.yAxisOptions[1].useBlockList : []
+    );
     return sParsedOpt;
 };

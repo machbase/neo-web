@@ -1,17 +1,18 @@
-// import { TextButton } from '@/components/buttons/TextButton';
+import { Close, PlusCircle } from '@/assets/icons/Icon';
+import { IconButton } from '@/components/buttons/IconButton';
 import { Collapse } from '@/components/collapse/Collapse';
-// import CheckBox from '@/components/inputs/CheckBox';
+import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
+import { MultipleSelect } from '@/components/inputs/MultiSelector';
 import { Select } from '@/components/inputs/Select';
-// import { DefaultYAxisOption } from '@/utils/eChartHelper';
 
 interface XAxisOptionProps {
-    pYAxis: any;
+    pPanelOption: any;
     pSetPanelOption: any;
 }
 // TODO according to tag count
 export const YAxisOptions = (props: XAxisOptionProps) => {
-    const { pYAxis, pSetPanelOption } = props;
+    const { pPanelOption, pSetPanelOption } = props;
     const sPositionList = ['left', 'right'];
 
     const sUnitList: { [key: string]: number | string | undefined; name: string; key: string; title: string; unit: string; decimals: number | undefined; squared: number }[] = [
@@ -46,7 +47,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
     ];
 
     const handleYAxisPosition = (aEvent: any, aIndex: number) => {
-        const sCurrentYAxis = JSON.parse(JSON.stringify(pYAxis));
+        const sCurrentYAxis = JSON.parse(JSON.stringify(pPanelOption.yAxisOptions));
         sCurrentYAxis[aIndex].position = aEvent.target.value;
         pSetPanelOption((aPrev: any) => {
             return {
@@ -57,12 +58,47 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
     };
 
     const handleYAxisOption = (aKey: string, aEvent: any, aIdx: number) => {
-        const sCurrentYAxis = JSON.parse(JSON.stringify(pYAxis));
+        const sCurrentYAxis = JSON.parse(JSON.stringify(pPanelOption.yAxisOptions));
         if (aKey === 'key') {
             const sTargetLabel = sUnitList.find((unit) => unit[aKey] === aEvent.target.value);
             sCurrentYAxis[aIdx].label = sTargetLabel;
+        } else if (aKey === 'scale') sCurrentYAxis[aIdx][aKey] = !aEvent.target.checked;
+        else if (aKey === 'offset') sCurrentYAxis[aIdx][aKey] = aEvent.target.value;
+        else sCurrentYAxis[aIdx].label[aKey] = aEvent.target.value;
+
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                yAxisOptions: sCurrentYAxis,
+            };
+        });
+    };
+
+    const handleUseSecondYAxis = (blockIndex: number) => {
+        const sTmpUseSecondYAxis = JSON.parse(JSON.stringify(pPanelOption.yAxisOptions[1]));
+        if (sTmpUseSecondYAxis.useBlockList.includes(blockIndex)) {
+            sTmpUseSecondYAxis.useBlockList = sTmpUseSecondYAxis.useBlockList.filter((useNum: number) => useNum !== blockIndex);
         } else {
-            sCurrentYAxis[aIdx].label[aKey] = aEvent.target.value;
+            sTmpUseSecondYAxis.useBlockList.push(blockIndex);
+        }
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                yAxisOptions: [aPrev.yAxisOptions[0], sTmpUseSecondYAxis],
+            };
+        });
+    };
+
+    const addRemoveYAixs = () => {
+        const sCurrentYAxis = JSON.parse(JSON.stringify(pPanelOption.yAxisOptions));
+        if (sCurrentYAxis.length < 2) {
+            const sTmpDualYAxis = JSON.parse(JSON.stringify(sCurrentYAxis[0]));
+            if (sCurrentYAxis[0].position === 'left') sTmpDualYAxis.position = 'right';
+            else sTmpDualYAxis.position = 'left';
+            sTmpDualYAxis.useBlockList = [];
+            sCurrentYAxis.push(sTmpDualYAxis);
+        } else {
+            sCurrentYAxis.pop();
         }
         pSetPanelOption((aPrev: any) => {
             return {
@@ -72,23 +108,8 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
         });
     };
 
-    // const addRemoveYAixs = () => {
-    //     const sCurrentYAxis = JSON.parse(JSON.stringify(pYAxis));
-    //     if (sCurrentYAxis.length < 2) {
-    //         sCurrentYAxis.push(DefaultYAxisOption);
-    //     } else {
-    //         sCurrentYAxis.pop();
-    //     }
-    //     pSetPanelOption((aPrev: any) => {
-    //         return {
-    //             ...aPrev,
-    //             yAxisOptions: sCurrentYAxis,
-    //         };
-    //     });
-    // };
-
     const HandleMinMax = (aTarget: string, aValue: number | string, aIndex: number) => {
-        const sCurrentYAxis = JSON.parse(JSON.stringify(pYAxis));
+        const sCurrentYAxis = JSON.parse(JSON.stringify(pPanelOption.yAxisOptions));
         sCurrentYAxis[aIndex][aTarget] = aValue;
         if (sCurrentYAxis[aIndex]['min'] && sCurrentYAxis[aIndex]['min'] !== '' && sCurrentYAxis[aIndex]['max'] && sCurrentYAxis[aIndex]['max'] !== '')
             sCurrentYAxis[aIndex]['useMinMax'] = true;
@@ -103,8 +124,13 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
 
     return (
         <Collapse title="yAxis">
-            {pYAxis.map((aItem: any, aIndex: number) => (
-                <div key={aItem.type + aIndex} style={{ border: 'solid 1px #777777', borderRadius: '5px', padding: '10px' }}>
+            {pPanelOption.yAxisOptions.map((aItem: any, aIndex: number) => (
+                <div key={aItem.type + aIndex} style={{ border: 'solid 1px #777777', borderRadius: '5px', padding: '10px 0 10px 10px' }}>
+                    {aIndex === 1 && (
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 10px 10px 0' }}>
+                            <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={addRemoveYAixs} />
+                        </div>
+                    )}
                     <div className="menu-style">
                         <div>Position</div>
                         <Select
@@ -114,6 +140,18 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                             pInitValue={aItem.position}
                             onChange={(aEvent) => handleYAxisPosition(aEvent, aIndex)}
                             pOptions={sPositionList}
+                        />
+                    </div>
+                    <div className="menu-style">
+                        <div>Offset</div>
+                        <Input
+                            pType="number"
+                            pWidth={110}
+                            pHeight={25}
+                            pPlaceHolder="auto"
+                            pBorderRadius={4}
+                            pValue={aItem?.offset ?? ''}
+                            onChange={(aEvent) => handleYAxisOption('offset', aEvent, aIndex)}
                         />
                     </div>
                     <div className="divider" />
@@ -168,12 +206,6 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                         />
                     </div>
                     <div className="divider" />
-                    {/* <CheckBox
-                        pText="Custom min max"
-                        pDefaultChecked={aItem.useMinMax ?? false}
-                        onChange={(aEvent: any) => HandleMinMax('useMinMax', aEvent.target.checked, aIndex)}
-                    /> */}
-                    <div style={{ height: '10px' }} />
                     <div className="menu-style">
                         <div>Min</div>
                         <Input
@@ -181,7 +213,6 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                             pWidth={110}
                             pHeight={25}
                             pBorderRadius={4}
-                            // pIsDisabled={!aItem.useMinMax}
                             pPlaceHolder={'auto'}
                             pValue={aItem?.min ?? ''}
                             onChange={(aEvent: any) => HandleMinMax('min', aEvent.target.value, aIndex)}
@@ -194,26 +225,26 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                             pWidth={110}
                             pHeight={25}
                             pBorderRadius={4}
-                            // pIsDisabled={!aItem.useMinMax}
                             pPlaceHolder={'auto'}
                             pValue={aItem?.max ?? ''}
                             onChange={(aEvent: any) => HandleMinMax('max', aEvent.target.value, aIndex)}
                         />
                     </div>
+                    <div className="menu-style">
+                        <CheckBox pText="Zerobase" pDefaultChecked={!aItem?.scale} onChange={(aEvent: any) => handleYAxisOption('scale', aEvent, aIndex)} />
+                    </div>
+                    {aIndex === 1 && (
+                        <>
+                            <div className="divider" />
+                            <div>Series</div>
+                            <MultipleSelect pPanelOption={pPanelOption} pSetBlockList={handleUseSecondYAxis} />
+                        </>
+                    )}
                 </div>
             ))}
-
-            {/* <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-                <TextButton
-                    pText={pYAxis.length < 2 ? 'add' : 'remove'}
-                    pWidth={70}
-                    pHeight={25}
-                    pBorderRadius={4}
-                    pBorderColor="#989BA1"
-                    pBackgroundColor="#323644"
-                    onClick={addRemoveYAixs}
-                />
-            </div> */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '10px' }}>
+                {pPanelOption.yAxisOptions.length < 2 && <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={addRemoveYAixs} />}
+            </div>
         </Collapse>
     );
 };
