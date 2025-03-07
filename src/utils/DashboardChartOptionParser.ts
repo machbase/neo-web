@@ -389,6 +389,7 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
             }
             delete sReturn.label;
         }
+        if (sReturn?.offset !== '') sReturn.offset = Number(sReturn.offset) ?? 0;
         if (sReturn.useMinMax) return sReturn;
         else {
             delete sReturn.useMinMax;

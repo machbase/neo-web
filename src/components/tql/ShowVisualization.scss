@@ -1,5 +1,6 @@
 .tql-form {
     position: relative;
+    height: 100%;
 
     .text-panel-value {
         position: absolute;
@@ -10,9 +11,14 @@
         height: 100%;
         width: 100%;
     }
+
     .map_container {
+        height: 100%;
         .leaflet-container {
             z-index: 1 !important;
         }
+    }
+    .chart_container {
+        height: 100%;
     }
 }

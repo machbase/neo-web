@@ -231,7 +231,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                         />
                     </div>
                     <div className="menu-style">
-                        <CheckBox pText="Zerobase" pDefaultChecked={!aItem?.scale} onChange={(aEvent: any) => handleYAxisOption('scale', aEvent, aIndex)} />
+                        <CheckBox pText="Start at zero" pDefaultChecked={!aItem?.scale} onChange={(aEvent: any) => handleYAxisOption('scale', aEvent, aIndex)} />
                     </div>
                     {aIndex === 1 && (
                         <>

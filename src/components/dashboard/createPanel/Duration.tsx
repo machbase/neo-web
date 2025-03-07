@@ -19,7 +19,7 @@ export const Duration = ({ pBlockInfo, pSetPanelOption }: { pBlockInfo: any; pSe
         <div className="values filter">
             <div className="series-table">
                 <span className="series-title">Duration</span>
-                <div className="series-table" style={{ marginRight: '86px' }}>
+                <div className="series-table" style={{ marginRight: '106px' }}>
                     <Input
                         pPlaceHolder="From  ex) -30s"
                         pBorderRadius={4}

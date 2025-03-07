@@ -67,9 +67,9 @@ export const ShowVisualization = (props: ShowChartProps) => {
         domElement.style.height = sSize.h;
 
         if (GetIsTqlType()) domElement.id = pData[GetVisualID()];
+        if (sCommand === 'clear') CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && echarts['getInstanceByDom'](domElement)?.['resize']();
 
         CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && echarts['getInstanceByDom'](domElement)?.[sCommand]();
-        if (sCommand === 'clear') CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && echarts['getInstanceByDom'](domElement)?.['resize']();
     };
     const LeafletInstance = (domElement: HTMLElement) => {
         const sDomId = PanelIdParser(pPanelId);
@@ -77,7 +77,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
         if (!sMapInstance) return;
         domElement.style.height = pData.style.height;
         domElement.style.width = pData.style.width;
-        sMapInstance.map.invalidateSize();
+        sMapInstance.map?.invalidateSize();
     };
     const InstanceController = () => {
         const sDomElement = GetIsTqlType() ? GetElementByPanelName()[0] : GetElementByResId();
