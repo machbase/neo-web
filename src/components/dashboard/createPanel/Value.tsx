@@ -66,7 +66,7 @@ const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pVariableLis
                 <span className="series-title"> Alias </span>
                 <Input
                     pBorderRadius={4}
-                    pWidth={140}
+                    pWidth={175}
                     pHeight={26}
                     pType="text"
                     pValue={pValue.alias}

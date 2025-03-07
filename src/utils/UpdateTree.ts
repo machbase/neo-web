@@ -48,7 +48,7 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
                     const sDirs: any = {
                         ...aDir,
                         dirs: await DirDrill(sParsedRes.dirs, aFullPath, aDepth + 1),
-                        files: aIsFile && sDepth - 1 === aDir.depth ? sParsedRes.files : aDir.files,
+                        files: sDepth - 1 === aDir.depth ? sParsedRes.files : aDir.files,
                         isOpen: CheckFullPath(aDir.path + aDir.name),
                     };
                     aTargetDir.splice(aIdx, 1, sDirs);

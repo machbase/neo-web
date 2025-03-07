@@ -72,8 +72,13 @@ const LineChart = ({
         let sEndTime = undefined;
         if (pPanelInfo.useCustomTime) {
             const sTimeMinMax = await handlePanelTimeRange(pPanelInfo.timeRange.start, pPanelInfo.timeRange.end);
-            sStartTime = sTimeMinMax.min;
-            sEndTime = sTimeMinMax.max;
+            if (!sTimeMinMax) {
+                sStartTime = setUnitTime(pPanelInfo.timeRange.start);
+                sEndTime = setUnitTime(pPanelInfo.timeRange.end);
+            } else {
+                sStartTime = sTimeMinMax.min;
+                sEndTime = sTimeMinMax.max;
+            }
         } else {
             sStartTime = pBoardTimeMinMax?.min;
             sEndTime = pBoardTimeMinMax?.max;
@@ -231,7 +236,7 @@ const LineChart = ({
         }
     }, [pBoardTimeMinMax]);
     useEffect(() => {
-        if (pModifyState.state && pModifyState.id === pPanelInfo.id) {
+        if (pModifyState.state && pModifyState.id === PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)) {
             executeTqlChart();
         }
     }, [pModifyState]);

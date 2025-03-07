@@ -415,8 +415,8 @@ const SubTree = (props: SubTreeProps) => {
     return (
         <>
             {sDir.length > 0 ? (
-                sDir.sort(sortDir).map((dir) => (
-                    <React.Fragment key={'' + dir.depth + dir.id}>
+                sDir.sort(sortDir).map((dir, idx: number) => (
+                    <React.Fragment key={'' + dir.depth + dir.id + idx.toString()}>
                         <DirDiv
                             directory={dir}
                             selectedFile={props.selectedFile}
@@ -440,8 +440,8 @@ const SubTree = (props: SubTreeProps) => {
                 <></>
             )}
             {sFile.length > 0 ? (
-                sFile.sort(sortFile).map((file) => (
-                    <React.Fragment key={'' + file.depth + file.id}>
+                sFile.sort(sortFile).map((file, idx: number) => (
+                    <React.Fragment key={'' + file.depth + file.id + idx.toString()}>
                         <FileDiv
                             file={file}
                             selectedFile={props.selectedFile}

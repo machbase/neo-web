@@ -59,30 +59,29 @@ export const ShowVisualization = (props: ShowChartProps) => {
         pPanelRef?.current && pPanelRef.current.setAttribute('data-processed', true);
     };
     const OverrideChartTheme = () => CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && GetElementByResId() && echarts.init(GetElementByResId() as any, pTheme ?? 'white');
-    const EchartInstance = (key: 'getInstanceByDom' | 'init', domElement: any, command: 'resize' | 'clear') => {
-        CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && echarts[key](domElement)[command]();
+    const EchartInstance = (domElement: any) => {
+        const sCommand = pLoopMode ? 'resize' : 'clear';
+        const sSize = GetPanelSize();
+
+        domElement.style.width = sSize.w;
+        domElement.style.height = sSize.h;
+
+        if (GetIsTqlType()) domElement.id = pData[GetVisualID()];
+        if (sCommand === 'clear') CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && echarts['getInstanceByDom'](domElement)?.['resize']();
+
+        CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && echarts['getInstanceByDom'](domElement)?.[sCommand]();
     };
-    const LeafletInstance = (dom: HTMLElement) => {
+    const LeafletInstance = (domElement: HTMLElement) => {
         const sDomId = PanelIdParser(pPanelId);
         const sMapInstance = (window as any)[sDomId];
         if (!sMapInstance) return;
-        dom.style.height = pData.style.height;
-        dom.style.width = pData.style.width;
-        sMapInstance.map.invalidateSize();
+        domElement.style.height = pData.style.height;
+        domElement.style.width = pData.style.width;
+        sMapInstance.map?.invalidateSize();
     };
     const InstanceController = () => {
-        const sCommand = pLoopMode ? 'resize' : 'clear';
         const sDomElement = GetIsTqlType() ? GetElementByPanelName()[0] : GetElementByResId();
-
-        if (sCommand === 'resize') {
-            const sSize = GetPanelSize();
-            sDomElement.style.width = sSize.w;
-            sDomElement.style.height = sSize.h;
-
-            if (GetIsTqlType()) sDomElement.id = pData[GetVisualID()];
-        }
-
-        CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && EchartInstance('getInstanceByDom', sDomElement, sCommand);
+        CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && EchartInstance(sDomElement);
         CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && LeafletInstance(sDomElement);
     };
 

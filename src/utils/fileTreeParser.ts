@@ -73,6 +73,8 @@ export const fileTreeParser = (aResFileList: ResFileListType, aPath: string, aDe
     return sParedData;
 };
 const dirFormatter = (aTarget: ResFileType, aPath: string, aDepth: number, aParentId: string) => {
+    if (aDepth === 0 && aTarget.name === 'apps') aTarget.readOnly = true;
+    if (aDepth === 1 && aParentId === 'apps') aTarget.readOnly = true;
     return {
         depth: aDepth + 1,
         dirs: [],
