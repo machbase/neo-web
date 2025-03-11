@@ -1,3 +1,5 @@
+import { ChartTheme } from '@/type/eChart';
+
 export const FORMAT_FULL_DATE = 'YYYY-MM-DD HH:mm:ss';
 export const LENGTH_LIST = 10;
 export const NOW = 'now';
@@ -454,8 +456,8 @@ export const ChartTypeList = [
     { key: 'Geomap', value: 'geomap' },
     { key: 'Tql chart', value: 'tql' },
 ];
-export const ChartThemeList = ['dark', 'white', 'vintage', 'macarons', 'infographic', 'shine', 'roma'];
-export const ChartThemeBackgroundColor = {
+
+export const ChartThemeBackgroundColor: { [key in ChartTheme]: string } = {
     dark: '#100B2A',
     white: '#FFFFFF',
     vintage: '#FEF8F0',
@@ -463,7 +465,16 @@ export const ChartThemeBackgroundColor = {
     infographic: '#FFFFFF',
     shine: '#FFFFFF',
     roma: '#FFFFFF',
-} as { [key: string]: string };
+    chalk: '#293441',
+    essos: '#fdfcf4',
+    'purple-passion': '#5b5c6e',
+    romantic: '#f0e8cd',
+    walden: '#FFFFFF',
+    westeros: '#FFFFFF',
+    wonderland: '#FFFFFF',
+};
+export const ChartThemeList = Object.keys(ChartThemeBackgroundColor);
+
 export const ChartXAxisTypeList = ['category', 'time'];
 export const ChartSeriesColorList = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#FADE2A'];
 export const ChartTooltipTriggerList = ['item', 'axis'];

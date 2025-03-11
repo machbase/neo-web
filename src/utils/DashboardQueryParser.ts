@@ -184,6 +184,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             return {
                 text: bBlock.customFullTyping.text,
                 useFullTyping: bBlock.customFullTyping.use,
+                color: bBlock.color,
             };
         }
         return {
@@ -458,7 +459,7 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
     const sAliasList: any[] = [];
     const sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         if (aQuery.useFullTyping) {
-            sAliasList.push({ name: 'test', color: aQuery.color });
+            sAliasList.push({ name: 'series(' + aIdx.toString() + ')', color: aQuery.color });
             return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, dataType: aResDataType[aIdx], sql: aQuery.text };
         }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';

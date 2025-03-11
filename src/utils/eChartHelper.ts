@@ -75,6 +75,8 @@ export const DefaultGeomapOpntion = {
     coorLat: [0] as Array<number>,
     coorLon: [1] as Array<number>,
     marker: [{ shape: 'circle', radius: 150 }] as Array<{ shape: string; radius: number }>,
+    useZoomControl: false as boolean,
+    useAutoRefresh: true as boolean,
 };
 export const DefaultTextchartOpntion = {
     tagLimit: 2 as number,

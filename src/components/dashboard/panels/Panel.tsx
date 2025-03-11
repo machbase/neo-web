@@ -3,6 +3,7 @@ import PanelHeader from './PanelHeader';
 import './Panel.scss';
 import { useState } from 'react';
 import { ChartThemeBackgroundColor } from '@/utils/constants';
+import { ChartTheme } from '@/type/eChart';
 
 const Panel = ({
     pLoopMode,
@@ -23,7 +24,7 @@ const Panel = ({
 }: any) => {
     const [sRefreshCount, setRefreshCount] = useState<number>(0);
     return (
-        <div className="panel-wrap" style={{ backgroundColor: ChartThemeBackgroundColor[pPanelInfo.theme] }}>
+        <div className="panel-wrap" style={{ backgroundColor: ChartThemeBackgroundColor[pPanelInfo.theme as ChartTheme] }}>
             <PanelHeader
                 pRefreshCount={sRefreshCount}
                 pSetRefreshCount={setRefreshCount}

@@ -98,6 +98,23 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
             </Collapse>
             <div className="divider" />
             <Collapse title="Map option" isOpen>
+                <div style={{ height: '10px' }} />
+                <div className="menu-style">
+                    <CheckBox
+                        pText="Use zoom control"
+                        pDefaultChecked={pPanelOption.chartOptions?.useZoomControl ?? false}
+                        onChange={(aEvent: any) => HandleOption(aEvent, 'useZoomControl')}
+                    />
+                </div>
+                <div className="menu-style">
+                    <CheckBox
+                        pText="Use auto refresh"
+                        pDefaultChecked={pPanelOption.chartOptions?.useAutoRefresh ?? false}
+                        onChange={(aEvent: any) => HandleOption(aEvent, 'useAutoRefresh')}
+                    />
+                </div>
+                <div className="divider" />
+                <span>Series</span>
                 {pPanelOption.blockList.map((block: any, idx: number) => {
                     return (
                         <div key={block.id + 'opt-coor'} className="opt-coor-wrap">

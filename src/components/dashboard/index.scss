@@ -85,7 +85,7 @@
     }
     .board-body {
         overflow: auto;
-        height: 100%;
+        height: calc(100% - 40px);
         position: relative;
         .non-set-panel {
             display: flex;
@@ -102,12 +102,23 @@
             }
         }
     }
-    .variable-header-close {
-        background-color: #262831;
-        border-top: 1px solid rgb(60, 69, 73);
-        padding: 4px 16px;
-        justify-content: end;
+    .variable-header-warp {
+        border-top: solid 1px rgb(60, 69, 73);
+        position: absolute;
         display: flex;
+        top: 40px;
+        left: 0;
+        width: 300px;
+        height: calc(100% - 40px);
+        z-index: 1001;
+        flex-direction: column;
+
+        .variable-header-close {
+            background-color: #262831;
+            padding: 4px 16px;
+            justify-content: end;
+            display: flex;
+        }
     }
 
     .board-header-variable-collapse {

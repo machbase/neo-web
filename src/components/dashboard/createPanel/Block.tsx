@@ -610,7 +610,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                             />
                         </div>
                     )}
-                    {!pBlockInfo.useCustom && (
+                    {!pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && (
                         <div className="row-header-left">
                             <div className="series-table">
                                 <span className="series-title">
@@ -845,7 +845,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                 )}
 
                 {/* DURATION */}
-                {pBlockInfo.useCustom && getUseDuration() && (
+                {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && getUseDuration() && (
                     <>
                         <div className="divider" style={{ margin: '6px 4px' }}></div>
                         <Duration pBlockInfo={pBlockInfo} pSetPanelOption={pSetPanelOption} />
