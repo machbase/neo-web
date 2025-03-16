@@ -106,13 +106,13 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
                         onChange={(aEvent: any) => HandleOption(aEvent, 'useZoomControl')}
                     />
                 </div>
-                <div className="menu-style">
+                {/* <div className="menu-style">
                     <CheckBox
                         pText="Use auto refresh"
                         pDefaultChecked={pPanelOption.chartOptions?.useAutoRefresh ?? false}
                         onChange={(aEvent: any) => HandleOption(aEvent, 'useAutoRefresh')}
                     />
-                </div>
+                </div> */}
                 <div className="divider" />
                 <span>Series</span>
                 {pPanelOption.blockList.map((block: any, idx: number) => {

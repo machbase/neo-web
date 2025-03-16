@@ -476,25 +476,25 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
     }, [pPanelOption.type]);
     /** return table list + virtual table list */
     const getTableList = useMemo((): string[] => {
-        // const sUseCustom = pBlockInfo.useCustom;
-        // const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
-        // let sAggList: string[] = [];
-        // if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
-        // if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
-        // const sIsVaildAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0].aggregator : pBlockInfo.aggregator);
+        const sUseCustom = pBlockInfo.useCustom;
+        const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
+        let sAggList: string[] = [];
+        if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
+        if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
+        const sIsVaildAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0].aggregator : pBlockInfo.aggregator);
         // Set vaild agg
-        // if (!sIsVaildAgg) {
-        //     const sTempBlockList = JSON.parse(JSON.stringify(pBlockInfo));
-        //     // sTempBlockList.aggregator = 'count';
-        //     // sTempBlockList.values[0]?.aggregator && (sTempBlockList.values[0].aggregator = 'count');
-        //     // Set option
-        //     // pSetPanelOption((aPrev: any) => {
-        //     //     return {
-        //     //         ...aPrev,
-        //     //         blockList: [sTempBlockList],
-        //     //     };
-        //     // });
-        // }
+        if (!sIsVaildAgg && pPanelOption.type !== 'Geomap') {
+            const sTempBlockList = JSON.parse(JSON.stringify(pBlockInfo));
+            sTempBlockList.aggregator = 'count';
+            sTempBlockList.values[0]?.aggregator && (sTempBlockList.values[0].aggregator = 'count');
+            // Set option
+            pSetPanelOption((aPrev: any) => {
+                return {
+                    ...aPrev,
+                    blockList: [sTempBlockList],
+                };
+            });
+        }
         let sTableList = pTableList.map((aItem: any) => aItem[3]);
         sTableList = sTableList.concat(getVariableList);
 

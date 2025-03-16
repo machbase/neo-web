@@ -84,7 +84,7 @@ export const DBExplorer = ({ pServer }: any) => {
     };
     /** Get backup database list */
     const getBackupDatabaseList = async () => {
-        const IS_ADMIN = getUserName().toUpperCase() === ADMIN_ID.toUpperCase();
+        const IS_ADMIN = getUserName()?.toUpperCase() === ADMIN_ID?.toUpperCase();
         if (!IS_ADMIN) return;
         const sBackupListRes: any = await getBackupDBList();
         if (sBackupListRes && sBackupListRes?.success) {
