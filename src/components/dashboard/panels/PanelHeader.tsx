@@ -17,6 +17,8 @@ import { HiMiniDocumentDuplicate } from 'react-icons/hi2';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { concatTagSet } from '@/utils/helpers/tags';
 import { ChartTheme } from '@/type/eChart';
+import { TbZoomPan } from 'react-icons/tb';
+import { IoMdCheckmark } from 'react-icons/io';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo }: any) => {
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
@@ -166,6 +168,30 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         const toHex = (n: number) => n.toString(16).padStart(2, '0');
         return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
     };
+    const handleGeomapZoom = () => {
+        const sTmpPanel = JSON.parse(JSON.stringify(pPanelInfo));
+        sTmpPanel.chartOptions.useZoomControl = !sTmpPanel.chartOptions.useZoomControl;
+        sTmpPanel.id = generateUUID();
+        let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+        const sTabList = sBoardList.map((aItem) => {
+            if (aItem.id === pBoardInfo.id) {
+                const sTmpDashboard = {
+                    ...aItem.dashboard,
+                    panels: aItem.dashboard.panels.map((aPanel: any) => {
+                        if (aPanel.id === pPanelInfo.id) return sTmpPanel;
+                        else return aPanel;
+                    }),
+                };
+                sSaveTarget = {
+                    ...aItem,
+                    dashboard: sTmpDashboard,
+                    savedCode: JSON.stringify(sTmpDashboard),
+                };
+                return sSaveTarget;
+            } else return aItem;
+        });
+        setBoardList(() => sTabList);
+    };
 
     useOutsideClick(sMenuRef, () => setIsContextMenu(false));
 
@@ -188,6 +214,13 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                     <GearFill />
                                     <span>Setting</span>
                                 </Menu.Item>
+                                {pPanelInfo.type === 'Geomap' && (
+                                    <Menu.Item onClick={handleGeomapZoom}>
+                                        <TbZoomPan />
+                                        <span>Zoom control</span>
+                                        {pPanelInfo.chartOptions.useZoomControl && <IoMdCheckmark />}
+                                    </Menu.Item>
+                                )}
                                 <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)}>
                                     <HiMiniDocumentDuplicate />
                                     <span>Duplicate</span>
