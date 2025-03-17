@@ -200,6 +200,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     // Set initial value
     const initDashboard = async () => {
         if (pInfo.dashboard.panels.length > 0) await handleDashboardTimeRange(pInfo.dashboard.timeRange.start, pInfo.dashboard.timeRange.end);
+        setVariableCollapse(false);
         GenChartVariableId();
         GetRollupTables();
         setIsPanelHeader(pInfo.panelHeader);
