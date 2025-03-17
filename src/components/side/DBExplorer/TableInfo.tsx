@@ -365,12 +365,12 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
 
     return (
         <>
-            {props.pUserData && props.pShowUserIcon && (
+            {props.pUserData && props.pShowUserIcon && props.pUserData.total > 0 && (
                 <div className="user-column " style={{ alignItems: 'baseline' }} onClick={() => setCollapseTree(!sCollapseTree)}>
                     {UserColumn(<FaUser />, props.pUserData.userName, sCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow')}
                 </div>
             )}
-            {props.pUserData && props.pUserData.tableList && sCollapseTree && (
+            {props.pUserData && props.pUserData.tableList && props.pUserData.total > 0 && sCollapseTree && (
                 <div className="table-wrap db-exp-comm">
                     {TableTypeList.map((aTableType: string, aIdx: number) => {
                         return (
