@@ -250,7 +250,9 @@ export const DBExplorer = ({ pServer }: any) => {
                         return <TableInfo pShowHiddenObj={sShowHiddenObj} key={aIdx} pValue={aDB} pRefresh={sRefresh} pUpdate={init} />;
                     })}
                 {/* BACKUP DB LIST */}
-                {sBackupList && sBackupList.length !== 0 && <BackupTableInfo pValue={sBackupList} pRefresh={init} pBackupRefresh={getBackupDatabaseList} />}
+                {getUserName() === 'sys' && sBackupList && sBackupList.length !== 0 && (
+                    <BackupTableInfo pValue={sBackupList} pRefresh={init} pBackupRefresh={getBackupDatabaseList} />
+                )}
             </div>
             {mountModalOpen && <DBMountModal setIsOpen={setMountModalOpen} pRefresh={init} />}
         </div>
