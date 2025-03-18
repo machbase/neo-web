@@ -13,10 +13,11 @@ interface ShowChartProps {
     pPanelRef?: any;
     pSize?: any;
     pTheme?: string;
+    pChartOpt?: any;
 }
 
 export const ShowVisualization = (props: ShowChartProps) => {
-    const { pData, pIsCenter, pLoopMode, pPanelType, pPanelId, pPanelRef, pSize, pTheme } = props;
+    const { pData, pIsCenter, pLoopMode, pPanelType, pPanelId, pPanelRef, pSize, pTheme, pChartOpt } = props;
     const sTheme = pData?.theme ? pData.theme : 'dark';
     const wrapRef = useRef<HTMLDivElement>(null);
     const [sMapPreviousUniqueName, setMapPreviousUniqueName] = useState<string | undefined>(undefined);
@@ -84,7 +85,6 @@ export const ShowVisualization = (props: ShowChartProps) => {
         CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && EchartInstance(sDomElement);
         CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && LeafletInstance(sDomElement);
     };
-
     const LoadCommonScripts = async () => {
         if (pData?.jsAssets) await loadScriptsSequentially({ jsAssets: pData.jsAssets ? (ExistCommonScript(pData.jsAssets) as string[]) : [], jsCodeAssets: [] });
     };
@@ -99,6 +99,31 @@ export const ShowVisualization = (props: ShowChartProps) => {
         if (sCodeAsset) await loadScriptsSequentially({ jsAssets: [], jsCodeAssets: sCodeAsset });
     };
 
+    const RemoveMapZoomOpt = () => {
+        const sDomId = PanelIdParser(pPanelId);
+        const sMapInstance = (window as any)[sDomId];
+        if (!sMapInstance) return;
+        const sDomElement = GetIsTqlType() ? GetElementByPanelName()[0] : GetElementByResId();
+
+        if (pChartOpt && pChartOpt.useZoomControl) {
+            sMapInstance.map?.touchZoom.enable();
+            sMapInstance.map?.doubleClickZoom.enable();
+            sMapInstance.map?.scrollWheelZoom.enable();
+            sMapInstance.map?.boxZoom.enable();
+            sMapInstance.map?.keyboard.enable();
+            sMapInstance.map?.dragging.enable();
+            sDomElement?.getElementsByClassName('leaflet-control-zoom')?.[0].setAttribute('style', 'visibility: visible');
+        } else {
+            sMapInstance.map?.touchZoom.disable();
+            sMapInstance.map?.doubleClickZoom.disable();
+            sMapInstance.map?.scrollWheelZoom.disable();
+            sMapInstance.map?.boxZoom.disable();
+            sMapInstance.map?.keyboard.disable();
+            sMapInstance.map?.dragging.disable();
+            sDomElement?.getElementsByClassName('leaflet-control-zoom')?.[0].setAttribute('style', 'visibility: hidden');
+        }
+    };
+
     const LoadScript = async () => {
         await LoadCommonScripts();
 
@@ -110,6 +135,8 @@ export const ShowVisualization = (props: ShowChartProps) => {
         await LoadCodeScripts();
         pPanelRef && AddRenderCompleteAttr();
         pLoopMode && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && ShakeNode();
+
+        CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && RemoveMapZoomOpt();
 
         GetIsTqlType() && CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && setMapPreviousUniqueName(PanelIdParser(pPanelId));
     };

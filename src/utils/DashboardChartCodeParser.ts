@@ -13,6 +13,7 @@ const NameValueFunc = (aChartType: string) => {
 /** TIME_VALUE func */
 const TimeValueFunc = () => {
     return `(obj) => {
+        \t\tif (sQuery?.[aIdx]?.alias === '') _chartOption.series[aIdx].name = obj?.data?.columns?.[1];
         \t\t_chartOption.series[aIdx].data = obj?.data?.rows ?? [];
         \t\t_chart.setOption(_chartOption);
         \t}`;
@@ -100,12 +101,12 @@ export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string,
         if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc(aChartType);
         if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidNameValueFunc(aChartOptions);
     }
-
     // GEN variable
     const sDynamicVariable = aParsedQuery.map((aQuery: any) => {
         return {
             query: `${aQuery.query}`,
             idx: aQuery.idx,
+            alias: aQuery.alias,
         };
     });
 

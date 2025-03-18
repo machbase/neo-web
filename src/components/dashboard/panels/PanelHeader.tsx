@@ -9,13 +9,16 @@ import Menu from '@/components/contextMenu/Menu';
 import { useState, useRef } from 'react';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { convertChartDefault } from '@/utils/utils';
-import { DEFAULT_CHART } from '@/utils/constants';
+import { ChartThemeBackgroundColor, DEFAULT_CHART } from '@/utils/constants';
 import { Error } from '@/components/toast/Toast';
 import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
 import { SaveDashboardModal } from '@/components/modal/SaveDashboardModal';
 import { HiMiniDocumentDuplicate } from 'react-icons/hi2';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { concatTagSet } from '@/utils/helpers/tags';
+import { ChartTheme } from '@/type/eChart';
+import { TbZoomPan } from 'react-icons/tb';
+import { IoMdCheckmark } from 'react-icons/io';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo }: any) => {
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
@@ -156,6 +159,39 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         setBoardList(() => sTabList);
         setIsContextMenu(false);
     };
+    const getInvertThemeColor = () => {
+        let colorHex = ChartThemeBackgroundColor[pPanelInfo.theme as ChartTheme];
+        colorHex = colorHex.replace('#', '');
+        const r = 255 - parseInt(colorHex.substring(0, 2), 16);
+        const g = 255 - parseInt(colorHex.substring(2, 4), 16);
+        const b = 255 - parseInt(colorHex.substring(4, 6), 16);
+        const toHex = (n: number) => n.toString(16).padStart(2, '0');
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    };
+    const handleGeomapZoom = () => {
+        const sTmpPanel = JSON.parse(JSON.stringify(pPanelInfo));
+        sTmpPanel.chartOptions.useZoomControl = !sTmpPanel.chartOptions.useZoomControl;
+        sTmpPanel.id = generateUUID();
+        let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+        const sTabList = sBoardList.map((aItem) => {
+            if (aItem.id === pBoardInfo.id) {
+                const sTmpDashboard = {
+                    ...aItem.dashboard,
+                    panels: aItem.dashboard.panels.map((aPanel: any) => {
+                        if (aPanel.id === pPanelInfo.id) return sTmpPanel;
+                        else return aPanel;
+                    }),
+                };
+                sSaveTarget = {
+                    ...aItem,
+                    dashboard: sTmpDashboard,
+                    savedCode: JSON.stringify(sTmpDashboard),
+                };
+                return sSaveTarget;
+            } else return aItem;
+        });
+        setBoardList(() => sTabList);
+    };
 
     useOutsideClick(sMenuRef, () => setIsContextMenu(false));
 
@@ -164,9 +200,13 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             {!pIsView && (
                 // <div className={`draggable-panel-header ${pIsHeader || pType !== undefined ? 'display-none' : ''}`}>
                 <div className={`draggable-panel-header ${pType !== undefined ? 'display-none' : ''}`}>
-                    <div ref={sMenuRef}>
+                    <div
+                        ref={sMenuRef}
+                        className="draggable-panel-header-menu"
+                        style={pPanelInfo.type === 'Geomap' ? { backgroundColor: ChartThemeBackgroundColor[pPanelInfo.theme as ChartTheme] } : {}}
+                    >
                         <div className="draggable-panel-header-menu-icon" onClick={handleContextMenu} style={{ backgroundColor: 'none', cursor: 'pointer' }}>
-                            <GoGrabber size={20} color={pPanelInfo.theme !== 'dark' ? 'black' : ''} />
+                            <GoGrabber size={20} color={getInvertThemeColor()} />
                         </div>
                         <div className="hidden-header-menu" style={{ cursor: 'pointer' }}>
                             <Menu isOpen={sIsContextMenu}>
@@ -174,6 +214,13 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                     <GearFill />
                                     <span>Setting</span>
                                 </Menu.Item>
+                                {pPanelInfo.type === 'Geomap' && (
+                                    <Menu.Item onClick={handleGeomapZoom}>
+                                        <TbZoomPan />
+                                        <span>Use zoom control</span>
+                                        {pPanelInfo.chartOptions.useZoomControl && <IoMdCheckmark />}
+                                    </Menu.Item>
+                                )}
                                 <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)}>
                                     <HiMiniDocumentDuplicate />
                                     <span>Duplicate</span>
@@ -200,13 +247,13 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                 </div>
             )}
             <div
-                className={`board-panel-header ${!pIsHeader ? 'display-none' : ''} ${pPanelInfo.theme !== 'dark' ? 'panel-theme-white' : ''} ${
-                    pType === undefined ? 'cursor-grab' : ''
+                className={`board-panel-header${!pIsHeader ? ' display-none' : ''}${pPanelInfo.theme !== 'dark' ? ' anel-theme-white' : ''}${
+                    pType === undefined ? ' cursor-grab' : ''
                 }`}
             >
                 {/* <div style={{ textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>{pPanelInfo.title}</div> */}
                 <div className={`panel-header-navigator ${pType !== undefined ? 'display-none' : ''}`}>
-                    <a data-tooltip-place="bottom" className={`panel-header-time-range ${!pPanelInfo.useCustomTime ? 'display-none' : ''}`} id={sHeaderId}>
+                    <a data-tooltip-place="bottom" className={`panel-header-time-range${!pPanelInfo.useCustomTime ? ' display-none' : ''}`} id={sHeaderId}>
                         <VscRecord color="#339900" />
                         <Tooltip
                             className="tooltip"

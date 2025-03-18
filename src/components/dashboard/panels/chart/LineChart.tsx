@@ -54,9 +54,7 @@ const LineChart = ({
     };
 
     const executeTqlChart = async (aWidth?: number) => {
-        if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') {
-            return;
-        }
+        if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
         setIsLoading(true);
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
             sRefClientWidth = ChartRef.current.clientWidth;
@@ -197,6 +195,7 @@ const LineChart = ({
         pSetModifyState({ id: '', state: false });
     };
     const sSetIntervalTime = () => {
+        if (pPanelInfo.type === 'Geomap' && !pPanelInfo.chartOptions?.useAutoRefresh) return null;
         if (pType === 'create' || pType === 'edit') return null;
         if (pPanelInfo.timeRange.refresh !== 'Off') return calcRefreshTime(pPanelInfo.timeRange.refresh);
         return null;
@@ -260,7 +259,9 @@ const LineChart = ({
         }
     }, [pDragStat]);
     useEffect(() => {
-        if (sIsMounted && !pDragStat && !pInsetDraging) executeTqlChart(pParentWidth);
+        if (sIsMounted && !pDragStat && !pInsetDraging) {
+            executeTqlChart(pParentWidth);
+        }
     }, [pParentWidth]);
     useEffect(() => {
         setIsMounted(true);
@@ -268,7 +269,9 @@ const LineChart = ({
 
     useEffect(() => {
         if (!(ChartRef && ChartRef?.current)) return;
-        if (pIsActiveTab && sIsMounted && ChartRef.current.dataset && !ChartRef.current.dataset.processed) executeTqlChart();
+        if (pIsActiveTab && sIsMounted && ChartRef.current.dataset && !ChartRef.current.dataset.processed) {
+            executeTqlChart();
+        }
     }, [pIsActiveTab]);
 
     useOverlapTimeout(() => {
@@ -288,6 +291,7 @@ const LineChart = ({
                     pPanelId={pChartVariableId + '-' + pPanelInfo.id}
                     pPanelRef={ChartRef}
                     pTheme={pPanelInfo.theme}
+                    pChartOpt={pPanelInfo.chartOptions}
                 />
             ) : null}
         </div>

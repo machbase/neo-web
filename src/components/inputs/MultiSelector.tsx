@@ -22,7 +22,7 @@ export const MultipleSelect = ({ pPanelOption, pSetBlockList }: { pPanelOption: 
     const getBlockList = useMemo((): any[] => {
         return (
             pPanelOption?.blockList?.map((block: any, idx: number) => ({
-                name: block.table,
+                name: block.customFullTyping.use ? 'series(' + idx.toString() + ')' : block.table,
                 color: block.color,
                 idx: idx,
             })) ?? []
