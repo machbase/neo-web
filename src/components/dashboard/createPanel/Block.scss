@@ -64,6 +64,8 @@
                     flex-grow: 1;
                     padding-right: 8px;
                     textarea {
+                        background-color: #3a3b44;
+                        color: $text-w;
                         min-height: 32px;
                         resize: vertical;
                     }

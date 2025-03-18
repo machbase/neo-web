@@ -32,6 +32,8 @@ import { TagSearchSelect } from '@/components/inputs/TagSearchSelect';
 import { Duration } from './Duration';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { InputSelector } from '@/components/inputs/InputSelector';
+import { FULL_TYPING_QUERY_PLACEHOLDER } from '@/utils/constants';
+import { FullQueryHelper } from './Block/FullQueryHelper';
 
 export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
@@ -603,10 +605,10 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                     {pBlockInfo.customFullTyping.use && (
                         <div className="row-header-left row-header-left-textarea">
                             <textarea
-                                placeholder={''}
+                                placeholder={FULL_TYPING_QUERY_PLACEHOLDER}
                                 defaultValue={pBlockInfo.customFullTyping.text}
                                 onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => changedOptionFullTyping('text', event)}
-                                style={{ height: 100 + 'px', width: '100%' }}
+                                style={{ height: 100 + 'px', width: '100%', padding: '4px 8px' }}
                             />
                         </div>
                     )}
@@ -696,12 +698,14 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                         </div>
                     )}
                     <div className="row-header-right">
+                        <FullQueryHelper pIsShow={pBlockInfo.customFullTyping.use} />
                         <IconButton
                             pWidth={20}
                             pHeight={20}
                             pIsActive={pBlockInfo.customFullTyping.use}
                             pDisabled={!(pPanelOption.type === 'Line' || pPanelOption.type === 'Bar')}
                             pIsToopTip
+                            pToolTipId={pBlockInfo.id + '-block-change-full-query-mode'}
                             pToolTipContent={pBlockInfo.customFullTyping.use ? 'Selecting' : 'Typing'}
                             pIcon={<GoPencil />}
                             onClick={() => changedOptionFullTyping('use', { target: { value: !pBlockInfo.customFullTyping.use } })}

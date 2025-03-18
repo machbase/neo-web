@@ -520,3 +520,6 @@ export const GRID_LAYOUT_ROW_HEIGHT = 30;
 
 // tag color
 export const TagColorList = ['#73BF69', '#F2CC0C', '#8AB8FF', '#FF780A', '#F2495C', '#5794F2', '#B877D9', '#705DA0', '#37872D', '#FDA1FF', '#7B64FF', '#999999'];
+
+// full typing query placeholder
+export const FULL_TYPING_QUERY_PLACEHOLDER = `SELECT DATE_TRUNC('{{period_unit}}', TIME, {{period_value}}) / 1000000 AS TIME, AVG(value) AS 'SERIES(0)' FROM EXAMPLE WHERE TIME BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) GROUP BY TIME ORDER BY TIME;`;
