@@ -44,25 +44,29 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
     return (
         <>
             <Collapse title="Panel option" isOpen>
-                <div className="panel-name-wrap" style={{ marginBottom: '4px' }}>
-                    Title
-                </div>
-                <Input
-                    pType="text"
-                    pIsFullWidth
-                    pHeight={30}
-                    pValue={pPanelOption.title}
-                    pSetValue={() => null}
-                    pBorderRadius={4}
-                    onChange={(aEvent: any) => handleTitle(aEvent)}
-                />
-                <div style={{ height: '10px' }} />
+                {pPanelOption.type !== 'Geomap' && (
+                    <>
+                        <div className="panel-name-wrap" style={{ marginBottom: '4px' }}>
+                            Title
+                        </div>
+                        <Input
+                            pType="text"
+                            pIsFullWidth
+                            pHeight={30}
+                            pValue={pPanelOption.title}
+                            pSetValue={() => null}
+                            pBorderRadius={4}
+                            onChange={(aEvent: any) => handleTitle(aEvent)}
+                        />
+                        <div style={{ height: '10px' }} />
+                    </>
+                )}
                 {/* <CheckBox
                     pText="Display inside title"
                     pDefaultChecked={pPanelOption.commonOptions.isInsideTitle}
                     onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isInsideTitle')}
                 /> */}
-                <div style={{ height: '10px' }} />
+
                 <div className="menu-style">
                     <span>Theme</span>
                     <Select
@@ -76,7 +80,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                     />
                 </div>
             </Collapse>
-            {pPanelOption?.type !== 'Text' && (
+            {pPanelOption?.type !== 'Text' && pPanelOption?.type !== 'Geomap' && (
                 <>
                     <div className="divider" />
                     <Collapse title="Legend">

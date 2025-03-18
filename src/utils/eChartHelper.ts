@@ -46,6 +46,7 @@ export const DefaultYAxisOption = {
     // value | category | time | log
     type: 'value' as string,
     position: 'left' as 'left' | 'right',
+    offset: '' as string,
     alignTicks: true,
     scale: true,
     useMinMax: false,
@@ -66,6 +67,17 @@ export const DefaultYAxisOption = {
     // }
 };
 
+export const DefaultGeomapOpntion = {
+    tooltipTime: true as boolean,
+    tooltipCoor: false as boolean,
+    intervalType: 'none' as string,
+    intervalValue: '' as string,
+    coorLat: [0] as Array<number>,
+    coorLon: [1] as Array<number>,
+    marker: [{ shape: 'circle', radius: 150 }] as Array<{ shape: string; radius: number }>,
+    useZoomControl: false as boolean,
+    useAutoRefresh: true as boolean,
+};
 export const DefaultTextchartOpntion = {
     tagLimit: 2 as number,
     fontSize: 100 as number,
@@ -226,6 +238,10 @@ export const DefaultVariableTableOption = {
     alias: '',
     math: '',
     duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+    },
 };
 
 export const DefaultTagTableOption = {
@@ -237,7 +253,7 @@ export const DefaultTagTableOption = {
     filter: [{ id: generateUUID(), column: 'NAME', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: 'VALUE', aggregator: 'avg' }],
     useRollup: false,
-    name: '',
+    name: 'NAME',
     time: 'TIME',
     useCustom: false,
     aggregator: 'avg',
@@ -247,6 +263,10 @@ export const DefaultTagTableOption = {
     alias: '',
     math: '',
     duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+    },
 };
 
 export const DefaultLogTableOption = {
@@ -268,6 +288,10 @@ export const DefaultLogTableOption = {
     alias: '',
     math: '',
     duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+    },
 };
 
 export const getDefaultSeriesOption = (aChartType: ChartType) => {
@@ -288,6 +312,8 @@ export const getDefaultSeriesOption = (aChartType: ChartType) => {
             return DefaultTqlChartOption;
         case 'text':
             return DefaultTextchartOpntion;
+        case 'geomap':
+            return DefaultGeomapOpntion;
         default:
             return DefaultLineChartOption;
     }

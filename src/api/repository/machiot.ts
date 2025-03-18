@@ -20,7 +20,7 @@ export const getTqlScripts = (aFullPath: string) => {
     return request({
         method: 'GET',
         url: `/api/tql/${sTargetPath.join('/')}`,
-        headers: { 'X-Chart-Output': 'json' },
+        headers: { 'X-Tql-Output': 'json' },
     });
 };
 

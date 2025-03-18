@@ -313,6 +313,7 @@ export const createMinMaxQuery = (tableTagMap: TableTagMap[], currentUserName: s
             // ADMIN
             else {
                 tableName = aInfo.table;
+                userName = 'sys';
             }
             aInfo.tags.forEach((tag: string, aIndex: number) => {
                 if (aIndex === aInfo.tags.length - 1) {

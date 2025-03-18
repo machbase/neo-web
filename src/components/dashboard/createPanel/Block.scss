@@ -8,7 +8,7 @@
         border-radius: 4px;
         position: relative;
         font-size: 13px;
-        width: 70px;
+        width: 90px;
     }
     .plus-wrap {
         border: '1px solid #777777';
@@ -32,7 +32,7 @@
             border-radius: 4px;
             position: relative;
             font-size: 13px;
-            width: 86px;
+            width: 106px;
         }
     }
     .series {
@@ -60,12 +60,22 @@
                 display: flex;
                 flex-wrap: wrap;
                 align-items: center;
-            }
-            .row-header-left {
+                &-textarea {
+                    flex-grow: 1;
+                    padding-right: 8px;
+                    textarea {
+                        background-color: #3a3b44;
+                        color: $text-w;
+                        min-height: 32px;
+                        resize: vertical;
+                    }
+                }
             }
             .row-header-right {
+                height: 32px;
                 display: flex;
                 align-items: center;
+                align-self: start;
                 .color-picker {
                     z-index: $color-dropdown-idx;
                     position: absolute;
@@ -91,7 +101,8 @@
             .values {
                 align-items: center;
                 display: flex;
-                justify-content: space-between;
+                justify-content: start;
+                flex-wrap: wrap;
             }
         }
     }

@@ -1,8 +1,8 @@
+import './LineChart.scss';
 import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart, getTqlScripts } from '@/api/repository/machiot';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
-import { calcInterval, calcRefreshTime, decodeFormatterFunction, setUnitTime } from '@/utils/dashboardUtil';
+import { calcInterval, calcRefreshTime, decodeFormatterFunction, PanelIdParser, setUnitTime } from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
-import { ShowChart } from '@/components/tql/ShowChart';
 import { DashboardQueryParser } from '@/utils/DashboardQueryParser';
 import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
 import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
@@ -11,11 +11,11 @@ import { gRollupTableList } from '@/recoil/recoil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import './LineChart.scss';
 import { TqlChartParser } from '@/utils/DashboardTqlChartParser';
 import moment from 'moment';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { Error } from '@/components/toast/Toast';
+import { ShowVisualization } from '@/components/tql/ShowVisualization';
 
 const LineChart = ({
     pIsActiveTab,
@@ -33,7 +33,7 @@ const LineChart = ({
     pBoardInfo,
 }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
-    const [sChartData, setChartData] = useState<any>({});
+    const [sChartData, setChartData] = useState<any>(undefined);
     const [sIsMessage, setIsMessage] = useState<any>('Please set up a Query.');
     const [sIsError, setIsError] = useState<boolean>(false);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
@@ -54,11 +54,8 @@ const LineChart = ({
     };
 
     const executeTqlChart = async (aWidth?: number) => {
-        if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') {
-            return;
-        }
+        if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
         setIsLoading(true);
-        !pLoopMode && setChartData({});
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
             sRefClientWidth = ChartRef.current.clientWidth;
         }
@@ -73,15 +70,26 @@ const LineChart = ({
         let sEndTime = undefined;
         if (pPanelInfo.useCustomTime) {
             const sTimeMinMax = await handlePanelTimeRange(pPanelInfo.timeRange.start, pPanelInfo.timeRange.end);
-            sStartTime = sTimeMinMax.min;
-            sEndTime = sTimeMinMax.max;
+            if (!sTimeMinMax) {
+                sStartTime = setUnitTime(pPanelInfo.timeRange.start);
+                sEndTime = setUnitTime(pPanelInfo.timeRange.end);
+            } else {
+                sStartTime = sTimeMinMax.min;
+                sEndTime = sTimeMinMax.max;
+            }
         } else {
             sStartTime = pBoardTimeMinMax?.min;
             sEndTime = pBoardTimeMinMax?.max;
         }
 
-        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
+        let sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
+        if (pPanelInfo.type === 'Geomap')
+            sIntervalInfo = {
+                IntervalType: pPanelInfo.chartOptions.intervalType,
+                IntervalValue: pPanelInfo.chartOptions.intervalValue,
+            };
         if (pPanelInfo.type === 'Tql chart') {
+            !pLoopMode && setChartData(undefined);
             const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange(), sIntervalInfo, pBoardInfo.dashboard.variables));
             if (!sResult?.data?.reason) {
                 setChartData(sResult);
@@ -107,7 +115,13 @@ const LineChart = ({
                 pBoardInfo.dashboard.variables
             );
             const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
-            const sParsedChartCode = DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
+            const sParsedChartCode = DashboardChartCodeParser(
+                pPanelInfo.chartOptions,
+                chartTypeConverter(pPanelInfo.type),
+                sParsedQuery,
+                false,
+                PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)
+            );
 
             const checkUndefinedVariable = sParsedQuery.reduce((prev: string, curv: any) => {
                 const tmpMatch = curv.query.match(VARIABLE_REGEX);
@@ -119,24 +133,60 @@ const LineChart = ({
                 setIsChartData(false);
             }
 
-            const sResult: any = await getTqlChart(
-                `FAKE(linspace(0, 1, 1))
-                 CHART(
-                    ${`chartID('${pChartVariableId + '-' + pPanelInfo.id}'),`}
-                    ${pPanelInfo.plg ? `plugins('${pPanelInfo.plg}'),` : ''}
-                    theme('${pPanelInfo.theme}'),
-                    size('${sRefClientWidth}px','${sRefClientHeight}px'),
-                    chartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption))}),
-                    chartJSCode(${sParsedChartCode})
-                )`,
-                'dsh'
-            );
-            if (!sResult?.data?.reason) {
+            let sResult: any = undefined;
+
+            if (pPanelInfo.type === 'Geomap') {
+                const sColumnIdxList = pPanelInfo.blockList.map((_block: any, idx: number) => {
+                    if (pPanelInfo.chartOptions.coorLat[idx] === pPanelInfo.chartOptions.coorLon[idx]) return [0, 1];
+                    else return [pPanelInfo.chartOptions.coorLat[idx], pPanelInfo.chartOptions.coorLon[idx]];
+                });
+                const sSqlList = sParsedQuery.map((query: any) => {
+                    return { sql: query.sql };
+                });
+                const sRadiusList = pPanelInfo.chartOptions.marker.map((mkr: { shape: string; radius: number }) => {
+                    return mkr.radius;
+                });
+                const sShapeList = pPanelInfo.chartOptions.marker.map((mkr: { shape: string; radius: number }) => {
+                    return mkr.shape;
+                });
+
+                // var markerList = ${JSON.stringify(pPanelInfo.chartOptions.marker)};
+                sResult = await getTqlChart(
+                    `SCRIPT("js", {
+                        var shapeList = ${JSON.stringify(sShapeList)};
+                        var radiusList = ${JSON.stringify(sRadiusList)};
+                        var colorList = ${JSON.stringify(sAliasList.map((alias: any) => alias.color))};
+                        var columnIdxList = ${JSON.stringify(sColumnIdxList)};
+                        var queryList = ${JSON.stringify(sSqlList)};
+                        ${sParsedChartCode}
+                    })
+                    GEOMAP(
+                        geomapID('${PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}'),
+                        size('${sRefClientWidth}px','${sRefClientHeight}px')
+                    )`,
+                    'dsh'
+                );
+            } else {
+                sResult = await getTqlChart(
+                    `FAKE(linspace(0, 1, 1))
+                     CHART(
+                        ${`chartID('${PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}'),`}
+                        ${pPanelInfo.plg ? `plugins('${pPanelInfo.plg}'),` : ''}
+                        theme('${pPanelInfo.theme}'),
+                        size('${sRefClientWidth}px','${sRefClientHeight}px'),
+                        chartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption))}),
+                        chartJSCode(${sParsedChartCode})
+                    )`,
+                    'dsh'
+                );
+            }
+
+            if (sResult && !sResult?.data?.reason) {
                 setChartData(sResult.data);
                 setIsError(false);
                 setIsChartData(true);
             } else {
-                setIsMessage(sResult.data.reason);
+                setIsMessage(sResult?.data?.reason);
                 setIsError(true);
                 setIsChartData(false);
             }
@@ -145,6 +195,7 @@ const LineChart = ({
         pSetModifyState({ id: '', state: false });
     };
     const sSetIntervalTime = () => {
+        if (pPanelInfo.type === 'Geomap' && !pPanelInfo.chartOptions?.useAutoRefresh) return null;
         if (pType === 'create' || pType === 'edit') return null;
         if (pPanelInfo.timeRange.refresh !== 'Off') return calcRefreshTime(pPanelInfo.timeRange.refresh);
         return null;
@@ -179,12 +230,12 @@ const LineChart = ({
     };
 
     useEffect(() => {
-        if (((!pModifyState.state && sIsMounted) || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh)) {
+        if (((!pModifyState.state && sIsMounted) || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh || pBoardInfo.dashboard?.variables?.length > 0)) {
             executeTqlChart();
         }
     }, [pBoardTimeMinMax]);
     useEffect(() => {
-        if (pModifyState.state && pModifyState.id === pPanelInfo.id) {
+        if (pModifyState.state && pModifyState.id === PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)) {
             executeTqlChart();
         }
     }, [pModifyState]);
@@ -208,7 +259,9 @@ const LineChart = ({
         }
     }, [pDragStat]);
     useEffect(() => {
-        if (sIsMounted && !pDragStat && !pInsetDraging) executeTqlChart(pParentWidth);
+        if (sIsMounted && !pDragStat && !pInsetDraging) {
+            executeTqlChart(pParentWidth);
+        }
     }, [pParentWidth]);
     useEffect(() => {
         setIsMounted(true);
@@ -216,7 +269,9 @@ const LineChart = ({
 
     useEffect(() => {
         if (!(ChartRef && ChartRef?.current)) return;
-        if (pIsActiveTab && sIsMounted && ChartRef.current.dataset && !ChartRef.current.dataset.processed) executeTqlChart();
+        if (pIsActiveTab && sIsMounted && ChartRef.current.dataset && !ChartRef.current.dataset.processed) {
+            executeTqlChart();
+        }
     }, [pIsActiveTab]);
 
     useOverlapTimeout(() => {
@@ -228,14 +283,15 @@ const LineChart = ({
             {sIsLoading && !sIsChartData ? <div className="loading">Loading...</div> : null}
             {!sIsLoading && sIsError && sIsMessage ? <div>{sIsMessage}</div> : null}
             {!sIsLoading && !sIsError && !sIsChartData ? <div>{sIsMessage}</div> : null}
-            {sIsChartData ? (
-                <ShowChart
+            {sChartData && sIsChartData ? (
+                <ShowVisualization
                     pLoopMode={pLoopMode}
                     pData={sChartData}
-                    pPanelType={pPanelInfo.type === 'Tql chart'}
+                    pPanelType={pPanelInfo.type}
                     pPanelId={pChartVariableId + '-' + pPanelInfo.id}
-                    pPanelSize={ChartRef}
+                    pPanelRef={ChartRef}
                     pTheme={pPanelInfo.theme}
+                    pChartOpt={pPanelInfo.chartOptions}
                 />
             ) : null}
         </div>

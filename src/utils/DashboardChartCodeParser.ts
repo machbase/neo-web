@@ -13,6 +13,7 @@ const NameValueFunc = (aChartType: string) => {
 /** TIME_VALUE func */
 const TimeValueFunc = () => {
     return `(obj) => {
+        \t\tif (sQuery?.[aIdx]?.alias === '') _chartOption.series[aIdx].name = obj?.data?.columns?.[1];
         \t\t_chartOption.series[aIdx].data = obj?.data?.rows ?? [];
         \t\t_chart.setOption(_chartOption);
         \t}`;
@@ -29,31 +30,83 @@ const LiquidNameValueFunc = (aChartOptions: any) => {
         \t\t_chart.setOption(_chartOption)}`;
 };
 /** TEXT func */
-const TextFunc = () => {
+const TextFunc = (aChartOptions: any, aPanelId?: string) => {
+    const tmpColorSet = JSON.parse(JSON.stringify(aChartOptions.color));
+    const tmpPop = tmpColorSet.shift();
+    tmpColorSet.sort((a: any, b: any) => parseInt(b[0]) - parseInt(a[0]));
+    tmpColorSet.push(tmpPop);
+    const colorInjectTxt = tmpColorSet.map((aChartOption: any, aIdx: number) => {
+        if (aChartOption[0] === 'default') return `${aIdx === 0 ? '' : 'else '}return '${aChartOption[1]}';`;
+        if (aIdx === 0) return `if (aValue > ${parseInt(aChartOption[0])}) return '${aChartOption[1]}';`;
+        else return `else if (aValue > ${parseInt(aChartOption[0])}) return '${aChartOption[1]}';`;
+    });
     return `(obj) => {
-        \t\tif (aIdx === 0){
-        \t\t_chartOption.series[aIdx].data[0] = obj?.data?.rows[0][0]?.value ? obj?.data?.rows[0][0]?.value : 'no-data';}
-        \t\telse _chartOption.series[aIdx].data = obj?.data?.rows ?? [];
-        \t\t_chart.setOption(_chartOption);
+        \t\tconst setColor = (aValue) => {
+        \t\t\t${colorInjectTxt.join('')}
+        \t\t}
+        \t\tif (aIdx === 1) {
+        \t\t\t_chartOption.series[0].data = obj?.data?.rows ?? [];
+        \t\t\t_chart.setOption(_chartOption);
+        \t\t} else {
+        \t\t\tconst sDOM = document.getElementById('${aPanelId}-text');
+        \t\t\tif (sDOM) {
+        \t\t\t\tvar sFontSize = ${aChartOptions?.fontSize ?? 100};
+        \t\t\t\tconst sValue = obj?.data?.rows[0][0]?.value ? obj?.data?.rows[0][0]?.value.toFixed(${aChartOptions?.digit ?? ''}) : '';
+        \t\t\t\tconst sColor = setColor(sValue);
+        \t\t\t\tsDOM.style.color = sColor;
+        \t\t\t\tsDOM.style.fontSize = sFontSize + 'px';
+        \t\t\t\tsDOM.innerText = isNaN(sValue) ? 'no-data' : sValue${aChartOptions?.unit ? ' +"' + aChartOptions.unit + '"' : ''};
+        \t\t\t};
+        \t\t}
         \t}`;
 };
+/** GEOMAP func */
+const Geomapfunc = (aChartOptions: any) => {
+    const sTooltipContents =
+        aChartOptions.tooltipTime || aChartOptions.tooltipCoor
+            ? `tooltip: {
+        content: ${aChartOptions.tooltipTime ? `'<b>' + new Date(row[0]).toLocaleString('en-GB') + '</b>' + '<br/>'` : ''}${
+                  aChartOptions.tooltipTime && aChartOptions.tooltipCoor ? ` + ` : ''
+              }${aChartOptions.tooltipCoor ? `'<b>' + 'lat: ' + row[columnIdxList[idx][0] + 1] + '</b>' + '<br/>' + '<b>' + 'lon: ' + row[columnIdxList[idx][1] + 1] + '</b>'` : ''}
+    },`
+            : undefined;
+    // marker | circleMarker | circle | polyline | polygon
+    return `function finalize() {
+        queryList.forEach(function (query, idx) {
+            $.db().query(query.sql).forEach( function (row) {
+                $.yield({
+                    type: shapeList[idx],
+                    coordinates: [row[columnIdxList[idx][0] + 1], row[columnIdxList[idx][1] + 1]],
+                    properties: {
+                        ${sTooltipContents ?? ''}
+                        color: colorList[idx],
+                        radius: radiusList[idx]
+                    }
+                });
+            })
+        })
+    }`;
+};
 
-export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string, aParsedQuery: any, isSave: boolean = false) => {
+export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string, aParsedQuery: any, isSave: boolean = false, aPanelId?: string) => {
     const sDataType = aParsedQuery[0].dataType;
     const sAccToken = localStorage.getItem('accessToken');
     const sXConsoleId = localStorage.getItem('consoleId');
     let sInjectFunc = null;
 
-    if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc();
-    if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc(aChartType);
-    if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidNameValueFunc(aChartOptions);
-    if (aChartType === 'text') sInjectFunc = TextFunc();
-
+    if (aChartType === 'geomap') return Geomapfunc(aChartOptions);
+    if (aChartType === 'text') sInjectFunc = TextFunc(aChartOptions, aPanelId);
+    else {
+        if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc();
+        if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc(aChartType);
+        if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidNameValueFunc(aChartOptions);
+    }
     // GEN variable
     const sDynamicVariable = aParsedQuery.map((aQuery: any) => {
         return {
             query: `${aQuery.query}`,
             idx: aQuery.idx,
+            alias: aQuery.alias,
         };
     });
 

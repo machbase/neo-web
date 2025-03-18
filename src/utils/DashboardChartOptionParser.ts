@@ -10,7 +10,7 @@ const StructureOfCommonOption = `{
         "left": "$legendLeft$",
         "orient": "$legendOrient$"
     },
-    "title": { "text": "$title$", "left": 20 },
+    "title": { "text": "$title$", "left": 10, "top": 5 },
     "tooltip": {
         "show": $isTooltip$,
         "trigger": "$tooltipTrigger$",
@@ -135,33 +135,33 @@ const StructureSeriesOption: any = {
         "data": []
     `,
     text: `
-        "tooltip": { "show": false },
-        "animation": false,
-        "xAxis": [{ "type": "category", "data": [], "show": false, "gridIndex": 0, "boundaryGap": false }, { "type": "time", "data": "column(0)", "show": false, "gridIndex": 1, "boundaryGap": false }],
-        "yAxis": [{ "show": false, "gridIndex": 0 }, { "show": false, "gridIndex": 1, "type": "value" }],
-        "grid": [{ "width": "100%", "bottom": "50%", "left": 0 }, { "width": "100%", "height": "100%%", "bottom": 0, "left": 0 }],
         "series": [
             {
-                "type": "custom",
-                "yAxisIndex": 0,
-                "xAxisIndex": 0,
-                "z": 100,
-                "data": [],
-                "renderItem": $render$
-            },
-            {
-                "xAxisIndex": 1,
-                "yAxisIndex": 1,
-                "type": "$chartType$",
-                "smooth": false,
-                "symbolSize": "$symbolSize$",
-                "color": "$chartColor$",
-                "areaStyle": {
+                "areaStyle":{
                     "opacity": "$fillOpacity$"
                 },
-                "data": []
+                "smooth":false,
+                "step":false,
+                "stack":false,
+                "connectNulls":true,
+                "lineStyle":null,
+                "symbolSize":"$symbolSize$",
+                "sampling":"lttb",
+                "type": "$chartType$",
+                "name":"vib-z(avg)",
+                "color":"$chartColor$",
+                "xAxisIndex":0,
+                "yAxisIndex":0
             }
         ]
+    `,
+    geomap: `
+        "tooltipTime": $tooltipTime$,
+        "tooltipCoor": $tooltipCoor$,
+        "intervalType": "$intervalType$",
+        "intervalValue": "$intervalValue$",
+        "coorLat": "$coorLat$",
+        "coorLon": "$coorLon$"
     `,
 };
 // Polar structure
@@ -216,6 +216,26 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
         sXAxis = `{}`;
         sYAxis = `{}`;
     }
+    if (aChartType === 'text') {
+        sXAxis = JSON.stringify({
+            xAxis: [
+                {
+                    ...aXAxis[0],
+                    min: aTime.startTime,
+                    max: aTime.endTime,
+                    show: false,
+                },
+            ],
+        });
+        sYAxis = JSON.stringify({
+            yAxis: [
+                {
+                    ...aYAxis[0],
+                    show: false,
+                },
+            ],
+        });
+    }
     // Set opt
     sChartOptList.map((aOpt: string) => {
         if (aOpt === 'markLine') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
@@ -235,7 +255,7 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
             sChartSeriesStructure = aChartOption[aOpt]
                 ? sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: aChartOption['axisLineStyleColor'] } }))
                 : sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: [[1, '#c2c2c2']] } }));
-        else if (aOpt === 'color' && aChartType === 'text') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
+        else if (aOpt === 'coorLat' || aOpt === 'coorLon') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
         else sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, aChartOption[aOpt]);
     });
 
@@ -253,52 +273,6 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
         sVisualMapStructure = sVisualMapStructure.replace(`$pieces$`, JSON.stringify(sPieces));
     }
 
-    // Return Text chart
-    if (aChartType === 'text') {
-        const tmpColorSet = JSON.parse(JSON.stringify(aChartOption.color));
-        const tmpPop = tmpColorSet.shift();
-        tmpColorSet.sort((a: any, b: any) => parseInt(b[0]) - parseInt(a[0]));
-        tmpColorSet.push(tmpPop);
-
-        const colorInjectTxt = tmpColorSet.map((aChartOption: any, aIdx: number) => {
-            if (aChartOption[0] === 'default') return `${aIdx === 0 ? '' : 'else '}return '${aChartOption[1]}';`;
-            if (aIdx === 0) return `if (aValue > ${parseInt(aChartOption[0])}) return '${aChartOption[1]}';`;
-            else return `else if (aValue > ${parseInt(aChartOption[0])}) return '${aChartOption[1]}';`;
-        });
-
-        sChartSeriesStructure = sChartSeriesStructure.replace(
-            '$render$',
-            JSON.stringify(
-                `function (params, api) {` +
-                    `const setColor = (aValue) => {` +
-                    colorInjectTxt.join('') +
-                    `};` +
-                    `var sFontsize = ${aChartOption?.fontSize ?? 100};` +
-                    `const sValue = api?.value(1)${aChartOption?.digit ? '.toFixed(' + aChartOption.digit + ')' : ''};` +
-                    // toFixed()
-                    `const sColor = setColor(sValue);` +
-                    `const sLen = isNaN(sValue) ? 5 : sValue.toString().length${aChartOption?.unit ? '+' + aChartOption.unit.length : ''};` +
-                    `const sClientH = api.getHeight();` +
-                    `const sClientW = api.getWidth();` +
-                    `const sCenterX = (sClientW - (sFontsize / 2 * sLen)) / 2;` +
-                    `const sCenterY = (sClientH - sFontsize) / 2;` +
-                    `const sStyle = api.style({` +
-                    `fontSize: sFontsize,` +
-                    `textFill: sColor,` +
-                    `text: isNaN(sValue) ? 'no-data': sValue${aChartOption?.unit ? "+ '" + aChartOption.unit + "'" : ''},` +
-                    `x: sCenterX,` +
-                    `y: sCenterY` +
-                    `});` +
-                    `return {` +
-                    `type: 'text',` +
-                    `style: sStyle` +
-                    `};` +
-                    `}`
-            )
-        );
-        return JSON.parse('{' + sChartSeriesStructure + '}');
-    }
-
     const sParsedSeries = JSON.parse('{' + sChartSeriesStructure + '}');
     const sParsedPolar = JSON.parse(sPolarStructure);
     const sParsedVisualMap = JSON.parse(sVisualMapStructure);
@@ -308,45 +282,50 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
 };
 
 /** replace common opt */
-const ReplaceCommonOpt = (aCommonOpt: any, aDataType: string) => {
+const ReplaceCommonOpt = (aCommonOpt: any, aPanelType: string) => {
     const sCommOptList: string[] = Object.keys(aCommonOpt);
+    const sDataType = SqlResDataType(aPanelType);
     let sParsedOpt: any = StructureOfCommonOption;
     sCommOptList.map((aOpt: string) => {
         if (aOpt === 'isDataZoom') sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt.isDataZoom ? JSON.stringify([{ type: 'slider' }]) : false);
         else if (aOpt === 'title') sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt.isInsideTitle ? aCommonOpt[aOpt] : '');
         else sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt[aOpt]);
     });
+
     const sResult = JSON.parse(sParsedOpt);
-    if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis' && aDataType === 'TIME_VALUE')
+    if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis' && sDataType === 'TIME_VALUE')
         sResult.tooltip.formatter = ChartAxisTooltipFormatter(aCommonOpt['tooltipUnit'], aCommonOpt['tooltipDecimals']);
-    if (sResult.tooltip.show && sResult.tooltip.trigger === 'item' && aDataType === 'TIME_VALUE')
+    if (sResult.tooltip.show && sResult.tooltip.trigger === 'item' && sDataType === 'TIME_VALUE')
         sResult.tooltip.formatter = ChartItemTooltipFormatter(aCommonOpt['tooltipUnit'], aCommonOpt['tooltipDecimals']);
     if (sResult.legend.left !== 'center') sResult.legend.padding = [30, 0, 0, 0];
+    if (aPanelType === 'text') {
+        sResult.legend = { show: false };
+        sResult.tooltip = { show: false };
+        sResult.grid = { bottom: '0', left: '0', right: '0', top: '50' };
+    }
     return sResult;
 };
 
-const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonOpt: any, aTypeOpt: any) => {
+const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonOpt: any, aTypeOpt: any, sUseDualYAxis: number[]) => {
     const sResultOpt: any = { ...aCommonOpt, ...aTypeOpt.polar, ...aTypeOpt.visualMap, ...aTypeOpt.xAxis, ...aTypeOpt.yAxis };
-    const sXLen: number = sResultOpt.xAxis && sResultOpt.xAxis.length;
-    const sYLen: number = sResultOpt.yAxis && sResultOpt.yAxis.length;
     const sIsVisualMap = !isObjectEmpty(aTypeOpt?.visualMap ?? {});
 
     // Return Text chart
-    if (aChartType === 'text') return { title: aCommonOpt.title, ...aTypeOpt };
+    if (aChartType === 'text') return { ...sResultOpt, ...aTypeOpt.series };
 
-    if (aDataType === 'TIME_VALUE' && aChartType !== 'text') {
+    if (aDataType === 'TIME_VALUE') {
         sResultOpt.series = aTagList.map((aTag: { name: string; color: string }, aIdx: number) => {
             return {
                 ...aTypeOpt.series,
                 type: aChartType,
                 name: aTag.name,
                 color: aTag.color,
-                xAxisIndex: sXLen > aIdx ? aIdx : 0,
-                yAxisIndex: sYLen > aIdx ? aIdx : 0,
+                xAxisIndex: 0,
+                yAxisIndex: sUseDualYAxis.length > 0 && sUseDualYAxis.includes(aIdx) ? 1 : 0,
                 lineStyle: sIsVisualMap ? { color: ChartSeriesColorList[aIdx] } : null,
             };
         });
-    } else if (aDataType === 'NAME_VALUE' && aChartType !== 'text') {
+    } else if (aDataType === 'NAME_VALUE') {
         sResultOpt.series = [
             {
                 ...aTypeOpt.series,
@@ -410,6 +389,7 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
             }
             delete sReturn.label;
         }
+        if (sReturn?.offset !== '') sReturn.offset = Number(sReturn.offset) ?? 0;
         if (sReturn.useMinMax) return sReturn;
         else {
             delete sReturn.useMinMax;
@@ -423,7 +403,8 @@ const CheckYAxisMinMax = (yAxisOptions: any) => {
 
 export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTime: { startTime: number; endTime: number }) => {
     const sConvertedChartType = chartTypeConverter(aOptionInfo.type);
-    const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, SqlResDataType(sConvertedChartType));
+    const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, sConvertedChartType);
+    const sUseDualYAxis = aOptionInfo.yAxisOptions.length === 2;
     // Animation false (TIME_VALUE TYPE)
     if (SqlResDataType(sConvertedChartType) === 'TIME_VALUE') sCommonOpt.animation = false;
     const sTypeOpt = ReplaceTypeOpt(
@@ -435,6 +416,13 @@ export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTim
         CheckYAxisMinMax(aOptionInfo.yAxisOptions),
         aTime
     );
-    const sParsedOpt = ParseOpt(sConvertedChartType, SqlResDataType(sConvertedChartType), aTagList, sCommonOpt, sTypeOpt);
+    const sParsedOpt = ParseOpt(
+        sConvertedChartType,
+        SqlResDataType(sConvertedChartType),
+        aTagList,
+        sCommonOpt,
+        sTypeOpt,
+        sUseDualYAxis ? aOptionInfo.yAxisOptions[1].useBlockList : []
+    );
     return sParsedOpt;
 };

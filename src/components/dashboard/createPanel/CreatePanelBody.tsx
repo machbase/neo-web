@@ -13,7 +13,7 @@ const CreatePanelBody = ({ pLoopMode, pType, pPanelInfo, pBoardInfo, pInsetDragi
                     pModifyState={pModifyState}
                     pSetModifyState={pSetModifyState}
                     pBoardTimeMinMax={pBoardTimeMinMax}
-                    pIsHeader
+                    pIsHeader={false}
                 />
             )}
         </div>

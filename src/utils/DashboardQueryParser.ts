@@ -90,7 +90,12 @@ const ReplaceVariables = (
         const tmpList: any = [];
         const tmpAsList: any = [];
         tmpQueryList.map((query: any, idx: number) => {
-            tmpList.push({ ...query, idx: tmpList.length, query: query.query.replaceAll(variable.regEx, variable.value) });
+            tmpList.push({
+                ...query,
+                idx: tmpList.length,
+                query: query.query.replaceAll(variable.regEx, variable.value),
+                sql: query.sql.replaceAll(variable.regEx, variable.value),
+            });
             tmpAsList.push(tmpAliasList[idx]);
         });
         tmpQueryList = tmpList;
@@ -175,6 +180,13 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
     });
     // parse block
     const sParsedBlock = sBlockFunnelList.map((bBlock: any) => {
+        if (bBlock.customFullTyping.use) {
+            return {
+                text: bBlock.customFullTyping.text,
+                useFullTyping: bBlock.customFullTyping.use,
+                color: bBlock.color,
+            };
+        }
         return {
             time: bBlock.time,
             type: bBlock.type,
@@ -188,6 +200,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             tableInfo: bBlock.tableInfo,
             math: bBlock?.math ?? '',
             duration: bBlock?.duration ?? { from: '', to: '' },
+            useFullTyping: bBlock.customFullTyping.use,
         };
     });
     return sParsedBlock;
@@ -242,12 +255,13 @@ const GetFilter = (aTableInfo: any) => {
 };
 
 const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: 'tag' | 'log', aTableInfo: any) => {
-    return aValueList.map((aValue: any) => {
-        if (aValue.aggregator === 'none' || aValue.aggregator === 'value' || aDiff) return `${aValue.value} as VALUE`;
+    return aValueList.map((aValue: any, aIdx: number) => {
+        const sValue = `VALUE${aIdx > 0 ? aIdx + 1 : ''}`;
+        if (aValue.aggregator === 'none' || aValue.aggregator === 'value' || aDiff) return `${aValue.value} as ${sValue}`;
         else {
             if (aValue.aggregator.includes('last') || aValue.aggregator.includes('first'))
-                return `${changeAggText(aValue.aggregator)}(${aTableType === 'tag' ? aTableInfo[1][0] : '_ARRIVAL_TIME'} ,${aValue.value}) as VALUE`;
-            else return `${changeAggText(aValue.aggregator)}(${aValue.value}) as VALUE`;
+                return `${changeAggText(aValue.aggregator)}(${aTableType === 'tag' ? aTableInfo[1][0] : '_ARRIVAL_TIME'} ,${aValue.value}) as ${sValue}`;
+            else return `${changeAggText(aValue.aggregator)}(${aValue.value}) as ${sValue}`;
         }
     });
 };
@@ -444,10 +458,14 @@ const GetConbineWhere = (
 const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string[]) => {
     const sAliasList: any[] = [];
     const sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
+        if (aQuery.useFullTyping) {
+            sAliasList.push({ name: 'series(' + aIdx.toString() + ')', color: aQuery.color });
+            return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, dataType: aResDataType[aIdx], sql: aQuery.text };
+        }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
         const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval);
-        const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo)[0];
+        const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo);
         const sTimeWhere = GetTimeWhere(aQuery.time, aTime);
         const sFilterWhere = GetFilterWhere(aQuery.filterList, aQuery.useCustom, aQuery);
         const sGroupBy = `GROUP BY TIME ${UseGroupByTime(aQuery.valueList)}`;

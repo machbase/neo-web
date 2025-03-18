@@ -1,12 +1,13 @@
 import { getTableInfo, getVirtualTableInfo } from '@/api/repository/api';
 import { getRollupTableList, getTqlChart } from '@/api/repository/machiot';
-import { BsArrowsCollapse, BsArrowsExpand, Close, Refresh, TbMath, TbMathOff } from '@/assets/icons/Icon';
+import { BsArrowsCollapse, BsArrowsExpand, Close, GoPencil, Refresh, TbMath, TbMathOff } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { generateUUID } from '@/utils';
 import {
     DIFF_LIST,
     SEPARATE_DIFF,
     createDefaultTagTableOption,
+    geomapAggregatorList,
     getTableType,
     isNumberTypeColumn,
     logAggregatorList,
@@ -31,8 +32,10 @@ import { TagSearchSelect } from '@/components/inputs/TagSearchSelect';
 import { Duration } from './Duration';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { InputSelector } from '@/components/inputs/InputSelector';
+import { FULL_TYPING_QUERY_PLACEHOLDER } from '@/utils/constants';
+import { FullQueryHelper } from './Block/FullQueryHelper';
 
-export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pValueLimit }: any) => {
+export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
@@ -86,9 +89,9 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
 
             const sDefaultBlockOption = sTargetTable
                 ? // TAG | LOG | VIR
-                  createDefaultTagTableOption(sTargetTable[1], sTargetTable, getTableType(sTargetTable[4]), '')
+                  createDefaultTagTableOption(sTargetTable[1], sTargetTable, getTableType(sTargetTable[4]), '', pPanelOption.type)
                 : // VARIABLE
-                  createDefaultTagTableOption('', ['', '', '', aData.target.value], '', '');
+                  createDefaultTagTableOption('', ['', '', '', aData.target.value], '', '', pPanelOption.type);
 
             if (sIsVirtualTable) {
                 sDefaultBlockOption[0].useCustom = true;
@@ -97,6 +100,10 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
             }
             if (sIsVariable) {
                 sDefaultBlockOption[0].table = aData.target.value;
+            }
+
+            if (pPanelOption.type === 'Geomap') {
+                sDefaultBlockOption[0].values = [{ id: sDefaultBlockOption[0].values[0].id, aggregator: 'value', value: '', alias: '' }];
             }
 
             const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any) => {
@@ -140,6 +147,25 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
             });
         }
     };
+    const changedOptionFullTyping = (aKey: string, aData: any) => {
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                blockList: aPrev.blockList.map((aItem: any) => {
+                    if (aItem.id === pBlockInfo.id) {
+                        const sTmpItem = {
+                            ...aItem,
+                            customFullTyping: {
+                                ...aItem.customFullTyping,
+                                [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value,
+                            },
+                        };
+                        return sTmpItem;
+                    } else return aItem;
+                }),
+            };
+        });
+    };
     const getColumnList = async (aTable: string) => {
         const sTable = pTableList.find(
             (aItem: any) =>
@@ -157,38 +183,37 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                     return {
                         ...aPrev,
                         blockList: aPrev.blockList.map((aItem: any) => {
-                            return aItem.id === pBlockInfo.id
-                                ? {
-                                      ...aItem,
-                                      name: sData.data.rows.filter((aItem: any) => {
-                                          return aItem[1] === 5;
-                                      })[0][0],
-                                      time: sData.data.rows.filter((aItem: any) => {
-                                          return aItem[1] === 6;
-                                      })[0][0],
-                                      value: sData.data.rows.filter((aItem: any) => {
-                                          return isNumberTypeColumn(aItem[1]);
-                                      })[0][0],
-                                      type: getTableType(sTable[4]),
-                                      tableInfo: sData.data.rows,
-                                      values: aItem.values.map((aItem: any) => {
-                                          return {
-                                              ...aItem,
-                                              value: sData.data.rows.filter((aItem: any) => {
-                                                  return isNumberTypeColumn(aItem[1]);
-                                              })[0][0],
-                                          };
-                                      }),
-                                      filter: [
-                                          {
-                                              ...aItem.filter[0],
-                                              column: sData.data.rows.filter((aItem: any) => {
-                                                  return aItem[1] === 5;
-                                              })[0][0],
-                                          },
-                                      ],
-                                  }
-                                : aItem;
+                            if (aItem.id === pBlockInfo.id) {
+                                const filteredItems = sData.data.rows.filter((aItem: any) => {
+                                    return aItem[1] === 5;
+                                });
+                                return {
+                                    ...aItem,
+                                    name: filteredItems.length > 0 ? filteredItems[0][0] : '',
+                                    time: sData.data.rows.filter((aItem: any) => {
+                                        return aItem[1] === 6;
+                                    })[0][0],
+                                    value: sData.data.rows.filter((aItem: any) => {
+                                        return isNumberTypeColumn(aItem[1]);
+                                    })[0][0],
+                                    type: getTableType(sTable[4]),
+                                    tableInfo: sData.data.rows,
+                                    values: aItem.values.map((aItem: any) => {
+                                        return {
+                                            ...aItem,
+                                            value: sData.data.rows.filter((aItem: any) => {
+                                                return isNumberTypeColumn(aItem[1]);
+                                            })[0][0],
+                                        };
+                                    }),
+                                    filter: [
+                                        {
+                                            ...aItem.filter[0],
+                                            column: filteredItems.length > 0 ? filteredItems[0][0] : '',
+                                        },
+                                    ],
+                                };
+                            } else return aItem;
                         }),
                     };
                 });
@@ -281,7 +306,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                           return { ...bItem, useFilter: sUseFilter, typingValue: sTypingValue, [aKey]: aData.target.value };
                                       }
                                       return { ...bItem, useFilter: sUseFilter, [aKey]: aData.target.value };
-                                  } else if (bItem.id === aId && aChangedKey === 'values' && aKey === 'aggregator' && !SEPARATE_DIFF) {
+                                  } else if (aChangedKey === 'values' && aKey === 'aggregator' && !SEPARATE_DIFF) {
                                       const sDiffVal: boolean = aData.target.value.includes('diff');
                                       return { ...bItem, aggregator: aData.target.value, diff: sDiffVal ? aData.target.value : 'none' };
                                   } else
@@ -300,7 +325,9 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
             return {
                 ...aPrev,
                 blockList: aPrev.blockList.map((aItem: any) => {
-                    return aItem.id === pBlockInfo.id ? { ...aItem, values: [...aItem.values, { id: generateUUID(), alias: '', value: '', aggregator: 'avg' }] } : aItem;
+                    return aItem.id === pBlockInfo.id
+                        ? { ...aItem, values: [...aItem.values, { id: generateUUID(), alias: '', value: '', aggregator: aItem.values[0].aggregator }] }
+                        : aItem;
                 }),
             };
         });
@@ -319,10 +346,29 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
     };
     const deleteSeries = () => {
         pSetPanelOption((aPrev: any) => {
-            return {
-                ...aPrev,
-                blockList: aPrev.blockList.filter((aItem: any) => aItem.id !== pBlockInfo.id),
-            };
+            let sDelIdx: any = undefined;
+            const sTmpPanelOpt = JSON.parse(
+                JSON.stringify({
+                    ...aPrev,
+                    blockList: aPrev.blockList.filter((aItem: any, aIdx: number) => {
+                        if (aItem.id !== pBlockInfo.id) return aItem;
+                        else sDelIdx = aIdx;
+                    }),
+                })
+            );
+            if (aPrev.type === 'Geomap') {
+                const sLat = sTmpPanelOpt.chartOptions.coorLat;
+                const sLon = sTmpPanelOpt.chartOptions.coorLon;
+                const sMarker = sTmpPanelOpt.chartOptions.marker;
+                sLat.splice(sDelIdx, 1);
+                sLon.splice(sDelIdx, 1);
+                sMarker.splice(sDelIdx, 1);
+                sTmpPanelOpt.chartOptions = { ...sTmpPanelOpt.chartOptions, coorLat: sLat, coorLon: sLon, marker: sMarker };
+            }
+            if ((aPrev.type === 'Line' || aPrev.type === 'Bar' || aPrev.type === 'Scatter') && aPrev.yAxisOptions.length > 1) {
+                sTmpPanelOpt.yAxisOptions[1].useBlockList = sTmpPanelOpt.yAxisOptions[1].useBlockList.filter((aItem: any) => aItem !== sDelIdx);
+            }
+            return sTmpPanelOpt;
         });
     };
     const removeValue = (aId: string) => {
@@ -418,6 +464,8 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
     /** return agg list based on chart type */
     const getAggregatorList = useMemo((): string[] => {
         const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
+
+        if (chartTypeConverter(pPanelOption.type) === 'geomap') return geomapAggregatorList;
         if (sChartDataType === 'TIME_VALUE') {
             const sAggregatorList = pBlockInfo.type === 'tag' ? tagAggregatorList : logAggregatorList;
             return SEPARATE_DIFF ? sAggregatorList : sAggregatorList.concat(DIFF_LIST);
@@ -430,25 +478,25 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
     }, [pPanelOption.type]);
     /** return table list + virtual table list */
     const getTableList = useMemo((): string[] => {
-        // const sUseCustom = pBlockInfo.useCustom;
-        // const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
-        // let sAggList: string[] = [];
-        // if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
-        // if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
-        // const sIsVaildAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0].aggregator : pBlockInfo.aggregator);
+        const sUseCustom = pBlockInfo.useCustom;
+        const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
+        let sAggList: string[] = [];
+        if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
+        if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
+        const sIsVaildAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0].aggregator : pBlockInfo.aggregator);
         // Set vaild agg
-        // if (!sIsVaildAgg) {
-        //     const sTempBlockList = JSON.parse(JSON.stringify(pBlockInfo));
-        //     // sTempBlockList.aggregator = 'count';
-        //     // sTempBlockList.values[0]?.aggregator && (sTempBlockList.values[0].aggregator = 'count');
-        //     // Set option
-        //     // pSetPanelOption((aPrev: any) => {
-        //     //     return {
-        //     //         ...aPrev,
-        //     //         blockList: [sTempBlockList],
-        //     //     };
-        //     // });
-        // }
+        if (!sIsVaildAgg && pPanelOption.type !== 'Geomap') {
+            const sTempBlockList = JSON.parse(JSON.stringify(pBlockInfo));
+            sTempBlockList.aggregator = 'count';
+            sTempBlockList.values[0]?.aggregator && (sTempBlockList.values[0].aggregator = 'count');
+            // Set option
+            pSetPanelOption((aPrev: any) => {
+                return {
+                    ...aPrev,
+                    blockList: [sTempBlockList],
+                };
+            });
+        }
         let sTableList = pTableList.map((aItem: any) => aItem[3]);
         sTableList = sTableList.concat(getVariableList);
 
@@ -514,7 +562,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
             <div className="row">
                 {/* TABLE */}
                 <div className="row-header">
-                    {pBlockInfo.useCustom && (
+                    {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && (
                         <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="row-header-left">
                             {/* TABLE */}
                             <div className="series-table">
@@ -554,7 +602,17 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                             )}
                         </div>
                     )}
-                    {!pBlockInfo.useCustom && (
+                    {pBlockInfo.customFullTyping.use && (
+                        <div className="row-header-left row-header-left-textarea">
+                            <textarea
+                                placeholder={FULL_TYPING_QUERY_PLACEHOLDER}
+                                defaultValue={pBlockInfo.customFullTyping.text}
+                                onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => changedOptionFullTyping('text', event)}
+                                style={{ height: 100 + 'px', width: '100%', padding: '4px 8px' }}
+                            />
+                        </div>
+                    )}
+                    {!pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && (
                         <div className="row-header-left">
                             <div className="series-table">
                                 <span className="series-title">
@@ -575,7 +633,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                 {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
                                     <div className="tag-search-select-wrapper-custom">
                                         <Input
-                                            pWidth={175}
+                                            pWidth={150}
                                             pHeight={26}
                                             pBorderRadius={4}
                                             pType="text"
@@ -602,7 +660,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                 <InputSelector
                                     pFontSize={12}
                                     pAutoChanged={false}
-                                    pWidth={140}
+                                    pWidth={175}
                                     pBorderRadius={4}
                                     pInitValue={pBlockInfo.aggregator}
                                     pHeight={26}
@@ -629,7 +687,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                 <span className="series-title"> Alias </span>
                                 <Input
                                     pBorderRadius={4}
-                                    pWidth={140}
+                                    pWidth={175}
                                     pHeight={26}
                                     pType="text"
                                     pValue={pBlockInfo.alias}
@@ -640,11 +698,24 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                         </div>
                     )}
                     <div className="row-header-right">
+                        <FullQueryHelper pIsShow={pBlockInfo.customFullTyping.use} />
+                        <IconButton
+                            pWidth={20}
+                            pHeight={20}
+                            pIsActive={pBlockInfo.customFullTyping.use}
+                            pDisabled={!(pPanelOption.type === 'Line' || pPanelOption.type === 'Bar')}
+                            pIsToopTip
+                            pToolTipId={pBlockInfo.id + '-block-change-full-query-mode'}
+                            pToolTipContent={pBlockInfo.customFullTyping.use ? 'Selecting' : 'Typing'}
+                            pIcon={<GoPencil />}
+                            onClick={() => changedOptionFullTyping('use', { target: { value: !pBlockInfo.customFullTyping.use } })}
+                        />
                         <div ref={sMathRef} style={{ position: 'relative', marginRight: '4px' }}>
                             <IconButton
                                 pWidth={20}
                                 pHeight={20}
                                 pIsToopTip
+                                pDisabled={chartTypeConverter(pPanelOption.type) === 'geomap' || pBlockInfo.customFullTyping.use}
                                 pIsActive={pBlockInfo?.math && pBlockInfo?.math !== ''}
                                 pToolTipContent={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'Enter formula' : pBlockInfo?.math}
                                 pToolTipId={pBlockInfo.id + '-block-math'}
@@ -714,7 +785,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                             pIsToopTip
                             pToolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                             pToolTipId={pBlockInfo.id + '-block-expand'}
-                            pDisabled={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag'}
+                            pDisabled={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' || pPanelOption.type === 'Geomap'}
                             pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={16} /> : <BsArrowsExpand size={16} />}
                             onClick={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
                         />
@@ -728,51 +799,57 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                     </div>
                 </div>
                 {/* VALUE */}
-                {pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
-                <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
-                    <div>
-                        {pBlockInfo.values.map((aItem: any, aIdx: number) => {
-                            return (
-                                <Value
-                                    key={aItem.id}
-                                    pChangeValueOption={changeValueOption}
-                                    pAddValue={addValue}
-                                    pRemoveValue={removeValue}
-                                    pBlockInfo={pBlockInfo}
-                                    pValue={aItem}
-                                    pIdx={aIdx}
-                                    pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
-                                    pValueLimit={pValueLimit}
-                                    pAggList={getAggregatorList}
-                                    pVariableList={getVariableList}
-                                />
-                            );
-                        })}
+                {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
+                {!pBlockInfo.customFullTyping.use && (
+                    <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
+                        <div style={{ width: '100%' }}>
+                            {pBlockInfo.values.map((aItem: any, aIdx: number) => {
+                                return (
+                                    <Value
+                                        key={aItem.id}
+                                        pChangeValueOption={changeValueOption}
+                                        pAddValue={addValue}
+                                        pRemoveValue={removeValue}
+                                        pBlockInfo={pBlockInfo}
+                                        pValue={aItem}
+                                        pIdx={aIdx}
+                                        pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
+                                        pPanelOption={pPanelOption}
+                                        pAggList={getAggregatorList}
+                                        pVariableList={getVariableList}
+                                    />
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
+                )}
+
                 {/* FILTER */}
-                {pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
-                <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
-                    <div>
-                        {pBlockInfo.filter.map((aItem: any, aIdx: number) => {
-                            return (
-                                <Filter
-                                    key={aItem.id}
-                                    pColumnList={sColumnList}
-                                    pBlockInfo={pBlockInfo}
-                                    pFilterInfo={aItem}
-                                    pChangeValueOption={changeValueOption}
-                                    pIdx={aIdx}
-                                    pAddFilter={addFilter}
-                                    pRemoveFilter={removeFilter}
-                                    pVariableList={getVariableList}
-                                />
-                            );
-                        })}
+                {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
+                {!pBlockInfo.customFullTyping.use && (
+                    <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
+                        <div>
+                            {pBlockInfo.filter.map((aItem: any, aIdx: number) => {
+                                return (
+                                    <Filter
+                                        key={aItem.id}
+                                        pColumnList={sColumnList}
+                                        pBlockInfo={pBlockInfo}
+                                        pFilterInfo={aItem}
+                                        pChangeValueOption={changeValueOption}
+                                        pIdx={aIdx}
+                                        pAddFilter={addFilter}
+                                        pRemoveFilter={removeFilter}
+                                        pVariableList={getVariableList}
+                                    />
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
+                )}
+
                 {/* DURATION */}
-                {pBlockInfo.useCustom && getUseDuration() && (
+                {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && getUseDuration() && (
                     <>
                         <div className="divider" style={{ margin: '6px 4px' }}></div>
                         <Duration pBlockInfo={pBlockInfo} pSetPanelOption={pSetPanelOption} />

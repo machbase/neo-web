@@ -6,7 +6,10 @@ const loadScript = (url: string) => {
         sScript.id = 'tmp-script';
         sScript.type = 'text/javascript';
         sScript.onload = resolve;
-        sScript.onerror = reject;
+        sScript.onerror = () => {
+            console.error('Failed to load resource: the server responded with a status of 404 (Not Found)', 'net::ERR_ABORTED');
+            reject;
+        };
         document.getElementsByTagName('head')[0].appendChild(sScript);
     });
 };

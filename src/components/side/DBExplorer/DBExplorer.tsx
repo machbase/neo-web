@@ -84,7 +84,7 @@ export const DBExplorer = ({ pServer }: any) => {
     };
     /** Get backup database list */
     const getBackupDatabaseList = async () => {
-        const IS_ADMIN = getUserName().toUpperCase() === ADMIN_ID.toUpperCase();
+        const IS_ADMIN = getUserName()?.toUpperCase() === ADMIN_ID?.toUpperCase();
         if (!IS_ADMIN) return;
         const sBackupListRes: any = await getBackupDBList();
         if (sBackupListRes && sBackupListRes?.success) {
@@ -250,7 +250,9 @@ export const DBExplorer = ({ pServer }: any) => {
                         return <TableInfo pShowHiddenObj={sShowHiddenObj} key={aIdx} pValue={aDB} pRefresh={sRefresh} pUpdate={init} />;
                     })}
                 {/* BACKUP DB LIST */}
-                {sBackupList && sBackupList.length !== 0 && <BackupTableInfo pValue={sBackupList} pRefresh={init} pBackupRefresh={getBackupDatabaseList} />}
+                {getUserName() === 'sys' && sBackupList && sBackupList.length !== 0 && (
+                    <BackupTableInfo pValue={sBackupList} pRefresh={init} pBackupRefresh={getBackupDatabaseList} />
+                )}
             </div>
             {mountModalOpen && <DBMountModal setIsOpen={setMountModalOpen} pRefresh={init} />}
         </div>

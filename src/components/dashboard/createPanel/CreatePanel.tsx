@@ -9,7 +9,7 @@ import CreatePanelFooter from './CreatePanelFooter';
 import CreatePanelRight from './CreatePanelRight';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
-import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType } from '@/utils/dashboardUtil';
+import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType, PanelIdParser } from '@/utils/dashboardUtil';
 import { getTableList, postFileList } from '@/api/repository/api';
 import { decodeJwt, generateUUID, isValidJSON, parseDashboardTables } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
@@ -31,6 +31,7 @@ const CreatePanel = ({
     pSetTimeRangeModal,
     pSetIsSaveModal,
     pBoardTimeMinMax,
+    pChartVariableId,
     pSetBoardTimeMinMax,
 }: {
     pLoopMode: boolean;
@@ -45,6 +46,7 @@ const CreatePanel = ({
     pSetTimeRangeModal: (aValue: boolean) => void;
     pSetIsSaveModal: any;
     pBoardTimeMinMax: any;
+    pChartVariableId: string;
     pSetBoardTimeMinMax: (aTimeRange: { min: number; max: number }) => void;
 }) => {
     const [sSideSizes, setSideSizes] = useState<any>(['75%', '25%']);
@@ -123,15 +125,15 @@ const CreatePanel = ({
 
         if (pBoardInfo.dashboard.panels.length === 0) {
             pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange));
-            pSetModifyState({ id: sTmpPanelInfo.id, state: true });
+            pSetModifyState({ id: PanelIdParser(pChartVariableId + '-' + sTmpPanelInfo.id), state: true });
         } else {
             const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart');
             if (sChartPanelList.length === 0) {
                 pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange));
-                pSetModifyState({ id: sTmpPanelInfo.id, state: true });
+                pSetModifyState({ id: PanelIdParser(pChartVariableId + '-' + sTmpPanelInfo.id), state: true });
             } else {
                 if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
-                else pSetModifyState({ id: sTmpPanelInfo.id, state: true });
+                else pSetModifyState({ id: PanelIdParser(pChartVariableId + '-' + sTmpPanelInfo.id), state: true });
             }
         }
         handleClose();
@@ -215,7 +217,7 @@ const CreatePanel = ({
                 if (isValidJSON(JSON.stringify(sTmpPanelOption))) {
                     const sTempOption = { ...sTmpPanelOption, timeRange: { ...sTmpPanelOption.timeRange, start: sStart, end: sEnd } };
                     setAppliedPanelOption(sTempOption);
-                    pSetModifyState({ id: sTempOption.id, state: true });
+                    pSetModifyState({ id: PanelIdParser('undefined-' + sTmpPanelOption.id), state: true });
                 }
             } else {
                 setAppliedPanelOption(sPanelOption);
@@ -247,7 +249,7 @@ const CreatePanel = ({
                 if (isValidJSON(JSON.stringify(sTmpPanelOption))) {
                     const sTempOption = { ...sTmpPanelOption, timeRange: { ...sTmpPanelOption.timeRange, start: sStart, end: sEnd } };
                     setAppliedPanelOption(sTempOption);
-                    pSetModifyState({ id: sTempOption.id, state: true });
+                    pSetModifyState({ id: PanelIdParser('undefined-' + sTmpPanelOption.id), state: true });
                 }
             } else {
                 const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart');
@@ -263,7 +265,8 @@ const CreatePanel = ({
                 } else if (pType === 'edit') {
                     setCreateModeTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange));
                     setIsPreview(() => true);
-                } else pSetModifyState({ id: sTmpPanelOption.id, state: true });
+                }
+                pSetModifyState({ id: PanelIdParser('undefined-' + sTmpPanelOption.id), state: true });
             }
         }
     };
@@ -287,20 +290,20 @@ const CreatePanel = ({
                 if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
             })[0]?.value;
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag) || sIsCreateModeFirstPanel) {
-            if (sTargetTag?.customTable || sTargetTag?.tag?.match(VARIABLE_REGEX) || !sTargetTag?.tag) return defaultMinMax();
+            if (sTargetTag?.customTable || sTargetTag?.tag?.match(VARIABLE_REGEX) || !sTargetTag?.tag) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
             let sSvrResult: any = undefined;
             if (sTargetTag.table.split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
             } else {
                 sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
             }
-            if (!sSvrResult) return defaultMinMax();
+            if (!sSvrResult) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
             const sSvrMinMax: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
             const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrMinMax);
             setCreateModeTimeMinMax(() => sTimeMinMax);
             return sTimeMinMax;
         } else {
-            return defaultMinMax();
+            return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
         }
     };
     const getTables = async (aStatus: boolean) => {
@@ -448,7 +451,7 @@ const CreatePanel = ({
                     sizes={sSideSizes}
                     onChange={setSideSizes}
                 >
-                    <Pane maxSize="95%">
+                    <Pane maxSize="80%" minSize="500px">
                         <SplitPane
                             onDragEnd={() => setInsetDraging(false)}
                             onDragStart={() => setInsetDraging(true)}
@@ -458,7 +461,7 @@ const CreatePanel = ({
                             sizes={sBottomSizes}
                             onChange={setBottomSizes}
                         >
-                            <Pane maxSize="90%">
+                            <Pane minSize="20%">
                                 {sAppliedPanelOption.id && (
                                     <CreatePanelBody
                                         pLoopMode={pLoopMode}
@@ -472,7 +475,7 @@ const CreatePanel = ({
                                     />
                                 )}
                             </Pane>
-                            <Pane>
+                            <Pane minSize="10%">
                                 {sPanelOption.id && (
                                     <CreatePanelFooter
                                         pVariableList={pBoardInfo.dashboard.variables}

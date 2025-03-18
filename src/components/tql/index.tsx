@@ -5,8 +5,6 @@ import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList, gConsoleSelector, gSelectedTab } from '@/recoil/recoil';
 import { Table } from './Table';
 import './index.scss';
-import { ShowChart } from './ShowChart';
-import { ShowMap } from './ShowMap';
 import { Markdown } from '../worksheet/Markdown';
 import { isValidJSON } from '@/utils';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
@@ -28,6 +26,8 @@ import { IconButton } from '../buttons/IconButton';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { Loader } from '../loader';
+import { CheckObjectKey, E_VISUAL_LOAD_ID } from '@/utils/dashboardUtil';
+import { ShowVisualization } from './ShowVisualization';
 interface TqlProps {
     pCode: string;
     pIsSave: any;
@@ -46,13 +46,13 @@ const Tql = (props: TqlProps) => {
     const [sCsvHeader, setCsvHeader] = useState<string[]>([]);
     const [sIsHeader, setHeader] = useState<boolean>(false);
     const [sMarkdown, setMarkdown] = useState<any>('');
-    const [sChartData, setChartData] = useState<string>('');
+    const [sVisualData, setVisualData] = useState<string>('');
+    // const [sMapData, setMapData] = useState<any>(undefined);
     const [sResultType, setResultType] = useState<string>('text');
     const [sTextField, setTextField] = useState<string>('');
     const [sIsPrettier, setIsPrettier] = useState<boolean>(false);
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
-    const [sMapData, setMapData] = useState<any>(undefined);
     const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
     const tqlResultBodyRef = useRef(null);
     const [sLoadState, setLoadState] = useState<boolean>(false);
@@ -94,22 +94,12 @@ const Tql = (props: TqlProps) => {
         HandleResutTypeAndTxt('Processing...', false);
         const sResult: any = await getTqlChart(aText);
 
-        if (sResult.status === 200 && sResult.headers && sResult.headers['x-chart-type'] === 'echarts') {
-            if (sResult.data && sResult.data.chartID) {
-                setResultType('html');
-                setChartData(sResult.data);
+        if (sResult.status === 200 && sResult.headers && (sResult.headers['x-chart-type'] === 'echarts' || sResult.headers['x-chart-type'] === 'geomap')) {
+            if (sResult.data && (CheckObjectKey(sResult.data, E_VISUAL_LOAD_ID.CHART) || CheckObjectKey(sResult.data, E_VISUAL_LOAD_ID.MAP))) {
+                setResultType('visual');
+                setVisualData(sResult.data);
             } else {
-                setChartData('');
-                // SyntaxError: CHART
-                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
-            }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['x-chart-type'] === 'geomap') {
-            if (sResult.data && sResult.data.ID) {
-                setResultType('map');
-                setMapData(sResult.data);
-            } else {
-                setMapData(undefined);
-                // SyntaxError: GEOMAP
+                setVisualData('');
                 HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('markdown')) {
@@ -291,8 +281,8 @@ const Tql = (props: TqlProps) => {
                                 )
                             ) : null}
                             {sResultType === 'ndjson' && <pre>{sTextField}</pre>}
-                            {sResultType === 'html' ? <ShowChart pData={sChartData} pLoopMode={false} /> : null}
-                            {sResultType === 'map' ? <ShowMap pData={sMapData} pBodyRef={tqlResultBodyRef} /> : null}
+                            {/* Map & Chart */}
+                            {sResultType === 'visual' ? <ShowVisualization pData={sVisualData} pLoopMode={false} /> : null}
                             {sResultType === 'mrk' ? <Markdown pIdx={1} pContents={sMarkdown} pType="mrk" /> : null}
                             {sResultType === 'xhtml' ? <Markdown pIdx={1} pContents={sMarkdown} /> : null}
                         </div>

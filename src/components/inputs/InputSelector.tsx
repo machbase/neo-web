@@ -51,6 +51,7 @@ export const InputSelector = (props: SelectProps) => {
         onChange(changeEvent as any);
     };
     const handleClick = (aEvent: React.MouseEvent<HTMLDivElement>) => {
+        if (pIsDisabled) return;
         aEvent.stopPropagation();
         setIsOpen(!isOpen);
     };
