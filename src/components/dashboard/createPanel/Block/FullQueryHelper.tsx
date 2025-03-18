@@ -31,7 +31,7 @@ export const FullQueryHelper = ({ pIsShow }: { pIsShow: boolean }) => {
                 pHeight={20}
                 pIsToopTip
                 pToolTipId={'block-full-query-question-mark'}
-                pToolTipContent={`The columns in the query should be formatted and ordered as 'TIME' and 'NAME'.`}
+                pToolTipContent={`The columns in the query should be formatted and ordered as 'TIME'(milli sec) and 'VALUE'(numeric).`}
                 pIcon={<RxQuestionMark />}
                 onClick={handleClick}
             />
@@ -50,6 +50,12 @@ export const FullQueryHelper = ({ pIsShow }: { pIsShow: boolean }) => {
                         </Modal.Header>
                         <Modal.Body>
                             <div className="full-query-modal-body">
+                                <span className="full-query-modal-body-desc">
+                                    The columns in the query should be formatted and ordered as <code>'TIME'(milli sec)</code> and <code>'VALUE'(numeric)</code>.
+                                </span>
+                                <span className="full-query-modal-body-desc">
+                                    You can use the predefined <code>'VARIABLES'</code> provided by Machbase Neo Dashboard.
+                                </span>
                                 <div className="full-query-modal-body-copy-block">
                                     <div className="full-query-modal-body-copy-block-text">
                                         <span>{FULL_TYPING_QUERY_PLACEHOLDER}</span>

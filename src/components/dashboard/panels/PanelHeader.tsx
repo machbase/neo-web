@@ -217,7 +217,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 {pPanelInfo.type === 'Geomap' && (
                                     <Menu.Item onClick={handleGeomapZoom}>
                                         <TbZoomPan />
-                                        <span>Zoom control</span>
+                                        <span>Use zoom control</span>
                                         {pPanelInfo.chartOptions.useZoomControl && <IoMdCheckmark />}
                                     </Menu.Item>
                                 )}

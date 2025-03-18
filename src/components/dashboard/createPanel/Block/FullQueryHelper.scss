@@ -14,8 +14,16 @@
                 padding: 1.75rem 1.75rem 1rem 1.75rem;
             }
             &-body {
+                display: flex;
+                flex-direction: column;
                 border-top: 0.5px solid #9c9da6;
                 padding: 20px 32px;
+                gap: 8px;
+
+                &-desc {
+                    font-size: 14px;
+                    color: #d7d7d7;
+                }
 
                 &-copy-block {
                     overflow-x: scroll;
@@ -30,9 +38,9 @@
                     background-color: rgba(255, 255, 255, 0.13);
                     color: #f1f1f1;
                     text-align: start;
+                    font-size: 14px;
 
                     &-text {
-                        font-size: 18px;
                         width: auto;
                     }
                     &-btn {
