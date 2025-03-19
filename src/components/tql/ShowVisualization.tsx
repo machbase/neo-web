@@ -104,7 +104,6 @@ export const ShowVisualization = (props: ShowChartProps) => {
         const sMapInstance = (window as any)[sDomId];
         if (!sMapInstance) return;
         const sDomElement = GetIsTqlType() ? GetElementByPanelName()[0] : GetElementByResId();
-
         if (pChartOpt && pChartOpt.useZoomControl) {
             sMapInstance.map?.touchZoom.enable();
             sMapInstance.map?.doubleClickZoom.enable();
@@ -112,7 +111,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
             sMapInstance.map?.boxZoom.enable();
             sMapInstance.map?.keyboard.enable();
             sMapInstance.map?.dragging.enable();
-            sDomElement?.getElementsByClassName('leaflet-control-zoom')?.[0].setAttribute('style', 'visibility: visible');
+            sDomElement?.getElementsByClassName('leaflet-control-zoom')?.[0]?.setAttribute('style', 'visibility: visible');
         } else {
             sMapInstance.map?.touchZoom.disable();
             sMapInstance.map?.doubleClickZoom.disable();
@@ -120,7 +119,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
             sMapInstance.map?.boxZoom.disable();
             sMapInstance.map?.keyboard.disable();
             sMapInstance.map?.dragging.disable();
-            sDomElement?.getElementsByClassName('leaflet-control-zoom')?.[0].setAttribute('style', 'visibility: hidden');
+            sDomElement?.getElementsByClassName('leaflet-control-zoom')?.[0]?.setAttribute('style', 'visibility: hidden');
         }
     };
 

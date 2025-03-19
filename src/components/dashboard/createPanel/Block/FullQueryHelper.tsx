@@ -56,6 +56,7 @@ export const FullQueryHelper = ({ pIsShow }: { pIsShow: boolean }) => {
                                 <span className="full-query-modal-body-desc">
                                     You can use the predefined <code>'VARIABLES'</code> provided by Machbase Neo Dashboard.
                                 </span>
+                                <span className="full-query-modal-body-desc-ex">example)</span>
                                 <div className="full-query-modal-body-copy-block">
                                     <div className="full-query-modal-body-copy-block-text">
                                         <span>{FULL_TYPING_QUERY_PLACEHOLDER}</span>

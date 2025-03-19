@@ -3,7 +3,7 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { Input } from '@/components/inputs/Input';
 import { InputSelector } from '@/components/inputs/InputSelector';
 
-const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pBlockInfo, pColumnList, pVariableList }: any) => {
+const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pBlockInfo, pColumnList }: any) => {
     const sFliterList = ['=', '<>', '>', '>=', '<', '<=', 'in', 'like'];
     return (
         <div className="values filter">
@@ -25,14 +25,12 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                             pWidth={175}
                             pBorderRadius={4}
                             pHeight={26}
-                            pIsDisabled={!pColumnList[0] && !pVariableList}
+                            pIsDisabled={!pColumnList[0]}
                             pInitValue={pFilterInfo.column}
                             onChange={(aEvent: any) => pChangeValueOption('column', aEvent, pFilterInfo.id, 'filter')}
-                            pOptions={pColumnList
-                                .map((aItem: any) => {
-                                    return aItem[0];
-                                })
-                                .concat(pVariableList)}
+                            pOptions={pColumnList.map((aItem: any) => {
+                                return aItem[0];
+                            })}
                         />
                     </div>
                     <div className="series-table operator">
@@ -43,7 +41,7 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                             pInitValue={pFilterInfo.operator ?? sFliterList[0]}
                             pHeight={26}
                             onChange={(aEvent: any) => pChangeValueOption('operator', aEvent, pFilterInfo.id, 'filter')}
-                            pOptions={sFliterList.concat(pVariableList)}
+                            pOptions={sFliterList}
                         />
                     </div>
                 </>
@@ -68,7 +66,7 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                         pHeight={26}
                         pInitValue={pFilterInfo.value}
                         onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
-                        pOptions={pVariableList}
+                        pOptions={[]}
                     />
                 </div>
             )}

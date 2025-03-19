@@ -12,7 +12,7 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { TqlBlock } from './TqlBlock';
 import { getTagColor, getUseColorList } from '@/utils/helpers/tags';
 
-const CreatePanelFooter = ({ pVariableList, pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
+const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
     const [sTab, setTab] = useState('Query');
 
     const setUseTimePicker = (aKey: string, aValue: any) => {
@@ -107,7 +107,6 @@ const CreatePanelFooter = ({ pVariableList, pTableList, pType, pGetTables, pSetP
                                             pGetTables={pGetTables}
                                             pBlockInfo={aItem}
                                             pSetPanelOption={pSetPanelOption}
-                                            pVariableList={pVariableList}
                                         />
                                     );
                                 })}

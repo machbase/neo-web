@@ -5,7 +5,7 @@ import { InputSelector } from '@/components/inputs/InputSelector';
 import { Select } from '@/components/inputs/Select';
 import { DIFF_LIST, SEPARATE_DIFF } from '@/utils/dashboardUtil';
 
-const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pVariableList, pIdx, pBlockInfo, pPanelOption, pAddValue, pRemoveValue }: any) => {
+const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pIdx, pBlockInfo, pPanelOption, pAddValue, pRemoveValue }: any) => {
     return (
         <div className="values" style={{ flexWrap: 'wrap' }}>
             <div className="series-table">
@@ -28,9 +28,9 @@ const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pVariableLis
                     pInitValue={pValue.value}
                     pHeight={26}
                     pAutoChanged={false}
-                    pIsDisabled={!pColumnList[0] && !pVariableList}
+                    pIsDisabled={!pColumnList[0]}
                     onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
-                    pOptions={pColumnList.map((aItem: any) => aItem[0]).concat(pVariableList)}
+                    pOptions={pColumnList.map((aItem: any) => aItem[0])}
                 />
             </div>
 
@@ -44,7 +44,7 @@ const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pVariableLis
                     pHeight={26}
                     pIsDisabled={pPanelOption.type === 'Geomap' && pIdx > 0}
                     onChange={(aEvent: any) => pChangeValueOption('aggregator', aEvent, pValue.id, 'values')}
-                    pOptions={pAggList.concat(pVariableList)}
+                    pOptions={pAggList}
                 />
             </div>
             {SEPARATE_DIFF && (
