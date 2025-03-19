@@ -24,3 +24,15 @@
         margin-left: 18px;
     }
 }
+.collapse-disable {
+    cursor: default;
+
+    .collapse-body {
+        opacity: 0.4;
+    }
+}
+.collapse-body {
+    gap: 8px;
+    display: flex;
+    flex-direction: column;
+}

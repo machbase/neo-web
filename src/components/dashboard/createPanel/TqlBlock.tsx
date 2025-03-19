@@ -6,7 +6,7 @@ import { OpenFileBtn } from '@/components/buttons/OpenFileBtn';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { AiFillMinusCircle } from 'react-icons/ai';
 import { DropBoxBtn } from '@/components/buttons/DropBoxBtn';
-import { PARAM_LIST } from '@/utils/DashboardTqlChartParser';
+import { SHOW_PARAM_LIST } from '@/utils/DashboardTqlChartParser';
 import './TqlBlock.scss';
 
 export const TqlBlock = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any; pSetPanelOption: any }) => {
@@ -114,7 +114,7 @@ const paramForm = (aParamList: any, aChange: (key: string, value: any) => void) 
                                         onChange={(aEvent: any) => handleChange('name', aEvent, aIdx)}
                                     />
                                 </div>
-                                <DropBoxBtn pList={PARAM_LIST} pCallback={(aTarget: string) => handleChange('name', { target: { value: aTarget } }, aIdx)} />
+                                <DropBoxBtn pList={SHOW_PARAM_LIST} pCallback={(aTarget: string) => handleChange('name', { target: { value: aTarget } }, aIdx)} />
                                 <div className="tql-block-item-param-icon">
                                     {aParamList.length > 1 && <AiFillMinusCircle onClick={() => delParam(aIdx)} />}
                                     {aIdx === aParamList.length - 1 && aParamList.length !== 12 && <PlusCircle onClick={addParam} />}

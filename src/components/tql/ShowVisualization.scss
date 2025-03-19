@@ -2,6 +2,16 @@
     position: relative;
     height: 100%;
 
+    .text-panel-value {
+        position: absolute;
+        z-index: 9;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        width: 100%;
+    }
+
     .map_container {
         height: 100%;
         .leaflet-container {

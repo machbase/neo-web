@@ -1,10 +1,28 @@
 import { SqlResDataType } from './DashboardQueryParser';
-import { DIFF_LIST, SEPARATE_DIFF, logAggregatorList, nameValueAggregatorList, nameValueVirtualAggList, tagAggregatorList } from './dashboardUtil';
+import {
+    CheckObjectKey,
+    DIFF_LIST,
+    SEPARATE_DIFF,
+    geomapAggregatorList,
+    logAggregatorList,
+    nameValueAggregatorList,
+    nameValueVirtualAggList,
+    tagAggregatorList,
+} from './dashboardUtil';
 import { chartTypeConverter } from './eChartHelper';
 import { concatTagSet } from './helpers/tags';
 
+export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
 const DashboardCompatibility = (aData: any) => {
     const sDashboardInfo = JSON.parse(aData);
+
+    // Check variables
+    if (!sDashboardInfo?.dashboard?.variables) {
+        sDashboardInfo.dashboard = {
+            ...sDashboardInfo.dashboard,
+            variables: [],
+        };
+    }
 
     if (sDashboardInfo?.dashboard.panels.length > 0) {
         const sPanelList = sDashboardInfo.dashboard.panels;
@@ -16,13 +34,24 @@ const DashboardCompatibility = (aData: any) => {
                 if (xAxisOpt?.axisLabel) return xAxisOpt;
                 else return { ...xAxisOpt, axisLabel: { hideOverlap: true } };
             });
+            // Y-Axis opt
+            aPanel.yAxisOptions = aPanel.yAxisOptions.map((yAxisOpt: any) => {
+                if (yAxisOpt?.axisLabel) return yAxisOpt;
+                else return { ...yAxisOpt, offset: '' };
+            });
             const sResultPanel = aPanel;
             const sBlockList: any = aPanel.blockList;
             const sChartType: string = chartTypeConverter(aPanel.type);
             const sResDataType: string = SqlResDataType(sChartType);
 
             const sVaildBlockList = sBlockList.map((aBlock: any) => {
-                const sResult: any = aBlock;
+                // Skip validate variableBlock
+                const sIsVariableBlock = aBlock.table.match(VARIABLE_REGEX);
+                if (sIsVariableBlock) return aBlock;
+                // Check full query
+                const sHasKeyFullQuery = CheckObjectKey(aBlock, 'customFullTyping');
+
+                const sResult: any = sHasKeyFullQuery ? aBlock : { ...aBlock, customFullTyping: { use: false, text: '' } };
                 let DEFAULT_AGGREGATOR: string = 'count';
                 let sAggList: string[] = [];
                 if (sResDataType === 'TIME_VALUE') {
@@ -38,11 +67,15 @@ const DashboardCompatibility = (aData: any) => {
                         sAggList = nameValueAggregatorList;
                     }
                 }
+                if (aPanel.type === 'Geomap') {
+                    DEFAULT_AGGREGATOR = 'value';
+                    sAggList = geomapAggregatorList;
+                }
 
                 if (aBlock.useCustom) {
                     // Values
                     const sValueList = aBlock.values;
-                    const sVaildValueList = sValueList.map((aValue: any) => {
+                    const sValidValueList = sValueList.map((aValue: any) => {
                         if (sAggList.includes(aValue.aggregator)) return aValue;
                         else {
                             return {
@@ -51,7 +84,7 @@ const DashboardCompatibility = (aData: any) => {
                             };
                         }
                     });
-                    sResult.values = sVaildValueList;
+                    sResult.values = sValidValueList;
                     // Duration
                     sResult.duration = sResult?.duration ?? { from: '', to: '' };
                     // if (aBlock.type.toUpperCase() === 'LOG' && aBlock.time.toUpperCase() !== '_ARRIVAL_TIME' && !sResult?.duration) sResult.duration = { from: '', to: '' };
@@ -68,7 +101,6 @@ const DashboardCompatibility = (aData: any) => {
 
                 return sResult;
             });
-
             sResultPanel.blockList = sVaildBlockList;
             return sResultPanel;
         });

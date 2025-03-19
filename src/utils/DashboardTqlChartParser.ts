@@ -1,6 +1,14 @@
+import { VARIABLE_TYPE } from '@/components/dashboard/variable';
 import moment from 'moment';
+import { VariableParser } from './DashboardQueryParser';
+import { VARIABLE_REGEX } from './CheckDataCompatibility';
 
-export const TqlChartParser = (aTqlChartInfo: any, aTimeParams: { start: number | string; end: number | string }, aInterval: { IntervalType: string; IntervalValue: number }) => {
+export const TqlChartParser = (
+    aTqlChartInfo: any,
+    aTimeParams: { start: number | string; end: number | string },
+    aInterval: { IntervalType: string; IntervalValue: number },
+    aVariableList: VARIABLE_TYPE[]
+) => {
     const timeConverter = (aTime: string | number, aReturnTypeString: boolean) => {
         if (aReturnTypeString) {
             const sTmpTime = new Date(aTime);
@@ -39,20 +47,30 @@ export const TqlChartParser = (aTqlChartInfo: any, aTimeParams: { start: number 
                 return aValue;
         }
     };
-    const paramsFilter = (aParamList: any) => {
+    const paramsFilter = (aParamList: any, aVariableList: VARIABLE_TYPE[]) => {
+        const parsedVariableList = VariableParser(aVariableList, { start: aTimeParams.start, end: aTimeParams.end, interval: aInterval });
         const useParamList = aParamList.filter((aParam: any) => aParam.name !== '' && aParam.value !== '');
-        const parsedParamList = useParamList.map((bParam: any) => {
-            if (PARAM_LIST.includes(bParam.name)) return `${bParam.value}=${valueConverter(bParam.name)}`;
+        let parsedParamList = useParamList.map((bParam: any) => {
+            if (HIDDEN_PARAM_LIST.includes(bParam.name)) return `${bParam.value}=${valueConverter(bParam.name)}`;
             else return `${bParam.value}=${bParam.name}`;
+        });
+        parsedParamList = parsedParamList.map((parsedParam: string) => {
+            let tmpParam = parsedParam;
+            if (parsedParam.match(VARIABLE_REGEX)) {
+                parsedVariableList.map((parsedVariable) => {
+                    if (parsedParam.match(parsedVariable.regEx)) tmpParam = tmpParam.replaceAll(parsedVariable.regEx, parsedVariable.value);
+                });
+            }
+            return tmpParam;
         });
         return `?${parsedParamList.join('&')}`;
     };
 
-    const sResult = `${aTqlChartInfo.path}${paramsFilter(aTqlChartInfo.params)}`;
+    const sResult = `${aTqlChartInfo.path}${paramsFilter(aTqlChartInfo.params, aVariableList)}`;
     return sResult;
 };
 
-export const PARAM_LIST = [
+export const HIDDEN_PARAM_LIST = [
     '$from_str',
     '$from_s',
     '$from_ms',
@@ -66,4 +84,20 @@ export const PARAM_LIST = [
     '$period',
     '$period_unit',
     '$period_value',
+];
+
+export const SHOW_PARAM_LIST = [
+    '{{from_str}}',
+    '{{from_s}}',
+    '{{from_ms}}',
+    '{{from_us}}',
+    '{{from_ns}}',
+    '{{to_str}}',
+    '{{to_s}}',
+    '{{to_ms}}',
+    '{{to_us}}',
+    '{{to_ns}}',
+    '{{period}}',
+    '{{period_unit}}',
+    '{{period_value}}',
 ];

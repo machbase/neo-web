@@ -6,9 +6,10 @@ interface CollapseProps {
     title: string;
     children: React.ReactNode;
     isOpen?: boolean;
+    isDisable?: boolean;
 }
 export const Collapse = (props: CollapseProps) => {
-    const { title, children, isOpen = false } = props;
+    const { title, children, isOpen = false, isDisable = false } = props;
     const [sIsOpen, setIsOpen] = useState<boolean>(isOpen);
 
     const handleOpen = () => {
@@ -16,7 +17,7 @@ export const Collapse = (props: CollapseProps) => {
     };
 
     return (
-        <div className="collapse">
+        <div className={`collapse${isDisable ? ' collapse-disable' : ''}`}>
             <div className="collapse-header" onClick={handleOpen}>
                 <div className="collapse-icon">{sIsOpen ? <VscChevronDown /> : <VscChevronRight />}</div>
                 {title}

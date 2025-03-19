@@ -46,6 +46,7 @@ export const DefaultYAxisOption = {
     // value | category | time | log
     type: 'value' as string,
     position: 'left' as 'left' | 'right',
+    offset: '' as string,
     alignTicks: true,
     scale: true,
     useMinMax: false,
@@ -66,6 +67,30 @@ export const DefaultYAxisOption = {
     // }
 };
 
+export const DefaultGeomapOpntion = {
+    tooltipTime: true as boolean,
+    tooltipCoor: false as boolean,
+    intervalType: 'none' as string,
+    intervalValue: '' as string,
+    coorLat: [0] as Array<number>,
+    coorLon: [1] as Array<number>,
+    marker: [{ shape: 'circle', radius: 150 }] as Array<{ shape: string; radius: number }>,
+    useZoomControl: false as boolean,
+    useAutoRefresh: true as boolean,
+};
+export const DefaultTextchartOpntion = {
+    tagLimit: 2 as number,
+    fontSize: 100 as number,
+    symbol: 'circle' as string,
+    isSymbol: true as boolean,
+    symbolSize: 1 as number,
+    color: [['default', '#FFFFFF']] as [number | string, string][],
+    chartType: 'line' as string,
+    chartColor: '#367FEB' as string,
+    fillOpacity: 0.1 as number,
+    digit: 3 as number,
+    unit: '' as string,
+};
 export const DefaultTqlChartOption = {
     theme: 'white' as string,
 };
@@ -194,12 +219,12 @@ export const DefaultChartOption = {
     h: 7 as number, // height
 };
 
-export const DefaultTagTableOption = {
+export const DefaultVariableTableOption = {
     id: generateUUID(),
-    table: undefined as string | undefined,
-    userName: undefined as string | undefined,
+    table: '' as string | undefined,
+    userName: '' as string | undefined,
     color: getDefaultColor(),
-    type: 'tag',
+    type: '',
     filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: 'VALUE', aggregator: 'avg' }],
     useRollup: false,
@@ -213,6 +238,35 @@ export const DefaultTagTableOption = {
     alias: '',
     math: '',
     duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+    },
+};
+
+export const DefaultTagTableOption = {
+    id: generateUUID(),
+    table: undefined as string | undefined,
+    userName: undefined as string | undefined,
+    color: getDefaultColor(),
+    type: 'tag',
+    filter: [{ id: generateUUID(), column: 'NAME', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    values: [{ id: generateUUID(), alias: '', value: 'VALUE', aggregator: 'avg' }],
+    useRollup: false,
+    name: 'NAME',
+    time: 'TIME',
+    useCustom: false,
+    aggregator: 'avg',
+    diff: 'none',
+    tag: '',
+    value: 'VALUE',
+    alias: '',
+    math: '',
+    duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+    },
 };
 
 export const DefaultLogTableOption = {
@@ -234,6 +288,10 @@ export const DefaultLogTableOption = {
     alias: '',
     math: '',
     duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+    },
 };
 
 export const getDefaultSeriesOption = (aChartType: ChartType) => {
@@ -252,6 +310,10 @@ export const getDefaultSeriesOption = (aChartType: ChartType) => {
             return DefaultLiquidfillChartOption;
         case 'tql':
             return DefaultTqlChartOption;
+        case 'text':
+            return DefaultTextchartOpntion;
+        case 'geomap':
+            return DefaultGeomapOpntion;
         default:
             return DefaultLineChartOption;
     }

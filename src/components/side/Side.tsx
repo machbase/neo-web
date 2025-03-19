@@ -232,6 +232,8 @@ any) => {
                 sParedData = aSelectedDir;
             }
 
+            if (aSelectedDir.parentId === 'apps') sParedData.readOnly = aSelectedDir.readOnly;
+
             sParedData.isOpen = aIsOpen;
             const sTmpDir = findDir(sFileTree as any, sParedData, aSelectedDir);
             const sResult = JSON.parse(JSON.stringify(sFileTree));

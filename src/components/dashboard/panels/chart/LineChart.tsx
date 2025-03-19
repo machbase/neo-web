@@ -13,6 +13,8 @@ import { chartTypeConverter } from '@/utils/eChartHelper';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { TqlChartParser } from '@/utils/DashboardTqlChartParser';
 import moment from 'moment';
+import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
+import { Error } from '@/components/toast/Toast';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
 
 const LineChart = ({
@@ -28,6 +30,7 @@ const LineChart = ({
     pParentWidth,
     pIsHeader,
     pBoardTimeMinMax,
+    pBoardInfo,
 }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
     const [sChartData, setChartData] = useState<any>(undefined);
@@ -51,11 +54,8 @@ const LineChart = ({
     };
 
     const executeTqlChart = async (aWidth?: number) => {
-        if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') {
-            return;
-        }
+        if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
         setIsLoading(true);
-        !pLoopMode && setChartData(undefined);
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
             sRefClientWidth = ChartRef.current.clientWidth;
         }
@@ -70,16 +70,27 @@ const LineChart = ({
         let sEndTime = undefined;
         if (pPanelInfo.useCustomTime) {
             const sTimeMinMax = await handlePanelTimeRange(pPanelInfo.timeRange.start, pPanelInfo.timeRange.end);
-            sStartTime = sTimeMinMax.min;
-            sEndTime = sTimeMinMax.max;
+            if (!sTimeMinMax) {
+                sStartTime = setUnitTime(pPanelInfo.timeRange.start);
+                sEndTime = setUnitTime(pPanelInfo.timeRange.end);
+            } else {
+                sStartTime = sTimeMinMax.min;
+                sEndTime = sTimeMinMax.max;
+            }
         } else {
             sStartTime = pBoardTimeMinMax?.min;
             sEndTime = pBoardTimeMinMax?.max;
         }
 
-        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
+        let sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
+        if (pPanelInfo.type === 'Geomap')
+            sIntervalInfo = {
+                IntervalType: pPanelInfo.chartOptions.intervalType,
+                IntervalValue: pPanelInfo.chartOptions.intervalValue,
+            };
         if (pPanelInfo.type === 'Tql chart') {
-            const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange(), sIntervalInfo));
+            !pLoopMode && setChartData(undefined);
+            const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange(), sIntervalInfo, pBoardInfo.dashboard.variables));
             if (!sResult?.data?.reason) {
                 setChartData(sResult);
                 setIsError(false);
@@ -91,32 +102,91 @@ const LineChart = ({
             }
         } else {
             if (!sStartTime || !sEndTime) return;
-            const [sParsedQuery, sAliasList] = await DashboardQueryParser(chartTypeConverter(pPanelInfo.type), pPanelInfo.blockList, sRollupTableList, pPanelInfo.xAxisOptions, {
-                interval: sIntervalInfo,
-                start: sStartTime,
-                end: sEndTime,
-            });
-            const sParsedChartOption = await DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
-            const sParsedChartCode = await DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery);
-
-            const sResult: any = await getTqlChart(
-                `FAKE(linspace(0, 1, 1))
-                 CHART(
-                    ${`chartID('${PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}'),`}
-                    ${pPanelInfo.plg ? `plugins('${pPanelInfo.plg}'),` : ''}
-                    theme('${pPanelInfo.theme}'),
-                    size('${sRefClientWidth}px','${sRefClientHeight}px'),
-                    chartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption))}),
-                    chartJSCode(${sParsedChartCode})
-                )`,
-                'dsh'
+            const [sParsedQuery, sAliasList] = DashboardQueryParser(
+                chartTypeConverter(pPanelInfo.type),
+                pPanelInfo.blockList,
+                sRollupTableList,
+                pPanelInfo.xAxisOptions,
+                {
+                    interval: sIntervalInfo,
+                    start: sStartTime,
+                    end: sEndTime,
+                },
+                pBoardInfo.dashboard.variables
             );
-            if (!sResult.data.reason) {
+            const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
+            const sParsedChartCode = DashboardChartCodeParser(
+                pPanelInfo.chartOptions,
+                chartTypeConverter(pPanelInfo.type),
+                sParsedQuery,
+                false,
+                PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)
+            );
+
+            const checkUndefinedVariable = sParsedQuery.reduce((prev: string, curv: any) => {
+                const tmpMatch = curv.query.match(VARIABLE_REGEX);
+                return tmpMatch ? tmpMatch[0] : prev;
+            }, '');
+
+            if (checkUndefinedVariable) {
+                pType === 'edit' && Error(checkUndefinedVariable + ' is not defined');
+                setIsChartData(false);
+            }
+
+            let sResult: any = undefined;
+
+            if (pPanelInfo.type === 'Geomap') {
+                const sColumnIdxList = pPanelInfo.blockList.map((_block: any, idx: number) => {
+                    if (pPanelInfo.chartOptions.coorLat[idx] === pPanelInfo.chartOptions.coorLon[idx]) return [0, 1];
+                    else return [pPanelInfo.chartOptions.coorLat[idx], pPanelInfo.chartOptions.coorLon[idx]];
+                });
+                const sSqlList = sParsedQuery.map((query: any) => {
+                    return { sql: query.sql };
+                });
+                const sRadiusList = pPanelInfo.chartOptions.marker.map((mkr: { shape: string; radius: number }) => {
+                    return mkr.radius;
+                });
+                const sShapeList = pPanelInfo.chartOptions.marker.map((mkr: { shape: string; radius: number }) => {
+                    return mkr.shape;
+                });
+
+                // var markerList = ${JSON.stringify(pPanelInfo.chartOptions.marker)};
+                sResult = await getTqlChart(
+                    `SCRIPT("js", {
+                        var shapeList = ${JSON.stringify(sShapeList)};
+                        var radiusList = ${JSON.stringify(sRadiusList)};
+                        var colorList = ${JSON.stringify(sAliasList.map((alias: any) => alias.color))};
+                        var columnIdxList = ${JSON.stringify(sColumnIdxList)};
+                        var queryList = ${JSON.stringify(sSqlList)};
+                        ${sParsedChartCode}
+                    })
+                    GEOMAP(
+                        geomapID('${PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}'),
+                        size('${sRefClientWidth}px','${sRefClientHeight}px')
+                    )`,
+                    'dsh'
+                );
+            } else {
+                sResult = await getTqlChart(
+                    `FAKE(linspace(0, 1, 1))
+                     CHART(
+                        ${`chartID('${PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}'),`}
+                        ${pPanelInfo.plg ? `plugins('${pPanelInfo.plg}'),` : ''}
+                        theme('${pPanelInfo.theme}'),
+                        size('${sRefClientWidth}px','${sRefClientHeight}px'),
+                        chartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption))}),
+                        chartJSCode(${sParsedChartCode})
+                    )`,
+                    'dsh'
+                );
+            }
+
+            if (sResult && !sResult?.data?.reason) {
                 setChartData(sResult.data);
                 setIsError(false);
                 setIsChartData(true);
             } else {
-                setIsMessage(sResult.data.reason);
+                setIsMessage(sResult?.data?.reason);
                 setIsError(true);
                 setIsChartData(false);
             }
@@ -125,9 +195,15 @@ const LineChart = ({
         pSetModifyState({ id: '', state: false });
     };
     const sSetIntervalTime = () => {
+        if (pPanelInfo.type === 'Geomap' && !pPanelInfo.chartOptions?.useAutoRefresh) return null;
         if (pType === 'create' || pType === 'edit') return null;
         if (pPanelInfo.timeRange.refresh !== 'Off') return calcRefreshTime(pPanelInfo.timeRange.refresh);
         return null;
+    };
+    const defaultMinMax = () => {
+        const sNowTime = moment().unix() * 1000;
+        const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
+        return sNowTimeMinMax;
     };
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetPanel = pPanelInfo;
@@ -138,6 +214,7 @@ const LineChart = ({
         })[0]?.value;
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
             let sSvrResult: any = undefined;
+            if (sTargetTag.customTable) return defaultMinMax();
             if (sTargetTag.table.split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
             } else {
@@ -145,11 +222,7 @@ const LineChart = ({
             }
             const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
             return sResult;
-        } else {
-            const sNowTime = moment().unix() * 1000;
-            const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
-            return sNowTimeMinMax;
-        }
+        } else return defaultMinMax();
     };
     const handlePanelTimeRange = async (sStart: any, sEnd: any) => {
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
@@ -157,12 +230,12 @@ const LineChart = ({
     };
 
     useEffect(() => {
-        if (!pModifyState.state && sIsMounted && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh)) {
+        if (((!pModifyState.state && sIsMounted) || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh || pBoardInfo.dashboard?.variables?.length > 0)) {
             executeTqlChart();
         }
     }, [pBoardTimeMinMax]);
     useEffect(() => {
-        if (pModifyState.state && pModifyState.id === pPanelInfo.id) {
+        if (pModifyState.state && pModifyState.id === PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)) {
             executeTqlChart();
         }
     }, [pModifyState]);
@@ -186,7 +259,9 @@ const LineChart = ({
         }
     }, [pDragStat]);
     useEffect(() => {
-        if (sIsMounted && !pDragStat && !pInsetDraging) executeTqlChart(pParentWidth);
+        if (sIsMounted && !pDragStat && !pInsetDraging) {
+            executeTqlChart(pParentWidth);
+        }
     }, [pParentWidth]);
     useEffect(() => {
         setIsMounted(true);
@@ -194,7 +269,9 @@ const LineChart = ({
 
     useEffect(() => {
         if (!(ChartRef && ChartRef?.current)) return;
-        if (pIsActiveTab && sIsMounted && ChartRef.current.dataset && !ChartRef.current.dataset.processed) executeTqlChart();
+        if (pIsActiveTab && sIsMounted && ChartRef.current.dataset && !ChartRef.current.dataset.processed) {
+            executeTqlChart();
+        }
     }, [pIsActiveTab]);
 
     useOverlapTimeout(() => {
@@ -210,10 +287,11 @@ const LineChart = ({
                 <ShowVisualization
                     pLoopMode={pLoopMode}
                     pData={sChartData}
-                    pIsTqlPanel={pPanelInfo.type === 'Tql chart'}
+                    pPanelType={pPanelInfo.type}
                     pPanelId={pChartVariableId + '-' + pPanelInfo.id}
                     pPanelRef={ChartRef}
                     pTheme={pPanelInfo.theme}
+                    pChartOpt={pPanelInfo.chartOptions}
                 />
             ) : null}
         </div>

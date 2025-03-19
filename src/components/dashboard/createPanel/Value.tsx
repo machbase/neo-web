@@ -1,27 +1,27 @@
-// import { Close, PlusCircle } from '@/assets/icons/Icon';
-// import { IconButton } from '@/components/buttons/IconButton';
+import { Close, PlusCircle } from '@/assets/icons/Icon';
+import { IconButton } from '@/components/buttons/IconButton';
 import { Input } from '@/components/inputs/Input';
+import { InputSelector } from '@/components/inputs/InputSelector';
 import { Select } from '@/components/inputs/Select';
-import {
-    DIFF_LIST,
-    SEPARATE_DIFF,
-    // tagAggregatorList
-} from '@/utils/dashboardUtil';
+import { DIFF_LIST, SEPARATE_DIFF } from '@/utils/dashboardUtil';
 
-const Value = ({
-    pValue,
-    pColumnList,
-    pChangeValueOption,
-    pAggList,
-}: // pBlockInfo,
-// pIdx, pAddValue, pRemoveValue,
-// ,pValueLimits
-any) => {
+const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pIdx, pBlockInfo, pPanelOption, pAddValue, pRemoveValue }: any) => {
     return (
-        <div className="values">
+        <div className="values" style={{ flexWrap: 'wrap' }}>
             <div className="series-table">
-                <span className="series-title">Value field</span>
-                <Select
+                <span className="series-title">
+                    Value field
+                    {pPanelOption.type === 'Geomap' ? (
+                        pIdx === pBlockInfo.values.length - 1 ? (
+                            <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={pAddValue} />
+                        ) : (
+                            <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => pRemoveValue(pValue.id)} />
+                        )
+                    ) : (
+                        <></>
+                    )}
+                </span>
+                <InputSelector
                     pFontSize={12}
                     pWidth={175}
                     pBorderRadius={4}
@@ -36,12 +36,13 @@ any) => {
 
             <div className="series-table">
                 <span className="series-title"> Aggregator </span>
-                <Select
+                <InputSelector
                     pFontSize={12}
                     pWidth={175}
                     pBorderRadius={4}
                     pInitValue={pValue.aggregator ?? 'avg'}
                     pHeight={26}
+                    pIsDisabled={pPanelOption.type === 'Geomap' && pIdx > 0}
                     onChange={(aEvent: any) => pChangeValueOption('aggregator', aEvent, pValue.id, 'values')}
                     pOptions={pAggList}
                 />
@@ -65,7 +66,7 @@ any) => {
                 <span className="series-title"> Alias </span>
                 <Input
                     pBorderRadius={4}
-                    pWidth={140}
+                    pWidth={175}
                     pHeight={26}
                     pType="text"
                     pValue={pValue.alias}

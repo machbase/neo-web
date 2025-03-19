@@ -1,0 +1,81 @@
+.dsh-block-full-query-wrap {
+    position: relative;
+
+    .dsh-block-full-query-modal {
+        .full-query-modal {
+            display: flex;
+            flex-direction: column;
+            &-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-grow: 1;
+                width: 100%;
+                padding: 1.75rem 1.75rem 1rem 1.75rem;
+            }
+            &-body {
+                display: flex;
+                flex-direction: column;
+                border-top: 0.5px solid #9c9da6;
+                padding: 20px 32px;
+                gap: 8px;
+
+                &-desc {
+                    font-size: 14px;
+                    color: #d7d7d7;
+
+                    &-ex {
+                        font-size: 12px;
+                        color: #c8c8c8;
+                    }
+                }
+
+                &-copy-block {
+                    overflow-x: scroll;
+                    width: 100%;
+                    display: flex;
+                    justify-content: space-between;
+                    flex-direction: row;
+                    align-items: flex-start;
+                    padding: 8px;
+                    border-radius: 3px;
+                    border: solid 1px #f1f1f125;
+                    background-color: rgba(255, 255, 255, 0.13);
+                    color: #f1f1f1;
+                    text-align: start;
+                    font-size: 14px;
+
+                    &-text {
+                        width: auto;
+                    }
+                    &-btn {
+                        cursor: pointer;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        width: 100px;
+                        height: 25px;
+                        color: #f1f1f1;
+                        border-radius: 2px;
+                        padding: 8px 16px;
+                        font-size: 13px;
+                        text-overflow: ellipsis;
+                        overflow: hidden;
+                        background-color: #6f7173;
+                        border: 1px solid rgba(255, 255, 255, 0.13);
+
+                        &:hover {
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                        }
+                    }
+                }
+            }
+            &-footer {
+                display: flex;
+                align-items: end;
+                justify-content: end;
+                padding: 8px;
+            }
+        }
+    }
+}

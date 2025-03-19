@@ -29,6 +29,7 @@ export const TagSearchSelect = ({ pTable, pCallback, pBlockOption }: { pTable: s
         if (pTable) {
             const sTable = pTable.split('.').length > 1 ? pTable : pBlockOption.userName + '.' + pTable;
             let sTotalRes: any = undefined;
+            if (pBlockOption.tableInfo.length < 1) return;
             if (!sSkipTagTotal) sTotalRes = await getTagTotal(sTable, sSearchText, pBlockOption.tableInfo[0][0]);
             const sResult: any = await getTagPagination(sTable, sSearchText, sTagPagination, pBlockOption.tableInfo[0][0]);
             if (sResult.success) {

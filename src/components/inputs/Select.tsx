@@ -40,7 +40,7 @@ export const Select = (props: SelectProps) => {
     const [selectValue, setSelectValue] = useState<string>(pInitValue);
     const optionRef = useRef<HTMLDivElement>(null);
     const isMounted = useRef(false);
-    const handleSelect = (aValue: string) => {
+    const handleSelect = (aValue: string, idx: number) => {
         if (pNoneValue && pNoneValue === aValue) setSelectValue('');
         else setSelectValue(aValue);
         setIsOpen(false);
@@ -49,12 +49,14 @@ export const Select = (props: SelectProps) => {
             target: {
                 value: aValue,
                 name: 'customSelect',
+                idx: idx,
             },
         };
         onChange(changeEvent as any);
     };
 
     const handleClick = (aEvent: React.MouseEvent<HTMLDivElement>) => {
+        if (pIsDisabled) return;
         aEvent.stopPropagation();
         setIsOpen(!isOpen);
     };
@@ -81,11 +83,11 @@ export const Select = (props: SelectProps) => {
                 minWidth: pIsFullWidth ? '100%' : pWidth + 'px',
                 height: pHeight + 'px',
                 opacity: pIsDisabled ? 0.6 : 1,
-                cursor: 'pointer',
+                cursor: pIsDisabled ? 'default' : 'pointer',
             }}
         >
             <div className="select-input" onClick={handleClick}>
-                <input readOnly={pIsReadonly} value={selectValue} disabled={pIsDisabled} style={{ fontSize: pFontSize, cursor: 'pointer' }} placeholder="Select..." />
+                <input disabled={pIsDisabled} readOnly={pIsReadonly} value={selectValue} style={{ fontSize: pFontSize, cursor: 'inherit' }} placeholder="Select..." />
                 <ArrowDown />
             </div>
             <div
@@ -97,13 +99,13 @@ export const Select = (props: SelectProps) => {
                 <div className="select-options-item-wrapper" style={{ maxHeight: pHeight * 4 + 'px' }}>
                     {!pIsToolTip &&
                         pOptions.map((aOption: string, aIdx) => (
-                            <div key={aOption + aIdx} className="options-item" onClick={() => handleSelect(aOption)} style={{ fontSize: pFontSize }}>
+                            <div key={aOption + aIdx} className="options-item" onClick={() => handleSelect(aOption, aIdx)} style={{ fontSize: pFontSize }}>
                                 {aOption}
                             </div>
                         ))}
                     {pIsToolTip &&
                         pOptions.map((aOption: string, aIdx) => (
-                            <button key={aIdx} className={`select-tooltip-${aIdx} options-item`} onClick={() => handleSelect(aOption)} style={{ fontSize: pFontSize }}>
+                            <button key={aIdx} className={`select-tooltip-${aIdx} options-item`} onClick={() => handleSelect(aOption, aIdx)} style={{ fontSize: pFontSize }}>
                                 <Tooltip anchorSelect={`.select-tooltip-${aIdx}`} content={aOption} />
                                 <div className="select-text">{aOption}</div>
                             </button>

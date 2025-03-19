@@ -1,3 +1,5 @@
+import { ChartTheme } from '@/type/eChart';
+
 export const FORMAT_FULL_DATE = 'YYYY-MM-DD HH:mm:ss';
 export const LENGTH_LIST = 10;
 export const NOW = 'now';
@@ -450,10 +452,12 @@ export const ChartTypeList = [
     { key: 'Gauge', value: 'gauge' },
     { key: 'Pie', value: 'pie' },
     { key: 'Liquid fill', value: 'liquidFill' },
+    { key: 'Text', value: 'text' },
+    { key: 'Geomap', value: 'geomap' },
     { key: 'Tql chart', value: 'tql' },
 ];
-export const ChartThemeList = ['dark', 'white', 'vintage', 'macarons', 'infographic', 'shine', 'roma'];
-export const ChartThemeBackgroundColor = {
+
+export const ChartThemeBackgroundColor: { [key in ChartTheme]: string } = {
     dark: '#100B2A',
     white: '#FFFFFF',
     vintage: '#FEF8F0',
@@ -461,7 +465,16 @@ export const ChartThemeBackgroundColor = {
     infographic: '#FFFFFF',
     shine: '#FFFFFF',
     roma: '#FFFFFF',
-} as { [key: string]: string };
+    chalk: '#293441',
+    essos: '#fdfcf4',
+    'purple-passion': '#5b5c6e',
+    romantic: '#f0e8cd',
+    walden: '#FFFFFF',
+    westeros: '#FFFFFF',
+    wonderland: '#FFFFFF',
+};
+export const ChartThemeList = Object.keys(ChartThemeBackgroundColor);
+
 export const ChartXAxisTypeList = ['category', 'time'];
 export const ChartSeriesColorList = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#FADE2A'];
 export const ChartTooltipTriggerList = ['item', 'axis'];
@@ -507,3 +520,6 @@ export const GRID_LAYOUT_ROW_HEIGHT = 30;
 
 // tag color
 export const TagColorList = ['#73BF69', '#F2CC0C', '#8AB8FF', '#FF780A', '#F2495C', '#5794F2', '#B877D9', '#705DA0', '#37872D', '#FDA1FF', '#7B64FF', '#999999'];
+
+// full typing query placeholder
+export const FULL_TYPING_QUERY_PLACEHOLDER = `SELECT DATE_TRUNC('{{period_unit}}', TIME, {{period_value}}) / 1000000 AS TIME, AVG(value) AS 'SERIES(0)' FROM EXAMPLE WHERE TIME BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) GROUP BY TIME ORDER BY TIME;`;

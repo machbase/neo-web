@@ -21,6 +21,12 @@ import { Input } from '../inputs/Input';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { Error } from '../toast/Toast';
+import { Variable } from './variable';
+import { VariableHeader } from './variable/header';
+import { VariablePreview } from './variable/preview';
+import { SiVectorworks } from 'react-icons/si';
+import { IoMdOptions } from 'react-icons/io';
+import { IoClose } from 'react-icons/io5';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
@@ -36,6 +42,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const [sChartVariableId, setChartVariableId] = useState<string>('');
     const [sBoardTimeMinMax, setBoardTimeMinMax] = useState<any>(undefined);
     const sActiveTabId = useRecoilValue<any>(gSelectedTab);
+    const [sVariableModal, setVariableModal] = useState<boolean>(false);
+    const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
+    const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
 
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
@@ -168,6 +177,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
             })[0]?.value;
 
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
+            if (sTargetTag.customTable) return getNowMinMax();
             let sSvrResult: any = undefined;
             if (sTargetTag.table.split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
@@ -182,7 +192,6 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
             return getNowMinMax();
         }
     };
-
     const getNowMinMax = () => {
         const sNowTime = moment().unix() * 1000;
         const sNowTimeMinMax = { min: moment(sNowTime).subtract(1, 'h').unix() * 1000, max: sNowTime };
@@ -191,6 +200,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     // Set initial value
     const initDashboard = async () => {
         if (pInfo.dashboard.panels.length > 0) await handleDashboardTimeRange(pInfo.dashboard.timeRange.start, pInfo.dashboard.timeRange.end);
+        setVariableCollapse(false);
         GenChartVariableId();
         GetRollupTables();
         setIsPanelHeader(pInfo.panelHeader);
@@ -200,8 +210,14 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         initDashboard();
     }, []);
 
+    const handleSplitPaneSize = (varId: string = 'ALL') => {
+        setSelectVariable(varId);
+        if (varId !== sSelectVariable && sVariableCollapse) return;
+        setVariableCollapse(!sVariableCollapse);
+    };
+
     const sSetIntervalTime = () => {
-        if (sThisPanelStatus === 'create' || sThisPanelStatus === 'edit') return null;
+        if (sThisPanelStatus === 'create' || sThisPanelStatus === 'edit' || sActiveTabId !== pInfo.id) return null;
         if (pInfo.dashboard.timeRange.refresh !== 'Off') return calcRefreshTime(pInfo.dashboard.timeRange.refresh);
         return null;
     };
@@ -217,7 +233,24 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                 <div className="board-header">
                     <div className="board-header-l">
                         <Input pBorderRadius={4} pWidth={175} pHeight={26} pType="text" pValue={pInfo.dashboard.title} pSetValue={() => null} onChange={changeDashboardName} />
+                        {pInfo && pInfo?.dashboard && pInfo?.dashboard?.variables && pInfo?.dashboard?.variables?.length > 0 && (
+                            <>
+                                <div className="board-header-variable-collapse">
+                                    <IconButton
+                                        pIsToopTip
+                                        pToolTipContent="Variables"
+                                        pToolTipId="variables-show-btn"
+                                        pWidth={20}
+                                        pHeight={20}
+                                        pIcon={<IoMdOptions />}
+                                        onClick={() => handleSplitPaneSize()}
+                                    />
+                                </div>
+                                <VariablePreview pBoardInfo={pInfo} callback={(selectVarId) => handleSplitPaneSize(selectVarId)} />
+                            </>
+                        )}
                     </div>
+
                     <div className="board-header-r">
                         <IconButton
                             pIsToopTip
@@ -225,7 +258,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                             pToolTipId="dsh-tab-explorer-new-panel"
                             pIcon={<TbSquarePlus />}
                             onClick={() => showEditPanel('create')}
-                        ></IconButton>
+                        />
                         {/* <IconButton pIcon={<MdDevicesFold style={{ transform: 'rotate(-90deg)' }} />} pIsActive={!sIsPanelHeader} onClick={HandlePanelHeader} /> */}
                         <IconButton
                             pIsToopTip
@@ -276,6 +309,13 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         {pIsSave ? (
                             <IconButton pIsToopTip pToolTipContent="Copy link" pToolTipId="dsh-tab-explorer-copy-link" pIcon={<MdLink size={18} />} onClick={handleCopyLink} />
                         ) : null}
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="Variable config"
+                            pToolTipId="dsh-variable"
+                            pIcon={<SiVectorworks />}
+                            onClick={() => setVariableModal(!sVariableModal)}
+                        />
                     </div>
                 </div>
                 {pWidth && (
@@ -317,12 +357,29 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                     );
                                 })}
                         </GridLayout>
+
                         {isEmpty(pInfo.dashboard.panels) && (
                             <div className="non-set-panel">
                                 <IconButton pWidth={70} pHeight={70} pIcon={<TbSquarePlus size="70px" />} onClick={() => showEditPanel('create')} />
                                 Create New Panel
                             </div>
                         )}
+                    </div>
+                )}
+                {sVariableCollapse && (
+                    <div className="variable-header-warp">
+                        <div className="variable-header-close">
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Close"
+                                pToolTipId="variables-close-btn"
+                                pWidth={20}
+                                pHeight={20}
+                                pIcon={<IoClose />}
+                                onClick={() => handleSplitPaneSize()}
+                            />
+                        </div>
+                        <VariableHeader pBoardInfo={pInfo} callback={initDashboard} pSelectVariable={sSelectVariable} />
                     </div>
                 )}
                 {sTimeRangeModal && <ModalTimeRange pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal} pSaveCallback={handleSaveTimeRange} />}
@@ -340,9 +397,11 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         pSetTimeRangeModal={setTimeRangeModal}
                         pSetIsSaveModal={pSetIsSaveModal}
                         pBoardTimeMinMax={sBoardTimeMinMax}
+                        pChartVariableId={sChartVariableId}
                         pSetBoardTimeMinMax={setBoardTimeMinMax}
                     />
                 )}
+                {sVariableModal && <Variable pBoardInfo={pInfo} pSetModal={setVariableModal} />}
             </div>
         )
     );

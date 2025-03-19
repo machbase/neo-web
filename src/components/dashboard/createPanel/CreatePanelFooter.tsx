@@ -14,7 +14,6 @@ import { getTagColor, getUseColorList } from '@/utils/helpers/tags';
 
 const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
     const [sTab, setTab] = useState('Query');
-    const VALUE_LIMIT: number = 1;
 
     const setUseTimePicker = (aKey: string, aValue: any) => {
         pSetPanelOption((aPrev: any) => {
@@ -47,20 +46,33 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
 
     const HandleAddBlock = () => {
         pSetPanelOption((aPrev: any) => {
-            return {
-                ...aPrev,
-                blockList: [
-                    ...aPrev.blockList,
-                    {
-                        ...aPrev.blockList.at(-1),
-                        id: generateUUID(),
-                        color: getTagColor(getUseColorList(aPrev.blockList)),
-                        math: '',
-                        alias: '',
-                        values: [{ id: generateUUID(), alias: '', value: aPrev.blockList.at(-1).values.at(-1).value, aggregator: aPrev.blockList.at(-1).values.at(-1).aggregator }],
-                    },
-                ],
-            };
+            const sTmpPanelOpt = JSON.parse(
+                JSON.stringify({
+                    ...aPrev,
+                    blockList: [
+                        ...aPrev.blockList,
+                        {
+                            ...aPrev.blockList.at(-1),
+                            id: generateUUID(),
+                            color: getTagColor(getUseColorList(aPrev.blockList)),
+                            math: '',
+                            alias: '',
+                            values: aPrev.blockList.at(-1).values.map((val: any) => {
+                                return { ...val, id: generateUUID(), alias: '' };
+                            }),
+                        },
+                    ],
+                })
+            );
+
+            if (aPrev.type === 'Geomap')
+                sTmpPanelOpt.chartOptions = {
+                    ...sTmpPanelOpt.chartOptions,
+                    coorLat: sTmpPanelOpt.chartOptions.coorLat.concat([0]),
+                    coorLon: sTmpPanelOpt.chartOptions.coorLon.concat([1]),
+                    marker: sTmpPanelOpt.chartOptions.marker.concat({ shape: 'circle', radius: 150 }),
+                };
+            return sTmpPanelOpt;
         });
     };
 
@@ -95,7 +107,6 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                             pGetTables={pGetTables}
                                             pBlockInfo={aItem}
                                             pSetPanelOption={pSetPanelOption}
-                                            pValueLimit={VALUE_LIMIT}
                                         />
                                     );
                                 })}

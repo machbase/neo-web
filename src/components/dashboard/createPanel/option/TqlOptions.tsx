@@ -44,25 +44,25 @@ export const TqlOptions = (props: GaugeOptionProps) => {
                     <div style={{ display: 'flex', flexDirection: 'column', color: '#b6b6b6' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
                             <span style={{ color: 'white' }}>From</span>
-                            <span>$from_str: date string (YYYY-MM-DD HH:MI:SS)</span>
-                            <span>$from_s: unix timestamp </span>
-                            <span>$from_ms: unix timestamp (milliseconds)</span>
-                            <span>$from_us: unix timestamp (microseconds)</span>
-                            <span>$from_ns: unix timestamp (nanoseconds)</span>
+                            <span>{`{{from_str}}: date string (YYYY-MM-DD HH:MI:SS)`}</span>
+                            <span>{`{{from_s}}: unix timestamp`}</span>
+                            <span>{`{{from_ms}}: unix timestamp (milliseconds)`}</span>
+                            <span>{`{{from_us}}: unix timestamp (microseconds)`}</span>
+                            <span>{`{{from_ns}}: unix timestamp (nanoseconds)`}</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
                             <span style={{ color: 'white' }}>To</span>
-                            <span>$to_str: date string (YYYY-MM-DD HH:MI:SS)</span>
-                            <span>$to_s: unix timestamp</span>
-                            <span>$to_ms: unix timestamp (milliseconds)</span>
-                            <span>$to_us: unix timestamp (microseconds)</span>
-                            <span>$to_ns: unix timestamp (nanoseconds)</span>
+                            <span>{`{{to_str}}: date string (YYYY-MM-DD HH:MI:SS)`}</span>
+                            <span>{`{{to_s}}: unix timestamp`}</span>
+                            <span>{`{{to_ms}}: unix timestamp (milliseconds)`}</span>
+                            <span>{`{{to_us}}: unix timestamp (microseconds)`}</span>
+                            <span>{`{{to_ns}}: unix timestamp (nanoseconds)`}</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
                             <span style={{ color: 'white' }}>Period</span>
-                            <span>$period: duration expression (ex: 10s) </span>
-                            <span>$period_value: period value (ex: 10)</span>
-                            <span>$period_unit: period unit (ex: sec)</span>
+                            <span>{`{{period}}: duration expression (ex: 10s)`}</span>
+                            <span>{`{{period_value}}: period value (ex: 10)`}</span>
+                            <span>{`{{period_unit}}: period unit (ex: sec)`}</span>
                         </div>
                     </div>
                 </div>

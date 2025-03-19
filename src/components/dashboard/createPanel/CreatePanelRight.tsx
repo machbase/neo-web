@@ -8,7 +8,7 @@ import { Collapse } from '@/components/collapse/Collapse';
 import { PieOptions } from './option/PieOptions';
 import { LineOptions } from './option/LineOptions';
 import { XAxisOptions } from './option/XAxisOptions';
-import { isTimeSeriesChart } from '@/utils/dashboardUtil';
+import { geomapAggregatorList, isTimeSeriesChart } from '@/utils/dashboardUtil';
 import { YAxisOptions } from './option/YAxisOptions';
 import { BarOptions } from './option/BarOptions';
 import { ScatterOptions } from './option/ScatterOptions';
@@ -16,6 +16,9 @@ import { GaugeOptions } from './option/GaugeOptions';
 import { ChartType } from '@/type/eChart';
 import { LiquidfillOptions } from './option/LiquidfillOptions';
 import { TqlOptions } from './option/TqlOptions';
+import { TextOptions } from './option/TextOptions';
+import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
+import { GeomapOptions } from './option/GeomapOptions';
 
 interface CreatePanelRightProps {
     pPanelOption: any;
@@ -56,6 +59,25 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
             if (sResVal.chartOptions?.tagLimit) sResVal.blockList = sResVal.blockList.slice(0, sResVal.chartOptions?.tagLimit);
             if (sIsPlgChart) sResVal.plg = sIsPlgChart.plg;
             else sResVal.plg = undefined;
+            if (sConvertedChartType !== 'geomap') {
+                if (sConvertedChartType !== 'line' && sConvertedChartType !== 'bar') {
+                    sResVal.blockList = sResVal.blockList.map((block: any) => {
+                        return { ...block, values: [block.values[0]], customFullTyping: { use: false, text: '' } };
+                    });
+                } else {
+                    sResVal.blockList = sResVal.blockList.map((block: any) => {
+                        return { ...block, values: [block.values[0]] };
+                    });
+                }
+            } else {
+                sResVal.blockList = sResVal.blockList.map((block: any) => {
+                    const sTmpValues = block.values.map((value: any) => {
+                        if (geomapAggregatorList.includes(value.aggregator) || value.aggregator.match(VARIABLE_REGEX)) return value;
+                        else return { ...value, aggregator: geomapAggregatorList[0] };
+                    });
+                    return { ...block, values: sTmpValues, useCustom: true };
+                });
+            }
             return sResVal;
         });
     };
@@ -74,9 +96,9 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     pOptions={ChartTypeList.map((aType: { key: string; value: string }) => aType.key) as string[]}
                 />
 
-                {pPanelOption.type !== 'Tql chart' && <div className="divider" />}
+                {chartTypeConverter(pPanelOption.type) !== 'tql' && <div className="divider" />}
                 <div className="content" style={{ height: '100%' }}>
-                    {pPanelOption.type !== 'Tql chart' && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
+                    {chartTypeConverter(pPanelOption.type) !== 'tql' && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
 
                     {isTimeSeriesChart(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption.xAxisOptions && (
                         <>
@@ -92,11 +114,11 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     {isTimeSeriesChart(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption.yAxisOptions && (
                         <>
                             <div className="divider" />
-                            <YAxisOptions pYAxis={pPanelOption.yAxisOptions} pSetPanelOption={pSetPanelOption} />
+                            <YAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
                         </>
                     )}
                     <div className="divider" />
-                    {chartTypeConverter(pPanelOption.type) !== 'tql' && (
+                    {chartTypeConverter(pPanelOption.type) !== 'tql' && chartTypeConverter(pPanelOption.type) !== 'text' && chartTypeConverter(pPanelOption.type) !== 'geomap' && (
                         <Collapse title="Chart option" isOpen>
                             {chartTypeConverter(pPanelOption.type) === 'line' ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                             {chartTypeConverter(pPanelOption.type) === 'bar' ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
@@ -106,7 +128,8 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                             {chartTypeConverter(pPanelOption.type) === 'liquidFill' ? <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                         </Collapse>
                     )}
-
+                    {chartTypeConverter(pPanelOption.type) === 'geomap' ? <GeomapOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                    {chartTypeConverter(pPanelOption.type) === 'text' ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                     {chartTypeConverter(pPanelOption.type) === 'tql' ? <TqlOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                     <div className="divider" />
                 </div>

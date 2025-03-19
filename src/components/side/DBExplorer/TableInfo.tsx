@@ -135,7 +135,7 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
     const [isUnmount, setIsUnmount] = useState<boolean>(false);
     const [isMount, setIsMount] = useState<boolean>(false);
     const [sMountState, setMountState] = useState<string>('');
-    const [sMountAlias, setMountAlias] = useState<string>(backupInfo.path.toUpperCase());
+    const [sMountAlias, setMountAlias] = useState<string>(backupInfo.path?.toUpperCase());
     const sMountAliasRef = useRef<any>(undefined);
 
     const mountBackupDB = async () => {
@@ -158,7 +158,7 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
     };
     const handleMountModal = (e: React.MouseEvent) => {
         e.stopPropagation();
-        setMountAlias(() => backupInfo.path.toUpperCase());
+        setMountAlias(() => backupInfo.path?.toUpperCase());
         setIsMount(true);
     };
     const handleMountName = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,7 +166,7 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
         const end = e.target.selectionEnd ?? 0;
         if (!MountNameRegEx.test(e.target.value) && e.target.value !== '') return sMountAliasRef.current.setSelectionRange(start - 1, end - 1);
         sMountAliasRef.current.setSelectionRange(start, end);
-        setMountAlias(() => e.target.value.toUpperCase());
+        setMountAlias(() => e.target.value?.toUpperCase());
     };
 
     return (
@@ -265,7 +265,7 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate }: any) =>
             {pValue && pValue.dbName && (
                 <div className="db-wrap db-exp-comm" onClick={() => setCollapseTree(!sCollapseTree)}>
                     {DBDiv(<FaDatabase />, pValue.dbName, sCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow')}
-                    {getUserName().toUpperCase() === ADMIN_ID.toUpperCase() && pValue.dbName !== 'MACHBASEDB' && (
+                    {getUserName()?.toUpperCase() === ADMIN_ID?.toUpperCase() && pValue.dbName !== 'MACHBASEDB' && (
                         <div className="table-unmount">
                             <IconButton
                                 pIsToopTip
@@ -323,7 +323,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
     const [sCollapseTree, setCollapseTree] = useState(true);
     const TableTypeList: string[] = ['tag', 'log', 'fixed', 'volatile', 'lookup', 'keyValue'];
     let sUserName = getUserName();
-    if (sUserName) sUserName = sUserName.toUpperCase();
+    if (sUserName) sUserName = sUserName?.toUpperCase();
 
     const getTableInfoData = async (aDatabaseId: string, aTableId: string) => {
         return await getTableInfo(aDatabaseId, aTableId);
@@ -365,12 +365,12 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
 
     return (
         <>
-            {props.pUserData && props.pShowUserIcon && (
+            {props.pUserData && props.pShowUserIcon && props.pUserData.total > 0 && (
                 <div className="user-column " style={{ alignItems: 'baseline' }} onClick={() => setCollapseTree(!sCollapseTree)}>
                     {UserColumn(<FaUser />, props.pUserData.userName, sCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow')}
                 </div>
             )}
-            {props.pUserData && props.pUserData.tableList && sCollapseTree && (
+            {props.pUserData && props.pUserData.tableList && props.pUserData.total > 0 && sCollapseTree && (
                 <div className="table-wrap db-exp-comm">
                     {TableTypeList.map((aTableType: string, aIdx: number) => {
                         return (
@@ -380,11 +380,13 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                         <div className="table-wrap-content" key={`table-${aTableType}-${aIdx}-${bIdx}`} style={{ display: checkDisplay(aTable[5]) ? '' : 'none' }}>
                                             {sUserName && (
                                                 <TableDiv
+                                                    pId={aTable[1] + aIdx.toString() + '-' + bIdx.toString()}
                                                     pShowHiddenObj={props.pShowHiddenObj}
                                                     pUserName={sUserName}
                                                     pTableIcon={<TfiLayoutColumn3Alt style={{ color: getColor(aTableType), rotate: '90deg' }} />}
                                                     pTable={aTable}
                                                     pTableType={aTableType}
+                                                    pPriv={aTable[7] ?? ''}
                                                     onTableInfo={getTableInfoData}
                                                     onColumnInfo={getColumnIndexInfoData}
                                                     pRefresh={props.pRefresh}
@@ -403,9 +405,11 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
 };
 
 interface TableDivPropsType {
+    pId: string;
     pShowHiddenObj: boolean;
     pTableIcon: React.ReactElement;
     pTableType: string;
+    pPriv: string;
     pUserName: string;
     pTable: (string | number)[];
     pRefresh: number;
@@ -418,6 +422,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
     const [sIndexList, setIndexList] = useState<(string | number)[][]>([]);
     const [sRollupList, setRollupList] = useState<(string | number)[][]>([]);
     const [sRecordCount, setRecordCount] = useState<number>(0);
+    const sPriv = props?.pPriv && props.pPriv !== '' ? props.pPriv?.split('|')?.[1].trim() : '';
 
     const handleDataFetch = async () => {
         if (sIsOpen) return setIsOpen(false);
@@ -458,16 +463,13 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
                             pWidth={'100%'}
                             pHeight={20}
                             pIsToopTip
-                            pToolTipContent={props.pTableType + ' table'}
-                            pToolTipId={props.pTableType + props.pUserName + '-block-math'}
+                            pToolTipContent={props.pTableType + ' table ' + sPriv}
+                            pToolTipId={props.pTableType + props.pUserName + '-block-math-' + props.pId}
                             pIcon={
                                 <>
                                     <span className="icons">{props.pTableIcon}</span>
                                     <span className="table-name">
-                                        {(props.pTable[0] === 'MACHBASEDB' && props.pTable[1] === 'SYS') ||
-                                        (props.pTable[0] === 'MACHBASEDB' && props.pTable[1] === props.pUserName)
-                                            ? props.pTable[3]
-                                            : `${props.pTable[1]}.${props.pTable[3]}`}
+                                        {props.pTable[0] === 'MACHBASEDB' && props.pTable[1] === props.pUserName ? props.pTable[3] : `${props.pTable[1]}.${props.pTable[3]}`}
                                     </span>
                                 </>
                             }
