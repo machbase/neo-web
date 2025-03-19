@@ -35,7 +35,7 @@ import { InputSelector } from '@/components/inputs/InputSelector';
 import { FULL_TYPING_QUERY_PLACEHOLDER } from '@/utils/constants';
 import { FullQueryHelper } from './Block/FullQueryHelper';
 
-export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption }: any) => {
+export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
@@ -48,10 +48,6 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
     const sColorPickerRef = useRef<any>(null);
     const sMathRef = useRef<any>(null);
 
-    /** return variable list */
-    const getVariableList = useMemo((): string[] => {
-        return pVariableList?.map((variable: any) => variable.key);
-    }, [pVariableList]);
     const setOption = (aKey: string, aData: any) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -497,8 +493,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                 };
             });
         }
-        let sTableList = pTableList.map((aItem: any) => aItem[3]);
-        sTableList = sTableList.concat(getVariableList);
+        const sTableList = pTableList.map((aItem: any) => aItem[3]);
 
         if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
             // sTagTableList has only MACHBASEDB
@@ -584,18 +579,16 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                     <div className="series-table">
                                         <span className="series-title">Time field</span>
                                         <InputSelector
-                                            pIsDisabled={!sTimeList[0] && !getVariableList}
+                                            pIsDisabled={!sTimeList[0]}
                                             pFontSize={12}
                                             pWidth={175}
                                             pBorderRadius={4}
                                             pInitValue={pBlockInfo.time}
                                             pHeight={26}
                                             onChange={(aEvent: any) => changedOption('time', aEvent)}
-                                            pOptions={sTimeList
-                                                .map((aItem: any) => {
-                                                    return aItem[0];
-                                                })
-                                                .concat(getVariableList)}
+                                            pOptions={sTimeList.map((aItem: any) => {
+                                                return aItem[0];
+                                            })}
                                         />
                                     </div>
                                 </div>
@@ -650,7 +643,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                             pHeight={26}
                                             pInitValue={pBlockInfo.tag}
                                             onChange={(aEvent: any) => changedOption('tag', aEvent)}
-                                            pOptions={getVariableList}
+                                            pOptions={[]}
                                         />
                                     </div>
                                 )}
@@ -665,7 +658,7 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                     pInitValue={pBlockInfo.aggregator}
                                     pHeight={26}
                                     onChange={(aEvent: any) => changedOption('aggregator', aEvent)}
-                                    pOptions={getAggregatorList.concat(getVariableList)}
+                                    pOptions={getAggregatorList}
                                 />
                                 {SEPARATE_DIFF && (
                                     <div className="series-table">
@@ -753,20 +746,22 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                             )}
                         </div>
                         <div ref={sColorPickerRef} style={{ position: 'relative' }}>
-                            <IconButton
-                                pDisabled={pPanelOption.type === 'Text'}
-                                pWidth={20}
-                                pHeight={20}
-                                pIsToopTip
-                                pToolTipContent={'Color'}
-                                pToolTipId={pBlockInfo.id + '-block-color'}
-                                pIcon={
-                                    <div
-                                        style={{ width: '14px', cursor: 'pointer', height: '14px', marginRight: '4px', borderRadius: '50%', backgroundColor: pBlockInfo.color }}
-                                    ></div>
-                                }
-                                onClick={() => setIsColorPicker(!sIsColorPicker)}
-                            />
+                            {pPanelOption.type !== 'Text' && (
+                                <IconButton
+                                    pDisabled={pPanelOption.type === 'Text'}
+                                    pWidth={20}
+                                    pHeight={20}
+                                    pIsToopTip
+                                    pToolTipContent={'Color'}
+                                    pToolTipId={pBlockInfo.id + '-block-color'}
+                                    pIcon={
+                                        <div
+                                            style={{ width: '14px', cursor: 'pointer', height: '14px', marginRight: '4px', borderRadius: '50%', backgroundColor: pBlockInfo.color }}
+                                        />
+                                    }
+                                    onClick={() => setIsColorPicker(!sIsColorPicker)}
+                                />
+                            )}
 
                             {sIsColorPicker && (
                                 <div className="color-picker">
@@ -816,7 +811,6 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                         pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
                                         pPanelOption={pPanelOption}
                                         pAggList={getAggregatorList}
-                                        pVariableList={getVariableList}
                                     />
                                 );
                             })}
@@ -840,7 +834,6 @@ export const Block = ({ pVariableList, pBlockInfo, pPanelOption, pTableList, pTy
                                         pIdx={aIdx}
                                         pAddFilter={addFilter}
                                         pRemoveFilter={removeFilter}
-                                        pVariableList={getVariableList}
                                     />
                                 );
                             })}

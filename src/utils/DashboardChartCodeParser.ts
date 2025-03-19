@@ -33,7 +33,7 @@ const LiquidNameValueFunc = (aChartOptions: any) => {
 const TextFunc = (aChartOptions: any, aPanelId?: string) => {
     const tmpColorSet = JSON.parse(JSON.stringify(aChartOptions.color));
     const tmpPop = tmpColorSet.shift();
-    tmpColorSet.sort((a: any, b: any) => parseInt(b[0]) - parseInt(a[0]));
+    tmpColorSet.sort((a: any, b: any) => parseFloat(b[0]) - parseFloat(a[0]));
     tmpColorSet.push(tmpPop);
     const colorInjectTxt = tmpColorSet.map((aChartOption: any, aIdx: number) => {
         if (aChartOption[0] === 'default') return `${aIdx === 0 ? '' : 'else '}return '${aChartOption[1]}';`;

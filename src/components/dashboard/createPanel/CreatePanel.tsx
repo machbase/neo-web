@@ -477,14 +477,7 @@ const CreatePanel = ({
                             </Pane>
                             <Pane minSize="10%">
                                 {sPanelOption.id && (
-                                    <CreatePanelFooter
-                                        pVariableList={pBoardInfo.dashboard.variables}
-                                        pType={pType}
-                                        pGetTables={getTables}
-                                        pTableList={sTableList}
-                                        pPanelOption={sPanelOption}
-                                        pSetPanelOption={setPanelOption}
-                                    />
+                                    <CreatePanelFooter pType={pType} pGetTables={getTables} pTableList={sTableList} pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} />
                                 )}
                             </Pane>
                         </SplitPane>
