@@ -303,6 +303,6 @@ export const gLicense = atom<any>({
     key: 'gLicense',
     default: {
         licenseStatus: BADGE_KEYWORD,
-        eulaRequired: true
+        eulaRequired: false,
     } as any,
 });
