@@ -16,7 +16,6 @@ export const PREVIOUS_WEEK = `${WEEK}/${WEEK}`;
 export const PREVIOUS_MONTH = `${MONTH}/${MONTH}`;
 export const PREVIOUS_YEAR = `${YEAR}/${YEAR}`;
 
-export const ADMIN = 'Admin';
 export const COMBO_BOX_TIME = [
     {
         name: 'off',
