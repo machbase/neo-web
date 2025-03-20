@@ -15,8 +15,7 @@ import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { MdDelete, MdDownload } from 'react-icons/md';
 import { BiLink, Play } from '@/assets/icons/Icon';
-import { getUserName } from '@/utils';
-import { ADMIN_ID } from '@/utils/constants';
+import { isCurUserEqualAdmin } from '@/utils';
 import { BiPause } from 'react-icons/bi';
 import { Tooltip } from 'react-tooltip';
 import { getFiles } from '@/api/repository/fileTree';
@@ -37,7 +36,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     const [sBracketHeight, setBracketHeight] = useState<string>('0px');
     const [sReadme, setReadme] = useState<string | undefined>(undefined);
     const [sCommandResLog, setCommandResLog] = useState<string | undefined>(undefined);
-    const sIsAdmin = getUserName() ? getUserName().toUpperCase() === ADMIN_ID.toUpperCase() : false;
+    const sIsAdmin = isCurUserEqualAdmin();
     const [sIsBtnLoad, setIsBtnLoad] = useState<boolean>(false);
     const [sPkgBEStatus, setPkgBEStatus] = useState<string | undefined>(undefined);
     const PKG_RUNNING = 'running';

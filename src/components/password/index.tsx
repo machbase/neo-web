@@ -2,7 +2,7 @@ import useEsc from '@/hooks/useEsc';
 import { Modal } from '@/components/modal/Modal';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { Close } from '@/assets/icons/Icon';
-import { decodeJwt } from '@/utils';
+import { getUserName } from '@/utils';
 import { VscEye, VscEyeClosed, VscWarning } from 'react-icons/vsc';
 import { useEffect, useRef, useState } from 'react';
 import { changePwd, getLogin } from '@/api/repository/login';
@@ -39,7 +39,7 @@ export const Password = ({ setIsOpen }: { setIsOpen: (aState: boolean) => void }
     };
     const init = async () => {
         const sChcekRes: any = await getLogin();
-        if (sChcekRes.success) setCurUserName(decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase());
+        if (sChcekRes.success) setCurUserName(getUserName()?.toUpperCase());
         else setCurUserName('');
     };
 

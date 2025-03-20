@@ -8,8 +8,7 @@ import { APP_INFO, getPkgsSync, getSearchPkgs, SEARCH_RES } from '@/api/reposito
 import { gSearchPkgs, gExactPkgs, gPossiblePkgs, gBrokenPkgs, gSearchPkgName, gInstalledPkgs } from '@/recoil/appStore';
 import { AppList } from './item';
 import EnterCallback from '@/hooks/useEnter';
-import { getUserName } from '@/utils';
-import { ADMIN_ID } from '@/utils/constants';
+import { isCurUserEqualAdmin } from '@/utils';
 import useDebounce from '@/hooks/useDebounce';
 
 export const AppStore = ({ pServer }: any) => {
@@ -24,7 +23,7 @@ export const AppStore = ({ pServer }: any) => {
     const [sSearchTxt, setSearchTxt] = useState<string>('');
     const [sEnter, setEnter] = useState<number>(0);
     const searchRef = useRef(null);
-    const sIsAdmin = getUserName() ? getUserName().toUpperCase() === ADMIN_ID.toUpperCase() : false;
+    const sIsAdmin = isCurUserEqualAdmin();
 
     // pkgs update (ADMIN)
     const pkgsUpdate = async () => {

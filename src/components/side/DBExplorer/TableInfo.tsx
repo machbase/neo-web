@@ -1,12 +1,11 @@
 import { getTableInfo, getColumnIndexInfo, getRollupTable, getRecordCount, unMountDB, mountDB, backupStatus } from '@/api/repository/api';
 import React, { useEffect, useRef, useState } from 'react';
 import { GoDotFill, FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser } from '@/assets/icons/Icon';
-import { generateUUID, getUserName } from '@/utils';
+import { generateUUID, getUserName, isCurUserEqualAdmin } from '@/utils';
 import { getColumnType } from '@/utils/dashboardUtil';
 import { IconButton } from '@/components/buttons/IconButton';
 import { TbDatabaseMinus, TbDatabasePlus, TbFileDatabase } from 'react-icons/tb';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
-import { ADMIN_ID } from '@/utils/constants';
 import { Loader } from '@/components/loader';
 import { Error } from '@/components/toast/Toast';
 import { MountNameRegEx } from '@/utils/database';
@@ -265,7 +264,7 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate }: any) =>
             {pValue && pValue.dbName && (
                 <div className="db-wrap db-exp-comm" onClick={() => setCollapseTree(!sCollapseTree)}>
                     {DBDiv(<FaDatabase />, pValue.dbName, sCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow')}
-                    {getUserName()?.toUpperCase() === ADMIN_ID?.toUpperCase() && pValue.dbName !== 'MACHBASEDB' && (
+                    {isCurUserEqualAdmin() && pValue.dbName !== 'MACHBASEDB' && (
                         <div className="table-unmount">
                             <IconButton
                                 pIsToopTip
