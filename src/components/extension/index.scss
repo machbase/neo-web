@@ -8,11 +8,16 @@
     justify-content: space-between;
     align-items: center;
     flex-direction: column;
-    z-index: $side-extension-form;
 
     .extension-top-list-item {
         width: 48px;
         cursor: pointer;
+    }
+    .extension-bottom-list {
+        .menu-wrapper {
+            position: absolute;
+            bottom: 0;
+        }
     }
 
     svg {
