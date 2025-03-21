@@ -88,7 +88,10 @@ export const getUserName = () => {
         return undefined;
     }
 };
-
+export const compareString = (aAStr: string, aBStr: string): boolean => {
+    if (aAStr?.toUpperCase() === aBStr?.toUpperCase()) return true;
+    else return false;
+};
 export const isCurUserEqualAdmin = (): boolean => {
     const sCurUser = getUserName();
     if (sCurUser?.toUpperCase() === ADMIN_ID.toUpperCase()) return true;
@@ -111,7 +114,7 @@ export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
         if (aItem[sDbIdx].toUpperCase() !== DEFAULT_DB_NAME.toUpperCase()) {
             return aItem[sDbIdx] + '.' + aItem[sUserIdx] + '.' + aItem[sTableIdx];
         } else {
-            if (isCurUserEqualAdmin() && aItem[sUserIdx]?.toUpperCase() === ADMIN_ID?.toUpperCase()) return aItem[sTableIdx];
+            if (isCurUserEqualAdmin() && compareString(aItem[sUserIdx], ADMIN_ID)) return aItem[sTableIdx];
             else return aItem[sUserIdx] + '.' + aItem[sTableIdx];
         }
     });
@@ -132,7 +135,7 @@ export const parseDashboardTables = (aTableInfo: { columns: any[]; rows: any[] }
     return sParseTables.map((aItem: any) => {
         // MACHBASE_DB
         if (aItem[sMount] === -1) {
-            if (isCurUserEqualAdmin()) return aItem;
+            if (isCurUserEqualAdmin() && compareString(aItem[sUserIdx], ADMIN_ID)) return aItem;
             else {
                 aItem[sTableIdx] = aItem[sUserIdx] + '.' + aItem[sTableIdx];
                 return aItem;
