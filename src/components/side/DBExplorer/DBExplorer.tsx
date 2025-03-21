@@ -4,10 +4,9 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { useEffect, useState } from 'react';
 import { VscChevronDown, VscChevronRight } from '@/assets/icons/Icon';
 import { BackupTableInfo, TableInfo } from './TableInfo';
-import { generateUUID, getUserName } from '@/utils';
+import { generateUUID, isCurUserEqualAdmin } from '@/utils';
 import { TbDatabasePlus } from 'react-icons/tb';
 import { DBMountModal } from './DBMountModal';
-import { ADMIN_ID } from '@/utils/constants';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gBackupList, gBoardList, gSelectedTab } from '@/recoil/recoil';
@@ -46,12 +45,11 @@ export const DBExplorer = ({ pServer }: any) => {
         setRefresh(sRefresh + 1);
         const sData = await getTableList();
         if (sData && sData.data) {
-            const U_NAME = getUserName();
             const DB_NAME_LIST: string[] = Array.from(
-                new Set(U_NAME === 'sys' ? ['MACHBASEDB', ...sData.data.rows.map((aRow: any) => aRow[0])] : sData.data.rows.map((aRow: any) => aRow[0]))
+                new Set(isCurUserEqualAdmin() ? ['MACHBASEDB', ...sData.data.rows.map((aRow: any) => aRow[0])] : sData.data.rows.map((aRow: any) => aRow[0]))
             );
             const USER_NAME_LIST: string[] = Array.from(
-                new Set(U_NAME === 'sys' ? ['SYS', ...sData.data.rows.map((aRow: any) => aRow[1])] : sData.data.rows.map((aRow: any) => aRow[1]))
+                new Set(isCurUserEqualAdmin() ? ['SYS', ...sData.data.rows.map((aRow: any) => aRow[1])] : sData.data.rows.map((aRow: any) => aRow[1]))
             );
             // DB > USER > TABLE > TYPE
             let DB_LIST: any = [];
@@ -84,8 +82,7 @@ export const DBExplorer = ({ pServer }: any) => {
     };
     /** Get backup database list */
     const getBackupDatabaseList = async () => {
-        const IS_ADMIN = getUserName()?.toUpperCase() === ADMIN_ID?.toUpperCase();
-        if (!IS_ADMIN) return;
+        if (!isCurUserEqualAdmin()) return;
         const sBackupListRes: any = await getBackupDBList();
         if (sBackupListRes && sBackupListRes?.success) {
             setBackupList(sBackupListRes?.data || []);
@@ -196,7 +193,7 @@ export const DBExplorer = ({ pServer }: any) => {
                 <div className="files-open-option">
                     <span className="title-text">DB EXPLORER</span>
                     <span className="sub-title-navi">
-                        {getUserName() === 'sys' && (
+                        {isCurUserEqualAdmin() && (
                             <>
                                 <IconButton
                                     pPlace="bottom-end"
@@ -250,7 +247,7 @@ export const DBExplorer = ({ pServer }: any) => {
                         return <TableInfo pShowHiddenObj={sShowHiddenObj} key={aIdx} pValue={aDB} pRefresh={sRefresh} pUpdate={init} />;
                     })}
                 {/* BACKUP DB LIST */}
-                {getUserName() === 'sys' && sBackupList && sBackupList.length !== 0 && (
+                {isCurUserEqualAdmin() && sBackupList && sBackupList.length !== 0 && (
                     <BackupTableInfo pValue={sBackupList} pRefresh={init} pBackupRefresh={getBackupDatabaseList} />
                 )}
             </div>

@@ -1,6 +1,6 @@
 import request from '@/api/core';
 import { Error } from '@/components/toast/Toast';
-import { createMinMaxQuery, createTableTagMap, decodeJwt } from '@/utils';
+import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { removeV$Table } from '@/utils/dbUtils';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
@@ -82,8 +82,8 @@ const fetchTableName = async (aTable: string) => {
 
 const fetchCalculationData = async (params: any) => {
     const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue, Rollup, colName } = params;
-    const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
-    const sTableName = sCurrentUserName === ADMIN_ID.toUpperCase() ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
+    const sCurrentUserName = getUserName();
+    const sTableName = isCurUserEqualAdmin() ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
     const sName = colName.name;
     const sTime = colName.time;
     const sValue = colName.value;
@@ -285,23 +285,6 @@ const fetchRawData = async (params: any) => {
     }
     return sConvertData;
 };
-
-// const fetchRangeData = async (Table: string, TagNames: string, time: string) => {
-//     const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
-//     const sTableName = sCurrentUserName === ADMIN_ID ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
-//     const sData = await request({
-//         method: 'GET',
-//         url: `/machbase?q=` + encodeURIComponent(`SELECT (min(${time})) as MIN, (max(${time})) as MAX FROM ${sTableName} WHERE name = '${TagNames}'`),
-//     });
-//     if (sData.status >= 400) {
-//         if (typeof sData.data === 'object') {
-//             Error(sData.data.reason);
-//         } else {
-//             Error(sData.data);
-//         }
-//     }
-//     return sData;
-// };
 
 const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
     const convert = createTableTagMap(tableTagInfo);

@@ -4,7 +4,7 @@ import { gBoardList, gSelectedTab, gTables } from '@/recoil/recoil';
 import { fetchOnMinMaxTable, fetchTableName, getTagPagination, getTagTotal } from '@/api/repository/machiot';
 import { DEFAULT_CHART } from '@/utils/constants';
 import { convertChartDefault } from '@/utils/utils';
-import { decodeJwt, getId } from '@/utils';
+import { getId, getUserName } from '@/utils';
 import { BiSolidChart, Close, Search, ArrowLeft, ArrowRight } from '@/assets/icons/Icon';
 import { TextButton } from '../buttons/TextButton';
 import { Input } from '@/components/inputs/Input';
@@ -110,7 +110,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
             return;
         }
 
-        const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub.toUpperCase();
+        const sCurrentUserName = getUserName()?.toUpperCase();
         const sRes: any = await fetchOnMinMaxTable(sSelectedTag, sCurrentUserName);
         const sMinMax = sRes.data;
 

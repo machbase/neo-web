@@ -89,17 +89,21 @@ export const getUserName = () => {
     }
 };
 
+export const isCurUserEqualAdmin = (): boolean => {
+    const sCurUser = getUserName();
+    if (sCurUser?.toUpperCase() === ADMIN_ID.toUpperCase()) return true;
+    else return false;
+};
+
 export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
     if (!aTableInfo.rows) return [];
 
-    const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub;
-    const sIsAdmin = sCurrentUserName.toUpperCase() === ADMIN_ID.toUpperCase();
     const sDbIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'DB');
     const sUserIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'USER');
     const sTableIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'NAME');
     let sParseTables = aTableInfo.rows.filter((aItem: any) => aItem[4] === 'Tag Table');
 
-    if (!sIsAdmin) {
+    if (!isCurUserEqualAdmin()) {
         sParseTables = sParseTables.filter((aItem: any) => aItem[sDbIdx].toUpperCase() === DEFAULT_DB_NAME.toUpperCase());
     }
 
@@ -107,35 +111,29 @@ export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
         if (aItem[sDbIdx].toUpperCase() !== DEFAULT_DB_NAME.toUpperCase()) {
             return aItem[sDbIdx] + '.' + aItem[sUserIdx] + '.' + aItem[sTableIdx];
         } else {
-            if (aItem[sUserIdx].toUpperCase() === ADMIN_ID.toUpperCase()) {
-                return aItem[sTableIdx];
-            } else {
-                return aItem[sUserIdx] + '.' + aItem[sTableIdx];
-            }
+            if (isCurUserEqualAdmin() && aItem[sUserIdx]?.toUpperCase() === ADMIN_ID?.toUpperCase()) return aItem[sTableIdx];
+            else return aItem[sUserIdx] + '.' + aItem[sTableIdx];
         }
     });
 };
 
 export const parseDashboardTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
     if (!aTableInfo.rows) return [];
-    const sCurrentUserName = decodeJwt(JSON.stringify(localStorage.getItem('accessToken'))).sub;
-    const sIsAdmin = sCurrentUserName.toUpperCase() === ADMIN_ID.toUpperCase();
     const sMount = aTableInfo.columns.findIndex((aItem: any) => aItem === 'DBID');
     const sDbIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'DB_NAME');
     const sUserIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'USER_NAME');
     const sTableIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'TABLE_NAME');
 
     let sParseTables: any = aTableInfo.rows;
-    if (!sIsAdmin) {
+    if (!isCurUserEqualAdmin()) {
         sParseTables = aTableInfo.rows.filter((aItem: any) => aItem[sDbIdx].toUpperCase() === DEFAULT_DB_NAME.toUpperCase());
     }
 
     return sParseTables.map((aItem: any) => {
         // MACHBASE_DB
         if (aItem[sMount] === -1) {
-            if (aItem[sUserIdx].toUpperCase() === ADMIN_ID.toUpperCase()) {
-                return aItem;
-            } else {
+            if (isCurUserEqualAdmin()) return aItem;
+            else {
                 aItem[sTableIdx] = aItem[sUserIdx] + '.' + aItem[sTableIdx];
                 return aItem;
             }
@@ -313,7 +311,7 @@ export const createMinMaxQuery = (tableTagMap: TableTagMap[], currentUserName: s
             // ADMIN
             else {
                 tableName = aInfo.table;
-                userName = 'sys';
+                userName = ADMIN_ID.toUpperCase();
             }
             aInfo.tags.forEach((tag: string, aIndex: number) => {
                 if (aIndex === aInfo.tags.length - 1) {

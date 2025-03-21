@@ -60,6 +60,8 @@ const Home = () => {
             localStorage.setItem('experimentMode', sResult?.experimentMode ?? false);
             const sTermTypeList = sResult?.shells.filter((aShell: any) => aShell.type === 'term');
             setShellList(sTermTypeList);
+            setOpenEula(true);
+            setLicense({ eulaRequired: sResult?.eulaRequired, licenseStatus: sResult?.licenseStatus?.toUpperCase() });
             const sId = getId();
             if (!sWebSoc.current) {
                 if (window.location.protocol.indexOf('https') === -1) {
@@ -111,7 +113,7 @@ const Home = () => {
     const getInfo = async () => {
         const sResult: any = await getLogin();
         localStorage.setItem('experimentMode', sResult?.experimentMode ?? false);
-        setLicense({eulaRequired: sResult?.eulaRequired ,licenseStatus: sResult?.licenseStatus?.toUpperCase()})
+        setLicense({ eulaRequired: sResult?.eulaRequired, licenseStatus: sResult?.licenseStatus?.toUpperCase() });
         setServer(sResult?.server);
         const sortAttributes = (aItem: string, bItem: string) => {
             const sOrder = ['editable', 'cloneable', 'removable'];
@@ -141,9 +143,6 @@ const Home = () => {
         setDraged(!sDraged);
     };
 
-    useEffect(() => {
-        setOpenEula(true)
-    }, [])
     useEffect(() => {
         sHome && getInfo();
     }, [sHome]);
