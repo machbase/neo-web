@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { TextButton } from '@/components/buttons/TextButton';
 import { mountDB } from '@/api/repository/api';
 import Modal from '@/components/modal/Modal';
-import { MountNameRegEx } from '@/utils/database';
+import { IsKeyword, MountNameRegEx } from '@/utils/database';
 import './DBMountModal.scss';
 
 export const DBMountModal = ({ setIsOpen, pRefresh }: { setIsOpen: (status: boolean) => void; pRefresh: () => void }) => {
@@ -17,7 +17,7 @@ export const DBMountModal = ({ setIsOpen, pRefresh }: { setIsOpen: (status: bool
     };
     /** Mount database */
     const handleMount = async () => {
-        if (mountDBInfo.name === '' || mountDBInfo.path === '') return;
+        if (mountDBInfo.name === '' || mountDBInfo.path === '' || IsKeyword(mountDBInfo.name)) return;
         setMountLoad(true);
         setMountState(undefined);
         const resMount: any = await mountDB(mountDBInfo.name, mountDBInfo.path);
@@ -28,6 +28,7 @@ export const DBMountModal = ({ setIsOpen, pRefresh }: { setIsOpen: (status: bool
         setMountLoad(false);
     };
     const handleEnter = (e: any) => {
+        if (IsKeyword(mountDBInfo.name)) return;
         if (e.code === 'Enter') {
             handleMount();
             e.stopPropagation();
@@ -65,6 +66,12 @@ export const DBMountModal = ({ setIsOpen, pRefresh }: { setIsOpen: (status: bool
                                 <div className={`input-wrapper input-wrapper-dark`}>
                                     <input autoFocus onChange={(e) => handleMountDBInfo('name', e)} value={mountDBInfo.name} />
                                 </div>
+                                {IsKeyword(mountDBInfo.name) && (
+                                    <div className="mount-res-err" style={{ display: 'flex', marginTop: '8px' }}>
+                                        <VscWarning color="rgb(255, 83, 83)" />
+                                        <span style={{ color: 'rgb(255, 83, 83)', fontSize: '14px', marginLeft: '4px' }}>Mount name cannot be a keyword.</span>
+                                    </div>
+                                )}
                             </div>
                             <div className={`file-dark-content-name`}>
                                 <div className={`file-dark-content-name-wrap`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -87,7 +94,7 @@ export const DBMountModal = ({ setIsOpen, pRefresh }: { setIsOpen: (status: bool
                 </Modal.Body>
                 <Modal.Footer>
                     <div className="button-group">
-                        <TextButton pText="OK" pBackgroundColor="#4199ff" pIsDisabled={mountLoad} onClick={handleMount} pIsLoad={mountLoad} />
+                        <TextButton pText="OK" pBackgroundColor="#4199ff" pIsDisabled={mountLoad || IsKeyword(mountDBInfo.name)} onClick={handleMount} pIsLoad={mountLoad} />
                         <div style={{ width: '10px' }}></div>
                         <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />
                     </div>
