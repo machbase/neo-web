@@ -10,10 +10,13 @@ const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pIdx, pBlock
         <div className="values" style={{ flexWrap: 'wrap' }}>
             <div className="series-table">
                 <span className="series-title">
-                    Value field
+                    Value
                     {pPanelOption.type === 'Geomap' ? (
                         pIdx === pBlockInfo.values.length - 1 ? (
-                            <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={pAddValue} />
+                            <>
+                                {pIdx !== 0 && <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => pRemoveValue(pValue.id)} />}
+                                <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={pAddValue} />
+                            </>
                         ) : (
                             <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => pRemoveValue(pValue.id)} />
                         )

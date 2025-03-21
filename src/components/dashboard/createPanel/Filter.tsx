@@ -11,9 +11,12 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                 <span className="series-title">
                     Filter
                     {pIdx === pBlockInfo.filter.length - 1 ? (
-                        <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle></PlusCircle>} onClick={() => pAddFilter()}></IconButton>
+                        <>
+                            {pIdx !== 0 && <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} />}
+                            <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={() => pAddFilter()} />
+                        </>
                     ) : (
-                        <IconButton pWidth={25} pHeight={26} pIcon={<Close></Close>} onClick={() => pRemoveFilter(pFilterInfo.id)}></IconButton>
+                        <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} />
                     )}
                 </span>
             </div>
