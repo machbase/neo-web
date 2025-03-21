@@ -1,6 +1,6 @@
 import { getTableInfo, getColumnIndexInfo, getRollupTable, getRecordCount, unMountDB, mountDB, backupStatus } from '@/api/repository/api';
 import React, { useEffect, useRef, useState } from 'react';
-import { GoDotFill, FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser } from '@/assets/icons/Icon';
+import { GoDotFill, FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser, VscWarning } from '@/assets/icons/Icon';
 import { generateUUID, getUserName, isCurUserEqualAdmin } from '@/utils';
 import { getColumnType } from '@/utils/dashboardUtil';
 import { IconButton } from '@/components/buttons/IconButton';
@@ -8,7 +8,7 @@ import { TbDatabaseMinus, TbDatabasePlus, TbFileDatabase } from 'react-icons/tb'
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Loader } from '@/components/loader';
 import { Error } from '@/components/toast/Toast';
-import { MountNameRegEx } from '@/utils/database';
+import { IsKeyword, MountNameRegEx } from '@/utils/database';
 import './TableInfo.scss';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
@@ -138,6 +138,7 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
     const sMountAliasRef = useRef<any>(undefined);
 
     const mountBackupDB = async () => {
+        if (IsKeyword(sMountAliasRef?.current?.value)) return;
         setIsMount(false);
         setMountState('LOADING');
         const sResMount: any = await mountDB(sMountAlias, backupInfo.path);
@@ -229,6 +230,12 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
                                     type="text"
                                 />
                             </div>
+                            {IsKeyword(sMountAliasRef?.current?.value) && (
+                                <div className="mount-res-err" style={{ display: 'flex', marginTop: '8px' }}>
+                                    <VscWarning color="rgb(255, 83, 83)" />
+                                    <span style={{ color: 'rgb(255, 83, 83)', fontSize: '14px', marginLeft: '4px' }}>Mount name cannot be a keyword.</span>
+                                </div>
+                            )}
                         </div>
                     }
                 />
