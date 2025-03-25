@@ -6,7 +6,6 @@ export const UncaughtErrorObserver = (setConsoleList: any) => {
         if (typeof message === 'string' && message.includes("Uncaught TypeError: Cannot read properties of null (reading 'getAttribute')")) return true;
         if (typeof message === 'string' && message.includes("Uncaught TypeError: Cannot read properties of undefined (reading 'findNearestPointBy')")) return true;
         if (typeof message === 'string' && message.includes('Maximum update depth exceeded. This can happen when a component calls setState inside useEffect')) return true;
-        if (typeof message === 'string' && message.includes('will be removed')) return true;
         setConsoleList((preData: any) => [
             ...preData,
             {
@@ -31,6 +30,7 @@ export const UncaughtErrorObserver = (setConsoleList: any) => {
         ]);
     };
     window.console.error = (message, loc) => {
+        if (typeof message === 'string' && message.includes('will be removed')) return true;
         sErrorTmp(message, loc);
         setConsoleList((preData: any) => [
             ...preData,

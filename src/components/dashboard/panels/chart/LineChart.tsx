@@ -292,6 +292,7 @@ const LineChart = ({
                     pPanelRef={ChartRef}
                     pTheme={pPanelInfo.theme}
                     pChartOpt={pPanelInfo.chartOptions}
+                    pTitle={{ title: pPanelInfo?.title, color: pPanelInfo?.titleColor }}
                 />
             ) : null}
         </div>

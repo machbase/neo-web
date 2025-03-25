@@ -472,6 +472,22 @@ export const ChartThemeBackgroundColor: { [key in ChartTheme]: string } = {
     westeros: '#FFFFFF',
     wonderland: '#FFFFFF',
 };
+export const ChartThemeTextColor: { [key in ChartTheme]: string } = {
+    dark: '#eeeeee',
+    white: '#333333',
+    vintage: '#333333',
+    macarons: '#008acd',
+    infographic: '#27727b',
+    shine: '#333333',
+    roma: '#333333',
+    chalk: '#ffffff',
+    essos: '#893448',
+    'purple-passion': '#ffffff',
+    romantic: '#f0e8cd',
+    walden: '#666666',
+    westeros: '#516b91',
+    wonderland: '#666666',
+};
 export const ChartThemeList = Object.keys(ChartThemeBackgroundColor);
 
 export const ChartXAxisTypeList = ['category', 'time'];

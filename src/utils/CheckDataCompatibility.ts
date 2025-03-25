@@ -29,6 +29,7 @@ const DashboardCompatibility = (aData: any) => {
         const sVaildPanelList = sPanelList.map((aPanel: any) => {
             if (aPanel.type === 'Tql') aPanel.type = 'Tql chart';
             if (aPanel.xAxisOptions[0].type === 'category') aPanel.xAxisOptions[0].type = 'time';
+            if (aPanel.type === 'Geomap' && !CheckObjectKey(aPanel, 'titleColor')) aPanel.titleColor = '#000000';
             // X-Axis opt
             aPanel.xAxisOptions = aPanel.xAxisOptions.map((xAxisOpt: any) => {
                 if (xAxisOpt?.axisLabel) return xAxisOpt;
