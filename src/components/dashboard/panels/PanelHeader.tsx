@@ -9,7 +9,7 @@ import Menu from '@/components/contextMenu/Menu';
 import { useState, useRef } from 'react';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { convertChartDefault } from '@/utils/utils';
-import { ChartThemeBackgroundColor, DEFAULT_CHART } from '@/utils/constants';
+import { ChartThemeTextColor, DEFAULT_CHART } from '@/utils/constants';
 import { Error } from '@/components/toast/Toast';
 import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
 import { SaveDashboardModal } from '@/components/modal/SaveDashboardModal';
@@ -159,15 +159,6 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         setBoardList(() => sTabList);
         setIsContextMenu(false);
     };
-    const getInvertThemeColor = () => {
-        let colorHex = ChartThemeBackgroundColor[pPanelInfo.theme as ChartTheme];
-        colorHex = colorHex.replace('#', '');
-        const r = 255 - parseInt(colorHex.substring(0, 2), 16);
-        const g = 255 - parseInt(colorHex.substring(2, 4), 16);
-        const b = 255 - parseInt(colorHex.substring(4, 6), 16);
-        const toHex = (n: number) => n.toString(16).padStart(2, '0');
-        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-    };
     const handleGeomapZoom = () => {
         const sTmpPanel = JSON.parse(JSON.stringify(pPanelInfo));
         sTmpPanel.chartOptions.useZoomControl = !sTmpPanel.chartOptions.useZoomControl;
@@ -194,19 +185,23 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     };
 
     useOutsideClick(sMenuRef, () => setIsContextMenu(false));
-
     return (
         <>
             {!pIsView && (
                 // <div className={`draggable-panel-header ${pIsHeader || pType !== undefined ? 'display-none' : ''}`}>
                 <div className={`draggable-panel-header ${pType !== undefined ? 'display-none' : ''}`}>
-                    <div
-                        ref={sMenuRef}
-                        className="draggable-panel-header-menu"
-                        style={pPanelInfo.type === 'Geomap' ? { backgroundColor: ChartThemeBackgroundColor[pPanelInfo.theme as ChartTheme] } : {}}
-                    >
+                    <div ref={sMenuRef} className="draggable-panel-header-menu">
                         <div className="draggable-panel-header-menu-icon" onClick={handleContextMenu} style={{ backgroundColor: 'none', cursor: 'pointer' }}>
-                            <GoGrabber size={20} color={getInvertThemeColor()} />
+                            <GoGrabber
+                                size={20}
+                                color={
+                                    pPanelInfo.type === 'Geomap'
+                                        ? pPanelInfo?.titleColor && pPanelInfo?.titleColor !== ''
+                                            ? pPanelInfo?.titleColor
+                                            : '#000000'
+                                        : ChartThemeTextColor[pPanelInfo.theme as ChartTheme]
+                                }
+                            />
                         </div>
                         <div className="hidden-header-menu" style={{ cursor: 'pointer' }}>
                             <Menu isOpen={sIsContextMenu}>

@@ -4,6 +4,10 @@ import { ChartThemeList, ChartTooltipTriggerList, ChartLegendLeftList, ChartLege
 import CheckBox from '@/components/inputs/CheckBox';
 import { Collapse } from '@/components/collapse/Collapse';
 import { generateUUID } from '@/utils';
+import { CompactPicker } from 'react-color';
+import { useRef, useState } from 'react';
+import useOutsideClick from '@/hooks/useOutsideClick';
+import { IconButton } from '@/components/buttons/IconButton';
 
 interface ChartCommonOptionsProps {
     pPanelOption: any;
@@ -11,7 +15,10 @@ interface ChartCommonOptionsProps {
 }
 
 export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
+    const sColorPickerRef = useRef<any>(null);
     const { pPanelOption, pSetPanelOption } = props;
+    const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
+
     const handleCustomOption = (aValue: string | boolean, aKey: string) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -21,7 +28,6 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
             };
         });
     };
-
     const handleCommonOption = (aValue: string | boolean, aKey: string) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -35,38 +41,62 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
             };
         });
     };
-
     const handleTitle = (aEvent: any) => {
         handleCustomOption(aEvent.target.value, 'title');
         handleCommonOption(aEvent.target.value, 'title');
     };
 
+    useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
+
     return (
         <>
             <Collapse title="Panel option" isOpen>
-                {pPanelOption.type !== 'Geomap' && (
-                    <>
-                        <div className="panel-name-wrap" style={{ marginBottom: '4px' }}>
-                            Title
+                <div className="panel-name-wrap" style={{ marginBottom: '4px' }}>
+                    <span>Title</span>
+                    {pPanelOption.type === 'Geomap' && (
+                        <div className="panel-name-color" ref={sColorPickerRef}>
+                            <IconButton
+                                pWidth={20}
+                                pHeight={20}
+                                pIcon={
+                                    <div
+                                        style={{
+                                            width: '14px',
+                                            cursor: 'inherit',
+                                            height: '14px',
+                                            marginRight: '4px',
+                                            borderRadius: '50%',
+                                            border: '1px solid gray',
+                                            backgroundColor: (pPanelOption?.titleColor as string) ?? '#000000',
+                                        }}
+                                    />
+                                }
+                                onClick={() => setIsColorPicker(!sIsColorPicker)}
+                            />
+                            {sIsColorPicker && (
+                                <div className="color-picker">
+                                    <CompactPicker
+                                        color={pPanelOption?.titleColor as string}
+                                        onChangeComplete={(aInfo: any) => {
+                                            setIsColorPicker(false);
+                                            handleCustomOption(aInfo.hex, 'titleColor');
+                                        }}
+                                    />
+                                </div>
+                            )}
                         </div>
-                        <Input
-                            pType="text"
-                            pIsFullWidth
-                            pHeight={30}
-                            pValue={pPanelOption.title}
-                            pSetValue={() => null}
-                            pBorderRadius={4}
-                            onChange={(aEvent: any) => handleTitle(aEvent)}
-                        />
-                        <div style={{ height: '10px' }} />
-                    </>
-                )}
-                {/* <CheckBox
-                    pText="Display inside title"
-                    pDefaultChecked={pPanelOption.commonOptions.isInsideTitle}
-                    onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isInsideTitle')}
-                /> */}
-
+                    )}
+                </div>
+                <Input
+                    pType="text"
+                    pIsFullWidth
+                    pHeight={30}
+                    pValue={pPanelOption.title}
+                    pSetValue={() => null}
+                    pBorderRadius={4}
+                    onChange={(aEvent: any) => handleTitle(aEvent)}
+                />
+                <div style={{ height: '10px' }} />
                 <div className="menu-style">
                     <span>Theme</span>
                     <Select

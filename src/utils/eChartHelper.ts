@@ -189,6 +189,7 @@ export const DefaultGaugeChartOption = {
 export const DefaultChartOption = {
     id: undefined as string | undefined,
     title: 'New chart' as string,
+    titleColor: '' as string,
     type: 'Line' as ChartType,
     theme: 'dark' as ChartTheme,
     timeRange: {
