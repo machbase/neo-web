@@ -483,7 +483,7 @@ export const ChartThemeTextColor: { [key in ChartTheme]: string } = {
     chalk: '#ffffff',
     essos: '#893448',
     'purple-passion': '#ffffff',
-    romantic: '#f0e8cd',
+    romantic: '#000000',
     walden: '#666666',
     westeros: '#516b91',
     wonderland: '#666666',

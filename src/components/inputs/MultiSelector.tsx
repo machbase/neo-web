@@ -3,6 +3,7 @@ import React, { useRef, useState, useMemo, useCallback } from 'react';
 import { ArrowDown } from '@/assets/icons/Icon';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { Tooltip } from 'react-tooltip';
+import { getChartSeriesName } from '@/utils/dashboardUtil';
 
 interface MultiSelectorItemProps {
     item: { name: string; color: string; idx: number };
@@ -22,7 +23,14 @@ export const MultipleSelect = ({ pPanelOption, pSetBlockList }: { pPanelOption: 
     const getBlockList = useMemo((): any[] => {
         return (
             pPanelOption?.blockList?.map((block: any, idx: number) => ({
-                name: block.customFullTyping.use ? 'series(' + idx.toString() + ')' : block.table,
+                name: block.customFullTyping.use
+                    ? 'custom'
+                    : getChartSeriesName({
+                          alias: block?.useCustom ? block?.values[0]?.alias : block?.alias,
+                          table: block?.table,
+                          column: block?.useCustom ? block?.values[0]?.value : block?.value,
+                          aggregator: block?.useCustom ? block?.values[0]?.aggregator : block?.aggregator,
+                      }),
                 color: block.color,
                 idx: idx,
             })) ?? []

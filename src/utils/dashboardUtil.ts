@@ -856,3 +856,8 @@ export const getChartDefaultWidthSize = (aType: string, isPolar: any): number =>
     if (sChartDataType === 'TIME_VALUE' && !isPolar) return 17;
     return 7;
 };
+
+export const getChartSeriesName = ({ alias, table, column, aggregator }: { alias: string; table: string; column: string; aggregator: string }) => {
+    if (alias) return alias;
+    else return `${table} _ ${column}(${aggregator})`;
+};
