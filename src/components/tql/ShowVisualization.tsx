@@ -14,10 +14,11 @@ interface ShowChartProps {
     pSize?: any;
     pTheme?: string;
     pChartOpt?: any;
+    pTitle?: any;
 }
 
 export const ShowVisualization = (props: ShowChartProps) => {
-    const { pData, pIsCenter, pLoopMode, pPanelType, pPanelId, pPanelRef, pSize, pTheme, pChartOpt } = props;
+    const { pData, pIsCenter, pLoopMode, pPanelType, pPanelId, pPanelRef, pSize, pTheme, pChartOpt, pTitle } = props;
     const sTheme = pData?.theme ? pData.theme : 'dark';
     const wrapRef = useRef<HTMLDivElement>(null);
     const [sMapPreviousUniqueName, setMapPreviousUniqueName] = useState<string | undefined>(undefined);
@@ -147,6 +148,11 @@ export const ShowVisualization = (props: ShowChartProps) => {
     return (
         <div className="tql-form">
             {pPanelType === 'Text' && <div className={'text-panel-value'} id={`${PanelIdParser(pPanelId)}-text`} />}
+            {pPanelType === 'Geomap' && (
+                <div className={'geomap-panel-title'} style={{ color: pTitle?.color && pTitle.color !== '' ? pTitle?.color : '#000000' }}>
+                    {pTitle?.title}
+                </div>
+            )}
             {pData &&
                 pData?.cssAssets &&
                 pData?.cssAssets?.map((cssAsset: string, idx: number) => {

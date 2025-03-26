@@ -52,6 +52,25 @@
                 }
             }
 
+            .panel-name-wrap {
+                display: flex;
+                flex-direction: row;
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                .panel-name-color {
+                    position: relative;
+                    cursor: pointer;
+                    .color-picker {
+                        position: absolute;
+                        right: 0;
+                        top: 20px;
+                        z-index: 100;
+                    }
+                }
+            }
+
             .checkbox-form {
                 display: flex;
             }
