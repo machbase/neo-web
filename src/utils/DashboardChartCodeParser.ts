@@ -87,6 +87,14 @@ const Geomapfunc = (aChartOptions: any) => {
         })
     }`;
 };
+/** ADV SCATTER func*/
+const AdvScatterFunc = () => {
+    return `(obj) => {
+        \t\tif (sQuery?.[aIdx]?.alias === '') _chartOption.series[aIdx].name = obj?.data?.columns?.[1];
+        \t\t_chartOption.series[aIdx].data = obj?.data?.rows ?? [];
+        \t\t_chart.setOption(_chartOption);
+        \t}`;
+};
 
 export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string, aParsedQuery: any, isSave: boolean = false, aPanelId?: string) => {
     const sDataType = aParsedQuery[0].dataType;
@@ -95,7 +103,8 @@ export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string,
     let sInjectFunc = null;
 
     if (aChartType === 'geomap') return Geomapfunc(aChartOptions);
-    if (aChartType === 'text') sInjectFunc = TextFunc(aChartOptions, aPanelId);
+    else if (aChartType === 'text') sInjectFunc = TextFunc(aChartOptions, aPanelId);
+    else if (aChartType === 'advScatter') sInjectFunc = AdvScatterFunc();
     else {
         if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc();
         if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc(aChartType);
@@ -124,7 +133,7 @@ export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string,
         \t.catch((err) => console.warn("data fetch error", err));
         };`;
     // GEN loop
-    const sLoop = `sQuery.forEach((aData) => {\n` + `\t\t\tgetData(aData.query, aData.idx);\n` + `\t\t});`;
+    const sLoop = `sQuery.forEach((aData, idx) => {\n` + `\t\t\tgetData(aData.query, idx);\n` + `\t\t});`;
 
     return `{
         let sQuery = ${JSON.stringify(sDynamicVariable)};

@@ -16,6 +16,7 @@ import moment from 'moment';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { Error } from '@/components/toast/Toast';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
+import { E_CHART_TYPE } from '@/type/eChart';
 
 const LineChart = ({
     pIsActiveTab,
@@ -54,6 +55,10 @@ const LineChart = ({
     };
 
     const executeTqlChart = async (aWidth?: number) => {
+        if (chartTypeConverter(pPanelInfo.type) === E_CHART_TYPE.ADV_SCATTER && pPanelInfo.blockList.length <= 1) {
+            setIsError(true);
+            return;
+        }
         if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
         setIsLoading(true);
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
@@ -102,7 +107,7 @@ const LineChart = ({
             }
         } else {
             if (!sStartTime || !sEndTime) return;
-            const [sParsedQuery, sAliasList] = DashboardQueryParser(
+            const [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
                 chartTypeConverter(pPanelInfo.type),
                 pPanelInfo.blockList,
                 sRollupTableList,
@@ -112,6 +117,7 @@ const LineChart = ({
                     start: sStartTime,
                     end: sEndTime,
                 },
+                PanelIdParser(pChartVariableId + '-' + pPanelInfo.id),
                 pBoardInfo.dashboard.variables
             );
             const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
@@ -168,7 +174,7 @@ const LineChart = ({
                 );
             } else {
                 sResult = await getTqlChart(
-                    `FAKE(linspace(0, 1, 1))
+                    `${sInjectionSrc}
                      CHART(
                         ${`chartID('${PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}'),`}
                         ${pPanelInfo.plg ? `plugins('${pPanelInfo.plg}'),` : ''}
@@ -283,7 +289,7 @@ const LineChart = ({
             {sIsLoading && !sIsChartData ? <div className="loading">Loading...</div> : null}
             {!sIsLoading && sIsError && sIsMessage ? <div>{sIsMessage}</div> : null}
             {!sIsLoading && !sIsError && !sIsChartData ? <div>{sIsMessage}</div> : null}
-            {sChartData && sIsChartData ? (
+            {!sIsError && sChartData && sIsChartData ? (
                 <ShowVisualization
                     pLoopMode={pLoopMode}
                     pData={sChartData}

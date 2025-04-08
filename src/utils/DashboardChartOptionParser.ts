@@ -1,7 +1,9 @@
+import { E_CHART_TYPE } from '@/type/eChart';
 import { isEmpty, isObjectEmpty } from '.';
 import { SqlResDataType } from './DashboardQueryParser';
 import { ChartItemTooltipFormatter, ChartAxisTooltipFormatter, ChartSeriesColorList } from './constants';
 import { chartTypeConverter } from './eChartHelper';
+import { CHART_AXIS_UNITS } from './Chart/AxisConstants';
 // structure of chart common option
 const StructureOfCommonOption = `{
     "legend": {
@@ -163,6 +165,11 @@ const StructureSeriesOption: any = {
         "coorLat": "$coorLat$",
         "coorLon": "$coorLon$"
     `,
+    advScatter: `
+        "large": $isLarge$,
+        "symbolSize": $symbolSize$,
+        "symbol": "$symbol$"
+    `,
 };
 // Polar structure
 const PolarOption: any = {
@@ -207,8 +214,11 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
     if (aDataType === 'TIME_VALUE' && !aChartOption['isPolar'] && aChartType !== 'text') {
         // Set min max time
         const sTempXAxis: any = JSON.parse(JSON.stringify(aXAxis[0]));
-        sTempXAxis.min = aTime.startTime;
-        sTempXAxis.max = aTime.endTime;
+        if (aChartType === E_CHART_TYPE.ADV_SCATTER) sTempXAxis.type = 'value';
+        else {
+            sTempXAxis.min = aTime.startTime;
+            sTempXAxis.max = aTime.endTime;
+        }
         sXAxis = JSON.stringify({ xAxis: [sTempXAxis] });
         sYAxis = JSON.stringify({ yAxis: aYAxis });
     }
@@ -246,10 +256,10 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
         else if (aOpt === 'symbol')
             sChartSeriesStructure = sChartSeriesStructure.replaceAll(
                 `$${aOpt}$`,
-                aChartOption['isSymbol'] ? aChartOption[aOpt] : aChartType === 'scatter' ? aChartOption['symbol'] : 'none'
+                aChartOption['isSymbol'] ? aChartOption[aOpt] : aChartType === E_CHART_TYPE.SCATTER || aChartType === E_CHART_TYPE.ADV_SCATTER ? aChartOption['symbol'] : 'none'
             );
         else if (aOpt == 'isLarge') {
-            if (aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, false);
+            if (aChartOption[aOpt] && aChartType !== E_CHART_TYPE.ADV_SCATTER) sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, false);
             else sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, true) + `, "largeThreshold": 2000`;
         } else if (aOpt === 'isAxisLineStyleColor')
             sChartSeriesStructure = aChartOption[aOpt]
@@ -272,7 +282,6 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
         sVisualMapStructure = sVisualMapStructure.replace(`$seriesIndex$`, JSON.stringify(sSeriesIndexArray));
         sVisualMapStructure = sVisualMapStructure.replace(`$pieces$`, JSON.stringify(sPieces));
     }
-
     const sParsedSeries = JSON.parse('{' + sChartSeriesStructure + '}');
     const sParsedPolar = JSON.parse(sPolarStructure);
     const sParsedVisualMap = JSON.parse(sVisualMapStructure);
@@ -296,7 +305,7 @@ const ReplaceCommonOpt = (aCommonOpt: any, aPanelType: string) => {
     if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis' && sDataType === 'TIME_VALUE')
         sResult.tooltip.formatter = ChartAxisTooltipFormatter(aCommonOpt['tooltipUnit'], aCommonOpt['tooltipDecimals']);
     if (sResult.tooltip.show && sResult.tooltip.trigger === 'item' && sDataType === 'TIME_VALUE')
-        sResult.tooltip.formatter = ChartItemTooltipFormatter(aCommonOpt['tooltipUnit'], aCommonOpt['tooltipDecimals']);
+        sResult.tooltip.formatter = ChartItemTooltipFormatter(aCommonOpt['tooltipUnit'], aCommonOpt['tooltipDecimals'], aPanelType === E_CHART_TYPE.ADV_SCATTER ? 'VALUE' : 'TIME');
     if (sResult.legend.left !== 'center') sResult.legend.padding = [30, 0, 0, 0];
     if (aPanelType === 'text') {
         sResult.legend = { show: false };
@@ -312,12 +321,12 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
 
     // Return Text chart
     if (aChartType === 'text') return { ...sResultOpt, ...aTypeOpt.series };
-
     if (aDataType === 'TIME_VALUE') {
-        sResultOpt.series = aTagList.map((aTag: { name: string; color: string }, aIdx: number) => {
+        sResultOpt.series = aTagList.map((aTag: { name: string; color: string; useQuery: boolean }, aIdx: number) => {
+            if (!aTag.useQuery && aChartType === E_CHART_TYPE.ADV_SCATTER) return {};
             return {
                 ...aTypeOpt.series,
-                type: aChartType,
+                type: aChartType === E_CHART_TYPE.ADV_SCATTER ? 'scatter' : aChartType,
                 name: aTag.name,
                 color: aTag.color,
                 xAxisIndex: 0,
@@ -336,57 +345,85 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
     }
     return sResultOpt;
 };
-
-const CheckYAxisMinMax = (yAxisOptions: any) => {
+const LabelFormatter = (aLabel: CHART_AXIS_UNITS) => {
+    if (aLabel?.name === 'byte') {
+        // SI
+        if (aLabel?.key?.includes('SI')) {
+            return {
+                formatter:
+                    `function (params) {` +
+                    `const sSquared =  Math.abs(Math.trunc(params)).toString().length - 1;` +
+                    `const sOverflow = params.toString().includes('+');` +
+                    `if (sOverflow || sSquared >= 15) return (params / Math.pow(1000, 5))${aLabel?.decimals ? '.toFixed(' + aLabel?.decimals + ')' : ''} + ' PB';` +
+                    `if (params === 0) return (params);` +
+                    `if (sSquared === 0) return (params) + ' B';` +
+                    `if (sSquared < 3) return (params)${aLabel?.decimals ? '.toFixed(' + aLabel?.decimals + ')' : ''} + ' B';` +
+                    `if (sSquared < 6) return (params / 1000)${aLabel?.decimals ? '.toFixed(' + aLabel?.decimals + ')' : ''} + ' kB';` +
+                    `if (sSquared < 9) return (params / Math.pow(1000, 2))${aLabel?.decimals ? '.toFixed(' + aLabel?.decimals + ')' : ''} + ' MB';` +
+                    `if (sSquared < 12) return (params / Math.pow(1000, 3))${aLabel?.decimals ? '.toFixed(' + aLabel?.decimals + ')' : ''} + ' GB';` +
+                    `if (sSquared < 15) return (params / Math.pow(1000, 4))${aLabel?.decimals ? '.toFixed(' + aLabel?.decimals + ')' : ''} + ' TB';` +
+                    `}`,
+            };
+        }
+        // IEC
+        if (aLabel?.key?.includes('IEC')) {
+            return {
+                formatter:
+                    `function (params) {` +
+                    `if (!+params) return 0;` +
+                    `const k = 1024;` +
+                    `const sign = Math.sign(params) === -1 ? '-' : '';` +
+                    `const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];` +
+                    `const abs = Math.abs(params);` +
+                    `const i = Math.floor(Math.log(abs) / Math.log(k));` +
+                    `return ('' + sign + (parseFloat((abs / Math.pow(k, (i > 5 ? 5 : i < 0 ? 0 : i))))${
+                        aLabel?.decimals ? '.toFixed(' + aLabel?.decimals + ')' : ''
+                    }).toString() + sizes[(i > 5 ? 5 : i < 0 ? 0 : i)]);` +
+                    `}`,
+            };
+        }
+    } else {
+        const sSign = Math.sign(aLabel?.squared) === -1 ? '*' : '/';
+        return {
+            formatter: `function (params) { return (params ${sSign} ${Math.pow(10, Math.abs(aLabel?.squared))})${aLabel?.decimals ? `.toFixed(${aLabel?.decimals})` : ''}${
+                aLabel?.unit ? " + '" + aLabel?.unit.replaceAll("'", '"') + "'" : ''
+            }}`,
+        };
+    }
+};
+const CheckYAxis = (yAxisOptions: any) => {
     const sResult = yAxisOptions.map((aYAxis: any) => {
         const sReturn: any = JSON.parse(JSON.stringify(aYAxis));
         if (sReturn?.title !== '') sReturn.name = aYAxis?.label?.title;
         else delete sReturn.name;
         if (sReturn?.label) {
-            if (aYAxis.label.name === 'byte') {
-                // SI
-                aYAxis.label.key.includes('SI') &&
-                    (sReturn['axisLabel'] = {
-                        formatter:
-                            `function (params) {` +
-                            `const sSquared =  Math.abs(Math.trunc(params)).toString().length - 1;` +
-                            `const sOverflow = params.toString().includes('+');` +
-                            `if (sOverflow || sSquared >= 15) return (params / Math.pow(1000, 5))${
-                                aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''
-                            } + ' PB';` +
-                            `if (params === 0) return (params);` +
-                            `if (sSquared === 0) return (params) + ' B';` +
-                            `if (sSquared < 3) return (params)${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' B';` +
-                            `if (sSquared < 6) return (params / 1000)${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' kB';` +
-                            `if (sSquared < 9) return (params / Math.pow(1000, 2))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' MB';` +
-                            `if (sSquared < 12) return (params / Math.pow(1000, 3))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' GB';` +
-                            `if (sSquared < 15) return (params / Math.pow(1000, 4))${aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''} + ' TB';` +
-                            `}`,
-                    });
-                // IEC
-                aYAxis.label.key.includes('IEC') &&
-                    (sReturn['axisLabel'] = {
-                        formatter:
-                            `function (params) {` +
-                            `if (!+params) return 0;` +
-                            `const k = 1024;` +
-                            `const sign = Math.sign(params) === -1 ? '-' : '';` +
-                            `const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];` +
-                            `const abs = Math.abs(params);` +
-                            `const i = Math.floor(Math.log(abs) / Math.log(k));` +
-                            `return ('' + sign + (parseFloat((abs / Math.pow(k, (i > 5 ? 5 : i < 0 ? 0 : i))))${
-                                aYAxis?.label?.decimals ? '.toFixed(' + aYAxis?.label?.decimals + ')' : ''
-                            }).toString() + sizes[(i > 5 ? 5 : i < 0 ? 0 : i)]);` +
-                            `}`,
-                    });
-            } else {
-                const sSign = Math.sign(aYAxis.label.squared) === -1 ? '*' : '/';
-                sReturn['axisLabel'] = {
-                    formatter: `function (params) { return (params ${sSign} ${Math.pow(10, Math.abs(aYAxis.label.squared))})${
-                        aYAxis?.label?.decimals ? `.toFixed(${aYAxis?.label?.decimals})` : ''
-                    }${aYAxis?.label?.unit ? " + '" + aYAxis?.label?.unit.replaceAll("'", '"') + "'" : ''}}`,
-                };
-            }
+            sReturn['axisLabel'] = LabelFormatter(aYAxis.label);
+            delete sReturn.label;
+        }
+        if (sReturn?.offset !== '') sReturn.offset = Number(sReturn.offset) ?? 0;
+        if (sReturn.useMinMax) return sReturn;
+        else {
+            delete sReturn.useMinMax;
+            delete sReturn.min;
+            delete sReturn.max;
+            return sReturn;
+        }
+    });
+    return sResult;
+};
+const CheckXAxis = (xAxisOptions: any, aChartType: string) => {
+    const sResult = xAxisOptions.map((aAxis: any) => {
+        const sReturn: any = JSON.parse(JSON.stringify(aAxis));
+        if (aChartType !== E_CHART_TYPE.ADV_SCATTER) {
+            delete sReturn.min;
+            delete sReturn.max;
+            delete sReturn.useBlockList;
+            delete sReturn.scale;
+            delete sReturn.label;
+            return sReturn;
+        }
+        if (sReturn?.label) {
+            sReturn['axisLabel'] = LabelFormatter(aAxis.label);
             delete sReturn.label;
         }
         if (sReturn?.offset !== '') sReturn.offset = Number(sReturn.offset) ?? 0;
@@ -405,21 +442,22 @@ export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTim
     const sConvertedChartType = chartTypeConverter(aOptionInfo.type);
     const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, sConvertedChartType);
     const sUseDualYAxis = aOptionInfo.yAxisOptions.length === 2;
+    const sTagList = aTagList.filter(Boolean);
     // Animation false (TIME_VALUE TYPE)
     if (SqlResDataType(sConvertedChartType) === 'TIME_VALUE') sCommonOpt.animation = false;
     const sTypeOpt = ReplaceTypeOpt(
         sConvertedChartType,
         SqlResDataType(sConvertedChartType),
-        aTagList.map((aTagInfo: any) => aTagInfo.name),
+        sTagList.map((aTagInfo: any) => aTagInfo?.name),
         aOptionInfo.chartOptions,
-        aOptionInfo.xAxisOptions,
-        CheckYAxisMinMax(aOptionInfo.yAxisOptions),
+        CheckXAxis(aOptionInfo.xAxisOptions, sConvertedChartType),
+        CheckYAxis(aOptionInfo.yAxisOptions),
         aTime
     );
     const sParsedOpt = ParseOpt(
         sConvertedChartType,
         SqlResDataType(sConvertedChartType),
-        aTagList,
+        sTagList,
         sCommonOpt,
         sTypeOpt,
         sUseDualYAxis ? aOptionInfo.yAxisOptions[1].useBlockList : []

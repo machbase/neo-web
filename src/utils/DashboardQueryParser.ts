@@ -3,6 +3,8 @@ import { isRollup } from '.';
 import { ADMIN_ID } from './constants';
 import { VARIABLE_REGEX } from './CheckDataCompatibility';
 import { DEFAULT_VARIABLE_LIST, VARIABLE_TYPE } from '@/components/dashboard/variable';
+import { ChartType, E_CHART_TYPE } from '@/type/eChart';
+import TQL from './TqlGenerator';
 
 interface BlockTimeType {
     interval: {
@@ -139,16 +141,17 @@ const ReplaceVariables = (
 };
 
 /** Dashboard QUERY PARSER */
-export const DashboardQueryParser = (aChartType: string, aBlockList: any, aRollupList: any, aXaxis: any, aTime: BlockTimeType, aVariables?: VARIABLE_TYPE[]) => {
+export const DashboardQueryParser = (aChartType: string, aBlockList: any, aRollupList: any, aXaxis: any, aTime: BlockTimeType, aUniqueId: string, aVariables?: VARIABLE_TYPE[]) => {
     const sResDataType = SqlResDataType(aChartType);
-    const sTranspose = sResDataType === 'TIME_VALUE' && aXaxis[0].type === 'category';
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
     const sVariables = VariableParser(aVariables ?? [], aTime);
-    const [sParsedQueryList, sAliasList] = QueryParser(
-        sTranspose,
+    const [sParsedQueryList, sAliasList, sInjectionSrc] = QueryParser(
         sQueryBlock,
         aTime,
-        aChartType === 'text' ? ['NAME_VALUE', 'TIME_VALUE'] : (Array.from({ length: sQueryBlock.length }).fill(sResDataType) as string[])
+        aChartType === 'text' ? ['NAME_VALUE', 'TIME_VALUE'] : (Array.from({ length: sQueryBlock.length }).fill(sResDataType) as string[]),
+        aChartType as ChartType,
+        aXaxis,
+        aUniqueId
     );
     const [sReplaceQueryList, sReplaceAliasList] = ReplaceVariables(
         sParsedQueryList,
@@ -156,7 +159,7 @@ export const DashboardQueryParser = (aChartType: string, aBlockList: any, aRollu
         sAliasList
         // , aChartType
     );
-    return [sReplaceQueryList, sReplaceAliasList];
+    return [sReplaceQueryList, sReplaceAliasList, sInjectionSrc];
 };
 /** Combine table and user */
 const CombineTableUser = (table: string, customTable: boolean = false) => {
@@ -455,9 +458,11 @@ const GetConbineWhere = (
     return sReturnWhere;
 };
 
-const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string[]) => {
-    const sAliasList: any[] = [];
-    const sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
+const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string[], aChartType: ChartType, aXaxis: any, aUniqueId: string) => {
+    const sPeriod = aTime.interval.IntervalValue + aTime.interval.IntervalType[0];
+    let sInjectionSrc = 'FAKE(linspace(0, 1, 1))';
+    let sAliasList: any[] = [];
+    let sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         if (aQuery.useFullTyping) {
             sAliasList.push({ name: 'series(' + aIdx.toString() + ')', color: aQuery.color });
             return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, dataType: aResDataType[aIdx], sql: aQuery.text };
@@ -478,12 +483,18 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
         let sTql: string = '';
 
         // Set alias & color (tag)
-        sAliasList.push({ name: sAlias, color: aQuery.color });
+        sAliasList.push({ name: sAlias, color: aQuery.color, useQuery: aXaxis[0]?.useBlockList[0] === aIdx ? false : true });
         // BAR | LINE | SCATTER
         if (aResDataType[aIdx] === 'TIME_VALUE') {
             sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
             if (sUseDiff) sTql += `MAP_${changeDiffText(aQuery.valueList[0]?.diff)}(1, value(1))`;
-            if (aQuery?.math && aQuery?.math !== '') sTql += `${sUseDiff ? `\n` : ''}MAPVALUE(2, ${mathValueConverter('1', aQuery?.math)}, "VALUE")\nPOPVALUE(1)`;
+            if (aQuery?.math && aQuery?.math !== '') sTql += `${sUseDiff ? `\n` : ''}MAPVALUE(2, ${mathValueConverter('1', aQuery?.math)}, "VALUE")\nPOPVALUE(1)\n`;
+            if (aChartType === E_CHART_TYPE.ADV_SCATTER) {
+                sTql +=
+                    TQL.MAP.GROUP([TQL.MAP.GROUP.By(['value(0) * 1000000', TQL.MAP.GROUP.Timewindow(aTime.start, aTime.end, sPeriod), '"TIME"']), TQL.MAP.GROUP.Last('value(1)')]) +
+                    '\n' +
+                    TQL.MAP.POPVALUE(0);
+            }
         }
         // PIE | GAUGE | LIQUIDFILL
         if (aResDataType[aIdx] === 'NAME_VALUE') {
@@ -497,15 +508,54 @@ const QueryParser = (aTranspose: boolean, aQueryBlock: any, aTime: { interval: a
             if (aQuery?.math && aQuery?.math !== '') sTql += `MAPVALUE(1, ${mathValueConverter('0', aQuery?.math)}, "VALUE")\nPOPVALUE(0)\n`;
             sTql += `MAPVALUE(1, dict("name", "${sAlias}", "value", value(0)))\nPOPVALUE(0)`;
         }
-
         return {
             query: `SQL("${sSql}")${sTql !== '' ? '\n' + sTql : ''}\nJSON()`,
             alias: sAlias,
             idx: aIdx,
             dataType: aResDataType[aIdx],
             sql: sSql,
+            tql: sTql,
+            useQuery: aXaxis[0]?.useBlockList[0] === aIdx ? false : true, // base axis is only use for x axis in adv scatter
         };
     });
-    return [sResultQuery, sAliasList];
-    aTranspose;
+
+    if (aChartType === E_CHART_TYPE.ADV_SCATTER) {
+        const sBaseXAxis = sResultQuery[aXaxis[0]?.useBlockList[0]];
+        const sRequestDo = TQL.MAP.SCRIPT.RequestDo(
+            {
+                method: 'POST',
+                url: '/web/api/tql',
+                body: JSON.stringify(
+                    'SQL("' +
+                        sBaseXAxis.sql +
+                        '")\n' +
+                        TQL.MAP.GROUP([
+                            TQL.MAP.GROUP.By(['value(0) * 1000000', TQL.MAP.GROUP.Timewindow(aTime.start, aTime.end, sPeriod), JSON.stringify('TIME')]),
+                            TQL.MAP.GROUP.Last('value(1)'),
+                        ]) +
+                        '\n' +
+                        TQL.MAP.POPVALUE(0) +
+                        '\n' +
+                        TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId, '3s'))
+                ),
+            },
+            {
+                method: 'text',
+                callback: 'function(txt) { xAxis = JSON.parse(txt).data.rows; }',
+            }
+        );
+        const sInjectionScript = TQL.MAP.SCRIPT('JS', {
+            main: TQL.MAP.SCRIPT.Yield('xAxis[i++][0], $.values[0]'),
+            init: `${TQL.MAP.SCRIPT.Var('i', '0')} ${TQL.MAP.SCRIPT.Var('xAxis', 'undefined')}
+                    ${sRequestDo}`,
+        });
+        sAliasList = sAliasList.filter((alias) => alias.useQuery);
+        if (sAliasList.length > 1) sInjectionSrc += '\n' + TQL.MAP.SCRIPT('JS', { main: sRequestDo });
+        sResultQuery = sResultQuery
+            .filter((item: any) => item.useQuery)
+            .map((item: any) => {
+                return { ...item, query: `SQL("${item.sql}")${item.tql !== '' ? '\n' + item.tql : ''}\n${sInjectionScript}\nJSON()` };
+            });
+    }
+    return [sResultQuery, sAliasList, sInjectionSrc];
 };

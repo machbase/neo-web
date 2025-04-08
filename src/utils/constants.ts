@@ -1,4 +1,4 @@
-import { ChartTheme } from '@/type/eChart';
+import { ChartTheme, ChartType } from '@/type/eChart';
 
 export const FORMAT_FULL_DATE = 'YYYY-MM-DD HH:mm:ss';
 export const LENGTH_LIST = 10;
@@ -448,6 +448,7 @@ export const ChartTypeList = [
     { key: 'Line', value: 'line' },
     { key: 'Bar', value: 'bar' },
     { key: 'Scatter', value: 'scatter' },
+    { key: 'Adv scatter', value: 'advScatter' },
     { key: 'Gauge', value: 'gauge' },
     { key: 'Pie', value: 'pie' },
     { key: 'Liquid fill', value: 'liquidFill' },
@@ -514,13 +515,16 @@ export const ChartAxisTooltipFormatter = (aUnit?: string, aDecimals?: number) =>
         `}`
     );
 };
-
-export const ChartItemTooltipFormatter = (aUnit?: string, aDecimals?: number) => {
+export const ChartItemTooltipFormatter = (aUnit?: string, aDecimals?: number, aXAxsisType?: 'TIME' | 'VALUE') => {
+    let sInjectionOutput = `let d = new Date(0);` + `d.setUTCSeconds(params.data[0] / 1000);` + `let output = d.toLocaleString('en-GB', { timezone: 'UTC' })`;
+    if (aXAxsisType === 'VALUE')
+        sInjectionOutput = `let output = params.data[0] || params.data[0] === 0 ? params.data[0]${aDecimals ? '.toFixed(' + aDecimals + ')' : ''}: 'no-data' ${
+            aUnit ? "+ ' " + aUnit.replaceAll("'", '"') + "'" : ''
+        }`;
     return (
         `function (params) {` +
-        `let d = new Date(0);` +
-        `d.setUTCSeconds(params.data[0] / 1000);` +
-        `let output = d.toLocaleString('en-GB', { timezone: 'UTC' }) + '<br/>';` +
+        sInjectionOutput +
+        `+ '<br/>';` +
         `output += '<table>'; ` +
         `output += '<tr><td>'+params.marker+'</td><td>' + params.seriesName + '&ensp;</td><td><b>' + (params.data[1] || params.data[1] === 0 ? params.data[1]${
             aDecimals ? '.toFixed(' + aDecimals + ')' : ''

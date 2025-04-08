@@ -3,22 +3,23 @@ import { Select } from '@/components/inputs/Select';
 import { ChangeEvent } from 'react';
 import { ChartTypeList } from '@/utils/constants';
 import { ChartCommonOptions } from './option/ChartCommonOptions';
-import { CheckPlgChart, DefaultCommonOption, chartTypeConverter, getDefaultSeriesOption } from '@/utils/eChartHelper';
+import { CheckCustomChartType, CheckPlgChart, DefaultCommonOption, chartTypeConverter, getDefaultSeriesOption } from '@/utils/eChartHelper';
 import { Collapse } from '@/components/collapse/Collapse';
 import { PieOptions } from './option/PieOptions';
 import { LineOptions } from './option/LineOptions';
 import { XAxisOptions } from './option/XAxisOptions';
-import { geomapAggregatorList, isTimeSeriesChart } from '@/utils/dashboardUtil';
+import { geomapAggregatorList, useXAxis, useYAxis } from '@/utils/dashboardUtil';
 import { YAxisOptions } from './option/YAxisOptions';
 import { BarOptions } from './option/BarOptions';
 import { ScatterOptions } from './option/ScatterOptions';
 import { GaugeOptions } from './option/GaugeOptions';
-import { ChartType } from '@/type/eChart';
+import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import { LiquidfillOptions } from './option/LiquidfillOptions';
 import { TqlOptions } from './option/TqlOptions';
 import { TextOptions } from './option/TextOptions';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { GeomapOptions } from './option/GeomapOptions';
+import { AdvancedScatterOptions } from './option/AdvanceScatter';
 
 interface CreatePanelRightProps {
     pPanelOption: any;
@@ -34,7 +35,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
         const sConvertedChartType = chartTypeConverter(aEvent.target.value);
         const sIsPlgChart = CheckPlgChart(sConvertedChartType as ChartType);
         const sChangeChartOption = getDefaultSeriesOption(sConvertedChartType as ChartType);
-        const sIsPie = sConvertedChartType === 'pie';
+        const sIsPie = sConvertedChartType === E_CHART_TYPE.PIE;
         pSetPanelOption((aPrev: any) => {
             const sResVal = {
                 ...aPrev,
@@ -49,7 +50,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                 };
                 sResVal.commonOptions = sIsPie ? sPieLegendOption : DefaultCommonOption;
             }
-            if (sConvertedChartType === 'tql') {
+            if (sConvertedChartType === E_CHART_TYPE.TQL) {
                 sResVal.tqlInfo = { path: '', params: [{ name: '', value: '', format: '' }], chart_id: '' };
                 sResVal.theme = 'white';
             } else {
@@ -59,8 +60,8 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
             if (sResVal.chartOptions?.tagLimit) sResVal.blockList = sResVal.blockList.slice(0, sResVal.chartOptions?.tagLimit);
             if (sIsPlgChart) sResVal.plg = sIsPlgChart.plg;
             else sResVal.plg = undefined;
-            if (sConvertedChartType !== 'geomap') {
-                if (sConvertedChartType !== 'line' && sConvertedChartType !== 'bar') {
+            if (sConvertedChartType !== E_CHART_TYPE.GEOMAP) {
+                if (sConvertedChartType !== E_CHART_TYPE.LINE && sConvertedChartType !== E_CHART_TYPE.BAR) {
                     sResVal.blockList = sResVal.blockList.map((block: any) => {
                         return { ...block, values: [block.values[0]], customFullTyping: { use: false, text: '' } };
                     });
@@ -85,7 +86,6 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
     return (
         <div className="chart-set-wrap">
             <div className="body">
-                {/* add '3DLine', '3DBar', '3DScatter' */}
                 <Select
                     pFontSize={14}
                     pWidth={'100%'}
@@ -95,42 +95,38 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
                     pOptions={ChartTypeList.map((aType: { key: string; value: string }) => aType.key) as string[]}
                 />
-
-                {chartTypeConverter(pPanelOption.type) !== 'tql' && <div className="divider" />}
                 <div className="content" style={{ height: '100%' }}>
-                    {chartTypeConverter(pPanelOption.type) !== 'tql' && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
-
-                    {isTimeSeriesChart(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption.xAxisOptions && (
-                        <>
-                            <div className="divider" />
-                            <XAxisOptions
-                                pXAxis={pPanelOption.xAxisOptions}
-                                pAxisInterval={pPanelOption.axisInterval}
-                                pIsAxisInterval={pPanelOption.isAxisInterval}
-                                pSetPanelOption={pSetPanelOption}
-                            />
-                        </>
+                    {chartTypeConverter(pPanelOption.type) !== E_CHART_TYPE.TQL && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
+                    {useXAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.xAxisOptions && (
+                        <XAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
                     )}
-                    {isTimeSeriesChart(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption.yAxisOptions && (
-                        <>
-                            <div className="divider" />
-                            <YAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
-                        </>
+                    {useYAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.yAxisOptions && (
+                        <YAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
                     )}
                     <div className="divider" />
-                    {chartTypeConverter(pPanelOption.type) !== 'tql' && chartTypeConverter(pPanelOption.type) !== 'text' && chartTypeConverter(pPanelOption.type) !== 'geomap' && (
+                    {CheckCustomChartType(pPanelOption.type) ? (
+                        <>
+                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GEOMAP ? <GeomapOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TQL ? <TqlOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? (
+                                <AdvancedScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                            ) : null}
+                        </>
+                    ) : (
                         <Collapse title="Chart option" isOpen>
-                            {chartTypeConverter(pPanelOption.type) === 'line' ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === 'bar' ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === 'scatter' ? <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === 'pie' ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === 'gauge' ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === 'liquidFill' ? <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.LINE ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.BAR ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.SCATTER ? (
+                                <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                            ) : null}
+                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.PIE ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GAUGE ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.LIQUID_FILL ? (
+                                <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                            ) : null}
                         </Collapse>
                     )}
-                    {chartTypeConverter(pPanelOption.type) === 'geomap' ? <GeomapOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                    {chartTypeConverter(pPanelOption.type) === 'text' ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                    {chartTypeConverter(pPanelOption.type) === 'tql' ? <TqlOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                     <div className="divider" />
                 </div>
             </div>
