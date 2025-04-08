@@ -1,5 +1,5 @@
 import { generateUUID } from '@/utils';
-import { ChartTheme, ChartType } from '@/type/eChart';
+import { ChartTheme, ChartType, E_CUSTOM_CHART_TYPE, CustomChartType } from '@/type/eChart';
 import { ChartTypeList } from './constants';
 import { getDefaultColor } from './helpers/tags';
 
@@ -28,6 +28,12 @@ export const chartTypeConverter = (aType: string): string => {
     const sResult = ChartTypeList.filter((aTypeObj: { key: string; value: string }) => aTypeObj.key === aType)[0];
     return sResult.value;
 };
+const CustomChartTypeList = Object.values(E_CUSTOM_CHART_TYPE);
+// Check if it is a chart that uses a custom type.
+export const CheckCustomChartType = (aType: ChartType): boolean => {
+    if (CustomChartTypeList?.includes(chartTypeConverter(aType) as CustomChartType)) return true;
+    else return false;
+};
 
 export const DefaultXAxisOption = {
     type: 'time' as string,
@@ -35,6 +41,20 @@ export const DefaultXAxisOption = {
         alignWithLabel: true as boolean,
     },
     axisLabel: { hideOverlap: true },
+    useBlockList: [0] as number[],
+    scale: true,
+    useMinMax: false,
+    min: undefined as number | undefined,
+    max: undefined as number | undefined,
+    label: {
+        name: 'value' as string,
+        key: 'value' as string,
+        title: '' as string,
+        unit: '' as string,
+        decimals: undefined as number | undefined,
+        squared: 0 as number,
+    },
+    axisLine: { onZero: false as boolean },
     // axisLine: {
     //     lineStyle: {
     //         color: '#fff'
@@ -60,6 +80,7 @@ export const DefaultYAxisOption = {
         decimals: undefined as number | undefined,
         squared: 0 as number,
     },
+    axisLine: { onZero: false as boolean },
     // axisLine: {
     //     lineStyle: {
     //         color: '#fff'
@@ -302,6 +323,7 @@ export const getDefaultSeriesOption = (aChartType: ChartType) => {
         case 'bar':
             return DefaultBarChartOption;
         case 'scatter':
+        case 'advScatter':
             return DefaultScatterChartOption;
         case 'gauge':
             return DefaultGaugeChartOption;
