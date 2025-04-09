@@ -55,6 +55,7 @@ any) => {
     const sDataFetchHandler = useRef<boolean>(false);
     const tazPanelFormRef = useRef<any>(null);
     const sActiveTabId = useRecoilValue<any>(gSelectedTab);
+    const [sPreOverflowTimeRange, setPreOverflowTimeRange] = useState<any>(undefined);
 
     const setExtremes = async (aEvent: any) => {
         if (aEvent.min) {
@@ -396,8 +397,9 @@ any) => {
         if (sCheckDataLimit) {
             sDataFetchHandler.current = true;
             setPanelRange({ startTime: sDatasets[0].data[0][0], endTime: sChangeLimitEnd });
+            setPreOverflowTimeRange({ startTime: sDatasets[0].data[0][0], endTime: sChangeLimitEnd });
             sChartRef && sChartRef.current && sChartRef.current.chart.xAxis[0].setExtremes(sDatasets[0].data[0][0], sChangeLimitEnd);
-        }
+        } else setPreOverflowTimeRange({ startTime: undefined, endTime: undefined });
     };
     const calcInterval = (aBgn: number, aEnd: number, aWidth: number, aIsRaw: boolean, aIsNavi?: boolean): { IntervalType: string; IntervalValue: number } => {
         const sDiff = aEnd - aBgn;
@@ -680,14 +682,14 @@ any) => {
         }${sDuration.milliseconds() === 0 ? '' : ' ' + sDuration.milliseconds() + 'ms'}`;
     };
     const wrapSetGlobalTimeRange = () => {
-        pSetGlobalTimeRange(sPanelRange, sNavigatorRange, sRangeOption);
+        if (sPreOverflowTimeRange.startTime && sPreOverflowTimeRange.endTime) pSetGlobalTimeRange(sPreOverflowTimeRange, sNavigatorRange, sRangeOption);
+        else pSetGlobalTimeRange(sPanelRange, sNavigatorRange, sRangeOption);
     };
 
     // set global time range
     useEffect(() => {
         if (sChartRef.current && !pIsEdit) {
             setRangeOption(pGlobalTimeRange.interval);
-
             sChartRef.current.chart.xAxis[0].setExtremes(pGlobalTimeRange.data.startTime, pGlobalTimeRange.data.endTime);
             sChartRef.current.chart.navigator.xAxis.setExtremes(pGlobalTimeRange.navigator.startTime, pGlobalTimeRange.navigator.endTime);
         }
