@@ -213,7 +213,6 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
     };
     const changedTable = (aEvent: any) => {
         setSelectedTable(aEvent.target.value);
-        setTagTotal(0);
         setSearchText('');
         setTagInputValue('');
         setTagPagination(1);
@@ -277,7 +276,11 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                         </div>
                     </div>
                     <div className="tag-select">
-                        <div className="title">Tag</div>
+                        <div className="title">
+                            <text>Tag</text>
+                            <Tooltip anchorSelect={`.tooltip-tag-meta`} content={sTagTotal + ''} />
+                            <text className={`select-text tooltip-tag-meta`}>({sTagTotal})</text>
+                        </div>
                         <div className="tag-form">
                             <div className="filter-form-tag">
                                 <div className="tag-input-form">

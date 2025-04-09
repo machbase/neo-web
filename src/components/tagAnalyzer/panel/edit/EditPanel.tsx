@@ -74,7 +74,7 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
                 end_max: sVirtualStatInfo[0][1] / 1000000,
             };
         }
-        setPanelInfo(sCopyPanelInfo);
+        setPanelInfo(() => sCopyPanelInfo);
         setBgnEndTimeRange(() => sData);
     };
     const save = () => {

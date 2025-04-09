@@ -84,6 +84,15 @@
         .title {
             width: 20%;
             opacity: 0.5;
+            display: flex;
+            flex-direction: column;
+            align-items: start;
+
+            text {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                width: 100%;
+            }
         }
         .tag-input-form {
             background-color: transparent;
