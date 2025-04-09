@@ -154,7 +154,6 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
     };
     const changedTable = (aEvent: any) => {
         setSelectedTable(aEvent.target.value);
-        setTagTotal(0);
         setSearchText('');
         setTagInputValue('');
         setTagPagination(1);
@@ -188,7 +187,11 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                     </div>
                     {/* {!sRollupTable && <p>* The table is show because the roll-up table is not generated.</p>} */}
                     <div className="tag-select">
-                        <div className="title">Tag</div>
+                        <div className="title">
+                            <text>Tag</text>
+                            <Tooltip anchorSelect={`.tooltip-tag-meta`} content={sTagTotal + ''} />
+                            <text className={`select-text tooltip-tag-meta`}>({sTagTotal})</text>
+                        </div>
                         <div className="tag-form">
                             <div className="filter-form-tag">
                                 <div className="tag-input-form">

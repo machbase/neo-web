@@ -22,13 +22,13 @@ const Chart = ({
 }: any) => {
     const [options, setOptions] = useState<any>({});
 
-    const getMaxValue = (array: number[][],  zeroBaseCondition: boolean) => {
+    const getMaxValue = (array: number[][], zeroBaseCondition: boolean) => {
         return array.reduce(
             (result: number, current: any) => {
                 if (current[1] > result) result = current[1];
                 return result;
             },
-            zeroBaseCondition? 0 : array[0]?.[1]
+            zeroBaseCondition ? 0 : array[0]?.[1]
         );
     };
     const getMinValue = (array: number[][], zeroBaseCondition: boolean) => {
@@ -49,8 +49,8 @@ const Chart = ({
         const newData = pChartData && JSON.parse(JSON.stringify(pChartData));
         newData?.forEach((item: any) => {
             if (item.yAxis === 0) {
-                const yAxisLeftMin = getMinValue(item.data,  pPanelInfo.zero_base === 'Y');
-                const yAxisLeftMax = getMaxValue(item.data,  pPanelInfo.zero_base === 'Y');
+                const yAxisLeftMin = getMinValue(item.data, pPanelInfo.zero_base === 'Y');
+                const yAxisLeftMax = getMaxValue(item.data, pPanelInfo.zero_base === 'Y');
                 if (!yAxis.left[0] || yAxis.left[0] > yAxisLeftMin) {
                     yAxis.left[0] = yAxisLeftMin;
                 }
