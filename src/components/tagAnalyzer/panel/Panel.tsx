@@ -28,6 +28,8 @@ const Panel = ({
     pRefreshCount,
     pFooterRange,
     pBgnEndTimeRange,
+    pGlobalTimeRange,
+    pSetGlobalTimeRange,
 }: // pGetBgnEndTime
 any) => {
     const sAreaChart = useRef<any>();
@@ -53,6 +55,7 @@ any) => {
     const sDataFetchHandler = useRef<boolean>(false);
     const tazPanelFormRef = useRef<any>(null);
     const sActiveTabId = useRecoilValue<any>(gSelectedTab);
+    const [sPreOverflowTimeRange, setPreOverflowTimeRange] = useState<any>(undefined);
 
     const setExtremes = async (aEvent: any) => {
         if (aEvent.min) {
@@ -145,8 +148,8 @@ any) => {
         if (sEnd - sStart < 1000) sEnd = sStart + 1000;
         setNavigatorRange({ startTime: sStart, endTime: sEnd });
         if (
-            sStart.toString().slice(0, 10) !== sNavigatorRange.startTime.toString().slice(0, 10) ||
-            sEnd.toString().slice(0, 10) !== sNavigatorRange.endTime.toString().slice(0, 10)
+            sStart?.toString().slice(0, 10) !== sNavigatorRange.startTime?.toString().slice(0, 10) ||
+            sEnd?.toString().slice(0, 10) !== sNavigatorRange.endTime?.toString().slice(0, 10)
         )
             fetchNavigatorData({ timeRange: { startTime: sStart, endTime: sEnd }, raw: undefined });
     };
@@ -394,8 +397,9 @@ any) => {
         if (sCheckDataLimit) {
             sDataFetchHandler.current = true;
             setPanelRange({ startTime: sDatasets[0].data[0][0], endTime: sChangeLimitEnd });
+            setPreOverflowTimeRange({ startTime: sDatasets[0].data[0][0], endTime: sChangeLimitEnd });
             sChartRef && sChartRef.current && sChartRef.current.chart.xAxis[0].setExtremes(sDatasets[0].data[0][0], sChangeLimitEnd);
-        }
+        } else setPreOverflowTimeRange({ startTime: undefined, endTime: undefined });
     };
     const calcInterval = (aBgn: number, aEnd: number, aWidth: number, aIsRaw: boolean, aIsNavi?: boolean): { IntervalType: string; IntervalValue: number } => {
         const sDiff = aEnd - aBgn;
@@ -677,7 +681,19 @@ any) => {
             sDuration.seconds() === 0 ? '' : sDuration.seconds() + 's '
         }${sDuration.milliseconds() === 0 ? '' : ' ' + sDuration.milliseconds() + 'ms'}`;
     };
+    const wrapSetGlobalTimeRange = () => {
+        if (sPreOverflowTimeRange.startTime && sPreOverflowTimeRange.endTime) pSetGlobalTimeRange(sPreOverflowTimeRange, sNavigatorRange, sRangeOption);
+        else pSetGlobalTimeRange(sPanelRange, sNavigatorRange, sRangeOption);
+    };
 
+    // set global time range
+    useEffect(() => {
+        if (sChartRef.current && !pIsEdit) {
+            setRangeOption(pGlobalTimeRange.interval);
+            sChartRef.current.chart.xAxis[0].setExtremes(pGlobalTimeRange.data.startTime, pGlobalTimeRange.data.endTime);
+            sChartRef.current.chart.navigator.xAxis.setExtremes(pGlobalTimeRange.navigator.startTime, pGlobalTimeRange.navigator.endTime);
+        }
+    }, [pGlobalTimeRange]);
     // refresh
     useEffect(() => {
         if (sChartRef.current) fetchPanelData(sPanelRange);
@@ -685,13 +701,17 @@ any) => {
     // save edit info
     useEffect(() => {
         if (pBoardInfo.id === sSelectedTab && sSaveEditedInfo) {
-            sSaveEditedInfo && setRange();
-            sSaveEditedInfo && setSaveEditedInfo(false);
+            setRange();
+            setSaveEditedInfo(false);
         }
     }, [pPanelInfo]);
     // update time range & preview & init
     useEffect(() => {
-        if (sChartRef.current) resetData();
+        if (sChartRef.current) {
+            // apply for tagList
+            if (pIsEdit) setRange();
+            else resetData();
+        }
     }, [pBgnEndTimeRange]);
     useEffect(() => {
         if (sActiveTabId === pBoardInfo.id && sAreaChart && sAreaChart.current && !sAreaChart.current?.dataset?.processed) setRange();
@@ -705,6 +725,7 @@ any) => {
                 pIsEdit={pIsEdit}
                 pPanelRange={sPanelRange}
                 pFetchPanelData={fetchPanelData}
+                pSetGlobalTimeRange={wrapSetGlobalTimeRange}
                 pBoardInfo={pBoardInfo}
                 pPanelInfo={pPanelInfo}
                 pSetIsRaw={ctrRaw}

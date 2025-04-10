@@ -18,6 +18,21 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sRefreshCount, setRefreshCount] = useState(0);
     const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<any>(undefined);
+    const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] = useState<{
+        data: { startTime: any; endTime: any };
+        navigator: { startTime: any; endTime: any };
+        interval: {
+            IntervalType: any;
+            IntervalValue: any;
+        };
+    }>({
+        data: { startTime: undefined, endTime: undefined },
+        navigator: { startTime: undefined, endTime: undefined },
+        interval: {
+            IntervalType: undefined,
+            IntervalValue: undefined,
+        },
+    });
 
     const getChartInfo = (aStart: any, aEnd: any, aBoard: any, aIsRaw: any, aIsChanged?: string) => {
         if (aIsChanged === 'delete') {
@@ -58,6 +73,9 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                 else return aBoard;
             })
         );
+    };
+    const handleGlobalTimeRange = (aDataTime: any, aNavigatorTime: any, aInterval: any) => {
+        setGlobalDataAndNavigatorTime({ data: aDataTime, navigator: aNavigatorTime, interval: aInterval });
     };
     const handleRefreshData = () => {
         setRefreshCount((aPrev: any) => aPrev + 1);
@@ -174,6 +192,8 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                                 pPanelInfo={aItem}
                                 pSaveKeepData={savekeepData}
                                 pGetBgnEndTime={getToplevelBgnEndTime}
+                                pGlobalTimeRange={sGlobalDataAndNavigatorTime}
+                                pSetGlobalTimeRange={handleGlobalTimeRange}
                             />
                         );
                     })}

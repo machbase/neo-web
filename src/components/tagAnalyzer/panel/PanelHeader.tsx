@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
 import './PanelHeader.scss';
+import { useEffect, useState } from 'react';
 import { changeUtcToText } from '@/utils/helpers/date';
 import EditPanel from './edit/EditPanel';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { Refresh, GearFill, Delete, MdRawOn, MdFlagCircle, PiSelectionPlusBold, LineChart, LuTimerReset, Download } from '@/assets/icons/Icon';
+import { Refresh, GearFill, Delete, MdRawOn, MdFlagCircle, PiSelectionPlusBold, LineChart, LuTimerReset, Download, TbTimezone } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
@@ -31,6 +31,7 @@ const PanelHeader = ({
     pIsMinMaxMenuOpen,
     pChartData,
     pChartRef,
+    pSetGlobalTimeRange,
 }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
@@ -135,6 +136,17 @@ const PanelHeader = ({
                     </>
                 ) : null}
                 <div className="divider" />
+                {!pIsEdit && (
+                    <IconButton
+                        pWidth={25}
+                        pHeight={25}
+                        pIsToopTip
+                        pToolTipContent={'Set global time'}
+                        pToolTipId={'refresh-taz-panel-global-time' + JSON.stringify(pIsEdit)}
+                        pIcon={<TbTimezone />}
+                        onClick={pSetGlobalTimeRange}
+                    />
+                )}
                 <IconButton
                     pWidth={25}
                     pHeight={25}
