@@ -17,6 +17,8 @@ import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { Error } from '@/components/toast/Toast';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
 import { E_CHART_TYPE } from '@/type/eChart';
+import { convertDurationToSecond } from '@/utils/helpers/date';
+import { DSH_CHART_ADV_SCATTER_DATA_LIMIT } from '@/utils/Chart/AxisConstants';
 
 const LineChart = ({
     pIsActiveTab,
@@ -87,6 +89,19 @@ const LineChart = ({
             sEndTime = pBoardTimeMinMax?.max;
         }
 
+        let subTitle = '';
+        if (chartTypeConverter(pPanelInfo.type) === E_CHART_TYPE.ADV_SCATTER && pPanelInfo.isAxisInterval) {
+            const MILLISEC = 1000;
+            const sTimeStampInterval = convertDurationToSecond(pPanelInfo.axisInterval.IntervalValue + pPanelInfo.axisInterval.IntervalType[0]);
+            const sScreenPointerCnt = sTimeStampInterval ? (sEndTime - sStartTime) / (sTimeStampInterval * MILLISEC) : 0;
+            if (sScreenPointerCnt > DSH_CHART_ADV_SCATTER_DATA_LIMIT) {
+                const sAddFromTime = (sEndTime - sStartTime) * (DSH_CHART_ADV_SCATTER_DATA_LIMIT / sScreenPointerCnt);
+                sStartTime = sStartTime + (sEndTime - sStartTime - sAddFromTime);
+
+                subTitle = '     (' + moment(sStartTime).format('yyyy-MM-DD HH:mm:ss') + ' ~ ' + moment(sEndTime).format('yyyy-MM-DD HH:mm:ss') + ')';
+            }
+        }
+
         let sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
         if (pPanelInfo.type === 'Geomap')
             sIntervalInfo = {
@@ -121,6 +136,8 @@ const LineChart = ({
                 pBoardInfo.dashboard.variables
             );
             const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
+            if (chartTypeConverter(pPanelInfo.type) === E_CHART_TYPE.ADV_SCATTER && pPanelInfo.isAxisInterval)
+                sParsedChartOption.title = { ...sParsedChartOption.title, text: sParsedChartOption.title.text + subTitle };
             const sParsedChartCode = DashboardChartCodeParser(
                 pPanelInfo.chartOptions,
                 chartTypeConverter(pPanelInfo.type),

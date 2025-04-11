@@ -291,7 +291,8 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
 };
 
 /** replace common opt */
-const ReplaceCommonOpt = (aCommonOpt: any, aPanelType: string) => {
+const ReplaceCommonOpt = (aOpt: any, aPanelType: string) => {
+    const aCommonOpt = aOpt.commonOptions;
     const sCommOptList: string[] = Object.keys(aCommonOpt);
     const sDataType = SqlResDataType(aPanelType);
     let sParsedOpt: any = StructureOfCommonOption;
@@ -303,9 +304,19 @@ const ReplaceCommonOpt = (aCommonOpt: any, aPanelType: string) => {
 
     const sResult = JSON.parse(sParsedOpt);
     if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis' && sDataType === 'TIME_VALUE')
-        sResult.tooltip.formatter = ChartAxisTooltipFormatter(aCommonOpt['tooltipUnit'], aCommonOpt['tooltipDecimals']);
+        sResult.tooltip.formatter = ChartAxisTooltipFormatter(
+            aOpt,
+            aCommonOpt['tooltipUnit'],
+            aCommonOpt['tooltipDecimals'],
+            aPanelType === E_CHART_TYPE.ADV_SCATTER ? 'VALUE' : 'TIME'
+        );
     if (sResult.tooltip.show && sResult.tooltip.trigger === 'item' && sDataType === 'TIME_VALUE')
-        sResult.tooltip.formatter = ChartItemTooltipFormatter(aCommonOpt['tooltipUnit'], aCommonOpt['tooltipDecimals'], aPanelType === E_CHART_TYPE.ADV_SCATTER ? 'VALUE' : 'TIME');
+        sResult.tooltip.formatter = ChartItemTooltipFormatter(
+            aOpt,
+            aCommonOpt['tooltipUnit'],
+            aCommonOpt['tooltipDecimals'],
+            aPanelType === E_CHART_TYPE.ADV_SCATTER ? 'VALUE' : 'TIME'
+        );
     if (sResult.legend.left !== 'center') sResult.legend.padding = [30, 0, 0, 0];
     if (aPanelType === 'text') {
         sResult.legend = { show: false };
@@ -440,7 +451,7 @@ const CheckXAxis = (xAxisOptions: any, aChartType: string) => {
 
 export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTime: { startTime: number; endTime: number }) => {
     const sConvertedChartType = chartTypeConverter(aOptionInfo.type);
-    const sCommonOpt = ReplaceCommonOpt(aOptionInfo.commonOptions, sConvertedChartType);
+    const sCommonOpt = ReplaceCommonOpt(aOptionInfo, sConvertedChartType);
     const sUseDualYAxis = aOptionInfo.yAxisOptions.length === 2;
     const sTagList = aTagList.filter(Boolean);
     // Animation false (TIME_VALUE TYPE)
