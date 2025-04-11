@@ -5,6 +5,7 @@ import { VARIABLE_REGEX } from './CheckDataCompatibility';
 import { DEFAULT_VARIABLE_LIST, VARIABLE_TYPE } from '@/components/dashboard/variable';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import TQL from './TqlGenerator';
+import { DSH_CACHE_TIME } from './TqlGenerator/constants';
 
 interface BlockTimeType {
     interval: {
@@ -141,7 +142,15 @@ const ReplaceVariables = (
 };
 
 /** Dashboard QUERY PARSER */
-export const DashboardQueryParser = (aChartType: string, aBlockList: any, aRollupList: any, aXaxis: any, aTime: BlockTimeType, aUniqueId: string, aVariables?: VARIABLE_TYPE[]) => {
+export const DashboardQueryParser = (
+    aChartType: string,
+    aBlockList: any,
+    aRollupList: any,
+    aXaxis: any,
+    aTime: BlockTimeType,
+    aUniqueId?: string,
+    aVariables?: VARIABLE_TYPE[]
+) => {
     const sResDataType = SqlResDataType(aChartType);
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
     const sVariables = VariableParser(aVariables ?? [], aTime);
@@ -458,7 +467,7 @@ const GetConbineWhere = (
     return sReturnWhere;
 };
 
-const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string[], aChartType: ChartType, aXaxis: any, aUniqueId: string) => {
+const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string[], aChartType: ChartType, aXaxis: any, aUniqueId?: string) => {
     const sPeriod = aTime.interval.IntervalValue + aTime.interval.IntervalType[0];
     let sInjectionSrc = 'FAKE(linspace(0, 1, 1))';
     let sAliasList: any[] = [];
@@ -536,7 +545,7 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
                         '\n' +
                         TQL.MAP.POPVALUE(0) +
                         '\n' +
-                        TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId, '3s'))
+                        TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME))
                 ),
             },
             {
@@ -545,7 +554,7 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
             }
         );
         const sInjectionScript = TQL.MAP.SCRIPT('JS', {
-            main: TQL.MAP.SCRIPT.Yield('xAxis[i++][0], $.values[0]'),
+            main: `if (!!xAxis[i][0] || !!$.values[0]) ${TQL.MAP.SCRIPT.Yield('xAxis[i][0], $.values[0]')}\ni++;`,
             init: `${TQL.MAP.SCRIPT.Var('i', '0')} ${TQL.MAP.SCRIPT.Var('xAxis', 'undefined')}
                     ${sRequestDo}`,
         });
