@@ -1,5 +1,44 @@
 // import type { EChartOption } from 'echarts'
-export type ChartType = 'line' | 'bar' | 'scatter' | 'pie' | 'radar' | 'candlestick' | 'heatmap' | 'sankey' | 'gauge' | 'liquidFill' | 'wordCloud' | 'tql' | 'text' | 'geomap';
+export enum E_CUSTOM_CHART_TYPE {
+    TEXT = 'text',
+    TQL = 'tql',
+    GEOMAP = 'geomap',
+    ADV_SCATTER = 'advScatter',
+}
+export enum E_CHART_TYPE {
+    LINE = 'line',
+    BAR = 'bar',
+    SCATTER = 'scatter',
+    PIE = 'pie',
+    RADAR = 'radar',
+    CANDLESTICK = 'candlestick',
+    HEATMAP = 'heatmap',
+    SANKEY = 'sankey',
+    GAUGE = 'gauge',
+    LIQUID_FILL = 'liquidFill',
+    WORD_CLOUD = 'wordCloud',
+    TQL = 'tql',
+    TEXT = 'text',
+    GEOMAP = 'geomap',
+    ADV_SCATTER = 'advScatter',
+}
+export type CustomChartType = (typeof E_CUSTOM_CHART_TYPE)[keyof typeof E_CUSTOM_CHART_TYPE];
+export type ChartType =
+    | 'line'
+    | 'bar'
+    | 'scatter'
+    | 'pie'
+    | 'radar'
+    | 'candlestick'
+    | 'heatmap'
+    | 'sankey'
+    | 'gauge'
+    | 'liquidFill'
+    | 'wordCloud'
+    | 'tql'
+    | 'text'
+    | 'geomap'
+    | 'advScatter';
 export type ChartTheme =
     | 'dark'
     | 'white'

@@ -50,6 +50,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
 
     return (
         <>
+            <div className="divider" />
             <Collapse title="Panel option" isOpen>
                 <div className="panel-name-wrap" style={{ marginBottom: '4px' }}>
                     <span>Title</span>

@@ -839,12 +839,23 @@ export const createPieQuery = (aInfo: any, aStart: number, aEnd: number) => {
     return selectQuery + ' ' + fromQuery + ' ' + whereTimeQuery + ' ' + andNameQuery + ' ' + groupByQuery;
 };
 
-export const isTimeSeriesChart = (aType: ChartType) => {
+export const useXAxis = (aType: ChartType) => {
     switch (aType) {
         case 'line':
         case 'bar':
         case 'scatter':
-        case 'candlestick':
+        case 'advScatter':
+            return true;
+        default:
+            return false;
+    }
+};
+export const useYAxis = (aType: ChartType) => {
+    switch (aType) {
+        case 'line':
+        case 'bar':
+        case 'scatter':
+        case 'advScatter':
             return true;
         default:
             return false;
