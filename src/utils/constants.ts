@@ -1,5 +1,4 @@
 import { ChartTheme } from '@/type/eChart';
-import { getChartSeriesName } from './dashboardUtil';
 
 export const FORMAT_FULL_DATE = 'YYYY-MM-DD HH:mm:ss';
 export const LENGTH_LIST = 10;
