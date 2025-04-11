@@ -97,10 +97,11 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                         <div style={{ display: sTab === 'Time' ? 'none' : '' }} className="body">
                             {/* SET Block */}
                             {pTableList.length !== 0 &&
-                                pPanelOption.blockList.map((aItem: any) => {
+                                pPanelOption.blockList.map((aItem: any, aIdx: number) => {
                                     return (
                                         <Block
                                             key={aItem.id}
+                                            pBlockOrder={aIdx}
                                             pType={pType}
                                             pPanelOption={pPanelOption}
                                             pTableList={pTableList}

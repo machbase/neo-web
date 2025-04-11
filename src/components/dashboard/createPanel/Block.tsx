@@ -34,8 +34,9 @@ import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { InputSelector } from '@/components/inputs/InputSelector';
 import { FULL_TYPING_QUERY_PLACEHOLDER } from '@/utils/constants';
 import { FullQueryHelper } from './Block/FullQueryHelper';
+import { E_CHART_TYPE } from '@/type/eChart';
 
-export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption }: any) => {
+export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
@@ -463,7 +464,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
 
         if (chartTypeConverter(pPanelOption.type) === 'geomap') return geomapAggregatorList;
         if (sChartDataType === 'TIME_VALUE') {
-            const sAggregatorList = pBlockInfo.type === 'tag' ? tagAggregatorList : logAggregatorList;
+            let sAggregatorList = pBlockInfo.type === 'tag' ? tagAggregatorList : logAggregatorList;
+            if (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER) sAggregatorList = sAggregatorList.filter((agg) => agg !== 'value');
             return SEPARATE_DIFF ? sAggregatorList : sAggregatorList.concat(DIFF_LIST);
         }
         if (sChartDataType === 'NAME_VALUE') {
@@ -479,12 +481,14 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         let sAggList: string[] = [];
         if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
         if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
-        const sIsVaildAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0].aggregator : pBlockInfo.aggregator);
+        if (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER) sAggList = sAggList.filter((agg) => agg !== 'value');
+
+        const sIsValidAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0].aggregator : pBlockInfo.aggregator);
         // Set vaild agg
-        if (!sIsVaildAgg && pPanelOption.type !== 'Geomap') {
+        if (!sIsValidAgg && pPanelOption.type !== 'Geomap') {
             const sTempBlockList = JSON.parse(JSON.stringify(pBlockInfo));
-            sTempBlockList.aggregator = 'count';
-            sTempBlockList.values[0]?.aggregator && (sTempBlockList.values[0].aggregator = 'count');
+            sTempBlockList.aggregator = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? 'avg' : 'count';
+            sTempBlockList.values[0]?.aggregator && (sTempBlockList.values[0].aggregator = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? 'avg' : 'count');
             // Set option
             pSetPanelOption((aPrev: any) => {
                 return {
@@ -748,7 +752,10 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                         <div ref={sColorPickerRef} style={{ position: 'relative' }}>
                             {pPanelOption.type !== 'Text' && (
                                 <IconButton
-                                    pDisabled={pPanelOption.type === 'Text'}
+                                    pDisabled={
+                                        chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ||
+                                        (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && pPanelOption.xAxisOptions[0].useBlockList[0] === pBlockOrder)
+                                    }
                                     pWidth={20}
                                     pHeight={20}
                                     pIsToopTip

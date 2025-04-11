@@ -32,13 +32,19 @@ const DashboardCompatibility = (aData: any) => {
             if (aPanel.type === 'Geomap' && !CheckObjectKey(aPanel, 'titleColor')) aPanel.titleColor = '#000000';
             // X-Axis opt
             aPanel.xAxisOptions = aPanel.xAxisOptions.map((xAxisOpt: any) => {
-                if (xAxisOpt?.axisLabel) return xAxisOpt;
-                else return { ...xAxisOpt, axisLabel: { hideOverlap: true } };
+                const sTmpXAxis = JSON.parse(JSON.stringify(xAxisOpt));
+                if (!xAxisOpt?.axisLabel) sTmpXAxis.axisLabel = { hideOverlap: true };
+                if (!xAxisOpt?.useBlockList) sTmpXAxis.useBlockList = [0];
+                if (!xAxisOpt?.axisLine) sTmpXAxis.axisLine = { show: true, onZero: false };
+                if (!xAxisOpt?.label) sTmpXAxis.label = { name: 'value', key: 'value', title: '', unit: '', decimals: undefined, squared: 0 };
+                return sTmpXAxis;
             });
             // Y-Axis opt
             aPanel.yAxisOptions = aPanel.yAxisOptions.map((yAxisOpt: any) => {
-                if (yAxisOpt?.axisLabel) return yAxisOpt;
-                else return { ...yAxisOpt, offset: '' };
+                const sTmpYAxis = JSON.parse(JSON.stringify(yAxisOpt));
+                if (!yAxisOpt?.axisLabel) sTmpYAxis.axisLabel = { offset: '' };
+                if (!yAxisOpt?.axisLine) sTmpYAxis.axisLine = { show: true, onZero: false };
+                return sTmpYAxis;
             });
             const sResultPanel = aPanel;
             const sBlockList: any = aPanel.blockList;

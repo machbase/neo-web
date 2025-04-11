@@ -448,6 +448,7 @@ export const ChartTypeList = [
     { key: 'Line', value: 'line' },
     { key: 'Bar', value: 'bar' },
     { key: 'Scatter', value: 'scatter' },
+    { key: 'Adv scatter', value: 'advScatter' },
     { key: 'Gauge', value: 'gauge' },
     { key: 'Pie', value: 'pie' },
     { key: 'Liquid fill', value: 'liquidFill' },
@@ -498,12 +499,28 @@ export const ChartLegendLeftList = ['left', 'center', 'right'];
 export const ChartLegendOrientList = ['horizontal', 'vertical'];
 export const ChartSymbolList = ['circle', 'rect', 'roundRect', 'triangle', 'diamond', 'pin', 'arrow'];
 
-export const ChartAxisTooltipFormatter = (aUnit?: string, aDecimals?: number) => {
+export const ChartAxisTooltipFormatter = (aOpt: any, aUnit?: string, aDecimals?: number, aXAxsisType?: 'TIME' | 'VALUE') => {
+    let sInjectionOutput =
+        `let d = new Date(0);` +
+        `d.setUTCSeconds(params[0].name / 1000);` +
+        `let output = params[0].name === '' ? params[0].axisValueLabel : d.toLocaleString('en-GB', { timezone: 'UTC' });` +
+        `output += '<br/>';`;
+    if (aXAxsisType === 'VALUE') {
+        const targetBlock = aOpt.blockList[aOpt.xAxisOptions[0].useBlockList[0]];
+        let name = targetBlock?.useCustom ? targetBlock?.values[0]?.alias : targetBlock?.alias;
+        if (!name || name === '') {
+            if (targetBlock?.useCustom) name = targetBlock?.values[0]?.value + '(' + targetBlock?.values[0]?.aggregator + ')';
+            else name = targetBlock?.tag + '(' + targetBlock?.aggregator + ')';
+        }
+        sInjectionOutput = `let output = '<div><table><tr><td  style="color: ${targetBlock.color}"><b>X-axis</b>&ensp;:</td><td> ${
+            '&ensp;' + name + '&ensp;'
+        } </td> <td><b>' + parseInt(params[0].axisValueLabel)${aDecimals ? '.toFixed(' + aDecimals + ')' : ''} ${
+            aUnit ? "+ ' " + aUnit.replaceAll("'", '"') + "'" : ''
+        } + '</b></td></tr></table></div>';`;
+    }
     return (
         `function (params) {` +
-        `const d = new Date(0);` +
-        `d.setUTCSeconds(params[0].name / 1000);` +
-        `let output = params[0].name === '' ? params[0].axisValueLabel : d.toLocaleString('en-GB', { timezone: 'UTC' }) + '<br/>';` +
+        sInjectionOutput +
         `output += '<table>';` +
         `params.reverse().forEach(function (param) {` +
         `output += '<tr><td>' + param.marker + '</td><td>' + param.seriesName + '&ensp;</td><td><b>' + (param.data[1] || param.data[1] === 0? param.data[1]${
@@ -514,13 +531,24 @@ export const ChartAxisTooltipFormatter = (aUnit?: string, aDecimals?: number) =>
         `}`
     );
 };
-
-export const ChartItemTooltipFormatter = (aUnit?: string, aDecimals?: number) => {
+export const ChartItemTooltipFormatter = (aOpt: any, aUnit?: string, aDecimals?: number, aXAxsisType?: 'TIME' | 'VALUE') => {
+    let sInjectionOutput = `let d = new Date(0);` + `d.setUTCSeconds(params.data[0] / 1000);` + `let output = d.toLocaleString('en-GB', { timezone: 'UTC' }); output += '<br/>';`;
+    if (aXAxsisType === 'VALUE') {
+        const targetBlock = aOpt.blockList[aOpt.xAxisOptions[0].useBlockList[0]];
+        let name = targetBlock?.useCustom ? targetBlock?.values[0]?.alias : targetBlock?.alias;
+        if (!name || name === '') {
+            if (targetBlock?.useCustom) name = targetBlock?.values[0]?.value + '(' + targetBlock?.values[0]?.aggregator + ')';
+            else name = targetBlock?.tag + '(' + targetBlock?.aggregator + ')';
+        }
+        sInjectionOutput = `let output = '<div><table><tr><td  style="color: ${targetBlock.color}"><b>X-axis</b>&ensp;:</td><td> ${
+            '&ensp;' + name + '&ensp;'
+        } </td> <td><b>' + params.data[0]${aDecimals ? '.toFixed(' + aDecimals + ')' : ''} ${
+            aUnit ? "+ ' " + aUnit.replaceAll("'", '"') + "'" : ''
+        } + '</b></td></tr></table></div>';`;
+    }
     return (
         `function (params) {` +
-        `let d = new Date(0);` +
-        `d.setUTCSeconds(params.data[0] / 1000);` +
-        `let output = d.toLocaleString('en-GB', { timezone: 'UTC' }) + '<br/>';` +
+        sInjectionOutput +
         `output += '<table>'; ` +
         `output += '<tr><td>'+params.marker+'</td><td>' + params.seriesName + '&ensp;</td><td><b>' + (params.data[1] || params.data[1] === 0 ? params.data[1]${
             aDecimals ? '.toFixed(' + aDecimals + ')' : ''

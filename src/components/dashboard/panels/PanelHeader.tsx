@@ -220,7 +220,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                     <HiMiniDocumentDuplicate />
                                     <span>Duplicate</span>
                                 </Menu.Item>
-                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && (
+                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && (
                                     <Menu.Item onClick={handleMoveTagz}>
                                         <MuiTagAnalyzerGray className="mui-svg-hover" width={13} />
                                         <span>Show Taganalyzer</span>
@@ -230,7 +230,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                     <Delete />
                                     <span>Delete</span>
                                 </Menu.Item>
-                                {localStorage.getItem('experimentMode') && pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && (
+                                {localStorage.getItem('experimentMode') && pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && (
                                     <Menu.Item onClick={HandleDownload}>
                                         <VscGraphScatter />
                                         <span>Save to tql</span>
