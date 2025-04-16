@@ -468,7 +468,6 @@ const GetConbineWhere = (
 };
 
 const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string[], aChartType: ChartType, aXaxis: any, aUniqueId?: string) => {
-    const sPeriod = aTime.interval.IntervalValue + aTime.interval.IntervalType[0];
     let sInjectionSrc = 'FAKE(linspace(0, 1, 1))';
     let sAliasList: any[] = [];
     let sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
@@ -498,12 +497,6 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
             sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
             if (sUseDiff) sTql += `MAP_${changeDiffText(aQuery.valueList[0]?.diff)}(1, value(1))`;
             if (aQuery?.math && aQuery?.math !== '') sTql += `${sUseDiff ? `\n` : ''}MAPVALUE(2, ${mathValueConverter('1', aQuery?.math)}, "VALUE")\nPOPVALUE(1)\n`;
-            if (aChartType === E_CHART_TYPE.ADV_SCATTER) {
-                sTql +=
-                    TQL.MAP.GROUP([TQL.MAP.GROUP.By(['value(0) * 1000000', TQL.MAP.GROUP.Timewindow(aTime.start, aTime.end, sPeriod), '"TIME"']), TQL.MAP.GROUP.Last('value(1)')]) +
-                    '\n' +
-                    TQL.MAP.POPVALUE(0);
-            }
         }
         // PIE | GAUGE | LIQUIDFILL
         if (aResDataType[aIdx] === 'NAME_VALUE') {
@@ -534,19 +527,7 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
             {
                 method: 'POST',
                 url: '/web/api/tql',
-                body: JSON.stringify(
-                    'SQL("' +
-                        sBaseXAxis.sql +
-                        '")\n' +
-                        TQL.MAP.GROUP([
-                            TQL.MAP.GROUP.By(['value(0) * 1000000', TQL.MAP.GROUP.Timewindow(aTime.start, aTime.end, sPeriod), JSON.stringify('TIME')]),
-                            TQL.MAP.GROUP.Last('value(1)'),
-                        ]) +
-                        '\n' +
-                        TQL.MAP.POPVALUE(0) +
-                        '\n' +
-                        TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME))
-                ),
+                body: JSON.stringify('SQL("' + sBaseXAxis.sql + '")\n' + TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME))),
             },
             {
                 method: 'text',
@@ -554,9 +535,11 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
             }
         );
         const sInjectionScript = TQL.MAP.SCRIPT('JS', {
-            main: `if (!!xAxis[i][0] || !!$.values[0]) ${TQL.MAP.SCRIPT.Yield('xAxis[i][0], $.values[0]')}\ni++;`,
-            init: `${TQL.MAP.SCRIPT.Var('i', '0')} ${TQL.MAP.SCRIPT.Var('xAxis', 'undefined')}
-                    ${sRequestDo}`,
+            main: `for (var k = incIdx; k < xAxis.length; k++) {\nif (eofFlag) break;\ntargetTime = JSON.parse($.values[0]);\nif (xAxis[k][0] === targetTime) {\nincIdx = k + 1;\n$.yield(xAxis[k][1], $.values[1]);\nbreak;\n}\nif (xAxis[k][0] > targetTime) {\nincIdx = k - 1;\nbreak;\n}\nif (xAxis.length - 1 === k) eofFlag = true;\n};`,
+            init: `${TQL.MAP.SCRIPT.Var('xAxis', 'undefined')} ${TQL.MAP.SCRIPT.Var('incIdx', '0')} ${TQL.MAP.SCRIPT.Var('eofFlag', 'false')} ${TQL.MAP.SCRIPT.Var(
+                'targetTime',
+                'undefined'
+            )}\n${sRequestDo}`,
         });
         sAliasList = sAliasList.filter((alias) => alias.useQuery);
         if (sAliasList.length > 1) sInjectionSrc += '\n' + TQL.MAP.SCRIPT('JS', { main: sRequestDo });
