@@ -62,8 +62,10 @@
                 border-radius: 2px 4px 4px 2px;
                 font-size: 12px;
                 text-align: start;
-                overflow: hidden;
+                // overflow: hidden;
                 text-overflow: ellipsis;
+                display: flex;
+                width: 100%;
 
                 &:hover {
                     background-color: rgb(128, 128, 128) !important;
@@ -71,6 +73,9 @@
 
                 &-text {
                     color: $text-w;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    text-wrap: nowrap;
                 }
             }
 
@@ -87,5 +92,11 @@
         border-bottom-right-radius: 4px;
         overflow: hidden;
         text-overflow: ellipsis;
+
+        span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-wrap: nowrap;
+        }
     }
 }
