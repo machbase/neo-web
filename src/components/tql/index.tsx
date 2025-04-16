@@ -90,9 +90,12 @@ const Tql = (props: TqlProps) => {
     };
 
     const getTqlData = async (aText: string) => {
+        console.log('getTqlData - props code', setResultType);
+        console.log('getTqlData - text', pCode);
         setLoadState(true);
         HandleResutTypeAndTxt('Processing...', false);
         const sResult: any = await getTqlChart(aText);
+        console.log('getTqlData - result', sResult);
 
         if (sResult.status === 200 && sResult.headers && (sResult.headers['x-chart-type'] === 'echarts' || sResult.headers['x-chart-type'] === 'geomap')) {
             if (sResult.data && (CheckObjectKey(sResult.data, E_VISUAL_LOAD_ID.CHART) || CheckObjectKey(sResult.data, E_VISUAL_LOAD_ID.MAP))) {
