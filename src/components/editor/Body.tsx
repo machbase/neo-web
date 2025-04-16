@@ -214,10 +214,17 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                         <div key={aItem.id} style={aItem.id === sSelectedTab ? { width: '100%', height: '100%' } : { display: 'none' }}>
                             {aItem.type === 'new' && <NewBoard pExtentionList={pExtentionList} pGetInfo={pGetInfo} setIsOpenModal={setIsOpenModal} />}
                             {aItem.type === 'sql' && (
-                                <Sql pSetDragStat={pSetDragStat} pHandleSaveModalOpen={handleSaveModalOpen} pInfo={aItem} setIsSaveModal={setIsSaveModal}></Sql>
+                                <Sql
+                                    pIsActiveTab={aItem.id === sSelectedTab}
+                                    pSetDragStat={pSetDragStat}
+                                    pHandleSaveModalOpen={handleSaveModalOpen}
+                                    pInfo={aItem}
+                                    setIsSaveModal={setIsSaveModal}
+                                />
                             )}
                             {aItem.type === 'tql' && (
                                 <Tql
+                                    pIsActiveTab={aItem.id === sSelectedTab}
                                     pCode={aItem.code}
                                     pIsSave={aItem.path}
                                     pSetDragStat={pSetDragStat}
@@ -242,17 +249,77 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     pIsSave={aItem.path}
                                 />
                             )}
-                            {aItem.type === 'wrk' && <WorkSheet pId={aItem.id} pSheet={aItem.sheet} pHandleSaveModalOpen={handleSaveModalOpen} setIsSaveModal={setIsSaveModal} />}
-                            {aItem.type === 'json' && <TextExtension pLang="json" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
-                            {aItem.type === 'csv' && <TextExtension pLang="go" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
-                            {aItem.type === 'md' && (
-                                <TextExtension pLang="markdown" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />
+                            {aItem.type === 'wrk' && (
+                                <WorkSheet
+                                    pIsActiveTab={aItem.id === sSelectedTab}
+                                    pId={aItem.id}
+                                    pSheet={aItem.sheet}
+                                    pHandleSaveModalOpen={handleSaveModalOpen}
+                                    setIsSaveModal={setIsSaveModal}
+                                />
                             )}
-                            {aItem.type === 'txt' && <TextExtension pLang="go" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
-                            {aItem.type === 'html' && <TextExtension pLang="html" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
-                            {aItem.type === 'css' && <TextExtension pLang="css" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />}
+                            {aItem.type === 'json' && (
+                                <TextExtension
+                                    pIsActiveTab={aItem.id === sSelectedTab}
+                                    pLang="json"
+                                    pCode={aItem.code}
+                                    pHandleSaveModalOpen={handleSaveModalOpen}
+                                    setIsOpenModal={setIsSaveModal}
+                                />
+                            )}
+                            {aItem.type === 'csv' && (
+                                <TextExtension
+                                    pIsActiveTab={aItem.id === sSelectedTab}
+                                    pLang="go"
+                                    pCode={aItem.code}
+                                    pHandleSaveModalOpen={handleSaveModalOpen}
+                                    setIsOpenModal={setIsSaveModal}
+                                />
+                            )}
+                            {aItem.type === 'md' && (
+                                <TextExtension
+                                    pIsActiveTab={aItem.id === sSelectedTab}
+                                    pLang="markdown"
+                                    pCode={aItem.code}
+                                    pHandleSaveModalOpen={handleSaveModalOpen}
+                                    setIsOpenModal={setIsSaveModal}
+                                />
+                            )}
+                            {aItem.type === 'txt' && (
+                                <TextExtension
+                                    pIsActiveTab={aItem.id === sSelectedTab}
+                                    pLang="go"
+                                    pCode={aItem.code}
+                                    pHandleSaveModalOpen={handleSaveModalOpen}
+                                    setIsOpenModal={setIsSaveModal}
+                                />
+                            )}
+                            {aItem.type === 'html' && (
+                                <TextExtension
+                                    pIsActiveTab={aItem.id === sSelectedTab}
+                                    pLang="html"
+                                    pCode={aItem.code}
+                                    pHandleSaveModalOpen={handleSaveModalOpen}
+                                    setIsOpenModal={setIsSaveModal}
+                                />
+                            )}
+                            {aItem.type === 'css' && (
+                                <TextExtension
+                                    pIsActiveTab={aItem.id === sSelectedTab}
+                                    pLang="css"
+                                    pCode={aItem.code}
+                                    pHandleSaveModalOpen={handleSaveModalOpen}
+                                    setIsOpenModal={setIsSaveModal}
+                                />
+                            )}
                             {aItem.type === 'js' && (
-                                <TextExtension pLang="javascript" pCode={aItem.code} pHandleSaveModalOpen={handleSaveModalOpen} setIsOpenModal={setIsSaveModal} />
+                                <TextExtension
+                                    pIsActiveTab={aItem.id === sSelectedTab}
+                                    pLang="javascript"
+                                    pCode={aItem.code}
+                                    pHandleSaveModalOpen={handleSaveModalOpen}
+                                    setIsOpenModal={setIsSaveModal}
+                                />
                             )}
                             {aItem.type === 'key' && <SecurityKey pCode={aItem.code} />}
                             {aItem.type === 'timer' && <Timer pCode={aItem.code} />}

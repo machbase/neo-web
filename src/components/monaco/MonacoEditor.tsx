@@ -1,9 +1,10 @@
+import './MonacoScrollBarTrack.scss';
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import type { OnChange } from '@monaco-editor/react';
 import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
-import './MonacoScrollBarTrack.scss';
 export interface MonacoEditorProps {
+    pIsActiveTab: boolean;
     pText: string;
     pLang: string;
     onChange: OnChange;
@@ -19,7 +20,7 @@ export interface MonacoEditorProps {
 }
 
 export const MonacoEditor = (props: MonacoEditorProps) => {
-    const { pText, pLang, onChange, onRunCode, onSelectLine, setLineHeight } = props;
+    const { pIsActiveTab, pText, pLang, onChange, onRunCode, onSelectLine, setLineHeight } = props;
     const sMonaco = useMonaco();
     const [sEditor, setEditor] = useState<any>(null);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
@@ -87,11 +88,15 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
 
     const handleMount = (editor: any) => {
         setEditor(editor);
-        editor.focus();
+        if (pIsActiveTab) editor.focus();
     };
 
+    useEffect(() => {
+        if (pIsActiveTab && sEditor) sEditor.focus();
+    }, [pIsActiveTab]);
+
     const applyRunCode = (aText: string) => {
-        if (!sMonaco) return;
+        if (!sMonaco || !pIsActiveTab) return;
 
         const runCode = {
             id: 'run-code',

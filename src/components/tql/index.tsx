@@ -29,6 +29,7 @@ import { Loader } from '../loader';
 import { CheckObjectKey, E_VISUAL_LOAD_ID } from '@/utils/dashboardUtil';
 import { ShowVisualization } from './ShowVisualization';
 interface TqlProps {
+    pIsActiveTab: boolean;
     pCode: string;
     pIsSave: any;
     setIsSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
@@ -37,7 +38,7 @@ interface TqlProps {
 }
 
 const Tql = (props: TqlProps) => {
-    const { pCode, pHandleSaveModalOpen, setIsSaveModal, pSetDragStat, pIsSave } = props;
+    const { pIsActiveTab, pCode, pHandleSaveModalOpen, setIsSaveModal, pSetDragStat, pIsSave } = props;
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
@@ -90,12 +91,9 @@ const Tql = (props: TqlProps) => {
     };
 
     const getTqlData = async (aText: string) => {
-        console.log('getTqlData - props code', setResultType);
-        console.log('getTqlData - text', pCode);
         setLoadState(true);
         HandleResutTypeAndTxt('Processing...', false);
         const sResult: any = await getTqlChart(aText);
-        console.log('getTqlData - result', sResult);
 
         if (sResult.status === 200 && sResult.headers && (sResult.headers['x-chart-type'] === 'echarts' || sResult.headers['x-chart-type'] === 'geomap')) {
             if (sResult.data && (CheckObjectKey(sResult.data, E_VISUAL_LOAD_ID.CHART) || CheckObjectKey(sResult.data, E_VISUAL_LOAD_ID.MAP))) {
@@ -208,7 +206,7 @@ const Tql = (props: TqlProps) => {
                         </div>
                     </div>
                     <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
-                        <MonacoEditor pText={sText} pLang={sCurrentLang} onSelectLine={() => null} onChange={handleChangeText} onRunCode={getTqlData} />
+                        <MonacoEditor pIsActiveTab={pIsActiveTab} pText={sText} pLang={sCurrentLang} onSelectLine={() => null} onChange={handleChangeText} onRunCode={getTqlData} />
                     </div>
                 </Pane>
                 <Pane style={{ overflow: 'initial' }}>

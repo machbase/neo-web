@@ -23,11 +23,13 @@ const Sql = ({
     pHandleSaveModalOpen,
     setIsSaveModal,
     pSetDragStat,
+    pIsActiveTab,
 }: {
     pInfo: any;
     pHandleSaveModalOpen: any;
     setIsSaveModal: (aValue: boolean) => void;
     pSetDragStat: any;
+    pIsActiveTab: boolean;
 }) => {
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
@@ -293,7 +295,14 @@ const Sql = ({
                         </div>
                     </div>
                     <div ref={sEditorRef} style={{ height: 'calc(100% - 40px)', width: '100%' }}>
-                        <MonacoEditor pText={sSqlQueryTxt} pLang="sql" onChange={handleChangeText} onRunCode={sqlMultiLineParser} onSelectLine={setSqlLocation} />
+                        <MonacoEditor
+                            pIsActiveTab={pIsActiveTab}
+                            pText={sSqlQueryTxt}
+                            pLang="sql"
+                            onChange={handleChangeText}
+                            onRunCode={sqlMultiLineParser}
+                            onSelectLine={setSqlLocation}
+                        />
                     </div>
                 </Pane>
                 <Pane style={{ overflow: 'initial' }}>
