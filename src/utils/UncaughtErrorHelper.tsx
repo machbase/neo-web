@@ -6,6 +6,7 @@ export const UncaughtErrorObserver = (setConsoleList: any) => {
         if (typeof message === 'string' && message.includes("Uncaught TypeError: Cannot read properties of null (reading 'getAttribute')")) return true;
         if (typeof message === 'string' && message.includes("Uncaught TypeError: Cannot read properties of undefined (reading 'findNearestPointBy')")) return true;
         if (typeof message === 'string' && message.includes('Maximum update depth exceeded. This can happen when a component calls setState inside useEffect')) return true;
+        if (typeof message === 'string' && message.includes('ResizeObserver loop completed with undelivered notifications.')) return true;
         setConsoleList((preData: any) => [
             ...preData,
             {
