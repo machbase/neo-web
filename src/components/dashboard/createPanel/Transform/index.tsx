@@ -90,7 +90,11 @@ export const Transform = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any
                 );
             })}
             <TransformAddBlock
-                isDisable={pPanelOption?.transformBlockList?.length > 11}
+                isDisable={
+                    pPanelOption.chartOptions?.tagLimit
+                        ? pPanelOption.chartOptions?.tagLimit - (pPanelOption?.blockList?.length ?? 0) <= pPanelOption?.transformBlockList?.length
+                        : 12 - (pPanelOption?.blockList?.length ?? 0) <= pPanelOption?.transformBlockList?.length
+                }
                 callback={() => handleTransformBlock('ADD', pPanelOption?.transformBlockList?.length ?? 0)}
             />
         </div>

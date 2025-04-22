@@ -135,7 +135,19 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                 <div
                                     onClick={HandleAddBlock}
                                     className="plus-wrap"
-                                    style={pPanelOption.chartOptions?.tagLimit <= pPanelOption.blockList.length ? { opacity: 0.7, pointerEvents: 'none' } : {}}
+                                    style={
+                                        (pPanelOption.chartOptions?.tagLimit
+                                            ? pPanelOption.chartOptions?.tagLimit -
+                                              (CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType)
+                                                  ? pPanelOption?.transformBlockList?.length ?? 0
+                                                  : 0)
+                                            : 12 -
+                                              (CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType)
+                                                  ? pPanelOption?.transformBlockList?.length ?? 0
+                                                  : 0)) <= pPanelOption.blockList.length
+                                            ? { opacity: 0.7, pointerEvents: 'none' }
+                                            : {}
+                                    }
                                 >
                                     <PlusCircle color="#FDB532" />
                                 </div>
