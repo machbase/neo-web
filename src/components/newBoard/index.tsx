@@ -77,13 +77,10 @@ const NewBoard = (props: NewBoardProps) => {
         switch (aType.type) {
             case 'sql':
                 return icons('sql', true);
-                break;
             case 'tql':
                 return icons('tql', true);
-                break;
             case 'wrk':
                 return icons('wrk', true);
-                break;
             case 'term':
                 if (
                     aType.icon === 'console-network-outline' ||
@@ -100,15 +97,14 @@ const NewBoard = (props: NewBoardProps) => {
                 } else {
                     return icons('term', true);
                 }
-                break;
             case 'taz':
                 return icons('taz', true);
-                break;
             case 'dsh':
                 return icons('dsh', true);
+            case 'fish':
+                return icons('fish', true);
             default:
                 return icons('none', true);
-                break;
         }
     };
 
