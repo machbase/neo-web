@@ -56,11 +56,18 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         const sStartTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.start ?? '') : setUnitTime(pDashboardTime.start);
         const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.end ?? '') : setUnitTime(pDashboardTime.end);
         const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, pPanelInfo.w * 50);
-        const [sParsedQuery, sAliasList] = DashboardQueryParser(chartTypeConverter(pPanelInfo.type), pPanelInfo.blockList, sRollupTableList, pPanelInfo.xAxisOptions, {
-            interval: sIntervalInfo,
-            start: sStartTime,
-            end: sEndTime,
-        });
+        const [sParsedQuery, sAliasList] = DashboardQueryParser(
+            chartTypeConverter(pPanelInfo.type),
+            pPanelInfo.blockList,
+            pPanelInfo.transformBlockList,
+            sRollupTableList,
+            pPanelInfo.xAxisOptions,
+            {
+                interval: sIntervalInfo,
+                start: sStartTime,
+                end: sEndTime,
+            }
+        );
 
         return [sParsedQuery, sAliasList];
     };

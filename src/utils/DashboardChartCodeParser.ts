@@ -4,7 +4,7 @@ const NameValueFunc = (aChartType: string) => {
     const sGaugeNaNFormatter = `if (isNaN(Number.parseFloat(obj.data.rows[0][0].value))) {_chartOption.series[0].detail.formatter = function (value) {return 'No-data'}}`;
     return `(obj) => {
         \t\t${sIsGauge && sGaugeNaNFormatter}
-        \t\tsData[aIdx] = obj.data.rows[0][0];
+        \t\tsData[aIdx] = obj.data.rows?.[0]?.[0] ?? 0;
         \t\tsCount += 1;
         \t\t_chartOption.series[0] = { ..._chartOption.series[0], data: sData };
         \t\tif (sCount === sQuery.length) _chart.setOption(_chartOption);

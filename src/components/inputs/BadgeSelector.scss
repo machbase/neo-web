@@ -2,9 +2,8 @@
 
 .badge-selector {
     display: flex;
-    width: 100%;
+    // width: 100%;
     flex-grow: 1;
-    padding: 8px 10px 0 0;
     position: relative;
 
     &-selected-box {
@@ -34,11 +33,12 @@
         width: 100%;
         gap: 4px;
         overflow: hidden;
+        min-height: 27.5px;
     }
 
     &-list {
+        content-visibility: auto;
         z-index: $dropdown-idx;
-        padding: 0 10px 0 0;
         position: absolute;
         top: 46px;
         display: flex;
@@ -62,7 +62,6 @@
                 border-radius: 2px 4px 4px 2px;
                 font-size: 12px;
                 text-align: start;
-                // overflow: hidden;
                 text-overflow: ellipsis;
                 display: flex;
                 width: 100%;

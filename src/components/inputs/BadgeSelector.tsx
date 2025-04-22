@@ -1,5 +1,5 @@
 import './BadgeSelector.scss';
-import React, { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { ArrowDown } from '@/assets/icons/Icon';
 import { Tooltip } from 'react-tooltip';
@@ -15,7 +15,7 @@ type BadgeSelectorItemProps = {
     pList: BadgeSelectorItemType[] | [];
     pCallback: (item: BadgeSelectorItemType) => void;
 };
-const BadgeSelectorItem: React.FC<{ item: BadgeSelectorItemType }> = ({ item }) => {
+const BadgeSelectorItem = ({ item }: { item: BadgeSelectorItemType }) => {
     return (
         <div className="badge-selector-item" style={{ boxShadow: `inset 4px 0 0 0  ${item.color}` }}>
             <span>{item.name}</span>
@@ -49,15 +49,18 @@ export const BadgeSelect = ({ pSelectedList, pList, pCallback }: BadgeSelectorIt
                 <div className="badge-selector-list">
                     <div className="badge-selector-list-box">
                         {pList?.map((aItem, aIdx) => (
-                            <button
-                                key={aIdx}
-                                className={`select-tooltip-${aIdx} badge-selector-list-box-item${pSelectedList?.includes(aItem.idx) ? ' badge-selector-active-item' : ''}`}
-                                onClick={() => pCallback(aItem)}
-                                style={{ boxShadow: `inset 4px 0 0 0 ${aItem.color}` }}
-                            >
-                                <Tooltip anchorSelect={`.select-tooltip-${aIdx}`} content={aItem.name} />
-                                <span className="badge-selector-list-box-item-text">{aItem.name}</span>
-                            </button>
+                            <div key={aIdx + ''}>
+                                <button
+                                    className={`badge-select-tooltip-${aIdx + ''} badge-selector-list-box-item${
+                                        pSelectedList?.includes(aItem.idx) ? ' badge-selector-active-item' : ''
+                                    }`}
+                                    onClick={() => pCallback(aItem)}
+                                    style={{ boxShadow: `inset 4px 0 0 0 ${aItem.color}` }}
+                                >
+                                    <span className="badge-selector-list-box-item-text">{aItem.name}</span>
+                                </button>
+                                <Tooltip anchorSelect={`.badge-select-tooltip-${aIdx + ''}`} content={aItem.name} />
+                            </div>
                         ))}
                     </div>
                 </div>

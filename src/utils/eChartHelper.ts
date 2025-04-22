@@ -224,6 +224,7 @@ export const DefaultChartOption = {
         IntervalValue: '' as string,
     },
     blockList: undefined as any,
+    transformBlcokList: undefined as any,
     useCustomTime: false as boolean,
     tqlInfo: undefined as any,
 

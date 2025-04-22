@@ -110,6 +110,7 @@ const LineChart = ({
             const [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
                 chartTypeConverter(pPanelInfo.type),
                 pPanelInfo.blockList,
+                pPanelInfo.transformBlockList,
                 sRollupTableList,
                 pPanelInfo.xAxisOptions,
                 {

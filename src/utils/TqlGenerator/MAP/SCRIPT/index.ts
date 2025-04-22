@@ -31,6 +31,19 @@ const RequestDo = (aReq: { method: 'POST'; url: string; body: string }, aDo: { m
     if (aDo) doOpt = doOpt.replace('${METHOD}', aDo.method).replace('${CALLBACK}', aDo.callback);
     return template[E_TQL_SCRIPT_JS_UTILS.REQUEST_DO].replace(`\${${E_TQL_SCRIPT_JS_UTILS.REQUEST}}`, reqOpt).replace(`\${${E_TQL_SCRIPT_JS_UTILS.DO}}`, doOpt);
 };
+const RequestDoQuick = (aBody: string) => {
+    return RequestDo(
+        {
+            method: 'POST',
+            url: '/web/api/tql',
+            body: aBody,
+        },
+        {
+            method: 'text',
+            callback: 'function(txt) { xAxis = JSON.parse(txt).data.rows; }',
+        }
+    );
+};
 const Yield = (script: string): string => {
     return template[E_TQL_SCRIPT_JS_UTILS.YIELD].replace(`\${${E_TQL_SCRIPT_JS_UTILS.YIELD}}`, script);
 };
@@ -48,5 +61,6 @@ const SCRIPT = (type: keyof typeof E_TQL_SCRIPT_LANGUAGE, scripts: { main: strin
 SCRIPT.Var = Var;
 SCRIPT.Yield = Yield;
 SCRIPT.RequestDo = RequestDo;
+SCRIPT.RequestDoQuick = RequestDoQuick;
 
 export default SCRIPT;

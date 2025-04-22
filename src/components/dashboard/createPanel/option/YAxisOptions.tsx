@@ -237,7 +237,9 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                                 <>
                                     <div className="divider" />
                                     <div>Series</div>
-                                    <BadgeSelect pSelectedList={pPanelOption.yAxisOptions[1]?.useBlockList || [0]} pList={getBlockList} pCallback={handleUseSecondYAxis} />
+                                    <div style={{ padding: '8px 10px 0 0' }}>
+                                        <BadgeSelect pSelectedList={pPanelOption.yAxisOptions[1]?.useBlockList || [0]} pList={getBlockList} pCallback={handleUseSecondYAxis} />
+                                    </div>
                                 </>
                             )}
                         </div>

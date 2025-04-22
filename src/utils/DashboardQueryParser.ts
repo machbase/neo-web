@@ -5,7 +5,9 @@ import { VARIABLE_REGEX } from './CheckDataCompatibility';
 import { DEFAULT_VARIABLE_LIST, VARIABLE_TYPE } from '@/components/dashboard/variable';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import TQL from './TqlGenerator';
-import { DSH_CACHE_TIME } from './TqlGenerator/constants';
+import { DSH_CACHE_TIME, DSH_CHART_NAME_VALUE_SCRIPT_MODULE, DSH_CHART_TIME_VALUE_SCRIPT_MODULE, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE } from './TqlGenerator/constants';
+import { TransformBlockType } from '@/components/dashboard/createPanel/Transform/type';
+import { getChartSeriesName } from './dashboardUtil';
 
 interface BlockTimeType {
     interval: {
@@ -145,6 +147,7 @@ const ReplaceVariables = (
 export const DashboardQueryParser = (
     aChartType: string,
     aBlockList: any,
+    aTransformBlockList: TransformBlockType[],
     aRollupList: any,
     aXaxis: any,
     aTime: BlockTimeType,
@@ -154,8 +157,10 @@ export const DashboardQueryParser = (
     const sResDataType = SqlResDataType(aChartType);
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
     const sVariables = VariableParser(aVariables ?? [], aTime);
+
     const [sParsedQueryList, sAliasList, sInjectionSrc] = QueryParser(
         sQueryBlock,
+        aTransformBlockList,
         aTime,
         aChartType === 'text' ? ['NAME_VALUE', 'TIME_VALUE'] : (Array.from({ length: sQueryBlock.length }).fill(sResDataType) as string[]),
         aChartType as ChartType,
@@ -213,6 +218,14 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             math: bBlock?.math ?? '',
             duration: bBlock?.duration ?? { from: '', to: '' },
             useFullTyping: bBlock.customFullTyping.use,
+            name: bBlock.customFullTyping.use
+                ? 'custom'
+                : getChartSeriesName({
+                      alias: bBlock?.useCustom ? bBlock?.values[0]?.alias : bBlock?.alias,
+                      table: bBlock?.table,
+                      column: bBlock?.useCustom ? bBlock?.values[0]?.value : bBlock?.value,
+                      aggregator: bBlock?.useCustom ? bBlock?.values[0]?.aggregator : bBlock?.aggregator,
+                  }),
         };
     });
     return sParsedBlock;
@@ -467,13 +480,21 @@ const GetConbineWhere = (
     return sReturnWhere;
 };
 
-const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: any }, aResDataType: string[], aChartType: ChartType, aXaxis: any, aUniqueId?: string) => {
+const QueryParser = (
+    aQueryBlock: any,
+    aTransformBlockList: TransformBlockType[],
+    aTime: { interval: any; start: any; end: any },
+    aResDataType: string[],
+    aChartType: ChartType,
+    aXaxis: any,
+    aUniqueId?: string
+) => {
     let sInjectionSrc = 'FAKE(linspace(0, 1, 1))';
     let sAliasList: any[] = [];
     let sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         if (aQuery.useFullTyping) {
-            sAliasList.push({ name: 'series(' + aIdx.toString() + ')', color: aQuery.color });
-            return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, dataType: aResDataType[aIdx], sql: aQuery.text };
+            sAliasList.push({ name: 'series(' + aIdx.toString() + ')', color: aQuery.color, useQuery: true });
+            return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, dataType: aResDataType[aIdx], sql: aQuery.text, useQuery: true };
         }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
@@ -491,7 +512,7 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
         let sTql: string = '';
 
         // Set alias & color (tag)
-        sAliasList.push({ name: sAlias, color: aQuery.color, useQuery: aXaxis[0]?.useBlockList[0] === aIdx ? false : true });
+        sAliasList.push({ name: sAlias, color: aQuery.color, useQuery: aChartType === E_CHART_TYPE.ADV_SCATTER && aXaxis[0]?.useBlockList[0] === aIdx ? false : true });
         // BAR | LINE | SCATTER
         if (aResDataType[aIdx] === 'TIME_VALUE') {
             sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
@@ -508,46 +529,108 @@ const QueryParser = (aQueryBlock: any, aTime: { interval: any; start: any; end: 
             }
 
             if (aQuery?.math && aQuery?.math !== '') sTql += `MAPVALUE(1, ${mathValueConverter('0', aQuery?.math)}, "VALUE")\nPOPVALUE(0)\n`;
-            sTql += `MAPVALUE(1, dict("name", "${sAlias}", "value", value(0)))\nPOPVALUE(0)`;
+            sTql += `MAPVALUE(1, dict("name", "${sAlias}", "value", value(0)))\nPOPVALUE(0)\n`;
         }
         return {
-            query: `SQL("${sSql}")${sTql !== '' ? '\n' + sTql : ''}\nJSON()`,
+            query: `SQL("${sSql}")${sTql !== '' ? '\n' + sTql : ''}\n${TQL.SINK._JSON()}`,
             alias: sAlias,
             idx: aIdx,
             dataType: aResDataType[aIdx],
             sql: sSql,
             tql: sTql,
-            useQuery: aXaxis[0]?.useBlockList[0] === aIdx ? false : true, // base axis is only use for x axis in adv scatter
+            name: aQuery.name,
+            useQuery: aChartType === E_CHART_TYPE.ADV_SCATTER && aXaxis[0]?.useBlockList[0] === aIdx ? false : true, // base axis is only use for x axis in adv scatter
         };
     });
 
     if (aChartType === E_CHART_TYPE.ADV_SCATTER) {
         const sBaseXAxis = sResultQuery[aXaxis[0]?.useBlockList[0]];
-        const sRequestDo = TQL.MAP.SCRIPT.RequestDo(
-            {
-                method: 'POST',
-                url: '/web/api/tql',
-                body: JSON.stringify('SQL("' + sBaseXAxis.sql + '")\n' + TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME))),
-            },
-            {
-                method: 'text',
-                callback: 'function(txt) { xAxis = JSON.parse(txt).data.rows; }',
-            }
+        const sRequestDo = TQL.MAP.SCRIPT.RequestDoQuick(
+            JSON.stringify('SQL("' + sBaseXAxis.sql + '")\n' + TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME)))
         );
         const sInjectionScript = TQL.MAP.SCRIPT('JS', {
-            main: `for (var k = incIdx; k < xAxis.length; k++) {\nif (eofFlag) break;\ntargetTime = JSON.parse($.values[0]);\nif (xAxis[k][0] === targetTime) {\nincIdx = k + 1;\n$.yield(xAxis[k][1], $.values[1]);\nbreak;\n}\nif (xAxis[k][0] > targetTime) {\nincIdx = k - 1;\nbreak;\n}\nif (xAxis.length - 1 === k) eofFlag = true;\n};`,
-            init: `${TQL.MAP.SCRIPT.Var('xAxis', 'undefined')} ${TQL.MAP.SCRIPT.Var('incIdx', '0')} ${TQL.MAP.SCRIPT.Var('eofFlag', 'false')} ${TQL.MAP.SCRIPT.Var(
-                'targetTime',
-                'undefined'
-            )}\n${sRequestDo}`,
+            main: DSH_CHART_VALUE_VALUE_SCRIPT_MODULE.MAIN,
+            init: `${DSH_CHART_VALUE_VALUE_SCRIPT_MODULE.INIT}${sRequestDo}`,
         });
-        sAliasList = sAliasList.filter((alias) => alias.useQuery);
-        if (sAliasList.length > 1) sInjectionSrc += '\n' + TQL.MAP.SCRIPT('JS', { main: sRequestDo });
-        sResultQuery = sResultQuery
-            .filter((item: any) => item.useQuery)
-            .map((item: any) => {
-                return { ...item, query: `SQL("${item.sql}")${item.tql !== '' ? '\n' + item.tql : ''}\n${sInjectionScript}\nJSON()` };
-            });
+        if (aQueryBlock.length > 1) sInjectionSrc += '\n' + TQL.MAP.SCRIPT('JS', { main: sRequestDo });
+        sResultQuery = sResultQuery.map((item: any) => {
+            return { ...item, query: `SQL("${item.sql}")${item.tql !== '' ? '\n' + item.tql : ''}\n${sInjectionScript}\n${TQL.SINK._JSON()}` };
+        });
     }
+
+    if (aTransformBlockList && aTransformBlockList.length > 0 && CheckAllowedTransformChartType(aChartType)) {
+        const sIsAdvScatter = aChartType === E_CHART_TYPE.ADV_SCATTER;
+        const sTmpTransformAlias: { name: string; color: string; useQuery: boolean }[] = [];
+        const sTmpTransformBlockList: { alias: string; value: string; block: any[] }[] = aTransformBlockList
+            .map((aTrBlock) => {
+                aTrBlock.valid && sTmpTransformAlias.push({ name: aTrBlock.alias, color: aTrBlock.color, useQuery: true });
+                return {
+                    alias: aTrBlock.alias,
+                    value: aTrBlock.value,
+                    valid: aTrBlock.valid,
+                    block: aTrBlock.selectedBlockIdxList.map((aSelBlockIdx) => {
+                        return sResultQuery[aSelBlockIdx];
+                    }),
+                };
+            })
+            .filter((item) => item.valid);
+
+        const sParsedTrxList = sTmpTransformBlockList.map((tmpTrxBlock) => {
+            let sQuery = '';
+            let sMapvalue = tmpTrxBlock.value;
+            const sPopvalue: number[] = [];
+            if (sIsAdvScatter) sPopvalue.push(0);
+            tmpTrxBlock.block.map((aTrx, aIdx: number) => {
+                if (aIdx === 0) sQuery += `SQL("${aTrx.sql}")${aTrx.tql !== '' ? '\n' + aTrx.tql : ''}`;
+                else {
+                    if (aResDataType[aIdx] === 'NAME_VALUE') {
+                        sQuery += TQL.MAP.SCRIPT('JS', {
+                            main: `${DSH_CHART_NAME_VALUE_SCRIPT_MODULE.MAIN}\n${
+                                tmpTrxBlock.block.length === aIdx + 1
+                                    ? TQL.MAP.SCRIPT.Yield(`tmpData.name, tmpData.value, ${DSH_CHART_NAME_VALUE_SCRIPT_MODULE.YIELD(aIdx)}`)
+                                    : TQL.MAP.SCRIPT.Yield('tmpData')
+                            }`,
+                            init: `${DSH_CHART_NAME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(
+                                JSON.stringify('SQL("' + aTrx.sql + '")\n' + aTrx.tql + TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME)))
+                            )}`,
+                        });
+                        sPopvalue.push(aIdx);
+                    } else {
+                        sQuery += TQL.MAP.SCRIPT('JS', {
+                            main: DSH_CHART_TIME_VALUE_SCRIPT_MODULE.MAIN,
+                            init: `${DSH_CHART_TIME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(
+                                JSON.stringify('SQL("' + aTrx.sql + '")\n' + TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME)))
+                            )}`,
+                        });
+                        sPopvalue.push(aIdx + (sIsAdvScatter ? 2 : 1));
+                    }
+                }
+                sMapvalue = sMapvalue.replaceAll(new RegExp(`\\b${aTrx.name}\\b`, 'g'), `value(${aIdx + 1})`);
+            });
+            if (sIsAdvScatter) sPopvalue.pop();
+            if (aResDataType[0] === 'NAME_VALUE') sQuery += '\n' + TQL.MAP.MAPVALUE(0, `dict("name", "${tmpTrxBlock.alias}", "value", (${sMapvalue}))`);
+            else sQuery += '\n' + TQL.MAP.MAPVALUE(sIsAdvScatter ? 2 : 1, sMapvalue);
+            if (sPopvalue.length > 0) sQuery += '\n' + TQL.MAP.POPVALUE(sPopvalue);
+            sQuery += '\n' + TQL.SINK._JSON();
+            return {
+                useQuery: true,
+                alias: tmpTrxBlock.alias,
+                query: sQuery,
+                tql: '',
+                sql: '',
+                dataType: aResDataType[0],
+            };
+        });
+        sAliasList = sAliasList.concat(sTmpTransformAlias);
+        sResultQuery = sResultQuery.concat(sParsedTrxList);
+    }
+    sAliasList = sAliasList.filter((alias) => alias.useQuery);
+    sResultQuery = sResultQuery.filter((item: any) => item.useQuery);
     return [sResultQuery, sAliasList, sInjectionSrc];
+};
+
+export const ALLOWED_TRX_CHART_TYPE = [E_CHART_TYPE.LINE, E_CHART_TYPE.BAR, E_CHART_TYPE.SCATTER, E_CHART_TYPE.PIE, E_CHART_TYPE.ADV_SCATTER];
+export const CheckAllowedTransformChartType = (aType: ChartType): boolean => {
+    if (ALLOWED_TRX_CHART_TYPE.includes(aType as E_CHART_TYPE)) return true;
+    return false;
 };

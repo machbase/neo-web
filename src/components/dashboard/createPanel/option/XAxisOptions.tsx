@@ -254,7 +254,9 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                     <>
                         <div className="divider" />
                         <span>Series</span>
-                        <BadgeSelect pSelectedList={pPanelOption?.xAxisOptions[0]?.useBlockList || [0]} pList={getBlockList} pCallback={handleSeries} />
+                        <div style={{ padding: '8px 10px 0 0' }}>
+                            <BadgeSelect pSelectedList={pPanelOption?.xAxisOptions[0]?.useBlockList || [0]} pList={getBlockList} pCallback={handleSeries} />
+                        </div>
                     </>
                 )}
 
