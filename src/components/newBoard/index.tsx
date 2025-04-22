@@ -91,7 +91,8 @@ const NewBoard = (props: NewBoardProps) => {
                     aType.icon === 'powershell' ||
                     aType.icon === 'monitor' ||
                     aType.icon === 'monitor-small' ||
-                    aType.icon === 'laptop'
+                    aType.icon === 'laptop' ||
+                    aType.icon === 'fish'
                 ) {
                     return icons(aType.icon, true);
                 } else {
@@ -101,8 +102,6 @@ const NewBoard = (props: NewBoardProps) => {
                 return icons('taz', true);
             case 'dsh':
                 return icons('dsh', true);
-            case 'fish':
-                return icons('fish', true);
             default:
                 return icons('none', true);
         }
