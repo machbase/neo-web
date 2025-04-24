@@ -36,6 +36,7 @@ import { FULL_TYPING_QUERY_PLACEHOLDER } from '@/utils/constants';
 import { FullQueryHelper } from './Block/FullQueryHelper';
 import { E_CHART_TYPE } from '@/type/eChart';
 import { TransformBlockType } from './Transform/type';
+import { VscEye, VscEyeClosed } from 'react-icons/vsc';
 
 export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
@@ -761,6 +762,15 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 </div>
                             )}
                         </div>
+                        <IconButton
+                            pWidth={20}
+                            pHeight={20}
+                            pIsToopTip
+                            pToolTipContent={pBlockInfo?.isVisible ? 'Visible' : 'Invisible'}
+                            pToolTipId={pBlockInfo.id + '-block-visible'}
+                            pIcon={pBlockInfo?.isVisible ? <VscEye /> : <VscEyeClosed />}
+                            onClick={() => setOption('isVisible', !pBlockInfo?.isVisible)}
+                        />
                         <div ref={sColorPickerRef} style={{ position: 'relative' }}>
                             {pPanelOption.type !== 'Text' && (
                                 <IconButton

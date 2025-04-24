@@ -2,7 +2,6 @@ import './index.scss';
 import { BadgeSelect, BadgeSelectorItemType } from '@/components/inputs/BadgeSelector';
 import { Close, PlusCircle } from '@/assets/icons/Icon';
 import { useMemo, useRef, useState } from 'react';
-import { getChartSeriesName } from '@/utils/dashboardUtil';
 import { Input } from '@/components/inputs/Input';
 import { IconButton } from '@/components/buttons/IconButton';
 import useOutsideClick from '@/hooks/useOutsideClick';
@@ -13,6 +12,8 @@ import TQL from '@/utils/TqlGenerator';
 import { getTqlChart } from '@/api/repository/machiot';
 import { Error } from '@/components/toast/Toast';
 import { BadgeStatus } from '@/components/badge';
+import { RxQuestionMark } from 'react-icons/rx';
+import { TRX_REPLACE_LIST } from '@/utils/Chart/TransformDataParser';
 
 const colorList = [
     '#4CAF50', // Green
@@ -27,6 +28,7 @@ const colorList = [
     '#E91E63', // Pink
     '#607D8B', // Blue Grey
 ];
+
 export const Transform = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any; pSetPanelOption: React.Dispatch<React.SetStateAction<any>> }) => {
     function handleTransformBlockItem(aKey: TransformBlockKeyType, aValue: boolean | string | BadgeSelectorItemType, aIdx: number) {
         const tmpTransformBlockList: TransformBlockType[] = JSON.parse(JSON.stringify(pPanelOption.transformBlockList));
@@ -62,14 +64,7 @@ export const Transform = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any
     const getBlockList = useMemo((): any[] => {
         return (
             pPanelOption?.blockList?.map((block: any, idx: number) => ({
-                name: block.customFullTyping.use
-                    ? 'custom'
-                    : getChartSeriesName({
-                          alias: block?.useCustom ? block?.values[0]?.alias : block?.alias,
-                          table: block?.table,
-                          column: block?.useCustom ? block?.values[0]?.value : block?.value,
-                          aggregator: block?.useCustom ? block?.values[0]?.aggregator : block?.aggregator,
-                      }),
+                name: TRX_REPLACE_LIST[idx],
                 color: block.color,
                 idx: idx,
             })) ?? []
@@ -119,7 +114,7 @@ const TransformBlock = ({
         if (pTransformItem?.selectedBlockIdxList.length > 0) {
             let sMapValue = pTransformItem.value;
             pTransformItem.selectedBlockIdxList.map((blockIdx: number, aIdx: number) => {
-                sMapValue = sMapValue.replaceAll(new RegExp(`\\b${pQueryBlockList[blockIdx].name}\\b`, 'g'), `value(${aIdx})`);
+                if (pQueryBlockList[blockIdx]) sMapValue = sMapValue.replaceAll(new RegExp(`\\b${pQueryBlockList[blockIdx].name}\\b`, 'g'), `value(${aIdx})`);
             });
 
             const src = TQL.SRC.FAKE('json', `{[${Array.from({ length: pTransformItem.selectedBlockIdxList.length }).fill(1)}]}`);
@@ -151,6 +146,7 @@ const TransformBlock = ({
                     />
                 </div>
                 <div className="transform-block">
+                    <IconButton pWidth={20} pHeight={20} pIcon={<RxQuestionMark />} onClick={() => window.open('https://docs.machbase.com/neo/tql/utilities/#math', '_blank')} />
                     <div ref={sColorPickerRef} style={{ position: 'relative' }}>
                         <IconButton
                             pWidth={20}

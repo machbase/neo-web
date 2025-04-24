@@ -16,7 +16,6 @@ import moment from 'moment';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { Error } from '@/components/toast/Toast';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
-import { E_CHART_TYPE } from '@/type/eChart';
 
 const LineChart = ({
     pIsActiveTab,
@@ -55,10 +54,6 @@ const LineChart = ({
     };
 
     const executeTqlChart = async (aWidth?: number) => {
-        if (chartTypeConverter(pPanelInfo.type) === E_CHART_TYPE.ADV_SCATTER && pPanelInfo.blockList.length <= 1) {
-            setIsError(true);
-            return;
-        }
         if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
         setIsLoading(true);
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {

@@ -12,8 +12,8 @@ import { TqlBlock } from './TqlBlock';
 import { getTagColor, getUseColorList } from '@/utils/helpers/tags';
 import { Transform } from './Transform';
 import { chartTypeConverter } from '@/utils/eChartHelper';
-import { ALLOWED_TRX_CHART_TYPE, CheckAllowedTransformChartType } from '@/utils/DashboardQueryParser';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
+import { ALLOWED_TRX_CHART_TYPE, CheckAllowedTransformChartType, E_ALLOW_CHART_TYPE } from '@/utils/Chart/TransformDataParser';
 
 type FOOTER_MENU_TYPE = 'Query' | 'Transform' | 'Time';
 
@@ -79,7 +79,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
     };
 
     useEffect(() => {
-        if (!ALLOWED_TRX_CHART_TYPE.includes(chartTypeConverter(pPanelOption.type) as E_CHART_TYPE)) setTab('Query');
+        if (!ALLOWED_TRX_CHART_TYPE.includes(chartTypeConverter(pPanelOption.type) as E_CHART_TYPE & E_ALLOW_CHART_TYPE)) setTab('Query');
     }, [pPanelOption.type]);
 
     return (

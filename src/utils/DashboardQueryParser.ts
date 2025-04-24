@@ -5,9 +5,10 @@ import { VARIABLE_REGEX } from './CheckDataCompatibility';
 import { DEFAULT_VARIABLE_LIST, VARIABLE_TYPE } from '@/components/dashboard/variable';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import TQL from './TqlGenerator';
-import { DSH_CACHE_TIME, DSH_CHART_NAME_VALUE_SCRIPT_MODULE, DSH_CHART_TIME_VALUE_SCRIPT_MODULE, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE } from './TqlGenerator/constants';
+import { DSH_CACHE_TIME, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE } from './TqlGenerator/constants';
 import { TransformBlockType } from '@/components/dashboard/createPanel/Transform/type';
 import { getChartSeriesName } from './dashboardUtil';
+import { CheckAllowedTransformChartType, E_ALLOW_CHART_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
 
 interface BlockTimeType {
     interval: {
@@ -202,6 +203,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
                 text: bBlock.customFullTyping.text,
                 useFullTyping: bBlock.customFullTyping.use,
                 color: bBlock.color,
+                isVisible: bBlock.isVisible,
             };
         }
         return {
@@ -218,6 +220,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             math: bBlock?.math ?? '',
             duration: bBlock?.duration ?? { from: '', to: '' },
             useFullTyping: bBlock.customFullTyping.use,
+            isVisible: bBlock.isVisible,
             name: bBlock.customFullTyping.use
                 ? 'custom'
                 : getChartSeriesName({
@@ -493,8 +496,8 @@ const QueryParser = (
     let sAliasList: any[] = [];
     let sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         if (aQuery.useFullTyping) {
-            sAliasList.push({ name: 'series(' + aIdx.toString() + ')', color: aQuery.color, useQuery: true });
-            return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, dataType: aResDataType[aIdx], sql: aQuery.text, useQuery: true };
+            sAliasList.push({ name: 'series(' + aIdx.toString() + ')', color: aQuery.color, useQuery: aQuery.isVisible });
+            return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, dataType: aResDataType[aIdx], sql: aQuery.text, useQuery: aQuery.isVisible };
         }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
@@ -512,7 +515,11 @@ const QueryParser = (
         let sTql: string = '';
 
         // Set alias & color (tag)
-        sAliasList.push({ name: sAlias, color: aQuery.color, useQuery: aChartType === E_CHART_TYPE.ADV_SCATTER && aXaxis[0]?.useBlockList[0] === aIdx ? false : true });
+        sAliasList.push({
+            name: sAlias,
+            color: aQuery.color,
+            useQuery: aQuery.isVisible,
+        });
         // BAR | LINE | SCATTER
         if (aResDataType[aIdx] === 'TIME_VALUE') {
             sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
@@ -539,98 +546,30 @@ const QueryParser = (
             sql: sSql,
             tql: sTql,
             name: aQuery.name,
-            useQuery: aChartType === E_CHART_TYPE.ADV_SCATTER && aXaxis[0]?.useBlockList[0] === aIdx ? false : true, // base axis is only use for x axis in adv scatter
+            useQuery: aQuery.isVisible,
         };
     });
-
+    let sV_V_X_AXIS: undefined | string = undefined;
     if (aChartType === E_CHART_TYPE.ADV_SCATTER) {
         const sBaseXAxis = sResultQuery[aXaxis[0]?.useBlockList[0]];
-        const sRequestDo = TQL.MAP.SCRIPT.RequestDoQuick(
+        sV_V_X_AXIS = TQL.MAP.SCRIPT.RequestDoQuick(
             JSON.stringify('SQL("' + sBaseXAxis.sql + '")\n' + TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME)))
         );
         const sInjectionScript = TQL.MAP.SCRIPT('JS', {
             main: DSH_CHART_VALUE_VALUE_SCRIPT_MODULE.MAIN,
-            init: `${DSH_CHART_VALUE_VALUE_SCRIPT_MODULE.INIT}${sRequestDo}`,
+            init: `${DSH_CHART_VALUE_VALUE_SCRIPT_MODULE.INIT}${sV_V_X_AXIS}`,
         });
-        if (aQueryBlock.length > 1) sInjectionSrc += '\n' + TQL.MAP.SCRIPT('JS', { main: sRequestDo });
+        if (aQueryBlock.length > 1) sInjectionSrc += '\n' + TQL.MAP.SCRIPT('JS', { main: sV_V_X_AXIS });
         sResultQuery = sResultQuery.map((item: any) => {
             return { ...item, query: `SQL("${item.sql}")${item.tql !== '' ? '\n' + item.tql : ''}\n${sInjectionScript}\n${TQL.SINK._JSON()}` };
         });
     }
-
     if (aTransformBlockList && aTransformBlockList.length > 0 && CheckAllowedTransformChartType(aChartType)) {
-        const sIsAdvScatter = aChartType === E_CHART_TYPE.ADV_SCATTER;
-        const sTmpTransformAlias: { name: string; color: string; useQuery: boolean }[] = [];
-        const sTmpTransformBlockList: { alias: string; value: string; block: any[] }[] = aTransformBlockList
-            .map((aTrBlock) => {
-                aTrBlock.valid && sTmpTransformAlias.push({ name: aTrBlock.alias, color: aTrBlock.color, useQuery: true });
-                return {
-                    alias: aTrBlock.alias,
-                    value: aTrBlock.value,
-                    valid: aTrBlock.valid,
-                    block: aTrBlock.selectedBlockIdxList.map((aSelBlockIdx) => {
-                        return sResultQuery[aSelBlockIdx];
-                    }),
-                };
-            })
-            .filter((item) => item.valid);
-
-        const sParsedTrxList = sTmpTransformBlockList.map((tmpTrxBlock) => {
-            let sQuery = '';
-            let sMapvalue = tmpTrxBlock.value;
-            const sPopvalue: number[] = [];
-            if (sIsAdvScatter) sPopvalue.push(0);
-            tmpTrxBlock.block.map((aTrx, aIdx: number) => {
-                if (aIdx === 0) sQuery += `SQL("${aTrx.sql}")${aTrx.tql !== '' ? '\n' + aTrx.tql : ''}`;
-                else {
-                    if (aResDataType[aIdx] === 'NAME_VALUE') {
-                        sQuery += TQL.MAP.SCRIPT('JS', {
-                            main: `${DSH_CHART_NAME_VALUE_SCRIPT_MODULE.MAIN}\n${
-                                tmpTrxBlock.block.length === aIdx + 1
-                                    ? TQL.MAP.SCRIPT.Yield(`tmpData.name, tmpData.value, ${DSH_CHART_NAME_VALUE_SCRIPT_MODULE.YIELD(aIdx)}`)
-                                    : TQL.MAP.SCRIPT.Yield('tmpData')
-                            }`,
-                            init: `${DSH_CHART_NAME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(
-                                JSON.stringify('SQL("' + aTrx.sql + '")\n' + aTrx.tql + TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME)))
-                            )}`,
-                        });
-                        sPopvalue.push(aIdx);
-                    } else {
-                        sQuery += TQL.MAP.SCRIPT('JS', {
-                            main: DSH_CHART_TIME_VALUE_SCRIPT_MODULE.MAIN,
-                            init: `${DSH_CHART_TIME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(
-                                JSON.stringify('SQL("' + aTrx.sql + '")\n' + TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME)))
-                            )}`,
-                        });
-                        sPopvalue.push(aIdx + (sIsAdvScatter ? 2 : 1));
-                    }
-                }
-                sMapvalue = sMapvalue.replaceAll(new RegExp(`\\b${aTrx.name}\\b`, 'g'), `value(${aIdx + 1})`);
-            });
-            if (sIsAdvScatter) sPopvalue.pop();
-            if (aResDataType[0] === 'NAME_VALUE') sQuery += '\n' + TQL.MAP.MAPVALUE(0, `dict("name", "${tmpTrxBlock.alias}", "value", (${sMapvalue}))`);
-            else sQuery += '\n' + TQL.MAP.MAPVALUE(sIsAdvScatter ? 2 : 1, sMapvalue);
-            if (sPopvalue.length > 0) sQuery += '\n' + TQL.MAP.POPVALUE(sPopvalue);
-            sQuery += '\n' + TQL.SINK._JSON();
-            return {
-                useQuery: true,
-                alias: tmpTrxBlock.alias,
-                query: sQuery,
-                tql: '',
-                sql: '',
-                dataType: aResDataType[0],
-            };
-        });
-        sAliasList = sAliasList.concat(sTmpTransformAlias);
+        const [sParsedAliasList, sParsedTrxList] = TRX_PARSER(aChartType as E_ALLOW_CHART_TYPE, aTransformBlockList, sResultQuery, sV_V_X_AXIS);
+        sAliasList = sAliasList.concat(sParsedAliasList);
         sResultQuery = sResultQuery.concat(sParsedTrxList);
     }
-    sAliasList = sAliasList.filter((alias) => alias.useQuery);
-    sResultQuery = sResultQuery.filter((item: any) => item.useQuery);
+    sAliasList = sAliasList.filter((alias) => alias?.useQuery);
+    sResultQuery = sResultQuery.filter((item: any) => item?.useQuery);
     return [sResultQuery, sAliasList, sInjectionSrc];
-};
-
-export const ALLOWED_TRX_CHART_TYPE = [E_CHART_TYPE.LINE, E_CHART_TYPE.BAR, E_CHART_TYPE.SCATTER, E_CHART_TYPE.PIE, E_CHART_TYPE.ADV_SCATTER];
-export const CheckAllowedTransformChartType = (aType: ChartType): boolean => {
-    if (ALLOWED_TRX_CHART_TYPE.includes(aType as E_CHART_TYPE)) return true;
-    return false;
 };

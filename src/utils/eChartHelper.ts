@@ -265,6 +265,7 @@ export const DefaultVariableTableOption = {
         use: false,
         text: '',
     },
+    isVisible: true,
 };
 
 export const DefaultTagTableOption = {
@@ -290,6 +291,7 @@ export const DefaultTagTableOption = {
         use: false,
         text: '',
     },
+    isVisible: true,
 };
 
 export const DefaultLogTableOption = {
@@ -315,6 +317,7 @@ export const DefaultLogTableOption = {
         use: false,
         text: '',
     },
+    isVisible: true,
 };
 
 export const getDefaultSeriesOption = (aChartType: ChartType) => {

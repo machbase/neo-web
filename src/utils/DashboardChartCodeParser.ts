@@ -97,7 +97,7 @@ const AdvScatterFunc = () => {
 };
 
 export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string, aParsedQuery: any, isSave: boolean = false, aPanelId?: string) => {
-    const sDataType = aParsedQuery[0].dataType;
+    const sDataType = aParsedQuery[0]?.dataType ?? 'TIME_VALUE';
     const sAccToken = localStorage.getItem('accessToken');
     const sXConsoleId = localStorage.getItem('consoleId');
     let sInjectFunc = null;
