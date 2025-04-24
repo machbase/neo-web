@@ -514,7 +514,7 @@ export const ChartAxisTooltipFormatter = (aOpt: any, aUnit?: string, aDecimals?:
         }
         sInjectionOutput = `let output = '<div><table><tr><td  style="color: ${targetBlock.color}"><b>X-axis</b>&ensp;:</td><td> ${
             '&ensp;' + name + '&ensp;'
-        } </td> <td><b>' + parseInt(params[0].axisValueLabel)${aDecimals ? '.toFixed(' + aDecimals + ')' : ''} ${
+        } </td> <td><b>' + parseFloat(params[0].axisValue)${aDecimals ? '.toFixed(' + aDecimals + ')' : ''} ${
             aUnit ? "+ ' " + aUnit.replaceAll("'", '"') + "'" : ''
         } + '</b></td></tr></table></div>';`;
     }
