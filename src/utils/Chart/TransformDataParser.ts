@@ -84,7 +84,7 @@ const TRX_TIME_VALUE_PARSER = (trxList: TrxParsedBlockType[]) => {
         const sPopvalue: number[] = [];
 
         tmpTrxBlock.block.map((aTrx, aIdx: number) => {
-            if (aIdx === 0) sQuery += `SQL("${aTrx.sql}")${aTrx.tql !== '' ? '\n' + aTrx.tql : ''}`;
+            if (aIdx === 0) sQuery += `SQL("${aTrx.sql}")${aTrx.tql && aTrx.tql !== '' ? '\n' + aTrx.tql : ''}`;
             else {
                 sQuery += TQL.MAP.SCRIPT('JS', {
                     main: DSH_CHART_TIME_VALUE_SCRIPT_MODULE.MAIN,
@@ -121,7 +121,7 @@ const TRX_VALUE_VALUE_PARSER = (trxList: TrxParsedBlockType[], aV_V_X_AXIS: stri
         });
 
         tmpTrxBlock.block.map((aTrx, aIdx: number) => {
-            if (aIdx === 0) sQuery += `SQL("${aTrx.sql}")${aTrx.tql !== '' ? '\n' + aTrx.tql : ''}${sInjectionScript ? '\n' + sInjectionScript : ''}`;
+            if (aIdx === 0) sQuery += `SQL("${aTrx.sql}")${aTrx.tql && aTrx.tql !== '' ? '\n' + aTrx.tql : ''}${sInjectionScript ? '\n' + sInjectionScript : ''}`;
             else {
                 sQuery += TQL.MAP.SCRIPT('JS', {
                     main: DSH_CHART_TIME_VALUE_SCRIPT_MODULE.MAIN,
