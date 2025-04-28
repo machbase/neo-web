@@ -27,6 +27,7 @@ type TrxParsedBlockType = {
     block: any[];
 };
 type ResTrxType = {
+    trx: boolean;
     useQuery: boolean;
     alias: string;
     query: string;
@@ -45,17 +46,16 @@ const VALUE_VALUE_CHART_TYPE = [E_ALLOW_CHART_TYPE.ADV_SCATTER];
 const NAME_VALUE_CHART_TYPE = [E_ALLOW_CHART_TYPE.PIE];
 
 /** Trnasform data parser */
-export const TRX_PARSER = (aChartType: E_ALLOW_CHART_TYPE, aTrxBlockList: TransformBlockType[], aQueryBlockList: any[], aV_V_X_AXIS: string | undefined) => {
+export const TRX_PARSER = (aChartType: E_ALLOW_CHART_TYPE, aTrxBlockList: TransformBlockType[], aQueryBlockList: any[], aV_V_X_AXIS: string | undefined, aIsSave: boolean) => {
     let sResultTrxList: (ResTrxType | undefined)[] = [];
     // COMMON
     const [sSourceAliasList, sSourceTrxList] = TRX_COMMON_PARSER(aTrxBlockList, aQueryBlockList) as [TrxParsedAliasType[], TrxParsedBlockType[]];
-
     // TIME_VALUE
-    if (TIME_VALUE_CHART_TYPE.includes(aChartType)) sResultTrxList = TRX_TIME_VALUE_PARSER(sSourceTrxList);
+    if (TIME_VALUE_CHART_TYPE.includes(aChartType)) sResultTrxList = TRX_TIME_VALUE_PARSER(sSourceTrxList, aIsSave);
     // VALUE_VALUE
-    if (VALUE_VALUE_CHART_TYPE.includes(aChartType)) sResultTrxList = TRX_VALUE_VALUE_PARSER(sSourceTrxList, aV_V_X_AXIS as string);
+    if (VALUE_VALUE_CHART_TYPE.includes(aChartType)) sResultTrxList = TRX_VALUE_VALUE_PARSER(sSourceTrxList, aV_V_X_AXIS as string, aIsSave);
     // NAME_VALUE
-    if (NAME_VALUE_CHART_TYPE.includes(aChartType)) sResultTrxList = TRX_NAME_VALUE_PARSER(sSourceTrxList);
+    if (NAME_VALUE_CHART_TYPE.includes(aChartType)) sResultTrxList = TRX_NAME_VALUE_PARSER(sSourceTrxList, aIsSave);
     return [sSourceAliasList, sResultTrxList];
 };
 
@@ -76,7 +76,7 @@ const TRX_COMMON_PARSER = (aTrxBlockList: TransformBlockType[], aQueryBlockList:
         .filter((item) => item.valid);
     return [sTmpTransformAlias, sTmpTransformBlockList];
 };
-const TRX_TIME_VALUE_PARSER = (trxList: TrxParsedBlockType[]) => {
+const TRX_TIME_VALUE_PARSER = (trxList: TrxParsedBlockType[], aIsSave: boolean) => {
     const sParsedTrxList: (ResTrxType | undefined)[] = trxList.map((tmpTrxBlock) => {
         if (tmpTrxBlock.block.includes(undefined)) return;
         let sQuery = '';
@@ -88,7 +88,9 @@ const TRX_TIME_VALUE_PARSER = (trxList: TrxParsedBlockType[]) => {
             else {
                 sQuery += TQL.MAP.SCRIPT('JS', {
                     main: DSH_CHART_TIME_VALUE_SCRIPT_MODULE.MAIN,
-                    init: `${DSH_CHART_TIME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify('SQL("' + aTrx.sql + '")\n' + TQL.SINK._JSON()))}`,
+                    init: `${DSH_CHART_TIME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify('SQL("' + aTrx.sql + '")\n' + TQL.SINK._JSON()), {
+                        isSave: aIsSave,
+                    })}`,
                 });
                 sPopvalue.push(aIdx + 1);
             }
@@ -96,20 +98,20 @@ const TRX_TIME_VALUE_PARSER = (trxList: TrxParsedBlockType[]) => {
         });
         sQuery += '\n' + TQL.MAP.MAPVALUE(1, sMapvalue);
         if (sPopvalue.length > 0) sQuery += '\n' + TQL.MAP.POPVALUE(sPopvalue);
-        sQuery += '\n' + TQL.SINK._JSON();
 
         return {
+            trx: true,
             useQuery: true,
             alias: tmpTrxBlock.alias,
-            query: sQuery,
+            query: sQuery + '\n' + TQL.SINK._JSON(),
             tql: '',
-            sql: '',
+            sql: sQuery,
             dataType: E_CHART_DATA_TYPE.TIME_VALUE,
         };
     });
     return sParsedTrxList;
 };
-const TRX_VALUE_VALUE_PARSER = (trxList: TrxParsedBlockType[], aV_V_X_AXIS: string) => {
+const TRX_VALUE_VALUE_PARSER = (trxList: TrxParsedBlockType[], aV_V_X_AXIS: string, aIsSave: boolean) => {
     const sParsedTrxList: (ResTrxType | undefined)[] = trxList.map((tmpTrxBlock) => {
         if (tmpTrxBlock.block.includes(undefined)) return;
         let sQuery = '';
@@ -125,7 +127,9 @@ const TRX_VALUE_VALUE_PARSER = (trxList: TrxParsedBlockType[], aV_V_X_AXIS: stri
             else {
                 sQuery += TQL.MAP.SCRIPT('JS', {
                     main: DSH_CHART_TIME_VALUE_SCRIPT_MODULE.MAIN,
-                    init: `${DSH_CHART_TIME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify('SQL("' + aTrx.sql + '")\n' + TQL.SINK._JSON()))}`,
+                    init: `${DSH_CHART_TIME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify('SQL("' + aTrx.sql + '")\n' + TQL.SINK._JSON()), {
+                        isSave: aIsSave,
+                    })}`,
                 });
                 sPopvalue.push(aIdx + 2);
             }
@@ -134,20 +138,21 @@ const TRX_VALUE_VALUE_PARSER = (trxList: TrxParsedBlockType[], aV_V_X_AXIS: stri
 
         sQuery += '\n' + TQL.MAP.MAPVALUE(2, sMapvalue);
         if (sPopvalue.length > 0) sQuery += '\n' + TQL.MAP.POPVALUE(sPopvalue);
-        sQuery += '\n' + TQL.SINK._JSON();
+
         return {
+            trx: true,
             useQuery: true,
             alias: tmpTrxBlock.alias,
-            query: sQuery,
+            query: sQuery + '\n' + TQL.SINK._JSON(),
             tql: '',
-            sql: '',
+            sql: sQuery,
             dataType: E_CHART_DATA_TYPE.VALUE_VALUE,
         };
     });
 
     return sParsedTrxList;
 };
-const TRX_NAME_VALUE_PARSER = (trxList: TrxParsedBlockType[]) => {
+const TRX_NAME_VALUE_PARSER = (trxList: TrxParsedBlockType[], aIsSave: boolean) => {
     const sParsedTrxList = trxList.map((tmpTrxBlock) => {
         if (tmpTrxBlock.block.includes(undefined)) return;
         let sQuery = '';
@@ -158,26 +163,27 @@ const TRX_NAME_VALUE_PARSER = (trxList: TrxParsedBlockType[]) => {
             if (aIdx === 0) {
                 sQuery += TQL.MAP.SCRIPT('JS', {
                     main: TQL.MAP.SCRIPT.Yield('xAxis[0][0].value'),
-                    init: `${DSH_CHART_NAME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify(aTrx.query))}`,
+                    init: `${DSH_CHART_NAME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify(aTrx.query), { isSave: aIsSave })}`,
                 });
             } else {
                 sQuery += TQL.MAP.SCRIPT('JS', {
                     main: DSH_CHART_NAME_VALUE_SCRIPT_MODULE.MAIN,
-                    init: `${DSH_CHART_NAME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify('SQL("' + aTrx.sql + '")\n' + aTrx.tql + TQL.SINK._JSON()))}`,
+                    init: `${DSH_CHART_NAME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify('SQL("' + aTrx.sql + '")\n' + aTrx.tql + TQL.SINK._JSON()), {
+                        isSave: aIsSave,
+                    })}`,
                 });
                 sPopvalue.push(aIdx);
             }
             sMapvalue = sMapvalue.replaceAll(new RegExp(`\\b${TRX_REPLACE_LIST[aTrx.idx]}\\b`, 'g'), `value(${aIdx})`);
         });
         sQuery += '\n' + TQL.MAP.MAPVALUE(0, `dict("name", "${tmpTrxBlock.alias}", "value", (${sMapvalue}))`);
-        sQuery += '\n' + TQL.SINK._JSON();
-
         return {
+            trx: true,
             useQuery: true,
             alias: tmpTrxBlock.alias,
-            query: sQuery,
+            query: sQuery + '\n' + TQL.SINK._JSON(),
             tql: '',
-            sql: '',
+            sql: sQuery,
             dataType: E_CHART_DATA_TYPE.NAME_VALUE,
         };
     });

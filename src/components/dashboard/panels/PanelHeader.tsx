@@ -279,6 +279,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                     setIsOpen={setDownloadModal}
                     pPanelInfo={pPanelInfo}
                     pIsDarkMode={true}
+                    pVariables={pBoardInfo?.dashboard?.variables ?? []}
                 />
             )}
             {sIsDeleteModal && (

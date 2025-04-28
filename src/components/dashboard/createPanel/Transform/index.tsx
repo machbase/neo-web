@@ -1,6 +1,7 @@
 import './index.scss';
 import { BadgeSelect, BadgeSelectorItemType } from '@/components/inputs/BadgeSelector';
 import { Close, PlusCircle } from '@/assets/icons/Icon';
+import Modal from '@/components/modal/Modal';
 import { useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/inputs/Input';
 import { IconButton } from '@/components/buttons/IconButton';
@@ -14,22 +15,27 @@ import { Error } from '@/components/toast/Toast';
 import { BadgeStatus } from '@/components/badge';
 import { RxQuestionMark } from 'react-icons/rx';
 import { TRX_REPLACE_LIST } from '@/utils/Chart/TransformDataParser';
+import { getChartSeriesName } from '@/utils/dashboardUtil';
+import { TRX_FORMULA_EX } from './constants';
+import { ClipboardCopy } from '@/utils/ClipboardCopy';
 
 const colorList = [
+    '#607D8B', // Blue Grey
+    '#00BCD4', // Cyan
+    '#3F51B5', // Indigo
+    '#FFC107', // Amber
+    '#9C27B0', // Purple
+    '#8BC34A', // Light Green
+    '#E91E63', // Pink
     '#4CAF50', // Green
     '#2196F3', // Blue
     '#FF9800', // Orange
     '#F44336', // Red
-    '#9C27B0', // Purple
-    '#3F51B5', // Indigo
-    '#00BCD4', // Cyan
-    '#FFC107', // Amber
-    '#8BC34A', // Light Green
-    '#E91E63', // Pink
-    '#607D8B', // Blue Grey
 ];
 
 export const Transform = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any; pSetPanelOption: React.Dispatch<React.SetStateAction<any>> }) => {
+    const [isModal, setIsModal] = useState<boolean>(false);
+
     function handleTransformBlockItem(aKey: TransformBlockKeyType, aValue: boolean | string | BadgeSelectorItemType, aIdx: number) {
         const tmpTransformBlockList: TransformBlockType[] = JSON.parse(JSON.stringify(pPanelOption.transformBlockList));
         if (typeof aValue === 'string' || typeof aValue === 'boolean') tmpTransformBlockList[aIdx][aKey] = aValue;
@@ -61,10 +67,18 @@ export const Transform = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any
         }
         pSetPanelOption({ ...pPanelOption, transformBlockList: tmpTransformBlockList });
     };
-    const getBlockList = useMemo((): any[] => {
+    const getBlockList: BadgeSelectorItemType[] = useMemo((): any[] => {
         return (
             pPanelOption?.blockList?.map((block: any, idx: number) => ({
-                name: TRX_REPLACE_LIST[idx],
+                label: TRX_REPLACE_LIST[idx],
+                name: block.customFullTyping.use
+                    ? `custom(${idx})`
+                    : getChartSeriesName({
+                          alias: block?.useCustom ? block?.values[0]?.alias : block?.alias,
+                          table: block?.table,
+                          column: block?.useCustom ? block?.values[0]?.value : block?.value,
+                          aggregator: block?.useCustom ? block?.values[0]?.aggregator : block?.aggregator,
+                      }),
                 color: block.color,
                 idx: idx,
             })) ?? []
@@ -81,6 +95,7 @@ export const Transform = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any
                         pQueryBlockList={getBlockList}
                         handleBlock={() => handleTransformBlock('DELETE', index)}
                         handleItem={(aKey, aValue) => handleTransformBlockItem(aKey, aValue, index)}
+                        handleModal={() => setIsModal(true)}
                     />
                 );
             })}
@@ -92,20 +107,22 @@ export const Transform = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any
                 }
                 callback={() => handleTransformBlock('ADD', pPanelOption?.transformBlockList?.length ?? 0)}
             />
+            {isModal && <TrxHelpModal callback={() => setIsModal(false)} />}
         </div>
     );
 };
-
 const TransformBlock = ({
     pTransformItem,
     pQueryBlockList,
     handleBlock,
     handleItem,
+    handleModal,
 }: {
     pTransformItem: TransformBlockType;
-    pQueryBlockList: any;
+    pQueryBlockList: BadgeSelectorItemType[];
     handleBlock: () => void;
     handleItem: (aKey: TransformBlockKeyType, aValue: boolean | string | BadgeSelectorItemType) => void;
+    handleModal: () => void;
 }) => {
     const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
     const sColorPickerRef = useRef<any>(null);
@@ -114,7 +131,7 @@ const TransformBlock = ({
         if (pTransformItem?.selectedBlockIdxList.length > 0) {
             let sMapValue = pTransformItem.value;
             pTransformItem.selectedBlockIdxList.map((blockIdx: number, aIdx: number) => {
-                if (pQueryBlockList[blockIdx]) sMapValue = sMapValue.replaceAll(new RegExp(`\\b${pQueryBlockList[blockIdx].name}\\b`, 'g'), `value(${aIdx})`);
+                if (pQueryBlockList[blockIdx]) sMapValue = sMapValue.replaceAll(new RegExp(`\\b${TRX_REPLACE_LIST[blockIdx]}\\b`, 'g'), `value(${aIdx})`);
             });
 
             const src = TQL.SRC.FAKE('json', `{[${Array.from({ length: pTransformItem.selectedBlockIdxList.length }).fill(1)}]}`);
@@ -146,7 +163,7 @@ const TransformBlock = ({
                     />
                 </div>
                 <div className="transform-block">
-                    <IconButton pWidth={20} pHeight={20} pIcon={<RxQuestionMark />} onClick={() => window.open('https://docs.machbase.com/neo/tql/utilities/#math', '_blank')} />
+                    <IconButton pWidth={20} pHeight={20} pIcon={<RxQuestionMark />} onClick={handleModal} />
                     <div ref={sColorPickerRef} style={{ position: 'relative' }}>
                         <IconButton
                             pWidth={20}
@@ -203,11 +220,62 @@ const TransformBlock = ({
         </div>
     );
 };
-
 const TransformAddBlock = ({ isDisable, callback }: { isDisable: boolean; callback: () => void }) => {
     return (
         <div className="plus-wrap" style={isDisable ? { opacity: 0.7, pointerEvents: 'none' } : {}} onClick={callback}>
             <PlusCircle color="#FDB532" />
+        </div>
+    );
+};
+const TrxHelpModal = ({ callback }: { callback: () => void }) => {
+    const handleLink = () => {
+        window.open('https://docs.machbase.com/neo/tql/utilities/#math', '_blank');
+    };
+    return (
+        <div className="dsh-trx-modal">
+            <Modal pIsDarkMode className="trx-modal" onOutSideClose={callback}>
+                <Modal.Header>
+                    <div className="trx-modal-header">
+                        <span>Formula</span>
+                        <Close style={{ cursor: 'pointer' }} onClick={callback} />
+                    </div>
+                </Modal.Header>
+                <Modal.Body>
+                    <div className="trx-modal-body">
+                        <span className="trx-modal-body-desc">
+                            The formula field in Transform supports arithmetic operations and <a onClick={handleLink}>mathematical functions</a>.
+                        </span>
+                        <span className="trx-modal-body-desc-ex">examples)</span>
+                        <CopyBlock content={TRX_FORMULA_EX.EX_1} />
+                        <CopyBlock content={TRX_FORMULA_EX.EX_2} />
+                        <CopyBlock content={TRX_FORMULA_EX.EX_3} />
+                    </div>
+                </Modal.Body>
+            </Modal>
+        </div>
+    );
+};
+
+const CopyBlock = ({ content }: { content: string }) => {
+    const [sTooltipTxt, setTooltipTxt] = useState<string>('Copy');
+
+    /** copy clipboard */
+    const handleCopy = () => {
+        setTooltipTxt('Copied!');
+        ClipboardCopy(content);
+    };
+    const handleMouseout = () => {
+        sTooltipTxt === 'Copied!' && setTooltipTxt('Copy');
+    };
+
+    return (
+        <div className="trx-modal-body-copy-block">
+            <div className="trx-modal-body-copy-block-text">
+                <span>{content}</span>
+            </div>
+            <button className="trx-modal-body-copy-block-btn" onClick={handleCopy} onMouseOut={handleMouseout}>
+                {sTooltipTxt}
+            </button>
         </div>
     );
 };

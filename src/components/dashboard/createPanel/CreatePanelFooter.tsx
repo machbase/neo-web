@@ -87,30 +87,29 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
             {pPanelOption.type !== 'Tql chart' && (
                 <>
                     <div className="chart-footer-tab">
-                        <div className={sTab === 'Query' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Query')}>
-                            Query
-                            <span className="series-count">{`${Number(pPanelOption.blockList.length)} / ${
-                                pPanelOption.chartOptions?.tagLimit
-                                    ? pPanelOption.chartOptions?.tagLimit -
-                                      (CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType) ? pPanelOption?.transformBlockList?.length ?? 0 : 0)
-                                    : 12 - (CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType) ? pPanelOption?.transformBlockList?.length ?? 0 : 0)
-                            }`}</span>
+                        <div>
+                            <div className={sTab === 'Query' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Query')}>
+                                Query
+                                <span className="series-count">{`${Number(pPanelOption.blockList.length)}`}</span>
+                            </div>
+                            {CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType) && (
+                                <div className={sTab === 'Transform' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Transform')}>
+                                    Transform
+                                    <span className="series-count">{`${Number(pPanelOption?.transformBlockList?.length ?? 0)}`}</span>
+                                </div>
+                            )}
+                            {pTableList.length !== 0 && (
+                                <div className={sTab === 'Time' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Time')}>
+                                    Time
+                                </div>
+                            )}
                         </div>
-                        {CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType) && (
-                            <div className={sTab === 'Transform' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Transform')}>
-                                Transform
-                                <span className="series-count">{`${Number(pPanelOption?.transformBlockList?.length ?? 0)} / ${
-                                    pPanelOption.chartOptions?.tagLimit
-                                        ? pPanelOption.chartOptions?.tagLimit - (pPanelOption?.blockList?.length ?? 0)
-                                        : 12 - (pPanelOption?.blockList?.length ?? 0)
-                                }`}</span>
-                            </div>
-                        )}
-                        {pTableList.length !== 0 && (
-                            <div className={sTab === 'Time' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Time')}>
-                                Time
-                            </div>
-                        )}
+                        <div className="chart-footer-tab-r">
+                            <span>Total</span>
+                            <span className="series-count w-30">{`${Number((pPanelOption.transformBlockList?.length ?? 0) + (pPanelOption.blockList?.length ?? 0))} / ${Number(
+                                pPanelOption.chartOptions?.tagLimit ?? 0
+                            )}`}</span>
+                        </div>
                     </div>
                     <div className="chart-footer">
                         <div style={sTab === 'Query' ? {} : { display: 'none' }} className="body">

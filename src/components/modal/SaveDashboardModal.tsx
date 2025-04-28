@@ -14,7 +14,7 @@ import { Error } from '@/components/toast/Toast';
 import { Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLeft, ArrowRight, NewFolder } from '@/assets/icons/Icon';
 import icons from '@/utils/icons';
 import { TextButton } from '../buttons/TextButton';
-import { calcInterval, decodeFormatterFunction, setUnitTime } from '@/utils/dashboardUtil';
+import { calcInterval, CheckObjectKey, decodeFormatterFunction, setUnitTime } from '@/utils/dashboardUtil';
 import { DashboardQueryParser } from '@/utils/DashboardQueryParser';
 import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
 import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
@@ -22,16 +22,18 @@ import { Select } from '@/components/inputs/Select';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 import { IconButton } from '../buttons/IconButton';
+import { VARIABLE_TYPE } from '../dashboard/variable';
 
 export interface SaveDashboardModalProps {
     setIsOpen: any;
     pIsDarkMode?: boolean;
     pPanelInfo: any;
     pDashboardTime: any;
+    pVariables: VARIABLE_TYPE[];
 }
 
 export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
-    const { setIsOpen, pIsDarkMode, pPanelInfo, pDashboardTime } = props;
+    const { setIsOpen, pIsDarkMode, pPanelInfo, pDashboardTime, pVariables } = props;
     const [sSelectedDir, setSelectedDir] = useState<string[]>([]);
     const [sDeletePath, setDeletePath] = useState<string[]>([]);
     const [sSelectedFile, setSelectedFile] = useState<any>();
@@ -56,7 +58,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         const sStartTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.start ?? '') : setUnitTime(pDashboardTime.start);
         const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.end ?? '') : setUnitTime(pDashboardTime.end);
         const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, pPanelInfo.w * 50);
-        const [sParsedQuery, sAliasList] = DashboardQueryParser(
+        const [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
             chartTypeConverter(pPanelInfo.type),
             pPanelInfo.blockList,
             pPanelInfo.transformBlockList,
@@ -66,19 +68,22 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                 interval: sIntervalInfo,
                 start: sStartTime,
                 end: sEndTime,
-            }
+            },
+            undefined,
+            pVariables,
+            true
         );
 
-        return [sParsedQuery, sAliasList];
+        return [sParsedQuery, sAliasList, sInjectionSrc];
     };
     const GetSaveChartText = () => {
-        const [sParsedQuery, sAliasList] = GetQuery();
+        const [sParsedQuery, sAliasList, sInjectionSrc] = GetQuery();
         const sStartTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.start ?? '') : setUnitTime(pDashboardTime.start);
         const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.end ?? '') : setUnitTime(pDashboardTime.end);
         const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
         const sParsedChartCode = DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery, true);
         const sUsePlg: boolean = !!pPanelInfo.plg;
-        let sResult: string = `FAKE(linspace(0, 1, 1))\n` + `CHART(\n`;
+        let sResult: string = `${sInjectionSrc}\n` + `CHART(\n`;
         if (sUsePlg) sResult += `\tplugins('${pPanelInfo.plg}'),\n`;
         sResult +=
             `\ttheme("${pPanelInfo.theme}"),\n` +
@@ -91,8 +96,11 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     const GetSaveDataText = () => {
         const [sParsedQuery] = GetQuery();
         const sOutputStr: string = sOutput === 'CHART' ? `${sOutput}()` : sOutput === 'DATA(JSON)' ? 'JSON()' : 'CSV()';
-        const sTargetSql = sParsedQuery.find((aBlock: any) => aBlock.alias === sSelectedBlock).sql;
-        const sResult: string = `SQL("${sTargetSql}")\n` + sOutputStr;
+        const sTargetItem = sParsedQuery.find((aBlock: any) => aBlock.alias === sSelectedBlock);
+        let sResult = '';
+        if (CheckObjectKey(sTargetItem, 'trx')) {
+            sResult = sTargetItem.sql + '\n' + sOutputStr;
+        } else sResult = `SQL("${sTargetItem.sql}")\n` + sOutputStr;
         return sResult;
     };
     const SetBlockAliasList = async () => {

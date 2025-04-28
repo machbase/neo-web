@@ -153,7 +153,8 @@ export const DashboardQueryParser = (
     aXaxis: any,
     aTime: BlockTimeType,
     aUniqueId?: string,
-    aVariables?: VARIABLE_TYPE[]
+    aVariables?: VARIABLE_TYPE[],
+    aIsSave: boolean = false
 ) => {
     const sResDataType = SqlResDataType(aChartType);
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
@@ -166,6 +167,7 @@ export const DashboardQueryParser = (
         aChartType === 'text' ? ['NAME_VALUE', 'TIME_VALUE'] : (Array.from({ length: sQueryBlock.length }).fill(sResDataType) as string[]),
         aChartType as ChartType,
         aXaxis,
+        aIsSave,
         aUniqueId
     );
     const [sReplaceQueryList, sReplaceAliasList] = ReplaceVariables(
@@ -490,6 +492,7 @@ const QueryParser = (
     aResDataType: string[],
     aChartType: ChartType,
     aXaxis: any,
+    aIsSave: boolean,
     aUniqueId?: string
 ) => {
     let sInjectionSrc = 'FAKE(linspace(0, 1, 1))';
@@ -553,7 +556,8 @@ const QueryParser = (
     if (aChartType === E_CHART_TYPE.ADV_SCATTER) {
         const sBaseXAxis = sResultQuery[aXaxis[0]?.useBlockList[0]];
         sV_V_X_AXIS = TQL.MAP.SCRIPT.RequestDoQuick(
-            JSON.stringify('SQL("' + sBaseXAxis.sql + '")\n' + TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME)))
+            JSON.stringify('SQL("' + sBaseXAxis.sql + '")\n' + TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME))),
+            { isSave: aIsSave }
         );
         const sInjectionScript = TQL.MAP.SCRIPT('JS', {
             main: DSH_CHART_VALUE_VALUE_SCRIPT_MODULE.MAIN,
@@ -565,7 +569,7 @@ const QueryParser = (
         });
     }
     if (aTransformBlockList && aTransformBlockList.length > 0 && CheckAllowedTransformChartType(aChartType)) {
-        const [sParsedAliasList, sParsedTrxList] = TRX_PARSER(aChartType as E_ALLOW_CHART_TYPE, aTransformBlockList, sResultQuery, sV_V_X_AXIS);
+        const [sParsedAliasList, sParsedTrxList] = TRX_PARSER(aChartType as E_ALLOW_CHART_TYPE, aTransformBlockList, sResultQuery, sV_V_X_AXIS, aIsSave);
         sAliasList = sAliasList.concat(sParsedAliasList);
         sResultQuery = sResultQuery.concat(sParsedTrxList);
     }
