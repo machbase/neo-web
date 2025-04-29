@@ -556,7 +556,7 @@ const QueryParser = (
     if (aChartType === E_CHART_TYPE.ADV_SCATTER) {
         const sBaseXAxis = sResultQuery[aXaxis[0]?.useBlockList[0]];
         sV_V_X_AXIS = TQL.MAP.SCRIPT.RequestDoQuick(
-            JSON.stringify('SQL("' + sBaseXAxis.sql + '")\n' + TQL.SINK._JSON(TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME))),
+            JSON.stringify('SQL("' + sBaseXAxis.sql + '")\n' + TQL.SINK._JSON(!aIsSave ? TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME) : '')),
             { isSave: aIsSave }
         );
         const sInjectionScript = TQL.MAP.SCRIPT('JS', {
