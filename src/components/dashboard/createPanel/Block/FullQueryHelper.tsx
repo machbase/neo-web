@@ -4,21 +4,11 @@ import { useState } from 'react';
 import { RxQuestionMark } from 'react-icons/rx';
 import { IconButton } from '@/components/buttons/IconButton';
 import { Close } from '@/assets/icons/Icon';
-import { FULL_TYPING_QUERY_PLACEHOLDER } from '@/utils/constants';
-import { ClipboardCopy } from '@/utils/ClipboardCopy';
+import { FULL_TYPING_QUERY_PLACEHOLDER, FULL_TYPING_QUERY_PLACEHOLDER_WITHOUT_VAR } from '@/utils/constants';
+import { CopyBlock } from '@/components/copyBlock';
 
 export const FullQueryHelper = ({ pIsShow }: { pIsShow: boolean }) => {
     const [sIsOpen, setIsOpen] = useState<boolean>(false);
-    const [sTooltipTxt, setTooltipTxt] = useState<string>('Copy');
-
-    /** copy clipboard */
-    const handleCopy = () => {
-        setTooltipTxt('Copied!');
-        ClipboardCopy(FULL_TYPING_QUERY_PLACEHOLDER);
-    };
-    const handleMouseout = () => {
-        sTooltipTxt === 'Copied!' && setTooltipTxt('Copy');
-    };
 
     const handleClick = () => {
         setIsOpen(!sIsOpen);
@@ -57,14 +47,9 @@ export const FullQueryHelper = ({ pIsShow }: { pIsShow: boolean }) => {
                                     You can use the predefined <code>'VARIABLES'</code> provided by Machbase Neo Dashboard.
                                 </span>
                                 <span className="full-query-modal-body-desc-ex">example)</span>
-                                <div className="full-query-modal-body-copy-block">
-                                    <div className="full-query-modal-body-copy-block-text">
-                                        <span>{FULL_TYPING_QUERY_PLACEHOLDER}</span>
-                                    </div>
-                                    <button className="full-query-modal-body-copy-block-btn" onClick={handleCopy} onMouseOut={handleMouseout}>
-                                        {sTooltipTxt}
-                                    </button>
-                                </div>
+                                <CopyBlock content={FULL_TYPING_QUERY_PLACEHOLDER} />
+                                <span className="full-query-modal-body-desc-ex">same as</span>
+                                <CopyBlock content={FULL_TYPING_QUERY_PLACEHOLDER_WITHOUT_VAR} />
                             </div>
                         </Modal.Body>
                     </Modal>

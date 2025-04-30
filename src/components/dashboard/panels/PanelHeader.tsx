@@ -19,6 +19,8 @@ import { concatTagSet } from '@/utils/helpers/tags';
 import { ChartTheme } from '@/type/eChart';
 import { TbZoomPan } from 'react-icons/tb';
 import { IoMdCheckmark } from 'react-icons/io';
+import { VariableParserForTql } from '@/utils/DashboardQueryParser';
+import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo }: any) => {
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
@@ -66,7 +68,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         const sTags = [] as any[];
 
         pPanelInfo.blockList
-            .filter((aTag: any) => aTag.type === 'tag' && !aTag.useCustom)
+            .filter((aTag: any) => aTag.type === 'tag' && !aTag.useCustom && aTag.isVisible && !aTag.customFullTyping.use)
             .map((aPanel: any) => {
                 sTags.push(createTag(aPanel));
             });
@@ -84,9 +86,22 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             };
 
             const tagzFormat = convertChartDefault(DEFAULT_CHART, sNewData);
+            if (pBoardInfo.dashboard.variables.length > 0) {
+                const sParsedVar = VariableParserForTql(pBoardInfo.dashboard.variables);
+                const sReplaceTagSet = tagzFormat.tag_set.map((aTag: any) => {
+                    if (aTag.tagName.match(VARIABLE_REGEX)) {
+                        const sTargetVar = sParsedVar.find((parsedItem) => aTag.tagName.match(parsedItem.regEx));
+                        return {
+                            ...aTag,
+                            tagName: sTargetVar ? aTag.tagName.replaceAll(sTargetVar.regEx, sTargetVar.value) : aTag.tagName,
+                        };
+                    } else return aTag;
+                });
+                tagzFormat.tag_set = sReplaceTagSet;
+            }
             createTagzTab(pPanelInfo.title, tagzFormat, sTime);
         } else {
-            Error('Cannot view taganalyzer because there is no tag');
+            Error('Cannot view taganalyzer because there is no tag. (Custom tags are not supported in the TagAnalyzer)');
         }
         setIsContextMenu(false);
     };
@@ -279,6 +294,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                     setIsOpen={setDownloadModal}
                     pPanelInfo={pPanelInfo}
                     pIsDarkMode={true}
+                    pVariables={pBoardInfo?.dashboard?.variables ?? []}
                 />
             )}
             {sIsDeleteModal && (

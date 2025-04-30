@@ -28,7 +28,8 @@ export enum E_VISUAL_LOAD_ID {
     MAP = 'geomapID',
 }
 export const CheckObjectKey = (data: object, key: string): boolean => {
-    return Object.prototype.hasOwnProperty.call(data, key);
+    if (!data) return false;
+    return Object.prototype.hasOwnProperty?.call(data, key);
 };
 export const PanelIdParser = (id: string | undefined) => {
     return `$${id?.replaceAll('-', '_')}`;
@@ -870,5 +871,5 @@ export const getChartDefaultWidthSize = (aType: string, isPolar: any): number =>
 
 export const getChartSeriesName = ({ alias, table, column, aggregator }: { alias: string; table: string; column: string; aggregator: string }) => {
     if (alias) return alias;
-    else return `${table} _ ${column}(${aggregator})`;
+    else return `${table}_${column}(${aggregator})`;
 };

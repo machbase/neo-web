@@ -1,26 +1,30 @@
 import './CreatePanelFooter.scss';
 import { Block } from './Block';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PlusCircle, VscTrash } from '@/assets/icons/Icon';
 import { refreshTimeList } from '@/utils/dashboardUtil';
 import DatePicker from '@/components/datePicker/DatePicker';
 import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 import { Select } from '@/components/inputs/Select';
 import { generateUUID } from '@/utils';
-// import { TagColorList } from '@/utils/constants';
 import { IconButton } from '@/components/buttons/IconButton';
 import { TqlBlock } from './TqlBlock';
 import { getTagColor, getUseColorList } from '@/utils/helpers/tags';
+import { Transform } from './Transform';
+import { chartTypeConverter } from '@/utils/eChartHelper';
+import { ChartType, E_CHART_TYPE } from '@/type/eChart';
+import { ALLOWED_TRX_CHART_TYPE, CheckAllowedTransformChartType, E_ALLOW_CHART_TYPE } from '@/utils/Chart/TransformDataParser';
+
+type FOOTER_MENU_TYPE = 'Query' | 'Transform' | 'Time';
 
 const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
-    const [sTab, setTab] = useState('Query');
+    const [sTab, setTab] = useState<FOOTER_MENU_TYPE>('Query');
 
     const setUseTimePicker = (aKey: string, aValue: any) => {
         pSetPanelOption((aPrev: any) => {
             return { ...aPrev, timeRange: { ...aPrev.timeRange, [aKey]: aValue } };
         });
     };
-
     const handleTime = (aKey: string, aEvent: any) => {
         let sUseCustomTime: boolean = false;
         let sTimeRange: any = null;
@@ -37,13 +41,11 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
             return { ...aPrev, useCustomTime: sUseCustomTime, timeRange: sTimeRange };
         });
     };
-
     const handleQuickTime = (aValue: any) => {
         pSetPanelOption((aPrev: any) => {
             return { ...aPrev, useCustomTime: true, timeRange: { ...aPrev.timeRange, start: aValue.value[0], end: aValue.value[1] } };
         });
     };
-
     const HandleAddBlock = () => {
         pSetPanelOption((aPrev: any) => {
             const sTmpPanelOpt = JSON.parse(
@@ -76,25 +78,41 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
         });
     };
 
+    useEffect(() => {
+        if (!ALLOWED_TRX_CHART_TYPE.includes(chartTypeConverter(pPanelOption.type) as E_CHART_TYPE & E_ALLOW_CHART_TYPE)) setTab('Query');
+    }, [pPanelOption.type]);
+
     return (
         <div className="chart-footer-form">
             {pPanelOption.type !== 'Tql chart' && (
                 <>
                     <div className="chart-footer-tab">
-                        <div className={sTab === 'Query' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Query')}>
-                            Query
-                            <span className="series-count">{`${Number(pPanelOption.blockList.length)} / ${
-                                pPanelOption.chartOptions?.tagLimit ? pPanelOption.chartOptions?.tagLimit : '12'
-                            }`}</span>
-                        </div>
-                        {pTableList.length !== 0 && (
-                            <div className={sTab === 'Time' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Time')}>
-                                Time
+                        <div>
+                            <div className={sTab === 'Query' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Query')}>
+                                Query
+                                <span className="series-count">{`${Number(pPanelOption.blockList.length)}`}</span>
                             </div>
-                        )}
+                            {CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType) && (
+                                <div className={sTab === 'Transform' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Transform')}>
+                                    Transform
+                                    <span className="series-count">{`${Number(pPanelOption?.transformBlockList?.length ?? 0)}`}</span>
+                                </div>
+                            )}
+                            {pTableList.length !== 0 && (
+                                <div className={sTab === 'Time' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Time')}>
+                                    Time
+                                </div>
+                            )}
+                        </div>
+                        <div className="chart-footer-tab-r">
+                            <span>Total</span>
+                            <span className="series-count w-30">{`${Number((pPanelOption.transformBlockList?.length ?? 0) + (pPanelOption.blockList?.length ?? 0))} / ${Number(
+                                pPanelOption.chartOptions?.tagLimit ?? 0
+                            )}`}</span>
+                        </div>
                     </div>
                     <div className="chart-footer">
-                        <div style={{ display: sTab === 'Time' ? 'none' : '' }} className="body">
+                        <div style={sTab === 'Query' ? {} : { display: 'none' }} className="body">
                             {/* SET Block */}
                             {pTableList.length !== 0 &&
                                 pPanelOption.blockList.map((aItem: any, aIdx: number) => {
@@ -116,7 +134,19 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                 <div
                                     onClick={HandleAddBlock}
                                     className="plus-wrap"
-                                    style={pPanelOption.chartOptions?.tagLimit <= pPanelOption.blockList.length ? { opacity: 0.7, pointerEvents: 'none' } : {}}
+                                    style={
+                                        (pPanelOption.chartOptions?.tagLimit
+                                            ? pPanelOption.chartOptions?.tagLimit -
+                                              (CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType)
+                                                  ? pPanelOption?.transformBlockList?.length ?? 0
+                                                  : 0)
+                                            : 12 -
+                                              (CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType)
+                                                  ? pPanelOption?.transformBlockList?.length ?? 0
+                                                  : 0)) <= pPanelOption.blockList.length
+                                            ? { opacity: 0.7, pointerEvents: 'none' }
+                                            : {}
+                                    }
                                 >
                                     <PlusCircle color="#FDB532" />
                                 </div>
@@ -134,7 +164,12 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                 </div>
                             )}
                         </div>
-                        <div style={sTab === 'Query' ? { display: 'none' } : {}} className="body time-wrap">
+                        {sTab === 'Transform' && (
+                            <div className="body">
+                                <Transform pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />
+                            </div>
+                        )}
+                        <div style={sTab === 'Time' ? {} : { display: 'none' }} className="body time-wrap">
                             <div className="time-form">
                                 <div className="time-header">Custom time range</div>
                                 <div className="time-set-form">

@@ -8,6 +8,7 @@
             gap: 8px;
             padding: 2px 8px;
             font-size: 13px;
+            justify-content: space-between;
             .active-footer-tab {
                 border-bottom: 2px solid #005fb8;
             }
@@ -15,12 +16,18 @@
                 border-bottom: 2px solid transparent;
                 opacity: 0.8;
             }
+            &-r {
+                cursor: default !important;
+            }
+            .w-30 {
+                width: 36px !important;
+            }
             .series-count {
                 background-color: #a4a4a46e;
                 border-radius: 40%;
                 color: #e4e4e4;
                 display: flex;
-                width: 32px;
+                width: 22px;
                 height: 14px;
                 font-size: 11px;
                 align-items: stretch;

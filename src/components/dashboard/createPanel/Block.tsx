@@ -35,6 +35,8 @@ import { InputSelector } from '@/components/inputs/InputSelector';
 import { FULL_TYPING_QUERY_PLACEHOLDER } from '@/utils/constants';
 import { FullQueryHelper } from './Block/FullQueryHelper';
 import { E_CHART_TYPE } from '@/type/eChart';
+import { TransformBlockType } from './Transform/type';
+import { VscEye, VscEyeClosed } from 'react-icons/vsc';
 
 export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
@@ -437,11 +439,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         if (!pBlockInfo?.math || pBlockInfo?.math === '') return setIsMath(false);
         const sResValidation = await validationFormula(pBlockInfo?.math);
         if (sResValidation) setIsMath(false);
-        else {
-            Error('Please check the entered formula.');
-            // reset
-            // changedOption('math', { target: { value: '' } });
-        }
+        else Error('Please check the entered formula.');
     };
     const handleEnterKey = (e: React.KeyboardEvent) => {
         if (e.key === 'Escape' || e.key === 'Enter') handleExitFormulaField();
@@ -458,6 +456,21 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     const handleTagSelect = (aSelectedTag: string) => {
         changedOption('tag', { target: { value: aSelectedTag } });
     };
+    const checkTransformDataUsage = () => {
+        if (getUsedTransformList.includes(pBlockOrder)) return true;
+        return false;
+    };
+    const getUsedTransformList = useMemo(() => {
+        let result: number[] = [];
+        if (pPanelOption?.transformBlockList && pPanelOption?.transformBlockList?.length > 0) {
+            const tmpRes: Set<number> = new Set();
+            pPanelOption?.transformBlockList.map((trxBlock: TransformBlockType) => {
+                trxBlock.selectedBlockIdxList.forEach((idx: number) => tmpRes.add(idx));
+            });
+            result = Array.from(tmpRes);
+        }
+        return result;
+    }, [pPanelOption.transformBlockList]);
     /** return agg list based on chart type */
     const getAggregatorList = useMemo((): string[] => {
         const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
@@ -749,6 +762,15 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 </div>
                             )}
                         </div>
+                        <IconButton
+                            pWidth={20}
+                            pHeight={20}
+                            pIsToopTip
+                            pToolTipContent={pBlockInfo?.isVisible ? 'Visible' : 'Invisible'}
+                            pToolTipId={pBlockInfo.id + '-block-visible'}
+                            pIcon={pBlockInfo?.isVisible ? <VscEye /> : <VscEyeClosed />}
+                            onClick={() => setOption('isVisible', !pBlockInfo?.isVisible)}
+                        />
                         <div ref={sColorPickerRef} style={{ position: 'relative' }}>
                             {pPanelOption.type !== 'Text' && (
                                 <IconButton
@@ -792,7 +814,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             onClick={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
                         />
                         <IconButton
-                            pDisabled={pPanelOption.blockList.length === 1}
+                            pDisabled={pPanelOption.blockList.length === 1 || checkTransformDataUsage()}
                             pWidth={20}
                             pHeight={20}
                             pIcon={<Close />}

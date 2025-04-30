@@ -30,6 +30,8 @@ const DashboardCompatibility = (aData: any) => {
             if (aPanel.type === 'Tql') aPanel.type = 'Tql chart';
             if (aPanel.xAxisOptions[0].type === 'category') aPanel.xAxisOptions[0].type = 'time';
             if (aPanel.type === 'Geomap' && !CheckObjectKey(aPanel, 'titleColor')) aPanel.titleColor = '#000000';
+            // Transform data opt
+            if (!CheckObjectKey(aPanel, 'transformBlockList')) aPanel.transformBlockList = [];
             // X-Axis opt
             aPanel.xAxisOptions = aPanel.xAxisOptions.map((xAxisOpt: any) => {
                 const sTmpXAxis = JSON.parse(JSON.stringify(xAxisOpt));
@@ -51,13 +53,14 @@ const DashboardCompatibility = (aData: any) => {
             const sChartType: string = chartTypeConverter(aPanel.type);
             const sResDataType: string = SqlResDataType(sChartType);
 
-            const sVaildBlockList = sBlockList.map((aBlock: any) => {
+            const sValidBlockList = sBlockList.map((aBlock: any) => {
+                // Set block visibility
+                if (!CheckObjectKey(aBlock, 'isVisible')) aBlock.isVisible = true;
                 // Skip validate variableBlock
                 const sIsVariableBlock = aBlock.table.match(VARIABLE_REGEX);
                 if (sIsVariableBlock) return aBlock;
                 // Check full query
                 const sHasKeyFullQuery = CheckObjectKey(aBlock, 'customFullTyping');
-
                 const sResult: any = sHasKeyFullQuery ? aBlock : { ...aBlock, customFullTyping: { use: false, text: '' } };
                 let DEFAULT_AGGREGATOR: string = 'count';
                 let sAggList: string[] = [];
@@ -108,7 +111,7 @@ const DashboardCompatibility = (aData: any) => {
 
                 return sResult;
             });
-            sResultPanel.blockList = sVaildBlockList;
+            sResultPanel.blockList = sValidBlockList;
             return sResultPanel;
         });
         sDashboardInfo.dashboard.panels = sVaildPanelList;

@@ -7,7 +7,6 @@ export type CHART_AXIS_UNITS = {
     decimals: number | undefined;
     squared: number;
 };
-export const DSH_CHART_ADV_SCATTER_DATA_LIMIT = 10801;
 
 // {
 //     [key: string]: number | string | undefined;
