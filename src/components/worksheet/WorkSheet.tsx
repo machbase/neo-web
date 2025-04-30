@@ -10,6 +10,7 @@ import { IconButton } from '../buttons/IconButton';
 
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 interface WorkSheetProps {
+    pIsActiveTab: boolean;
     pId: string;
     pSheet: any;
     pHandleSaveModalOpen: () => void;
@@ -17,7 +18,7 @@ interface WorkSheetProps {
 }
 
 export const WorkSheet = (props: WorkSheetProps) => {
-    const { pId, pSheet, pHandleSaveModalOpen, setIsSaveModal } = props;
+    const { pIsActiveTab, pId, pSheet, pHandleSaveModalOpen, setIsSaveModal } = props;
     const setSaveWorkSheet = useSetRecoilState(gSaveWorkSheets);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sWorkSheets, setWorkSheets] = useState<any>([]);
@@ -134,6 +135,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
                         sWorkSheets.map((aSheetItem: any, aIdx: number) => {
                             return (
                                 <WorkSheetEditor
+                                    pIsActiveTab={pIsActiveTab}
                                     key={'sheet-' + aSheetItem.id}
                                     pData={aSheetItem}
                                     pWrkId={pId}

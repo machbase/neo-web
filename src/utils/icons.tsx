@@ -41,6 +41,7 @@ import {
 import { BsSignpost } from 'react-icons/bs';
 import { FaBox, FaBoxOpen } from 'react-icons/fa';
 import { GiTallBridge } from 'react-icons/gi';
+import { IoFishOutline } from 'react-icons/io5';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { PiDatabaseLight } from 'react-icons/pi';
 import { RxLapTimer } from 'react-icons/rx';
@@ -50,6 +51,8 @@ import { VscExtensions } from 'react-icons/vsc';
 
 const icons = (aType: string, aIsHome?: boolean) => {
     switch (aType) {
+        case 'fish':
+            return <IoFishOutline />;
         case 'url':
             return <BiLink />;
         case 'sql':

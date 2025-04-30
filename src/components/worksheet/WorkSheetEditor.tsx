@@ -28,6 +28,7 @@ type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete'
 type ShowResultType = 'brief' | 'all';
 
 interface WorkSheetEditorProps {
+    pIsActiveTab: boolean;
     pData: any;
     pIdx: number;
     pWrkId: string;
@@ -60,7 +61,7 @@ const defaultSqlLocation = {
 };
 
 export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
-    const { pData, pWrkId, pIdx, pAllRunCodeStatus, pAllRunCodeTargetIdx, pAllRunCodeList, pAllRunCodeCallback, setSheet, pWorkSheets, pCallback } = props;
+    const { pIsActiveTab, pData, pWrkId, pIdx, pAllRunCodeStatus, pAllRunCodeTargetIdx, pAllRunCodeList, pAllRunCodeCallback, setSheet, pWorkSheets, pCallback } = props;
     const sInitHeight = 200;
     const resizeRef = useRef<HTMLDivElement | null>(null);
     const [sText, setText] = useState<string>(pData.contents);
@@ -622,6 +623,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         </div>
                         <div ref={resizeRef} className="editor">
                             <MonacoEditor
+                                pIsActiveTab={pIsActiveTab}
                                 pText={sText}
                                 pLang={sMonacoLanguage ?? 'Markdown'}
                                 onChange={handleText}

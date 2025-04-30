@@ -11,6 +11,7 @@ import { ClipboardCopy } from '@/utils/ClipboardCopy';
 type EditorLangType = 'json' | 'go' | 'typescript' | 'markdown' | 'css' | 'html' | 'javascript';
 
 export interface TextExtensionProps {
+    pIsActiveTab: boolean;
     pLang: EditorLangType;
     pCode: string | object;
     pHandleSaveModalOpen: () => void;
@@ -18,7 +19,7 @@ export interface TextExtensionProps {
 }
 
 export const TextExtension = (props: TextExtensionProps) => {
-    const { pLang, pCode, pHandleSaveModalOpen, setIsOpenModal } = props;
+    const { pIsActiveTab, pLang, pCode, pHandleSaveModalOpen, setIsOpenModal } = props;
     const [sText, setText] = useState<string>('');
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
@@ -95,7 +96,9 @@ export const TextExtension = (props: TextExtensionProps) => {
                 </div>
             </div>
             <div className="textextension-editor-content" style={{ padding: sIsPreview ? '0 1rem' : '', backgroundColor: sIsPreview ? '#1B1C21' : '' }}>
-                {!sIsPreview ? <MonacoEditor pText={sText} pLang={sCurrentLang} onSelectLine={() => null} onChange={handleChangeText} onRunCode={() => null} /> : null}
+                {!sIsPreview ? (
+                    <MonacoEditor pIsActiveTab={pIsActiveTab} pText={sText} pLang={sCurrentLang} onSelectLine={() => null} onChange={handleChangeText} onRunCode={() => null} />
+                ) : null}
                 {pLang === 'markdown' && sIsPreview ? <Markdown pIdx={1} pContents={sText} pType="mrk" /> : null}
             </div>
         </div>
