@@ -17,7 +17,9 @@ import { RxQuestionMark } from 'react-icons/rx';
 import { TRX_REPLACE_LIST } from '@/utils/Chart/TransformDataParser';
 import { getChartSeriesName } from '@/utils/dashboardUtil';
 import { TRX_FORMULA_EX } from './constants';
-import { ClipboardCopy } from '@/utils/ClipboardCopy';
+import { CopyBlock } from '@/components/copyBlock';
+import { Tooltip } from 'react-tooltip';
+import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 
 const colorList = [
     '#607D8B', // Blue Grey
@@ -133,17 +135,16 @@ const TransformBlock = ({
             pTransformItem.selectedBlockIdxList.map((blockIdx: number, aIdx: number) => {
                 if (pQueryBlockList[blockIdx]) sMapValue = sMapValue.replaceAll(new RegExp(`\\b${TRX_REPLACE_LIST[blockIdx]}\\b`, 'g'), `value(${aIdx})`);
             });
-
             const src = TQL.SRC.FAKE('json', `{[${Array.from({ length: pTransformItem.selectedBlockIdxList.length }).fill(1)}]}`);
             const map = TQL.MAP.MAPVALUE(1, sMapValue);
             const sink = TQL.SINK._JSON();
-
+            const sInValidVar = !!sMapValue.match(VARIABLE_REGEX);
             const sResult: any = await getTqlChart(`${src}\n${map}\n${sink}`);
-            if (!sResult?.data?.success || !sResult?.data?.data?.rows?.length) {
-                Error('Please check the entered formula.');
+            if (!sResult?.data?.success || !sResult?.data?.data?.rows?.length || sInValidVar) {
+                Error('Please check the entered formula. (Variables are not supported)');
                 handleItem('valid', false);
             } else handleItem('valid', true);
-        }
+        } else handleItem('valid', false);
     };
 
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
@@ -205,8 +206,15 @@ const TransformBlock = ({
                 <span className="transform-block-title" style={{ display: 'flex', gap: '4px', alignItems: 'start' }}>
                     Formula
                     {pTransformItem.valid !== undefined && !pTransformItem.valid && (
-                        <div style={{ marginTop: '3px' }}>
+                        <div style={{ marginTop: '3px' }} className={`tooltip-transform-block`}>
                             <BadgeStatus />
+                            <Tooltip
+                                className="tooltip-transform"
+                                positionStrategy="absolute"
+                                anchorSelect={`.tooltip-transform-block`}
+                                content={'Please check the entered formula. (Variables are not supported)'}
+                                delayShow={700}
+                            />
                         </div>
                     )}
                 </span>
@@ -252,30 +260,6 @@ const TrxHelpModal = ({ callback }: { callback: () => void }) => {
                     </div>
                 </Modal.Body>
             </Modal>
-        </div>
-    );
-};
-
-const CopyBlock = ({ content }: { content: string }) => {
-    const [sTooltipTxt, setTooltipTxt] = useState<string>('Copy');
-
-    /** copy clipboard */
-    const handleCopy = () => {
-        setTooltipTxt('Copied!');
-        ClipboardCopy(content);
-    };
-    const handleMouseout = () => {
-        sTooltipTxt === 'Copied!' && setTooltipTxt('Copy');
-    };
-
-    return (
-        <div className="trx-modal-body-copy-block">
-            <div className="trx-modal-body-copy-block-text">
-                <span>{content}</span>
-            </div>
-            <button className="trx-modal-body-copy-block-btn" onClick={handleCopy} onMouseOut={handleMouseout}>
-                {sTooltipTxt}
-            </button>
         </div>
     );
 };

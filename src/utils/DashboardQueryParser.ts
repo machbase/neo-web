@@ -81,6 +81,12 @@ export const VariableParser = (aVariables: VARIABLE_TYPE[], aTime: BlockTimeType
     });
     return defineVar.concat(defaultVar);
 };
+export const VariableParserForTql = (aVariables: VARIABLE_TYPE[]) => {
+    const defineVar = aVariables?.map((variable: any) => {
+        return { key: variable.key, value: variable.use.value, regEx: new RegExp(variable.key, 'g') };
+    });
+    return defineVar;
+};
 
 const ReplaceVariables = (
     sParsedQueryList: any[],
@@ -102,7 +108,7 @@ const ReplaceVariables = (
                 query: query.query.replaceAll(variable.regEx, variable.value),
                 sql: query.sql.replaceAll(variable.regEx, variable.value),
             });
-            tmpAsList.push(tmpAliasList[idx]);
+            tmpAsList.push({ ...tmpAliasList[idx], name: tmpAliasList[idx].name.replaceAll(variable.regEx, variable.value) });
         });
         tmpQueryList = tmpList;
         tmpAliasList = tmpAsList;
