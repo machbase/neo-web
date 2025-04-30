@@ -28,7 +28,8 @@ export enum E_VISUAL_LOAD_ID {
     MAP = 'geomapID',
 }
 export const CheckObjectKey = (data: object, key: string): boolean => {
-    return Object.prototype.hasOwnProperty.call(data, key);
+    if (!data) return false;
+    return Object.prototype.hasOwnProperty?.call(data, key);
 };
 export const PanelIdParser = (id: string | undefined) => {
     return `$${id?.replaceAll('-', '_')}`;

@@ -51,7 +51,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sOutput, setOutput] = useState<'CHART' | 'DATA(JSON)' | 'DATA(CSV)'>('CHART');
     const [sBlockList, setBlockList] = useState<any>([]);
-    const [sSelectedBlock, setSelectedBlock] = useState<any>('');
+    const [sSelectedBlock, setSelectedBlock] = useState<any>({ idx: 0, name: '', value: '' });
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
     const GetQuery = () => {
@@ -96,14 +96,14 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     const GetSaveDataText = () => {
         const [sParsedQuery] = GetQuery();
         const sOutputStr: string = sOutput === 'CHART' ? `${sOutput}()` : sOutput === 'DATA(JSON)' ? 'JSON()' : 'CSV()';
-        const sTargetItem = sParsedQuery.find((aBlock: any) => aBlock.alias === sSelectedBlock);
+        const sTargetItem = sParsedQuery[sSelectedBlock.idx];
         let sResult = '';
         if (CheckObjectKey(sTargetItem, 'trx')) {
             sResult = sTargetItem.sql + '\n' + sOutputStr;
         } else sResult = `SQL("${sTargetItem.sql}")\n` + sOutputStr;
         return sResult;
     };
-    const SetBlockAliasList = async () => {
+    const SetBlockAliasList = () => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const [_, sAliasList] = GetQuery();
         setBlockList(sAliasList);
@@ -316,8 +316,8 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         }
     };
     const HandleOutput = (aValue: 'CHART' | 'DATA(JSON)' | 'DATA(CSV)') => {
-        if (aValue === 'CHART') setSelectedBlock('');
-        else setSelectedBlock(sBlockList[0] ? sBlockList[0].name : '');
+        if (aValue === 'CHART') setSelectedBlock({ idx: 0, name: '', value: '' });
+        else setSelectedBlock(sBlockList[0] ? { idx: 0, name: sBlockList[0].namne, value: sBlockList[0].namne } : '');
         setOutput(aValue);
     };
 
@@ -446,9 +446,9 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                                 pAutoChanged={true}
                                 pWidth={175}
                                 pBorderRadius={8}
-                                pInitValue={sSelectedBlock}
+                                pInitValue={sSelectedBlock.value}
                                 pHeight={33}
-                                onChange={(aEvent: any) => setSelectedBlock(aEvent.target.value)}
+                                onChange={(aEvent: any) => setSelectedBlock(aEvent.target)}
                                 pOptions={sBlockList.map((aAlias: any) => aAlias.name)}
                             />
                         </div>
