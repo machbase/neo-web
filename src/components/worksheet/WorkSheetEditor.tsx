@@ -369,6 +369,13 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 setTqlCsv(sParsedCsvBody);
                 setTqlCsvHeader(sParsedCsvHeader);
             }
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('text/plain')) {
+            if (sResult.data && typeof sResult.data === 'string') {
+                setTqlResultType('text');
+                setTqlTextResult(sResult.data);
+            } else {
+                HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
+            }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('ndjson')) {
             if (sResult.data && typeof sResult.data === 'string') {
                 setTqlResultType('ndjson');
@@ -496,8 +503,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     isValidJSON(sTqlTextResult) ? (
                         <pre>{JSON.stringify(JSON.parse(sTqlTextResult), null, 4)}</pre>
                     ) : (
-                        <div className="result-worksheet-total">
-                            <span>{sTqlTextResult}</span>
+                        <div className="result-worksheet-pre">
+                            <pre>{sTqlTextResult}</pre>
                         </div>
                     )
                 ) : null}
