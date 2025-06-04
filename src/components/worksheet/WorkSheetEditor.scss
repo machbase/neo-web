@@ -217,6 +217,15 @@
                     margin-left: 8px;
                 }
             }
+
+            .result-worksheet-pre {
+                margin: 4px;
+                pre {
+                    margin-left: 8px;
+                    line-height: 1.4;
+                    white-space: pre-wrap;
+                }
+            }
         }
 
         .result::-webkit-scrollbar {

@@ -132,6 +132,13 @@ const Tql = (props: TqlProps) => {
                 setMarkdown('');
                 HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
             }
+        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('text/plain')) {
+            if (sResult.data && typeof sResult.data === 'string') {
+                setResultType('text');
+                setTextField(sResult.data);
+            } else {
+                HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
+            }
         } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('ndjson')) {
             if (sResult.data && typeof sResult.data === 'string') {
                 setResultType('ndjson');
@@ -272,7 +279,7 @@ const Tql = (props: TqlProps) => {
                                     <pre>{JSON.stringify(JSON.parse(sTextField), null, 4)}</pre>
                                 ) : (
                                     <div style={!sLoadState ? { padding: '0 1rem' } : { padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
-                                        {sTextField}
+                                        <pre>{sTextField}</pre>
                                         {sLoadState && (
                                             <div style={{ marginLeft: '4px' }}>
                                                 <Loader width="12px" height="12px" borderRadius="90%" />
