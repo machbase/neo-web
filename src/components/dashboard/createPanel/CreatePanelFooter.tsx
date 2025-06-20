@@ -55,12 +55,13 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                         ...aPrev.blockList,
                         {
                             ...aPrev.blockList.at(-1),
+                            aggregator: aPrev.type === 'Text' ? 'value' : aPrev.blockList.at(-1).aggregator,
                             id: generateUUID(),
                             color: getTagColor(getUseColorList(aPrev.blockList)),
                             math: '',
                             alias: '',
                             values: aPrev.blockList.at(-1).values.map((val: any) => {
-                                return { ...val, id: generateUUID(), alias: '' };
+                                return { ...val, aggregator: aPrev.type === 'Text' ? 'value' : aPrev.blockList.at(-1).aggregator, id: generateUUID(), alias: '' };
                             }),
                         },
                     ],
