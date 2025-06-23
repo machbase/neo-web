@@ -12,6 +12,7 @@ import { postFileList } from '@/api/repository/api';
 import { Close, PlusCircle } from '@/assets/icons/Icon';
 import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader as Downloader } from '@/utils/sqlOriginDataDownloader';
 import Papa from 'papaparse';
+import { VARIABLE_RM_REGEX } from '@/utils/CheckDataCompatibility';
 
 export enum VARIABLE_DEFAULT_TYPE {
     DEFAULT_DEFINED = 'DEFAULT_DEFINED',
@@ -121,19 +122,28 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
             setBoardList(() => sTabList);
         }
     };
+    const variableNmValidator = (value: string) => {
+        const sResult = value.replace(VARIABLE_RM_REGEX, '');
+        return `{{${sResult}}}`;
+    };
     const handleUpdateVarOrigin = () => {
         let tmpVarList;
         if (sUpdateVariable.mode === 'EDIT') {
             tmpVarList = pBoardInfo?.dashboard?.variables?.map((varInfo: VARIABLE_TYPE) => {
                 if (sUpdateVariable.data.id === varInfo.id) {
                     const tmpValue = sUpdateVariable.data.valueList?.filter((value) => value.id === sUpdateVariable.data.use.id);
-                    if (tmpValue?.length > 0) return { ...sUpdateVariable.data, use: tmpValue[0] };
+                    if (tmpValue?.length > 0) return { ...sUpdateVariable.data, key: variableNmValidator(sUpdateVariable.data.key), use: tmpValue[0] };
                     else return { ...sUpdateVariable.data, use: sUpdateVariable.data.valueList[0] };
                 } else return varInfo;
             });
         }
         if (sUpdateVariable.mode === 'CREATE') {
-            tmpVarList = pBoardInfo?.dashboard?.variables?.concat({ ...sUpdateVariable.data, use: sUpdateVariable.data.valueList[0], id: generateUUID() });
+            tmpVarList = pBoardInfo?.dashboard?.variables?.concat({
+                ...sUpdateVariable.data,
+                key: variableNmValidator(sUpdateVariable.data.key),
+                use: sUpdateVariable.data.valueList[0],
+                id: generateUUID(),
+            });
         }
         updateVariableCode(tmpVarList ?? []);
         handleResetUpdateVariable();
@@ -199,6 +209,7 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
     //     });
     //     updateVariableCode(tmpVarList ?? []);
     // };
+
     const handleVarOpt = (key: string, item: React.FormEvent<HTMLInputElement>, idx?: number) => {
         if (key === 'value') {
             setUpdateVariable((prev) => {

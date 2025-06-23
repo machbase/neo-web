@@ -473,12 +473,14 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     }, [pPanelOption.transformBlockList]);
     /** return agg list based on chart type */
     const getAggregatorList = useMemo((): string[] => {
-        const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
+        const sChartConvertType = chartTypeConverter(pPanelOption.type);
+        let sChartDataType = SqlResDataType(sChartConvertType);
 
-        if (chartTypeConverter(pPanelOption.type) === 'geomap') return geomapAggregatorList;
+        if (sChartConvertType === 'text' && pBlockOrder === 0) sChartDataType = 'NAME_VALUE';
+        if (sChartConvertType === 'geomap') return geomapAggregatorList;
         if (sChartDataType === 'TIME_VALUE') {
             let sAggregatorList = pBlockInfo.type === 'tag' ? tagAggregatorList : logAggregatorList;
-            if (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER) sAggregatorList = sAggregatorList.filter((agg) => agg !== 'value');
+            if (sChartConvertType === E_CHART_TYPE.ADV_SCATTER) sAggregatorList = sAggregatorList.filter((agg) => agg !== 'value');
             return SEPARATE_DIFF ? sAggregatorList : sAggregatorList.concat(DIFF_LIST);
         }
         if (sChartDataType === 'NAME_VALUE') {
