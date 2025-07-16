@@ -492,7 +492,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     /** return table list + virtual table list */
     const getTableList = useMemo((): string[] => {
         const sUseCustom = pBlockInfo.useCustom;
-        const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
+        let sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
+        if (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT && pBlockOrder === 0) sChartDataType = 'NAME_VALUE';
         let sAggList: string[] = [];
         if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
         if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;

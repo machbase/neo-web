@@ -54,7 +54,7 @@ const DashboardCompatibility = (aData: any) => {
             const sChartType: string = chartTypeConverter(aPanel.type);
             const sResDataType: string = SqlResDataType(sChartType);
 
-            const sValidBlockList = sBlockList.map((aBlock: any) => {
+            const sValidBlockList = sBlockList.map((aBlock: any, idx: number) => {
                 // Set block visibility
                 if (!CheckObjectKey(aBlock, 'isVisible')) aBlock.isVisible = true;
                 // Skip validate variableBlock
@@ -69,7 +69,7 @@ const DashboardCompatibility = (aData: any) => {
                     const sAggregatorList = aBlock.type === 'tag' ? tagAggregatorList : logAggregatorList;
                     sAggList = SEPARATE_DIFF ? sAggregatorList : sAggregatorList.concat(DIFF_LIST);
                 }
-                if (sResDataType === 'NAME_VALUE') {
+                if (sResDataType === 'NAME_VALUE' || (aPanel.type === 'Text' && idx === 0)) {
                     if (aBlock.table.includes('V$')) {
                         DEFAULT_AGGREGATOR = 'sum';
                         sAggList = nameValueVirtualAggList;
