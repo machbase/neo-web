@@ -108,7 +108,7 @@ const ReplaceVariables = (
                 query: query.query.replaceAll(variable.regEx, variable.value),
                 sql: query.sql.replaceAll(variable.regEx, variable.value),
             });
-            tmpAsList.push({ ...tmpAliasList[idx], name: tmpAliasList[idx].name.replaceAll(variable.regEx, variable.value) });
+            tmpAsList.push({ ...tmpAliasList[idx], name: tmpAliasList[idx]?.name?.replaceAll(variable.regEx, variable.value) });
         });
         tmpQueryList = tmpList;
         tmpAliasList = tmpAsList;

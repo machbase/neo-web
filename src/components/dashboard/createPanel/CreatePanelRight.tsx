@@ -36,6 +36,8 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
         const sIsPlgChart = CheckPlgChart(sConvertedChartType as ChartType);
         const sChangeChartOption = getDefaultSeriesOption(sConvertedChartType as ChartType);
         const sIsPie = sConvertedChartType === E_CHART_TYPE.PIE;
+        const sIsAdvScatter = sConvertedChartType === E_CHART_TYPE.ADV_SCATTER;
+
         pSetPanelOption((aPrev: any) => {
             const sResVal = {
                 ...aPrev,
@@ -48,7 +50,10 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     ...DefaultCommonOption,
                     ...sPieLegendValue,
                 };
-                sResVal.commonOptions = sIsPie ? sPieLegendOption : DefaultCommonOption;
+                if (sIsPie) sResVal.commonOptions = sPieLegendOption;
+                else sResVal.commonOptions = DefaultCommonOption;
+
+                if (sIsAdvScatter) sResVal.commonOptions.tooltipTrigger = 'item';
             }
             if (sConvertedChartType === E_CHART_TYPE.TQL) {
                 sResVal.tqlInfo = { path: '', params: [{ name: '', value: '', format: '' }], chart_id: '' };
