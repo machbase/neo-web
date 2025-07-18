@@ -3,7 +3,8 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { Input } from '@/components/inputs/Input';
 import { InputSelector } from '@/components/inputs/InputSelector';
 import { Select } from '@/components/inputs/Select';
-import { DIFF_LIST, SEPARATE_DIFF } from '@/utils/dashboardUtil';
+import { SEPARATE_DIFF } from '@/utils/dashboardUtil';
+import { DIFF_LIST } from '@/utils/aggregatorConstants';
 
 const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pIdx, pBlockInfo, pPanelOption, pAddValue, pRemoveValue }: any) => {
     return (

@@ -8,6 +8,7 @@ import { CompactPicker } from 'react-color';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { IconButton } from '@/components/buttons/IconButton';
 import { Tooltip } from 'react-tooltip';
+import { avgMode } from '../../constants';
 
 const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const [isModal, setIsModal] = useState(false);
@@ -18,13 +19,7 @@ const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const closeModal = () => {
         setIsModal(false);
     };
-    const avgMode = [
-        { key: 'Min', value: 'min' },
-        { key: 'Max', value: 'max' },
-        { key: 'Sum', value: 'sum' },
-        { key: 'Count', value: 'cnt' },
-        { key: 'Average', value: 'avg' },
-    ];
+
     const removeTag = (aKey: string) => {
         pSetCopyPanelInfo({ ...pPanelInfo, tag_set: pPanelInfo.tag_set.filter((aItem: any) => aItem.key !== aKey) });
     };

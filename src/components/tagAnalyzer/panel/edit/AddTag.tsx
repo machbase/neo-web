@@ -15,6 +15,7 @@ import useDebounce from '@/hooks/useDebounce';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { Tooltip } from 'react-tooltip';
 import { concatTagSet } from '@/utils/helpers/tags';
+import { avgMode } from '../../constants';
 
 const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
     const [sTables] = useRecoilState(gTables);
@@ -29,13 +30,6 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
     const [sSkipTagTotal, setSkipTagTotal] = useState<boolean>(false);
     const [sColumns, setColumns] = useState<any>();
     const pageRef = useRef(null);
-    const avgMode = [
-        { key: 'Min', value: 'min' },
-        { key: 'Max', value: 'max' },
-        { key: 'Sum', value: 'sum' },
-        { key: 'Count', value: 'cnt' },
-        { key: 'Average', value: 'avg' },
-    ];
 
     const getTableInfo = async () => {
         const sFetchTableInfo: any = await fetchTableName(sSelectedTable);

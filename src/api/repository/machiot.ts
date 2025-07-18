@@ -156,6 +156,14 @@ const fetchCalculationData = async (params: any) => {
         sMainQuery = `SELECT to_timestamp(${sOnedayOversize}) / 1000000.0 AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${Count * 1}`;
     }
 
+    if (CalculationMode === 'first' || CalculationMode === 'last') {
+        const sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
+        sSubQuery = `select ${sCol} as mTime,  ${CalculationMode}(time, ${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} Group by mtime order by mtime `;
+        sMainQuery = `select to_timestamp(${sOnedayOversize}) / 1000000.0 as time, ${CalculationMode}(mTime, mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${
+            Count * 1
+        }`;
+    }
+
     // UTC+${-1 * (getTimeZoneValue() / 60)}
     // const sTimezone = String(-1 * (getTimeZoneValue() / 60));
 

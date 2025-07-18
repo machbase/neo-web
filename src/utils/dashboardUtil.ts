@@ -22,6 +22,7 @@ import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartAxisToolt
 import { ChartType } from '@/type/eChart';
 import moment from 'moment';
 import { SqlResDataType } from './DashboardQueryParser';
+import { TAG_AGGREGATOR_LIST, LOG_AGGREGATOR_LIST, GEOMAP_AGGREGATOR_LIST, NAME_VALUE_AGGREGATOR_LIST, NAME_VALUE_VIRTUAL_AGG_LIST } from './aggregatorConstants';
 
 export enum E_VISUAL_LOAD_ID {
     CHART = 'chartID',
@@ -309,29 +310,14 @@ export const tagTableValue = () => {
 };
 
 // Time value agg list
-export const tagAggregatorList = ['value', 'count', 'sum', 'min', 'max', 'avg', 'sumsq'];
-export const logAggregatorList = ['value', 'count(*)', 'count', 'sum', 'min', 'max', 'avg', 'sumsq'];
-export const geomapAggregatorList = ['value', 'first value', 'last value'];
-export const DIFF_LIST = ['diff', 'diff (abs)', 'diff (no-negative)'];
+export const tagAggregatorList = TAG_AGGREGATOR_LIST;
+export const logAggregatorList = LOG_AGGREGATOR_LIST;
+export const geomapAggregatorList = GEOMAP_AGGREGATOR_LIST;
 export const SEPARATE_DIFF: boolean = false;
 // Name value agg list
-export const nameValueAggregatorList = [
-    'first value',
-    'last value',
-    'count(*)',
-    'count',
-    'sum',
-    'min',
-    'max',
-    'avg',
-    'sumsq',
-    'stddev',
-    'stddev (pop)',
-    'variance',
-    'variance (pop)',
-];
+export const nameValueAggregatorList = NAME_VALUE_AGGREGATOR_LIST;
 // Name value agg + Virtual table
-export const nameValueVirtualAggList = ['count', 'sum', 'min', 'max', 'avg'];
+export const nameValueVirtualAggList = NAME_VALUE_VIRTUAL_AGG_LIST;
 
 export const refreshTimeList = ['Off', '3 seconds', '5 seconds', '10 seconds', '30 seconds', '1 minute', '5 minutes', '10 minutes', '1 hour'];
 
@@ -392,6 +378,7 @@ export const createOption = (aOptionInfo: any, aTagList: any) => {
 
     // set xAxis, yAxis option
     if (aOptionInfo.type === 'gauge' || aOptionInfo.type === 'pie' || (aOptionInfo.type === 'bar' && aOptionInfo.chartOptions.isPolar)) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { xAxis, yAxis, ...restOption } = sOption;
         sOption = restOption;
     } else {
