@@ -90,8 +90,8 @@ const fetchCalculationData = async (params: any) => {
     const sNanoSec = 1000000;
     let sStartTime = Start,
         sEndTime = End;
-    const sCheckStartTime = Start.toString().includes('.');
-    const sCheckEndTime = End.toString().includes('.');
+    const sCheckStartTime = Start?.toString()?.includes('.');
+    const sCheckEndTime = End?.toString()?.includes('.');
     const sTimeRange = (End - Start) / 2;
 
     if (sCheckStartTime) sStartTime = Start * sNanoSec;
@@ -481,7 +481,7 @@ const fetchOnRollupTable = async (table: string) => {
 const getRollupTableList = async () => {
     const sData = await request({
         method: 'GET',
-        url: `/api/query?q=select u.name as user_name, root_table, interval_time, column_name from v$rollup as v, m$sys_users as u where v.user_id = u.user_id group by root_table, interval_time, user_name, column_name order by user_name, root_table asc, interval_time desc`,
+        url: `/api/query?q=select u.name as user_name, root_table, interval_time, column_name, ext_type from v$rollup as v, m$sys_users as u where v.user_id = u.user_id group by root_table, interval_time, user_name, column_name, ext_type order by user_name, root_table asc, interval_time desc`,
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -492,7 +492,7 @@ const getRollupTableList = async () => {
     }
     const sConvertArray: any = {};
     if (sData?.data && sData.data.rows && sData.data.rows.length > 0) {
-        for (const [user, table, value, column] of sData.data.rows) {
+        for (const [user, table, value, column, ext_type] of sData.data.rows) {
             if (!sConvertArray[user]) {
                 sConvertArray[user] = {};
             }
@@ -502,6 +502,12 @@ const getRollupTableList = async () => {
             if (!sConvertArray[user][table][column]) {
                 sConvertArray[user][table][column] = [];
             }
+            if (!sConvertArray[user][table]['EXT_TYPE']) {
+                sConvertArray[user][table]['EXT_TYPE'] = [];
+            }
+            // exist ext_type = 1
+            // noExist ext_type = 0
+            sConvertArray[user][table]['EXT_TYPE'].push(ext_type);
             sConvertArray[user][table][column].push(value);
         }
         return sConvertArray;

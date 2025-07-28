@@ -63,6 +63,20 @@ export const isRollup = (aRollups: any, aTableName: string, aInterval: number, a
         return false;
     }
 };
+export const isRollupExt = (aRollups: any, aTableName: string, aInterval: any) => {
+    const sSplitTableName = aTableName.split('.');
+    let sUserName: string = ADMIN_ID.toUpperCase();
+    const sTableName: string = sSplitTableName.at(-1) as string;
+    if (sSplitTableName.length > 1) sUserName = sSplitTableName.at(-2) as string;
+    if (!isEmpty(aRollups) && aRollups[sUserName] && aRollups[sUserName][sTableName] && aRollups[sUserName][sTableName]['EXT_TYPE'] && aInterval > 0) {
+        const aValue = aRollups[sUserName][sTableName]['VALUE'];
+        let aResult = 0;
+        aValue.map((aRollupTime: any, idx: number) => {
+            if (aInterval % aRollupTime === 0) aResult = aRollups[sUserName][sTableName]['EXT_TYPE'][idx];
+        });
+        return aResult;
+    } else return 0;
+};
 
 export const decodeJwt = (aToken: string) => {
     const sBase64Url = aToken.split('.')[1];

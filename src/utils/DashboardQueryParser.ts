@@ -1,5 +1,5 @@
 import moment from 'moment';
-import { isRollup } from '.';
+import { isRollup, isRollupExt } from '.';
 import { ADMIN_ID } from './constants';
 import { VARIABLE_REGEX } from './CheckDataCompatibility';
 import { DEFAULT_VARIABLE_LIST, VARIABLE_TYPE } from '@/components/dashboard/variable';
@@ -175,7 +175,8 @@ export const DashboardQueryParser = (
         aChartType as ChartType,
         aXaxis,
         aIsSave,
-        aUniqueId
+        aUniqueId,
+        aRollupList
     );
     const [sReplaceQueryList, sReplaceAliasList] = ReplaceVariables(
         sParsedQueryList,
@@ -303,22 +304,22 @@ const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: 'tag' | 'lo
     });
 };
 
-const GetTimeColumn = (aUseAgg: boolean, aTable: any, aInterval: { IntervalType: string; IntervalValue: number }, aAggregator: string) => {
-    // If the aggregator is first or last and rollup is used, ext_type check is required. Currently, rollup is not used for first or last.
-    // | ext_type | agg(first, last) | use rollup  | use agg (first, last)|
-    // |----------|-----------------|-------------|---------------------|
-    // |    O     |       O         |     O       |         O           |
-    // |    O     |       X         |     O       |         X           |
-    // |    X     |       O         |     X       |         O           |
-    // |    X     |       X         |     X       |         X           |
-
-    const sChangeAggText = changeAggText(aAggregator);
-    const sIsFirstOrLast = isFirstOrLastAggregator(sChangeAggText);
-
+const GetTimeColumn = (aUseAgg: boolean, aTable: any, aInterval: { IntervalType: string; IntervalValue: number }, aAggregator: string, aRollupList: any) => {
     if (!aUseAgg) return aTable.time;
-    if (aTable.useRollup && !sIsFirstOrLast) {
-        if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `${aTable.time} ROLLUP 1 day`;
-        else return `${aTable.time} ROLLUP ${aInterval.IntervalValue} ${aInterval.IntervalType}`;
+    if (aTable.useRollup) {
+        if (isFirstOrLastAggregator(changeAggText(aAggregator))) {
+            const sIsExtRollup = isRollupExt(aRollupList, aTable.tableName, getInterval(aInterval.IntervalType, aInterval.IntervalValue));
+            if (sIsExtRollup) {
+                if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `${aTable.time} ROLLUP 1 day`;
+                else return `${aTable.time} ROLLUP ${aInterval.IntervalValue} ${aInterval.IntervalType}`;
+            } else {
+                if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `DATE_TRUNC('day', ${aTable.time}, 1)`;
+                else return `DATE_TRUNC('${aInterval.IntervalType}', ${aTable.time}, ${aInterval.IntervalValue})`;
+            }
+        } else {
+            if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `${aTable.time} ROLLUP 1 day`;
+            else return `${aTable.time} ROLLUP ${aInterval.IntervalValue} ${aInterval.IntervalType}`;
+        }
     } else {
         if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `DATE_TRUNC('day', ${aTable.time}, 1)`;
         else return `DATE_TRUNC('${aInterval.IntervalType}', ${aTable.time}, ${aInterval.IntervalValue})`;
@@ -491,7 +492,8 @@ const QueryParser = (
     aChartType: ChartType,
     aXaxis: any,
     aIsSave: boolean,
-    aUniqueId?: string
+    aUniqueId?: string,
+    aRollupList?: any
 ) => {
     let sInjectionSrc = 'FAKE(linspace(0, 1, 1))';
     let sAliasList: any[] = [];
@@ -502,7 +504,7 @@ const QueryParser = (
         }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
-        const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval, aQuery.valueList[0]?.aggregator);
+        const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval, aQuery.valueList[0]?.aggregator, aRollupList);
         const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo);
         const sTimeWhere = GetTimeWhere(aQuery.time, aTime);
         const sFilterWhere = GetFilterWhere(aQuery.filterList, aQuery.useCustom, aQuery);
