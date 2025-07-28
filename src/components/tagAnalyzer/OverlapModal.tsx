@@ -83,6 +83,7 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
                     ...sIntervalTime,
                     colName: sTagSetElement.colName,
                     Count: sCount,
+                    RollupList: sRollupTableList,
                 });
             }
 

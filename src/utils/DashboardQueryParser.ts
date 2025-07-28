@@ -243,7 +243,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
     });
     return sParsedBlock;
 };
-const getInterval = (aType: string, aValue: number) => {
+export const getInterval = (aType: string, aValue: number) => {
     switch (aType) {
         case 'sec':
             return aValue * 1000;

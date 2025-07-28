@@ -1,7 +1,8 @@
 import request from '@/api/core';
 import { Error } from '@/components/toast/Toast';
-import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin } from '@/utils';
+import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
+import { getInterval } from '@/utils/DashboardQueryParser';
 import { removeV$Table } from '@/utils/dbUtils';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import moment from 'moment';
@@ -81,7 +82,7 @@ const fetchTableName = async (aTable: string) => {
 };
 
 const fetchCalculationData = async (params: any) => {
-    const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue, Rollup, colName } = params;
+    const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue, Rollup, colName, RollupList } = params;
     const sCurrentUserName = getUserName();
     const sTableName = isCurUserEqualAdmin() ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
     const sName = colName.name;
@@ -157,7 +158,13 @@ const fetchCalculationData = async (params: any) => {
     }
 
     if (CalculationMode === 'first' || CalculationMode === 'last') {
-        const sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
+        const sIsExtRollup = isRollupExt(RollupList, sTableName, getInterval(IntervalType, IntervalValue));
+        let sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
+
+        if (Rollup && sIsExtRollup) {
+            sCol = `${sTime} rollup ${sTimeCalc}`;
+        }
+
         sSubQuery = `select ${sCol} as mTime,  ${CalculationMode}(time, ${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} Group by mtime order by mtime `;
         sMainQuery = `select to_timestamp(${sOnedayOversize}) / 1000000.0 as time, ${CalculationMode}(mTime, mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${
             Count * 1

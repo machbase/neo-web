@@ -292,6 +292,7 @@ any) => {
                     ...sIntervalTime,
                     colName: sTagSetElement.colName,
                     Count: sCount,
+                    RollupList: sRollupTableList,
                 });
             }
 
@@ -377,6 +378,7 @@ any) => {
                     ...sIntervalTime,
                     colName: sTagSetElement.colName,
                     Count: sCount,
+                    RollupList: sRollupTableList,
                 });
             }
 
