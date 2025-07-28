@@ -26,8 +26,8 @@ import { IconButton } from '../buttons/IconButton';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { Loader } from '../loader';
-import { CheckObjectKey, E_VISUAL_LOAD_ID } from '@/utils/dashboardUtil';
 import { ShowVisualization } from './ShowVisualization';
+import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 interface TqlProps {
     pIsActiveTab: boolean;
     pCode: string;
@@ -95,68 +95,28 @@ const Tql = (props: TqlProps) => {
         HandleResutTypeAndTxt('Processing...', false);
         const sResult: any = await getTqlChart(aText);
 
-        if (sResult.status === 200 && sResult.headers && (sResult.headers['x-chart-type'] === 'echarts' || sResult.headers['x-chart-type'] === 'geomap')) {
-            if (sResult.data && (CheckObjectKey(sResult.data, E_VISUAL_LOAD_ID.CHART) || CheckObjectKey(sResult.data, E_VISUAL_LOAD_ID.MAP))) {
-                setResultType('visual');
-                setVisualData(sResult.data);
-            } else {
-                setVisualData('');
-                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
-            }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('markdown')) {
-            if (sResult.data && typeof sResult.data === 'string') {
-                setResultType('mrk');
-                setMarkdown(sResult.data);
-            } else {
-                setMarkdown('');
-                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
-            }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('csv')) {
-            if (typeof sResult.data === 'object') {
-                setHeader(false);
-                setCsv([]);
-                setCsvHeader([]);
-                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
-            } else {
-                setResultType('csv');
-                const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(sResult.data);
-                setHeader(true);
-                setCsv(sParsedCsvBody);
-                setCsvHeader(sParsedCsvHeader);
-            }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('xhtml+xml')) {
-            if (sResult.data && typeof sResult.data === 'string') {
-                setResultType('xhtml');
-                setMarkdown(sResult.data);
-            } else {
-                setMarkdown('');
-                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
-            }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('text/plain')) {
-            if (sResult.data && typeof sResult.data === 'string') {
-                setResultType('text');
-                setTextField(sResult.data);
-            } else {
-                HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
-            }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('ndjson')) {
-            if (sResult.data && typeof sResult.data === 'string') {
-                setResultType('ndjson');
-                setTextField(sResult.data);
-            } else {
-                HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
-            }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('json')) {
-            if (sResult.data && typeof sResult.data === 'object' && sResult.data.success) {
-                setResultType('text');
-                setTextField(JSON.stringify(sResult.data));
-            } else {
-                HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
-            }
-        } else {
-            if (sResult.status === 200) HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
-            else HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
-        }
+        const { parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.TQL, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
+
+        setResultType(parsedType);
+        if (parsedType === TqlResType.VISUAL) {
+            setVisualData('');
+            setVisualData(parsedData);
+        } else if (parsedType === TqlResType.MRK) {
+            setMarkdown('');
+            setMarkdown(parsedData);
+        } else if (parsedType === TqlResType.XHTML) {
+            setMarkdown('');
+            setMarkdown(parsedData);
+        } else if (parsedType === TqlResType.CSV) {
+            setCsv([]);
+            setCsvHeader([]);
+            const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(parsedData);
+            setCsv(sParsedCsvBody);
+            setCsvHeader(sParsedCsvHeader);
+        } else if (parsedType === TqlResType.NDJSON) {
+            setTextField(parsedData);
+        } else HandleResutTypeAndTxt(parsedData, false);
+
         setLoadState(false);
     };
 
