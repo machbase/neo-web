@@ -129,9 +129,11 @@ const isJsonString = (aString: string) => {
         return false;
     }
 };
+const sTqlFilePattern = /^\/api\/tql\/.*\.tql/;
 // Response interceptor
 request.interceptors.response.use(
     (response: AxiosResponse) => {
+        if (sTqlFilePattern.test(response.config.url as string) && response.config.method === 'get') return response;
         if (response.config.url === '/api/tql') {
             if (isJsonString(response.data)) {
                 response.data = JSON.parse(response.data);

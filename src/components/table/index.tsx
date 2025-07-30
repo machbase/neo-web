@@ -46,7 +46,7 @@ TableProps) => {
     return (
         <table className="table">
             <thead className="table-header header-fix">
-                {pTableData && pTableData.columns ? (
+                {pTableData && pTableData?.columns ? (
                     <tr>
                         <th>
                             {pHelpText !== undefined && pHelpText ? (

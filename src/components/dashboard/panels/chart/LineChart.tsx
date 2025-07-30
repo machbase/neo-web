@@ -8,7 +8,7 @@ import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
 import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
-import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
+import { ChartThemeTextColor, GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { TqlChartParser } from '@/utils/DashboardTqlChartParser';
@@ -16,6 +16,11 @@ import moment from 'moment';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { Error } from '@/components/toast/Toast';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
+import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
+import { Markdown } from '@/components/worksheet/Markdown';
+import { isValidJSON } from '@/utils';
+import TABLE from '@/components/table';
+import { TqlCsvParser } from '@/utils/tqlCsvParser';
 
 const LineChart = ({
     pIsActiveTab,
@@ -40,6 +45,8 @@ const LineChart = ({
     const [sIsMounted, setIsMounted] = useState<boolean>(false);
     const [sIsChartData, setIsChartData] = useState<boolean>(false);
     const sRollupTableList = useRecoilValue(gRollupTableList);
+    const [sTqlResultType, setTqlResultType] = useState<'html' | TqlResType>(TqlResType.VISUAL);
+    const [sTqlData, setTqlData] = useState<any>(undefined);
     let sRefClientWidth = 0;
     let sRefClientHeight = 0;
 
@@ -90,16 +97,26 @@ const LineChart = ({
             };
         if (pPanelInfo.type === 'Tql chart') {
             !pLoopMode && setChartData(undefined);
+            setIsLoading(false);
+
             const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange(), sIntervalInfo, pBoardInfo.dashboard.variables));
-            if (!sResult?.data?.reason) {
-                setChartData(sResult);
-                setIsError(false);
-                setIsChartData(true);
-            } else {
-                setIsMessage(sResult?.data?.reason ?? '');
-                setIsError(true);
-                setIsChartData(false);
+            const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.DSH, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
+
+            setTqlResultType(parsedType);
+            setIsError(!parsedStatus);
+
+            if (!parsedStatus) {
+                setTqlData(undefined);
+                setIsMessage(parsedData);
+                return;
             }
+            if (parsedType === TqlResType.VISUAL) {
+                setChartData(parsedData);
+                setIsChartData(parsedStatus);
+            } else if (parsedType === TqlResType.CSV) {
+                const [sParsedCsvBody] = TqlCsvParser(parsedData);
+                setTqlData(sParsedCsvBody);
+            } else setTqlData(parsedData);
         } else {
             if (!sStartTime || !sEndTime) return;
             const [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
@@ -284,8 +301,8 @@ const LineChart = ({
         <div ref={ChartRef} className={`chart-form ${sIsError ? 'chart-message-error' : 'chart-message-success'} ${!pIsHeader ? 'chart-non-header' : ''}`}>
             {sIsLoading && !sIsChartData ? <div className="loading">Loading...</div> : null}
             {!sIsLoading && sIsError && sIsMessage ? <div>{sIsMessage}</div> : null}
-            {!sIsLoading && !sIsError && !sIsChartData ? <div>{sIsMessage}</div> : null}
-            {!sIsError && sChartData && sIsChartData ? (
+            {!sIsLoading && !sIsError && !sIsChartData && !sTqlData ? <div>{sIsMessage}</div> : null}
+            {!sIsError && sChartData && sIsChartData && sTqlResultType === TqlResType.VISUAL ? (
                 <ShowVisualization
                     pLoopMode={pLoopMode}
                     pData={sChartData}
@@ -296,6 +313,23 @@ const LineChart = ({
                     pChartOpt={pPanelInfo.chartOptions}
                     pTitle={{ title: pPanelInfo?.title, color: pPanelInfo?.titleColor }}
                 />
+            ) : null}
+            {sTqlResultType !== TqlResType.VISUAL && sTqlData ? (
+                <div className="dashboard-tql-panel-sink-wrap" style={{ color: ChartThemeTextColor[pPanelInfo.theme as keyof typeof ChartThemeTextColor] }}>
+                    {sTqlResultType === TqlResType.CSV ? <TABLE pTableData={{ columns: undefined, rows: sTqlData, types: [] }} pMaxShowLen={false} clickEvent={() => {}} /> : null}
+                    {sTqlResultType === TqlResType.MRK ? <Markdown pIdx={1} pContents={sTqlData} pType="mrk" /> : null}
+                    {sTqlResultType === TqlResType.XHTML ? <Markdown pIdx={1} pContents={sTqlData} /> : null}
+                    {sTqlResultType === TqlResType.NDJSON ? <pre>{sTqlData}</pre> : null}
+                    {sTqlResultType === TqlResType.TEXT && sTqlData ? (
+                        isValidJSON(sTqlData) ? (
+                            <pre>{JSON.stringify(JSON.parse(sTqlData), null, 4)}</pre>
+                        ) : (
+                            <div className="dashboard-tql-panel-sink-pre">
+                                <pre>{sTqlData}</pre>
+                            </div>
+                        )
+                    ) : null}
+                </div>
             ) : null}
         </div>
     );

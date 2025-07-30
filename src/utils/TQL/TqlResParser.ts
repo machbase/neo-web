@@ -43,7 +43,7 @@ export const DetermineTqlResultType = (
                 sType = TqlResType.CSV;
                 sData = typeof aResult?.data === 'string' ? aResult?.data : JSON.stringify(aResult?.data);
             }
-        } else if (aResult?.headers['content-type']?.includes('xhtml+xml')) {
+        } else if (aResult?.headers['content-type']?.includes('xhtml+xml') || aResult?.headers['content-type']?.includes('html')) {
             if (aResult?.data && typeof aResult?.data === 'string') {
                 sType = TqlResType.XHTML;
                 sData = aResult.data;
