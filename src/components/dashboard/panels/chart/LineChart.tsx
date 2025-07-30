@@ -118,6 +118,7 @@ const LineChart = ({
                 setTqlData(sParsedCsvBody);
             } else setTqlData(parsedData);
         } else {
+            setTqlResultType(TqlResType.VISUAL);
             if (!sStartTime || !sEndTime) return;
             const [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
                 chartTypeConverter(pPanelInfo.type),
