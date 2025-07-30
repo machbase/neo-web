@@ -18,7 +18,8 @@ import { Loader } from '../loader';
 import { GrClearOption } from 'react-icons/gr';
 import { postSplitter } from '@/api/repository/api';
 import { ShowVisualization } from '../tql/ShowVisualization';
-import { CheckObjectKey, E_VISUAL_LOAD_ID } from '@/utils/dashboardUtil';
+// import { CheckObjectKey, E_VISUAL_LOAD_ID } from '@/utils/dashboardUtil';
+import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell';
 type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell';
@@ -69,7 +70,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [initialSize, setInitialSize] = useState<number>(pData.height ?? sInitHeight);
     const [sSelectedLang, setSelectedLang] = useState<Lang | undefined>(undefined);
     const [sShowLang, setShowLang] = useState<boolean>(false);
-    const [sTqlResultType, setTqlResultType] = useState<'html' | 'csv' | 'mrk' | 'text' | 'xhtml' | 'visual' | 'ndjson'>(pData.tqlType ?? 'text');
+    const [sTqlResultType, setTqlResultType] = useState<'html' | TqlResType>(pData.tqlType ?? 'text');
     const [sTqlTextResult, setTqlTextResult] = useState<string>('');
     const [sShellResult, setShellTextResult] = useState<string[] | undefined>(undefined);
     // const [sTqlChartData, setTqlChartData] = useState<string>('');
@@ -316,7 +317,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         ]);
     };
     const HandleResutTypeAndTxt = (aText: string, aUseErrorConsole: boolean) => {
-        setTqlResultType('text');
+        setTqlResultType(TqlResType.TEXT);
         setTqlTextResult(aText);
         aUseErrorConsole && ErrorConsole(aText);
     };
@@ -325,88 +326,34 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setIsDeleteModal(true);
     };
     const getTqlData = async (aText: string) => {
-        // TODO C:\Users\MACH-NOT-23\Documents\GitHub\neo-web\src\components\tql\index.tsx - getTqlData
         const sResult: any = await getTqlChart(aText);
+        const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.WRK, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
 
-        if (sResult.status === 200) {
+        if (parsedStatus) {
             if (pAllRunCodeStatus) pAllRunCodeCallback(true);
         } else {
             if (pAllRunCodeStatus) pAllRunCodeCallback(false);
         }
 
-        if (sResult.status === 200 && sResult.headers && (sResult.headers['x-chart-type'] === 'echarts' || sResult.headers['x-chart-type'] === 'geomap')) {
-            if (sResult.data && (CheckObjectKey(sResult.data, E_VISUAL_LOAD_ID.CHART) || CheckObjectKey(sResult.data, E_VISUAL_LOAD_ID.MAP))) {
-                setTqlResultType('visual');
-                setTqlVisualData(sResult.data);
-            } else {
-                setTqlVisualData('');
-                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
-            }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('markdown')) {
-            if (sResult.data && typeof sResult.data === 'string') {
-                setTqlResultType('mrk');
-                setTqlMarkdown(sResult.data);
-            } else {
-                setTqlMarkdown('');
-                HandleResutTypeAndTxt(sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data), false);
-            }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('xhtml+xml')) {
-            if (sResult.data && typeof sResult.data === 'string') {
-                setTqlResultType('xhtml');
-                setTqlMarkdown(sResult.data);
-            } else {
-                setTqlMarkdown('');
-                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
-            }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('csv')) {
-            if (typeof sResult.data === 'object') {
-                setTqlCsv([]);
-                setTqlCsvHeader([]);
-                HandleResutTypeAndTxt(sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data), false);
-            } else {
-                setTqlResultType('csv');
-                const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(typeof sResult.data === 'string' ? sResult.data : JSON.stringify(sResult.data));
-                setTqlCsv(sParsedCsvBody);
-                setTqlCsvHeader(sParsedCsvHeader);
-            }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('text/plain')) {
-            if (sResult.data && typeof sResult.data === 'string') {
-                setTqlResultType('text');
-                setTqlTextResult(sResult.data);
-            } else {
-                HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
-            }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('ndjson')) {
-            if (sResult.data && typeof sResult.data === 'string') {
-                setTqlResultType('ndjson');
-                setTqlTextResult(sResult.data);
-            } else {
-                HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
-            }
-        } else if (sResult.status === 200 && sResult.headers && sResult.headers['content-type'].includes('json')) {
-            if (sResult.data && typeof sResult.data === 'object' && sResult.data.success) {
-                if (sResult.data.data.rows && sResult.data.data.rows.length > 10) {
-                    const sLength = sResult.data.data.rows.length;
-                    sResult.data.data.rows = sResult.data.data.rows.filter((_: number[], aIdx: number) => aIdx < 6 || sLength - 6 < aIdx);
-                    sResult.data.data.rows.splice(5, 0, '....');
-                } else if (sResult.data.data.cols && sResult.data.data.cols.length > 0 && sResult.data.data.cols[0].length > 10) {
-                    const sTempList: any = [];
-                    sResult.data.data.cols.forEach((col: any) => {
-                        const sColLength = col.length;
-                        const sColResult = col.filter((_: number[], aIdx: number) => aIdx < 6 || sColLength - 6 < aIdx);
-                        sColResult.splice(5, 0, '....');
-                        sTempList.push(sColResult);
-                    });
-                    sResult.data.data.cols = sTempList;
-                }
-                HandleResutTypeAndTxt(JSON.stringify(sResult.data), false);
-            } else {
-                HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
-            }
-        } else {
-            if (sResult.status === 200) HandleResutTypeAndTxt(typeof sResult.data === 'object' ? JSON.stringify(sResult.data) : sResult.data, false);
-            else HandleResutTypeAndTxt(typeof sResult.data === 'object' ? (sResult.data.reason ? sResult.data.reason : JSON.stringify(sResult.data)) : sResult.data, false);
-        }
+        setTqlResultType(parsedType);
+        if (parsedType === TqlResType.VISUAL) {
+            setTqlVisualData('');
+            setTqlVisualData(parsedData);
+        } else if (parsedType === TqlResType.MRK) {
+            setTqlMarkdown('');
+            setTqlMarkdown(parsedData);
+        } else if (parsedType === TqlResType.XHTML) {
+            setTqlMarkdown('');
+            setTqlMarkdown(parsedData);
+        } else if (parsedType === TqlResType.CSV) {
+            setTqlCsv([]);
+            setTqlCsvHeader([]);
+            const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(parsedData);
+            setTqlCsv(sParsedCsvBody);
+            setTqlCsvHeader(sParsedCsvHeader);
+        } else if (parsedType === TqlResType.NDJSON) {
+            setTqlTextResult(parsedData);
+        } else HandleResutTypeAndTxt(parsedData, false);
 
         setProcessing(false);
     };
