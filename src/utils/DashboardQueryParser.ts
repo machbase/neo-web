@@ -1,5 +1,5 @@
 import moment from 'moment';
-import { isRollup } from '.';
+import { isRollup, isRollupExt } from '.';
 import { ADMIN_ID } from './constants';
 import { VARIABLE_REGEX } from './CheckDataCompatibility';
 import { DEFAULT_VARIABLE_LIST, VARIABLE_TYPE } from '@/components/dashboard/variable';
@@ -9,6 +9,7 @@ import { DSH_CACHE_TIME, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE } from './TqlGenera
 import { TransformBlockType } from '@/components/dashboard/createPanel/Transform/type';
 import { getChartSeriesName } from './dashboardUtil';
 import { CheckAllowedTransformChartType, E_ALLOW_CHART_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
+import { isFirstOrLastAggregator, isValueOrNoneAggregator, isCountAllAggregator, getAggregatorSqlFunction, getDiffSqlFunction } from './aggregatorConstants';
 
 interface BlockTimeType {
     interval: {
@@ -174,7 +175,8 @@ export const DashboardQueryParser = (
         aChartType as ChartType,
         aXaxis,
         aIsSave,
-        aUniqueId
+        aUniqueId,
+        aRollupList
     );
     const [sReplaceQueryList, sReplaceAliasList] = ReplaceVariables(
         sParsedQueryList,
@@ -241,7 +243,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
     });
     return sParsedBlock;
 };
-const getInterval = (aType: string, aValue: number) => {
+export const getInterval = (aType: string, aValue: number) => {
     switch (aType) {
         case 'sec':
             return aValue * 1000;
@@ -293,20 +295,31 @@ const GetFilter = (aTableInfo: any) => {
 const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: 'tag' | 'log', aTableInfo: any) => {
     return aValueList.map((aValue: any, aIdx: number) => {
         const sValue = `VALUE${aIdx > 0 ? aIdx + 1 : ''}`;
-        if (aValue.aggregator === 'none' || aValue.aggregator === 'value' || aDiff) return `${aValue.value} as ${sValue}`;
+        if (isValueOrNoneAggregator(aValue.aggregator) || aDiff) return `${aValue.value} as ${sValue}`;
         else {
-            if (aValue.aggregator.includes('last') || aValue.aggregator.includes('first'))
+            if (isFirstOrLastAggregator(aValue.aggregator))
                 return `${changeAggText(aValue.aggregator)}(${aTableType === 'tag' ? aTableInfo[1][0] : '_ARRIVAL_TIME'} ,${aValue.value}) as ${sValue}`;
             else return `${changeAggText(aValue.aggregator)}(${aValue.value}) as ${sValue}`;
         }
     });
 };
 
-const GetTimeColumn = (aUseAgg: boolean, aTable: any, aInterval: { IntervalType: string; IntervalValue: number }) => {
+const GetTimeColumn = (aUseAgg: boolean, aTable: any, aInterval: { IntervalType: string; IntervalValue: number }, aAggregator: string, aRollupList: any) => {
     if (!aUseAgg) return aTable.time;
     if (aTable.useRollup) {
-        if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `${aTable.time} ROLLUP 1 day`;
-        else return `${aTable.time} ROLLUP ${aInterval.IntervalValue} ${aInterval.IntervalType}`;
+        if (isFirstOrLastAggregator(changeAggText(aAggregator))) {
+            const sIsExtRollup = isRollupExt(aRollupList, aTable.tableName, getInterval(aInterval.IntervalType, aInterval.IntervalValue));
+            if (sIsExtRollup) {
+                if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `${aTable.time} ROLLUP 1 day`;
+                else return `${aTable.time} ROLLUP ${aInterval.IntervalValue} ${aInterval.IntervalType}`;
+            } else {
+                if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `DATE_TRUNC('day', ${aTable.time}, 1)`;
+                else return `DATE_TRUNC('${aInterval.IntervalType}', ${aTable.time}, ${aInterval.IntervalValue})`;
+            }
+        } else {
+            if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `${aTable.time} ROLLUP 1 day`;
+            else return `${aTable.time} ROLLUP ${aInterval.IntervalValue} ${aInterval.IntervalType}`;
+        }
     } else {
         if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `DATE_TRUNC('day', ${aTable.time}, 1)`;
         else return `DATE_TRUNC('${aInterval.IntervalType}', ${aTable.time}, ${aInterval.IntervalValue})`;
@@ -367,7 +380,7 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
 };
 const UseGroupByTime = (aValueList: any) => {
     const sUseGroupBy = aValueList.reduce((preV: boolean, aValue: any) => {
-        return preV || (aValue.aggregator !== 'value' && aValue.aggregator !== 'none') ? true : false;
+        return preV || !isValueOrNoneAggregator(aValue.aggregator) ? true : false;
     }, false);
     if (sUseGroupBy) return '';
     else return ', VALUE';
@@ -379,35 +392,15 @@ const GetAlias = (aValue: any) => {
 };
 const UseCountAll = (aValueList: any) => {
     const sUseCountAll = aValueList.reduce((preV: boolean, aValue: any) => {
-        return preV || aValue.aggregator === 'count(*)' ? true : false;
+        return preV || isCountAllAggregator(aValue.aggregator) ? true : false;
     }, false);
     return sUseCountAll;
 };
 const changeDiffText = (aDiff: string) => {
-    switch (aDiff) {
-        case 'diff':
-            return 'DIFF';
-        case 'diff (abs)':
-            return 'ABSDIFF';
-        case 'diff (no-negative)':
-            return 'NONEGDIFF';
-        default:
-            return 'DIFF';
-    }
+    return getDiffSqlFunction(aDiff);
 };
 const changeAggText = (agg: string) => {
-    switch (agg) {
-        case 'first value':
-            return 'first';
-        case 'last value':
-            return 'last';
-        case 'stddev (pop)':
-            return 'stddev_pop';
-        case 'variance (pop)':
-            return 'var_pop';
-        default:
-            return agg;
-    }
+    return getAggregatorSqlFunction(agg);
 };
 
 export const mathValueConverter = (aTargetValueIndex: string, aMath: string): string => {
@@ -499,7 +492,8 @@ const QueryParser = (
     aChartType: ChartType,
     aXaxis: any,
     aIsSave: boolean,
-    aUniqueId?: string
+    aUniqueId?: string,
+    aRollupList?: any
 ) => {
     let sInjectionSrc = 'FAKE(linspace(0, 1, 1))';
     let sAliasList: any[] = [];
@@ -510,7 +504,7 @@ const QueryParser = (
         }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
-        const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval);
+        const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval, aQuery.valueList[0]?.aggregator, aRollupList);
         const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo);
         const sTimeWhere = GetTimeWhere(aQuery.time, aTime);
         const sFilterWhere = GetFilterWhere(aQuery.filterList, aQuery.useCustom, aQuery);

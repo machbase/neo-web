@@ -1,7 +1,8 @@
 import request from '@/api/core';
 import { Error } from '@/components/toast/Toast';
-import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin } from '@/utils';
+import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
+import { getInterval } from '@/utils/DashboardQueryParser';
 import { removeV$Table } from '@/utils/dbUtils';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import moment from 'moment';
@@ -81,7 +82,7 @@ const fetchTableName = async (aTable: string) => {
 };
 
 const fetchCalculationData = async (params: any) => {
-    const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue, Rollup, colName } = params;
+    const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue, Rollup, colName, RollupList } = params;
     const sCurrentUserName = getUserName();
     const sTableName = isCurUserEqualAdmin() ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
     const sName = colName.name;
@@ -90,8 +91,8 @@ const fetchCalculationData = async (params: any) => {
     const sNanoSec = 1000000;
     let sStartTime = Start,
         sEndTime = End;
-    const sCheckStartTime = Start.toString().includes('.');
-    const sCheckEndTime = End.toString().includes('.');
+    const sCheckStartTime = Start?.toString()?.includes('.');
+    const sCheckEndTime = End?.toString()?.includes('.');
     const sTimeRange = (End - Start) / 2;
 
     if (sCheckStartTime) sStartTime = Start * sNanoSec;
@@ -154,6 +155,20 @@ const fetchCalculationData = async (params: any) => {
 
         sSubQuery = `select ${sCol} as mTime, count(${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
         sMainQuery = `SELECT to_timestamp(${sOnedayOversize}) / 1000000.0 AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${Count * 1}`;
+    }
+
+    if (CalculationMode === 'first' || CalculationMode === 'last') {
+        const sIsExtRollup = isRollupExt(RollupList, sTableName, getInterval(IntervalType, IntervalValue));
+        let sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
+
+        if (Rollup && sIsExtRollup) {
+            sCol = `${sTime} rollup ${sTimeCalc}`;
+        }
+
+        sSubQuery = `select ${sCol} as mTime,  ${CalculationMode}(time, ${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} Group by mtime order by mtime `;
+        sMainQuery = `select to_timestamp(${sOnedayOversize}) / 1000000.0 as time, ${CalculationMode}(mTime, mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${
+            Count * 1
+        }`;
     }
 
     // UTC+${-1 * (getTimeZoneValue() / 60)}
@@ -473,7 +488,7 @@ const fetchOnRollupTable = async (table: string) => {
 const getRollupTableList = async () => {
     const sData = await request({
         method: 'GET',
-        url: `/api/query?q=select u.name as user_name, root_table, interval_time, column_name from v$rollup as v, m$sys_users as u where v.user_id = u.user_id group by root_table, interval_time, user_name, column_name order by user_name, root_table asc, interval_time desc`,
+        url: `/api/query?q=select u.name as user_name, root_table, interval_time, column_name, ext_type from v$rollup as v, m$sys_users as u where v.user_id = u.user_id group by root_table, interval_time, user_name, column_name, ext_type order by user_name, root_table asc, interval_time desc`,
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -484,7 +499,7 @@ const getRollupTableList = async () => {
     }
     const sConvertArray: any = {};
     if (sData?.data && sData.data.rows && sData.data.rows.length > 0) {
-        for (const [user, table, value, column] of sData.data.rows) {
+        for (const [user, table, value, column, ext_type] of sData.data.rows) {
             if (!sConvertArray[user]) {
                 sConvertArray[user] = {};
             }
@@ -494,6 +509,12 @@ const getRollupTableList = async () => {
             if (!sConvertArray[user][table][column]) {
                 sConvertArray[user][table][column] = [];
             }
+            if (!sConvertArray[user][table]['EXT_TYPE']) {
+                sConvertArray[user][table]['EXT_TYPE'] = [];
+            }
+            // exist ext_type = 1
+            // noExist ext_type = 0
+            sConvertArray[user][table]['EXT_TYPE'].push(ext_type);
             sConvertArray[user][table][column].push(value);
         }
         return sConvertArray;

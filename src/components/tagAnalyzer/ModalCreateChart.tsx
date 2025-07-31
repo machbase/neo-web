@@ -19,6 +19,7 @@ import { MdKeyboardDoubleArrowLeft, MdOutlineKeyboardDoubleArrowRight } from 're
 import useOutsideClick from '@/hooks/useOutsideClick';
 import './ModalCreateChart.scss';
 import { concatTagSet } from '@/utils/helpers/tags';
+import { avgMode } from './constants';
 
 const ModalCreateChart = ({ pCloseModal }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
@@ -36,13 +37,6 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
     const [sSkipTagTotal, setSkipTagTotal] = useState<boolean>(false);
     const [sColumns, setColumns] = useState<any>();
     const pageRef = useRef(null);
-    const avgMode = [
-        { key: 'Min', value: 'min' },
-        { key: 'Max', value: 'max' },
-        { key: 'Sum', value: 'sum' },
-        { key: 'Count', value: 'cnt' },
-        { key: 'Average', value: 'avg' },
-    ];
 
     const setChartType = (aType: string) => {
         setSelectedChartType(aType);

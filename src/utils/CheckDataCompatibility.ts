@@ -1,16 +1,8 @@
 import { SqlResDataType } from './DashboardQueryParser';
-import {
-    CheckObjectKey,
-    DIFF_LIST,
-    SEPARATE_DIFF,
-    geomapAggregatorList,
-    logAggregatorList,
-    nameValueAggregatorList,
-    nameValueVirtualAggList,
-    tagAggregatorList,
-} from './dashboardUtil';
+import { CheckObjectKey, SEPARATE_DIFF, geomapAggregatorList, logAggregatorList, nameValueAggregatorList, nameValueVirtualAggList, tagAggregatorList } from './dashboardUtil';
 import { chartTypeConverter } from './eChartHelper';
 import { concatTagSet } from './helpers/tags';
+import { DIFF_LIST } from './aggregatorConstants';
 
 export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
 export const VARIABLE_RM_REGEX = /^{+|}+$/g;
@@ -67,7 +59,7 @@ const DashboardCompatibility = (aData: any) => {
                 let sAggList: string[] = [];
                 if (sResDataType === 'TIME_VALUE') {
                     const sAggregatorList = aBlock.type === 'tag' ? tagAggregatorList : logAggregatorList;
-                    sAggList = SEPARATE_DIFF ? sAggregatorList : sAggregatorList.concat(DIFF_LIST);
+                    sAggList = SEPARATE_DIFF ? sAggregatorList : [...sAggregatorList, ...DIFF_LIST];
                 }
                 if (sResDataType === 'NAME_VALUE' || (aPanel.type === 'Text' && idx === 0)) {
                     if (aBlock.table.includes('V$')) {

@@ -4,7 +4,6 @@ import { BsArrowsCollapse, BsArrowsExpand, Close, GoPencil, Refresh, TbMath, TbM
 import { IconButton } from '@/components/buttons/IconButton';
 import { generateUUID } from '@/utils';
 import {
-    DIFF_LIST,
     SEPARATE_DIFF,
     createDefaultTagTableOption,
     geomapAggregatorList,
@@ -15,6 +14,7 @@ import {
     nameValueVirtualAggList,
     tagAggregatorList,
 } from '@/utils/dashboardUtil';
+import { DIFF_LIST } from '@/utils/aggregatorConstants';
 import { useEffect, useMemo, useState } from 'react';
 import Filter from './Filter';
 import './Block.scss';
@@ -481,7 +481,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         if (sChartDataType === 'TIME_VALUE') {
             let sAggregatorList = pBlockInfo.type === 'tag' ? tagAggregatorList : logAggregatorList;
             if (sChartConvertType === E_CHART_TYPE.ADV_SCATTER) sAggregatorList = sAggregatorList.filter((agg) => agg !== 'value');
-            return SEPARATE_DIFF ? sAggregatorList : sAggregatorList.concat(DIFF_LIST);
+            return SEPARATE_DIFF ? sAggregatorList : [...sAggregatorList, ...DIFF_LIST];
         }
         if (sChartDataType === 'NAME_VALUE') {
             if (pBlockInfo.table.includes('V$')) return nameValueVirtualAggList;
@@ -495,7 +495,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         let sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
         if (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT && pBlockOrder === 0) sChartDataType = 'NAME_VALUE';
         let sAggList: string[] = [];
-        if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : tagAggregatorList.concat(DIFF_LIST);
+        if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : [...tagAggregatorList, ...DIFF_LIST];
         if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
         if (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER) sAggList = sAggList.filter((agg) => agg !== 'value');
 
