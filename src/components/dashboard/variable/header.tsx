@@ -93,6 +93,7 @@ export const VariableHeader = ({
                                                 })}
                                                 pSelectedItem={variable.use.value}
                                                 pCallback={(item: VARIABLE_ITEM_TYPE) => handleValueUse(variable, item)}
+                                                capitalize={false}
                                             />
                                         </ExtensionTab>
                                     </div>

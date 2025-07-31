@@ -391,12 +391,14 @@ const Selector = <T,>({
     pCallback,
     pWidth = '400px',
     disable = false,
+    capitalize = true,
 }: {
     pList: { name: string; data: T }[];
     pSelectedItem: any;
     pCallback: (eTarget: T) => void;
     pWidth?: string;
     disable?: boolean;
+    capitalize?: boolean;
 }) => {
     const [sIsOpen, setIsOpen] = useState<boolean>(false);
 
@@ -410,7 +412,7 @@ const Selector = <T,>({
     };
 
     return (
-        <div className="extension-tab-selector-wrapper" style={{ width: 'auto', maxWidth: pWidth }}>
+        <div className="extension-tab-selector-wrapper" style={{ width: 'auto', maxWidth: pWidth, textTransform: capitalize ? 'capitalize' : 'none' }}>
             <div className="extension-tab-selector-header" onClick={handleOpen}>
                 <span>{pSelectedItem}</span>
                 <ArrowDown />
