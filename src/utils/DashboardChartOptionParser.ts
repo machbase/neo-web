@@ -4,6 +4,7 @@ import { SqlResDataType } from './DashboardQueryParser';
 import { ChartItemTooltipFormatter, ChartAxisTooltipFormatter, ChartSeriesColorList } from './constants';
 import { chartTypeConverter } from './eChartHelper';
 import { CHART_AXIS_UNITS } from './Chart/AxisConstants';
+import { E_BLOCK_TYPE } from './Chart/TransformDataParser';
 // structure of chart common option
 const StructureOfCommonOption = `{
     "legend": {
@@ -333,7 +334,10 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
     // Return Text chart
     if (aChartType === 'text') return { ...sResultOpt, ...aTypeOpt.series };
     if (aDataType === 'TIME_VALUE') {
-        sResultOpt.series = aTagList.map((aTag: { name: string; color: string; useQuery: boolean }, aIdx: number) => {
+        const sTag = aTagList.filter((aTag: { name: string; color: string; useQuery: boolean; type: E_BLOCK_TYPE }) => aTag?.type === E_BLOCK_TYPE.STD);
+        const sTrxTag = aTagList.filter((aTag: { name: string; color: string; useQuery: boolean; type: E_BLOCK_TYPE }) => aTag?.type === E_BLOCK_TYPE.TRX);
+
+        const rBlock = sTag.map((aTag: { name: string; color: string; useQuery: boolean; type: E_BLOCK_TYPE }, aIdx: number) => {
             if (!aTag.useQuery && aChartType === E_CHART_TYPE.ADV_SCATTER) return {};
             return {
                 ...aTypeOpt.series,
@@ -345,6 +349,21 @@ const ParseOpt = (aChartType: string, aDataType: string, aTagList: any, aCommonO
                 lineStyle: sIsVisualMap ? { color: ChartSeriesColorList[aIdx] } : null,
             };
         });
+
+        const rTrxBlock = sTrxTag.map((aTag: { name: string; color: string; useQuery: boolean; type: E_BLOCK_TYPE }, aIdx: number) => {
+            if (!aTag.useQuery && aChartType === E_CHART_TYPE.ADV_SCATTER) return {};
+            return {
+                ...aTypeOpt.series,
+                type: aChartType === E_CHART_TYPE.ADV_SCATTER ? 'scatter' : aChartType,
+                name: aTag.name,
+                color: aTag.color,
+                xAxisIndex: 0,
+                yAxisIndex: sUseDualYAxis.length > 0 && sUseDualYAxis.includes(aIdx + 100) ? 1 : 0,
+                lineStyle: sIsVisualMap ? { color: ChartSeriesColorList[aIdx] } : null,
+            };
+        });
+
+        sResultOpt.series = rBlock.concat(rTrxBlock);
     } else if (aDataType === 'NAME_VALUE') {
         sResultOpt.series = [
             {

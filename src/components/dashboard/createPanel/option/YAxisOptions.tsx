@@ -7,6 +7,7 @@ import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 import { E_CHART_TYPE } from '@/type/eChart';
 import { ChartAxisUnits } from '@/utils/Chart/AxisConstants';
+import { E_BLOCK_TYPE } from '@/utils/Chart/TransformDataParser';
 import { getChartSeriesName } from '@/utils/dashboardUtil';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { useMemo } from 'react';
@@ -84,8 +85,10 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
     const getBlockList = useMemo((): any[] => {
         const sBaseXAxis = pPanelOption.xAxisOptions[0].useBlockList[0];
         const sTmpBlockList = JSON.parse(JSON.stringify(pPanelOption?.blockList));
+        const sTmpTrxBlockList = JSON.parse(JSON.stringify(pPanelOption?.transformBlockList ?? []));
         if (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER) sTmpBlockList.splice(sBaseXAxis, 1);
-        return (
+
+        const sBlockResult =
             sTmpBlockList.map((block: any, idx: number) => {
                 return {
                     name: block.customFullTyping.use
@@ -98,10 +101,21 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                           }),
                     color: block.color,
                     idx: idx,
+                    type: E_BLOCK_TYPE.STD,
                 };
-            }) ?? []
-        );
-    }, [pPanelOption.blockList, pPanelOption.xAxisOptions]);
+            }) ?? [];
+
+        const sTrxBlockResult = sTmpTrxBlockList?.map((trxB: any, idx: number) => {
+            return {
+                name: trxB?.alias,
+                color: trxB?.color,
+                idx: idx + 100,
+                type: E_BLOCK_TYPE.TRX,
+            };
+        });
+
+        return sBlockResult?.concat(sTrxBlockResult ?? []);
+    }, [pPanelOption.blockList, pPanelOption?.transformBlockList, pPanelOption.xAxisOptions]);
 
     const HandleMinMax = (aTarget: string, aValue: number | string, aIndex: number) => {
         const sCurrentYAxis = JSON.parse(JSON.stringify(pPanelOption.yAxisOptions));

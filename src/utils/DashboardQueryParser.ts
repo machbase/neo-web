@@ -8,7 +8,7 @@ import TQL from './TqlGenerator';
 import { DSH_CACHE_TIME, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE } from './TqlGenerator/constants';
 import { TransformBlockType } from '@/components/dashboard/createPanel/Transform/type';
 import { getChartSeriesName } from './dashboardUtil';
-import { CheckAllowedTransformChartType, E_ALLOW_CHART_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
+import { CheckAllowedTransformChartType, E_ALLOW_CHART_TYPE, E_BLOCK_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
 import { isFirstOrLastAggregator, isValueOrNoneAggregator, isCountAllAggregator, getAggregatorSqlFunction, getDiffSqlFunction } from './aggregatorConstants';
 
 interface BlockTimeType {
@@ -499,7 +499,7 @@ const QueryParser = (
     let sAliasList: any[] = [];
     let sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         if (aQuery.useFullTyping) {
-            sAliasList.push({ name: 'series(' + aIdx.toString() + ')', color: aQuery.color, useQuery: aQuery.isVisible });
+            sAliasList.push({ name: 'series(' + aIdx.toString() + ')', color: aQuery.color, useQuery: aQuery.isVisible, type: E_BLOCK_TYPE.STD });
             return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, dataType: aResDataType[aIdx], sql: aQuery.text, useQuery: aQuery.isVisible };
         }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
@@ -522,6 +522,7 @@ const QueryParser = (
             name: sAlias,
             color: aQuery.color,
             useQuery: aQuery.isVisible,
+            type: E_BLOCK_TYPE.STD,
         });
         // BAR | LINE | SCATTER
         if (aResDataType[aIdx] === 'TIME_VALUE') {

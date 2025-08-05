@@ -10,6 +10,10 @@ export enum E_ALLOW_CHART_TYPE {
     PIE = 'pie',
     ADV_SCATTER = 'advScatter',
 }
+export enum E_BLOCK_TYPE {
+    STD = 'block',
+    TRX = 'trxBlock',
+}
 enum E_CHART_DATA_TYPE {
     TIME_VALUE = 'TIME_VALUE',
     VALUE_VALUE = TIME_VALUE,
@@ -19,6 +23,7 @@ type TrxParsedAliasType = {
     name: string;
     color: string;
     useQuery: boolean;
+    type: E_BLOCK_TYPE;
 };
 type TrxParsedBlockType = {
     alias: string;
@@ -63,7 +68,7 @@ const TRX_COMMON_PARSER = (aTrxBlockList: TransformBlockType[], aQueryBlockList:
     const sTmpTransformAlias: TrxParsedAliasType[] = [];
     const sTmpTransformBlockList: TrxParsedBlockType[] = aTrxBlockList
         .map((aTrBlock) => {
-            aTrBlock.valid && sTmpTransformAlias.push({ name: aTrBlock.alias, color: aTrBlock.color, useQuery: true });
+            aTrBlock.valid && sTmpTransformAlias.push({ name: aTrBlock.alias, color: aTrBlock.color, useQuery: true, type: E_BLOCK_TYPE.TRX });
             return {
                 alias: aTrBlock.alias,
                 value: aTrBlock.value,
