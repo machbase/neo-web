@@ -299,7 +299,7 @@ const ReplaceCommonOpt = (aOpt: any, aPanelType: string) => {
     let sParsedOpt: any = StructureOfCommonOption;
     sCommOptList.map((aOpt: string) => {
         if (aOpt === 'isDataZoom') sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt.isDataZoom ? JSON.stringify([{ type: 'slider' }]) : false);
-        else if (aOpt === 'title') sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt.isInsideTitle ? aCommonOpt[aOpt] : '');
+        else if (aOpt === 'title') sParsedOpt = sParsedOpt.replace(`"$${aOpt}$"`, aCommonOpt.isInsideTitle ? JSON.stringify(aCommonOpt[aOpt]) : '""');
         else sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt[aOpt]);
     });
 
