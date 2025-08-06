@@ -182,9 +182,9 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                     {/* {!sRollupTable && <p>* The table is show because the roll-up table is not generated.</p>} */}
                     <div className="tag-select">
                         <div className="title">
-                            <text>Tag</text>
+                            <span>Tag</span>
                             <Tooltip anchorSelect={`.tooltip-tag-meta`} content={sTagTotal + ''} />
-                            <text className={`select-text tooltip-tag-meta`}>({sTagTotal})</text>
+                            <span className={`select-text tooltip-tag-meta`}>({sTagTotal})</span>
                         </div>
                         <div className="tag-form">
                             <div className="filter-form-tag">
@@ -197,7 +197,7 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                             </div>
                             <div className="select-tag-form">
                                 <div className="select-tag-wrap">
-                                    <div className="select-tab" style={{ overflow: 'hidden' }}>
+                                    <div className="select-tab">
                                         {sTagList.map((aItem: string) => {
                                             return (
                                                 <button key={aItem[1]} onClick={() => setTag(aItem[1])} style={{ margin: '1px' }}>
