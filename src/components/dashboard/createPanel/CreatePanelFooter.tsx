@@ -107,9 +107,10 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                         </div>
                         <div className="chart-footer-tab-r">
                             <span>Total</span>
-                            <span className="series-count w-30">{`${Number((pPanelOption.transformBlockList?.length ?? 0) + (pPanelOption.blockList?.length ?? 0))} / ${Number(
-                                pPanelOption.chartOptions?.tagLimit ?? 0
-                            )}`}</span>
+                            <span className="series-count w-30">{`${Number(
+                                (CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType) ? pPanelOption.transformBlockList?.length ?? 0 : 0) +
+                                    (pPanelOption.blockList?.length ?? 0)
+                            )} / ${Number(pPanelOption.chartOptions?.tagLimit ?? 12)}`}</span>
                         </div>
                     </div>
                     <div className="chart-footer">
