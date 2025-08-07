@@ -271,9 +271,9 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                     </div>
                     <div className="tag-select">
                         <div className="title">
-                            <text>Tag</text>
+                            <span>Tag</span>
                             <Tooltip anchorSelect={`.tooltip-tag-meta`} content={sTagTotal + ''} />
-                            <text className={`select-text tooltip-tag-meta`}>({sTagTotal})</text>
+                            <span className={`select-text tooltip-tag-meta`}>({sTagTotal})</span>
                         </div>
                         <div className="tag-form">
                             <div className="filter-form-tag">
@@ -286,7 +286,7 @@ const ModalCreateChart = ({ pCloseModal }: any) => {
                             </div>
                             <div className="select-tag-form">
                                 <div className="select-tag-wrap">
-                                    <div className="select-tab" style={{ overflow: 'hidden' }}>
+                                    <div className="select-tab">
                                         {sTagList.map((aItem: string, aIdx: number) => {
                                             return (
                                                 <button key={aItem} className={`tag-tooltip-${aIdx}`} style={{ margin: '1px' }} onClick={() => setTag(aItem[1])}>

@@ -7,13 +7,14 @@
     transform: translate(-50%, -50%);
     background-color: #404457;
     width: 600px;
-    height: 650px;
+    height: 550px;
     z-index: $modal-idx;
     border-radius: 8px;
     border: solid 0.5px rgba(255, 255, 255, 0.5);
     font-size: 14px;
     display: flex;
     flex-direction: column;
+    gap: 8px;
     p {
         color: #fdb532;
         font-size: 12px;
@@ -52,7 +53,10 @@
         }
     }
     .body {
-        height: 80%;
+        display: block;
+        height: 100%;
+        flex-direction: column;
+        overflow: hidden;
     }
     .table-select {
         height: 10%;
@@ -69,13 +73,15 @@
         }
     }
     .tag-select {
-        height: 70%;
         padding: 0 16% 0 8%;
         display: flex;
-        justify-content: space-between;
+        flex-grow: 1;
+        height: 100%;
         .tag-form {
+            display: flex;
+            flex-direction: column;
             width: 80%;
-            height: 100%;
+            gap: 8px;
         }
         .filter-form-tag {
             width: 100%;
@@ -116,22 +122,26 @@
         }
         .select-tag-form {
             width: 100%;
-            height: 80%;
+            flex: 1;
             display: flex;
             justify-content: space-between;
             .select-tag-wrap {
+                height: 80%;
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
-                width: 49%;
+                flex: 1;
                 .select-tab {
-                    overflow: auto;
+                    margin: 1px;
+                    padding: 4px 8px;
+                    overflow-y: auto;
+                    overflow-x: hidden;
                     display: flex;
                     flex-direction: column;
                     background-color: rgba(38, 40, 49, 0.5);
                     border: solid 0.5px rgba(255, 255, 255, 0.5);
                     min-height: 30px;
-                    height: 80%;
+                    flex: 1;
                     border-radius: 8px;
                     padding: 8px 0;
                     button {
@@ -144,6 +154,7 @@
                         color: white;
                         padding: 0 8px;
                         padding-bottom: 4px;
+                        // min-height: 30px;
 
                         .tag-text,
                         .select-text {
