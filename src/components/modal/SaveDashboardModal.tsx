@@ -15,7 +15,7 @@ import { Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLef
 import icons from '@/utils/icons';
 import { TextButton } from '../buttons/TextButton';
 import { calcInterval, CheckObjectKey, decodeFormatterFunction, setUnitTime } from '@/utils/dashboardUtil';
-import { DashboardQueryParser } from '@/utils/DashboardQueryParser';
+import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
 import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
 import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
 import { Select } from '@/components/inputs/Select';
@@ -60,6 +60,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, pPanelInfo.w * 50);
         const [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
             chartTypeConverter(pPanelInfo.type),
+            SqlResDataType(pPanelInfo.type),
             pPanelInfo.blockList,
             pPanelInfo.transformBlockList,
             sRollupTableList,

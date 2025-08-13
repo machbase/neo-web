@@ -3,6 +3,7 @@ import { CheckObjectKey, SEPARATE_DIFF, geomapAggregatorList, logAggregatorList,
 import { chartTypeConverter } from './eChartHelper';
 import { concatTagSet } from './helpers/tags';
 import { DIFF_LIST } from './aggregatorConstants';
+import { TransformBlockType } from '@/components/dashboard/createPanel/Transform/type';
 
 export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
 export const VARIABLE_RM_REGEX = /^{+|}+$/g;
@@ -20,6 +21,11 @@ const DashboardCompatibility = (aData: any) => {
     if (sDashboardInfo?.dashboard.panels.length > 0) {
         const sPanelList = sDashboardInfo.dashboard.panels;
         const sVaildPanelList = sPanelList.map((aPanel: any) => {
+            if (aPanel.type === 'Text') {
+                if (!CheckObjectKey(aPanel.chartOptions, 'textSeries')) aPanel.chartOptions.textSeries = [0];
+                if (!CheckObjectKey(aPanel.chartOptions, 'chartSeries')) aPanel.chartOptions.chartSeries = [0];
+            }
+
             if (aPanel.type === 'Tql') aPanel.type = 'Tql chart';
             if (aPanel.xAxisOptions[0].type === 'category') aPanel.xAxisOptions[0].type = 'time';
             if (aPanel.type === 'Geomap' && !CheckObjectKey(aPanel, 'titleColor')) aPanel.titleColor = '#000000';
@@ -43,6 +49,7 @@ const DashboardCompatibility = (aData: any) => {
             });
             const sResultPanel = aPanel;
             const sBlockList: any = aPanel.blockList;
+            const sTrxBlockList: TransformBlockType[] = aPanel.transformBlockList;
             const sChartType: string = chartTypeConverter(aPanel.type);
             const sResDataType: string = SqlResDataType(sChartType);
 
@@ -104,7 +111,12 @@ const DashboardCompatibility = (aData: any) => {
 
                 return sResult;
             });
+            const sValidTrxBlockList = sTrxBlockList.map((aTrxBlock: TransformBlockType) => {
+                if (!CheckObjectKey(aTrxBlock, 'isVisible')) aTrxBlock.isVisible = true;
+                return aTrxBlock;
+            });
             sResultPanel.blockList = sValidBlockList;
+            sResultPanel.transformBlockList = sValidTrxBlockList;
             return sResultPanel;
         });
         sDashboardInfo.dashboard.panels = sVaildPanelList;

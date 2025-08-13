@@ -20,6 +20,9 @@ import { TRX_FORMULA_EX } from './constants';
 import { CopyBlock } from '@/components/copyBlock';
 import { Tooltip } from 'react-tooltip';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
+import { VscEye, VscEyeClosed } from 'react-icons/vsc';
+import { ChartType, E_CHART_TYPE } from '@/type/eChart';
+import { chartTypeConverter } from '@/utils/eChartHelper';
 
 const colorList = [
     '#607D8B', // Blue Grey
@@ -35,7 +38,7 @@ const colorList = [
     '#F44336', // Red
 ];
 
-export const Transform = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any; pSetPanelOption: React.Dispatch<React.SetStateAction<any>> }) => {
+export const Transform = ({ pPanelOption, pSetPanelOption, pBlockCount }: { pPanelOption: any; pSetPanelOption: React.Dispatch<React.SetStateAction<any>>; pBlockCount: any }) => {
     const [isModal, setIsModal] = useState<boolean>(false);
 
     function handleTransformBlockItem(aKey: TransformBlockKeyType, aValue: boolean | string | BadgeSelectorItemType, aIdx: number) {
@@ -49,25 +52,31 @@ export const Transform = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any
         pSetPanelOption({ ...pPanelOption, transformBlockList: tmpTransformBlockList });
     }
     const handleTransformBlock = (aMode: 'ADD' | 'DELETE', aIdx: number) => {
+        const sTmpPanelOpt = JSON.parse(JSON.stringify(pPanelOption));
         let tmpTransformBlockList: TransformBlockType[] = [];
         if (aMode === 'ADD') {
             tmpTransformBlockList = [
-                ...(pPanelOption.transformBlockList ?? []),
+                ...(sTmpPanelOpt.transformBlockList ?? []),
                 {
                     id: generateUUID(),
                     alias: '',
-                    color: colorList[pPanelOption?.transformBlockList?.length ?? 0],
+                    color: colorList[sTmpPanelOpt?.transformBlockList?.length ?? 0],
                     value: '',
                     valid: undefined, // check formula valid
+                    isVisible: true,
                     selectedBlockIdxList: [],
                 },
             ];
         } else {
-            const newList = [...pPanelOption.transformBlockList];
+            if (sTmpPanelOpt.type === 'Text') {
+                if (sTmpPanelOpt?.chartOptions?.chartSeries?.[0] === aIdx + 100) sTmpPanelOpt.chartOptions.chartSeries = [];
+                if (sTmpPanelOpt?.chartOptions?.textSeries?.[0] === aIdx + 100) sTmpPanelOpt.chartOptions.textSeries = [];
+            }
+            const newList = [...sTmpPanelOpt.transformBlockList];
             newList.splice(aIdx, 1);
             tmpTransformBlockList = newList;
         }
-        pSetPanelOption({ ...pPanelOption, transformBlockList: tmpTransformBlockList });
+        pSetPanelOption({ ...sTmpPanelOpt, transformBlockList: tmpTransformBlockList });
     };
     const getBlockList: BadgeSelectorItemType[] = useMemo((): any[] => {
         return (
@@ -98,17 +107,12 @@ export const Transform = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any
                         handleBlock={() => handleTransformBlock('DELETE', index)}
                         handleItem={(aKey, aValue) => handleTransformBlockItem(aKey, aValue, index)}
                         handleModal={() => setIsModal(true)}
+                        pChartType={pPanelOption.type}
+                        pBlockCount={pBlockCount}
                     />
                 );
             })}
-            <TransformAddBlock
-                isDisable={
-                    pPanelOption.chartOptions?.tagLimit
-                        ? pPanelOption.chartOptions?.tagLimit - (pPanelOption?.blockList?.length ?? 0) <= pPanelOption?.transformBlockList?.length
-                        : 12 - (pPanelOption?.blockList?.length ?? 0) <= pPanelOption?.transformBlockList?.length
-                }
-                callback={() => handleTransformBlock('ADD', pPanelOption?.transformBlockList?.length ?? 0)}
-            />
+            <TransformAddBlock isDisable={!pBlockCount.addable} callback={() => handleTransformBlock('ADD', pPanelOption?.transformBlockList?.length ?? 0)} />
             {isModal && <TrxHelpModal callback={() => setIsModal(false)} />}
         </div>
     );
@@ -116,12 +120,16 @@ export const Transform = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any
 const TransformBlock = ({
     pTransformItem,
     pQueryBlockList,
+    pChartType,
+    pBlockCount,
     handleBlock,
     handleItem,
     handleModal,
 }: {
     pTransformItem: TransformBlockType;
     pQueryBlockList: BadgeSelectorItemType[];
+    pChartType: ChartType;
+    pBlockCount: any;
     handleBlock: () => void;
     handleItem: (aKey: TransformBlockKeyType, aValue: boolean | string | BadgeSelectorItemType) => void;
     handleModal: () => void;
@@ -165,12 +173,23 @@ const TransformBlock = ({
                 </div>
                 <div className="transform-block">
                     <IconButton pWidth={20} pHeight={20} pIcon={<RxQuestionMark />} onClick={handleModal} />
+                    <IconButton
+                        pWidth={20}
+                        pHeight={20}
+                        pIsToopTip
+                        pDisabled={pBlockCount.addable ? false : pTransformItem?.isVisible ? false : true}
+                        pToolTipContent={pTransformItem?.isVisible ? 'Visible' : 'Invisible'}
+                        pToolTipId={pTransformItem.id + '-block-visible'}
+                        pIcon={pTransformItem?.isVisible ? <VscEye /> : <VscEyeClosed />}
+                        onClick={() => handleItem('isVisible', !pTransformItem?.isVisible)}
+                    />
                     <div ref={sColorPickerRef} style={{ position: 'relative' }}>
                         <IconButton
                             pWidth={20}
                             pHeight={20}
                             pIsToopTip
                             pToolTipContent={'Color'}
+                            pDisabled={chartTypeConverter(pChartType) === E_CHART_TYPE.TEXT}
                             pIcon={
                                 <div
                                     style={{

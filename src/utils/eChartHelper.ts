@@ -111,6 +111,8 @@ export const DefaultTextchartOpntion = {
     fillOpacity: 0.1 as number,
     digit: 3 as number,
     unit: '' as string,
+    textSeries: [0] as number[],
+    chartSeries: [0] as number[],
 };
 export const DefaultTqlChartOption = {
     theme: 'white' as string,
