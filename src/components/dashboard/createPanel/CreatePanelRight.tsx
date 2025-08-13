@@ -20,6 +20,8 @@ import { TextOptions } from './option/TextOptions';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { GeomapOptions } from './option/GeomapOptions';
 import { AdvancedScatterOptions } from './option/AdvanceScatter';
+import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/BlockHelper';
+import { TrxParsedBlockType } from '@/utils/Chart/TransformDataParser';
 
 interface CreatePanelRightProps {
     pPanelOption: any;
@@ -62,9 +64,29 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                 sResVal.tqlInfo = { path: '', params: [{ name: '', value: '', format: '' }], chart_id: '' };
                 sResVal.theme = 'dark';
             }
-            if (sResVal.chartOptions?.tagLimit) sResVal.blockList = sResVal.blockList.slice(0, sResVal.chartOptions?.tagLimit);
             if (sIsPlgChart) sResVal.plg = sIsPlgChart.plg;
             else sResVal.plg = undefined;
+
+            const sBlockCntInfo: CalcBlockTotalType = CalcBlockTotal(sResVal);
+            if (sBlockCntInfo.total > sBlockCntInfo.limit) {
+                let sLimit = sBlockCntInfo.limit;
+                const sQueryBlock = sResVal.blockList.map((qBlock) => {
+                    if (sLimit > 0) {
+                        --sLimit;
+                        return { ...qBlock, isVisible: true };
+                    } else return { ...qBlock, isVisible: false };
+                });
+                const sTrxBlock: TrxParsedBlockType[] = sResVal.transformBlockList.map((tBlock: TrxParsedBlockType) => {
+                    if (sLimit > 0) {
+                        --sLimit;
+                        return { ...tBlock, isVisible: true };
+                    } else return { ...tBlock, isVisible: false };
+                });
+
+                sResVal.blockList = sQueryBlock;
+                sResVal.transformBlockList = sTrxBlock;
+            }
+
             if (sConvertedChartType !== E_CHART_TYPE.GEOMAP) {
                 if (sConvertedChartType !== E_CHART_TYPE.LINE && sConvertedChartType !== E_CHART_TYPE.BAR) {
                     sResVal.blockList = sResVal.blockList.map((block: any) => {

@@ -51,7 +51,7 @@ const TextFunc = (aChartOptions: any, aPanelId?: string) => {
         \t\t\tconst sDOM = document.getElementById('${aPanelId}-text');
         \t\t\tif (sDOM) {
         \t\t\t\tvar sFontSize = ${aChartOptions?.fontSize ?? 100};
-        \t\t\t\tconst sValue = obj?.data?.rows[0][0]?.value ? obj?.data?.rows[0][0]?.value.toFixed(${aChartOptions?.digit ?? ''}) : '';
+        \t\t\t\tconst sValue = obj?.data?.rows[0]?.[0]?.value ? obj?.data?.rows[0]?.[0]?.value.toFixed(${aChartOptions?.digit ?? ''}) : '';
         \t\t\t\tconst sColor = setColor(sValue);
         \t\t\t\tsDOM.style.color = sColor;
         \t\t\t\tsDOM.style.fontSize = sFontSize + 'px';
