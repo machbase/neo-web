@@ -8,7 +8,7 @@ import TQL from './TqlGenerator';
 import { DSH_CACHE_TIME, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE } from './TqlGenerator/constants';
 import { TransformBlockType } from '@/components/dashboard/createPanel/Transform/type';
 import { getChartSeriesName } from './dashboardUtil';
-import { ChartDataType, CheckAllowedTransformChartType, E_ALLOW_CHART_TYPE, E_BLOCK_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
+import { ChartDataType, CheckAllowedTransformChartType, E_BLOCK_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
 import { isFirstOrLastAggregator, isValueOrNoneAggregator, isCountAllAggregator, getAggregatorSqlFunction, getDiffSqlFunction } from './aggregatorConstants';
 import { FakeSrc } from './TQL/TqlQueryHelper';
 

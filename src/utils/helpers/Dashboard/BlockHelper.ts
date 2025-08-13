@@ -32,7 +32,7 @@ export type CalcBlockTotalType = {
     addable: boolean;
 };
 export const CalcBlockTotal = (aPanelOption: any): CalcBlockTotalType => {
-    const sVisibleQueryBlock = aPanelOption?.blockList?.filter((block) => block.isVisible);
+    const sVisibleQueryBlock = aPanelOption?.blockList?.filter((block: any) => block.isVisible);
     const sVisibleTrxBlock = aPanelOption?.transformBlockList?.filter((block: TransformBlockType) => block.isVisible);
     const sLimit = aPanelOption?.chartOptions?.tagLimit ?? 12;
     let sTotal = (sVisibleQueryBlock?.length ?? 0) + (sVisibleTrxBlock?.length ?? 0);

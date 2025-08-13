@@ -70,7 +70,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
             const sBlockCntInfo: CalcBlockTotalType = CalcBlockTotal(sResVal);
             if (sBlockCntInfo.total > sBlockCntInfo.limit) {
                 let sLimit = sBlockCntInfo.limit;
-                const sQueryBlock = sResVal.blockList.map((qBlock) => {
+                const sQueryBlock = sResVal.blockList.map((qBlock: any) => {
                     if (sLimit > 0) {
                         --sLimit;
                         return { ...qBlock, isVisible: true };

@@ -14,7 +14,6 @@ import { Transform } from './Transform';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import { ALLOWED_TRX_CHART_TYPE, CheckAllowedTransformChartType, E_ALLOW_CHART_TYPE } from '@/utils/Chart/TransformDataParser';
-import { TransformBlockType } from './Transform/type';
 import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/BlockHelper';
 
 type FOOTER_MENU_TYPE = 'Query' | 'Transform' | 'Time';

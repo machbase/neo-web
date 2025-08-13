@@ -2,7 +2,6 @@ import TQL from '../TqlGenerator';
 import { TransformBlockType } from '@/components/dashboard/createPanel/Transform/type';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import { DSH_CHART_NAME_VALUE_SCRIPT_MODULE, DSH_CHART_TIME_VALUE_SCRIPT_MODULE, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE } from '../TqlGenerator/constants';
-import { FakeTextBlock } from '../helpers/Dashboard/BlockHelper';
 
 export enum E_ALLOW_CHART_TYPE {
     LINE = 'line',
