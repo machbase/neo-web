@@ -63,16 +63,24 @@ export const CheckAllowedTransformChartType = (aType: ChartType): boolean => {
 export type ChartDataType = keyof typeof E_CHART_DATA_TYPE;
 
 /** Trnasform data parser */
-export const TRX_PARSER = (aChartType: ChartDataType, aTrxBlockList: TransformBlockType[], aQueryBlockList: any[], aV_V_X_AXIS: string | undefined, aIsSave: boolean) => {
+export const TRX_PARSER = (
+    aChartType: string,
+    aDataType: ChartDataType,
+    aTrxBlockList: TransformBlockType[],
+    aQueryBlockList: any[],
+    aV_V_X_AXIS: string | undefined,
+    aIsSave: boolean
+) => {
     let sResultTrxList: (ResTrxType | undefined)[] = [];
     // COMMON
     const [sSourceAliasList, sSourceTrxList] = TRX_COMMON_PARSER(aTrxBlockList, aQueryBlockList) as [TrxParsedAliasType[], TrxParsedBlockType[]];
     // TIME_VALUE
-    if (aChartType === 'TIME_VALUE') sResultTrxList = TRX_TIME_VALUE_PARSER(sSourceTrxList, aIsSave);
+    if (aDataType === E_CHART_DATA_TYPE.TIME_VALUE && aChartType !== E_ALLOW_CHART_TYPE.ADV_SCATTER) sResultTrxList = TRX_TIME_VALUE_PARSER(sSourceTrxList, aIsSave);
     // VALUE_VALUE
-    if (aChartType === 'VALUE_VALUE') sResultTrxList = TRX_VALUE_VALUE_PARSER(sSourceTrxList, aV_V_X_AXIS as string, aIsSave);
+    if (aDataType === E_CHART_DATA_TYPE.VALUE_VALUE && aChartType === E_ALLOW_CHART_TYPE.ADV_SCATTER)
+        sResultTrxList = TRX_VALUE_VALUE_PARSER(sSourceTrxList, aV_V_X_AXIS as string, aIsSave);
     // NAME_VALUE
-    if (aChartType === 'NAME_VALUE') sResultTrxList = TRX_NAME_VALUE_PARSER(sSourceTrxList, aIsSave);
+    if (aDataType === E_CHART_DATA_TYPE.NAME_VALUE) sResultTrxList = TRX_NAME_VALUE_PARSER(sSourceTrxList, aIsSave);
     return [sSourceAliasList, sResultTrxList];
 };
 

@@ -165,9 +165,7 @@ const LineChart = ({
                     sTmpAliasList[0] = sTxtQuery?.[sTxtIdx]?.useQuery ? sTxtAliasList[sTxtQuery[sTxtIdx].idx] : FakeTextBlock.alias;
                 } else {
                     sTmpParsedQuery[0] = sTxtTrx[sTxtIdx - 100]?.useQuery ? sTxtTrx[sTxtIdx - 100] : FakeTextBlock.block;
-                    sTmpAliasList[0] = sTxtTrx[sTxtIdx - 100]?.useQuery
-                        ? sTxtAliasList[sTxtTrx[sTxtIdx - 100].idx]
-                        : { ...sTxtAliasList[sTxtTrx[sTxtIdx - 100].idx], useQuery: true };
+                    sTmpAliasList[0] = sTxtTrx[sTxtIdx - 100]?.useQuery ? sTxtAliasList[sTxtTrx[sTxtIdx - 100].idx] : FakeTextBlock.alias;
                 }
 
                 // CHART
@@ -179,8 +177,8 @@ const LineChart = ({
                     sTmpParsedQuery[1] = sChartQuery[sChartIdx]?.useQuery ? sChartQuery[sChartIdx] : FakeTextBlock.block;
                     sTmpAliasList[1] = sChartQuery[sChartIdx]?.useQuery ? sAliasList[sChartQuery[sChartIdx].idx] : FakeTextBlock.alias;
                 } else {
-                    sTmpParsedQuery[1] = sChartTrx[sChartIdx - 100].useQuery ? sChartTrx[sChartIdx - 100] : FakeTextBlock.block;
-                    sTmpAliasList[1] = sChartTrx[sChartIdx - 100].useQuery ? sAliasList[sChartTrx[sChartIdx - 100].idx] : FakeTextBlock.alias;
+                    sTmpParsedQuery[1] = sChartTrx[sChartIdx - 100]?.useQuery ? sChartTrx[sChartIdx - 100] : FakeTextBlock.block;
+                    sTmpAliasList[1] = sChartTrx[sChartIdx - 100]?.useQuery ? sAliasList[sChartTrx[sChartIdx - 100].idx] : FakeTextBlock.alias;
                 }
                 sParsedQuery = sTmpParsedQuery;
                 sAliasList = sTmpAliasList;

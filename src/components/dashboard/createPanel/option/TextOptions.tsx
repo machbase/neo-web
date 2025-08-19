@@ -49,7 +49,7 @@ export const TextOptions = (props: ChartOptionProps) => {
 
         const sTrxBlockResult = sTmpTrxBlockList?.map((trxB: any, idx: number) => {
             return {
-                name: trxB?.alias,
+                name: !!trxB?.alias ? trxB?.alias : `TRANSFORM_VALUE(${idx})`,
                 color: trxB?.color,
                 idx: idx + 100,
                 type: E_BLOCK_TYPE.TRX,
@@ -234,7 +234,7 @@ export const TextOptions = (props: ChartOptionProps) => {
                 </>
             </Collapse>
             <div className="divider" />
-            <Collapse title="Chart option" isOpen isDisable={pPanelOption.blockList.length < 2}>
+            <Collapse title="Chart option" isOpen>
                 <div className="menu-style">
                     <span>Type</span>
                     <Select
@@ -242,7 +242,6 @@ export const TextOptions = (props: ChartOptionProps) => {
                         pHeight={25}
                         pBorderRadius={4}
                         pFontSize={12}
-                        pIsDisabled={pPanelOption.blockList.length < 2}
                         pInitValue={pPanelOption.chartOptions?.chartType}
                         onChange={(aEvent: any) => HandleOption(aEvent, 'chartType')}
                         pOptions={['line', 'bar', 'scatter']}
@@ -256,7 +255,6 @@ export const TextOptions = (props: ChartOptionProps) => {
                             pWidth={100}
                             pHeight={25}
                             pMin={0}
-                            pIsDisabled={pPanelOption.blockList.length < 2}
                             pMax={1}
                             pBorderRadius={4}
                             pValue={pPanelOption.chartOptions?.fillOpacity}
@@ -271,7 +269,6 @@ export const TextOptions = (props: ChartOptionProps) => {
                             pType="number"
                             pHeight={25}
                             pWidth={100}
-                            pIsDisabled={pPanelOption.blockList.length < 2}
                             pBorderRadius={4}
                             pValue={pPanelOption.chartOptions?.symbolSize}
                             onChange={(aEvent: any) => HandleOption(aEvent, 'symbolSize')}
@@ -283,7 +280,6 @@ export const TextOptions = (props: ChartOptionProps) => {
                     <IconButton
                         pWidth={20}
                         pHeight={20}
-                        pDisabled={pPanelOption.blockList.length < 2}
                         pIcon={
                             <div
                                 style={{

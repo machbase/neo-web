@@ -571,7 +571,7 @@ const QueryParser = (
         });
     }
     if (aTransformBlockList && aTransformBlockList.length > 0 && CheckAllowedTransformChartType(aChartType)) {
-        const [sParsedAliasList, sParsedTrxList] = TRX_PARSER(aResDataType, aTransformBlockList, sResultQuery, sV_V_X_AXIS, aIsSave);
+        const [sParsedAliasList, sParsedTrxList] = TRX_PARSER(aChartType, aResDataType, aTransformBlockList, sResultQuery, sV_V_X_AXIS, aIsSave);
         sAliasList = sAliasList.concat(sParsedAliasList);
         sResultQuery = sResultQuery.concat(sParsedTrxList);
     }

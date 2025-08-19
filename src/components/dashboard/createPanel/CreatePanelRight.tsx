@@ -1,6 +1,5 @@
 import './CreatePanelRight.scss';
-import { Select } from '@/components/inputs/Select';
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useMemo } from 'react';
 import { ChartTypeList } from '@/utils/constants';
 import { ChartCommonOptions } from './option/ChartCommonOptions';
 import { CheckCustomChartType, CheckPlgChart, DefaultCommonOption, chartTypeConverter, getDefaultSeriesOption } from '@/utils/eChartHelper';
@@ -22,6 +21,7 @@ import { GeomapOptions } from './option/GeomapOptions';
 import { AdvancedScatterOptions } from './option/AdvanceScatter';
 import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/BlockHelper';
 import { TrxParsedBlockType } from '@/utils/Chart/TransformDataParser';
+import { ConfirmableSelect } from '@/components/inputs/ConfirmableSelect';
 
 interface CreatePanelRightProps {
     pPanelOption: any;
@@ -39,6 +39,8 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
         const sChangeChartOption = getDefaultSeriesOption(sConvertedChartType as ChartType);
         const sIsPie = sConvertedChartType === E_CHART_TYPE.PIE;
         const sIsAdvScatter = sConvertedChartType === E_CHART_TYPE.ADV_SCATTER;
+        const sIsGeomap = sConvertedChartType === E_CHART_TYPE.GEOMAP;
+        const sIsTql = sConvertedChartType === E_CHART_TYPE.TQL;
 
         pSetPanelOption((aPrev: any) => {
             const sResVal = {
@@ -57,7 +59,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
 
                 if (sIsAdvScatter) sResVal.commonOptions.tooltipTrigger = 'item';
             }
-            if (sConvertedChartType === E_CHART_TYPE.TQL) {
+            if (sIsTql) {
                 sResVal.tqlInfo = { path: '', params: [{ name: '', value: '', format: '' }], chart_id: '' };
                 sResVal.theme = 'white';
             } else {
@@ -66,6 +68,8 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
             }
             if (sIsPlgChart) sResVal.plg = sIsPlgChart.plg;
             else sResVal.plg = undefined;
+
+            if (sIsGeomap) sResVal.transformBlockList = [];
 
             const sBlockCntInfo: CalcBlockTotalType = CalcBlockTotal(sResVal);
             if (sBlockCntInfo.total > sBlockCntInfo.limit) {
@@ -109,15 +113,22 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
             return sResVal;
         });
     };
+    const getHasTrxBlock = useMemo(() => {
+        if (pPanelOption?.transformBlockList?.length > 0) return true;
+        else return false;
+    }, [pPanelOption?.transformBlockList]);
 
     return (
         <div className="chart-set-wrap">
             <div className="body">
-                <Select
+                <ConfirmableSelect
+                    pConfirmTrigger="Geomap"
+                    pConfirmMessage={`When changing to the geomap type, the transform data disappears.`}
+                    pUseConfirmRule={getHasTrxBlock}
                     pFontSize={14}
                     pWidth={'100%'}
                     pBorderRadius={4}
-                    pInitValue={pPanelOption.type}
+                    pValue={pPanelOption.type}
                     pHeight={30}
                     onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
                     pOptions={ChartTypeList.map((aType: { key: string; value: string }) => aType.key) as string[]}
