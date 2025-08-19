@@ -476,7 +476,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         const sChartConvertType = chartTypeConverter(pPanelOption.type);
         let sChartDataType = SqlResDataType(sChartConvertType);
 
-        if (sChartConvertType === 'text' && pBlockOrder === 0) sChartDataType = 'NAME_VALUE';
         if (sChartConvertType === 'geomap') return geomapAggregatorList;
         if (sChartDataType === 'TIME_VALUE') {
             let sAggregatorList = pBlockInfo.type === 'tag' ? tagAggregatorList : logAggregatorList;
@@ -493,7 +492,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     const getTableList = useMemo((): string[] => {
         const sUseCustom = pBlockInfo.useCustom;
         let sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
-        if (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT && pBlockOrder === 0) sChartDataType = 'NAME_VALUE';
         let sAggList: string[] = [];
         if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : [...tagAggregatorList, ...DIFF_LIST];
         if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
