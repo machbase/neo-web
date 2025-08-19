@@ -1,6 +1,6 @@
 import './CreatePanelFooter.scss';
 import { Block } from './Block';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PlusCircle, VscTrash } from '@/assets/icons/Icon';
 import { refreshTimeList } from '@/utils/dashboardUtil';
 import DatePicker from '@/components/datePicker/DatePicker';
@@ -14,6 +14,7 @@ import { Transform } from './Transform';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import { ALLOWED_TRX_CHART_TYPE, CheckAllowedTransformChartType, E_ALLOW_CHART_TYPE } from '@/utils/Chart/TransformDataParser';
+import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/BlockHelper';
 
 type FOOTER_MENU_TYPE = 'Query' | 'Transform' | 'Time';
 
@@ -79,6 +80,11 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
         });
     };
 
+    const getBlockCount = useMemo(() => {
+        const sResult: CalcBlockTotalType = CalcBlockTotal(pPanelOption);
+        return sResult;
+    }, [pPanelOption.blockList, pPanelOption.transformBlockList, pPanelOption.type]);
+
     useEffect(() => {
         if (!ALLOWED_TRX_CHART_TYPE.includes(chartTypeConverter(pPanelOption.type) as E_CHART_TYPE & E_ALLOW_CHART_TYPE)) setTab('Query');
     }, [pPanelOption.type]);
@@ -91,12 +97,12 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                         <div>
                             <div className={sTab === 'Query' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Query')}>
                                 Query
-                                <span className="series-count">{`${Number(pPanelOption.blockList.length)}`}</span>
+                                <span className="series-count">{`${getBlockCount.query}`}</span>
                             </div>
                             {CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType) && (
                                 <div className={sTab === 'Transform' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Transform')}>
                                     Transform
-                                    <span className="series-count">{`${Number(pPanelOption?.transformBlockList?.length ?? 0)}`}</span>
+                                    <span className="series-count">{`${getBlockCount.trx}`}</span>
                                 </div>
                             )}
                             {pTableList.length !== 0 && (
@@ -107,10 +113,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                         </div>
                         <div className="chart-footer-tab-r">
                             <span>Total</span>
-                            <span className="series-count w-30">{`${Number(
-                                (CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType) ? pPanelOption.transformBlockList?.length ?? 0 : 0) +
-                                    (pPanelOption.blockList?.length ?? 0)
-                            )} / ${Number(pPanelOption.chartOptions?.tagLimit ?? 12)}`}</span>
+                            <span className="series-count w-30">{`${getBlockCount.total} / ${getBlockCount.limit}`}</span>
                         </div>
                     </div>
                     <div className="chart-footer">
@@ -128,28 +131,13 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                             pGetTables={pGetTables}
                                             pBlockInfo={aItem}
                                             pSetPanelOption={pSetPanelOption}
+                                            pBlockCount={getBlockCount}
                                         />
                                     );
                                 })}
                             {/* ADD Block */}
                             {pTableList.length !== 0 && (
-                                <div
-                                    onClick={HandleAddBlock}
-                                    className="plus-wrap"
-                                    style={
-                                        (pPanelOption.chartOptions?.tagLimit
-                                            ? pPanelOption.chartOptions?.tagLimit -
-                                              (CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType)
-                                                  ? pPanelOption?.transformBlockList?.length ?? 0
-                                                  : 0)
-                                            : 12 -
-                                              (CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType)
-                                                  ? pPanelOption?.transformBlockList?.length ?? 0
-                                                  : 0)) <= pPanelOption.blockList.length
-                                            ? { opacity: 0.7, pointerEvents: 'none' }
-                                            : {}
-                                    }
-                                >
+                                <div onClick={HandleAddBlock} className="plus-wrap" style={getBlockCount.addable ? {} : { opacity: 0.7, pointerEvents: 'none' }}>
                                     <PlusCircle color="#FDB532" />
                                 </div>
                             )}
@@ -168,7 +156,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                         </div>
                         {sTab === 'Transform' && (
                             <div className="body">
-                                <Transform pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />
+                                <Transform pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pBlockCount={getBlockCount} />
                             </div>
                         )}
                         <div style={sTab === 'Time' ? {} : { display: 'none' }} className="body time-wrap">

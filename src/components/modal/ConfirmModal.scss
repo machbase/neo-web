@@ -28,12 +28,12 @@
         }
     }
 
-    .body {
+    .confirm-modal-body {
         display: flex;
         justify-content: center;
         flex-direction: column;
 
-        &-content {
+        .body-content {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -46,9 +46,10 @@
             span {
                 max-width: 380px;
                 display: block;
-                white-space: nowrap;
+                white-space: wrap;
                 text-overflow: ellipsis;
                 overflow: hidden;
+                text-align: center;
             }
 
             .comfirm-input-wrap {

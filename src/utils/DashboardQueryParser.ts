@@ -8,8 +8,9 @@ import TQL from './TqlGenerator';
 import { DSH_CACHE_TIME, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE } from './TqlGenerator/constants';
 import { TransformBlockType } from '@/components/dashboard/createPanel/Transform/type';
 import { getChartSeriesName } from './dashboardUtil';
-import { CheckAllowedTransformChartType, E_ALLOW_CHART_TYPE, E_BLOCK_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
+import { ChartDataType, CheckAllowedTransformChartType, E_BLOCK_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
 import { isFirstOrLastAggregator, isValueOrNoneAggregator, isCountAllAggregator, getAggregatorSqlFunction, getDiffSqlFunction } from './aggregatorConstants';
+import { FakeSrc } from './TQL/TqlQueryHelper';
 
 interface BlockTimeType {
     interval: {
@@ -21,8 +22,8 @@ interface BlockTimeType {
 }
 
 /** Return sql response data type */
-export const SqlResDataType = (aChartType: string): string => {
-    let sResDataType: string = 'TIME_VALUE';
+export const SqlResDataType = (aChartType: string): ChartDataType => {
+    let sResDataType: ChartDataType = 'TIME_VALUE';
     switch (aChartType) {
         case 'bar':
         case 'line':
@@ -154,6 +155,7 @@ const ReplaceVariables = (
 /** Dashboard QUERY PARSER */
 export const DashboardQueryParser = (
     aChartType: string,
+    aDataType: ChartDataType,
     aBlockList: any,
     aTransformBlockList: TransformBlockType[],
     aRollupList: any,
@@ -163,7 +165,6 @@ export const DashboardQueryParser = (
     aVariables?: VARIABLE_TYPE[],
     aIsSave: boolean = false
 ) => {
-    const sResDataType = SqlResDataType(aChartType);
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
     const sVariables = VariableParser(aVariables ?? [], aTime);
 
@@ -171,7 +172,7 @@ export const DashboardQueryParser = (
         sQueryBlock,
         aTransformBlockList,
         aTime,
-        aChartType === 'text' ? ['NAME_VALUE', 'TIME_VALUE'] : (Array.from({ length: sQueryBlock.length }).fill(sResDataType) as string[]),
+        aDataType,
         aChartType as ChartType,
         aXaxis,
         aIsSave,
@@ -432,7 +433,7 @@ const GetDuration = (baseTime: any, aTime: string) => {
     return baseTime + Number(sSign + sAbsNumber * sConvertedUnit);
 };
 const GetConbineWhere = (
-    aResDataType: string,
+    aResDataType: ChartDataType,
     aQuery: any,
     aTime: { interval: any; start: any; end: any },
     sTimeWhere: string,
@@ -488,19 +489,19 @@ const QueryParser = (
     aQueryBlock: any,
     aTransformBlockList: TransformBlockType[],
     aTime: { interval: any; start: any; end: any },
-    aResDataType: string[],
+    aResDataType: ChartDataType,
     aChartType: ChartType,
     aXaxis: any,
     aIsSave: boolean,
     aUniqueId?: string,
     aRollupList?: any
 ) => {
-    let sInjectionSrc = 'FAKE(linspace(0, 1, 1))';
+    let sInjectionSrc = FakeSrc;
     let sAliasList: any[] = [];
     let sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         if (aQuery.useFullTyping) {
             sAliasList.push({ name: 'series(' + aIdx.toString() + ')', color: aQuery.color, useQuery: aQuery.isVisible, type: E_BLOCK_TYPE.STD });
-            return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, dataType: aResDataType[aIdx], sql: aQuery.text, useQuery: aQuery.isVisible };
+            return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, dataType: aResDataType, sql: aQuery.text, useQuery: aQuery.isVisible };
         }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
@@ -513,7 +514,7 @@ const QueryParser = (
         const sAlias = GetAlias(aQuery.valueList[0]);
         const sUseCountAll = UseCountAll(aQuery.valueList);
         const sIsVirtualTable = aQuery.tableName.includes('V$');
-        const sConbineWhere = GetConbineWhere(aResDataType[aIdx], aQuery, aTime, sTimeWhere, sFilterWhere, sGroupBy, sOrderBy, sUseAgg, sUseCountAll, sIsVirtualTable);
+        const sConbineWhere = GetConbineWhere(aResDataType, aQuery, aTime, sTimeWhere, sFilterWhere, sGroupBy, sOrderBy, sUseAgg, sUseCountAll, sIsVirtualTable);
         let sSql: string = '';
         let sTql: string = '';
 
@@ -525,13 +526,13 @@ const QueryParser = (
             type: E_BLOCK_TYPE.STD,
         });
         // BAR | LINE | SCATTER
-        if (aResDataType[aIdx] === 'TIME_VALUE') {
+        if (aResDataType === 'TIME_VALUE') {
             sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
             if (sUseDiff) sTql += `MAP_${changeDiffText(aQuery.valueList[0]?.diff)}(1, value(1))`;
             if (aQuery?.math && aQuery?.math !== '') sTql += `${sUseDiff ? `\n` : ''}MAPVALUE(2, ${mathValueConverter('1', aQuery?.math)}, "VALUE")\nPOPVALUE(1)\n`;
         }
         // PIE | GAUGE | LIQUIDFILL
-        if (aResDataType[aIdx] === 'NAME_VALUE') {
+        if (aResDataType === 'NAME_VALUE') {
             if (sIsVirtualTable) {
                 const sTable = aQuery.tableName.split('.').length > 1 ? aQuery.tableName : ADMIN_ID + '.' + aQuery.tableName;
                 sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${sTable} ${sConbineWhere}`;
@@ -546,7 +547,7 @@ const QueryParser = (
             query: `SQL("${sSql}")${sTql !== '' ? '\n' + sTql : ''}\n${TQL.SINK._JSON()}`,
             alias: sAlias,
             idx: aIdx,
-            dataType: aResDataType[aIdx],
+            dataType: aResDataType,
             sql: sSql,
             tql: sTql,
             name: aQuery.name,
@@ -570,11 +571,10 @@ const QueryParser = (
         });
     }
     if (aTransformBlockList && aTransformBlockList.length > 0 && CheckAllowedTransformChartType(aChartType)) {
-        const [sParsedAliasList, sParsedTrxList] = TRX_PARSER(aChartType as E_ALLOW_CHART_TYPE, aTransformBlockList, sResultQuery, sV_V_X_AXIS, aIsSave);
+        const [sParsedAliasList, sParsedTrxList] = TRX_PARSER(aChartType, aResDataType, aTransformBlockList, sResultQuery, sV_V_X_AXIS, aIsSave);
         sAliasList = sAliasList.concat(sParsedAliasList);
         sResultQuery = sResultQuery.concat(sParsedTrxList);
     }
-    sAliasList = sAliasList.filter((alias) => alias?.useQuery);
-    sResultQuery = sResultQuery.filter((item: any) => item?.useQuery);
+
     return [sResultQuery, sAliasList, sInjectionSrc];
 };

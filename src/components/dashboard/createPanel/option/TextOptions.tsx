@@ -3,17 +3,20 @@ import { Collapse } from '@/components/collapse/Collapse';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 import useOutsideClick from '@/hooks/useOutsideClick';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import CompactPicker from 'react-color/lib/components/compact/Compact';
 import { MultiColorPkr } from './MultiColorPkr';
 import { PlusCircle } from '@/assets/icons/Icon';
+import { BadgeSelect, BadgeSelectorItemType } from '@/components/inputs/BadgeSelector';
+import { getChartSeriesName } from '@/utils/dashboardUtil';
+import { E_BLOCK_TYPE } from '@/utils/Chart/TransformDataParser';
 
-interface LiquidfillOptionProps {
+interface ChartOptionProps {
     pPanelOption: any;
     pSetPanelOption: any;
 }
 
-export const TextOptions = (props: LiquidfillOptionProps) => {
+export const TextOptions = (props: ChartOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
     const sChartColorPickerRef = useRef<any>(null);
     const sColorPickerRef = useRef<any>(null);
@@ -22,6 +25,55 @@ export const TextOptions = (props: LiquidfillOptionProps) => {
 
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
     useOutsideClick(sChartColorPickerRef, () => setIsChartColorPicker(false));
+
+    const getBlockList = useMemo((): any[] => {
+        const sTmpBlockList = JSON.parse(JSON.stringify(pPanelOption?.blockList));
+        const sTmpTrxBlockList = JSON.parse(JSON.stringify(pPanelOption?.transformBlockList ?? []));
+
+        const sBlockResult =
+            sTmpBlockList?.map((block: any, idx: number) => {
+                return {
+                    name: block.customFullTyping.use
+                        ? 'custom'
+                        : getChartSeriesName({
+                              alias: block?.useCustom ? block?.values[0]?.alias : block?.alias,
+                              table: block?.table,
+                              column: block?.useCustom ? block?.values[0]?.value : block?.value,
+                              aggregator: block?.useCustom ? block?.values[0]?.aggregator : block?.aggregator,
+                          }),
+                    color: block.color,
+                    idx: idx,
+                    type: E_BLOCK_TYPE.STD,
+                };
+            }) ?? [];
+
+        const sTrxBlockResult = sTmpTrxBlockList?.map((trxB: any, idx: number) => {
+            return {
+                name: !!trxB?.alias ? trxB?.alias : `TRANSFORM_VALUE(${idx})`,
+                color: trxB?.color,
+                idx: idx + 100,
+                type: E_BLOCK_TYPE.TRX,
+            };
+        });
+
+        return sBlockResult?.concat(sTrxBlockResult ?? []);
+    }, [pPanelOption?.blockList, pPanelOption?.transformBlockList]);
+
+    const handleSeriesOption = (aKey: string, aItem: BadgeSelectorItemType) => {
+        let sTargetItem: undefined | number = aItem.idx;
+
+        if (sTargetItem === pPanelOption?.chartOptions?.[aKey]?.[0]) sTargetItem = undefined;
+
+        pSetPanelOption((aPrev: any) => {
+            return {
+                ...aPrev,
+                chartOptions: {
+                    ...aPrev.chartOptions,
+                    [aKey]: [sTargetItem],
+                },
+            };
+        });
+    };
 
     const HandleOption = (aEvent: any, aKey: any) => {
         pSetPanelOption((prev: any) => {
@@ -173,9 +225,16 @@ export const TextOptions = (props: LiquidfillOptionProps) => {
                         })}
                     </>
                 </Collapse>
+                <>
+                    <div className="divider" />
+                    <span>Series</span>
+                    <div style={{ padding: '8px 10px 0 0' }}>
+                        <BadgeSelect pSelectedList={pPanelOption?.chartOptions?.textSeries} pList={getBlockList} pCallback={(item) => handleSeriesOption('textSeries', item)} />
+                    </div>
+                </>
             </Collapse>
             <div className="divider" />
-            <Collapse title="Chart option" isOpen isDisable={pPanelOption.blockList.length < 2}>
+            <Collapse title="Chart option" isOpen>
                 <div className="menu-style">
                     <span>Type</span>
                     <Select
@@ -183,7 +242,6 @@ export const TextOptions = (props: LiquidfillOptionProps) => {
                         pHeight={25}
                         pBorderRadius={4}
                         pFontSize={12}
-                        pIsDisabled={pPanelOption.blockList.length < 2}
                         pInitValue={pPanelOption.chartOptions?.chartType}
                         onChange={(aEvent: any) => HandleOption(aEvent, 'chartType')}
                         pOptions={['line', 'bar', 'scatter']}
@@ -197,7 +255,6 @@ export const TextOptions = (props: LiquidfillOptionProps) => {
                             pWidth={100}
                             pHeight={25}
                             pMin={0}
-                            pIsDisabled={pPanelOption.blockList.length < 2}
                             pMax={1}
                             pBorderRadius={4}
                             pValue={pPanelOption.chartOptions?.fillOpacity}
@@ -212,7 +269,6 @@ export const TextOptions = (props: LiquidfillOptionProps) => {
                             pType="number"
                             pHeight={25}
                             pWidth={100}
-                            pIsDisabled={pPanelOption.blockList.length < 2}
                             pBorderRadius={4}
                             pValue={pPanelOption.chartOptions?.symbolSize}
                             onChange={(aEvent: any) => HandleOption(aEvent, 'symbolSize')}
@@ -224,7 +280,6 @@ export const TextOptions = (props: LiquidfillOptionProps) => {
                     <IconButton
                         pWidth={20}
                         pHeight={20}
-                        pDisabled={pPanelOption.blockList.length < 2}
                         pIcon={
                             <div
                                 style={{
@@ -250,6 +305,13 @@ export const TextOptions = (props: LiquidfillOptionProps) => {
                         </div>
                     )}
                 </div>
+                <>
+                    <div className="divider" />
+                    <span>Series</span>
+                    <div style={{ padding: '8px 10px 0 0' }}>
+                        <BadgeSelect pSelectedList={pPanelOption?.chartOptions?.chartSeries} pList={getBlockList} pCallback={(item) => handleSeriesOption('chartSeries', item)} />
+                    </div>
+                </>
             </Collapse>
         </div>
     );

@@ -38,7 +38,7 @@ import { E_CHART_TYPE } from '@/type/eChart';
 import { TransformBlockType } from './Transform/type';
 import { VscEye, VscEyeClosed } from 'react-icons/vsc';
 
-export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder }: any) => {
+export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
@@ -476,7 +476,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         const sChartConvertType = chartTypeConverter(pPanelOption.type);
         let sChartDataType = SqlResDataType(sChartConvertType);
 
-        if (sChartConvertType === 'text' && pBlockOrder === 0) sChartDataType = 'NAME_VALUE';
         if (sChartConvertType === 'geomap') return geomapAggregatorList;
         if (sChartDataType === 'TIME_VALUE') {
             let sAggregatorList = pBlockInfo.type === 'tag' ? tagAggregatorList : logAggregatorList;
@@ -493,7 +492,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     const getTableList = useMemo((): string[] => {
         const sUseCustom = pBlockInfo.useCustom;
         let sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
-        if (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT && pBlockOrder === 0) sChartDataType = 'NAME_VALUE';
         let sAggList: string[] = [];
         if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : [...tagAggregatorList, ...DIFF_LIST];
         if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
@@ -502,14 +500,16 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         const sIsValidAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0].aggregator : pBlockInfo.aggregator);
         // Set vaild agg
         if (!sIsValidAgg && pPanelOption.type !== 'Geomap') {
-            const sTempBlockList = JSON.parse(JSON.stringify(pBlockInfo));
-            sTempBlockList.aggregator = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? 'avg' : 'count';
-            sTempBlockList.values[0]?.aggregator && (sTempBlockList.values[0].aggregator = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? 'avg' : 'count');
+            const sTempBlockInfo = JSON.parse(JSON.stringify(pBlockInfo));
+            sTempBlockInfo.aggregator = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? 'avg' : 'count';
+            sTempBlockInfo.values[0]?.aggregator && (sTempBlockInfo.values[0].aggregator = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? 'avg' : 'count');
             // Set option
-            pSetPanelOption((aPrev: any) => {
+            pSetPanelOption(() => {
+                const sTmpBlockList = pPanelOption.blockList;
+                sTmpBlockList[pBlockOrder] = sTempBlockInfo;
                 return {
-                    ...aPrev,
-                    blockList: [sTempBlockList],
+                    ...pPanelOption,
+                    blockList: sTmpBlockList,
                 };
             });
         }
@@ -769,31 +769,28 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             pWidth={20}
                             pHeight={20}
                             pIsToopTip
+                            pDisabled={pBlockCount.addable ? false : pBlockInfo?.isVisible ? false : true}
                             pToolTipContent={pBlockInfo?.isVisible ? 'Visible' : 'Invisible'}
                             pToolTipId={pBlockInfo.id + '-block-visible'}
                             pIcon={pBlockInfo?.isVisible ? <VscEye /> : <VscEyeClosed />}
                             onClick={() => setOption('isVisible', !pBlockInfo?.isVisible)}
                         />
                         <div ref={sColorPickerRef} style={{ position: 'relative' }}>
-                            {pPanelOption.type !== 'Text' && (
-                                <IconButton
-                                    pDisabled={
-                                        chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ||
-                                        (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && pPanelOption.xAxisOptions[0].useBlockList[0] === pBlockOrder)
-                                    }
-                                    pWidth={20}
-                                    pHeight={20}
-                                    pIsToopTip
-                                    pToolTipContent={'Color'}
-                                    pToolTipId={pBlockInfo.id + '-block-color'}
-                                    pIcon={
-                                        <div
-                                            style={{ width: '14px', cursor: 'pointer', height: '14px', marginRight: '4px', borderRadius: '50%', backgroundColor: pBlockInfo.color }}
-                                        />
-                                    }
-                                    onClick={() => setIsColorPicker(!sIsColorPicker)}
-                                />
-                            )}
+                            <IconButton
+                                pDisabled={
+                                    chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ||
+                                    (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && pPanelOption.xAxisOptions[0].useBlockList[0] === pBlockOrder)
+                                }
+                                pWidth={20}
+                                pHeight={20}
+                                pIsToopTip
+                                pToolTipContent={'Color'}
+                                pToolTipId={pBlockInfo.id + '-block-color'}
+                                pIcon={
+                                    <div style={{ width: '14px', cursor: 'pointer', height: '14px', marginRight: '4px', borderRadius: '50%', backgroundColor: pBlockInfo.color }} />
+                                }
+                                onClick={() => setIsColorPicker(!sIsColorPicker)}
+                            />
 
                             {sIsColorPicker && (
                                 <div className="color-picker">

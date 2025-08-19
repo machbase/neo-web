@@ -9,6 +9,9 @@ export enum E_ALLOW_CHART_TYPE {
     SCATTER = 'scatter',
     PIE = 'pie',
     ADV_SCATTER = 'advScatter',
+    GAUGE = 'gauge',
+    LIQUID = 'liquidFill',
+    TEXT = 'text',
 }
 export enum E_BLOCK_TYPE {
     STD = 'block',
@@ -25,10 +28,11 @@ type TrxParsedAliasType = {
     useQuery: boolean;
     type: E_BLOCK_TYPE;
 };
-type TrxParsedBlockType = {
+export type TrxParsedBlockType = {
     alias: string;
     value: string;
     valid: boolean | undefined;
+    isVisible: boolean;
     block: any[];
 };
 type ResTrxType = {
@@ -41,26 +45,42 @@ type ResTrxType = {
     dataType: E_CHART_DATA_TYPE;
 };
 export const TRX_REPLACE_LIST = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
-export const ALLOWED_TRX_CHART_TYPE = [E_ALLOW_CHART_TYPE.LINE, E_ALLOW_CHART_TYPE.BAR, E_ALLOW_CHART_TYPE.SCATTER, E_ALLOW_CHART_TYPE.PIE, E_ALLOW_CHART_TYPE.ADV_SCATTER];
+export const ALLOWED_TRX_CHART_TYPE = [
+    E_ALLOW_CHART_TYPE.LINE,
+    E_ALLOW_CHART_TYPE.BAR,
+    E_ALLOW_CHART_TYPE.SCATTER,
+    E_ALLOW_CHART_TYPE.PIE,
+    E_ALLOW_CHART_TYPE.ADV_SCATTER,
+    E_ALLOW_CHART_TYPE.LIQUID,
+    E_ALLOW_CHART_TYPE.GAUGE,
+    E_ALLOW_CHART_TYPE.TEXT,
+];
 export const CheckAllowedTransformChartType = (aType: ChartType): boolean => {
     if (ALLOWED_TRX_CHART_TYPE.includes(aType as E_ALLOW_CHART_TYPE & E_CHART_TYPE)) return true;
     return false;
 };
-const TIME_VALUE_CHART_TYPE = [E_ALLOW_CHART_TYPE.LINE, E_ALLOW_CHART_TYPE.BAR, E_ALLOW_CHART_TYPE.SCATTER];
-const VALUE_VALUE_CHART_TYPE = [E_ALLOW_CHART_TYPE.ADV_SCATTER];
-const NAME_VALUE_CHART_TYPE = [E_ALLOW_CHART_TYPE.PIE];
+
+export type ChartDataType = keyof typeof E_CHART_DATA_TYPE;
 
 /** Trnasform data parser */
-export const TRX_PARSER = (aChartType: E_ALLOW_CHART_TYPE, aTrxBlockList: TransformBlockType[], aQueryBlockList: any[], aV_V_X_AXIS: string | undefined, aIsSave: boolean) => {
+export const TRX_PARSER = (
+    aChartType: string,
+    aDataType: ChartDataType,
+    aTrxBlockList: TransformBlockType[],
+    aQueryBlockList: any[],
+    aV_V_X_AXIS: string | undefined,
+    aIsSave: boolean
+) => {
     let sResultTrxList: (ResTrxType | undefined)[] = [];
     // COMMON
     const [sSourceAliasList, sSourceTrxList] = TRX_COMMON_PARSER(aTrxBlockList, aQueryBlockList) as [TrxParsedAliasType[], TrxParsedBlockType[]];
     // TIME_VALUE
-    if (TIME_VALUE_CHART_TYPE.includes(aChartType)) sResultTrxList = TRX_TIME_VALUE_PARSER(sSourceTrxList, aIsSave);
+    if (aDataType === E_CHART_DATA_TYPE.TIME_VALUE && aChartType !== E_ALLOW_CHART_TYPE.ADV_SCATTER) sResultTrxList = TRX_TIME_VALUE_PARSER(sSourceTrxList, aIsSave);
     // VALUE_VALUE
-    if (VALUE_VALUE_CHART_TYPE.includes(aChartType)) sResultTrxList = TRX_VALUE_VALUE_PARSER(sSourceTrxList, aV_V_X_AXIS as string, aIsSave);
+    if (aDataType === E_CHART_DATA_TYPE.VALUE_VALUE && aChartType === E_ALLOW_CHART_TYPE.ADV_SCATTER)
+        sResultTrxList = TRX_VALUE_VALUE_PARSER(sSourceTrxList, aV_V_X_AXIS as string, aIsSave);
     // NAME_VALUE
-    if (NAME_VALUE_CHART_TYPE.includes(aChartType)) sResultTrxList = TRX_NAME_VALUE_PARSER(sSourceTrxList, aIsSave);
+    if (aDataType === E_CHART_DATA_TYPE.NAME_VALUE) sResultTrxList = TRX_NAME_VALUE_PARSER(sSourceTrxList, aIsSave);
     return [sSourceAliasList, sResultTrxList];
 };
 
@@ -68,11 +88,12 @@ const TRX_COMMON_PARSER = (aTrxBlockList: TransformBlockType[], aQueryBlockList:
     const sTmpTransformAlias: TrxParsedAliasType[] = [];
     const sTmpTransformBlockList: TrxParsedBlockType[] = aTrxBlockList
         .map((aTrBlock) => {
-            aTrBlock.valid && sTmpTransformAlias.push({ name: aTrBlock.alias, color: aTrBlock.color, useQuery: true, type: E_BLOCK_TYPE.TRX });
+            aTrBlock.valid && sTmpTransformAlias.push({ name: aTrBlock.alias, color: aTrBlock.color, useQuery: aTrBlock.isVisible, type: E_BLOCK_TYPE.TRX });
             return {
                 alias: aTrBlock.alias,
                 value: aTrBlock.value,
                 valid: aTrBlock.valid,
+                isVisible: aTrBlock.isVisible,
                 block: aTrBlock.selectedBlockIdxList.map((aSelBlockIdx) => {
                     return aQueryBlockList[aSelBlockIdx];
                 }),
@@ -106,7 +127,7 @@ const TRX_TIME_VALUE_PARSER = (trxList: TrxParsedBlockType[], aIsSave: boolean) 
 
         return {
             trx: true,
-            useQuery: true,
+            useQuery: tmpTrxBlock.isVisible,
             alias: tmpTrxBlock.alias,
             query: sQuery + '\n' + TQL.SINK._JSON(),
             tql: '',
@@ -146,7 +167,7 @@ const TRX_VALUE_VALUE_PARSER = (trxList: TrxParsedBlockType[], aV_V_X_AXIS: stri
 
         return {
             trx: true,
-            useQuery: true,
+            useQuery: tmpTrxBlock.isVisible,
             alias: tmpTrxBlock.alias,
             query: sQuery + '\n' + TQL.SINK._JSON(),
             tql: '',
@@ -184,7 +205,7 @@ const TRX_NAME_VALUE_PARSER = (trxList: TrxParsedBlockType[], aIsSave: boolean) 
         sQuery += '\n' + TQL.MAP.MAPVALUE(0, `dict("name", "${tmpTrxBlock.alias}", "value", (${sMapvalue}))`);
         return {
             trx: true,
-            useQuery: true,
+            useQuery: tmpTrxBlock.isVisible,
             alias: tmpTrxBlock.alias,
             query: sQuery + '\n' + TQL.SINK._JSON(),
             tql: '',

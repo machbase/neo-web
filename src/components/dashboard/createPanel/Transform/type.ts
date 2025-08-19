@@ -5,6 +5,7 @@ export type TransformBlockType = {
     color: string;
     value: string;
     valid: undefined | boolean;
+    isVisible: boolean;
     selectedBlockIdxList: number[];
 };
 export type TransformBlockKeyType = keyof Omit<TransformBlockType, 'id' | 'selectedBlockIdxList'> | 'selectBlockIdx';

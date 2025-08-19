@@ -1,7 +1,7 @@
+import './ConfirmModal.scss';
 import { Close } from '@/assets/icons/Icon';
 import { TextButton } from '@/components/buttons/TextButton';
 import Modal from './Modal';
-import './ConfirmModal.scss';
 import React from 'react';
 import { VscQuestion } from 'react-icons/vsc';
 
@@ -38,7 +38,7 @@ export const ConfirmModal = (props: DeleteModalProps) => {
                     </div>
                 </Modal.Header>
                 <Modal.Body>
-                    <div className="body">{pContents}</div>
+                    <div className="confirm-modal-body">{pContents}</div>
                 </Modal.Body>
                 <Modal.Footer>
                     <div className="button-group">

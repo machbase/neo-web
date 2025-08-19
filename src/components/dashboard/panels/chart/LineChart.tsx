@@ -3,7 +3,7 @@ import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart, getTqlScripts } fro
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { calcInterval, calcRefreshTime, decodeFormatterFunction, PanelIdParser, setUnitTime } from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
-import { DashboardQueryParser } from '@/utils/DashboardQueryParser';
+import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
 import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
 import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
 import { useRecoilValue } from 'recoil';
@@ -21,6 +21,7 @@ import { Markdown } from '@/components/worksheet/Markdown';
 import { isValidJSON } from '@/utils';
 import TABLE from '@/components/table';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
+import { FakeTextBlock } from '@/utils/helpers/Dashboard/BlockHelper';
 
 const LineChart = ({
     pIsActiveTab,
@@ -120,8 +121,9 @@ const LineChart = ({
         } else {
             setTqlResultType(TqlResType.VISUAL);
             if (!sStartTime || !sEndTime) return;
-            const [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
+            let [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
                 chartTypeConverter(pPanelInfo.type),
+                SqlResDataType(chartTypeConverter(pPanelInfo.type)),
                 pPanelInfo.blockList,
                 pPanelInfo.transformBlockList,
                 sRollupTableList,
@@ -134,6 +136,57 @@ const LineChart = ({
                 PanelIdParser(pChartVariableId + '-' + pPanelInfo.id),
                 pBoardInfo.dashboard.variables
             );
+            if (pPanelInfo.type === 'Text') {
+                const [sTxtParsedQuery, sTxtAliasList] = DashboardQueryParser(
+                    chartTypeConverter(pPanelInfo.type),
+                    'NAME_VALUE',
+                    pPanelInfo.blockList,
+                    pPanelInfo.transformBlockList,
+                    sRollupTableList,
+                    pPanelInfo.xAxisOptions,
+                    {
+                        interval: sIntervalInfo,
+                        start: sStartTime,
+                        end: sEndTime,
+                    },
+                    PanelIdParser(pChartVariableId + '-' + pPanelInfo.id),
+                    pBoardInfo.dashboard.variables
+                );
+                let sTmpParsedQuery = [];
+                let sTmpAliasList = [];
+
+                // TEXT
+                const sTxtIdx = pPanelInfo.chartOptions.textSeries;
+                const sTxtTrx = sTxtParsedQuery.filter((item: any) => item.trx);
+                const sTxtQuery = sTxtParsedQuery.filter((item: any) => !item.trx);
+
+                if (sTxtIdx < 100) {
+                    sTmpParsedQuery[0] = sTxtQuery?.[sTxtIdx]?.useQuery ? sTxtQuery[sTxtIdx] : FakeTextBlock.block;
+                    sTmpAliasList[0] = sTxtQuery?.[sTxtIdx]?.useQuery ? sTxtAliasList[sTxtQuery[sTxtIdx].idx] : FakeTextBlock.alias;
+                } else {
+                    sTmpParsedQuery[0] = sTxtTrx[sTxtIdx - 100]?.useQuery ? sTxtTrx[sTxtIdx - 100] : FakeTextBlock.block;
+                    sTmpAliasList[0] = sTxtTrx[sTxtIdx - 100]?.useQuery ? sTxtAliasList[sTxtTrx[sTxtIdx - 100].idx] : FakeTextBlock.alias;
+                }
+
+                // CHART
+                const sChartIdx = pPanelInfo.chartOptions.chartSeries;
+                const sChartTrx = sParsedQuery.filter((item: any) => item.trx);
+                const sChartQuery = sParsedQuery.filter((item: any) => !item.trx);
+
+                if (sChartIdx < 100) {
+                    sTmpParsedQuery[1] = sChartQuery[sChartIdx]?.useQuery ? sChartQuery[sChartIdx] : FakeTextBlock.block;
+                    sTmpAliasList[1] = sChartQuery[sChartIdx]?.useQuery ? sAliasList[sChartQuery[sChartIdx].idx] : FakeTextBlock.alias;
+                } else {
+                    sTmpParsedQuery[1] = sChartTrx[sChartIdx - 100]?.useQuery ? sChartTrx[sChartIdx - 100] : FakeTextBlock.block;
+                    sTmpAliasList[1] = sChartTrx[sChartIdx - 100]?.useQuery ? sAliasList[sChartTrx[sChartIdx - 100].idx] : FakeTextBlock.alias;
+                }
+                sParsedQuery = sTmpParsedQuery;
+                sAliasList = sTmpAliasList;
+            }
+
+            sAliasList = sAliasList.filter((alias: any) => alias?.useQuery);
+            sParsedQuery = sParsedQuery.filter((item: any) => item?.useQuery);
+
             const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
             const sParsedChartCode = DashboardChartCodeParser(
                 pPanelInfo.chartOptions,

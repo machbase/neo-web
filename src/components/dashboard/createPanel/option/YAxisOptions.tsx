@@ -107,7 +107,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
 
         const sTrxBlockResult = sTmpTrxBlockList?.map((trxB: any, idx: number) => {
             return {
-                name: trxB?.alias,
+                name: !!trxB?.alias ? trxB?.alias : `TRANSFORM_VALUE(${idx})`,
                 color: trxB?.color,
                 idx: idx + 100,
                 type: E_BLOCK_TYPE.TRX,
