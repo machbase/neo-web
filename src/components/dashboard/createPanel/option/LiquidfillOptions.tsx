@@ -35,6 +35,31 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
     return (
         <div className="liquid-fill-options-wrape">
             <div className="menu-style">
+                <span>Min</span>
+                <Input
+                    pType="number"
+                    pWidth={100}
+                    pHeight={25}
+                    pBorderRadius={4}
+                    pValue={pPanelOption.chartOptions?.minData ?? 0}
+                    pSetValue={() => null}
+                    onChange={(aEvent: any) => HandleOption(aEvent, 'minData')}
+                />
+            </div>
+            <div className="menu-style">
+                <span>Max</span>
+                <Input
+                    pType="number"
+                    pWidth={100}
+                    pHeight={25}
+                    pBorderRadius={4}
+                    pValue={pPanelOption.chartOptions?.maxData ?? 100}
+                    pSetValue={() => null}
+                    onChange={(aEvent: any) => HandleOption(aEvent, 'maxData')}
+                />
+            </div>
+            <div className="divider" />
+            <div className="menu-style">
                 <span>Shape</span>
                 <Select
                     pFontSize={12}
@@ -82,30 +107,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                     onChange={(aEvent: any) => HandleOption(aEvent, 'fontSize')}
                 />
             </div>
-            <div className="menu-style">
-                <span>Wave min</span>
-                <Input
-                    pType="number"
-                    pWidth={100}
-                    pHeight={25}
-                    pBorderRadius={4}
-                    pValue={pPanelOption.chartOptions?.minData ?? 0}
-                    pSetValue={() => null}
-                    onChange={(aEvent: any) => HandleOption(aEvent, 'minData')}
-                />
-            </div>
-            <div className="menu-style">
-                <span>Wave max</span>
-                <Input
-                    pType="number"
-                    pWidth={100}
-                    pHeight={25}
-                    pBorderRadius={4}
-                    pValue={pPanelOption.chartOptions?.maxData ?? 100}
-                    pSetValue={() => null}
-                    onChange={(aEvent: any) => HandleOption(aEvent, 'maxData')}
-                />
-            </div>
+
             <div className="menu-style">
                 <span>Wave amplitude</span>
                 <Input
