@@ -50,8 +50,8 @@ export const ConfirmableSelect = (props: ConfirmableSelectProps) => {
     const optionRef = useRef<HTMLDivElement>(null);
 
     const handleSelect = (aValue: string, idx: number) => {
+        setIsOpen(false);
         if (pUseConfirmRule && pConfirmTrigger === aValue) {
-            setIsOpen(false);
             setPendingValue(aValue);
             setPendingIdx(idx);
             setIsConfirmModalOpen(true);

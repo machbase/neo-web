@@ -123,7 +123,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
             <div className="body">
                 <ConfirmableSelect
                     pConfirmTrigger="Geomap"
-                    pConfirmMessage={`When changing to the geomap type, the transform data disappears.`}
+                    pConfirmMessage={`Changing to geomap type will remove transform data.`}
                     pUseConfirmRule={getHasTrxBlock}
                     pFontSize={14}
                     pWidth={'100%'}
