@@ -13,6 +13,7 @@ import { findItemByUniqueKey, findParentDirByUniqueKey } from '@/utils/file-mana
 import useThrottle from '@/hooks/useThrottle';
 import { moveFile } from '@/api/repository/fileTree';
 import { FileNameValidator } from '@/utils/FileExtansion';
+import { Tooltip } from 'react-tooltip';
 
 interface FileTreeProps {
     rootDir: FileTreeType;
@@ -387,6 +388,26 @@ export const FileTree = (props: FileTreeProps) => {
                 }}
                 style={{ flexGrow: '1', width: '100%', backgroundColor: 'transparent' }}
             />
+            <Tooltip
+                id="shared-file-tooltip"
+                className="file-tree-tooltip"
+                place="top"
+                positionStrategy="absolute"
+                delayShow={500}
+                style={{ 
+                    backgroundColor: '#2d2d30',
+                    color: '#cccccc',
+                    border: '1px solid #454545',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    maxWidth: '300px',
+                    wordBreak: 'break-all',
+                    wordWrap: 'break-word',
+                    whiteSpace: 'pre-wrap',
+                    overflowWrap: 'break-word',
+                    zIndex: 9999
+                }}
+            />
         </div>
     );
 };
@@ -523,6 +544,24 @@ const GitIcon = (aFile: FileTreeType, aRefreshCallback: any) => {
         <div style={{ display: 'flex', alignItems: 'center', marginRight: '16px', width: '22px', height: '22px' }} onClick={(e) => handleGit(aFile, aRefreshCallback, e)}>
             {GitStatusIcon()}
         </div>
+    );
+};
+
+const FileNameWithTooltip = ({ file }: { file: FileType | FileTreeType }) => {
+    return (
+        <span 
+            data-tooltip-id="shared-file-tooltip"
+            data-tooltip-content={file.name}
+            style={{ 
+                marginLeft: 1, 
+                fontSize: '13px', 
+                whiteSpace: 'nowrap', 
+                textOverflow: 'ellipsis', 
+                overflow: 'hidden'
+            }}
+        >
+            {file.name}
+        </span>
     );
 };
 
@@ -742,7 +781,7 @@ const FileDiv = ({
                             />
                         </div>
                     ) : (
-                        <span title={file.name} style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{file.name}</span>
+                        <FileNameWithTooltip file={file} />
                     )}
                 </div>
                 {(file as FileTreeType).gitClone && (file as FileTreeType).virtual ? GitIcon(file as FileTreeType, onRefresh) : null}
