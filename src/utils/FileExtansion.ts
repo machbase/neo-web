@@ -1,23 +1,26 @@
 import { getId } from '.';
+import { getExtensionOnly } from './fileNameUtils';
 
 export const FileType = ['sql', 'tql', 'json', 'csv', 'md', 'txt', 'wrk', 'taz', 'dsh', 'html', 'css', 'js'];
 // validator file name n extension
 export const FileNameAndExtensionValidator = (aTxt: string): boolean => {
-    const FileRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9_-\\s]+\\.{1}(${FileType.join('|')}){1}$`, 'gm');
-    return FileRegExp.test(aTxt);
+    const WithExtensionRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9_-\\s\\.]+\\.{1}(${FileType.join('|')}){1}$`, 'gm');
+    
+    return WithExtensionRegExp.test(aTxt);
 };
 // validator file name
 export const FileNameValidator = (aTxt: string): boolean => {
-    const FileRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\-\\_\\(\\)\\s]*$`, 'gm');
+    if (aTxt.startsWith('.')) return false;
+    const FileRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\-\\_\\(\\)\\s\\.]*$`, 'gm');
     return FileRegExp.test(aTxt);
 };
 // validator path root '/'
 export const PathRootValidator = (aTxt: string): boolean => {
-    if (aTxt.includes('..') || aTxt.includes('./') || aTxt.includes('/.')) return false;
+    if (aTxt.includes('..') || aTxt.includes('./')) return false;
     const DoubleSlash = new RegExp(`//`, 'gm');
     const BaseRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9]*`, 'gm');
     const FileRegExp = aTxt.split('/').every((aItem) => {
-        if (aItem.includes('.')) return BaseRegExp.test(aItem.split('.')[1]);
+        if (aItem.includes('.')) return BaseRegExp.test(getExtensionOnly(aItem));
         else return FileNameValidator(aItem);
     });
     return FileRegExp && !DoubleSlash.test(aTxt);

@@ -6,6 +6,7 @@ import { useRecoilState, useSetRecoilState } from 'recoil';
 import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
 import { binaryCodeEncodeBase64, extractionExtension, isImage } from '@/utils';
+import { getFileNameAndExtension, getFileNameOnly } from '@/utils/fileNameUtils';
 import { BiDownload } from '@/assets/icons/Icon';
 import { postFileList } from '@/api/repository/api';
 import { findItemByUniqueKey, findParentDirByUniqueKey } from '@/utils/file-manager';
@@ -237,8 +238,11 @@ export const FileTree = (props: FileTreeProps) => {
     };
     const handleRename = async (aFile: any, aName: string) => {
         let sExpand: string = '';
-        if (aFile.type === 0) sExpand = '.' + aFile.name.split('.')[1];
-        if (aFile.name.split('.')[0] === aName) return;
+        if (aFile.type === 0) {
+            const { extension } = getFileNameAndExtension(aFile.name);
+            sExpand = extension ? '.' + extension : '';
+        }
+        if (getFileNameOnly(aFile.name) === aName) return;
         const sOldName = aFile.path + aFile.name;
         const sCurName = aFile.path + aName + sExpand;
         const sRenameResult: any = await moveFile(sOldName, sCurName);
@@ -562,7 +566,7 @@ const FileDiv = ({
     const isSelected = selectBoard?.path + selectBoard?.name === file.path + file.id;
     const depth = file.depth;
     const [sIsRename, setIsRename] = useState<boolean>(false);
-    const [sName, setName] = useState<string>(file.name.split('.')[0]);
+    const [sName, setName] = useState<string>(getFileNameOnly(file.name));
 
     const HandleDragStart = (e: any, aData: any) => {
         // const nImg = new Image();
@@ -660,7 +664,7 @@ const FileDiv = ({
     const resetRenameValue = () => {
         setIsRename(false);
         setRenameItem(undefined);
-        setName(file.name.split('.')[0]);
+        setName(getFileNameOnly(file.name));
     };
     const handleBlur = () => {
         if (sName && sName.length > 0) {
@@ -738,7 +742,7 @@ const FileDiv = ({
                             />
                         </div>
                     ) : (
-                        <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{file.name}</span>
+                        <span title={file.name} style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{file.name}</span>
                     )}
                 </div>
                 {(file as FileTreeType).gitClone && (file as FileTreeType).virtual ? GitIcon(file as FileTreeType, onRefresh) : null}

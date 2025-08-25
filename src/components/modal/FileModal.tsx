@@ -8,6 +8,7 @@ import { postFileList } from '@/api/repository/api';
 import useDebounce from '@/hooks/useDebounce';
 import { FileNameAndExtensionValidator, FileTazDfltVal, FileDshDfltVal, FileWrkDfltVal, PathRootValidator } from '@/utils/FileExtansion';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
+import { getFileNameAndExtension } from '@/utils/fileNameUtils';
 import './FileModal.scss';
 
 export interface FileModalProps {
@@ -29,8 +30,9 @@ export const FileModal = (props: FileModalProps) => {
 
     const handleSave = async () => {
         if (!sFilePath || sFilePath === '') return;
-        const fileName = (sFilePath.split('/').at(-1) as string).split('.');
-        const parsedExtension = fileName[1].toLowerCase();
+        const fullFileName = sFilePath.split('/').at(-1) as string;
+        const { extension } = getFileNameAndExtension(fullFileName);
+        const parsedExtension = extension.toLowerCase();
         let sPayload: any = undefined;
 
         if (parsedExtension.includes('wrk')) sPayload = FileWrkDfltVal;

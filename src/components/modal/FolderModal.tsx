@@ -60,7 +60,8 @@ export const FolderModal = (props: FolderModalProps) => {
         if (!sGitUrl) return;
         const sPathList = sGitUrl.split('/');
         if (sPathList.length <= 0) return;
-        setFolderPath('/' + sPathList[sPathList.length - 1].split('.')[0]);
+        const folderName = sPathList[sPathList.length - 1];
+        setFolderPath('/' + (folderName.endsWith('.git') ? folderName.slice(0, -4) : folderName));
     };
 
     const pathHandler = (e: any) => {
