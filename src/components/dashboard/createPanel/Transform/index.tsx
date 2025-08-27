@@ -140,6 +140,8 @@ const TransformBlock = ({
     const handleFormula = async () => {
         if (pTransformItem?.selectedBlockIdxList.length > 0) {
             let sMapValue = pTransformItem.value;
+            // Replace {{variable}} with 1 for validation
+            sMapValue = sMapValue.replaceAll(VARIABLE_REGEX, '1');
             pTransformItem.selectedBlockIdxList.map((blockIdx: number, aIdx: number) => {
                 if (pQueryBlockList[blockIdx]) sMapValue = sMapValue.replaceAll(new RegExp(`\\b${TRX_REPLACE_LIST[blockIdx]}\\b`, 'g'), `value(${aIdx})`);
             });
