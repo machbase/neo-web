@@ -22,6 +22,7 @@ import { isValidJSON } from '@/utils';
 import TABLE from '@/components/table';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { FakeTextBlock } from '@/utils/helpers/Dashboard/BlockHelper';
+import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 
 const LineChart = ({
     pIsActiveTab,
@@ -196,16 +197,6 @@ const LineChart = ({
                 PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)
             );
 
-            const checkUndefinedVariable = sParsedQuery.reduce((prev: string, curv: any) => {
-                const tmpMatch = curv.query.match(VARIABLE_REGEX);
-                return tmpMatch ? tmpMatch[0] : prev;
-            }, '');
-
-            if (checkUndefinedVariable) {
-                pType === 'edit' && Error(checkUndefinedVariable + ' is not defined');
-                setIsChartData(false);
-            }
-
             let sResult: any = undefined;
 
             if (pPanelInfo.type === 'Geomap') {
@@ -224,8 +215,7 @@ const LineChart = ({
                 });
 
                 // var markerList = ${JSON.stringify(pPanelInfo.chartOptions.marker)};
-                sResult = await getTqlChart(
-                    `SCRIPT("js", {
+                const sGeomapTql = `SCRIPT("js", {
                         var shapeList = ${JSON.stringify(sShapeList)};
                         var radiusList = ${JSON.stringify(sRadiusList)};
                         var colorList = ${JSON.stringify(sAliasList.map((alias: any) => alias.color))};
@@ -236,12 +226,21 @@ const LineChart = ({
                     GEOMAP(
                         geomapID('${PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}'),
                         size('${sRefClientWidth}px','${sRefClientHeight}px')
-                    )`,
+                    )`;
+                
+                const sTimeContext = {
+                    interval: sIntervalInfo,
+                    start: sStartTime,
+                    end: sEndTime
+                };
+                const sFinalGeomapTql = replaceVariablesInTql(sGeomapTql, pBoardInfo.dashboard.variables, sTimeContext);
+                
+                sResult = await getTqlChart(
+                    sFinalGeomapTql,
                     'dsh'
                 );
             } else {
-                sResult = await getTqlChart(
-                    `${sInjectionSrc}
+                const tql = `${sInjectionSrc}
                      CHART(
                         ${`chartID('${PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}'),`}
                         ${pPanelInfo.plg ? `plugins('${pPanelInfo.plg}'),` : ''}
@@ -249,7 +248,18 @@ const LineChart = ({
                         size('${sRefClientWidth}px','${sRefClientHeight}px'),
                         chartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption))}),
                         chartJSCode(${sParsedChartCode})
-                    )`,
+                    )`;
+                
+                const sTimeContext = {
+                    interval: sIntervalInfo,
+                    start: sStartTime,
+                    end: sEndTime
+                };
+
+                const sFinalTql = replaceVariablesInTql(tql, pBoardInfo.dashboard.variables, sTimeContext);
+
+                sResult = await getTqlChart(
+                    sFinalTql,
                     'dsh'
                 );
             }

@@ -179,13 +179,8 @@ export const DashboardQueryParser = (
         aUniqueId,
         aRollupList
     );
-    const [sReplaceQueryList, sReplaceAliasList] = ReplaceVariables(
-        sParsedQueryList,
-        sVariables,
-        sAliasList
-        // , aChartType
-    );
-    return [sReplaceQueryList, sReplaceAliasList, sInjectionSrc];
+    
+    return [sParsedQueryList, sAliasList, sInjectionSrc];
 };
 /** Combine table and user */
 const CombineTableUser = (table: string, customTable: boolean = false) => {
