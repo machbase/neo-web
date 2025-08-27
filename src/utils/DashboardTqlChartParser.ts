@@ -57,7 +57,8 @@ export const TqlChartParser = (
         parsedParamList = parsedParamList.map((parsedParam: string) => {
             let tmpParam = parsedParam;
             if (parsedParam.match(VARIABLE_REGEX)) {
-                parsedVariableList.map((parsedVariable) => {
+                const sortedVariables = parsedVariableList.sort((a, b) => b.key.length - a.key.length);
+                sortedVariables.map((parsedVariable) => {
                     if (parsedParam.match(parsedVariable.regEx)) tmpParam = tmpParam.replaceAll(parsedVariable.regEx, parsedVariable.value);
                 });
             }
