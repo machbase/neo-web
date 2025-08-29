@@ -1,6 +1,6 @@
 import './index.scss';
 import { useState, useRef, useEffect } from 'react';
-import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase, VscKey, GoTerminal } from '@/assets/icons/Icon';
+import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase, VscKey, GoTerminal, TableHeader } from '@/assets/icons/Icon';
 import ExtensionBtn from '@/components/extension/ExtensionBtn';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { BADGE_KEYWORD, gBoardList, gExtensionList, gLicense, gSelectedExtension, gSelectedTab } from '@/recoil/recoil';
@@ -16,6 +16,7 @@ import { RiLockPasswordLine } from 'react-icons/ri';
 import { Password } from '../password';
 import { VscExtensions } from 'react-icons/vsc';
 import { BadgeStatus } from '../badge';
+import { StatzTableModal } from '@/components/modal/StatzTableModal';
 
 const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any) => {
     const sNavigate = useNavigate();
@@ -25,6 +26,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
     const [sSelectedExtension, setSelectedExtension] = useRecoilState<string>(gSelectedExtension);
     const [sIsLicenseModal, setIsLicenseModal] = useState<boolean>(false);
     const [sIsPWDModal, setIsPWDModal] = useState<boolean>(false);
+    const [sIsStatzTableModal, setIsStatzTableModal] = useState<boolean>(false);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const getGLicense = useRecoilValue(gLicense);
@@ -136,6 +138,10 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
         setIsOpen(false);
         setIsPWDModal(true);
     };
+    const handleStatzTable = () => {
+        setIsOpen(false);
+        setIsStatzTableModal(true);
+    };
 
     useOutsideClick(MenuRef, () => setIsOpen(false));
 
@@ -182,6 +188,10 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
                                     <VscKey />
                                     <span>SSH Keys</span>
                                 </Menu.Item>
+                                <Menu.Item onClick={handleStatzTable}>
+                                    <TableHeader />
+                                    <span>Statz Table</span>
+                                </Menu.Item>
                                 <Menu.Item onClick={handlePWD}>
                                     <RiLockPasswordLine />
                                     <span>Change password</span>
@@ -197,6 +207,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
             </div>
             {sIsLicenseModal ? <LicenseModal pIsDarkMode setIsOpen={setIsLicenseModal} /> : null}
             {sIsPWDModal && <Password setIsOpen={setIsPWDModal} />}
+            {sIsStatzTableModal && <StatzTableModal setIsOpen={setIsStatzTableModal} />}
         </>
     );
 };
