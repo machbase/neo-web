@@ -22,18 +22,16 @@ import { Select } from '@/components/inputs/Select';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 import { IconButton } from '../buttons/IconButton';
-import { VARIABLE_TYPE } from '../dashboard/variable';
 
 export interface SaveDashboardModalProps {
     setIsOpen: any;
     pIsDarkMode?: boolean;
     pPanelInfo: any;
     pDashboardTime: any;
-    pVariables: VARIABLE_TYPE[];
 }
 
 export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
-    const { setIsOpen, pIsDarkMode, pPanelInfo, pDashboardTime, pVariables } = props;
+    const { setIsOpen, pIsDarkMode, pPanelInfo, pDashboardTime } = props;
     const [sSelectedDir, setSelectedDir] = useState<string[]>([]);
     const [sDeletePath, setDeletePath] = useState<string[]>([]);
     const [sSelectedFile, setSelectedFile] = useState<any>();
@@ -71,7 +69,6 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                 end: sEndTime,
             },
             undefined,
-            pVariables,
             true
         );
 

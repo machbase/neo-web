@@ -13,8 +13,6 @@ import { chartTypeConverter } from '@/utils/eChartHelper';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { TqlChartParser } from '@/utils/DashboardTqlChartParser';
 import moment from 'moment';
-import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
-import { Error } from '@/components/toast/Toast';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { Markdown } from '@/components/worksheet/Markdown';
@@ -134,8 +132,7 @@ const LineChart = ({
                     start: sStartTime,
                     end: sEndTime,
                 },
-                PanelIdParser(pChartVariableId + '-' + pPanelInfo.id),
-                pBoardInfo.dashboard.variables
+                PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)
             );
             if (pPanelInfo.type === 'Text') {
                 const [sTxtParsedQuery, sTxtAliasList] = DashboardQueryParser(
@@ -150,8 +147,7 @@ const LineChart = ({
                         start: sStartTime,
                         end: sEndTime,
                     },
-                    PanelIdParser(pChartVariableId + '-' + pPanelInfo.id),
-                    pBoardInfo.dashboard.variables
+                    PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)
                 );
                 let sTmpParsedQuery = [];
                 let sTmpAliasList = [];
