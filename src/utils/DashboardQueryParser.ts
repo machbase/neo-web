@@ -90,67 +90,6 @@ export const VariableParserForTql = (aVariables: VARIABLE_TYPE[]) => {
     return defineVar;
 };
 
-const ReplaceVariables = (
-    sParsedQueryList: any[],
-    variables: { key: string; value: string; regEx: RegExp }[],
-    alias: { color: string; name: string }[]
-    // , aChartType: string
-) => {
-    let tmpQueryList: any = JSON.parse(JSON.stringify(sParsedQueryList));
-    let tmpAliasList: any = JSON.parse(JSON.stringify(alias));
-
-    /////////////////////Variable v1///////////////////////////
-    variables.map((variable) => {
-        const tmpList: any = [];
-        const tmpAsList: any = [];
-        tmpQueryList.map((query: any, idx: number) => {
-            tmpList.push({
-                ...query,
-                idx: tmpList.length,
-                query: query.query.replaceAll(variable.regEx, variable.value),
-                sql: query.sql.replaceAll(variable.regEx, variable.value),
-            });
-            tmpAsList.push({ ...tmpAliasList[idx], name: tmpAliasList[idx]?.name?.replaceAll(variable.regEx, variable.value) });
-        });
-        tmpQueryList = tmpList;
-        tmpAliasList = tmpAsList;
-    });
-
-    //////////////////////Variable v2//////////////////////////
-    // // Iterate over the variables array and process each variable.
-    // variables.map((variable) => {
-    //     const tmpList: any = [];
-    //     const tmpAsList: any = [];
-    //     tmpQueryList.map((query: any, idx: number) => {
-    // // If the query does not match the variable's regex, add it as is.
-    //         if (!query.query.match(variable.regEx)) {
-    //             tmpList.push({ ...query, idx: tmpList.length });
-    //             tmpAsList.push(tmpAliasList[idx]);
-    //             return;
-    //         }
-    // // Split the variable value by comma and create queries for each value.
-    //         const tmpValuelist = variable.value.split(',');
-    //         if (tmpValuelist.length > 1) {
-    //             tmpValuelist.map((value) => {
-    //                 tmpList.push({ ...query, idx: tmpList.length, query: query.query.replaceAll(variable.regEx, value.trim()) });
-    //                 tmpAsList.push({ color: '', name: tmpAliasList[idx].name + '(' + value.trim() + ')' });
-    //             });
-    //         } else {
-    //             tmpList.push({ ...query, idx: tmpList.length, query: query.query.replaceAll(variable.regEx, variable.value) });
-    //             tmpAsList.push(tmpAliasList[idx]);
-    //         }
-    //     });
-    //     tmpQueryList = tmpList;
-    //     tmpAliasList = tmpAsList;
-    // });
-    // // If the chart type is 'GAUGE', use only the first query and alias.
-    // if (aChartType.toUpperCase() === 'GAUGE') {
-    //     tmpQueryList = [tmpQueryList[0]];
-    //     tmpAliasList = [tmpAliasList[0]];
-    // }
-
-    return [tmpQueryList, tmpAliasList];
-};
 
 /** Dashboard QUERY PARSER */
 export const DashboardQueryParser = (
@@ -162,11 +101,9 @@ export const DashboardQueryParser = (
     aXaxis: any,
     aTime: BlockTimeType,
     aUniqueId?: string,
-    aVariables?: VARIABLE_TYPE[],
     aIsSave: boolean = false
 ) => {
     const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
-    const sVariables = VariableParser(aVariables ?? [], aTime);
 
     const [sParsedQueryList, sAliasList, sInjectionSrc] = QueryParser(
         sQueryBlock,
@@ -179,13 +116,8 @@ export const DashboardQueryParser = (
         aUniqueId,
         aRollupList
     );
-    const [sReplaceQueryList, sReplaceAliasList] = ReplaceVariables(
-        sParsedQueryList,
-        sVariables,
-        sAliasList
-        // , aChartType
-    );
-    return [sReplaceQueryList, sReplaceAliasList, sInjectionSrc];
+    
+    return [sParsedQueryList, sAliasList, sInjectionSrc];
 };
 /** Combine table and user */
 const CombineTableUser = (table: string, customTable: boolean = false) => {

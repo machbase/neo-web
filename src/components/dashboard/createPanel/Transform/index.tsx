@@ -140,16 +140,17 @@ const TransformBlock = ({
     const handleFormula = async () => {
         if (pTransformItem?.selectedBlockIdxList.length > 0) {
             let sMapValue = pTransformItem.value;
+            // Replace {{variable}} with 1 for validation
+            sMapValue = sMapValue.replaceAll(VARIABLE_REGEX, '1');
             pTransformItem.selectedBlockIdxList.map((blockIdx: number, aIdx: number) => {
                 if (pQueryBlockList[blockIdx]) sMapValue = sMapValue.replaceAll(new RegExp(`\\b${TRX_REPLACE_LIST[blockIdx]}\\b`, 'g'), `value(${aIdx})`);
             });
             const src = TQL.SRC.FAKE('json', `{[${Array.from({ length: pTransformItem.selectedBlockIdxList.length }).fill(1)}]}`);
             const map = TQL.MAP.MAPVALUE(1, sMapValue);
             const sink = TQL.SINK._JSON();
-            const sInValidVar = !!sMapValue.match(VARIABLE_REGEX);
             const sResult: any = await getTqlChart(`${src}\n${map}\n${sink}`);
-            if (!sResult?.data?.success || !sResult?.data?.data?.rows?.length || sInValidVar) {
-                Error('Please check the entered formula. (Variables are not supported)');
+            if (!sResult?.data?.success || !sResult?.data?.data?.rows?.length) {
+                Error('Please check the entered formula.');
                 handleItem('valid', false);
             } else handleItem('valid', true);
         } else handleItem('valid', false);
