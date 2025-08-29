@@ -1,6 +1,7 @@
 import { getFileList, postFileList } from '@/api/repository/api';
 import { fileTreeParser } from './fileTreeParser';
 import { isJsonString } from './utils';
+import { getFileNameAndExtension, generateCopyName } from './fileNameUtils';
 
 export const UpdateTree = async ({ path, name }: { path: string; name: string }) => {
     const sPath = path.replace(name, '');
@@ -104,15 +105,15 @@ export const FileCopy = async (aTargetFile: any) => {
     const sTargetFileInfo: any = await getFileList('', aTargetFile.path, aTargetFile.name);
     const sParsedTargetFolder = fileTreeParser(sTargetFolderInfo.data, aTargetFile.path, aTargetFile.depth - 1, aTargetFile.parentId);
     const sTargetFileList = sParsedTargetFolder.files;
-    const sExt = aTargetFile.name.split('.');
+    const { fileName } = getFileNameAndExtension(aTargetFile.name);
     const sDuplList = sTargetFileList.filter(
         (aFile: any) =>
             aFile.path === aTargetFile.path &&
             aFile.depth === aTargetFile.depth &&
             aFile.parentId === aTargetFile.parentId &&
-            (aFile.path + aFile.name).includes(aTargetFile.path + sExt[0])
+            (aFile.path + aFile.name).includes(aTargetFile.path + fileName)
     );
-    const sCopyName = `${sExt[0]} (${sDuplList.length}).${sExt[1]}`;
+    const sCopyName = generateCopyName(aTargetFile.name, sDuplList.length);
     let payload = undefined;
 
     if (isJsonString(sTargetFileInfo)) {

@@ -7,6 +7,7 @@ import Modal from './Modal';
 import './UrlDownloadModal.scss';
 import { postFileList } from '@/api/repository/api';
 import { FileType } from '@/utils/FileExtansion';
+import { getFileNameAndExtension } from '@/utils/fileNameUtils';
 
 export interface FolderModalProps {
     setIsOpen: any;
@@ -40,7 +41,8 @@ export const UrlDownloadModal = (props: FolderModalProps) => {
         if (!sDownloadUrl) return;
         setIsLoad(() => true);
 
-        const [fileName, extension] = (sDownloadUrl.split('/').at(-1) as string).split('.');
+        const fullFileName = sDownloadUrl.split('/').at(-1) as string;
+        const { fileName, extension } = getFileNameAndExtension(fullFileName);
         const sIsAllowExtension = CheckAllowExtension(extension.toLowerCase());
         const sDownloadRes = await fetch(sDownloadUrl);
         let sPayload: any = undefined;

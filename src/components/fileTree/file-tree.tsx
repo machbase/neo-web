@@ -6,12 +6,14 @@ import { useRecoilState, useSetRecoilState } from 'recoil';
 import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
 import { binaryCodeEncodeBase64, extractionExtension, isImage } from '@/utils';
+import { getFileNameAndExtension, getFileNameOnly } from '@/utils/fileNameUtils';
 import { BiDownload } from '@/assets/icons/Icon';
 import { postFileList } from '@/api/repository/api';
 import { findItemByUniqueKey, findParentDirByUniqueKey } from '@/utils/file-manager';
 import useThrottle from '@/hooks/useThrottle';
 import { moveFile } from '@/api/repository/fileTree';
 import { FileNameValidator } from '@/utils/FileExtansion';
+import { Tooltip } from 'react-tooltip';
 
 interface FileTreeProps {
     rootDir: FileTreeType;
@@ -237,8 +239,11 @@ export const FileTree = (props: FileTreeProps) => {
     };
     const handleRename = async (aFile: any, aName: string) => {
         let sExpand: string = '';
-        if (aFile.type === 0) sExpand = '.' + aFile.name.split('.')[1];
-        if (aFile.name.split('.')[0] === aName) return;
+        if (aFile.type === 0) {
+            const { extension } = getFileNameAndExtension(aFile.name);
+            sExpand = extension ? '.' + extension : '';
+        }
+        if (getFileNameOnly(aFile.name) === aName) return;
         const sOldName = aFile.path + aFile.name;
         const sCurName = aFile.path + aName + sExpand;
         const sRenameResult: any = await moveFile(sOldName, sCurName);
@@ -383,6 +388,26 @@ export const FileTree = (props: FileTreeProps) => {
                 }}
                 style={{ flexGrow: '1', width: '100%', backgroundColor: 'transparent' }}
             />
+            <Tooltip
+                id="shared-file-tooltip"
+                className="file-tree-tooltip"
+                place="top"
+                positionStrategy="absolute"
+                delayShow={500}
+                style={{ 
+                    backgroundColor: '#2d2d30',
+                    color: '#cccccc',
+                    border: '1px solid #454545',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    maxWidth: '300px',
+                    wordBreak: 'break-all',
+                    wordWrap: 'break-word',
+                    whiteSpace: 'pre-wrap',
+                    overflowWrap: 'break-word',
+                    zIndex: 9999
+                }}
+            />
         </div>
     );
 };
@@ -522,6 +547,24 @@ const GitIcon = (aFile: FileTreeType, aRefreshCallback: any) => {
     );
 };
 
+const FileNameWithTooltip = ({ file }: { file: FileType | FileTreeType }) => {
+    return (
+        <span 
+            data-tooltip-id="shared-file-tooltip"
+            data-tooltip-content={file.name}
+            style={{ 
+                marginLeft: 1, 
+                fontSize: '13px', 
+                whiteSpace: 'nowrap', 
+                textOverflow: 'ellipsis', 
+                overflow: 'hidden'
+            }}
+        >
+            {file.name}
+        </span>
+    );
+};
+
 const FileDiv = ({
     file,
     icon,
@@ -562,7 +605,7 @@ const FileDiv = ({
     const isSelected = selectBoard?.path + selectBoard?.name === file.path + file.id;
     const depth = file.depth;
     const [sIsRename, setIsRename] = useState<boolean>(false);
-    const [sName, setName] = useState<string>(file.name.split('.')[0]);
+    const [sName, setName] = useState<string>(getFileNameOnly(file.name));
 
     const HandleDragStart = (e: any, aData: any) => {
         // const nImg = new Image();
@@ -660,7 +703,7 @@ const FileDiv = ({
     const resetRenameValue = () => {
         setIsRename(false);
         setRenameItem(undefined);
-        setName(file.name.split('.')[0]);
+        setName(getFileNameOnly(file.name));
     };
     const handleBlur = () => {
         if (sName && sName.length > 0) {
@@ -738,7 +781,7 @@ const FileDiv = ({
                             />
                         </div>
                     ) : (
-                        <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{file.name}</span>
+                        <FileNameWithTooltip file={file} />
                     )}
                 </div>
                 {(file as FileTreeType).gitClone && (file as FileTreeType).virtual ? GitIcon(file as FileTreeType, onRefresh) : null}
