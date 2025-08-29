@@ -392,7 +392,6 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                                     pTableIcon={<TfiLayoutColumn3Alt style={{ color: getColor(aTableType), rotate: '90deg' }} />}
                                                     pTable={aTable}
                                                     pTableType={aTableType}
-                                                    pTableFlag={aTable[5]}
                                                     pPriv={aTable[7] ?? ''}
                                                     onTableInfo={getTableInfoData}
                                                     onColumnInfo={getColumnIndexInfoData}
@@ -416,7 +415,6 @@ interface TableDivPropsType {
     pShowHiddenObj: boolean;
     pTableIcon: React.ReactElement;
     pTableType: string;
-    pTableFlag: number;
     pPriv: string;
     pUserName: string;
     pTable: (string | number)[];
@@ -458,7 +456,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
     };
 
     useEffect(() => {
-        if (props.pTableFlag == 0 || !props.pShowHiddenObj) fetchRecordCount();
+        if (props.pTableType === 'tag' || props.pTableType === 'log' || !props.pShowHiddenObj) fetchRecordCount();
     }, [props.pRefresh, props.pShowHiddenObj]);
 
     return (
