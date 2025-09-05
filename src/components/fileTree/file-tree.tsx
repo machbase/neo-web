@@ -394,10 +394,10 @@ export const FileTree = (props: FileTreeProps) => {
                 place="top"
                 positionStrategy="absolute"
                 delayShow={500}
+                border="1px solid #454545"
                 style={{ 
                     backgroundColor: '#2d2d30',
                     color: '#cccccc',
-                    border: '1px solid #454545',
                     borderRadius: '4px',
                     fontSize: '12px',
                     maxWidth: '300px',
