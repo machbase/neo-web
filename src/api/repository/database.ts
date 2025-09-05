@@ -6,7 +6,7 @@ export const fetchQuery = async (query: string) => {
         method: 'GET',
         url: `/api/query?q=` + encodeURIComponent(query),
     });
-    return { svrState: sData?.success ?? false, svrData: sData?.data, svrReason: sData?.data?.reason ?? sData?.toString() };
+    return { svrState: sData?.success ?? false, svrData: sData?.data, svrReason: sData?.data?.reason ?? sData?.reason ?? sData?.toString() };
 };
 
 export const fetchTqlQuery = async (aSql: string, aPage: number, aTake: number | undefined = SQL_BASE_LIMIT) => {
@@ -17,5 +17,5 @@ export const fetchTqlQuery = async (aSql: string, aPage: number, aTake: number |
         data: query,
     });
 
-    return { svrState: sData?.data?.success ?? false, svrData: sData?.data?.data, svrReason: sData?.data?.reason ?? sData?.toString() };
+    return { svrState: sData?.data?.success ?? false, svrData: sData?.data?.data, svrReason: sData?.data?.reason ?? sData?.reason ?? sData?.toString() };
 };

@@ -1,11 +1,12 @@
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { CheckTableFlag, DATA_NUMBER_TYPE, E_TABLE_INFO, E_TABLE_TYPE, FetchCommonType, GenTazDefault, STR_NUM_ARR_TYPE } from './utils';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchQuery, fetchTqlQuery } from '@/api/repository/database';
-// import useDebounceNew from '@/hooks/useDebounceNew';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { useSetRecoilState } from 'recoil';
 import useDebounce from '@/hooks/useDebounce';
+import { Success as ToastSuccess } from '@/components/toast/Toast';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
 
 type META_MOD_TYPE = 'INSERT' | 'UPDATE' | 'DELETE';
 const IGNORE_COL_LIST = ['_ID'];
@@ -22,6 +23,9 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
     const [sMetaTableCnt, setMetaTableCnt] = useState<number>(0);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
     const [sHasMoreData, setHasMoreData] = useState<boolean>(true);
+    const [sIsOpenConfirm, setIsOpenConfirm] = useState<boolean>(false);
+    const [sDelInfo, setDelInfo] = useState<string>('');
+    const sSearchIIFE = useRef(false);
 
     const mMetaColumnListWithoutID = useMemo(() => {
         if (sMetaTableInfo && sMetaTableInfo?.columns && sMetaTableInfo?.columns?.length > 0)
@@ -35,6 +39,9 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
     const mMetaTableInfo = useMemo(() => {
         return sMetaTableInfo;
     }, [sMetaTableInfo]);
+    const mTableInfo = useMemo(() => {
+        return pMTableInfo;
+    }, [pMTableInfo]);
 
     const FetchMetaTable = useCallback(
         async (opt: { page: number; filter: string }) => {
@@ -42,7 +49,7 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
             setIsLoading(true);
             const currentPage = opt?.page !== undefined ? opt?.page : sPage;
             const currentFilter = opt?.filter !== undefined ? opt.filter : sFilter;
-            const sTargetTable = `${pMTableInfo[E_TABLE_INFO.DB_NM]}.${pMTableInfo[E_TABLE_INFO.USER_NM]}._${pMTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE NAME LIKE '%${
+            const sTargetTable = `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}._${mTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE NAME LIKE '%${
                 currentFilter ? currentFilter + '%' : ''
             }'`;
             const sQuery = `select * from ${sTargetTable} order by _id asc`;
@@ -61,12 +68,12 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
 
             setIsLoading(false);
         },
-        [pMTableInfo]
+        [mTableInfo]
     );
     const FetchMetaTableCnt = useCallback(
         async (filter: string) => {
             const currentFilter = filter !== undefined ? filter : sFilter;
-            const sTargetTable = `${pMTableInfo[E_TABLE_INFO.DB_NM]}.${pMTableInfo[E_TABLE_INFO.USER_NM]}._${pMTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE NAME LIKE '%${
+            const sTargetTable = `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}._${mTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE NAME LIKE '%${
                 currentFilter ? currentFilter + '%' : ''
             }'`;
             const sQuery = `select count(*) from ${sTargetTable}`;
@@ -74,17 +81,17 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
             if (svrState) setMetaTableCnt(svrData?.rows?.[0]?.[0] ?? 0);
             else setMetaTableCnt(0);
         },
-        [pMTableInfo]
+        [mTableInfo]
     );
     const FetchTagMinMax = async (aTagNm: string) => {
-        const sQuery = `select min(min_time) as 'MIN', max(max_time) as 'MAX' from ${pMTableInfo[E_TABLE_INFO.DB_NM]}.${pMTableInfo[E_TABLE_INFO.USER_NM]}.V$${
-            pMTableInfo[E_TABLE_INFO.TB_NM]
+        const sQuery = `select min(min_time) as 'MIN', max(max_time) as 'MAX' from ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.V$${
+            mTableInfo[E_TABLE_INFO.TB_NM]
         }_STAT where NAME in ('${aTagNm}')`;
         const { svrData } = await fetchQuery(sQuery);
         const sTazBoard = GenTazDefault({
             aTag: aTagNm,
             aTime: { min: Math.floor(svrData.rows[0][0] / 1000000), max: Math.floor(svrData.rows[0][1] / 1000000) },
-            aTableInfo: pMTableInfo,
+            aTableInfo: mTableInfo,
         });
 
         setBoardList((aPrev: any) => {
@@ -125,18 +132,21 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
     const ModMeta = async (aCommand: META_MOD_TYPE, aTagNm: string, aValues?: STR_NUM_ARR_TYPE) => {
         let sQuery = '';
         if (aCommand === 'INSERT') {
-            sQuery = `INSERT INTO ${pMTableInfo[E_TABLE_INFO.DB_NM]}.${pMTableInfo[E_TABLE_INFO.USER_NM]}.${
-                pMTableInfo[E_TABLE_INFO.TB_NM]
-            } METADATA VALUES(${convertTagMetaForInsert(aValues as STR_NUM_ARR_TYPE)})`;
+            sQuery = `INSERT INTO ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]} METADATA VALUES(${convertTagMetaForInsert(
+                aValues as STR_NUM_ARR_TYPE
+            )})`;
         }
         if (aCommand === 'UPDATE') {
             const sConvertedStr = convertTagMetaForUpdate(aValues as STR_NUM_ARR_TYPE);
-            sQuery = `UPDATE ${pMTableInfo[E_TABLE_INFO.DB_NM]}.${pMTableInfo[E_TABLE_INFO.USER_NM]}.${
-                pMTableInfo[E_TABLE_INFO.TB_NM]
+            sQuery = `UPDATE ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${
+                mTableInfo[E_TABLE_INFO.TB_NM]
             } METADATA SET ${sConvertedStr} WHERE NAME='${aTagNm}'`;
         }
-        if (aCommand === 'DELETE')
-            sQuery = `DELETE FROM ${pMTableInfo[E_TABLE_INFO.DB_NM]}.${pMTableInfo[E_TABLE_INFO.USER_NM]}.${pMTableInfo[E_TABLE_INFO.TB_NM]} METADATA WHERE NAME='${aTagNm}'`;
+        if (aCommand === 'DELETE') {
+            // Close modal
+            setIsOpenConfirm(false);
+            sQuery = `DELETE FROM ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]} METADATA WHERE NAME='${aTagNm}'`;
+        }
 
         const { svrState, svrReason } = await fetchQuery(sQuery);
         if (svrState) {
@@ -162,7 +172,10 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
                     };
                 });
 
-            if (aCommand === 'INSERT' || aCommand === 'DELETE') FetchMetaTableCnt(sFilter);
+            if (aCommand === 'INSERT' || aCommand === 'DELETE') {
+                ToastSuccess(svrReason);
+                FetchMetaTableCnt(sFilter);
+            }
         } else {
             setModUpdateInfo((preV) => {
                 return { ...preV, msg: svrReason };
@@ -186,6 +199,13 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
     const handleInsertMeta = () => {
         ModMeta('INSERT', sModUpdateInfo.values[0] as string, sModUpdateInfo.values);
     };
+    const handleDeleteMeta = useCallback(
+        (aItem: any) => {
+            setDelInfo(aItem?.[sMetaTableInfo?.columns?.indexOf('NAME') as number]);
+            setIsOpenConfirm(true);
+        },
+        [sMetaTableInfo?.columns]
+    );
     const handleMetaPayload = (aColIdx: number, e: React.FormEvent<HTMLInputElement>) => {
         const sNewValues = JSON.parse(JSON.stringify(sModUpdateInfo.values));
         sNewValues[aColIdx] = (e.target as HTMLInputElement).value;
@@ -199,11 +219,15 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
         });
     };
     const handleSearchTxt = (e: React.FormEvent<HTMLInputElement>) => {
+        sSearchIIFE.current = false;
         setFilter((e.target as HTMLInputElement).value);
     };
-    const handleMoveTaz = useCallback((item: STR_NUM_ARR_TYPE) => {
-        FetchTagMinMax(item[1] as string);
-    }, []);
+    const handleMoveTaz = useCallback(
+        (item: STR_NUM_ARR_TYPE) => {
+            FetchTagMinMax(item[1] as string);
+        },
+        [mTableInfo]
+    );
 
     const handleEndOfContent = useCallback(() => {
         if (sIsLoading || !sHasMoreData) return; // Prevent calls while loading or no more data
@@ -211,13 +235,6 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
             return prevPage + 1;
         });
     }, [sIsLoading, sHasMoreData, sPage]);
-
-    const handleDeleteMeta = useCallback(
-        (aItem: any) => {
-            ModMeta('DELETE', aItem?.[sMetaTableInfo?.columns?.indexOf('NAME') as number]);
-        },
-        [sMetaTableInfo?.columns]
-    );
 
     const init = (shouldResetPage: boolean = true) => {
         if (shouldResetPage) {
@@ -233,23 +250,23 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
 
     // Effect for initial load only
     useEffect(() => {
-        if (CheckTableFlag(pMTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) {
+        if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) {
             // 첫 로드인지 테이블 변경인지 구분
             const isFirstLoad = !sIsComponentLoad;
             init(!isFirstLoad); // 첫 로드가 아닐 때만 페이지 리셋
         }
         if (!sIsComponentLoad) setIsComponentLoad(true);
-    }, [pMTableInfo, pRefresh.state]);
+    }, [mTableInfo, pRefresh.state]);
 
     // Effect for page changes (pagination) - only for page > 0
     useEffect(() => {
-        if (sPage > 0 && CheckTableFlag(pMTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG && sIsComponentLoad && sMetaTableInfo) {
+        if (sPage > 0 && CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG && sIsComponentLoad && sMetaTableInfo) {
             FetchMetaTable({ page: sPage, filter: sFilter });
         }
     }, [sPage]);
     // Debounced effect for filter changes
     const debouncedFilterSearch = useCallback(() => {
-        if (sIsComponentLoad && CheckTableFlag(pMTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) {
+        if (sIsComponentLoad && CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) {
             setPage(0);
             setMetaTableInfo(undefined);
             setHasMoreData(true); // Reset hasMoreData flag for new search
@@ -258,14 +275,19 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
         }
     }, [sFilter]);
 
-    useDebounce([sFilter], debouncedFilterSearch, 500);
+    const handleFilterIIFESearch = () => {
+        sSearchIIFE.current = true;
+        debouncedFilterSearch();
+    };
+
+    useDebounce([sFilter], debouncedFilterSearch, 1000, sSearchIIFE?.current ?? false);
 
     return (
         <div
-            key={pMTableInfo[E_TABLE_INFO.DB_NM] + pMTableInfo[E_TABLE_INFO.USER_NM] + pMTableInfo[E_TABLE_INFO.TB_NM]}
+            key={mTableInfo[E_TABLE_INFO.DB_NM] + mTableInfo[E_TABLE_INFO.USER_NM] + mTableInfo[E_TABLE_INFO.TB_NM]}
             style={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 40px)' }}
         >
-            {CheckTableFlag(pMTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG ? (
+            {CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG ? (
                 <>
                     <ExtensionTab.Body fixed>
                         <ExtensionTab.ContentBlock pHoverNone>
@@ -320,6 +342,7 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
                                 pValue={sFilter}
                                 pWidth={'100%'}
                                 pCallback={(event: React.FormEvent<HTMLInputElement>) => handleSearchTxt(event)}
+                                pEnter={handleFilterIIFESearch}
                             />
                             {!sModUpdateInfo.isOpen && sModUpdateInfo?.msg ? <ExtensionTab.TextResErr pText={sModUpdateInfo?.msg} /> : null}
                         </ExtensionTab.ContentBlock>
@@ -332,6 +355,18 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
                             eocCallback={handleEndOfContent}
                             saveCallback={handleUpdateMeta}
                             hasMoreData={sHasMoreData}
+                        />
+                    ) : null}
+                    {sIsOpenConfirm ? (
+                        <ConfirmModal
+                            pIsDarkMode
+                            setIsOpen={setIsOpenConfirm}
+                            pCallback={() => ModMeta('DELETE', sDelInfo)}
+                            pContents={
+                                <div className="body-content">
+                                    <span>{`Do you want to delete this meta (${sDelInfo ?? ''})?`}</span>
+                                </div>
+                            }
                         />
                     ) : null}
                 </>

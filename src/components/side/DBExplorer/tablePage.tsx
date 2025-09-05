@@ -264,9 +264,8 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                             color: E_TABLE_TYPE_COLOR[CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) as keyof typeof E_TABLE_TYPE_COLOR],
                                         }}
                                     />
-                                    <ExtensionTab.ContentDesc>{`${mTableInfo[E_TABLE_INFO.TB_NM]} (${mTableInfo[E_TABLE_INFO.DB_NM]}.${
-                                        mTableInfo[E_TABLE_INFO.USER_NM]
-                                    })`}</ExtensionTab.ContentDesc>
+                                    <ExtensionTab.ContentTitle>{`${mTableInfo[E_TABLE_INFO.TB_NM]}`}</ExtensionTab.ContentTitle>
+                                    <ExtensionTab.ContentDesc>{`(${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]})`}</ExtensionTab.ContentDesc>
                                     <div style={{ color: '#1c1c21' }}>TABLE ID: {mTableInfo[E_TABLE_INFO.TB_ID]}</div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px' }}>

@@ -146,6 +146,7 @@ const Input = ({
     pWidth = '400px',
     pMaxLen,
     pPlaceholder = '',
+    pEnter = () => {},
 }: {
     pAutoFocus?: boolean;
     pCallback?: (e: React.FormEvent<HTMLInputElement>) => void;
@@ -153,10 +154,20 @@ const Input = ({
     pWidth?: any;
     pMaxLen?: number;
     pPlaceholder?: string;
+    pEnter?: () => void;
 }) => {
+    const handleEnter = (e: React.KeyboardEvent) => {
+        if (e.type === 'keydown') {
+            if (e.keyCode !== 13) return;
+            else {
+                e.stopPropagation();
+                pEnter && pEnter();
+            }
+        }
+    };
     return (
         <div className="extension-tab-input-wrapper" style={{ width: '100%', maxWidth: pWidth }}>
-            <input placeholder={pPlaceholder} autoFocus={pAutoFocus} onChange={pCallback} value={pValue} maxLength={pMaxLen} />
+            <input placeholder={pPlaceholder} autoFocus={pAutoFocus} onChange={pCallback} value={pValue} maxLength={pMaxLen} onKeyDown={handleEnter} />
         </div>
     );
 };
@@ -615,7 +626,6 @@ const ScrollTable = React.memo(
         };
         const handleUpdateModInfo = (e: React.FormEvent<HTMLInputElement>, aRowIdx: number) => {
             let sUpdateValue = JSON.parse(JSON.stringify(sModInfo?.modAfterInfo?.row));
-            // 타입 단언을 사용하여 value 속성 접근
             sUpdateValue[aRowIdx] = (e.target as HTMLInputElement).value;
             setModInfo((prev) => {
                 return {
@@ -678,7 +688,7 @@ const ScrollTable = React.memo(
                     <thead className="extension-tab-scroll-table-header">
                         {pList && pList?.columns ? (
                             <tr>
-                                <th className="row-num" />
+                                <th className="row-num">#</th>
                                 {pList.columns.map((aColumn: string, aIdx: number) => {
                                     return (
                                         <th key={aColumn + '-' + aIdx} style={{ cursor: 'default' }}>
@@ -714,7 +724,7 @@ const ScrollTable = React.memo(
                                                     {pList?.columns[bIdx] !== '_ID' && sModInfo.modBeforeInfo.rowIdx === aIdx ? (
                                                         <Input
                                                             pAutoFocus={bIdx === 1}
-                                                            pValue={sModInfo?.modAfterInfo?.row?.[bIdx]}
+                                                            pValue={sModInfo?.modAfterInfo?.row?.[bIdx] ?? ''}
                                                             pWidth={'100%'}
                                                             pCallback={(e) => handleUpdateModInfo(e, bIdx)}
                                                         />
