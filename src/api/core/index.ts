@@ -27,12 +27,6 @@ request.interceptors.request.use(
         const sFileTaz = sUrlSplit[0].indexOf('.taz');
         const sFileDsh = sUrlSplit[0].indexOf('.dsh');
         const sFileWrk = sUrlSplit[0].indexOf('.wrk');
-        const sFileMd = sUrlSplit[0].indexOf('.md');
-        const sFileCsv = sUrlSplit[0].indexOf('.csv');
-        const sFileText = sUrlSplit[0].indexOf('.txt');
-        const sFileHtml = sUrlSplit[0].indexOf('.html');
-        const sFileCss = sUrlSplit[0].indexOf('.css');
-        const sFileJs = sUrlSplit[0].indexOf('.js');
         const sFileImg = isImage(sUrlSplit[0]);
         // Detect directory-creation POSTs to /api/files/.../ (trailing slash)
         const isFilesApi = sUrlSplit[0].startsWith('/api/files');
