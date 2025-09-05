@@ -84,13 +84,13 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
         [mTableInfo]
     );
     const FetchTagMinMax = async (aTagNm: string) => {
-        const sQuery = `select min(min_time) as 'MIN', max(max_time) as 'MAX' from ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.V$${
+        const sQuery = `select min(time) as 'MIN', max(time) as 'MAX' from ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${
             mTableInfo[E_TABLE_INFO.TB_NM]
-        }_STAT where NAME in ('${aTagNm}')`;
+        } where NAME in ('${aTagNm}')`;
         const { svrData } = await fetchQuery(sQuery);
         const sTazBoard = GenTazDefault({
             aTag: aTagNm,
-            aTime: { min: Math.floor(svrData.rows[0][0] / 1000000), max: Math.floor(svrData.rows[0][1] / 1000000) },
+            aTime: { min: Math.floor(svrData?.rows?.[0]?.[0] / 1000000), max: Math.floor(svrData?.rows?.[0]?.[1] / 1000000) },
             aTableInfo: mTableInfo,
         });
 
