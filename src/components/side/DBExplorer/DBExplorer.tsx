@@ -1,5 +1,5 @@
 import { backupStatus, getBackupDBList, getTableList } from '@/api/repository/api';
-import { TbEyeMinus, MdRefresh } from '@/assets/icons/Icon';
+import { MdRefresh } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { useEffect, useState } from 'react';
 import { VscChevronDown, VscChevronRight } from '@/assets/icons/Icon';
@@ -14,7 +14,6 @@ import { gBackupList, gBoardList, gSelectedTab } from '@/recoil/recoil';
 export const DBExplorer = ({ pServer }: any) => {
     const [sDBList, setDBList] = useState<any>([]);
     const [sCollapseTree, setCollapseTree] = useState(true);
-    const [sShowHiddenObj, setShowHiddenObj] = useState(true);
     const [sRefresh, setRefresh] = useState<number>(0);
     const [mountModalOpen, setMountModalOpen] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -87,11 +86,6 @@ export const DBExplorer = ({ pServer }: any) => {
         if (sBackupListRes && sBackupListRes?.success) {
             setBackupList(sBackupListRes?.data || []);
         } else setBackupList([]);
-    };
-    /** Handle hidden table */
-    const setHiddenObj = (aEvent: any) => {
-        aEvent.stopPropagation();
-        setShowHiddenObj(!sShowHiddenObj);
     };
     /** Handle mount db modal */
     const mountDBModal = (e: React.MouseEvent) => {
@@ -219,16 +213,6 @@ export const DBExplorer = ({ pServer }: any) => {
                         )}
                         <IconButton
                             pIsToopTip
-                            pToolTipContent={`${sShowHiddenObj ? 'Show hidden' : 'Hide'} table`}
-                            pToolTipId="db-explorer-show-table"
-                            pWidth={20}
-                            pHeight={20}
-                            pIsActive={!sShowHiddenObj}
-                            pIcon={<TbEyeMinus size={15} />}
-                            onClick={setHiddenObj}
-                        />
-                        <IconButton
-                            pIsToopTip
                             pToolTipContent="Refresh"
                             pToolTipId="db-explorer-refresh"
                             pWidth={20}
@@ -244,7 +228,7 @@ export const DBExplorer = ({ pServer }: any) => {
                     sDBList &&
                     sDBList.length !== 0 &&
                     sDBList.map((aDB: any, aIdx: number) => {
-                        return <TableInfo pShowHiddenObj={sShowHiddenObj} key={aIdx} pValue={aDB} pRefresh={sRefresh} pUpdate={init} />;
+                        return <TableInfo pShowHiddenObj={true} key={aIdx} pValue={aDB} pRefresh={sRefresh} pUpdate={init} />;
                     })}
                 {/* BACKUP DB LIST */}
                 {isCurUserEqualAdmin() && sBackupList && sBackupList.length !== 0 && (

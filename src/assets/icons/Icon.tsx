@@ -115,3 +115,5 @@ export { BsGit, BsTable, BsArrowsExpand, BsArrowsCollapse } from 'react-icons/bs
 export { CgRename as Rename } from 'react-icons/cg';
 
 export { TfiLayoutColumn3Alt } from 'react-icons/tfi';
+
+export { GrStatusInfo } from 'react-icons/gr';

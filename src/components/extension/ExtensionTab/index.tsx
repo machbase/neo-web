@@ -1,17 +1,19 @@
-import { ArrowDown, Calendar, LuFlipVertical, VscWarning } from '@/assets/icons/Icon';
+import './index.scss';
+import { ArrowDown, Calendar, LuFlipVertical, Play, Save, VscWarning } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { DateCalendar, LocalizationProvider, MultiSectionDigitalClock } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import moment from 'moment';
-import './index.scss';
 import { VscCheck, VscCircleFilled, VscPass } from 'react-icons/vsc';
-import { generateUUID } from '@/utils';
+import { generateUUID, isObject } from '@/utils';
 import { MdDelete, MdKeyboardArrowRight, MdOutlineKeyboardArrowDown } from 'react-icons/md';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Loader } from '@/components/loader';
+import { GiCancel } from 'react-icons/gi';
+import useEsc from '@/hooks/useEsc';
 
 export const ExtensionTab = ({ children, pRef }: { children: React.ReactNode; pRef?: React.MutableRefObject<any> }) => {
     return (
@@ -26,7 +28,7 @@ const Header = ({ children }: { children?: React.ReactNode }) => {
 };
 const Body = ({ children, pSpyder, pSpyderChildren, fixed = false }: { children: React.ReactNode; pSpyder?: boolean; pSpyderChildren?: React.ReactNode; fixed?: boolean }) => {
     return (
-        <div className="extension-tab-body-wrapper" style={fixed ? { height: 'auto' } : {}}>
+        <div className={`extension-tab-body-wrapper${fixed ? ' fixed' : ''}`}>
             {pSpyder && <ScrollSpyder>{pSpyderChildren}</ScrollSpyder>}
             <div className="extension-tab-body-content">{children}</div>
         </div>
@@ -143,16 +145,18 @@ const Input = ({
     pValue,
     pWidth = '400px',
     pMaxLen,
+    pPlaceholder = '',
 }: {
     pAutoFocus?: boolean;
     pCallback?: (e: React.FormEvent<HTMLInputElement>) => void;
     pValue?: any;
     pWidth?: any;
     pMaxLen?: number;
+    pPlaceholder?: string;
 }) => {
     return (
         <div className="extension-tab-input-wrapper" style={{ width: '100%', maxWidth: pWidth }}>
-            <input autoFocus={pAutoFocus} onChange={pCallback} value={pValue} maxLength={pMaxLen} />
+            <input placeholder={pPlaceholder} autoFocus={pAutoFocus} onChange={pCallback} value={pValue} maxLength={pMaxLen} />
         </div>
     );
 };
@@ -457,12 +461,16 @@ const Table = ({
     pList,
     dotted,
     activeRow = false,
+    replaceCell = { target: undefined, value: undefined },
+    actionCallback = undefined,
     rowSelectCallback = () => {},
     rowDeleteCallback = undefined,
 }: {
     pList: any;
     dotted?: boolean;
     activeRow?: boolean;
+    replaceCell?: any;
+    actionCallback?: (item: string[]) => void | undefined;
     rowSelectCallback?: (item: string[]) => void;
     rowDeleteCallback?: (item: string[]) => void | undefined;
 }) => {
@@ -479,6 +487,10 @@ const Table = ({
         e.stopPropagation();
         rowDeleteCallback && rowDeleteCallback(item);
     };
+    const handleAction = (e: React.MouseEvent, item: string[]) => {
+        e.stopPropagation();
+        actionCallback && actionCallback(item);
+    };
     const handleRowClick = (e: React.MouseEvent, item: string[]) => {
         e.stopPropagation();
         setActive(item);
@@ -493,7 +505,7 @@ const Table = ({
                 <thead className="extension-tab-table-header">
                     {pList && pList.columns ? (
                         <tr>
-                            {dotted && <th style={{ cursor: 'default' }}></th>}
+                            {dotted && <th style={{ cursor: 'default' }} />}
                             {pList.columns.map((aColumn: string, aIdx: number) => {
                                 return (
                                     <th key={aColumn + '-' + aIdx} style={{ cursor: 'default' }}>
@@ -501,7 +513,8 @@ const Table = ({
                                     </th>
                                 );
                             })}
-                            {rowDeleteCallback && <th className="extension-tab-table-header-action" style={{ cursor: 'default' }}></th>}
+                            {rowDeleteCallback && <th className="extension-tab-table-header-action" style={{ cursor: 'default' }} />}
+                            {actionCallback && <th className="extension-tab-table-header-action" style={{ cursor: 'default' }} />}
                         </tr>
                     ) : (
                         <></>
@@ -519,17 +532,22 @@ const Table = ({
                                               </div>
                                           </td>
                                       )}
-                                      {aRowList.map((aRowData: any) => {
-                                          if (typeof aRowData === 'object') return null;
+                                      {aRowList.map((aRowData: any, rIdx: number) => {
+                                          if (isObject(aRowData)) return null;
                                           return (
                                               <td className="result-table-item" key={generateUUID()}>
-                                                  <span>{aRowData + ''}</span>
+                                                  <span>{replaceCell?.key === pList?.columns[rIdx] ? replaceCell?.value(aRowList) : aRowData ?? ''}</span>
                                               </td>
                                           );
                                       })}
                                       {rowDeleteCallback && (
                                           <td className="result-table-item action" onClick={(e) => handleDelete(e, aRowList)}>
                                               <MdDelete />
+                                          </td>
+                                      )}
+                                      {actionCallback && (
+                                          <td className="result-table-item action" onClick={(e) => handleAction(e, aRowList)}>
+                                              <Play />
                                           </td>
                                       )}
                                   </tr>
@@ -541,6 +559,221 @@ const Table = ({
         </div>
     );
 };
+const ScrollTable = React.memo(
+    ({
+        pList,
+        eocCallback,
+        hasMoreData = true,
+        actionCallback = undefined,
+        deleteCallback = undefined,
+        saveCallback = undefined,
+    }: {
+        pList: any;
+        eocCallback: () => void;
+        hasMoreData?: boolean;
+        actionCallback?: (item: string[]) => void | undefined;
+        deleteCallback?: (item: string[]) => void | undefined;
+        saveCallback?: (item: { modBeforeInfo: { row: (string | number)[]; rowIdx: number }; modAfterInfo: { row: (string | number)[]; rowIdx: number } }) => void | undefined;
+    }) => {
+        const tableRef = useRef<any>(null);
+        const sObserveRef = useRef<any>(null);
+        const [sModInfo, setModInfo] = useState<{ modBeforeInfo: any; modAfterInfo: any }>({
+            modBeforeInfo: { row: undefined, rowIdx: undefined },
+            modAfterInfo: { row: undefined, rowIdx: undefined },
+        });
+
+        const checkActiveRow = (idx: number): string => {
+            const result: string[] = ['result-body-tr'];
+            if (Number(idx) % 2 !== 0) result.push('dark-odd');
+            return result?.join(' ');
+        };
+        const handleCallback = (e: React.MouseEvent | React.KeyboardEvent, item: string[], key: 'DELETE' | 'SAVE' | 'CANCEL' | 'TAZ') => {
+            if (e.type === 'keydown') {
+                if ((e as React.KeyboardEvent).keyCode !== 13) return;
+                else e.stopPropagation();
+            }
+            if (e.type === 'click') e.stopPropagation();
+
+            if (key === 'CANCEL') setModInfo({ modBeforeInfo: { row: undefined, rowIdx: undefined }, modAfterInfo: { row: undefined, rowIdx: undefined } });
+            if (key === 'SAVE') saveCallback && saveCallback(sModInfo);
+            if (key === 'TAZ') actionCallback && actionCallback(item);
+            if (key === 'DELETE') deleteCallback && deleteCallback(item);
+        };
+        const handleMod = (e: React.MouseEvent | React.KeyboardEvent, aRow: string[], aRowIdx: number) => {
+            if (e.type === 'keydown') {
+                if ((e as React.KeyboardEvent).keyCode !== 13) return;
+                else {
+                    e.stopPropagation();
+                    if (sModInfo?.modBeforeInfo?.rowIdx && sModInfo?.modAfterInfo?.rowIdx) return;
+                    setModInfo({ modBeforeInfo: { row: aRow, rowIdx: aRowIdx }, modAfterInfo: { row: aRow, rowIdx: aRowIdx } });
+                }
+            }
+            if (e.type === 'dblclick') {
+                e.stopPropagation();
+                setModInfo({ modBeforeInfo: { row: aRow, rowIdx: aRowIdx }, modAfterInfo: { row: aRow, rowIdx: aRowIdx } });
+            }
+        };
+        const handleUpdateModInfo = (e: React.FormEvent<HTMLInputElement>, aRowIdx: number) => {
+            let sUpdateValue = JSON.parse(JSON.stringify(sModInfo?.modAfterInfo?.row));
+            // 타입 단언을 사용하여 value 속성 접근
+            sUpdateValue[aRowIdx] = (e.target as HTMLInputElement).value;
+            setModInfo((prev) => {
+                return {
+                    ...prev,
+                    modAfterInfo: {
+                        ...prev.modAfterInfo,
+                        row: sUpdateValue,
+                    },
+                };
+            });
+        };
+
+        useEffect(() => {
+            setModInfo({
+                modBeforeInfo: { row: undefined, rowIdx: undefined },
+                modAfterInfo: { row: undefined, rowIdx: undefined },
+            });
+        }, [pList]);
+
+        // Intersection Observer for end of content detection
+        useEffect(() => {
+            if (!hasMoreData) return; // Don't observe if no more data
+
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    entries.forEach((entry) => {
+                        if (entry.isIntersecting && hasMoreData) {
+                            eocCallback();
+                        }
+                    });
+                },
+                {
+                    root: tableRef.current,
+                    rootMargin: '0px',
+                    threshold: 0.1,
+                }
+            );
+
+            if (sObserveRef.current) {
+                observer.observe(sObserveRef.current);
+            }
+
+            return () => {
+                if (sObserveRef.current) {
+                    observer.unobserve(sObserveRef.current);
+                }
+            };
+        }, [eocCallback, hasMoreData]);
+
+        useEsc(() => {
+            setModInfo({
+                modBeforeInfo: { row: undefined, rowIdx: undefined },
+                modAfterInfo: { row: undefined, rowIdx: undefined },
+            });
+        });
+
+        return (
+            <div ref={tableRef} className="extension-tab-scroll-table-wrapper">
+                <table className="extension-tab-scroll-table">
+                    <thead className="extension-tab-scroll-table-header">
+                        {pList && pList?.columns ? (
+                            <tr>
+                                <th className="row-num" />
+                                {pList.columns.map((aColumn: string, aIdx: number) => {
+                                    return (
+                                        <th key={aColumn + '-' + aIdx} style={{ cursor: 'default' }}>
+                                            <span>{aColumn}</span>
+                                        </th>
+                                    );
+                                })}
+                                {actionCallback && <th className="extension-tab-scroll-table-header-action" style={{ cursor: 'default' }} />}
+                                {deleteCallback && <th className="extension-tab-scroll-table-header-action" style={{ cursor: 'default' }} />}
+                            </tr>
+                        ) : (
+                            <></>
+                        )}
+                    </thead>
+                    {pList && pList?.rows ? (
+                        <tbody className="extension-tab-scroll-table-body">
+                            {pList.rows.map((aRowList: any, aIdx: number) => {
+                                return (
+                                    <tr
+                                        key={'tbody-row-' + aRowList[0] + aIdx + ''}
+                                        className={checkActiveRow(aIdx)}
+                                        tabIndex={0}
+                                        onDoubleClick={(e) => handleMod(e, aRowList, aIdx)}
+                                        onKeyDown={(e) => handleMod(e, aRowList, aIdx)}
+                                    >
+                                        <td>
+                                            <span className="row-num">{aIdx + 1}</span>
+                                        </td>
+                                        {aRowList.map((aRowData: any, bIdx: number) => {
+                                            if (isObject(aRowData)) return null;
+                                            return (
+                                                <td className="result-scroll-table-item" key={`tbody-row-${aRowList[0]}-cell-${bIdx?.toString()}`}>
+                                                    {pList?.columns[bIdx] !== '_ID' && sModInfo.modBeforeInfo.rowIdx === aIdx ? (
+                                                        <Input
+                                                            pAutoFocus={bIdx === 1}
+                                                            pValue={sModInfo?.modAfterInfo?.row?.[bIdx]}
+                                                            pWidth={'100%'}
+                                                            pCallback={(e) => handleUpdateModInfo(e, bIdx)}
+                                                        />
+                                                    ) : (
+                                                        <span>{aRowData ?? ''}</span>
+                                                    )}
+                                                </td>
+                                            );
+                                        })}
+                                        {actionCallback &&
+                                            (sModInfo.modBeforeInfo.rowIdx === aIdx ? (
+                                                <td
+                                                    className="result-scroll-table-item action"
+                                                    tabIndex={0}
+                                                    onClick={(e) => handleCallback(e, aRowList, 'SAVE')}
+                                                    onKeyDown={(e) => handleCallback(e, aRowList, 'SAVE')}
+                                                >
+                                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                        <Save />
+                                                    </div>
+                                                </td>
+                                            ) : (
+                                                <td className="result-scroll-table-item action" onClick={(e) => handleCallback(e, aRowList, 'TAZ')}>
+                                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                        <Play />
+                                                    </div>
+                                                </td>
+                                            ))}
+                                        {deleteCallback &&
+                                            (sModInfo.modBeforeInfo.rowIdx === aIdx ? (
+                                                <td
+                                                    className="result-scroll-table-item delete"
+                                                    tabIndex={0}
+                                                    onClick={(e) => handleCallback(e, aRowList, 'CANCEL')}
+                                                    onKeyDown={(e) => handleCallback(e, aRowList, 'CANCEL')}
+                                                >
+                                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                        <GiCancel />
+                                                    </div>
+                                                </td>
+                                            ) : (
+                                                <td className="result-scroll-table-item delete" onClick={(e) => handleCallback(e, aRowList, 'DELETE')}>
+                                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                        <MdDelete />
+                                                    </div>
+                                                </td>
+                                            ))}
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    ) : null}
+                </table>
+                <div ref={sObserveRef} style={{ width: '100%', height: '1px' }} />
+            </div>
+        );
+    }
+);
+
 const Switch = ({ pState, pCallback, pBadge, pBadgeL = false }: { pState: boolean; pCallback: (aItem: any) => void; pBadge?: string; pBadgeL?: boolean }) => {
     return (
         <div className="extension-tab-switch-wrapper">
@@ -672,6 +905,7 @@ ExtensionTab.Hr = Hr;
 ExtensionTab.DatePicker = DatePicker;
 ExtensionTab.DateTimePicker = DateTimePicker;
 ExtensionTab.Table = Table;
+ExtensionTab.ScrollTable = ScrollTable;
 ExtensionTab.Switch = Switch;
 ExtensionTab.TwoItemSwitch = TwoItemSwitch;
 ExtensionTab.IconBtn = IconBtn;

@@ -19,6 +19,7 @@ import {
     FaCss3,
     IoLogoJavascript,
     VscKey,
+    TfiLayoutColumn3Alt,
 } from '@/assets/icons/Icon';
 import {
     MuiCsv,
@@ -153,6 +154,8 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <LuDatabaseBackup />;
         case 'appStore':
             return <VscExtensions />;
+        case 'DBTable':
+            return <TfiLayoutColumn3Alt style={{ width: '12px', height: '16px', rotate: '90deg' }} />;
         default:
             return <GoTerminal />;
     }

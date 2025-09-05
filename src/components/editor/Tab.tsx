@@ -141,6 +141,9 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
             case 'appStore':
                 setIsSaved(true);
                 break;
+            case 'DBTable':
+                setIsSaved(true);
+                break;
             default:
                 setIsSaved(aBoard.code === pBoard.savedCode);
                 break;

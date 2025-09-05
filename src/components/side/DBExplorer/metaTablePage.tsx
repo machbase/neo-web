@@ -1,0 +1,341 @@
+import { ExtensionTab } from '@/components/extension/ExtensionTab';
+import { CheckTableFlag, DATA_NUMBER_TYPE, E_TABLE_INFO, E_TABLE_TYPE, FetchCommonType, GenTazDefault, STR_NUM_ARR_TYPE } from './utils';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { fetchQuery, fetchTqlQuery } from '@/api/repository/database';
+// import useDebounceNew from '@/hooks/useDebounceNew';
+import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { useSetRecoilState } from 'recoil';
+import useDebounce from '@/hooks/useDebounce';
+
+type META_MOD_TYPE = 'INSERT' | 'UPDATE' | 'DELETE';
+const IGNORE_COL_LIST = ['_ID'];
+const REQUIRE_COL_LIST = ['NAME'];
+
+export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRefresh: { state: number; set: React.Dispatch<React.SetStateAction<number>> } }) => {
+    const setBoardList = useSetRecoilState<any[]>(gBoardList);
+    const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
+    const [sIsComponentLoad, setIsComponentLoad] = useState<boolean>(false);
+    const [sFilter, setFilter] = useState<string>('');
+    const [sPage, setPage] = useState<number>(0);
+    const [sModUpdateInfo, setModUpdateInfo] = useState<{ isOpen: boolean; values: STR_NUM_ARR_TYPE; msg: string | undefined }>({ isOpen: false, values: [], msg: undefined });
+    const [sMetaTableInfo, setMetaTableInfo] = useState<FetchCommonType>();
+    const [sMetaTableCnt, setMetaTableCnt] = useState<number>(0);
+    const [sIsLoading, setIsLoading] = useState<boolean>(false);
+    const [sHasMoreData, setHasMoreData] = useState<boolean>(true);
+
+    const mMetaColumnListWithoutID = useMemo(() => {
+        if (sMetaTableInfo && sMetaTableInfo?.columns && sMetaTableInfo?.columns?.length > 0)
+            return sMetaTableInfo.columns.filter((column: string) => !IGNORE_COL_LIST?.includes(column?.toString()?.toUpperCase()));
+        else [];
+    }, [sMetaTableInfo]);
+    const mMetaColumnList = useMemo(() => {
+        if (sMetaTableInfo && sMetaTableInfo?.columns && sMetaTableInfo?.columns?.length > 0) return sMetaTableInfo.columns;
+        else [];
+    }, [sMetaTableInfo]);
+    const mMetaTableInfo = useMemo(() => {
+        return sMetaTableInfo;
+    }, [sMetaTableInfo]);
+
+    const FetchMetaTable = useCallback(
+        async (opt: { page: number; filter: string }) => {
+            if (sIsLoading) return; // Prevent multiple simultaneous requests
+            setIsLoading(true);
+            const currentPage = opt?.page !== undefined ? opt?.page : sPage;
+            const currentFilter = opt?.filter !== undefined ? opt.filter : sFilter;
+            const sTargetTable = `${pMTableInfo[E_TABLE_INFO.DB_NM]}.${pMTableInfo[E_TABLE_INFO.USER_NM]}._${pMTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE NAME LIKE '%${
+                currentFilter ? currentFilter + '%' : ''
+            }'`;
+            const sQuery = `select * from ${sTargetTable} order by _id asc`;
+            const { svrState, svrData } = await fetchTqlQuery(sQuery, currentPage);
+
+            if (svrState) {
+                const newRows = svrData?.rows || [];
+                const hasMoreData = newRows.length >= 50; // Check if we got 50 or more rows
+                setMetaTableInfo((prevInfo) => ({
+                    columns: svrData.columns,
+                    types: svrData.types,
+                    rows: currentPage === 0 ? newRows : (prevInfo?.rows || []).concat(newRows),
+                }));
+                setHasMoreData(hasMoreData);
+            } else setMetaTableInfo(undefined);
+
+            setIsLoading(false);
+        },
+        [pMTableInfo]
+    );
+    const FetchMetaTableCnt = useCallback(
+        async (filter: string) => {
+            const currentFilter = filter !== undefined ? filter : sFilter;
+            const sTargetTable = `${pMTableInfo[E_TABLE_INFO.DB_NM]}.${pMTableInfo[E_TABLE_INFO.USER_NM]}._${pMTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE NAME LIKE '%${
+                currentFilter ? currentFilter + '%' : ''
+            }'`;
+            const sQuery = `select count(*) from ${sTargetTable}`;
+            const { svrState, svrData } = await fetchQuery(sQuery);
+            if (svrState) setMetaTableCnt(svrData?.rows?.[0]?.[0] ?? 0);
+            else setMetaTableCnt(0);
+        },
+        [pMTableInfo]
+    );
+    const FetchTagMinMax = async (aTagNm: string) => {
+        const sQuery = `select min(min_time) as 'MIN', max(max_time) as 'MAX' from ${pMTableInfo[E_TABLE_INFO.DB_NM]}.${pMTableInfo[E_TABLE_INFO.USER_NM]}.V$${
+            pMTableInfo[E_TABLE_INFO.TB_NM]
+        }_STAT where NAME in ('${aTagNm}')`;
+        const { svrData } = await fetchQuery(sQuery);
+        const sTazBoard = GenTazDefault({
+            aTag: aTagNm,
+            aTime: { min: Math.floor(svrData.rows[0][0] / 1000000), max: Math.floor(svrData.rows[0][1] / 1000000) },
+            aTableInfo: pMTableInfo,
+        });
+
+        setBoardList((aPrev: any) => {
+            return [...aPrev, sTazBoard];
+        });
+        setSelectedTab(sTazBoard.id);
+    };
+
+    const convertTagMetaForInsert = (aValues: STR_NUM_ARR_TYPE) => {
+        let sResultList = mMetaColumnListWithoutID?.map((colNm: string, idx: number) => {
+            if (DATA_NUMBER_TYPE.includes(sMetaTableInfo?.types?.[sMetaTableInfo?.columns?.indexOf(colNm) as number] as string)) {
+                if (aValues[idx] === null || aValues[idx] === undefined || aValues[idx] === '') return 'null';
+                else return aValues[idx];
+            } else {
+                if (aValues[idx] === null || aValues[idx] === undefined) return "''";
+                else return `'${aValues[idx]}'`;
+            }
+        });
+        return sResultList;
+    };
+    const convertTagMetaForUpdate = (aValues: STR_NUM_ARR_TYPE) => {
+        let sResultList = mMetaColumnListWithoutID?.map((colNm: string, idx: number) => {
+            if (DATA_NUMBER_TYPE.includes(sMetaTableInfo?.types?.[sMetaTableInfo?.columns?.indexOf(colNm) as number] as string)) {
+                if (aValues[idx] === null || aValues[idx] === undefined || aValues[idx] === '') return `${colNm}=NULL`;
+                else return `${colNm}=${Number(aValues[idx])}`;
+            } else {
+                if (aValues[idx] === null || aValues[idx] === undefined) return `${colNm}=''`;
+                else return `${colNm}='${aValues[idx]}'`;
+            }
+        });
+        return sResultList;
+    };
+    const removeIdFromRow = (aRow: STR_NUM_ARR_TYPE): STR_NUM_ARR_TYPE => {
+        const idIndex = mMetaColumnList?.indexOf('_ID');
+        if (idIndex === -1) return aRow;
+        return aRow.filter((_, index) => index !== idIndex);
+    };
+    const ModMeta = async (aCommand: META_MOD_TYPE, aTagNm: string, aValues?: STR_NUM_ARR_TYPE) => {
+        let sQuery = '';
+        if (aCommand === 'INSERT') {
+            sQuery = `INSERT INTO ${pMTableInfo[E_TABLE_INFO.DB_NM]}.${pMTableInfo[E_TABLE_INFO.USER_NM]}.${
+                pMTableInfo[E_TABLE_INFO.TB_NM]
+            } METADATA VALUES(${convertTagMetaForInsert(aValues as STR_NUM_ARR_TYPE)})`;
+        }
+        if (aCommand === 'UPDATE') {
+            const sConvertedStr = convertTagMetaForUpdate(aValues as STR_NUM_ARR_TYPE);
+            sQuery = `UPDATE ${pMTableInfo[E_TABLE_INFO.DB_NM]}.${pMTableInfo[E_TABLE_INFO.USER_NM]}.${
+                pMTableInfo[E_TABLE_INFO.TB_NM]
+            } METADATA SET ${sConvertedStr} WHERE NAME='${aTagNm}'`;
+        }
+        if (aCommand === 'DELETE')
+            sQuery = `DELETE FROM ${pMTableInfo[E_TABLE_INFO.DB_NM]}.${pMTableInfo[E_TABLE_INFO.USER_NM]}.${pMTableInfo[E_TABLE_INFO.TB_NM]} METADATA WHERE NAME='${aTagNm}'`;
+
+        const { svrState, svrReason } = await fetchQuery(sQuery);
+        if (svrState) {
+            setPage(0);
+            setModUpdateInfo({ isOpen: false, values: [], msg: undefined });
+            if (aCommand === 'INSERT') FetchMetaTable({ page: 0, filter: sFilter });
+            if (aCommand === 'DELETE')
+                setMetaTableInfo((prevInfo: any) => {
+                    return {
+                        ...prevInfo,
+                        rows: prevInfo?.rows?.filter((row: STR_NUM_ARR_TYPE) => row?.[sMetaTableInfo?.columns?.indexOf('NAME') as number] !== aTagNm),
+                    };
+                });
+            if (aCommand === 'UPDATE')
+                setMetaTableInfo((prevInfo: any) => {
+                    return {
+                        ...prevInfo,
+                        rows: prevInfo?.rows?.map((row: STR_NUM_ARR_TYPE) => {
+                            if (row?.[sMetaTableInfo?.columns?.indexOf('NAME') as number] === aTagNm)
+                                return [row?.[sMetaTableInfo?.columns?.indexOf('_ID') as number]]?.concat(aValues as STR_NUM_ARR_TYPE);
+                            else return row;
+                        }),
+                    };
+                });
+
+            if (aCommand === 'INSERT' || aCommand === 'DELETE') FetchMetaTableCnt(sFilter);
+        } else {
+            setModUpdateInfo((preV) => {
+                return { ...preV, msg: svrReason };
+            });
+            setTimeout(() => {
+                setModUpdateInfo((preV) => {
+                    return { ...preV, msg: undefined };
+                });
+            }, 5000);
+        }
+    };
+
+    // aUpdateInfo: [_ID, NAME, VALUES....];
+    const handleUpdateMeta = useCallback(
+        (aUpdateInfo: any) => {
+            const rowWithoutId = removeIdFromRow(aUpdateInfo.modAfterInfo.row);
+            ModMeta('UPDATE', aUpdateInfo.modBeforeInfo.row[mMetaColumnList?.indexOf('NAME') as number], rowWithoutId);
+        },
+        [mMetaColumnList]
+    );
+    const handleInsertMeta = () => {
+        ModMeta('INSERT', sModUpdateInfo.values[0] as string, sModUpdateInfo.values);
+    };
+    const handleMetaPayload = (aColIdx: number, e: React.FormEvent<HTMLInputElement>) => {
+        const sNewValues = JSON.parse(JSON.stringify(sModUpdateInfo.values));
+        sNewValues[aColIdx] = (e.target as HTMLInputElement).value;
+        setModUpdateInfo((preV) => {
+            return { ...preV, values: sNewValues };
+        });
+    };
+    const handleInsertBlock = () => {
+        setModUpdateInfo((prev) => {
+            return { ...prev, isOpen: true, msg: undefined };
+        });
+    };
+    const handleSearchTxt = (e: React.FormEvent<HTMLInputElement>) => {
+        setFilter((e.target as HTMLInputElement).value);
+    };
+    const handleMoveTaz = useCallback((item: STR_NUM_ARR_TYPE) => {
+        FetchTagMinMax(item[1] as string);
+    }, []);
+
+    const handleEndOfContent = useCallback(() => {
+        if (sIsLoading || !sHasMoreData) return; // Prevent calls while loading or no more data
+        setPage((prevPage) => {
+            return prevPage + 1;
+        });
+    }, [sIsLoading, sHasMoreData, sPage]);
+
+    const handleDeleteMeta = useCallback(
+        (aItem: any) => {
+            ModMeta('DELETE', aItem?.[sMetaTableInfo?.columns?.indexOf('NAME') as number]);
+        },
+        [sMetaTableInfo?.columns]
+    );
+
+    const init = (shouldResetPage: boolean = true) => {
+        if (shouldResetPage) {
+            setPage(0);
+            setFilter(() => '');
+        }
+        setModUpdateInfo({ isOpen: false, values: [], msg: undefined });
+        setMetaTableInfo(undefined);
+        setHasMoreData(() => false);
+        FetchMetaTable({ page: 0, filter: '' }); // Explicitly pass page 0
+        FetchMetaTableCnt('');
+    };
+
+    // Effect for initial load only
+    useEffect(() => {
+        if (CheckTableFlag(pMTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) {
+            // 첫 로드인지 테이블 변경인지 구분
+            const isFirstLoad = !sIsComponentLoad;
+            init(!isFirstLoad); // 첫 로드가 아닐 때만 페이지 리셋
+        }
+        if (!sIsComponentLoad) setIsComponentLoad(true);
+    }, [pMTableInfo, pRefresh.state]);
+
+    // Effect for page changes (pagination) - only for page > 0
+    useEffect(() => {
+        if (sPage > 0 && CheckTableFlag(pMTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG && sIsComponentLoad && sMetaTableInfo) {
+            FetchMetaTable({ page: sPage, filter: sFilter });
+        }
+    }, [sPage]);
+    // Debounced effect for filter changes
+    const debouncedFilterSearch = useCallback(() => {
+        if (sIsComponentLoad && CheckTableFlag(pMTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) {
+            setPage(0);
+            setMetaTableInfo(undefined);
+            setHasMoreData(true); // Reset hasMoreData flag for new search
+            FetchMetaTable({ page: 0, filter: sFilter }); // Explicitly pass page 0
+            FetchMetaTableCnt(sFilter);
+        }
+    }, [sFilter]);
+
+    useDebounce([sFilter], debouncedFilterSearch, 500);
+
+    return (
+        <div
+            key={pMTableInfo[E_TABLE_INFO.DB_NM] + pMTableInfo[E_TABLE_INFO.USER_NM] + pMTableInfo[E_TABLE_INFO.TB_NM]}
+            style={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 40px)' }}
+        >
+            {CheckTableFlag(pMTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG ? (
+                <>
+                    <ExtensionTab.Body fixed>
+                        <ExtensionTab.ContentBlock pHoverNone>
+                            <ExtensionTab.SubTitle>Meta table</ExtensionTab.SubTitle>
+                        </ExtensionTab.ContentBlock>
+                        {sModUpdateInfo.isOpen ? (
+                            <>
+                                <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.ContentTitle>Input of tag meta</ExtensionTab.ContentTitle>
+                                </ExtensionTab.ContentBlock>
+                                {mMetaColumnListWithoutID?.map((column: string, colIdx: number) => {
+                                    return (
+                                        <ExtensionTab.ContentBlock key={`meta-table-col-${colIdx?.toString()}`}>
+                                            <ExtensionTab.DpRow>
+                                                <ExtensionTab.ContentTitle>{column}</ExtensionTab.ContentTitle>
+                                                <ExtensionTab.ContentDesc>
+                                                    <span style={{ marginLeft: '4px', color: '#009688' }}>
+                                                        ({sMetaTableInfo?.types?.[sMetaTableInfo?.columns?.indexOf(column)]})
+                                                    </span>
+                                                </ExtensionTab.ContentDesc>
+                                                {REQUIRE_COL_LIST.includes(column?.toString()?.toUpperCase()) ? (
+                                                    <ExtensionTab.ContentDesc>
+                                                        <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                                    </ExtensionTab.ContentDesc>
+                                                ) : null}
+                                            </ExtensionTab.DpRow>
+                                            <ExtensionTab.Input
+                                                pValue={sModUpdateInfo?.values?.[colIdx] ?? ''}
+                                                pWidth={'400px'}
+                                                pCallback={(event: React.FormEvent<HTMLInputElement>) => handleMetaPayload(colIdx, event)}
+                                            />
+                                        </ExtensionTab.ContentBlock>
+                                    );
+                                })}
+                                <ExtensionTab.ContentBlock>
+                                    <ExtensionTab.DpRow>
+                                        <ExtensionTab.TextButton pIsDisable={!sModUpdateInfo?.values?.[0]} pText="SAVE" pType="CREATE" pCallback={handleInsertMeta} />
+                                        <ExtensionTab.TextButton pText="CANCEL" pType="DELETE" pCallback={() => setModUpdateInfo({ isOpen: false, values: [], msg: undefined })} />
+                                    </ExtensionTab.DpRow>
+                                    {sModUpdateInfo?.msg ? <ExtensionTab.TextResErr pText={sModUpdateInfo?.msg} /> : null}
+                                </ExtensionTab.ContentBlock>
+                                <ExtensionTab.Hr />
+                            </>
+                        ) : null}
+                        <ExtensionTab.ContentBlock pHoverNone>
+                            <ExtensionTab.DpRowBetween>
+                                <ExtensionTab.ContentDesc>count: {sMetaTableCnt?.toLocaleString() ?? 0}</ExtensionTab.ContentDesc>
+                                {sModUpdateInfo.isOpen ? <div /> : <ExtensionTab.TextButton pText="+ Insert" mr="0" pType="CREATE" pCallback={handleInsertBlock} />}
+                            </ExtensionTab.DpRowBetween>
+                            <ExtensionTab.Input
+                                pPlaceholder={'Search'}
+                                pValue={sFilter}
+                                pWidth={'100%'}
+                                pCallback={(event: React.FormEvent<HTMLInputElement>) => handleSearchTxt(event)}
+                            />
+                            {!sModUpdateInfo.isOpen && sModUpdateInfo?.msg ? <ExtensionTab.TextResErr pText={sModUpdateInfo?.msg} /> : null}
+                        </ExtensionTab.ContentBlock>
+                    </ExtensionTab.Body>
+                    {sMetaTableInfo && sMetaTableInfo?.rows && sMetaTableInfo?.rows?.length > 0 ? (
+                        <ExtensionTab.ScrollTable
+                            pList={mMetaTableInfo}
+                            actionCallback={handleMoveTaz}
+                            deleteCallback={handleDeleteMeta}
+                            eocCallback={handleEndOfContent}
+                            saveCallback={handleUpdateMeta}
+                            hasMoreData={sHasMoreData}
+                        />
+                    ) : null}
+                </>
+            ) : null}
+        </div>
+    );
+};

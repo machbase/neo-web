@@ -208,7 +208,7 @@
 
     &-content {
         .table-column-wrap {
-            padding-left: 36px;
+            padding-left: 48px;
             display: flex;
             flex-direction: row;
             justify-content: space-between;
@@ -285,6 +285,15 @@
         min-width: 4px;
         margin: 0;
         padding-right: 16px;
+        align-content: center;
+    }
+    .r-btn {
+        display: flex;
+        padding-right: 8px;
+
+        svg {
+            cursor: pointer;
+        }
     }
 }
 .db-exp-arrow {

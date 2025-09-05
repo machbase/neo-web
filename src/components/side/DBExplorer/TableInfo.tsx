@@ -1,18 +1,19 @@
-import { getTableInfo, getColumnIndexInfo, getRollupTable, getRecordCount, unMountDB, mountDB, backupStatus } from '@/api/repository/api';
+import './TableInfo.scss';
+import { getTableInfo, getColumnIndexInfo, getRecordCount, unMountDB, mountDB, backupStatus } from '@/api/repository/api';
 import React, { useEffect, useRef, useState } from 'react';
-import { GoDotFill, FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser, VscWarning } from '@/assets/icons/Icon';
+import { FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser, VscWarning } from '@/assets/icons/Icon';
 import { generateUUID, getUserName, isCurUserEqualAdmin } from '@/utils';
-import { getColumnType } from '@/utils/dashboardUtil';
 import { IconButton } from '@/components/buttons/IconButton';
 import { TbDatabaseMinus, TbDatabasePlus, TbFileDatabase } from 'react-icons/tb';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Loader } from '@/components/loader';
 import { Error } from '@/components/toast/Toast';
 import { IsKeyword, MountNameRegEx } from '@/utils/database';
-import './TableInfo.scss';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useSetRecoilState } from 'recoil';
+
+const TAB_TYPE = 'DBTable';
 
 export const BackupTableInfo = ({ pValue, pRefresh, pBackupRefresh }: any) => {
     const [sBkCollapseTree, setBkCollapseTree] = useState(true);
@@ -253,8 +254,49 @@ const DBDiv = (aIcon: React.ReactElement, aName: string, aClassName: string): JS
     );
 };
 export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate }: any) => {
+    const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
+    const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [isUnmount, setIsUnmount] = useState<boolean>(false);
+
+    const handleDBTablePage = (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => {
+        const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
+            return prev || cur.type === TAB_TYPE;
+        }, false);
+
+        let sApplyTabID = generateUUID();
+
+        if (sExistKeyTab) {
+            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === TAB_TYPE);
+            sApplyTabID = aTarget.id;
+            setBoardList((aBoardList: any) => {
+                return aBoardList.map((aBoard: any) => {
+                    if (aBoard.id === aTarget.id) {
+                        return {
+                            ...aTarget,
+                            name: `TABLE: ${aTableInfo[3]}`,
+                            code: { curUserNm: aCurLoginUserNm, tableInfo: aTableInfo },
+                            savedCode: false,
+                        };
+                    }
+                    return aBoard;
+                });
+            });
+        } else {
+            setBoardList([
+                ...sBoardList,
+                {
+                    id: sApplyTabID,
+                    type: TAB_TYPE,
+                    name: `TABLE: ${aTableInfo[3]}`,
+                    code: { curUserNm: aCurLoginUserNm, tableInfo: aTableInfo },
+                    savedCode: false,
+                    path: '',
+                },
+            ]);
+        }
+        setSelectedTab(sApplyTabID);
+    };
 
     const handleUnmountModal = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -310,6 +352,7 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate }: any) =>
                                 pUserData={aUser}
                                 pShowHiddenObj={pShowHiddenObj}
                                 pRefresh={pRefresh}
+                                pHandleDBTablePage={handleDBTablePage}
                             />
                         );
                     })}
@@ -324,6 +367,7 @@ interface UserDivPropsType {
     pShowHiddenObj: boolean;
     pShowUserIcon: boolean;
     pRefresh: number;
+    pHandleDBTablePage: (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => void;
 }
 const UserDiv = (props: UserDivPropsType): JSX.Element => {
     const [sCollapseTree, setCollapseTree] = useState(true);
@@ -397,6 +441,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                                     onTableInfo={getTableInfoData}
                                                     onColumnInfo={getColumnIndexInfoData}
                                                     pRefresh={props.pRefresh}
+                                                    pHandleDBTablePage={props.pHandleDBTablePage}
                                                 />
                                             )}
                                         </div>
@@ -423,33 +468,14 @@ interface TableDivPropsType {
     pRefresh: number;
     onTableInfo: (aDatabaseId: string, aTableId: string) => any;
     onColumnInfo: (aDatabaseId: string, atableId: string) => any;
+    pHandleDBTablePage: (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => void;
 }
 const TableDiv = (props: TableDivPropsType): JSX.Element => {
-    const [sIsOpen, setIsOpen] = useState<boolean>(false);
-    const [sColumnList, setColumnList] = useState<(string | number)[][]>([]);
-    const [sIndexList, setIndexList] = useState<(string | number)[][]>([]);
-    const [sRollupList, setRollupList] = useState<(string | number)[][]>([]);
     const [sRecordCount, setRecordCount] = useState<number>(0);
     const sPriv = props?.pPriv && props.pPriv !== '' ? props.pPriv?.split('|')?.[1].trim() : '';
 
-    const handleDataFetch = async () => {
-        if (sIsOpen) return setIsOpen(false);
-        else setIsOpen(true);
-        handleColumns();
-        fetchIndex();
-        if ((props.pTable[4] as number) === 6 && props.pTable[0] === 'MACHBASEDB') fetchRollup();
-    };
-    const handleColumns = async () => {
-        const res = await props.onTableInfo(props.pTable[6].toString(), props.pTable[2].toString());
-        setColumnList(res.data.rows);
-    };
-    const fetchIndex = async () => {
-        const res = await props.onColumnInfo(props.pTable[6].toString(), props.pTable[2].toString());
-        setIndexList(res.data.rows);
-    };
-    const fetchRollup = async () => {
-        const res = await getRollupTable(`${props.pTable[3].toString()}`, props.pTable[1].toString());
-        setRollupList(res.data.rows);
+    const handleTableDetail = () => {
+        props.pHandleDBTablePage(props.pUserName, props.pTable);
     };
     const fetchRecordCount = async () => {
         const res: any = await getRecordCount(`${props.pTable[3].toString()}`, `${props.pTable[0] !== 'MACHBASEDB' ? props.pTable[0] + '.' : ''}${props.pTable[1].toString()}`);
@@ -463,9 +489,8 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
 
     return (
         <>
-            <div className="table-column-wrap" onClick={handleDataFetch}>
+            <div className="table-column-wrap" onClick={handleTableDetail}>
                 <div className="table-column-l">
-                    <VscChevronRight className={`${sIsOpen ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow'}`} />
                     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         <IconButton
                             pWidth={'100%'}
@@ -489,137 +514,6 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
                     <span className="r-txt">{sRecordCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
                 </div>
             </div>
-            {sIsOpen && sColumnList.length > 0 && (
-                <ColumnDiv pKey={props.pTable[0] as string} pShowHiddenObj={props.pShowHiddenObj} pColumnList={sColumnList} pIndexList={sIndexList} pRollupList={sRollupList} />
-            )}
         </>
     );
-};
-interface ColumnDivPropsType {
-    pKey: string;
-    pShowHiddenObj: boolean;
-    pColumnList: (string | number)[][];
-    pIndexList: (string | number)[][];
-    pRollupList: (string | number)[][];
-}
-const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
-    const columnNameList: string[] = ['columns', 'index', 'rollup'];
-    const getIndexType = (aType: number): string => {
-        switch (aType) {
-            case 1:
-                return 'BITMAP';
-            case 2:
-                return 'KEYWORD';
-            case 3:
-                return 'REDBLACK';
-            case 6:
-                return 'LSM';
-            case 8:
-                return 'REDBLACK';
-            case 9:
-                return 'KETWORD_LSM';
-            case 11:
-                return 'TAG';
-            default:
-                return '';
-        }
-    };
-    const checkDisplay = (aColumn: string, aData?: (string | number)[]): boolean => {
-        if (!props.pShowHiddenObj) return true;
-        switch (aColumn) {
-            case 'column': {
-                if (!aData) return false;
-                if (aData[3].toString() === '65534') return false;
-                if (aData[3].toString() === '0' && aData[0].toString() === '_ARRIVAL_TIME') return false;
-                if (aData[3].toString() === '0' && aData[0].toString() === '_ROWID') return false;
-                return true;
-            }
-            case 'index':
-                return false;
-            case 'rollup':
-                return false;
-            default:
-                return true;
-        }
-    };
-    return (
-        <>
-            {columnNameList.map((aColumn: string, aIdx: number) => {
-                return (
-                    <div key={`${props.pKey}-columns-${aColumn}-${aIdx}`}>
-                        {aColumn === 'columns' && props.pColumnList.length > 0 && (
-                            <div key={`${props.pKey}-columns-columns-${aColumn}-${aIdx}-content`}>
-                                {!props.pShowHiddenObj && (props.pIndexList.length > 0 || props.pRollupList.length > 0) && <LabelDiv pTxt={aColumn} />}
-                                {props.pColumnList.map((bColumn, bIdx: number) => {
-                                    return (
-                                        checkDisplay('column', bColumn) && (
-                                            <div className="table-column-content" key={`${props.pKey}-columns-${aColumn}-${aIdx}-${bColumn}-${bIdx}`}>
-                                                <span className="icons" style={{ marginRight: '2px', opacity: '0.5' }}>
-                                                    <GoDotFill></GoDotFill>
-                                                </span>
-                                                <div className="table-column-content-row">
-                                                    <span className="l-txt">{bColumn[0]}</span>
-                                                    <div className="r-txt">
-                                                        {getColumnType(bColumn[1] as number) + ' '}
-                                                        {bColumn[1] === 5 && `(${bColumn[2]})`}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )
-                                    );
-                                })}
-                            </div>
-                        )}
-                        {aColumn === 'index' && props.pIndexList.length > 0 && checkDisplay('index') && (
-                            <div key={`${props.pKey}-columns-index-${aColumn}-${aIdx}-content`}>
-                                <LabelDiv pTxt={aColumn} />
-                                {props.pIndexList.map((aIndex, aIdx: number) => {
-                                    return (
-                                        <div className="table-column-content" key={`${props.pKey}-columns-index-${aColumn}-${aIndex}-${aIdx}`}>
-                                            <span className="icons" style={{ marginRight: '2px', opacity: '0.5' }}>
-                                                <GoDotFill></GoDotFill>
-                                            </span>
-                                            <div className="table-column-content-row">
-                                                <span className="l-txt">{aIndex[1]}</span>
-                                                <div className="r-txt">
-                                                    <span>{getIndexType(aIndex[2] as number)}</span>
-                                                    <span style={{ marginLeft: '3px' }}>({aIndex[0]})</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                        {aColumn === 'rollup' && props.pRollupList.length > 0 && checkDisplay('rollup') && (
-                            <div key={`${props.pKey}-columns-rollup-${aColumn}-${aIdx}-content`}>
-                                <LabelDiv pTxt={aColumn} />
-                                {props.pRollupList.map((aRollup, aIdx: number) => {
-                                    return (
-                                        <div className="table-column-content" key={`${props.pKey}-columns-rollup-${aColumn}-${aRollup}-${aIdx}`}>
-                                            <span className="icons" style={{ marginRight: '2px', opacity: '0.5' }}>
-                                                <GoDotFill className={`fill-${aRollup[3] === 1 ? 'enable' : 'disable'}`}></GoDotFill>
-                                            </span>
-                                            <div className="table-column-content-row">
-                                                <span className="l-txt">{aRollup[2]}</span>
-                                                <div className="r-txt">
-                                                    <span style={{ marginLeft: '3px' }}>{aRollup[1]}ms</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                );
-            })}
-        </>
-    );
-};
-interface LabelDivPropsType {
-    pTxt: string;
-}
-const LabelDiv = (props: LabelDivPropsType): JSX.Element => {
-    return <div className="table-wrap-label-content">{props.pTxt}</div>;
 };

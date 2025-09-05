@@ -34,6 +34,7 @@ const OpenFile = ({ pBoard, pSetSelectedTab, pIdx }: any) => {
                 case 'dsh':
                 case 'new':
                 case 'term':
+                case 'DBTable':
                     setIsSaved(true);
                     break;
                 default:
