@@ -140,17 +140,20 @@
             box-shadow: 1px 2px 3px #00000020;
         }
     }
-    .extension-tab-table-wrapper::-webkit-scrollbar-thumb {
+    .extension-tab-table-wrapper::-webkit-scrollbar-thumb,
+    .extension-tab-scroll-table-wrapper::-webkit-scrollbar-thumb {
         background-color: #4c4c4c;
         border-radius: 5px;
         background-clip: padding-box;
         border: 2px solid #727272;
     }
-    .extension-tab-table-wrapper ::-webkit-scrollbar-track {
+    .extension-tab-table-wrapper ::-webkit-scrollbar-track,
+    .extension-tab-scroll-table-wrapper::-webkit-scrollbar-track {
         background-color: transparent;
         border-radius: 5px;
     }
-    .extension-tab-table-wrapper ::-webkit-scrollbar {
+    .extension-tab-table-wrapper ::-webkit-scrollbar,
+    .extension-tab-scroll-table-wrapper::-webkit-scrollbar {
         width: 5px;
         height: 5px;
     }
@@ -165,12 +168,12 @@
                 font-size: 14px;
                 font-weight: 600;
                 font-family: initial;
-                color: #dbdbdb;
+                color: #818181;
                 th {
                     min-width: 20px;
                     padding: 4px;
                     padding-left: 8px;
-                    background-color: rgb(43, 43, 43);
+                    background-color: rgb(44, 44, 44);
                 }
 
                 &-action {
@@ -207,6 +210,104 @@
                                 fill: #ffffff;
                             }
                         }
+                    }
+                }
+                td {
+                    padding: 2px;
+                    padding-left: 8px;
+                }
+            }
+        }
+    }
+    .extension-tab-scroll-table-wrapper {
+        overflow: auto;
+        width: 100%;
+        height: 100%;
+        /* Performance optimizations */
+        contain: layout style paint;
+        will-change: scroll-position;
+        .extension-tab-scroll-table {
+            width: 100%;
+            /* Performance optimizations */
+            contain: layout style;
+            &-header {
+                position: sticky;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 10;
+                font-size: 14px;
+                text-align: left;
+                font-weight: 600;
+                font-family: initial;
+                color: #818181;
+                th {
+                    min-width: 20px;
+                    padding: 4px;
+                    padding-left: 8px;
+                    background-color: rgb(44, 44, 44);
+                }
+
+                .row-num {
+                    cursor: default;
+                    color: #3b3b3b;
+                }
+
+                &-action {
+                    width: 10px;
+                }
+            }
+            &-body {
+                color: #c4c4c4;
+                text-align: left;
+                font-size: 13px;
+                /* Performance optimizations */
+                contain: layout style;
+                .row-num {
+                    cursor: default;
+                    color: #3b3b3b;
+                }
+
+                .active-row {
+                    background-color: rgb(0, 83, 160) !important;
+                    color: rgb(243, 243, 243);
+                }
+                tr {
+                    /* Performance optimizations */
+                    contain: layout style;
+
+                    .action {
+                        padding: 8px;
+                        cursor: pointer;
+                        svg {
+                            fill: #c4c4c4;
+                        }
+                        &:hover,
+                        &:focus {
+                            background-color: rgb(0, 108, 210);
+                            svg {
+                                fill: #ffffff;
+                            }
+                        }
+                    }
+
+                    .delete {
+                        padding: 8px;
+                        cursor: pointer;
+                        svg {
+                            fill: #c4c4c4;
+                        }
+                        &:hover,
+                        &:focus {
+                            background-color: rgb(255, 83, 83);
+                            svg {
+                                fill: #ffffff;
+                            }
+                        }
+                    }
+                    &:hover,
+                    &:focus {
+                        background-color: rgb(64, 64, 64);
                     }
                 }
                 td {
@@ -601,6 +702,11 @@
         width: 100%;
         height: calc(100% - 40px);
 
+        &.fixed {
+            height: auto;
+            flex-shrink: 0;
+        }
+
         .extension-tab-scroll-spyder-wrapper {
             padding: 10px 20px;
             width: 150px;
@@ -655,13 +761,12 @@
             color: #dfdfdf;
             overflow: hidden;
         }
-
-        .extension-tab-sub-title {
-            color: #f1f1f1;
-            font-family: initial;
-            font-weight: 600;
-            font-size: 30px;
-        }
+    }
+    .extension-tab-sub-title {
+        color: #f1f1f1;
+        font-family: initial;
+        font-weight: 600;
+        font-size: 30px;
     }
     .active-content-block {
         border: solid 2px #005fb8;

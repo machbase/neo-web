@@ -29,6 +29,7 @@ import { Subscriber } from '../bridge/subscriber';
 import './Body.scss';
 import { BackupDatabase } from '../database/backup';
 import { AppInfo } from '../side/AppStore/info';
+import { DBTablePage } from '../side/DBExplorer/tablePage';
 
 const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -330,6 +331,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                             {aItem.type === 'backupdb' && <BackupDatabase pCode={aItem} />}
                             {aItem.type === 'appStore' && <AppInfo pCode={aItem.code} />}
                             {isImage(aItem.name) && <ImageBox pBase64Code={aItem.code} pType={aItem.type} />}
+                            {aItem.type === 'DBTable' && <DBTablePage pCode={aItem} />}
                         </div>
                     );
                 })}
