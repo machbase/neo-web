@@ -27,13 +27,17 @@ request.interceptors.request.use(
         const sFileTaz = sUrlSplit[0].indexOf('.taz');
         const sFileDsh = sUrlSplit[0].indexOf('.dsh');
         const sFileWrk = sUrlSplit[0].indexOf('.wrk');
-        const sFileMd = sUrlSplit[0].indexOf('.md');
-        const sFileCsv = sUrlSplit[0].indexOf('.csv');
-        const sFileText = sUrlSplit[0].indexOf('.txt');
-        const sFileHtml = sUrlSplit[0].indexOf('.html');
-        const sFileCss = sUrlSplit[0].indexOf('.css');
-        const sFileJs = sUrlSplit[0].indexOf('.js');
         const sFileImg = isImage(sUrlSplit[0]);
+        // Detect directory-creation POSTs to /api/files/.../ (trailing slash)
+        const isFilesApi = sUrlSplit[0].startsWith('/api/files');
+        const endsWithSlash = sUrlSplit[0].endsWith('/');
+        const isGitClone = Boolean(config?.data?.url);
+        const isDirCreationPost = isFilesApi && endsWithSlash && config.method === 'post' && !isGitClone;
+        // Determine target file extension by the last segment only
+        const pathSegments = sUrlSplit[0].split('/').filter(Boolean);
+        const lastSegment = pathSegments[pathSegments.length - 1] || '';
+        const lastDot = lastSegment.lastIndexOf('.');
+        const lastExt = lastDot !== -1 ? lastSegment.slice(lastDot + 1).toLowerCase() : '';
         const sViewMode = window.location.pathname.includes('/web/ui/view');
         // const sDshFetch = config.url.includes('/api/tql/dsh');
         const sDshFetch = config.url.match(/\/api\/tql\/dsh$/gm);
@@ -62,30 +66,29 @@ request.interceptors.request.use(
         if (sFileImg) {
             config.responseType = 'arraybuffer';
         }
-        if ((sFileTaz !== -1 || sFileWrk !== -1 || sFileDsh !== -1) && config.method === 'post') {
-            sHeaders['Content-Type'] = 'text/plain';
-        }
-
-        if (sFileOption !== -1 && (sFileTql !== -1 || sFileSql !== -1) && sFileTaz === -1 && sFileWrk === -1 && config.method === 'post') {
-            sHeaders['Content-Type'] = 'text/plain';
-        }
-        if ((sFileMd !== -1 || sFileCsv !== -1 || sFileText !== -1) && config.method === 'post') {
-            sHeaders['Content-Type'] = 'text/plain';
-        }
-        if ((sFileMd !== -1 || sFileCsv !== -1 || sFileText !== -1 || sFileHtml !== -1) && config.method === 'post') {
-            sHeaders['Content-Type'] = 'text/html';
-        }
-        if (sFileCss !== -1 && config.method === 'post') {
-            sHeaders['Content-Type'] = 'text/css';
-        }
-        if (sFileJs !== -1 && config.method === 'post') {
-            sHeaders['Content-Type'] = 'text/javascript';
+        // Only apply file Content-Type overrides for actual file uploads
+        if (!isDirCreationPost && config.method === 'post') {
+            if (['taz', 'wrk', 'dsh', 'sql', 'tql', 'md', 'csv', 'txt'].includes(lastExt)) {
+                sHeaders['Content-Type'] = 'text/plain';
+            } else if (lastExt === 'html') {
+                sHeaders['Content-Type'] = 'text/html';
+            } else if (lastExt === 'css') {
+                sHeaders['Content-Type'] = 'text/css';
+            } else if (lastExt === 'js') {
+                sHeaders['Content-Type'] = 'text/javascript';
+            }
         }
         if (sHeaders && (config.url === '/api/md?darkMode=false' || config.url === '/api/md?darkMode=true')) {
             sHeaders['Content-Type'] = 'text/plain';
         }
 
-        if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1 || sFileDsh !== -1 || sFileWrk !== -1) && config.method === 'get') {
+        // Only treat as file GET when path does not denote a directory (no trailing slash)
+        if (
+            sFileOption !== -1 &&
+            (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1 || sFileDsh !== -1 || sFileWrk !== -1) &&
+            config.method === 'get' &&
+            !endsWithSlash
+        ) {
             config.transformResponse = function (data: any) {
                 return data;
             };

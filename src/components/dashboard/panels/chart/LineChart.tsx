@@ -47,6 +47,7 @@ const LineChart = ({
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sTqlResultType, setTqlResultType] = useState<'html' | TqlResType>(TqlResType.VISUAL);
     const [sTqlData, setTqlData] = useState<any>(undefined);
+    const [sGeomapTitle, setGeomapTitle] = useState<string | undefined>(undefined);
     let sRefClientWidth = 0;
     let sRefClientHeight = 0;
 
@@ -196,6 +197,17 @@ const LineChart = ({
             let sResult: any = undefined;
 
             if (pPanelInfo.type === 'Geomap') {
+                // Replace variables in Geomap title with current time context
+                try {
+                    const sTimeContext = {
+                        interval: sIntervalInfo,
+                        start: sStartTime,
+                        end: sEndTime,
+                    };
+                    setGeomapTitle(replaceVariablesInTql(pPanelInfo?.title ?? '', pBoardInfo.dashboard.variables, sTimeContext));
+                } catch (e) {
+                    setGeomapTitle(pPanelInfo?.title ?? '');
+                }
                 const sColumnIdxList = pPanelInfo.blockList.map((_block: any, idx: number) => {
                     if (pPanelInfo.chartOptions.coorLat[idx] === pPanelInfo.chartOptions.coorLon[idx]) return [0, 1];
                     else return [pPanelInfo.chartOptions.coorLat[idx], pPanelInfo.chartOptions.coorLon[idx]];
@@ -371,7 +383,7 @@ const LineChart = ({
                     pPanelRef={ChartRef}
                     pTheme={pPanelInfo.theme}
                     pChartOpt={pPanelInfo.chartOptions}
-                    pTitle={{ title: pPanelInfo?.title, color: pPanelInfo?.titleColor }}
+                    pTitle={{ title: pPanelInfo.type === 'Geomap' ? sGeomapTitle ?? pPanelInfo?.title : pPanelInfo?.title, color: pPanelInfo?.titleColor }}
                 />
             ) : null}
             {sTqlResultType !== TqlResType.VISUAL && sTqlData ? (

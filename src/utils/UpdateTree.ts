@@ -25,7 +25,9 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
         .filter((aPath: string) => aPath !== '')
         .at(-1);
     const sTmp = JSON.parse(JSON.stringify(aOriginTree));
-    const sTargetDirInfo: any = aIsFile ? { success: true } : await getFileList('', aFullPath, '');
+    // Ensure trailing slash for directory fetch to avoid misclassification as file
+    const ensureDir = (p: string) => (p.endsWith('/') ? p : p + '/');
+    const sTargetDirInfo: any = aIsFile ? { success: true } : await getFileList('', ensureDir(aFullPath), '');
     let sAlreadyExist = false;
 
     const CheckFullPath = (aPath: string) => {
@@ -36,14 +38,21 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
     const DirDrill = async (aTargetDir: any, aFullPath: string, aDepth: number) => {
         for await (const [aIdx, aDir] of aTargetDir.entries()) {
             if (aFullPath === aDir.path + aDir.name) {
-                const sParsedTargetRes = fileTreeParser(sTargetDirInfo.data, sPath + sName + '/', sDepth, sTargetDirInfo.data.name);
-                sAlreadyExist = true;
-                aTargetDir[aIdx].dirs = sParsedTargetRes.dirs;
-                aTargetDir[aIdx].files = sParsedTargetRes.files;
-                aTargetDir[aIdx].isOpen = true;
-                return aTargetDir;
+                // If target dir fetch failed, just mark as open and keep current children
+                if (!sTargetDirInfo || !sTargetDirInfo.success || !sTargetDirInfo.data) {
+                    sAlreadyExist = true;
+                    aTargetDir[aIdx].isOpen = true;
+                    return aTargetDir;
+                } else {
+                    const sParsedTargetRes = fileTreeParser(sTargetDirInfo.data, sPath + sName + '/', sDepth, sTargetDirInfo.data.name);
+                    sAlreadyExist = true;
+                    aTargetDir[aIdx].dirs = sParsedTargetRes.dirs;
+                    aTargetDir[aIdx].files = sParsedTargetRes.files;
+                    aTargetDir[aIdx].isOpen = true;
+                    return aTargetDir;
+                }
             } else if (CheckFullPath(aDir.path + aDir.name)) {
-                const sReslut: any = await getFileList('', aDir.path + aDir.name, '');
+                const sReslut: any = await getFileList('', ensureDir(aDir.path + aDir.name), '');
                 if (sReslut.success) {
                     const sParsedRes = fileTreeParser(sReslut.data, aDir.path + aDir.name + '/', aDepth + 1, sReslut.data.name);
                     const sDirs: any = {

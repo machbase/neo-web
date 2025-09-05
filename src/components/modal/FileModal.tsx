@@ -5,6 +5,7 @@ import { TextButton } from '../buttons/TextButton';
 import { useState, useEffect, useRef } from 'react';
 import Modal from './Modal';
 import { postFileList } from '@/api/repository/api';
+import { getFiles } from '@/api/repository/fileTree';
 import useDebounce from '@/hooks/useDebounce';
 import { FileNameAndExtensionValidator, FileTazDfltVal, FileDshDfltVal, FileWrkDfltVal, PathRootValidator } from '@/utils/FileExtansion';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
@@ -39,7 +40,21 @@ export const FileModal = (props: FileModalProps) => {
         if (parsedExtension.includes('taz')) sPayload = FileTazDfltVal;
         if (parsedExtension.includes('dsh')) sPayload = FileDshDfltVal;
 
-        const sResult: any = await postFileList(sPayload, '', sFilePath);
+        // Split into directory and file name to avoid backend routing/validation issues
+        const lastSlashIdx = sFilePath.lastIndexOf('/');
+        const sDirRaw = lastSlashIdx > 0 ? sFilePath.slice(0, lastSlashIdx) : '/';
+        // Backend expects directory without leading slash (consistent with other callers)
+        const sDir = sDirRaw === '/' ? '/' : sDirRaw.replace(/^\/+/, '');
+        const sName = sFilePath.slice(lastSlashIdx + 1);
+        // Preflight: ensure parent path exists and is a directory
+        const checkPath = sDir === '/' ? '/' : `/${sDir}/`;
+        const sParentInfo: any = await getFiles(checkPath);
+        if (!sParentInfo || !sParentInfo.success || !sParentInfo.data?.isDir) {
+            setValResut(false);
+            return;
+        }
+
+        const sResult: any = await postFileList(sPayload, sDir, sName);
         if (sResult && sResult.success) {
             const sDrillRes = await TreeFetchDrilling(sFileTree, sFilePath, true);
             setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));

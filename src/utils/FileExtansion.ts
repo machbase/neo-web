@@ -17,8 +17,9 @@ export const FileNameValidator = (aTxt: string): boolean => {
 // validator path root '/'
 export const PathRootValidator = (aTxt: string): boolean => {
     if (aTxt.includes('..') || aTxt.includes('./')) return false;
-    const DoubleSlash = new RegExp(`//`, 'gm');
-    const BaseRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9]*`, 'gm');
+    const DoubleSlash = new RegExp(`//`);
+    // Use a non-global, fully anchored regex to avoid stateful .test issues
+    const BaseRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9]*$`);
     const FileRegExp = aTxt.split('/').every((aItem) => {
         if (aItem.includes('.')) return BaseRegExp.test(getExtensionOnly(aItem));
         else return FileNameValidator(aItem);
