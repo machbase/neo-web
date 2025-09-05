@@ -19,7 +19,8 @@ export const replaceVariablesInTql = (
         return tqlString;
     }
     
-    const parsedVariables = VariableParser(variables, timeContext);
+    // Sort variables by key length (desc) to avoid partial overlap issues
+    const parsedVariables = VariableParser(variables, timeContext).sort((a: any, b: any) => b.key.length - a.key.length);
     let processedTql = tqlString;
     
     parsedVariables.forEach(variable => {
