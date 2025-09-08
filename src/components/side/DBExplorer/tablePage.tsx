@@ -20,7 +20,7 @@ const BadgeSelectorItem = ({ item }: { item: { name: string; color: string } }) 
     );
 };
 
-export const DBTablePage = ({ pCode }: { pCode: any }) => {
+export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab: boolean }) => {
     const [sLastFetchTime, setLastFetchTime] = useState<string>('');
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sRecordCnt, setRecordCnt] = useState<number>(0);
@@ -214,31 +214,33 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
     };
 
     useEffect(() => {
-        if (mTableInfo) {
-            SetLastFetchTime();
-            FetchRecordCount();
-            FetchColumn();
-            FetchIndex();
-            // Cond retention (MACHBASEDB)
-            if (mTableInfo[E_TABLE_INFO.DB_ID] === -1) FetchRetention();
-            else setRetentionInfo(undefined);
-            // Cond rollup (MACHBASEDB + TAG)
-            if (mTableInfo[E_TABLE_INFO.DB_ID] === -1 && CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) {
-                FetchRollup();
-                FetchIndexGapForTag();
+        if (pIsActiveTab) {
+            if (mTableInfo) {
+                SetLastFetchTime();
+                FetchRecordCount();
+                FetchColumn();
+                FetchIndex();
+                // Cond retention (MACHBASEDB)
+                if (mTableInfo[E_TABLE_INFO.DB_ID] === -1) FetchRetention();
+                else setRetentionInfo(undefined);
+                // Cond rollup (MACHBASEDB + TAG)
+                if (mTableInfo[E_TABLE_INFO.DB_ID] === -1 && CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) {
+                    FetchRollup();
+                    FetchIndexGapForTag();
+                } else {
+                    setRollupInfo(undefined);
+                    setTagIndexGap(undefined);
+                }
             } else {
+                setRecordCnt(0);
+                setColumnInfo(undefined);
+                setIndexInfo(undefined);
                 setRollupInfo(undefined);
+                setRetentionInfo(undefined);
                 setTagIndexGap(undefined);
             }
-        } else {
-            setRecordCnt(0);
-            setColumnInfo(undefined);
-            setIndexInfo(undefined);
-            setRollupInfo(undefined);
-            setRetentionInfo(undefined);
-            setTagIndexGap(undefined);
         }
-    }, [mTableInfo, sRefreshCnt]);
+    }, [mTableInfo, sRefreshCnt, pIsActiveTab]);
 
     // Init screen size
     useEffect(() => {
@@ -366,7 +368,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                             />
                         </ExtensionTab.DpRow>
                     </ExtensionTab.Header>
-                    <MetaTablePage pMTableInfo={mTableInfo} pRefresh={{ state: sRefreshCnt, set: setRefreshCnt }} />
+                    <MetaTablePage pIsActiveTab={pIsActiveTab} pMTableInfo={mTableInfo} pRefresh={{ state: sRefreshCnt, set: setRefreshCnt }} />
                 </Pane>
             </SplitPane>
         </ExtensionTab>

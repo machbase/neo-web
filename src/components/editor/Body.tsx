@@ -331,7 +331,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                             {aItem.type === 'backupdb' && <BackupDatabase pCode={aItem} />}
                             {aItem.type === 'appStore' && <AppInfo pCode={aItem.code} />}
                             {isImage(aItem.name) && <ImageBox pBase64Code={aItem.code} pType={aItem.type} />}
-                            {aItem.type === 'DBTable' && <DBTablePage pCode={aItem} />}
+                            {aItem.type === 'DBTable' && <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />}
                         </div>
                     );
                 })}
