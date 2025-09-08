@@ -12,7 +12,15 @@ type META_MOD_TYPE = 'INSERT' | 'UPDATE' | 'DELETE';
 const IGNORE_COL_LIST = ['_ID'];
 const REQUIRE_COL_LIST = ['NAME'];
 
-export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRefresh: { state: number; set: React.Dispatch<React.SetStateAction<number>> } }) => {
+export const MetaTablePage = ({
+    pIsActiveTab,
+    pMTableInfo,
+    pRefresh,
+}: {
+    pIsActiveTab: boolean;
+    pMTableInfo: any;
+    pRefresh: { state: number; set: React.Dispatch<React.SetStateAction<number>> };
+}) => {
     const setBoardList = useSetRecoilState<any[]>(gBoardList);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sIsComponentLoad, setIsComponentLoad] = useState<boolean>(false);
@@ -250,13 +258,15 @@ export const MetaTablePage = ({ pMTableInfo, pRefresh }: { pMTableInfo: any; pRe
 
     // Effect for initial load only
     useEffect(() => {
-        if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) {
-            // 첫 로드인지 테이블 변경인지 구분
-            const isFirstLoad = !sIsComponentLoad;
-            init(!isFirstLoad); // 첫 로드가 아닐 때만 페이지 리셋
+        if (pIsActiveTab) {
+            if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) {
+                // 첫 로드인지 테이블 변경인지 구분
+                const isFirstLoad = !sIsComponentLoad;
+                init(!isFirstLoad); // 첫 로드가 아닐 때만 페이지 리셋
+            }
+            if (!sIsComponentLoad) setIsComponentLoad(true);
         }
-        if (!sIsComponentLoad) setIsComponentLoad(true);
-    }, [mTableInfo, pRefresh.state]);
+    }, [mTableInfo, pRefresh.state, pIsActiveTab]);
 
     // Effect for page changes (pagination) - only for page > 0
     useEffect(() => {
