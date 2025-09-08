@@ -17,6 +17,7 @@ import { MonacoEditor } from '../monaco/MonacoEditor';
 import { IconButton } from '@/components/buttons/IconButton';
 import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader } from '@/utils/sqlOriginDataDownloader';
 import { postSplitter } from '@/api/repository/api';
+import { Loader } from '../loader';
 
 const Sql = ({
     pInfo,
@@ -43,6 +44,7 @@ const Sql = ({
     const [sResultLimit, setResultLimit] = useState<number>(1);
     const sEditorRef = useRef(null);
     const [sErrLog, setErrLog] = useState<string | null>(null);
+    const [sTextField, setTextField] = useState<string>('');
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
     const [sChartAxisList, setChartAxisList] = useState<string[]>([]);
     const [sChartQueryList, setChartQueryList] = useState<STATEMENT_TYPE[] | []>([]);
@@ -143,25 +145,17 @@ const Sql = ({
 
     const fetchSql = async (aParsedQuery: STATEMENT_TYPE[]) => {
         setEndRecord(() => false);
+        setTextField('Processing...');
         const sQueryReslutList: any = [];
         try {
-            const fetchQuery = (aQuery: STATEMENT_TYPE) => {
-                return new Promise((resolve, reject) => {
-                    setTimeout(async () => {
-                        const sQueryResult = await getTqlChart(sqlBasicFormatter(aQuery.text, 1, sTimeRange, sTimeZone, SQL_BASE_LIMIT, aQuery.env?.bridge));
-                        sQueryReslutList.push(sQueryResult);
-                        if (sQueryResult.data.success) resolve(true);
-                        else reject(false);
-                    }, 1);
-                });
+            const fetchQuery = async (aQuery: STATEMENT_TYPE) => {
+                const sQueryResult = await getTqlChart(sqlBasicFormatter(aQuery.text, 1, sTimeRange, sTimeZone, SQL_BASE_LIMIT, aQuery.env?.bridge));
+                sQueryReslutList.push(sQueryResult);
+                if (!sQueryResult.data.success) throw new Error('Query failed');
             };
-
-            await aParsedQuery.reduce(async (previousPromise: any, curQuery: STATEMENT_TYPE) => {
-                await previousPromise;
-                return fetchQuery(curQuery);
-            }, Promise.resolve());
+            for (const curQuery of aParsedQuery) await fetchQuery(curQuery);
         } catch {
-            setErrLog(sQueryReslutList.at(-1).data.reason);
+            setErrLog(sQueryReslutList?.at(-1)?.data?.reason);
         }
 
         if (
@@ -193,11 +187,13 @@ const Sql = ({
 
         if (sQueryReslutList.at(-1).data.success === true) {
             setErrLog(null);
+            setTextField('');
             setEndRecord(sQueryReslutList.at(-1).data.data.rows.length < SQL_BASE_LIMIT);
             setSelectedSubTab('RESULT');
             setOldFetchTxt(sLowerQuery);
             return true;
         } else {
+            setTextField('');
             // setSelectedSubTab('LOG');
             return false;
         }
@@ -377,6 +373,13 @@ const Sql = ({
                             sErrLog ? (
                                 <div className="sql-error-body" style={{ padding: '0 1rem' }}>
                                     {sErrLog}
+                                </div>
+                            ) : sTextField === 'Processing...' ? (
+                                <div className="sql-processing-body" style={{ padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
+                                    <span>{sTextField}</span>
+                                    <div style={{ marginLeft: '4px' }}>
+                                        <Loader width="12px" height="12px" borderRadius="90%" />
+                                    </div>
                                 </div>
                             ) : (
                                 <RESULT
