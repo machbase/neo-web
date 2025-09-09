@@ -32,10 +32,10 @@ export const binaryCodeEncodeBase64 = (aBinaryCode: ArrayBufferLike) => {
 };
 
 export const extractionExtension = (aFileName: string) => {
-    const sDotIndex = aFileName.lastIndexOf('.');
+    const sDotIndex = aFileName?.lastIndexOf('.');
     if (sDotIndex === -1) return '';
 
-    return aFileName.slice(sDotIndex + 1).toLowerCase();
+    return aFileName?.slice(sDotIndex + 1)?.toLowerCase();
 };
 
 export const getMonacoLines = (aWrapperHeight: number, aLineHeight: number) => {

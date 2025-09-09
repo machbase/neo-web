@@ -1,0 +1,21 @@
+.unknown-extension-editor {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .unknown-extension-editor-header {
+        width: 100%;
+        height: 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 1rem;
+    }
+
+    .unknown-extension-editor-content {
+        width: 100%;
+        height: calc(100% - 40px);
+        overflow: auto;
+    }
+}

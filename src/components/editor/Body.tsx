@@ -30,6 +30,8 @@ import './Body.scss';
 import { BackupDatabase } from '../database/backup';
 import { AppInfo } from '../side/AppStore/info';
 import { DBTablePage } from '../side/DBExplorer/tablePage';
+import { EXTENSION_SET, FILE_EXTENSION_LIST, IMAGE_EXTENSION_LIST, SIDE_EXTENSION_LIST } from '@/utils/constants';
+import { UnknownExtension } from '../unknownExtension';
 
 const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -140,6 +142,13 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
     const clearTabDragInfo = () => {
         setTabDragInfo({ start: undefined, enter: undefined, over: undefined, end: false });
     };
+    const checkExtension = (aCurrentExtension: string, aExpectedExtension: string): boolean => {
+        if (aExpectedExtension === 'unknown' && !EXTENSION_SET.has(aCurrentExtension)) return true;
+        if (aExpectedExtension === 'image') return EXTENSION_SET.has(aCurrentExtension);
+        const isExtensionMatch = aCurrentExtension === aExpectedExtension;
+        if (!isExtensionMatch) return false;
+        return EXTENSION_SET?.has(aCurrentExtension);
+    };
 
     useSaveCommand(handleSaveModalOpen);
     useMoveTab(handleMoveTab);
@@ -213,8 +222,8 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                 {sBoardList.map((aItem) => {
                     return (
                         <div key={aItem.id} style={aItem.id === sSelectedTab ? { width: '100%', height: '100%' } : { display: 'none' }}>
-                            {aItem.type === 'new' && <NewBoard pExtentionList={pExtentionList} pGetInfo={pGetInfo} setIsOpenModal={setIsOpenModal} />}
-                            {aItem.type === 'sql' && (
+                            {checkExtension(aItem.type, 'new') && <NewBoard pExtentionList={pExtentionList} pGetInfo={pGetInfo} setIsOpenModal={setIsOpenModal} />}
+                            {checkExtension(aItem.type, 'sql') && (
                                 <Sql
                                     pIsActiveTab={aItem.id === sSelectedTab}
                                     pSetDragStat={pSetDragStat}
@@ -223,7 +232,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     setIsSaveModal={setIsSaveModal}
                                 />
                             )}
-                            {aItem.type === 'tql' && (
+                            {checkExtension(aItem.type, 'tql') && (
                                 <Tql
                                     pIsActiveTab={aItem.id === sSelectedTab}
                                     pCode={aItem.code}
@@ -233,11 +242,11 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     setIsSaveModal={setIsSaveModal}
                                 />
                             )}
-                            {aItem.type === 'taz' && (
+                            {checkExtension(aItem.type, 'taz') && (
                                 <TagAnalyzer pHandleSaveModalOpen={handleSaveModalOpen} pInfo={aItem} pSetIsOpenModal={setIsOpenModal} pSetIsSaveModal={setIsSaveModal} />
                             )}
-                            {aItem.type === 'term' && <Shell pSelectedTab={sSelectedTab} pInfo={aItem} pId={aItem.id} pWidth={sBodyWidth} />}
-                            {aItem.type === 'dsh' && (
+                            {checkExtension(aItem.type, 'term') && <Shell pSelectedTab={sSelectedTab} pInfo={aItem} pId={aItem.id} pWidth={sBodyWidth} />}
+                            {checkExtension(aItem.type, 'dsh') && (
                                 <Dashboard
                                     pDragStat={pDragStat}
                                     pWidth={sBodyWidth}
@@ -250,7 +259,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     pIsSave={aItem.path}
                                 />
                             )}
-                            {aItem.type === 'wrk' && (
+                            {checkExtension(aItem.type, 'wrk') && (
                                 <WorkSheet
                                     pIsActiveTab={aItem.id === sSelectedTab}
                                     pId={aItem.id}
@@ -259,7 +268,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     setIsSaveModal={setIsSaveModal}
                                 />
                             )}
-                            {aItem.type === 'json' && (
+                            {checkExtension(aItem.type, 'json') && (
                                 <TextExtension
                                     pIsActiveTab={aItem.id === sSelectedTab}
                                     pLang="json"
@@ -268,7 +277,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     setIsOpenModal={setIsSaveModal}
                                 />
                             )}
-                            {aItem.type === 'csv' && (
+                            {checkExtension(aItem.type, 'csv') && (
                                 <TextExtension
                                     pIsActiveTab={aItem.id === sSelectedTab}
                                     pLang="go"
@@ -277,7 +286,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     setIsOpenModal={setIsSaveModal}
                                 />
                             )}
-                            {aItem.type === 'md' && (
+                            {checkExtension(aItem.type, 'md') && (
                                 <TextExtension
                                     pIsActiveTab={aItem.id === sSelectedTab}
                                     pLang="markdown"
@@ -286,7 +295,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     setIsOpenModal={setIsSaveModal}
                                 />
                             )}
-                            {aItem.type === 'txt' && (
+                            {checkExtension(aItem.type, 'txt') && (
                                 <TextExtension
                                     pIsActiveTab={aItem.id === sSelectedTab}
                                     pLang="go"
@@ -295,7 +304,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     setIsOpenModal={setIsSaveModal}
                                 />
                             )}
-                            {aItem.type === 'html' && (
+                            {checkExtension(aItem.type, 'html') && (
                                 <TextExtension
                                     pIsActiveTab={aItem.id === sSelectedTab}
                                     pLang="html"
@@ -304,7 +313,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     setIsOpenModal={setIsSaveModal}
                                 />
                             )}
-                            {aItem.type === 'css' && (
+                            {checkExtension(aItem.type, 'css') && (
                                 <TextExtension
                                     pIsActiveTab={aItem.id === sSelectedTab}
                                     pLang="css"
@@ -313,7 +322,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     setIsOpenModal={setIsSaveModal}
                                 />
                             )}
-                            {aItem.type === 'js' && (
+                            {checkExtension(aItem.type, 'js') && (
                                 <TextExtension
                                     pIsActiveTab={aItem.id === sSelectedTab}
                                     pLang="javascript"
@@ -322,16 +331,17 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                                     setIsOpenModal={setIsSaveModal}
                                 />
                             )}
-                            {aItem.type === 'key' && <SecurityKey pCode={aItem.code} />}
-                            {aItem.type === 'timer' && <Timer pCode={aItem.code} />}
-                            {aItem.type === 'shell-manage' && <ShellManage pCode={aItem.code} />}
-                            {aItem.type === 'bridge' && <Bridge pCode={aItem.code} />}
-                            {aItem.type === 'ssh-key' && <SSHKey />}
-                            {aItem.type === 'subscriber' && <Subscriber pCode={aItem.code} />}
-                            {aItem.type === 'backupdb' && <BackupDatabase pCode={aItem} />}
-                            {aItem.type === 'appStore' && <AppInfo pCode={aItem.code} />}
-                            {isImage(aItem.name) && <ImageBox pBase64Code={aItem.code} pType={aItem.type} />}
-                            {aItem.type === 'DBTable' && <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />}
+                            {checkExtension(aItem.type, 'image') && <ImageBox pBase64Code={aItem.code} pType={aItem.type} />}
+                            {checkExtension(aItem.type, 'key') && <SecurityKey pCode={aItem.code} />}
+                            {checkExtension(aItem.type, 'timer') && <Timer pCode={aItem.code} />}
+                            {checkExtension(aItem.type, 'shell-manage') && <ShellManage pCode={aItem.code} />}
+                            {checkExtension(aItem.type, 'bridge') && <Bridge pCode={aItem.code} />}
+                            {checkExtension(aItem.type, 'ssh-key') && <SSHKey />}
+                            {checkExtension(aItem.type, 'subscriber') && <Subscriber pCode={aItem.code} />}
+                            {checkExtension(aItem.type, 'backupdb') && <BackupDatabase pCode={aItem} />}
+                            {checkExtension(aItem.type, 'appStore') && <AppInfo pCode={aItem.code} />}
+                            {checkExtension(aItem.type, 'DBTable') && <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />}
+                            {checkExtension(aItem.type, 'unknown') && <UnknownExtension pIsActiveTab={aItem.id === sSelectedTab} pCode={aItem.code} />}
                         </div>
                     );
                 })}
