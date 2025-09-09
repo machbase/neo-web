@@ -12,7 +12,7 @@ import { SaveModal } from '../modal/SaveModal';
 import useSaveCommand from '@/hooks/useSaveCommand';
 import useMoveTab from '@/hooks/useMoveTab';
 import { WorkSheet } from '@/components/worksheet/WorkSheet';
-import { extractionExtension, getId, isImage } from '@/utils';
+import { extractionExtension, getId } from '@/utils';
 import { postFileList } from '@/api/repository/api';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { PlusCircle } from '@/assets/icons/Icon';
@@ -30,7 +30,7 @@ import './Body.scss';
 import { BackupDatabase } from '../database/backup';
 import { AppInfo } from '../side/AppStore/info';
 import { DBTablePage } from '../side/DBExplorer/tablePage';
-import { EXTENSION_SET, FILE_EXTENSION_LIST, IMAGE_EXTENSION_LIST, SIDE_EXTENSION_LIST } from '@/utils/constants';
+import { EXTENSION_SET } from '@/utils/constants';
 import { UnknownExtension } from '../unknownExtension';
 
 const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
