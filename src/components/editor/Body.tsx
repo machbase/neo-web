@@ -30,7 +30,7 @@ import './Body.scss';
 import { BackupDatabase } from '../database/backup';
 import { AppInfo } from '../side/AppStore/info';
 import { DBTablePage } from '../side/DBExplorer/tablePage';
-import { EXTENSION_SET } from '@/utils/constants';
+import { EXTENSION_SET, IMAGE_EXTENSION_LIST } from '@/utils/constants';
 import { UnknownExtension } from '../unknownExtension';
 
 const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
@@ -144,7 +144,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
     };
     const checkExtension = (aCurrentExtension: string, aExpectedExtension: string): boolean => {
         if (aExpectedExtension === 'unknown' && !EXTENSION_SET.has(aCurrentExtension)) return true;
-        if (aExpectedExtension === 'image') return EXTENSION_SET.has(aCurrentExtension);
+        if (aExpectedExtension === 'image') return IMAGE_EXTENSION_LIST.includes(aCurrentExtension);
         const isExtensionMatch = aCurrentExtension === aExpectedExtension;
         if (!isExtensionMatch) return false;
         return EXTENSION_SET?.has(aCurrentExtension);
