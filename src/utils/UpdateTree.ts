@@ -77,13 +77,17 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
             if (!aIsFile) {
                 const sParsedTargetRes = fileTreeParser(sTargetDirInfo.data, sPath + sTargetDirInfo.data.name + '/', 1, sTargetDirInfo.data.name);
                 if (sParsedRes.dirs.length !== 0) {
-                    sTmp.dirs.map((bDir: any) => {
-                        if (bDir.name === sName && bDir.id === sName && bDir.depth === sDepth) sAlreadyExist = true;
+                    let sTargetIdx = -1;
+                    sTmp.dirs.map((bDir: any, bIdx: number) => {
+                        if (bDir.name === sName && bDir.id === sName && bDir.depth === sDepth) {
+                            sAlreadyExist = true;
+                            sTargetIdx = bIdx;
+                        }
                     });
-                    sParsedRes.dirs.map((aDir: any, aIdx: number) => {
+                    sParsedRes.dirs.map((aDir: any) => {
                         if (aDir.name === sName && aDir.id === sName && aDir.depth === sDepth) {
-                            if (sAlreadyExist) {
-                                sTmp.dirs[aIdx] = { ...sTmp.dirs[aIdx], dirs: sParsedTargetRes.dirs, files: sParsedTargetRes.files, isOpen: true };
+                            if (sAlreadyExist && sTargetIdx >= 0) {
+                                sTmp.dirs[sTargetIdx] = { ...sTmp.dirs[sTargetIdx], dirs: sParsedTargetRes.dirs, files: sParsedTargetRes.files, isOpen: true };
                             } else sTmp.dirs.push({ ...aDir, dirs: sParsedTargetRes.dirs, files: sParsedTargetRes.files, isOpen: true });
                         }
                     });
