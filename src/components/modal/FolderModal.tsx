@@ -93,6 +93,13 @@ export const FolderModal = (props: FolderModalProps) => {
         }
     }, []);
 
+    const isFormDisabled = (): boolean => {
+        if (pIsGit && !sGitUrl) return true;
+        if (!sFolderPath) return true;
+        if (sFolderPath === '/') return true;
+        return false;
+    };
+
     useDebounce([sGitUrl], handleFoldername);
 
     return (
@@ -137,7 +144,7 @@ export const FolderModal = (props: FolderModalProps) => {
                 </Modal.Body>
                 <Modal.Footer>
                     <div className="button-group">
-                        <TextButton pText="OK" pBackgroundColor="#4199ff" pIsLoad={sIsLoad} pIsDisabled={pIsGit ? !sGitUrl : !sFolderPath} onClick={handleSave} />
+                        <TextButton pText="OK" pBackgroundColor="#4199ff" pIsLoad={sIsLoad} pIsDisabled={isFormDisabled()} onClick={handleSave} />
                         <div style={{ width: '10px' }}></div>
                         <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />
                     </div>
