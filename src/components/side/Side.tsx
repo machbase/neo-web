@@ -40,6 +40,7 @@ import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { VscCopy } from 'react-icons/vsc';
 import { FileCopy } from '@/utils/UpdateTree';
 import axios from 'axios';
+import { EXTENSION_SET } from '@/utils/constants';
 
 const Side = ({
     pGetInfo,
@@ -626,13 +627,15 @@ any) => {
                                                 </Menu.Item> */}
                                             </>
                                         ) : null}
-                                        {(selectedContextFile as any)?.type === 0 && !isImage((selectedContextFile as any).name as string) && (
-                                            <Menu.Item onClick={handleCopy}>
-                                                <VscCopy />
-                                                <span>Duplicate</span>
-                                            </Menu.Item>
-                                        )}
-                                        {!(selectedContextFile as any)?.readOnly && (
+                                        {(selectedContextFile as any)?.type === 0 &&
+                                            !isImage((selectedContextFile as any).name as string) &&
+                                            EXTENSION_SET.has(extractionExtension((selectedContextFile as any)?.id)) && (
+                                                <Menu.Item onClick={handleCopy}>
+                                                    <VscCopy />
+                                                    <span>Duplicate</span>
+                                                </Menu.Item>
+                                            )}
+                                        {!(selectedContextFile as any)?.readOnly && ((selectedContextFile as any)?.type === 1 || EXTENSION_SET.has(extractionExtension((selectedContextFile as any)?.id))) && (
                                             <Menu.Item onClick={handleRename}>
                                                 <Rename />
                                                 <span>Rename</span>
@@ -644,7 +647,7 @@ any) => {
                                                 <span>Update</span>
                                             </Menu.Item>
                                         ) : null}
-                                        {!(selectedContextFile as any)?.readOnly && (
+                                        {!(selectedContextFile as any)?.readOnly && ((selectedContextFile as any)?.type === 1 || EXTENSION_SET.has(extractionExtension((selectedContextFile as any)?.id))) && (
                                             <Menu.Item onClick={deleteFile}>
                                                 <Delete />
                                                 <span>Delete</span>

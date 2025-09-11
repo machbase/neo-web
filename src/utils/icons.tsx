@@ -47,7 +47,7 @@ import { LuDatabaseBackup } from 'react-icons/lu';
 import { PiDatabaseLight } from 'react-icons/pi';
 import { RxLapTimer } from 'react-icons/rx';
 import { SiMqtt, SiNatsdotio } from 'react-icons/si';
-import { VscExtensions } from 'react-icons/vsc';
+import { VscExtensions, VscSymbolFile } from 'react-icons/vsc';
 // import { VscMail } from 'react-icons/vsc';
 
 const icons = (aType: string, aIsHome?: boolean) => {
@@ -157,7 +157,7 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'DBTable':
             return <TfiLayoutColumn3Alt style={{ width: '12px', height: '16px', rotate: '90deg' }} />;
         default:
-            return <GoTerminal />;
+            return <VscSymbolFile color="gray" />;
     }
 };
 export default icons;

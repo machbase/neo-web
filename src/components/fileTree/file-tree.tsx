@@ -14,6 +14,7 @@ import useThrottle from '@/hooks/useThrottle';
 import { moveFile } from '@/api/repository/fileTree';
 import { FileNameValidator } from '@/utils/FileExtansion';
 import { Tooltip } from 'react-tooltip';
+import { EXTENSION_SET } from '@/utils/constants';
 
 interface FileTreeProps {
     rootDir: FileTreeType;
@@ -395,7 +396,7 @@ export const FileTree = (props: FileTreeProps) => {
                 positionStrategy="absolute"
                 delayShow={500}
                 border="1px solid #454545"
-                style={{ 
+                style={{
                     backgroundColor: '#2d2d30',
                     color: '#cccccc',
                     borderRadius: '4px',
@@ -405,7 +406,7 @@ export const FileTree = (props: FileTreeProps) => {
                     wordWrap: 'break-word',
                     whiteSpace: 'pre-wrap',
                     overflowWrap: 'break-word',
-                    zIndex: 9999
+                    zIndex: 9999,
                 }}
             />
         </div>
@@ -549,15 +550,16 @@ const GitIcon = (aFile: FileTreeType, aRefreshCallback: any) => {
 
 const FileNameWithTooltip = ({ file }: { file: FileType | FileTreeType }) => {
     return (
-        <span 
+        <span
             data-tooltip-id="shared-file-tooltip"
             data-tooltip-content={file.name}
-            style={{ 
-                marginLeft: 1, 
-                fontSize: '13px', 
-                whiteSpace: 'nowrap', 
-                textOverflow: 'ellipsis', 
-                overflow: 'hidden'
+            style={{
+                marginLeft: 1,
+                fontSize: '13px',
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                overflow: 'hidden',
+                color: file.type === 1 || (file.type === 0 && EXTENSION_SET.has(extractionExtension(file.name))) ? '' : 'darkgray',
             }}
         >
             {file.name}
@@ -777,7 +779,12 @@ const FileDiv = ({
                                 autoFocus
                                 onFocus={(e) => e.target.setSelectionRange(0, sName.length)}
                                 onBlur={handleBlur}
-                                style={{ color: '#f8f8f8', outline: 'none', border: 'none', backgroundColor: 'transparent' }}
+                                style={{
+                                    color: '#f8f8f8',
+                                    outline: 'none',
+                                    border: 'none',
+                                    backgroundColor: 'transparent',
+                                }}
                             />
                         </div>
                     ) : (
