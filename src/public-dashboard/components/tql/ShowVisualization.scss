@@ -1,0 +1,41 @@
+.tql-form {
+    position: relative;
+    height: 100%;
+
+    .text-panel-value {
+        display: flex;
+        position: absolute;
+        z-index: 9;
+        height: 100%;
+        width: 100%;
+        justify-content: center;
+        align-items: center;
+    }
+    .geomap-panel-title {
+        position: absolute;
+        z-index: 9;
+        align-items: start;
+        justify-content: start;
+        font-size: 20px;
+        padding: 0 32px 0 8px;
+        text-shadow: 1px 1px #b3b3b3;
+        text-overflow: ellipsis;
+        text-wrap: nowrap;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .map_container {
+        height: 100%;
+        .leaflet-container {
+            z-index: 1 !important;
+
+            .leaflet-control-zoom {
+                margin-top: 36px;
+            }
+        }
+    }
+    .chart_container {
+        height: 100%;
+    }
+}

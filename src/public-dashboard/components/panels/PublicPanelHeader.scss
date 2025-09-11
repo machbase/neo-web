@@ -1,0 +1,51 @@
+// 공개 패널 헤더 스타일
+.public-board-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #333;
+    background: rgba(42, 42, 42, 0.8);
+    min-height: 32px;
+
+    &.display-none {
+        display: none;
+    }
+
+    &.panel-theme-white {
+        background: rgba(255, 255, 255, 0.9);
+        border-bottom: 1px solid #ddd;
+        
+        .public-panel-header-title span {
+            color: #333 !important;
+        }
+    }
+
+    .public-panel-header-title {
+        flex: 1;
+        font-weight: 500;
+        font-size: 14px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+
+        span {
+            color: #fff;
+        }
+    }
+
+    .public-panel-header-navigator {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        .panel-header-time-range {
+            display: flex;
+            align-items: center;
+            
+            &.display-none {
+                display: none;
+            }
+        }
+    }
+}

@@ -1,0 +1,57 @@
+.chart-form {
+    width: 100%;
+    overflow: hidden;
+    height: calc(100% - 30px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    .inner-html-form {
+        width: 100%;
+        height: 100%;
+        .chart_container {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+        .chart_item {
+            width: 100% !important;
+            height: 100% !important;
+        }
+    }
+    .loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    .dashboard-tql-panel-sink-wrap {
+        overflow: auto;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+
+        .dashboard-tql-panel-sink-pre {
+            .result-worksheet-pre {
+                margin: 4px;
+                pre {
+                    margin-left: 8px;
+                    line-height: 1.4;
+                    white-space: pre-wrap;
+                }
+            }
+        }
+    }
+}
+.chart-message-error {
+    color: rgb(231, 65, 131);
+}
+
+.chart-message-success {
+    color: rgb(65, 153, 255);
+}
+
+.chart-non-header {
+    height: 100%;
+}
