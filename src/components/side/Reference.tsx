@@ -3,7 +3,7 @@ import { getTutorial, postFileList } from '@/api/repository/api';
 import { gBoardList, gSelectedExtension, gSelectedTab } from '@/recoil/recoil';
 import { binaryCodeEncodeBase64, getId, isImage } from '@/utils';
 import icons from '@/utils/icons';
-import { Dispatch, SetStateAction, useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { VscChevronDown, VscChevronRight } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { VscCloudDownload } from 'react-icons/vsc';
@@ -11,6 +11,8 @@ import { IconButton } from '../buttons/IconButton';
 import { Loader } from '../loader';
 import { gFileTree } from '@/recoil/fileTree';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
+import { Error } from '../toast/Toast';
+// import { TreeFetchDrilling } from '@/utils/UpdateTree';
 
 type REFERENCE_ITEM = {
     title: string;
@@ -23,8 +25,16 @@ const SUPPORT_QUICK_INSTALL_LIST = ['Tutorials', 'Demo web app'];
 const Reference = ({ pValue }: any) => {
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    const [sFileTree, setFileTree] = useRecoilState(gFileTree);
+    const [sProcessingList, setProcessingList] = useState<string[]>([]);
+    const quickInstallQueueRef = useRef<Promise<void>>(Promise.resolve());
+    const fileTreeRef = useRef(sFileTree);
     const setSelectedTab = useSetRecoilState(gSelectedTab);
     const setSelectedExtension = useSetRecoilState<string>(gSelectedExtension);
+
+    useEffect(() => {
+        fileTreeRef.current = sFileTree;
+    }, [sFileTree]);
 
     const openReference = async (pValue: any) => {
         const sId = getId();
@@ -88,6 +98,35 @@ const Reference = ({ pValue }: any) => {
         return sResult;
     };
 
+    const FetchQuickInstall = async (aFileNm: string, aPayload: { url: string; command: string }) => {
+        try {
+            const sResult: any = await postFileList(aPayload, `/${aFileNm}`, '');
+            if (sResult && sResult?.success) {
+                quickInstallQueueRef.current = quickInstallQueueRef.current.then(async () => {
+                    const currentFileTree = fileTreeRef.current;
+                    const sDrillRes = await TreeFetchDrilling(currentFileTree, `/${aFileNm}`);
+                    if (sDrillRes?.tree) {
+                        setFileTree(sDrillRes.tree);
+                        fileTreeRef.current = sDrillRes.tree;
+                    }
+                });
+                await quickInstallQueueRef.current;
+                setSelectedExtension('EXPLORER');
+            }
+        } catch (error) {
+            Error(`Quick install failed: ${error}`);
+        } finally {
+            setProcessingList((prev) => prev.filter((item) => item !== aFileNm));
+        }
+    };
+    const handleQuickInstall = async (aFileNm: string, aPayload: { url: string; command: string }) => {
+        setProcessingList((prev) => [...prev, aFileNm]);
+        await FetchQuickInstall(aFileNm, aPayload);
+    };
+    const checkProcessing = (aItem: REFERENCE_ITEM): boolean => {
+        return sProcessingList?.some((item) => item === aItem?.title);
+    };
+
     return (
         <>
             <div className="side-sub-title editors-title" onClick={() => setCollapseTree(!sCollapseTree)}>
@@ -105,7 +144,7 @@ const Reference = ({ pValue }: any) => {
                                     <span className="icons">{icons(aItem?.type)}</span>
                                     <span style={{ marginLeft: 1, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{aItem?.title}</span>
                                 </div>
-                                {checkQuickInstall(aItem?.title) ? <QuickInstall pItem={aItem} pSetExtensionTab={setSelectedExtension} /> : null}
+                                {checkQuickInstall(aItem?.title) ? <QuickInstall pItem={aItem} pIsProcessing={checkProcessing(aItem)} pQuickInstall={handleQuickInstall} /> : null}
                             </div>
                         );
                     })}
@@ -115,33 +154,29 @@ const Reference = ({ pValue }: any) => {
 };
 export default Reference;
 
-const QuickInstall = ({ pItem, pSetExtensionTab }: { pItem: REFERENCE_ITEM; pSetExtensionTab: Dispatch<SetStateAction<any>> }) => {
-    const [sFileTree, setFileTree] = useRecoilState(gFileTree);
-    const [sIsProcessing, setIsProcessing] = useState<boolean>(false);
-
-    const handleQuickInstall = (e: React.MouseEvent<HTMLDivElement>, aItem: REFERENCE_ITEM) => {
-        if (sIsProcessing) return;
-        setIsProcessing(true);
+const QuickInstall = ({
+    pItem,
+    pIsProcessing,
+    pQuickInstall,
+}: {
+    pItem: REFERENCE_ITEM;
+    pIsProcessing: boolean;
+    pQuickInstall: (aFileNm: string, aPayload: { url: string; command: string }) => Promise<void>;
+}) => {
+    const handleQuickInstall = async (e: React.MouseEvent<HTMLDivElement>, aItem: REFERENCE_ITEM) => {
+        if (pIsProcessing) return;
         e.stopPropagation();
         const sPaylod = { url: aItem?.address, command: 'clone' };
-        FetchQuickInstall(aItem?.title, sPaylod);
+        await pQuickInstall(aItem?.title, sPaylod);
     };
-    const FetchQuickInstall = async (aFileNm: string, aPayload: { url: string; command: string }) => {
-        const sResult: any = await postFileList(aPayload, `/${aFileNm}`, '');
-        setIsProcessing(false);
-        if (sResult && sResult?.success) {
-            const sDrillRes = await TreeFetchDrilling(sFileTree, `/${aFileNm}`);
-            setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
-            pSetExtensionTab('EXPLORER');
-        }
-    };
+
     return (
         <div className="res-side-quick-install-wrap">
             <IconButton
                 pIsToopTip
                 pToolTipContent="Quick install"
                 pToolTipId="ref-side-quick-install"
-                pIcon={sIsProcessing ? <Loader width="14px" height="14px" /> : <VscCloudDownload />}
+                pIcon={pIsProcessing ? <Loader width="14px" height="14px" /> : <VscCloudDownload />}
                 pWidth={18}
                 pHeight={20}
                 onClick={(e) => handleQuickInstall(e, pItem)}
