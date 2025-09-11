@@ -1,38 +1,35 @@
 import { useState, useEffect, useRef } from 'react';
 import { getFileList, postFileList } from '@/api/repository/api';
+import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart } from '@/api/repository/machiot';
 import Modal from './Modal';
 import { gFileTree } from '@/recoil/fileTree';
 import './SaveDashboardModal.scss';
-import { gBoardList, gRollupTableList } from '@/recoil/recoil';
+import { gRollupTableList } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { extractionExtension, elapsedTime, elapsedSize } from '@/utils';
+import { elapsedTime, elapsedSize } from '@/utils';
 import { FileType, FileTreeType, fileTreeParser } from '@/utils/fileTreeParser';
 import { getFiles as getFilesTree, deleteFile as deleteContextFile } from '@/api/repository/fileTree';
 import { Menu } from '@/components/contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
-import { Error } from '@/components/toast/Toast';
-import { Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLeft, ArrowRight, NewFolder } from '@/assets/icons/Icon';
+import { Error, Success } from '@/components/toast/Toast';
+import { Home, TreeFolder, Delete, Download, Play, Search, Close, ArrowLeft, ArrowRight, NewFolder } from '@/assets/icons/Icon';
 import icons from '@/utils/icons';
 import { TextButton } from '../buttons/TextButton';
-import { calcInterval, CheckObjectKey, decodeFormatterFunction, setUnitTime } from '@/utils/dashboardUtil';
+import { calcInterval, CheckObjectKey, setUnitTime } from '@/utils/dashboardUtil';
+import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
-import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
-import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
 import { Select } from '@/components/inputs/Select';
 import { chartTypeConverter } from '@/utils/eChartHelper';
-import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 import { IconButton } from '../buttons/IconButton';
-import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
 
-export interface SaveDashboardModalProps {
+export interface PanelDataDownloadModalProps {
     setIsOpen: any;
     pIsDarkMode?: boolean;
     pPanelInfo: any;
     pDashboardTime: any;
 }
 
-export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
+export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
     const { setIsOpen, pIsDarkMode, pPanelInfo, pDashboardTime } = props;
     const [sSelectedDir, setSelectedDir] = useState<string[]>([]);
     const [sDeletePath, setDeletePath] = useState<string[]>([]);
@@ -46,13 +43,12 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     const [sSearchText, setSearchText] = useState<string>('');
     const [sIsSearchMode, setIsSearchMode] = useState<boolean>(false);
     const MenuRef = useRef<HTMLDivElement>(null);
-    const [sFileType, setFileType] = useState<string>('');
     const [sFileTree, setFileTree] = useRecoilState(gFileTree);
     const sRollupTableList = useRecoilValue(gRollupTableList);
-    const [sOutput, setOutput] = useState<'CHART' | 'DATA(JSON)' | 'DATA(CSV)'>('CHART');
+    const [sOutput, setOutput] = useState<'DATA(JSON)' | 'DATA(CSV)'>('DATA(JSON)');
     const [sBlockList, setBlockList] = useState<any>([]);
-    const [sSelectedBlock, setSelectedBlock] = useState<any>({ idx: 0, name: '', value: '' });
-    const [sBoardList, setBoardList] = useRecoilState(gBoardList);
+    const [sSelectedBlock, setSelectedBlock] = useState<any>({ idx: -1, name: 'All', value: 'All' });
+    const [sIsDownloading, setIsDownloading] = useState<boolean>(false);
 
     const defaultMinMax = () => {
         const now = Date.now();
@@ -78,9 +74,14 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     };
 
     const resolveTimeRange = async () => {
+        // Determine which time strings to use (panel custom vs dashboard)
         const startRaw = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.start ?? '' : pDashboardTime.start;
         const endRaw = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.end ?? '' : pDashboardTime.end;
+
+        // If both are numeric, return directly
         if (!isNaN(Number(startRaw)) && !isNaN(Number(endRaw))) return { min: Number(startRaw), max: Number(endRaw) };
+
+        // Fetch dataset min/max so 'last-*' can anchor to data's last timestamp
         const svr = await fetchTableTimeMinMax();
         const mm = timeMinMaxConverter(startRaw, endRaw, svr) ?? { min: setUnitTime(startRaw), max: setUnitTime(endRaw) };
         return mm;
@@ -107,43 +108,18 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
 
         return [sParsedQuery, sAliasList, sInjectionSrc];
     };
-    const GetSaveChartText = async () => {
-        const [sParsedQuery, sAliasList, sInjectionSrc] = await GetQuery();
-        const { min: sStartTime, max: sEndTime } = await resolveTimeRange();
-        const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
-        const sParsedChartCode = DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery, true);
-        const sUsePlg: boolean = !!pPanelInfo.plg;
-        let sResult: string = `${sInjectionSrc}\n` + `CHART(\n`;
-        if (sUsePlg) sResult += `\tplugins('${pPanelInfo.plg}'),\n`;
-        sResult +=
-            `\ttheme("${pPanelInfo.theme}"),\n` +
-            `\tsize("${pPanelInfo.w * 50}px","${pPanelInfo.h * 40}px"),\n` +
-            `\tchartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption, null, '\t'))}),\n` +
-            `\tchartJSCode(${sParsedChartCode})\n` +
-            `)`;
-        return sResult;
-    };
-    const GetSaveDataText = async () => {
-        const [sParsedQuery] = await GetQuery();
-        const sOutputStr: string = sOutput === 'CHART' ? `${sOutput}()` : sOutput === 'DATA(JSON)' ? 'JSON()' : 'CSV()';
-        const sTargetItem = sParsedQuery[sSelectedBlock.idx];
-        let sResult = '';
-        if (CheckObjectKey(sTargetItem, 'trx')) {
-            sResult = sTargetItem.sql + '\n' + sOutputStr;
-        } else sResult = `SQL("${sTargetItem.sql}")\n` + sOutputStr;
-        return sResult;
-    };
+
     const SetBlockAliasList = async () => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const [_, sAliasList] = await GetQuery();
-        setBlockList(sAliasList);
+        setBlockList(sAliasList as any);
     };
+
     const handleClose = () => {
         setIsOpen(false);
     };
 
-    const getFiles = async (aType: string, aPathArr?: any) => {
-        const sData = await getFileList(`?filter=*.${aType}`, aPathArr ? aPathArr.join('/') : sSelectedDir.join('/'), '');
+    const getFiles = async (aPathArr?: any) => {
+        const sData = await getFileList('', aPathArr ? aPathArr.join('/') : sSelectedDir.join('/'), '');
         setFileList(sData.data?.children ?? []);
         setFilterFileList(sData.data.children ?? []);
     };
@@ -164,7 +140,6 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         setSelectedFile(aItem);
         switch (aEvent.detail) {
             case 1:
-                aItem.type !== 'dir' ? setSaveFileName(aItem.name) : null;
                 break;
             case 2:
                 handleForwardPath(aItem.name, true);
@@ -185,7 +160,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
             deletePath.push(currentPath.pop());
             setSelectedDir(currentPath);
             setDeletePath(deletePath);
-            getFiles(sFileType, currentPath);
+            getFiles(currentPath);
         }
     };
 
@@ -199,47 +174,18 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
             deletePath = [];
             setDeletePath([]);
         }
-        if (aName && !aName.endsWith(`.${sFileType}`)) {
+        if (aName && !aName.includes('.')) { // Only navigate into directories
             currentPath.push(aName);
             setSelectedDir([...currentPath]);
             if (deletePath.length > 0) {
                 deletePath.pop();
                 setDeletePath(deletePath);
-                const sData = await getFileList(`?filter=*.${sFileType}`, currentPath.join('/'), '');
+                const sData = await getFileList('', currentPath.join('/'), '');
                 setFileList(sData.data?.children ?? []);
                 setFilterFileList(sData.data.children ?? []);
             } else {
-                getFiles(sFileType, currentPath);
+                getFiles(currentPath);
             }
-        }
-    };
-
-    const saveFile = async () => {
-        let sPayload: any = undefined;
-        if (sOutput === 'CHART') sPayload = await GetSaveChartText();
-        else sPayload = await GetSaveDataText();
-        const sDupFile = sFileList && sFileList.find((aItem) => aItem.name === sSaveFileName);
-
-        if (sDupFile) {
-            const sConfirm = confirm('Do you want to overwrite it?');
-            if (!sConfirm) return;
-        }
-
-        const sResult: any = await postFileList(sPayload, sSelectedDir.join('/'), sSaveFileName);
-
-        if (sResult.success) {
-            handleClose();
-            updateFileTree('/');
-            let sIsOpenFile: any = sBoardList.find((aBoard: any) => aBoard.name === sSaveFileName);
-            if (sIsOpenFile) sIsOpenFile = { ...sIsOpenFile, code: sPayload, savedCode: sPayload };
-
-            setBoardList((preV: any) =>
-                preV.map((aItem: any) => {
-                    if (aItem.name === sSaveFileName) {
-                        return sIsOpenFile;
-                    } else return aItem;
-                })
-            );
         }
     };
 
@@ -302,7 +248,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                 postFileList(undefined, sPath, `new-${sSortData.length}`);
             }
         }
-        getFiles(sFileType);
+        getFiles();
         updateFileTree('/');
     };
 
@@ -323,7 +269,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         if (sConfirm && sSelectedFile !== undefined) {
             const sResult: any = await deleteContextFile(sSelectedDir.join('/'), sSelectedFile.name);
             if (sResult.reason === 'success') {
-                getFiles(sFileType);
+                getFiles();
                 const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
                 updateFileTree(sPath);
             } else {
@@ -345,17 +291,175 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
             closeContextMenu();
         }
     };
-    const HandleOutput = (aValue: 'CHART' | 'DATA(JSON)' | 'DATA(CSV)') => {
-        if (aValue === 'CHART') setSelectedBlock({ idx: 0, name: '', value: '' });
-        else setSelectedBlock(sBlockList[0] ? { idx: 0, name: sBlockList[0].namne, value: sBlockList[0].namne } : '');
+
+    const HandleOutput = (aValue: 'DATA(JSON)' | 'DATA(CSV)') => {
         setOutput(aValue);
+    };
+
+    const HandleBlockSelection = (aEvent: any) => {
+        const selectedValue = aEvent.target.value;
+        if (selectedValue === 'All') {
+            setSelectedBlock({ idx: -1, name: 'All', value: 'All' });
+        } else {
+            const blockIndex = sBlockList.findIndex((block: any) => block.name === selectedValue);
+            setSelectedBlock({
+                idx: blockIndex,
+                name: selectedValue,
+                value: selectedValue
+            });
+        }
+    };
+
+    const GetSaveDataText = async (blockIndex: number) => {
+        const [sParsedQuery] = await GetQuery();
+        const sOutputStr: string = sOutput === 'DATA(JSON)' ? 'JSON()' : 'CSV()';
+        const sTargetItem = sParsedQuery[blockIndex];
+        let sResult = '';
+        if (CheckObjectKey(sTargetItem, 'trx')) {
+            sResult = sTargetItem.sql + '\n' + sOutputStr;
+        } else sResult = `SQL("${sTargetItem.sql}")\n` + sOutputStr;
+        return sResult;
+    };
+
+    const GetDataForBlock = async (blockIndex: number): Promise<string> => {
+        try {
+            const [sParsedQuery] = await GetQuery();
+            if (!sParsedQuery || blockIndex >= sParsedQuery.length) {
+                throw new (Error as any)(`Invalid block index: ${blockIndex}`);
+            }
+
+            const sTargetItem = sParsedQuery[blockIndex];
+            if (!sTargetItem || !sTargetItem.sql) {
+                throw new (Error as any)(`No SQL query found for block ${blockIndex}`);
+            }
+
+            const sTqlQuery = await GetSaveDataText(blockIndex);
+
+            const sResult: any = await getTqlChart(sTqlQuery);
+            
+            if (sResult?.status === 200 && sResult?.data !== undefined) {
+                return typeof sResult.data === 'string' ? sResult.data : JSON.stringify(sResult.data);
+            } else {
+                throw new (Error as any)(`Failed to fetch data: ${sResult?.statusText || 'Unknown error'}`);
+            }
+        } catch (error) {
+            const errorMessage = error instanceof (Error as any) ? (error as any).message : 'Unknown error';
+            Error(`Failed to fetch data for block ${blockIndex + 1}: ${errorMessage}`);
+            throw error;
+        }
+    };
+
+    const saveToServer = async (content: string, filename: string) => {
+        try {
+            const sResult: any = await postFileList(content, sSelectedDir.join('/'), filename);
+            if (sResult.success) {
+                return true;
+            } else {
+                throw new (Error as any)('Failed to save file to server');
+            }
+        } catch (error) {
+            throw error;
+        }
+    };
+
+    const downloadFileClient = (content: string, filename: string) => {
+        const sBlob = new Blob([content], { 
+            type: sOutput === 'DATA(JSON)' ? 'application/json' : 'text/csv' 
+        });
+        const sLink = document.createElement('a');
+        sLink.href = URL.createObjectURL(sBlob);
+        sLink.setAttribute('download', filename);
+        sLink.click();
+        URL.revokeObjectURL(sLink.href);
+    };
+
+    const handleDownload = async () => {
+        if (sBlockList.length === 0) return;
+        
+        setIsDownloading(true);
+        let successCount = 0;
+        let errorCount = 0;
+        
+        try {
+            // Determine which blocks to download
+            const blocksToDownload = sSelectedBlock.idx === -1 
+                ? Array.from({ length: sBlockList.length }, (_, index) => index)  // All blocks
+                : [sSelectedBlock.idx];  // Single selected block
+
+            for (const blockIndex of blocksToDownload) {
+                try {
+                    const blockInfo = sBlockList[blockIndex];
+                    if (!blockInfo) {
+                        Error(`Block not found at index ${blockIndex}`);
+                        errorCount++;
+                        continue;
+                    }
+
+                    const data = await GetDataForBlock(blockIndex);
+                    
+                    if (data) {
+                        const extension = sOutput === 'DATA(JSON)' ? 'json' : 'csv';
+                        let filename: string;
+                        
+                        if (sSelectedBlock.idx === -1) {
+                            // All blocks selected - use base filename with numbering
+                            const baseFileName = sSaveFileName.trim() || 
+                                (pPanelInfo.title || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
+                            const baseWithoutExt = baseFileName.replace(/\.(json|csv)$/i, '');
+                            const blockNumber = blockIndex + 1;
+                            filename = `${baseWithoutExt}_${blockNumber}.${extension}`;
+                        } else {
+                            // Single block selected - use filename as is
+                            const baseFileName = sSaveFileName.trim() || 
+                                (pPanelInfo.title || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
+                            const baseWithoutExt = baseFileName.replace(/\.(json|csv)$/i, '');
+                            filename = `${baseWithoutExt}.${extension}`;
+                        }
+                        
+                        try {
+                            await saveToServer(data, filename);
+                            downloadFileClient(data, filename);
+                            successCount++;
+                        } catch (saveError) {
+                            downloadFileClient(data, filename);
+                            successCount++;
+                        }
+                        
+                        // Add small delay between downloads to prevent browser issues
+                        if (blocksToDownload.length > 1) {
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                        }
+                    } else {
+                        errorCount++;
+                    }
+                } catch (error) {
+                    Error(`Failed to download block ${blockIndex + 1}`);
+                    errorCount++;
+                }
+            }
+            
+            // Show success/error messages
+            if (successCount > 0) {
+                Success(`Successfully downloaded ${successCount} file${successCount > 1 ? 's' : ''}`);
+            }
+            if (errorCount > 0) {
+                Error(`Failed to download ${errorCount} file${errorCount > 1 ? 's' : ''}`);
+            }
+            
+        } catch (error) {
+            Error('Download failed. Please try again.');
+        } finally {
+            setIsDownloading(false);
+            if (successCount > 0 || (errorCount > 0 && successCount === 0)) {
+                handleClose();
+            }
+        }
     };
 
     useEffect(() => {
         SetBlockAliasList();
-        setSaveFileName(`${pPanelInfo.title !== '' ? pPanelInfo.title : 'New chart'}.tql`);
-        setFileType('tql');
-        getFiles('tql');
+        setSaveFileName(`${pPanelInfo.title !== '' ? pPanelInfo.title : 'panel_data'}`);
+        getFiles();
     }, []);
 
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
@@ -366,21 +470,21 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                 <Modal.Header>
                     <div className="title">
                         <div className="title-content">
-                            <Save />
-                            <span>Save</span>
+                            <Download />
+                            <span>Download Panel Data</span>
                         </div>
                         <Close onClick={handleClose} />
                     </div>
                     <div className="tool-bar">
                         <div className={`tool-bar-content ${pIsDarkMode ? 'dark dark-border' : ''} ${sSelectedDir.length > 0 ? 'active' : ''}`} onClick={() => handleBackPath()}>
-                            <IconButton pIsToopTip pToolTipContent="Backward" pToolTipId="save-modal-backward" pIcon={<ArrowLeft />} onClick={() => null} />
+                            <IconButton pIsToopTip pToolTipContent="Backward" pToolTipId="download-modal-backward" pIcon={<ArrowLeft />} onClick={() => null} />
                         </div>
                         <div
                             className={`tool-bar-content ${pIsDarkMode ? 'dark dark-border' : ''} ${sDeletePath.length > 0 ? 'active' : ''}`}
                             style={{ marginLeft: '8px' }}
                             onClick={() => handleForwardPath(sDeletePath[sDeletePath.length - 1])}
                         >
-                            <IconButton pIsToopTip pToolTipContent="Forward" pToolTipId="save-modal-forward" pIcon={<ArrowRight />} onClick={() => null} />
+                            <IconButton pIsToopTip pToolTipContent="Forward" pToolTipId="download-modal-forward" pIcon={<ArrowRight />} onClick={() => null} />
                         </div>
                         <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark dark' : ''}`} style={{ marginLeft: '1rem' }}>
                             {sIsSearchMode ? (
@@ -398,10 +502,10 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                             )}
                         </div>
                         <div className={`file-button ${pIsDarkMode ? 'dark' : ''}`} onClick={() => setIsSearchMode(!sIsSearchMode)}>
-                            <IconButton pIsToopTip pToolTipContent="Search" pToolTipId="save-modal-search" pIcon={<Search size={20} />} onClick={() => null} />
+                            <IconButton pIsToopTip pToolTipContent="Search" pToolTipId="download-modal-search" pIcon={<Search size={20} />} onClick={() => null} />
                         </div>
                         <div className={`file-button ${pIsDarkMode ? 'dark' : ''}`} onClick={makeFolder}>
-                            <IconButton pIsToopTip pToolTipContent="New folder" pToolTipId="save-modal-new-folder" pIcon={<NewFolder size={28} />} onClick={() => null} />
+                            <IconButton pIsToopTip pToolTipContent="New folder" pToolTipId="download-modal-new-folder" pIcon={<NewFolder size={28} />} onClick={() => null} />
                         </div>
                     </div>
                 </Modal.Header>
@@ -466,10 +570,10 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                                 pInitValue={sOutput}
                                 pHeight={33}
                                 onChange={(aEvent: any) => HandleOutput(aEvent.target.value)}
-                                pOptions={['DATA(JSON)', 'DATA(CSV)', 'CHART']}
+                                pOptions={['DATA(JSON)', 'DATA(CSV)']}
                             />
                         </div>
-                        <div className="save-file-block" style={sOutput === 'CHART' ? { opacity: 0.5, pointerEvents: 'none' } : {}}>
+                        <div className="save-file-block">
                             <span>Block</span>
                             <Select
                                 pFontSize={12}
@@ -478,17 +582,17 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                                 pBorderRadius={8}
                                 pInitValue={sSelectedBlock.value}
                                 pHeight={33}
-                                onChange={(aEvent: any) => setSelectedBlock(aEvent.target)}
-                                pOptions={sBlockList.map((aAlias: any) => aAlias.name)}
+                                onChange={HandleBlockSelection}
+                                pOptions={['All', ...sBlockList.map((aAlias: any) => aAlias.name)]}
                             />
                         </div>
                     </div>
                     <div className="button-group">
                         <TextButton
-                            pText="OK"
+                            pText={sIsDownloading ? "Downloading..." : "Download"}
                             pBackgroundColor="#4199ff"
-                            pIsDisabled={!(FileNameAndExtensionValidator(sSaveFileName) && sSaveFileName.endsWith(`.${sFileType}`))}
-                            onClick={FileNameAndExtensionValidator(sSaveFileName) && extractionExtension(sSaveFileName) === sFileType ? saveFile : () => null}
+                            pIsDisabled={sBlockList.length === 0 || sIsDownloading}
+                            onClick={handleDownload}
                         />
                         <div style={{ width: '10px' }}></div>
                         <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />

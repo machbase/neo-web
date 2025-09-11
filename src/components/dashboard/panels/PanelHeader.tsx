@@ -1,4 +1,4 @@
-import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter } from '@/assets/icons/Icon';
+import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download } from '@/assets/icons/Icon';
 // import { IconButton } from '@/components/buttons/IconButton';
 import { gBoardList, GBoardListType, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
@@ -13,6 +13,7 @@ import { ChartThemeTextColor, DEFAULT_CHART } from '@/utils/constants';
 import { Error } from '@/components/toast/Toast';
 import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
 import { SaveDashboardModal } from '@/components/modal/SaveDashboardModal';
+import { PanelDataDownloadModal } from '@/components/modal/PanelDataDownloadModal';
 import { HiMiniDocumentDuplicate } from 'react-icons/hi2';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { concatTagSet } from '@/utils/helpers/tags';
@@ -29,6 +30,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     const sHeaderId = generateRandomString();
     const sMenuRef = useRef<HTMLDivElement>(null);
     const [sDownloadModal, setDownloadModal] = useState<boolean>(false);
+    const [sDataDownloadModal, setDataDownloadModal] = useState<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
 
     const removePanel = () => {
@@ -151,6 +153,10 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         setIsContextMenu(false);
         setDownloadModal(true);
     };
+    const HandleDataDownload = () => {
+        setIsContextMenu(false);
+        setDataDownloadModal(true);
+    };
     const handleCopyPanel = (aPanelInfo: any) => {
         const sTmpPanel = JSON.parse(JSON.stringify(aPanelInfo));
         sTmpPanel.id = generateUUID();
@@ -241,6 +247,12 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                         <span>Show Taganalyzer</span>
                                     </Menu.Item>
                                 )}
+                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && (
+                                    <Menu.Item onClick={HandleDataDownload}>
+                                        <Download />
+                                        <span>Download data</span>
+                                    </Menu.Item>
+                                )}
                                 <Menu.Item onClick={handleDelete}>
                                     <Delete />
                                     <span>Delete</span>
@@ -292,6 +304,14 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                 <SaveDashboardModal
                     pDashboardTime={sBoardList.find((aItem: any) => aItem.id === sSelectedTab)?.dashboard.timeRange}
                     setIsOpen={setDownloadModal}
+                    pPanelInfo={pPanelInfo}
+                    pIsDarkMode={true}
+                />
+            )}
+            {sDataDownloadModal && (
+                <PanelDataDownloadModal
+                    pDashboardTime={sBoardList.find((aItem: any) => aItem.id === sSelectedTab)?.dashboard.timeRange}
+                    setIsOpen={setDataDownloadModal}
                     pPanelInfo={pPanelInfo}
                     pIsDarkMode={true}
                 />
