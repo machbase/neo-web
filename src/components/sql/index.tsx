@@ -18,6 +18,7 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader } from '@/utils/sqlOriginDataDownloader';
 import { postSplitter } from '@/api/repository/api';
 import { Loader } from '../loader';
+import { SqlSplitHelper } from '@/utils/TQL/SqlSplitHelper';
 
 const Sql = ({
     pInfo,
@@ -114,27 +115,13 @@ const Sql = ({
             selection: SelectionType;
         }
     ) => {
-        let parsedQuery: any = '';
         const splitList = await fetchSplitter();
         const location = aLocation ?? sSqlLocation;
+        const sParsedQuery = SqlSplitHelper(location, splitList);
 
-        // SINGLE
-        if (location.selection.endColumn === location.selection.startColumn && location.selection.endLineNumber === location.selection.startLineNumber) {
-            parsedQuery = splitList.filter((statement: any) => {
-                if (!statement.isComment && statement.beginLine <= location.selection.startLineNumber && location.selection.startLineNumber <= statement.endLine) {
-                    return statement;
-                }
-            });
-        }
-        // MULTIPLE
-        else {
-            parsedQuery = splitList.filter((statement: any) => {
-                if (!statement.isComment && statement.endLine >= location.selection.startLineNumber && statement.beginLine <= location.selection.endLineNumber) return statement;
-            });
-        }
         setSqlLocation(location);
-        if (!parsedQuery || parsedQuery.length === 0 || (parsedQuery.length === 1 && parsedQuery[0].length === 0)) return;
-        fetchSql(parsedQuery);
+        if (!sParsedQuery || sParsedQuery?.length === 0 || (sParsedQuery?.length === 1 && sParsedQuery[0]?.length === 0)) return;
+        fetchSql(sParsedQuery);
     };
 
     const fetchSplitter = async () => {
@@ -148,12 +135,11 @@ const Sql = ({
         setTextField('Processing...');
         const sQueryReslutList: any = [];
         try {
-            const fetchQuery = async (aQuery: STATEMENT_TYPE) => {
-                const sQueryResult = await getTqlChart(sqlBasicFormatter(aQuery.text, 1, sTimeRange, sTimeZone, SQL_BASE_LIMIT, aQuery.env?.bridge));
+            for (const curQuery of aParsedQuery) {
+                const sQueryResult = await getTqlChart(sqlBasicFormatter(curQuery.text, 1, sTimeRange, sTimeZone, SQL_BASE_LIMIT, curQuery.env?.bridge));
                 sQueryReslutList.push(sQueryResult);
-                if (!sQueryResult.data.success) throw new Error('Query failed');
-            };
-            for (const curQuery of aParsedQuery) await fetchQuery(curQuery);
+                if (!sQueryResult?.data?.success) throw new Error('Query failed');
+            }
         } catch {
             setErrLog(sQueryReslutList?.at(-1)?.data?.reason);
         }
