@@ -1,19 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
-import { getFileList, postFileList } from '@/api/repository/api';
+import { useState, useEffect } from 'react';
 import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
 import Modal from './Modal';
-import { gFileTree } from '@/recoil/fileTree';
 import './SaveDashboardModal.scss';
 import { gRollupTableList } from '@/recoil/recoil';
-import { useRecoilState, useRecoilValue } from 'recoil';
-import { elapsedTime, elapsedSize } from '@/utils';
-import { FileType, FileTreeType, fileTreeParser } from '@/utils/fileTreeParser';
-import { getFiles as getFilesTree, deleteFile as deleteContextFile } from '@/api/repository/fileTree';
-import { Menu } from '@/components/contextMenu/Menu';
-import useOutsideClick from '@/hooks/useOutsideClick';
+import { useRecoilValue } from 'recoil';
 import { Error, Success } from '@/components/toast/Toast';
-import { Home, TreeFolder, Delete, Download, Play, Search, Close, ArrowLeft, ArrowRight, NewFolder } from '@/assets/icons/Icon';
-import icons from '@/utils/icons';
+import { Download, Close } from '@/assets/icons/Icon';
 import { TextButton } from '../buttons/TextButton';
 import { calcInterval, CheckObjectKey, setUnitTime } from '@/utils/dashboardUtil';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
@@ -33,19 +25,7 @@ export interface PanelDataDownloadModalProps {
 
 export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
     const { setIsOpen, pIsDarkMode, pPanelInfo, pDashboardTime } = props;
-    const [sSelectedDir, setSelectedDir] = useState<string[]>([]);
-    const [sDeletePath, setDeletePath] = useState<string[]>([]);
-    const [sSelectedFile, setSelectedFile] = useState<any>();
-    const [sFileList, setFileList] = useState<any[]>([]);
-    const [sFilterFileList, setFilterFileList] = useState<any[]>([]);
     const [sSaveFileName, setSaveFileName] = useState<string>('');
-    const [sMenuX, setMenuX] = useState<number>(0);
-    const [sMenuY, setMenuY] = useState<number>(0);
-    const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
-    const [sSearchText, setSearchText] = useState<string>('');
-    const [sIsSearchMode, setIsSearchMode] = useState<boolean>(false);
-    const MenuRef = useRef<HTMLDivElement>(null);
-    const [sFileTree, setFileTree] = useRecoilState(gFileTree);
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sOutput, setOutput] = useState<'DATA(JSON)' | 'DATA(CSV)'>('DATA(JSON)');
     const [sBlockList, setBlockList] = useState<any>([]);
@@ -120,178 +100,8 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
         setIsOpen(false);
     };
 
-    const getFiles = async (aPathArr?: any) => {
-        const sData = await getFileList('', aPathArr ? aPathArr.join('/') : sSelectedDir.join('/'), '');
-        setFileList(sData.data?.children ?? []);
-        setFilterFileList(sData.data.children ?? []);
-    };
-
     const changeSaveFileName = (aEvent: React.ChangeEvent<HTMLInputElement>) => {
         setSaveFileName(aEvent.target.value);
-    };
-
-    const changeSearchText = (aEvent: React.ChangeEvent<HTMLInputElement>) => {
-        const sText = aEvent.target.value;
-        setSearchText(sText);
-        const sCopyList = JSON.parse(JSON.stringify(sFileList));
-        const sFilterList = sCopyList.filter((aItem: any) => aItem.name.toLowerCase().includes(sText.toLowerCase()));
-        setFilterFileList(sFilterList);
-    };
-
-    const handleSelectFile = (aEvent: React.MouseEvent<HTMLDivElement>, aItem: any) => {
-        setSelectedFile(aItem);
-        switch (aEvent.detail) {
-            case 1:
-                break;
-            case 2:
-                handleForwardPath(aItem.name, true);
-                if (aItem.type !== 'dir') setFilterFileList(sFileList);
-                break;
-            default:
-                break;
-        }
-    };
-
-    const handleBackPath = () => {
-        setSelectedFile(null);
-        setSearchText('');
-        setIsSearchMode(false);
-        const currentPath = JSON.parse(JSON.stringify(sSelectedDir));
-        const deletePath = JSON.parse(JSON.stringify(sDeletePath));
-        if (currentPath.length > 0) {
-            deletePath.push(currentPath.pop());
-            setSelectedDir(currentPath);
-            setDeletePath(deletePath);
-            getFiles(currentPath);
-        }
-    };
-
-    const handleForwardPath = async (aName: string, aIsDoubleClick?: boolean) => {
-        setSelectedFile(null);
-        setSearchText('');
-        setIsSearchMode(false);
-        const currentPath = JSON.parse(JSON.stringify(sSelectedDir));
-        let deletePath = JSON.parse(JSON.stringify(sDeletePath));
-        if (aIsDoubleClick && deletePath[deletePath.length - 1] !== aName) {
-            deletePath = [];
-            setDeletePath([]);
-        }
-        if (aName && !aName.includes('.')) { // Only navigate into directories
-            currentPath.push(aName);
-            setSelectedDir([...currentPath]);
-            if (deletePath.length > 0) {
-                deletePath.pop();
-                setDeletePath(deletePath);
-                const sData = await getFileList('', currentPath.join('/'), '');
-                setFileList(sData.data?.children ?? []);
-                setFilterFileList(sData.data.children ?? []);
-            } else {
-                getFiles(currentPath);
-            }
-        }
-    };
-
-    const updateFileTree = async (aPath: any) => {
-        if (aPath === '/') {
-            const sResponseData = await getFileList('', '/', '');
-            const sParedData = fileTreeParser(sResponseData.data, '/', 0, '0');
-            setFileTree(sParedData as any);
-        } else {
-            const sPath = sSelectedDir.filter((_, aIdx: number) => aIdx + 1 !== sSelectedDir.length).join('/');
-            const sResponseData = await getFileList('', sPath ? '/' + sPath + '/' : '/', sSelectedDir.at(-1) as string);
-            const sParedData = fileTreeParser(sResponseData.data, '/' + sSelectedDir.join('/') + '/', sSelectedDir.length, sSelectedDir.at(-1) as string);
-            sParedData.parentId = sPath.split('/').at(-1);
-            sParedData.path = '/' + sPath + '/';
-            const sTmpDir = findDir(sFileTree as FileTreeType, sParedData);
-            const sResult = JSON.parse(JSON.stringify(sFileTree));
-            sResult.dirs = sTmpDir;
-            setFileTree(sResult);
-        }
-    };
-
-    const findDir = (aOriginDir: FileTreeType, aParedData: FileTreeType): FileTreeType[] => {
-        return aOriginDir.dirs.map((aDir: FileTreeType) => {
-            if (aDir.name === aParedData.name) {
-                return { ...aParedData, parentId: aParedData.path.replaceAll('/', '') };
-            } else if (aParedData.path.includes(aDir.name)) {
-                return { ...aDir, dirs: findDir(aDir, aParedData) };
-            } else return aDir;
-        });
-    };
-
-    const makeFolder = () => {
-        const sFilterList = sFileList.filter((aItem) => aItem.isDir && aItem.name.startsWith('new'));
-        const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
-
-        if (sFilterList.length === 0) {
-            postFileList(undefined, sPath, `new`);
-        } else {
-            const sSortData = sFilterList
-                .map((aItem) => {
-                    return aItem.name;
-                })
-                .sort();
-
-            const sData = sSortData.map((aItem, aIdx) => {
-                if (aIdx === 0 && aItem === 'new') return true;
-                if (aItem.split('-')[1] === String(aIdx)) {
-                    return true;
-                } else {
-                    return false;
-                }
-            });
-
-            const sIdx = sData.findIndex((aItem) => !aItem);
-            if (sIdx === 0) {
-                postFileList(undefined, sPath, `new`);
-            } else if (sIdx !== -1) {
-                postFileList(undefined, sPath, `new-${sIdx}`);
-            } else {
-                postFileList(undefined, sPath, `new-${sSortData.length}`);
-            }
-        }
-        getFiles();
-        updateFileTree('/');
-    };
-
-    const onContextMenu = (e: React.MouseEvent, file: FileType | FileTreeType) => {
-        e.preventDefault();
-        setMenuX(e.pageX);
-        setMenuY(e.pageY);
-        setIsContextMenu(true);
-        setSelectedFile(file);
-    };
-
-    const closeContextMenu = () => {
-        setIsContextMenu(false);
-    };
-
-    const deleteFile = async () => {
-        const sConfirm = confirm(`Do you want to delete this file (${sSelectedFile?.name})?`);
-        if (sConfirm && sSelectedFile !== undefined) {
-            const sResult: any = await deleteContextFile(sSelectedDir.join('/'), sSelectedFile.name);
-            if (sResult.reason === 'success') {
-                getFiles();
-                const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
-                updateFileTree(sPath);
-            } else {
-                Error('delete fail');
-            }
-        }
-        closeContextMenu();
-    };
-
-    const downloadFile = async () => {
-        if (sSelectedFile !== undefined) {
-            const sData: any = await getFilesTree(`${sSelectedDir.join('/')}${sSelectedFile.name}`);
-            const sBlob = new Blob([sData], { type: `text/plain` });
-            const sLink = document.createElement('a');
-            sLink.href = URL.createObjectURL(sBlob);
-            sLink.setAttribute('download', sSelectedFile.name);
-            sLink.click();
-            URL.revokeObjectURL(sLink.href);
-            closeContextMenu();
-        }
     };
 
     const HandleOutput = (aValue: 'DATA(JSON)' | 'DATA(CSV)') => {
@@ -411,10 +221,7 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
     useEffect(() => {
         SetBlockAliasList();
         setSaveFileName(`${pPanelInfo.title !== '' ? pPanelInfo.title : 'panel_data'}`);
-        getFiles();
     }, []);
-
-    useOutsideClick(MenuRef, () => setIsContextMenu(false));
 
     return (
         <div className="tql">
@@ -427,82 +234,8 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                         </div>
                         <Close onClick={handleClose} />
                     </div>
-                    <div className="tool-bar">
-                        <div className={`tool-bar-content ${pIsDarkMode ? 'dark dark-border' : ''} ${sSelectedDir.length > 0 ? 'active' : ''}`} onClick={() => handleBackPath()}>
-                            <IconButton pIsToopTip pToolTipContent="Backward" pToolTipId="download-modal-backward" pIcon={<ArrowLeft />} onClick={() => null} />
-                        </div>
-                        <div
-                            className={`tool-bar-content ${pIsDarkMode ? 'dark dark-border' : ''} ${sDeletePath.length > 0 ? 'active' : ''}`}
-                            style={{ marginLeft: '8px' }}
-                            onClick={() => handleForwardPath(sDeletePath[sDeletePath.length - 1])}
-                        >
-                            <IconButton pIsToopTip pToolTipContent="Forward" pToolTipId="download-modal-forward" pIcon={<ArrowRight />} onClick={() => null} />
-                        </div>
-                        <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark dark' : ''}`} style={{ marginLeft: '1rem' }}>
-                            {sIsSearchMode ? (
-                                <Search style={{ cursor: 'default' }} />
-                            ) : (
-                                <>
-                                    <Home style={{ cursor: 'default' }} />
-                                    <Play style={{ cursor: 'default' }} />
-                                </>
-                            )}
-                            {sIsSearchMode ? (
-                                <input onChange={changeSearchText} value={sSearchText} />
-                            ) : (
-                                <input readOnly value={sSelectedDir.join(' / ')} style={{ cursor: 'default' }} />
-                            )}
-                        </div>
-                        <div className={`file-button ${pIsDarkMode ? 'dark' : ''}`} onClick={() => setIsSearchMode(!sIsSearchMode)}>
-                            <IconButton pIsToopTip pToolTipContent="Search" pToolTipId="download-modal-search" pIcon={<Search size={20} />} onClick={() => null} />
-                        </div>
-                        <div className={`file-button ${pIsDarkMode ? 'dark' : ''}`} onClick={makeFolder}>
-                            <IconButton pIsToopTip pToolTipContent="New folder" pToolTipId="download-modal-new-folder" pIcon={<NewFolder size={28} />} onClick={() => null} />
-                        </div>
-                    </div>
                 </Modal.Header>
                 <Modal.Body>
-                    <div className={`${pIsDarkMode ? 'file-broswer-dark' : 'file-broswer'}`}>
-                        <div className={`${pIsDarkMode ? 'file-broswer-dark-header' : 'file-broswer-header'}`}>
-                            <span style={{ width: '48%', paddingLeft: '1.5rem' }}>Name</span>
-                            <span style={{ width: '32%' }}>Last modified</span>
-                            <span style={{ width: '20%' }}>Size</span>
-                        </div>
-                        <div className={`${pIsDarkMode ? 'file-broswer-dark-content' : 'file-broswer-content'}`}>
-                            {sFilterFileList &&
-                                sFilterFileList.map((aItem, aIdx) => {
-                                    return (
-                                        <div
-                                            key={aItem.name + aIdx}
-                                            onContextMenu={(aEvent) => onContextMenu(aEvent, aItem)}
-                                            className={`row ${sSelectedFile && sSelectedFile.name === aItem.name ? 'selected' : ''}`}
-                                            onClick={(aEvent) => handleSelectFile(aEvent, aItem)}
-                                        >
-                                            <div className="pl list-wrapper">
-                                                <div className="pl-icon">
-                                                    {aItem.type === 'dir' ? (
-                                                        aItem.gitClone ? (
-                                                            icons('gitClosedDirectory')
-                                                        ) : (
-                                                            <TreeFolder height={100} />
-                                                        )
-                                                    ) : (
-                                                        icons(aItem.type.replace('.', ''))
-                                                    )}
-                                                </div>
-                                                <span>{aItem.name}</span>
-                                            </div>
-                                            <span className="pl" style={{ width: '32%' }}>
-                                                {elapsedTime(aItem.lastModifiedUnixMillis)}
-                                            </span>
-                                            <span className="pl" style={{ width: '20%' }}>
-                                                {elapsedSize(aItem.size)}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                        </div>
-                    </div>
                 </Modal.Body>
                 <Modal.Footer>
                     <div className="save-option">
@@ -551,18 +284,6 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                     </div>
                 </Modal.Footer>
             </Modal>
-            <div ref={MenuRef} className="save-dashboard-context-menu" style={{ top: sMenuY, left: sMenuX }}>
-                <Menu isOpen={sIsContextMenu}>
-                    <Menu.Item onClick={deleteFile}>
-                        <Delete />
-                        <span>Delete</span>
-                    </Menu.Item>
-                    <Menu.Item onClick={downloadFile}>
-                        <Download />
-                        <span>Download</span>
-                    </Menu.Item>
-                </Menu>
-            </div>
         </div>
     );
 };
