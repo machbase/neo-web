@@ -1,0 +1,108 @@
+@import '/src/assets/scss/theme.scss';
+.table {
+    width: calc(100%);
+    table-layout: auto;
+    font-family: 'D2Coding';
+
+    .header-fix {
+        background-color: #1c1c21;
+        position: sticky;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: $table-header-idx;
+        font-size: 14px;
+    }
+
+    .table-header {
+        height: 40px;
+        color: #fdb532;
+
+        tr {
+            th {
+                max-width: 300px;
+                font-weight: bold;
+                padding: 0 16px;
+                max-width: 20vw;
+                height: 25px;
+                text-align: start;
+                vertical-align: center !important;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: hidden;
+
+                span {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+            }
+        }
+    }
+
+    .table-body {
+        content-visibility: auto;
+
+        tr {
+            td {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-size: 14px;
+                white-space: nowrap;
+                max-width: 20vw;
+                font-weight: 300;
+                vertical-align: center !important;
+                padding: 0 16px;
+                height: 25px;
+            }
+
+            .result-table-item {
+                cursor: default;
+                overflow: hidden;
+                :hover {
+                    color: #fdb532;
+                }
+
+                &-copy-button {
+                    flex-direction: row;
+                    overflow: hidden;
+                    align-items: center;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    gap: 8px;
+
+                    &:hover {
+                        .result-table-item-copy-button-icon {
+                            opacity: 1;
+                        }
+                    }
+
+                    span {
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+
+                    &-icon {
+                        display: flex;
+                        opacity: 0;
+                        justify-content: center;
+                        align-items: center;
+                    }
+                }
+            }
+        }
+
+        .result-body-tr {
+            .dark-odd {
+                background-color: rgb(43, 43, 43);
+            }
+        }
+
+        .row-num {
+            margin-left: 20px;
+            cursor: default;
+            color: #888888;
+        }
+    }
+}

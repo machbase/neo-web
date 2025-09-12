@@ -2,8 +2,8 @@ import LineChart from './chart/LineChart';
 import PanelHeader from './PanelHeader';
 import './Panel.scss';
 import { useState } from 'react';
-import { ChartThemeBackgroundColor } from '@/utils/constants';
-import { ChartTheme } from '@/type/eChart';
+import { ChartThemeBackgroundColor } from '../../utils/constants';
+import { ChartTheme } from '../../type/eChart';
 
 const Panel = ({
     pLoopMode,

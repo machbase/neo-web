@@ -1,10 +1,9 @@
-// 기존 유틸리티들을 import해서 재export
 export { 
     setUnitTime, 
     calcRefreshTime, 
     calcInterval, 
     PanelIdParser 
-} from '@/utils/dashboardUtil';
+} from './dashboardUtil';
 
 export { 
     getId, 
@@ -12,12 +11,10 @@ export {
     isEmpty, 
     isValidJSON,
     generateRandomString
-} from '@/utils';
+} from '../utils';
 
-// refreshTimeList는 dashboardUtil에서 가져오기
-export { refreshTimeList } from '@/utils/dashboardUtil';
+export { refreshTimeList } from './dashboardUtil';
 
-// 공개 대시보드 전용 유틸리티들만 여기에 추가
 export const generatePublicId = () => {
     return `public_${Math.random().toString(36).substring(2, 15)}`;
 };

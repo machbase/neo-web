@@ -1,4 +1,3 @@
-// 공개 변수 미리보기 스타일
 .public-variable-preview {
     display: flex;
     align-items: center;
@@ -39,7 +38,6 @@
     }
 }
 
-// 반응형 처리
 @media (max-width: 768px) {
     .public-variable-preview {
         .public-variable-preview-item {

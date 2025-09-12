@@ -1,0 +1,86 @@
+.confirm-modal {
+    font-size: 13px;
+    .modal {
+        width: 400px;
+    }
+    .confirm-modal-title {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        padding: 1.75rem 1.75rem 1rem 1.75rem;
+
+        &-icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        &-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .close {
+            cursor: pointer;
+        }
+    }
+
+    .confirm-modal-body {
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+
+        .body-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0px 10px;
+            max-width: 396px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            span {
+                max-width: 380px;
+                display: block;
+                white-space: wrap;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                text-align: center;
+            }
+
+            .comfirm-input-wrap {
+                display: flex;
+                align-items: baseline;
+                margin-top: 8px;
+                height: 27px;
+                width: 215px;
+
+                label {
+                    width: 60px;
+                }
+
+                input {
+                    height: 25px;
+                    width: 100%;
+                    padding: 0 8px;
+                    border-radius: 3px;
+                    border: solid 1px #f1f1f125;
+                    background-color: rgba(255, 255, 255, 0.13);
+                    color: #f1f1f1;
+                }
+            }
+        }
+    }
+
+    .button-group {
+        width: 100%;
+        padding: 1.75rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+}

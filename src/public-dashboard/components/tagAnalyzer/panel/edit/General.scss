@@ -1,0 +1,26 @@
+.general {
+    color: rgba(255, 255, 255, 0.5);
+
+    display: flex;
+    height: 100%;
+    padding-top: 3%;
+    .first-row {
+        display: flex;
+        flex-direction: column;
+        .title-text {
+            width: 180px;
+        }
+        .chart-title {
+            display: flex;
+            margin-bottom: 8px;
+        }
+    }
+    .second-row {
+        margin-left: 100px;
+        .row-options {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+    }
+}

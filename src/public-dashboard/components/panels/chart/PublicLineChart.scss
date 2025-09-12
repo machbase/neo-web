@@ -1,4 +1,3 @@
-// 공개 라인 차트 스타일
 .public-line-chart-wrap {
     width: 100%;
     height: 100%;
@@ -11,7 +10,6 @@
         height: 100%;
         overflow-y: auto;
         
-        // Markdown 콘텐츠 스타일링
         .markdown-content {
             color: #fff;
             font-size: 14px;
@@ -110,7 +108,6 @@
     100% { transform: rotate(360deg); }
 }
 
-// 다크/라이트 테마 대응
 .panel-theme-white {
     .public-line-chart-wrap {
         .public-chart-text-content {

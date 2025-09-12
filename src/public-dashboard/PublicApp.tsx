@@ -5,11 +5,9 @@ import { useEffect } from 'react';
 
 const PublicApp = () => {
     useEffect(() => {
-        // 공개 모드임을 문서 타이틀에 표시
         const originalTitle = document.title;
         document.title = `${originalTitle} - Public View`;
         
-        // 컴포넌트 언마운트 시 원래 타이틀 복원
         return () => {
             document.title = originalTitle;
         };

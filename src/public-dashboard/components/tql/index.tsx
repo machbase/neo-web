@@ -1,13 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import SplitPane, { Pane, SashContent } from 'split-pane-react';
-import { getTqlChart } from '@/api/repository/machiot';
+import { getTqlChart } from '../../api/repository/machiot';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { gBoardList, gConsoleSelector, gSelectedTab } from '@/recoil/recoil';
+import { gBoardList, gConsoleSelector, gSelectedTab } from '../../recoil/recoil';
 import { Table } from './Table';
 import './index.scss';
-import { Markdown } from '../worksheet/Markdown';
-import { isValidJSON } from '@/utils';
-import { MonacoEditor } from '@/components/monaco/MonacoEditor';
+import { Markdown } from '../../components/worksheet/Markdown';
+import { isValidJSON } from '../../utils';
+import { MonacoEditor } from '../../components/monaco/MonacoEditor';
 import {
     AiOutlineFileDone,
     AiOutlineFileMarkdown,
@@ -21,13 +21,13 @@ import {
     Play,
     SaveAs,
     MdLink,
-} from '@/assets/icons/Icon';
-import { IconButton } from '../buttons/IconButton';
-import { ClipboardCopy } from '@/utils/ClipboardCopy';
-import { TqlCsvParser } from '@/utils/tqlCsvParser';
-import { Loader } from '../loader';
-import { ShowVisualization } from '@/components/tql/ShowVisualization';
-import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
+} from '../../assets/icons/Icon';
+import { IconButton } from '../../components/buttons/IconButton';
+import { ClipboardCopy } from '../../utils/ClipboardCopy';
+import { TqlCsvParser } from '../../utils/tqlCsvParser';
+import { Loader } from '../../components/loader';
+import { ShowVisualization } from './ShowVisualization';
+import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '../../utils/TQL/TqlResParser';
 interface TqlProps {
     pIsActiveTab: boolean;
     pCode: string;
