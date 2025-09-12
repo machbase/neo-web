@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getFileList, postFileList } from '@/api/repository/api';
-import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart } from '@/api/repository/machiot';
+import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
 import Modal from './Modal';
 import { gFileTree } from '@/recoil/fileTree';
 import './SaveDashboardModal.scss';
@@ -21,6 +21,8 @@ import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryPars
 import { Select } from '@/components/inputs/Select';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { IconButton } from '../buttons/IconButton';
+import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOriginDataDownloader';
+import { fixedEncodeURIComponent } from '@/utils/utils';
 
 export interface PanelDataDownloadModalProps {
     setIsOpen: any;
@@ -321,57 +323,8 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
         return sResult;
     };
 
-    const GetDataForBlock = async (blockIndex: number): Promise<string> => {
-        try {
-            const [sParsedQuery] = await GetQuery();
-            if (!sParsedQuery || blockIndex >= sParsedQuery.length) {
-                throw new (Error as any)(`Invalid block index: ${blockIndex}`);
-            }
 
-            const sTargetItem = sParsedQuery[blockIndex];
-            if (!sTargetItem || !sTargetItem.sql) {
-                throw new (Error as any)(`No SQL query found for block ${blockIndex}`);
-            }
 
-            const sTqlQuery = await GetSaveDataText(blockIndex);
-
-            const sResult: any = await getTqlChart(sTqlQuery);
-            
-            if (sResult?.status === 200 && sResult?.data !== undefined) {
-                return typeof sResult.data === 'string' ? sResult.data : JSON.stringify(sResult.data);
-            } else {
-                throw new (Error as any)(`Failed to fetch data: ${sResult?.statusText || 'Unknown error'}`);
-            }
-        } catch (error) {
-            const errorMessage = error instanceof (Error as any) ? (error as any).message : 'Unknown error';
-            Error(`Failed to fetch data for block ${blockIndex + 1}: ${errorMessage}`);
-            throw error;
-        }
-    };
-
-    const saveToServer = async (content: string, filename: string) => {
-        try {
-            const sResult: any = await postFileList(content, sSelectedDir.join('/'), filename);
-            if (sResult.success) {
-                return true;
-            } else {
-                throw new (Error as any)('Failed to save file to server');
-            }
-        } catch (error) {
-            throw error;
-        }
-    };
-
-    const downloadFileClient = (content: string, filename: string) => {
-        const sBlob = new Blob([content], { 
-            type: sOutput === 'DATA(JSON)' ? 'application/json' : 'text/csv' 
-        });
-        const sLink = document.createElement('a');
-        sLink.href = URL.createObjectURL(sBlob);
-        sLink.setAttribute('download', filename);
-        sLink.click();
-        URL.revokeObjectURL(sLink.href);
-    };
 
     const handleDownload = async () => {
         if (sBlockList.length === 0) return;
@@ -395,43 +348,42 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                         continue;
                     }
 
-                    const data = await GetDataForBlock(blockIndex);
+                    // Generate TQL query string (same as GetSaveDataText)
+                    const tqlQuery = await GetSaveDataText(blockIndex);
                     
-                    if (data) {
-                        const extension = sOutput === 'DATA(JSON)' ? 'json' : 'csv';
-                        let filename: string;
-                        
-                        if (sSelectedBlock.idx === -1) {
-                            // All blocks selected - use base filename with numbering
-                            const baseFileName = sSaveFileName.trim() || 
-                                (pPanelInfo.title || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
-                            const baseWithoutExt = baseFileName.replace(/\.(json|csv)$/i, '');
-                            const blockNumber = blockIndex + 1;
-                            filename = `${baseWithoutExt}_${blockNumber}.${extension}`;
-                        } else {
-                            // Single block selected - use filename as is
-                            const baseFileName = sSaveFileName.trim() || 
-                                (pPanelInfo.title || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
-                            const baseWithoutExt = baseFileName.replace(/\.(json|csv)$/i, '');
-                            filename = `${baseWithoutExt}.${extension}`;
-                        }
-                        
-                        try {
-                            await saveToServer(data, filename);
-                            downloadFileClient(data, filename);
-                            successCount++;
-                        } catch (saveError) {
-                            downloadFileClient(data, filename);
-                            successCount++;
-                        }
-                        
-                        // Add small delay between downloads to prevent browser issues
-                        if (blocksToDownload.length > 1) {
-                            await new Promise(resolve => setTimeout(resolve, 200));
-                        }
+                    // Create download URL (same as SQL download pattern)
+                    const url = window.location.origin + '/web/api/tql-exec';
+                    const token = localStorage.getItem('accessToken');
+                    const encodedQuery = fixedEncodeURIComponent(tqlQuery);
+                    const downloadUrl = `${url}?$=${encodedQuery}&$token=${token}`;
+                    
+                    // Generate filename
+                    const extension = sOutput === 'DATA(JSON)' ? 'json' as DOWNLOADER_EXTENSION : DOWNLOADER_EXTENSION.CSV;
+                    let filename: string;
+                    
+                    if (sSelectedBlock.idx === -1) {
+                        // All blocks selected - use base filename with numbering
+                        const baseFileName = sSaveFileName.trim() || 
+                            (pPanelInfo.title || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
+                        const baseWithoutExt = baseFileName.replace(/\.(json|csv)$/i, '');
+                        const blockNumber = blockIndex + 1;
+                        filename = `${baseWithoutExt}_${blockNumber}`;
                     } else {
-                        errorCount++;
+                        // Single block selected - use filename as is
+                        const baseFileName = sSaveFileName.trim() || 
+                            (pPanelInfo.title || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
+                        filename = baseFileName.replace(/\.(json|csv)$/i, '');
                     }
+                    
+                    // Direct URL download (same as SQL pattern)
+                    sqlOriginDataDownloader(downloadUrl, extension, filename);
+                    successCount++;
+                    
+                    // Add small delay between downloads to prevent browser issues
+                    if (blocksToDownload.length > 1) {
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                    
                 } catch (error) {
                     Error(`Failed to download block ${blockIndex + 1}`);
                     errorCount++;
