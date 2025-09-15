@@ -15,16 +15,18 @@ import { chartTypeConverter } from '@/utils/eChartHelper';
 import { IconButton } from '../buttons/IconButton';
 import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOriginDataDownloader';
 import { fixedEncodeURIComponent } from '@/utils/utils';
+import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 
 export interface PanelDataDownloadModalProps {
     setIsOpen: any;
     pIsDarkMode?: boolean;
     pPanelInfo: any;
     pDashboardTime: any;
+    pBoardInfo?: any;
 }
 
 export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
-    const { setIsOpen, pIsDarkMode, pPanelInfo, pDashboardTime } = props;
+    const { setIsOpen, pIsDarkMode, pPanelInfo, pDashboardTime, pBoardInfo } = props;
     const [sSaveFileName, setSaveFileName] = useState<string>('');
     const sRollupTableList = useRecoilValue(gRollupTableList);
     // Always use CSV output
@@ -127,12 +129,27 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
 
     const GetSaveDataText = async (blockIndex: number) => {
         const [sParsedQuery] = await GetQuery();
+        const { min: sStartTime, max: sEndTime } = await resolveTimeRange();
+        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, pPanelInfo.w * 50);
+        
         const sOutputStr: string = sOutput === 'DATA(JSON)' ? 'JSON()' : 'CSV()';
         const sTargetItem = sParsedQuery[blockIndex];
         let sResult = '';
+        
+        // Apply variables replacement if board info and variables are available
+        let processedSql = sTargetItem.sql;
+        if (pBoardInfo?.dashboard?.variables && pBoardInfo.dashboard.variables.length > 0) {
+            const sTimeContext = {
+                interval: sIntervalInfo,
+                start: sStartTime,
+                end: sEndTime,
+            };
+            processedSql = replaceVariablesInTql(sTargetItem.sql, pBoardInfo.dashboard.variables, sTimeContext);
+        }
+        
         if (CheckObjectKey(sTargetItem, 'trx')) {
-            sResult = sTargetItem.sql + '\n' + sOutputStr;
-        } else sResult = `SQL("${sTargetItem.sql}")\n` + sOutputStr;
+            sResult = processedSql + '\n' + sOutputStr;
+        } else sResult = `SQL("${processedSql}")\n` + sOutputStr;
         return sResult;
     };
 
