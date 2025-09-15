@@ -313,6 +313,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                     pDashboardTime={sBoardList.find((aItem: any) => aItem.id === sSelectedTab)?.dashboard.timeRange}
                     setIsOpen={setDataDownloadModal}
                     pPanelInfo={pPanelInfo}
+                    pBoardInfo={pBoardInfo}
                     pIsDarkMode={true}
                 />
             )}
