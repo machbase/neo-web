@@ -1,4 +1,4 @@
-import { VARIABLE_TYPE } from '../components/dashboard/variable';
+import { VARIABLE_TYPE } from '../components/variable';
 import moment from 'moment';
 import { VariableParser } from './DashboardQueryParser';
 import { VARIABLE_REGEX } from './CheckDataCompatibility';

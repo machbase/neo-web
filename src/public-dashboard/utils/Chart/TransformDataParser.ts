@@ -1,6 +1,6 @@
 import TQL from '../TqlGenerator';
-import { TransformBlockType } from '../components/dashboard/createPanel/Transform/type';
-import { ChartType, E_CHART_TYPE } from '../type/eChart';
+import { TransformBlockType } from '../../type/transform';
+import { ChartType, E_CHART_TYPE } from '../../type/eChart';
 import { DSH_CHART_NAME_VALUE_SCRIPT_MODULE, DSH_CHART_TIME_VALUE_SCRIPT_MODULE, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE } from '../TqlGenerator/constants';
 
 export enum E_ALLOW_CHART_TYPE {
@@ -94,7 +94,7 @@ const TRX_COMMON_PARSER = (aTrxBlockList: TransformBlockType[], aQueryBlockList:
                 value: aTrBlock.value,
                 valid: aTrBlock.valid,
                 isVisible: aTrBlock.isVisible,
-                block: aTrBlock.selectedBlockIdxList.map((aSelBlockIdx) => {
+                block: aTrBlock.selectedBlockIdxList.map((aSelBlockIdx: number) => {
                     return aQueryBlockList[aSelBlockIdx];
                 }),
             };

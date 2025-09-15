@@ -1,10 +1,10 @@
-import request from '@/api/core';
-import { Error } from '@/components/toast/Toast';
-import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt } from '@/utils';
-import { ADMIN_ID } from '@/utils/constants';
-import { getInterval } from '@/utils/DashboardQueryParser';
-import { removeV$Table } from '@/utils/dbUtils';
-import { TagzCsvParser } from '@/utils/tqlCsvParser';
+import request from '../core';
+import { Error } from '../../components/toast/Toast';
+import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt } from '../../utils';
+import { ADMIN_ID } from '../../utils/constants';
+import { getInterval } from '../../utils/DashboardQueryParser';
+import { removeV$Table } from '../../utils/dbUtils';
+import { TagzCsvParser } from '../../utils/tqlCsvParser';
 import moment from 'moment';
 
 const getTableName = (targetTxt: string) => {
@@ -42,7 +42,7 @@ const executeQuery = async (query: string) => {
     }
 };
 
-const getTqlChart = async (aData: string, aType?: 'dsh') => {
+const getTqlChart = async (aData: string, _aType?: 'dsh') => {
     try {
         const response = await fetch('/db/tql', {
             method: 'POST',

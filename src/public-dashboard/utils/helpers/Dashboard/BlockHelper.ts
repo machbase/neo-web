@@ -1,5 +1,5 @@
-import { TransformBlockType } from '../components/dashboard/createPanel/Transform/type';
-import { ChartType } from '../type/eChart';
+import { TransformBlockType } from '../../../type/transform';
+import { ChartType } from '../../../type/eChart';
 import { CheckAllowedTransformChartType } from '../../Chart/TransformDataParser';
 import { chartTypeConverter } from '../../eChartHelper';
 import { FakeTQL } from '../../TQL/TqlQueryHelper';

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import DatePicker from '../datePicker/DatePicker';
 import moment from 'moment';
 import { TextButton } from '../buttons/TextButton';
-import { SelectTimeRanges } from '../tagAnalyzer/SelectTimeRanges';
+import { SelectTimeRanges } from '../SelectTimeRanges';
 import { Error } from '../toast/Toast';
 import { Select } from '../inputs/Select';
 import { refreshTimeList } from '../../utils/dashboardUtil';

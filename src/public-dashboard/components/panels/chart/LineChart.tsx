@@ -27,11 +27,6 @@ const LineChart = ({
     pLoopMode,
     pChartVariableId,
     pPanelInfo,
-    pType,
-    pInsetDraging,
-    pDragStat,
-    pModifyState,
-    pSetModifyState,
     pParentWidth,
     pIsHeader,
     pBoardTimeMinMax,
@@ -61,7 +56,7 @@ const LineChart = ({
     };
 
     const executeTqlChart = async (aWidth?: number) => {
-        if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
+        if (!pIsActiveTab) return;
         setIsLoading(true);
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
             sRefClientWidth = ChartRef.current.clientWidth;
@@ -271,11 +266,9 @@ const LineChart = ({
             }
         }
         setIsLoading(false);
-        pSetModifyState({ id: '', state: false });
     };
     const sSetIntervalTime = () => {
         if (pPanelInfo.type === 'Geomap' && !pPanelInfo.chartOptions?.useAutoRefresh) return null;
-        if (pType === 'create' || pType === 'edit') return null;
         if (pPanelInfo.timeRange.refresh !== 'Off') return calcRefreshTime(pPanelInfo.timeRange.refresh);
         return null;
     };
@@ -309,41 +302,23 @@ const LineChart = ({
     };
 
     useEffect(() => {
-        if (((!pModifyState.state && sIsMounted) || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh || pBoardInfo.dashboard?.variables?.length > 0)) {
+        if ((sIsMounted || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh || pBoardInfo.dashboard?.variables?.length > 0)) {
             executeTqlChart();
         }
     }, [pBoardTimeMinMax]);
     useEffect(() => {
-        if (pModifyState.state && pModifyState.id === PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)) {
+        if (sIsMounted) {
             executeTqlChart();
-        }
-    }, [pModifyState]);
-    useEffect(() => {
-        if (pType !== 'create' && !pModifyState.state) {
-            executeTqlChart();
-        } else {
-            if (sIsMounted) {
-                executeTqlChart();
-            }
         }
     }, [pPanelInfo.w, pPanelInfo.h, pIsHeader]);
     useEffect(() => {
-        if (sIsMounted && !pInsetDraging) {
-            executeTqlChart();
-        }
-    }, [pInsetDraging]);
-    useEffect(() => {
-        if (sIsMounted && !pDragStat) {
-            executeTqlChart();
-        }
-    }, [pDragStat]);
-    useEffect(() => {
-        if (sIsMounted && !pDragStat && !pInsetDraging) {
+        if (sIsMounted) {
             executeTqlChart(pParentWidth);
         }
     }, [pParentWidth]);
     useEffect(() => {
         setIsMounted(true);
+        executeTqlChart();
     }, []);
 
     useEffect(() => {

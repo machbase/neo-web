@@ -3,7 +3,7 @@ import { CheckObjectKey, SEPARATE_DIFF, geomapAggregatorList, logAggregatorList,
 import { chartTypeConverter } from './eChartHelper';
 import { concatTagSet } from './helpers/tags';
 import { DIFF_LIST } from './aggregatorConstants';
-import { TransformBlockType } from '../components/dashboard/createPanel/Transform/type';
+import { TransformBlockType } from '../type/transform';
 
 export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
 export const VARIABLE_RM_REGEX = /^{+|}+$/g;

@@ -1,4 +1,4 @@
-import { VARIABLE_TYPE } from '../components/dashboard/variable';
+import { VARIABLE_TYPE } from '../components/variable';
 import { VariableParser } from './DashboardQueryParser';
 
 export interface BlockTimeType {

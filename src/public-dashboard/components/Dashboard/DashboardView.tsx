@@ -1,5 +1,4 @@
 import './DashboardView.scss';
-import { getFiles } from '../../api/repository/fileTree';
 import Panel from '../panels/Panel';
 import { useEffect, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
@@ -268,11 +267,8 @@ const DashboardView = () => {
                                         }}
                                     >
                                         <Panel
-                                            pIsView
                                             pBoardInfo={sBoardInformation}
                                             pPanelInfo={aItem}
-                                            pModifyState={{ id: '', state: false }}
-                                            pSetModifyState={() => null}
                                             pParentWidth={!sIsMobile && sLayoutRef?.current?.clientWidth ? sLayoutRef.current.clientWidth : aItem.w}
                                             pChartVariableId={sChartVariableId}
                                             pIsHeader={false}
