@@ -121,7 +121,7 @@ export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string,
 
     // GEN func
     const sFunction = `function getData(aTql, aIdx) {
-        \tfetch("${window.location.origin}/${isSave ? 'db' : 'web/api'}/tql", {
+        \tfetch("${window.location.origin}/db/tql", {
             \tmethod: "POST",
             \theaders: {"Accept": "application/json, text/plain, */*", "Content-Type": "text/plain" ${
                 isSave ? '' : `, "Authorization": "Bearer ${sAccToken}", "X-Console-Id": "${sXConsoleId}, console-log-level=NONE"`

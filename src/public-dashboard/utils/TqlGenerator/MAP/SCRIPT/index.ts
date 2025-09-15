@@ -11,8 +11,7 @@ enum E_TQL_SCRIPT_JS_UTILS {
     YIELD = 'YIELD',
 }
 enum E_URL {
-    DEFALUT = '/web/api/tql',
-    SAVE = '/db/tql',
+    DEFALUT = '/db/tql'
 }
 
 /////////////////////// TEMPLATE ///////////////////////
@@ -37,7 +36,7 @@ const RequestDo = (aReq: { method: 'POST'; url: string; body: string }, aDo: { m
     return template[E_TQL_SCRIPT_JS_UTILS.REQUEST_DO].replace(`\${${E_TQL_SCRIPT_JS_UTILS.REQUEST}}`, reqOpt).replace(`\${${E_TQL_SCRIPT_JS_UTILS.DO}}`, doOpt);
 };
 const RequestDoQuick = (aBody: string, opt?: { isSave: boolean }) => {
-    const sURL = opt?.isSave ? E_URL.SAVE : E_URL.DEFALUT;
+    const sURL = E_URL.DEFALUT;
     return RequestDo(
         {
             method: 'POST',
