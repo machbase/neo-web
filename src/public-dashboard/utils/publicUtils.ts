@@ -20,5 +20,5 @@ export const generatePublicId = () => {
 };
 
 export const isPublicMode = () => {
-    return window.location.pathname.includes('/public');
+    return window.location.pathname.includes('/board');
 };
