@@ -11,8 +11,7 @@ import { IconButton } from '../buttons/IconButton';
 import { Loader } from '../loader';
 import { gFileTree } from '@/recoil/fileTree';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
-import { Error } from '../toast/Toast';
-// import { TreeFetchDrilling } from '@/utils/UpdateTree';
+import { Error, Success } from '../toast/Toast';
 
 type REFERENCE_ITEM = {
     title: string;
@@ -166,8 +165,10 @@ const QuickInstall = ({
     const handleQuickInstall = async (e: React.MouseEvent<HTMLDivElement>, aItem: REFERENCE_ITEM) => {
         if (pIsProcessing) return;
         e.stopPropagation();
+        const lastPath = aItem?.address?.substring(aItem?.address?.lastIndexOf('/') + 1);
+        Success(`Creating in ${lastPath} folder`);
         const sPaylod = { url: aItem?.address, command: 'clone' };
-        await pQuickInstall(aItem?.title, sPaylod);
+        await pQuickInstall(lastPath, sPaylod);
     };
 
     return (
