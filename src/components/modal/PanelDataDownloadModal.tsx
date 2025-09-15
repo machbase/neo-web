@@ -27,9 +27,10 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
     const { setIsOpen, pIsDarkMode, pPanelInfo, pDashboardTime } = props;
     const [sSaveFileName, setSaveFileName] = useState<string>('');
     const sRollupTableList = useRecoilValue(gRollupTableList);
-    const [sOutput, setOutput] = useState<'DATA(JSON)' | 'DATA(CSV)'>('DATA(JSON)');
+    // Always use CSV output
+    const sOutput = 'DATA(CSV)';
     const [sBlockList, setBlockList] = useState<any>([]);
-    const [sSelectedBlock, setSelectedBlock] = useState<any>({ idx: -1, name: 'All', value: 'All' });
+    const [sSelectedBlock, setSelectedBlock] = useState<any>({ idx: 0, name: '', value: '' });
     const [sIsDownloading, setIsDownloading] = useState<boolean>(false);
 
     const defaultMinMax = () => {
@@ -94,6 +95,10 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
     const SetBlockAliasList = async () => {
         const [_, sAliasList] = await GetQuery();
         setBlockList(sAliasList as any);
+        // Set first block as default selection
+        if (sAliasList && sAliasList.length > 0) {
+            setSelectedBlock({ idx: 0, name: sAliasList[0].name, value: sAliasList[0].name });
+        }
     };
 
     const handleClose = () => {
@@ -104,9 +109,7 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
         setSaveFileName(aEvent.target.value);
     };
 
-    const HandleOutput = (aValue: 'DATA(JSON)' | 'DATA(CSV)') => {
-        setOutput(aValue);
-    };
+    // Removed HandleOutput function as we always use CSV
 
     const HandleBlockSelection = (aEvent: any) => {
         const selectedValue = aEvent.target.value;
@@ -167,8 +170,8 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                     const encodedQuery = fixedEncodeURIComponent(tqlQuery);
                     const downloadUrl = `${url}?$=${encodedQuery}&$token=${token}`;
                     
-                    // Generate filename
-                    const extension = sOutput === 'DATA(JSON)' ? 'json' as DOWNLOADER_EXTENSION : DOWNLOADER_EXTENSION.CSV;
+                    // Generate filename - always use CSV
+                    const extension = DOWNLOADER_EXTENSION.CSV;
                     let filename: string;
                     
                     if (sSelectedBlock.idx === -1) {
@@ -224,13 +227,13 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
     }, []);
 
     return (
-        <div className="tql">
+        <div className="tql tql-download">
             <Modal pIsDarkMode={pIsDarkMode} onOutSideClose={handleClose}>
                 <Modal.Header>
                     <div className="title">
                         <div className="title-content">
                             <Download />
-                            <span>Download Panel Data</span>
+                            <span>Download Panel Data (CSV)</span>
                         </div>
                         <Close onClick={handleClose} />
                     </div>
@@ -239,24 +242,14 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                 </Modal.Body>
                 <Modal.Footer>
                     <div className="save-option">
-                        <div className="save-file-name">
-                            <span>File Name</span>
-                            <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark' : ''}`}>
-                                <input autoFocus onChange={changeSaveFileName} value={sSaveFileName}></input>
+                        <div className="save-file-name" style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
+                            <div style={{ flex: 1 }}>
+                                <span>File Name</span>
+                                <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark' : ''}`}>
+                                    <input autoFocus onChange={changeSaveFileName} value={sSaveFileName}></input>
+                                </div>
                             </div>
-                        </div>
-                        <div className="save-file-data">
-                            <span>Output</span>
-                            <Select
-                                pFontSize={12}
-                                pAutoChanged={true}
-                                pWidth={175}
-                                pBorderRadius={8}
-                                pInitValue={sOutput}
-                                pHeight={33}
-                                onChange={(aEvent: any) => HandleOutput(aEvent.target.value)}
-                                pOptions={['DATA(JSON)', 'DATA(CSV)']}
-                            />
+                            <span style={{ color: '#ccc', fontSize: '12px', paddingBottom: '8px' }}> .csv</span>
                         </div>
                         <div className="save-file-block">
                             <span>Block</span>
@@ -268,7 +261,7 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                                 pInitValue={sSelectedBlock.value}
                                 pHeight={33}
                                 onChange={HandleBlockSelection}
-                                pOptions={['All', ...sBlockList.map((aAlias: any) => aAlias.name)]}
+                                pOptions={[...sBlockList.map((aAlias: any) => aAlias.name), 'All']}
                             />
                         </div>
                     </div>
