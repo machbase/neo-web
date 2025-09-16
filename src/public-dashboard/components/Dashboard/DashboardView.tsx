@@ -19,6 +19,7 @@ import { VARIABLE_TYPE } from '../variable';
 import { IoMdOptions } from 'react-icons/io';
 import { VariablePreview } from '../variable/VariablePreview';
 import { IoClose } from 'react-icons/io5';
+import Footer from '../Footer/Footer';
 
 const DashboardView = () => {
     const sParams = useParams();
@@ -337,6 +338,7 @@ const DashboardView = () => {
                     pSaveCallback={handleDashboardTimeRange}
                 />
             )}
+            <Footer />
         </>
     );
 };

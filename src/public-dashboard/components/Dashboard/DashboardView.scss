@@ -107,8 +107,9 @@
     }
     .board-body {
         overflow: auto;
-        height: calc(100% - 40px);
+        height: calc(100% - 40px); // Header height only
         position: relative;
+        padding-bottom: 40px; // Add bottom padding for footer space
         .non-set-panel {
             display: flex;
             align-items: center;
@@ -131,7 +132,7 @@
         top: 40px;
         left: 0;
         width: 300px;
-        height: calc(100% - 40px);
+        height: calc(100% - 40px - 40px); // Subtract footer height (40px)
         z-index: 1001;
         flex-direction: column;
 
