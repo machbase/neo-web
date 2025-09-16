@@ -251,7 +251,15 @@ const DashboardView = () => {
                     <div className="header-menu">
                         <div className="list-menu">
                             <ShareButton />
-                            <IconButton pWidth={20} pHeight={20} pIcon={<VscSync />} onClick={handleRefresh} />
+                            <IconButton 
+                                pIsToopTip
+                                pToolTipContent="Refresh"
+                                pToolTipId="refresh-btn"
+                                pWidth={20} 
+                                pHeight={20} 
+                                pIcon={<VscSync />} 
+                                onClick={handleRefresh} 
+                            />
                         </div>
                         <div className="calendar-group">
                             <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')} />
