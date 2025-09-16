@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { IconButton } from './IconButton';
 import { Share } from '../../assets/icons/Icon';
 import Menu from '../contextMenu/Menu';
+import { Success } from '../toast/Toast';
 
 export const ShareButton = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -17,6 +18,7 @@ export const ShareButton = () => {
         try {
             const currentUrl = window.location.href;
             await navigator.clipboard.writeText(currentUrl);
+            Success('Public link copied to clipboard');
             setIsMenuOpen(false);
         } catch (error) {
             console.error('Failed to copy link:', error);
@@ -29,6 +31,7 @@ export const ShareButton = () => {
             const currentUrl = window.location.href;
             const embedCode = `<html><embed src="${currentUrl}"></html>`;
             await navigator.clipboard.writeText(embedCode);
+            Success('Embed code copied to clipboard');
             setIsMenuOpen(false);
         } catch (error) {
             console.error('Failed to copy embed code:', error);
@@ -50,6 +53,8 @@ export const ShareButton = () => {
         
         try {
             document.execCommand('copy');
+            const isEmbedCode = text.includes('<html><embed');
+            Success(isEmbedCode ? 'Embed code copied to clipboard' : 'Public link copied to clipboard');
             setIsMenuOpen(false);
         } catch (error) {
             console.error('Fallback copy failed:', error);
