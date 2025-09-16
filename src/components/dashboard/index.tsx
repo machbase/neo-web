@@ -20,7 +20,7 @@ import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Input } from '../inputs/Input';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import { Error } from '../toast/Toast';
+import { Error, Success } from '../toast/Toast';
 import { Variable } from './variable';
 import { VariableHeader } from './variable/header';
 import { VariablePreview } from './variable/preview';
@@ -132,6 +132,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         const sTargetBoard = sBoardList.find((aBoard) => aBoard.id === pInfo.id);
         const sTargetPath = `${window.location.origin + '/web/ui/board' + sTargetBoard?.path + sTargetBoard!.name.split('.')[0]}`;
         ClipboardCopy(sTargetPath);
+        Success('Copied!');
     };
     const changeDashboardName = (e: any) => {
         setBoardList(
