@@ -6,6 +6,7 @@ import { useParams } from 'react-router-dom';
 import moment from 'moment';
 import { Calendar, VscChevronLeft, VscChevronRight, VscSync } from '../../assets/icons/Icon';
 import { IconButton } from '../../components/buttons/IconButton';
+import { ShareButton } from '../../components/buttons/ShareButton';
 import { calcRefreshTime, setUnitTime } from '../../utils/dashboardUtil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '../../utils/constants';
 import { getId, isMobile } from '../../utils';
@@ -221,6 +222,7 @@ const DashboardView = () => {
                     </div>
                     <div className="header-menu">
                         <div className="list-menu">
+                            <ShareButton />
                             <IconButton pWidth={20} pHeight={20} pIcon={<VscSync />} onClick={handleRefresh} />
                         </div>
                         <div className="calendar-group">

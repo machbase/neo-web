@@ -27,3 +27,5 @@ export { LuFlipVertical } from 'react-icons/lu';
 export { FaRegCalendarAlt as Calendar } from 'react-icons/fa';
 
 export { FaGear as GearFill } from 'react-icons/fa6';
+
+export { IoMdShare as Share } from 'react-icons/io';
