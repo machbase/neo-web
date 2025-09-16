@@ -1,0 +1,42 @@
+@import '/src/assets/scss/theme.scss';
+.date-picker-modal {
+    position: fixed;
+    z-index: $modal-idx;
+}
+
+.date-picker-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: solid 0.5px rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    background-color: #323644;
+    .picker-form {
+        display: flex;
+        align-items: center;
+        .date-calendar {
+            .MuiTypography-root {
+                color: #c4c4c4;
+            }
+            .MuiButtonBase-root {
+                color: #c4c4c4;
+            }
+        }
+        .time-clock {
+            display: flex;
+            justify-content: center;
+            width: 320px !important;
+            .MuiList-root {
+                color: #c4c4c4;
+            }
+        }
+    }
+    .date-picker-button {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        .text-btn-wrapper {
+            margin-bottom: 4px;
+        }
+    }
+}

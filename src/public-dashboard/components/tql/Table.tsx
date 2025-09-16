@@ -1,11 +1,11 @@
 import { useState, useRef } from 'react';
-import { Menu } from '@/components/contextMenu/Menu';
-import { Modal } from '@/components/modal/Modal';
+import { Menu } from '../../components/contextMenu/Menu';
+import { Modal } from '../../components/modal/Modal';
 import './Table.scss';
-import useOutsideClick from '@/hooks/useOutsideClick';
-import TABLE from '@/components/table';
-import { Copy, Monitor, Close } from '@/assets/icons/Icon';
-import { ClipboardCopy } from '@/utils/ClipboardCopy';
+import useOutsideClick from '../../hooks/useOutsideClick';
+import TABLE from '../../components/table';
+import { Copy, Monitor, Close } from '../../assets/icons/Icon';
+import { ClipboardCopy } from '../../utils/ClipboardCopy';
 
 interface TableProps {
     items: any[][];

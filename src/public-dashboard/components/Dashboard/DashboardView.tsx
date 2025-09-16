@@ -1,19 +1,18 @@
 import './DashboardView.scss';
-import { getFiles } from '@/api/repository/fileTree';
 import Panel from '../panels/Panel';
 import { useEffect, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
 import { useParams } from 'react-router-dom';
 import moment from 'moment';
-import { Calendar, VscChevronLeft, VscChevronRight, VscSync } from '@/assets/icons/Icon';
-import { IconButton } from '@/components/buttons/IconButton';
-import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
-import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
-import { getId, isMobile } from '@/utils';
-import ViewTimeRangeModal from '@/components/modal/ViewTimeRangeModal';
-import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import { fetchMountTimeMinMax, fetchTimeMinMax } from '../../api/machiot';
-import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
+import { Calendar, VscChevronLeft, VscChevronRight, VscSync } from '../../assets/icons/Icon';
+import { IconButton } from '../../components/buttons/IconButton';
+import { calcRefreshTime, setUnitTime } from '../../utils/dashboardUtil';
+import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '../../utils/constants';
+import { getId, isMobile } from '../../utils';
+import ViewTimeRangeModal from '../../components/modal/ViewTimeRangeModal';
+import { timeMinMaxConverter } from '../../utils/bgnEndTimeRange';
+import { fetchMountTimeMinMax, fetchTimeMinMax } from '../../api/repository/machiot';
+import { CheckDataCompatibility } from '../../utils/CheckDataCompatibility';
 import { VariableHeader } from '../variable/VariableHeader';
 import { VARIABLE_TYPE } from '../variable';
 import { IoMdOptions } from 'react-icons/io';
@@ -36,9 +35,7 @@ const DashboardView = () => {
     const getDshFile = async (aFileName: string | undefined) => {
         if (!aFileName) return;
         try {
-            // public/ 부분 제거 (useParams에서 public/파일명 형태로 오기 때문)
-            const cleanFileName = aFileName.replace('public/', '');
-            // 직접 db/tql 경로로 파일 접근 (API 래퍼 우회)
+            const cleanFileName = aFileName.replace('board/', '');
             const response = await fetch(`/db/tql/${cleanFileName}.dsh`);
             if (response.ok) {
                 const sResult = await response.text();
@@ -270,11 +267,8 @@ const DashboardView = () => {
                                         }}
                                     >
                                         <Panel
-                                            pIsView
                                             pBoardInfo={sBoardInformation}
                                             pPanelInfo={aItem}
-                                            pModifyState={{ id: '', state: false }}
-                                            pSetModifyState={() => null}
                                             pParentWidth={!sIsMobile && sLayoutRef?.current?.clientWidth ? sLayoutRef.current.clientWidth : aItem.w}
                                             pChartVariableId={sChartVariableId}
                                             pIsHeader={false}

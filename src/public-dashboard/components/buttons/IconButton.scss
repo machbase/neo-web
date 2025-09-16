@@ -1,0 +1,46 @@
+@import '/src/assets/scss/theme.scss';
+.icon-btn-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    cursor: pointer;
+
+    svg,
+    img,
+    div {
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    &:hover {
+        svg,
+        div {
+            color: #f8f8f8;
+        }
+    }
+}
+
+.icon-btn-disabled {
+    cursor: auto;
+    svg,
+    .tooltip-icon {
+        color: rgba(255, 255, 255, 0.205) !important;
+    }
+}
+
+.tooltip-div {
+    color: rgba(255, 255, 255, 1) !important;
+    max-width: 500px;
+    width: auto;
+    overflow: hidden;
+    z-index: $tooltip-idx;
+    font-size: 12px !important;
+    text-wrap: balance;
+}
+
+.icon-btn-active-hover {
+    background-color: transparent;
+    &:hover {
+        background-color: #52535a;
+    }
+}

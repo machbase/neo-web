@@ -1,8 +1,8 @@
 import './header.scss';
 import { VARIABLE_ITEM_TYPE, VARIABLE_TYPE } from '.';
-import { gBoardList } from '@/recoil/recoil';
+import { gBoardList } from '../../recoil/recoil';
 import { useRecoilState } from 'recoil';
-import { ExtensionTab } from '@/components/extension/ExtensionTab';
+import { ExtensionTab } from '../../components/extension/ExtensionTab';
 import { useEffect, useState } from 'react';
 
 export const VariableHeader = ({

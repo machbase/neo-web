@@ -1,37 +1,32 @@
 import './LineChart.scss';
-import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart, getTqlScripts } from '../../../api/machiot';
-import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
-import { calcInterval, calcRefreshTime, decodeFormatterFunction, PanelIdParser, setUnitTime } from '@/utils/dashboardUtil';
+import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart, getTqlScripts } from '../../../api/repository/machiot';
+import { useOverlapTimeout } from '../../../hooks/useOverlapTimeout';
+import { calcInterval, calcRefreshTime, decodeFormatterFunction, PanelIdParser, setUnitTime } from '../../../utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
-import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
-import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
-import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
+import { DashboardQueryParser, SqlResDataType } from '../../../utils/DashboardQueryParser';
+import { DashboardChartCodeParser } from '../../../utils/DashboardChartCodeParser';
+import { DashboardChartOptionParser } from '../../../utils/DashboardChartOptionParser';
 import { useRecoilValue } from 'recoil';
-import { gRollupTableList } from '@/recoil/recoil';
-import { ChartThemeTextColor, GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
-import { chartTypeConverter } from '@/utils/eChartHelper';
-import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import { TqlChartParser } from '@/utils/DashboardTqlChartParser';
+import { gRollupTableList } from '../../../recoil/recoil';
+import { ChartThemeTextColor, GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '../../../utils/constants';
+import { chartTypeConverter } from '../../../utils/eChartHelper';
+import { timeMinMaxConverter } from '../../../utils/bgnEndTimeRange';
+import { TqlChartParser } from '../../../utils/DashboardTqlChartParser';
 import moment from 'moment';
-import { ShowVisualization } from '@/components/tql/ShowVisualization';
-import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
-import { Markdown } from '@/components/worksheet/Markdown';
-import { isValidJSON } from '@/utils';
-import TABLE from '@/components/table';
-import { TqlCsvParser } from '@/utils/tqlCsvParser';
-import { FakeTextBlock } from '@/utils/helpers/Dashboard/BlockHelper';
-import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
+import { ShowVisualization } from '../../../components/tql/ShowVisualization';
+import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '../../../utils/TQL/TqlResParser';
+import { Markdown } from '../../../components/worksheet/Markdown';
+import { isValidJSON } from '../../../utils';
+import TABLE from '../../../components/table';
+import { TqlCsvParser } from '../../../utils/tqlCsvParser';
+import { FakeTextBlock } from '../../../utils/helpers/Dashboard/BlockHelper';
+import { replaceVariablesInTql } from '../../../utils/TqlVariableReplacer';
 
 const LineChart = ({
     pIsActiveTab,
     pLoopMode,
     pChartVariableId,
     pPanelInfo,
-    pType,
-    pInsetDraging,
-    pDragStat,
-    pModifyState,
-    pSetModifyState,
     pParentWidth,
     pIsHeader,
     pBoardTimeMinMax,
@@ -61,7 +56,7 @@ const LineChart = ({
     };
 
     const executeTqlChart = async (aWidth?: number) => {
-        if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
+        if (!pIsActiveTab) return;
         setIsLoading(true);
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
             sRefClientWidth = ChartRef.current.clientWidth;
@@ -271,11 +266,9 @@ const LineChart = ({
             }
         }
         setIsLoading(false);
-        pSetModifyState({ id: '', state: false });
     };
     const sSetIntervalTime = () => {
         if (pPanelInfo.type === 'Geomap' && !pPanelInfo.chartOptions?.useAutoRefresh) return null;
-        if (pType === 'create' || pType === 'edit') return null;
         if (pPanelInfo.timeRange.refresh !== 'Off') return calcRefreshTime(pPanelInfo.timeRange.refresh);
         return null;
     };
@@ -309,41 +302,23 @@ const LineChart = ({
     };
 
     useEffect(() => {
-        if (((!pModifyState.state && sIsMounted) || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh || pBoardInfo.dashboard?.variables?.length > 0)) {
+        if ((sIsMounted || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh || pBoardInfo.dashboard?.variables?.length > 0)) {
             executeTqlChart();
         }
     }, [pBoardTimeMinMax]);
     useEffect(() => {
-        if (pModifyState.state && pModifyState.id === PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)) {
+        if (sIsMounted) {
             executeTqlChart();
-        }
-    }, [pModifyState]);
-    useEffect(() => {
-        if (pType !== 'create' && !pModifyState.state) {
-            executeTqlChart();
-        } else {
-            if (sIsMounted) {
-                executeTqlChart();
-            }
         }
     }, [pPanelInfo.w, pPanelInfo.h, pIsHeader]);
     useEffect(() => {
-        if (sIsMounted && !pInsetDraging) {
-            executeTqlChart();
-        }
-    }, [pInsetDraging]);
-    useEffect(() => {
-        if (sIsMounted && !pDragStat) {
-            executeTqlChart();
-        }
-    }, [pDragStat]);
-    useEffect(() => {
-        if (sIsMounted && !pDragStat && !pInsetDraging) {
+        if (sIsMounted) {
             executeTqlChart(pParentWidth);
         }
     }, [pParentWidth]);
     useEffect(() => {
         setIsMounted(true);
+        executeTqlChart();
     }, []);
 
     useEffect(() => {

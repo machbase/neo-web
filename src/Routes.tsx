@@ -9,12 +9,10 @@ import { useToken } from './hooks/useToken';
 export const Routes = () => {
     const location = useLocation();
     
-    // Hook 호출 전에 공개 라우트 체크 - 인증 완전 우회
-    if (location.pathname.startsWith('/public')) {
+    if (location.pathname.startsWith('/board')) {
         return <PublicApp />;
     }
 
-    // 기존 인증 로직 (일반 페이지들)
     const [sHome, setHome] = useState<boolean | undefined>(undefined);
     const sNavigate = useNavigate();
 

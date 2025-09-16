@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import './ShowVisualization.scss';
 import { useEffect, useRef, useState } from 'react';
-import { ExistCommonScript, loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
-import { CheckObjectKey, E_VISUAL_LOAD_ID, PanelIdParser } from '@/utils/dashboardUtil';
+import { ExistCommonScript, loadScriptsSequentially } from '../../assets/ts/ScriptRegister';
+import { CheckObjectKey, E_VISUAL_LOAD_ID, PanelIdParser } from '../../utils/dashboardUtil';
 
 interface ShowChartProps {
     pData: any;

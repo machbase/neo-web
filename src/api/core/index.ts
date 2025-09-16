@@ -38,7 +38,7 @@ request.interceptors.request.use(
         const lastSegment = pathSegments[pathSegments.length - 1] || '';
         const lastDot = lastSegment.lastIndexOf('.');
         const lastExt = lastDot !== -1 ? lastSegment.slice(lastDot + 1).toLowerCase() : '';
-        const sViewMode = window.location.pathname.includes('/web/ui/view') || window.location.pathname.includes('/web/ui/public');
+        const sViewMode = window.location.pathname.includes('/web/ui/view') || window.location.pathname.includes('/web/ui/board');
         // const sDshFetch = config.url.includes('/api/tql/dsh');
         const sDshFetch = config.url.match(/\/api\/tql\/dsh$/gm);
         // const sTazFetch = config.url.includes('/api/tql/taz');
