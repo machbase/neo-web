@@ -1,31 +1,33 @@
-import './AddTag.scss';
-import { useMemo, useRef, useState } from 'react';
+import './TagSelectDialog.scss';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import { gTables } from '@/recoil/recoil';
 import { fetchTableName, getTagPagination, getTagTotal } from '@/api/repository/machiot';
-import { convertTagChartType } from '@/utils/utils';
-import { getId } from '@/utils';
 import { BiSolidChart, Close, ArrowLeft, ArrowRight, Search } from '@/assets/icons/Icon';
 import { Error } from '@/components/toast/Toast';
-import { Select } from '@/components/inputs/Select';
-import { TextButton } from '@/components/buttons/TextButton';
 import { Input } from '@/components/inputs/Input';
 import { MdKeyboardDoubleArrowLeft, MdOutlineKeyboardDoubleArrowRight } from 'react-icons/md';
 import useDebounce from '@/hooks/useDebounce';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { Tooltip } from 'react-tooltip';
-import { concatTagSet } from '@/utils/helpers/tags';
-import { avgMode } from '../../constants';
 
-const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
+interface TagSelectDialogProps {
+    pTable: string;
+    pCallback: (aSelectTag: string) => void;
+    pBlockOption: any;
+    pIsOpen: boolean;
+    pCloseModal: () => void;
+    pInitialTag?: string;
+}
+
+const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal, pInitialTag }: TagSelectDialogProps) => {
     const [sTables] = useRecoilState(gTables);
-    const [sSelectedTable, setSelectedTable] = useState<string>(sTables[0]);
+    const [sSelectedTable, setSelectedTable] = useState<string>(pTable || '');
     const [sTagList, setTagList] = useState<string[]>([]);
     const [sTagPagination, setTagPagination] = useState(1);
-    const [sSelectedTag, setSelectedTag] = useState<any[]>([]);
     const [sKeepPageNum, setKeepPageNum] = useState<any>(1);
-    const [sTagInputValue, setTagInputValue] = useState<string>('');
-    const [sSearchText, setSearchText] = useState<string>('');
+    const [sTagInputValue, setTagInputValue] = useState<string>(pInitialTag || '');
+    const [sSearchText, setSearchText] = useState<string>(pInitialTag || '');
     const [sTagTotal, setTagTotal] = useState<number>(0);
     const [sSkipTagTotal, setSkipTagTotal] = useState<boolean>(false);
     const [sColumns, setColumns] = useState<any>();
@@ -46,20 +48,30 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
             return Error(sFetchTableInfo.message ?? '');
         }
     };
+    
     const getTagList = async () => {
+        if (!pBlockOption.tableInfo || pBlockOption.tableInfo.length < 1) return;
+        if (!sSelectedTable) return;
+
+        const sTable = sSelectedTable.split('.').length > 1 ? sSelectedTable : pBlockOption.userName + '.' + sSelectedTable;
         let sTotalRes: any = undefined;
         let sColumn: any = sColumns;
         if (!sSkipTagTotal) {
-            sColumn = sSearchText === '' ? await getTableInfo() : sColumn;
-            sTotalRes = await getTagTotal(sSelectedTable, sSearchText, sColumn.name);
+            sColumn = !sColumns ? await getTableInfo() : sColumns;
+            if (!sColumn) return;
+            sTotalRes = await getTagTotal(sTable, sSearchText, sColumn.name);
         }
-        const sResult: any = await getTagPagination(sSelectedTable, sSearchText, sTagPagination, sColumn.name);
+        const sColumnName = sColumn?.name || (pBlockOption.tableInfo && pBlockOption.tableInfo[0] && pBlockOption.tableInfo[0][0]);
+        if (!sColumnName) return;
+        
+        const sResult: any = await getTagPagination(sTable, sSearchText, sTagPagination, sColumnName);
         if (sResult.success) {
-            if (!sSkipTagTotal) setTotal(sTotalRes.data.rows[0][0]);
+            if (!sSkipTagTotal && sTotalRes) setTotal(sTotalRes.data.rows[0][0]);
             setTagList(sResult.data.rows);
         } else setTagList([]);
         setSkipTagTotal(false);
     };
+    
     const setTotal = (aTotal: number) => {
         sTagTotal !== aTotal && setTagTotal(aTotal);
     };
@@ -69,61 +81,22 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
         setSearchText(aEvent.target.value);
     };
 
-    const removeSelectedTag = (aIdx: any) => {
-        setSelectedTag(
-            sSelectedTag.filter((aItem: any, bIdx: number) => {
-                aItem;
-                return bIdx !== aIdx;
-            })
-        );
-    };
-
-    const setTagMode = (aEvent: any, aValue: any) => {
-        setSelectedTag(
-            sSelectedTag.map((aItem) => {
-                return aItem.table === aValue.table && aItem.tagName === aValue.tagName ? { ...aItem, calculationMode: aEvent.target.value } : aItem;
-            })
-        );
-    };
-
-    const setPanels = async () => {
-        if (sSelectedTag.length === 0) {
-            Error('please select tag.');
-            return;
-        }
-        if (sSelectedTag.length > 12 - pPanelInfo.tag_set.length) {
-            Error('The maximum number of tags in a chart is 12.');
-            return;
-        }
-        const tagSet = convertTagChartType(sSelectedTag);
-
-        pSetCopyPanelInfo({ ...pPanelInfo, tag_set: concatTagSet(pPanelInfo.tag_set, tagSet) });
-        pCloseModal();
-    };
     const handleSearch = () => {
         if (sTagPagination > 1) {
             setTagPagination(1);
             setKeepPageNum(1);
         } else getTagList();
     };
+    
     const setTag = async (aValue: any) => {
-        if (sSelectedTag.length === 12 - pPanelInfo.tag_set.length) return;
-        setSelectedTag([
-            ...sSelectedTag,
-            {
-                key: getId(),
-                tagName: aValue,
-                table: sSelectedTable,
-                calculationMode: 'avg',
-                alias: '',
-                weight: 1.0,
-                colName: sColumns,
-            },
-        ]);
+        pCallback(aValue);
+        pCloseModal();
     };
+    
     const handlePaginationInput = (aEvent: any) => {
         setKeepPageNum(aEvent.target.value);
     };
+    
     const handleApplyPagenationInput = (aEvent: any) => {
         if (sKeepPageNum === sTagPagination) return;
         if (aEvent.keyCode === 13 || aEvent === 'outsideClick') {
@@ -141,32 +114,57 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
             setTagPagination(sKeepPageNum);
         }
     };
+    
     const setpagination = (aStatus: boolean) => {
         setSkipTagTotal(true);
         setTagPagination(aStatus ? sTagPagination + 1 : sTagPagination - 1);
         setKeepPageNum(aStatus ? sTagPagination + 1 : sTagPagination - 1);
     };
-    const changedTable = (aEvent: any) => {
-        setSelectedTable(aEvent.target.value);
-        setSearchText('');
-        setTagInputValue('');
-        setTagPagination(1);
-        setKeepPageNum(1);
-    };
+    
     const getMaxPageNum = useMemo(() => {
         return Math.ceil(sTagTotal / 10);
     }, [sTagTotal]);
 
-    useDebounce([sTagPagination, sSelectedTable], getTagList, 200);
+    useEffect(() => {
+        if (!pIsOpen || !sSelectedTable) return;
+        getTagList();
+    }, [pIsOpen, sSelectedTable]);
+
+    useEffect(() => {
+        if (!pIsOpen) return;
+
+        const sInitialTable = pTable || (sTables?.[0] ?? '');
+        if (sInitialTable === sSelectedTable) return;
+
+        setSelectedTable(sInitialTable);
+        setTagPagination(1);
+        setKeepPageNum(1);
+    }, [pIsOpen, pTable, sTables, sSelectedTable]);
+
+    useEffect(() => {
+        if (!pIsOpen) return;
+
+        if (pInitialTag) {
+            setTagInputValue(pInitialTag);
+            setSearchText(pInitialTag);
+        } else {
+            setTagInputValue('');
+            setSearchText('');
+        }
+    }, [pIsOpen, pInitialTag]);
+
+    useDebounce([sTagPagination, sSearchText], getTagList, 200);
     useOutsideClick(pageRef, () => handleApplyPagenationInput('outsideClick'));
 
+    if (!pIsOpen) return null;
+
     return (
-        <div className="modal-form-tag">
+        <div className="modal-form-tag-select">
             <div className="inner-form">
                 <div className="header">
                     <div className="header-title">
                         <BiSolidChart />
-                        New Tag
+                        Select Tag
                     </div>
                     <div className="header-close">
                         <Close onClick={pCloseModal} color="#f8f8f8" />
@@ -176,10 +174,15 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                     <div className="table-select">
                         <div className="title">Table</div>
                         <div className="combobox-select">
-                            <Select pIsFullWidth pInitValue={sTables[0]} pHeight={32} onChange={changedTable} pOptions={sTables} />
+                            <Input
+                                pValue={sSelectedTable}
+                                pWidth={175}
+                                pHeight={32}
+                                pIsDisabled
+                                onChange={() => {}}
+                            />
                         </div>
                     </div>
-                    {/* {!sRollupTable && <p>* The table is show because the roll-up table is not generated.</p>} */}
                     <div className="tag-select">
                         <div className="title">
                             <span>Tag</span>
@@ -198,19 +201,15 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                             <div className="select-tag-form">
                                 <div className="select-tag-wrap">
                                     <div className="select-tab">
-                                        {sTagList.map((aItem: string, aIdx: number) => {
+                                        {sTagList.map((aItem: string) => {
                                             return (
-                                                <button
-                                                    key={`${aItem[1]}-${aIdx}`}
-                                                    className={`tag-tooltip-${aIdx}`}
-                                                    onClick={() => setTag(aItem[1])}
-                                                    style={{ margin: '1px' }}
-                                                >
-                                                    <Tooltip anchorSelect={`.tag-tooltip-${aIdx}`} content={aItem[1]} />
+                                                <button key={aItem[1]} onClick={() => setTag(aItem[1])} style={{ margin: '1px' }}>
                                                     <div className="tag-text">{aItem[1]}</div>
                                                 </button>
                                             );
                                         })}
+
+                                        {sTagList.length <= 0 && <div className="tag-search-select-body-content-no">no-data</div>}
                                     </div>
                                     <div className="bottom-page">
                                         <div className="pagination">
@@ -261,47 +260,13 @@ const ModalCreateChart = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) =
                                         </div>
                                     </div>
                                 </div>
-                                <div className="select-tag-wrap">
-                                    <div className="select-tab">
-                                        {sSelectedTag.map((aItem: any, aIdx: number) => {
-                                            return (
-                                                <button
-                                                    onClick={() => {
-                                                        removeSelectedTag(aIdx);
-                                                    }}
-                                                    key={aItem.key}
-                                                >
-                                                    <Tooltip anchorSelect={`.tooltip-${aIdx}`} content={aItem.tagName} />
-                                                    <div className={`select-text tooltip-${aIdx}`}>{aItem.tagName}</div>
-                                                    <Select
-                                                        pWidth={70}
-                                                        pHeight={25}
-                                                        pInitValue="avg"
-                                                        onChange={(aEvent) => setTagMode(aEvent, aItem)}
-                                                        pOptions={avgMode.map((aItem) => aItem.value)}
-                                                    />
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                    <div className="bottom-page">
-                                        <div></div>
-                                        <div>
-                                            Select : {sSelectedTag.length} / {12 - pPanelInfo.tag_set.length}
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div className="footer">
-                    <TextButton pWidth={100} pHeight={34} pText="OK" pBackgroundColor="#4199ff" onClick={setPanels} />
-                    <TextButton pWidth={100} pHeight={34} pText="Cancel" pBackgroundColor="#666979" onClick={pCloseModal} />
                 </div>
             </div>
         </div>
     );
 };
 
-export default ModalCreateChart;
+export default TagSelectDialog;
