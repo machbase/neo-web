@@ -34,6 +34,7 @@ const DashboardView = () => {
     const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
     const [sChartVariableId, setChartVariableId] = useState<string>('');
     const variableRef = useRef<HTMLDivElement>(null);
+    const [sLayoutWidth, setLayoutWidth] = useState<number>(0);
 
     const getDshFile = async (aFileName: string | undefined) => {
         if (!aFileName) return;
@@ -158,6 +159,12 @@ const DashboardView = () => {
         setChartVariableId(getId());
     };
 
+    const updateLayoutWidth = () => {
+        if (sLayoutRef.current) {
+            setLayoutWidth(sLayoutRef.current.clientWidth);
+        }
+    };
+
     useEffect(() => {
         if (sBoardInformation && sBoardInformation.dashboard.timeRange && sBoardInformation.dashboard.timeRange.refresh !== 'Off')
             ctrBoardInterval(sBoardInformation.dashboard.timeRange);
@@ -192,6 +199,26 @@ const DashboardView = () => {
         if (!sIsLogin) localStorage.setItem('view', JSON.stringify({ path: '/view/' + sParams['*'] }));
         getDshFile(sParams['*']);
         GenChartVariableId();
+    }, []);
+
+    useEffect(() => {
+        updateLayoutWidth();
+        
+        let resizeTimeout: NodeJS.Timeout;
+        
+        const handleResize = () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                updateLayoutWidth();
+            }, 150);
+        };
+
+        window.addEventListener('resize', handleResize);
+        
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            clearTimeout(resizeTimeout);
+        };
     }, []);
 
     return sNotfound ? (
@@ -275,7 +302,7 @@ const DashboardView = () => {
                         cols={GRID_LAYOUT_COLS}
                         autoSize={true}
                         rowHeight={GRID_LAYOUT_ROW_HEIGHT}
-                        width={sLayoutRef.current?.clientWidth}
+                        width={sLayoutWidth}
                         isResizable={false}
                         isDraggable={false}
                     >
@@ -296,7 +323,7 @@ const DashboardView = () => {
                                         <Panel
                                             pBoardInfo={sBoardInformation}
                                             pPanelInfo={aItem}
-                                            pParentWidth={!sIsMobile && sLayoutRef?.current?.clientWidth ? sLayoutRef.current.clientWidth : aItem.w}
+                                            pParentWidth={!sIsMobile && sLayoutWidth ? sLayoutWidth : aItem.w}
                                             pChartVariableId={sChartVariableId}
                                             pIsHeader={false}
                                             pLoopMode={sBoardInformation?.dashboard.timeRange.refresh !== 'Off' || aItem?.timeRange?.refresh !== 'Off' ? true : false}
