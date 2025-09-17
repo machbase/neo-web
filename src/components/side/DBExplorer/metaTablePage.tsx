@@ -7,6 +7,8 @@ import { useSetRecoilState } from 'recoil';
 import useDebounce from '@/hooks/useDebounce';
 import { Success as ToastSuccess } from '@/components/toast/Toast';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { BiInfoCircle } from 'react-icons/bi';
+import { StatzTableModal } from './statzTableModal';
 
 type META_MOD_TYPE = 'INSERT' | 'UPDATE' | 'DELETE';
 const IGNORE_COL_LIST = ['_ID'];
@@ -34,15 +36,21 @@ export const MetaTablePage = ({
     const [sIsOpenConfirm, setIsOpenConfirm] = useState<boolean>(false);
     const [sDelInfo, setDelInfo] = useState<string>('');
     const sSearchIIFE = useRef(false);
+    const [sVirtualModal, setVirtualModal] = useState<{ state: boolean; filter: string; table: any; recordCnt: number }>({
+        state: false,
+        filter: '',
+        table: undefined,
+        recordCnt: 0,
+    });
 
     const mMetaColumnListWithoutID = useMemo(() => {
         if (sMetaTableInfo && sMetaTableInfo?.columns && sMetaTableInfo?.columns?.length > 0)
             return sMetaTableInfo.columns.filter((column: string) => !IGNORE_COL_LIST?.includes(column?.toString()?.toUpperCase()));
-        else [];
+        else return [];
     }, [sMetaTableInfo]);
     const mMetaColumnList = useMemo(() => {
         if (sMetaTableInfo && sMetaTableInfo?.columns && sMetaTableInfo?.columns?.length > 0) return sMetaTableInfo.columns;
-        else [];
+        else return [];
     }, [sMetaTableInfo]);
     const mMetaTableInfo = useMemo(() => {
         return sMetaTableInfo;
@@ -260,9 +268,8 @@ export const MetaTablePage = ({
     useEffect(() => {
         if (pIsActiveTab) {
             if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) {
-                // 첫 로드인지 테이블 변경인지 구분
                 const isFirstLoad = !sIsComponentLoad;
-                init(!isFirstLoad); // 첫 로드가 아닐 때만 페이지 리셋
+                init(!isFirstLoad);
             }
             if (!sIsComponentLoad) setIsComponentLoad(true);
         }
@@ -288,6 +295,14 @@ export const MetaTablePage = ({
     const handleFilterIIFESearch = () => {
         sSearchIIFE.current = true;
         debouncedFilterSearch();
+    };
+    const handleVirtualModal = (aFilter: string, aFlag: boolean) => {
+        if (!allowedV$()) return;
+        setVirtualModal({ state: true, filter: aFilter, table: pMTableInfo, recordCnt: aFlag ? sMetaTableCnt : 1 });
+    };
+    const allowedV$ = (): boolean => {
+        if (mTableInfo[E_TABLE_INFO.DB_ID] === -1) return true;
+        else return false;
     };
 
     useDebounce([sFilter], debouncedFilterSearch, 1000, sSearchIIFE?.current ?? false);
@@ -345,7 +360,22 @@ export const MetaTablePage = ({
                         <ExtensionTab.ContentBlock pHoverNone>
                             <ExtensionTab.DpRowBetween>
                                 <ExtensionTab.ContentDesc>count: {sMetaTableCnt?.toLocaleString() ?? 0}</ExtensionTab.ContentDesc>
-                                {sModUpdateInfo.isOpen ? <div /> : <ExtensionTab.TextButton pText="+ Insert" mr="0" pType="CREATE" pCallback={handleInsertBlock} />}
+                                {sModUpdateInfo.isOpen ? (
+                                    <div />
+                                ) : (
+                                    <ExtensionTab.DpRow>
+                                        {allowedV$() && (
+                                            <ExtensionTab.TextButton
+                                                pText={`\bInfo`}
+                                                mr="8px"
+                                                pType="STATUS"
+                                                pIcon={<BiInfoCircle />}
+                                                pCallback={() => handleVirtualModal(sFilter, true)}
+                                            />
+                                        )}
+                                        <ExtensionTab.TextButton pText="+ Insert" mr="0" pType="CREATE" pCallback={handleInsertBlock} />
+                                    </ExtensionTab.DpRow>
+                                )}
                             </ExtensionTab.DpRowBetween>
                             <ExtensionTab.Input
                                 pPlaceholder={'Search'}
@@ -360,10 +390,12 @@ export const MetaTablePage = ({
                     {sMetaTableInfo && sMetaTableInfo?.rows && sMetaTableInfo?.rows?.length > 0 ? (
                         <ExtensionTab.ScrollTable
                             pList={mMetaTableInfo}
+                            pReadOnly={!allowedV$()}
                             actionCallback={handleMoveTaz}
                             deleteCallback={handleDeleteMeta}
                             eocCallback={handleEndOfContent}
                             saveCallback={handleUpdateMeta}
+                            v$Callback={allowedV$() ? (i) => handleVirtualModal(i, false) : undefined}
                             hasMoreData={sHasMoreData}
                         />
                     ) : null}
@@ -381,6 +413,7 @@ export const MetaTablePage = ({
                     ) : null}
                 </>
             ) : null}
+            {sVirtualModal?.state ? <StatzTableModal pModalInfo={sVirtualModal} pSetModalInfo={setVirtualModal} /> : null}
         </div>
     );
 };

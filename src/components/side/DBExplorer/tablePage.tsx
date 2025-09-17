@@ -23,7 +23,7 @@ const BadgeSelectorItem = ({ item }: { item: { name: string; color: string } }) 
 export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab: boolean }) => {
     const [sLastFetchTime, setLastFetchTime] = useState<string>('');
     const [isVertical, setIsVertical] = useState<boolean>(true);
-    const [sRecordCnt, setRecordCnt] = useState<number>(0);
+    const [sRecordInfo, setRecordInfo] = useState<{ cnt: number; min: number; max: number }>({ cnt: 0, min: 0, max: 0 });
     const [sRefreshCnt, setRefreshCnt] = useState<number>(0);
     const [sGroupWidth, setGroupWidth] = useState<any[]>(['60%', '40%']);
     const [sIsHiddenCol, setIsHiddenCol] = useState<boolean>(true);
@@ -63,10 +63,18 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
     }, [sColumnInfo]);
 
     const FetchRecordCount = async () => {
-        const sQuery = `SELECT COUNT(*) FROM ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]}`;
+        let sSubCol = '';
+        if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) sSubCol = ', MIN(TIME) as MIN, MAX(TIME) as MAX';
+        if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.LOG) sSubCol = ', MIN(_ARRIVAL_TIME) as MIN, MAX(_ARRIVAL_TIME) as MAX';
+        const sQuery = `SELECT COUNT(*) as CNT ${sSubCol} FROM ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]}`;
         const { svrState, svrData } = await fetchQuery(sQuery);
-        if (svrState) setRecordCnt(svrData?.rows?.[0]?.[0] ?? 0);
-        else setRecordCnt(0);
+        if (svrState) {
+            setRecordInfo({
+                cnt: svrData?.rows?.[0]?.[svrData?.columns?.indexOf?.('CNT')] ?? 0,
+                min: svrData?.rows?.[0]?.[svrData?.columns?.indexOf?.('MIN')] ?? 0,
+                max: svrData?.rows?.[0]?.[svrData?.columns?.indexOf?.('MAX')] ?? 0,
+            });
+        } else setRecordInfo({ cnt: 0, min: 0, max: 0 });
     };
     const FetchColumn = async () => {
         const sQuery = `SELECT NAME, TYPE, LENGTH, FLAG as DESC FROM M$SYS_COLUMNS WHERE TABLE_ID=${mTableInfo[E_TABLE_INFO.TB_ID]} AND DATABASE_ID=${
@@ -181,7 +189,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
             svrData.rows.map((row: (string | number)[]) => {
                 const lastDeletedTime = row[svrData.columns.indexOf('LAST_DELETED_TIME')];
                 if (lastDeletedTime === null || lastDeletedTime === undefined || Number.isNaN(lastDeletedTime as number)) return row;
-                else return (row[svrData.columns.indexOf('LAST_DELETED_TIME')] = moment((lastDeletedTime as number) / 1000000).format('YYYY-MM-DD hh:mm:ss'));
+                else return (row[svrData.columns.indexOf('LAST_DELETED_TIME')] = moment((lastDeletedTime as number) / 1000000).format('YYYY-MM-DD HH:mm:ss'));
             });
             setRetentionInfo(svrData);
         } else setRetentionInfo(undefined);
@@ -200,7 +208,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
 
     const SetLastFetchTime = () => {
         const sCurTime = new Date();
-        setLastFetchTime(moment(sCurTime).format('YYYY-MM-DD hh:mm:ss'));
+        setLastFetchTime(moment(sCurTime).format('YYYY-MM-DD HH:mm:ss'));
     };
     const handleRollupState = (e: any, item: (string | number)[]) => {
         e.stopPropagation();
@@ -232,7 +240,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                     setTagIndexGap(undefined);
                 }
             } else {
-                setRecordCnt(0);
+                setRecordInfo({ cnt: 0, min: 0, max: 0 });
                 setColumnInfo(undefined);
                 setIndexInfo(undefined);
                 setRollupInfo(undefined);
@@ -270,17 +278,30 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                     <ExtensionTab.ContentDesc>{`(${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]})`}</ExtensionTab.ContentDesc>
                                     <div style={{ color: '#1c1c21' }}>TABLE ID: {mTableInfo[E_TABLE_INFO.TB_ID]}</div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <ExtensionTab.ContentDesc>Record: {sRecordCnt.toLocaleString() ?? '0'}</ExtensionTab.ContentDesc>
-                                    <IconButton
-                                        pWidth={20}
-                                        pHeight={20}
-                                        pIsToopTip
-                                        pToolTipId="db-exp-table-refresh-time"
-                                        pToolTipContent={`last fetch: ${sLastFetchTime}`}
-                                        pIcon={<Refresh size={13} />}
-                                        onClick={() => setRefreshCnt(sRefreshCnt + 1)}
-                                    />
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end' }}>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <ExtensionTab.ContentDesc>Record: {sRecordInfo?.cnt?.toLocaleString() ?? '0'}</ExtensionTab.ContentDesc>
+                                        <IconButton
+                                            pWidth={20}
+                                            pHeight={20}
+                                            pIsToopTip
+                                            pToolTipId="db-exp-table-refresh-time"
+                                            pToolTipContent={`last fetch: ${sLastFetchTime}`}
+                                            pIcon={<Refresh size={13} />}
+                                            onClick={() => setRefreshCnt(sRefreshCnt + 1)}
+                                        />
+                                    </div>
+                                    {CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG ||
+                                    CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.LOG ? (
+                                        <ExtensionTab.DpRowBetween>
+                                            <div />
+                                            <ExtensionTab.ContentDesc>
+                                                {sRecordInfo?.min > 0 ? moment((sRecordInfo?.min as number) / 1000000).format('YYYY-MM-DD HH:mm:ss') : 'N/A'}
+                                                {' ~ '}
+                                                {sRecordInfo?.max > 0 ? moment((sRecordInfo?.max as number) / 1000000).format('YYYY-MM-DD HH:mm:ss') : 'N/A'}
+                                            </ExtensionTab.ContentDesc>
+                                        </ExtensionTab.DpRowBetween>
+                                    ) : null}
                                 </div>
                             </ExtensionTab.DpRowBetween>
                         </ExtensionTab.ContentBlock>
