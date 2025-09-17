@@ -83,12 +83,7 @@ request.interceptors.request.use(
         }
 
         // Only treat as file GET when path does not denote a directory (no trailing slash)
-        if (
-            sFileOption !== -1 &&
-            (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1 || sFileDsh !== -1 || sFileWrk !== -1) &&
-            config.method === 'get' &&
-            !endsWithSlash
-        ) {
+        if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1 || sFileDsh !== -1 || sFileWrk !== -1) && config.method === 'get' && !endsWithSlash) {
             config.transformResponse = function (data: any) {
                 return data;
             };
