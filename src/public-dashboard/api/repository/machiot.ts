@@ -12,7 +12,7 @@ const getTableName = (targetTxt: string) => {
     else return targetTxt;
 };
 
-const executeQuery = async (query: string) => {
+export const executeQuery = async (query: string) => {
     try {
         const currentServerUrl = `${window.location.protocol}//${window.location.hostname}:5654`;
         const response = await fetch(`${currentServerUrl}/db/query?q=${encodeURIComponent(query)}`, {

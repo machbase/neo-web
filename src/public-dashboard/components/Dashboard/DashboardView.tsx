@@ -12,7 +12,7 @@ import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '../../utils/constants'
 import { getId, isMobile } from '../../utils';
 import ViewTimeRangeModal from '../../components/modal/ViewTimeRangeModal';
 import { timeMinMaxConverter } from '../../utils/bgnEndTimeRange';
-import { fetchMountTimeMinMax, fetchTimeMinMax } from '../../api/repository/machiot';
+import { executeQuery, fetchMountTimeMinMax, fetchTimeMinMax } from '../../api/repository/machiot';
 import { CheckDataCompatibility } from '../../utils/CheckDataCompatibility';
 import { VariableHeader } from '../variable/VariableHeader';
 import { VARIABLE_TYPE } from '../variable';
@@ -35,6 +35,7 @@ const DashboardView = () => {
     const [sChartVariableId, setChartVariableId] = useState<string>('');
     const variableRef = useRef<HTMLDivElement>(null);
     const [sLayoutWidth, setLayoutWidth] = useState<number>(0);
+    const [sShouldShowFooter, setShouldShowFooter] = useState<boolean>(false);
 
     const getDshFile = async (aFileName: string | undefined) => {
         if (!aFileName) return;
@@ -193,6 +194,62 @@ const DashboardView = () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [sVariableCollapse]);
+
+    useEffect(() => {
+        let isActive = true;
+
+        const fetchLicenseInfo = async () => {
+            const sQuery = 'select * from v$LICENSE_INFO';
+            try {
+                const sResult: any = await executeQuery(sQuery);
+
+                if (!isActive) return;
+
+                if (!sResult || sResult?.success === false) {
+                    setShouldShowFooter(false);
+                    if (sResult?.status && sResult?.data?.reason)
+                        console.error('Failed to fetch license info for footer visibility:', sResult.data.reason);
+                    return;
+                }
+
+                const sColumns = sResult?.data?.columns;
+                const sRows = sResult?.data?.rows;
+
+                if (!Array.isArray(sColumns) || !Array.isArray(sRows) || sRows.length === 0) {
+                    setShouldShowFooter(false);
+                    return;
+                }
+
+                const sFirstRow = sRows[0];
+                const sInfo = sColumns.reduce((acc: Record<string, any>, column: any, index: number) => {
+                    const key = typeof column === 'string' ? column.toLowerCase() : `col_${index}`;
+                    acc[key] = sFirstRow[index];
+                    return acc;
+                }, {} as Record<string, any>);
+
+                const sRawType = sInfo['type'];
+                const sType = (sRawType ?? '').toString().toUpperCase();
+                const sRawViol = sInfo['violate_status'];
+
+                const sViolNumber =
+                    sRawViol !== undefined && sRawViol !== null && sRawViol !== '' ? Number(sRawViol) : 0;
+                const sHasViolation = Number.isNaN(sViolNumber)
+                    ? sRawViol !== 0 && sRawViol !== '0'
+                    : sViolNumber !== 0;
+
+                setShouldShowFooter(sType === 'COMMUNITY' || sHasViolation);
+            } catch (error) {
+                if (isActive) setShouldShowFooter(false);
+                console.error('Failed to fetch license info for footer visibility:', error);
+            }
+        };
+
+        fetchLicenseInfo();
+
+        return () => {
+            isActive = false;
+        };
+    }, []);
 
     useEffect(() => {
         const sIsLogin = localStorage.getItem('accessToken');
@@ -373,7 +430,7 @@ const DashboardView = () => {
                     pSaveCallback={handleDashboardTimeRange}
                 />
             )}
-            <Footer />
+            {sShouldShowFooter && <Footer />}
         </>
     );
 };
