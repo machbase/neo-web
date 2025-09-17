@@ -26,17 +26,20 @@ export const ShareButton = () => {
         }
     };
 
+    const createEmbedCode = (url: string) =>
+        `<html><body style="margin:0px"><embed width="100%" height="100%" src="${url}"></body></html>`;
+
     const handleCopyEmbedCode = async () => {
         try {
             const currentUrl = window.location.href;
-            const embedCode = `<html><embed src="${currentUrl}"></html>`;
+            const embedCode = createEmbedCode(currentUrl);
             await navigator.clipboard.writeText(embedCode);
             Success('Embed code copied to clipboard');
             setIsMenuOpen(false);
         } catch (error) {
             console.error('Failed to copy embed code:', error);
             const currentUrl = window.location.href;
-            const embedCode = `<html><embed src="${currentUrl}"></html>`;
+            const embedCode = createEmbedCode(currentUrl);
             fallbackCopyToClipboard(embedCode);
         }
     };
@@ -53,7 +56,7 @@ export const ShareButton = () => {
         
         try {
             document.execCommand('copy');
-            const isEmbedCode = text.includes('<html><embed');
+            const isEmbedCode = text.includes('<html><body');
             Success(isEmbedCode ? 'Embed code copied to clipboard' : 'Public link copied to clipboard');
             setIsMenuOpen(false);
         } catch (error) {
