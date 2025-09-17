@@ -14,6 +14,8 @@ import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Loader } from '@/components/loader';
 import { GiCancel } from 'react-icons/gi';
 import useEsc from '@/hooks/useEsc';
+import { MuiTagAnalyzer } from '@/assets/icons/Mui';
+import { BiEdit, BiInfoCircle } from 'react-icons/bi';
 
 export const ExtensionTab = ({ children, pRef }: { children: React.ReactNode; pRef?: React.MutableRefObject<any> }) => {
     return (
@@ -127,7 +129,7 @@ const TextButton = ({
             onClick={handleCallback}
             onMouseOut={onMouseOut}
         >
-            {pLoad ? <Loader width="12px" height="12px" /> : pIcon && pIcon}
+            {pLoad ? <Loader width="12px" height="12px" /> : pIcon ? pIcon : null}
             <span>{pText}</span>
         </button>
     );
@@ -573,18 +575,22 @@ const Table = ({
 const ScrollTable = React.memo(
     ({
         pList,
+        pReadOnly = true,
         eocCallback,
         hasMoreData = true,
         actionCallback = undefined,
         deleteCallback = undefined,
         saveCallback = undefined,
+        v$Callback = undefined,
     }: {
         pList: any;
+        pReadOnly: boolean;
         eocCallback: () => void;
         hasMoreData?: boolean;
         actionCallback?: (item: string[]) => void | undefined;
         deleteCallback?: (item: string[]) => void | undefined;
         saveCallback?: (item: { modBeforeInfo: { row: (string | number)[]; rowIdx: number }; modAfterInfo: { row: (string | number)[]; rowIdx: number } }) => void | undefined;
+        v$Callback?: (item: string) => void;
     }) => {
         const tableRef = useRef<any>(null);
         const sObserveRef = useRef<any>(null);
@@ -598,19 +604,22 @@ const ScrollTable = React.memo(
             if (Number(idx) % 2 !== 0) result.push('dark-odd');
             return result?.join(' ');
         };
-        const handleCallback = (e: React.MouseEvent | React.KeyboardEvent, item: string[], key: 'DELETE' | 'SAVE' | 'CANCEL' | 'TAZ') => {
+        const handleCallback = (e: React.MouseEvent | React.KeyboardEvent, item: string[], key: 'EDIT' | 'DELETE' | 'SAVE' | 'CANCEL' | 'TAZ' | 'V$', idx?: number) => {
             if (e.type === 'keydown') {
                 if ((e as React.KeyboardEvent).keyCode !== 13) return;
                 else e.stopPropagation();
             }
             if (e.type === 'click') e.stopPropagation();
 
-            if (key === 'CANCEL') setModInfo({ modBeforeInfo: { row: undefined, rowIdx: undefined }, modAfterInfo: { row: undefined, rowIdx: undefined } });
-            if (key === 'SAVE') saveCallback && saveCallback(sModInfo);
             if (key === 'TAZ') actionCallback && actionCallback(item);
-            if (key === 'DELETE') deleteCallback && deleteCallback(item);
+            if (key === 'V$' && !pReadOnly) v$Callback && v$Callback(item[1]);
+            if (key === 'EDIT' && !pReadOnly) setModInfo({ modBeforeInfo: { row: item, rowIdx: idx }, modAfterInfo: { row: item, rowIdx: idx } });
+            if (key === 'CANCEL' && !pReadOnly) setModInfo({ modBeforeInfo: { row: undefined, rowIdx: undefined }, modAfterInfo: { row: undefined, rowIdx: undefined } });
+            if (key === 'SAVE' && !pReadOnly) saveCallback && saveCallback(sModInfo);
+            if (key === 'DELETE' && !pReadOnly) deleteCallback && deleteCallback(item);
         };
         const handleMod = (e: React.MouseEvent | React.KeyboardEvent, aRow: string[], aRowIdx: number) => {
+            if (pReadOnly) return;
             if (e.type === 'keydown') {
                 if ((e as React.KeyboardEvent).keyCode !== 13) return;
                 else {
@@ -696,8 +705,14 @@ const ScrollTable = React.memo(
                                         </th>
                                     );
                                 })}
-                                {actionCallback && <th className="extension-tab-scroll-table-header-action" style={{ cursor: 'default' }} />}
-                                {deleteCallback && <th className="extension-tab-scroll-table-header-action" style={{ cursor: 'default' }} />}
+                                {actionCallback && (
+                                    <>
+                                        {!pReadOnly && <th className="extension-tab-scroll-table-header-action" style={{ cursor: 'default' }} />}
+                                        <th className="extension-tab-scroll-table-header-action" style={{ cursor: 'default' }} />
+                                    </>
+                                )}
+                                {v$Callback && !pReadOnly && <th className="extension-tab-scroll-table-header-action" style={{ cursor: 'default' }} />}
+                                {deleteCallback && !pReadOnly && <th className="extension-tab-scroll-table-header-action" style={{ cursor: 'default' }} />}
                             </tr>
                         ) : (
                             <></>
@@ -736,22 +751,42 @@ const ScrollTable = React.memo(
                                         })}
                                         {actionCallback &&
                                             (sModInfo.modBeforeInfo.rowIdx === aIdx ? (
-                                                <td
-                                                    className="result-scroll-table-item action"
-                                                    tabIndex={0}
-                                                    onClick={(e) => handleCallback(e, aRowList, 'SAVE')}
-                                                    onKeyDown={(e) => handleCallback(e, aRowList, 'SAVE')}
-                                                >
-                                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                                        <Save />
-                                                    </div>
-                                                </td>
+                                                <>
+                                                    <td className="result-scroll-table-item" />
+                                                    {v$Callback && <td className="result-scroll-table-item" />}
+                                                    <td
+                                                        className="result-scroll-table-item action"
+                                                        tabIndex={0}
+                                                        onClick={(e) => handleCallback(e, aRowList, 'SAVE')}
+                                                        onKeyDown={(e) => handleCallback(e, aRowList, 'SAVE')}
+                                                    >
+                                                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                            <Save />
+                                                        </div>
+                                                    </td>
+                                                </>
                                             ) : (
-                                                <td className="result-scroll-table-item action" onClick={(e) => handleCallback(e, aRowList, 'TAZ')}>
-                                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                                        <Play />
-                                                    </div>
-                                                </td>
+                                                <>
+                                                    {v$Callback && !pReadOnly && (
+                                                        <td className="result-scroll-table-item action" onClick={(e) => handleCallback(e, aRowList, 'V$')}>
+                                                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                                <BiInfoCircle width={16} height={16} />
+                                                            </div>
+                                                        </td>
+                                                    )}
+                                                    <td className="result-scroll-table-item action" onClick={(e) => handleCallback(e, aRowList, 'TAZ')}>
+                                                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                            <MuiTagAnalyzer width={16} height={16} />
+                                                        </div>
+                                                    </td>
+                                                    {!pReadOnly && (
+                                                        <td className="result-scroll-table-item action" onClick={(e) => handleCallback(e, aRowList, 'EDIT', aIdx)}>
+                                                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                                <BiEdit width={16} height={16} />
+                                                            </div>
+                                                        </td>
+                                                    )}
+                                                </>
                                             ))}
                                         {deleteCallback &&
                                             (sModInfo.modBeforeInfo.rowIdx === aIdx ? (
@@ -762,15 +797,17 @@ const ScrollTable = React.memo(
                                                     onKeyDown={(e) => handleCallback(e, aRowList, 'CANCEL')}
                                                 >
                                                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                                        <GiCancel />
+                                                        <GiCancel width={16} height={16} />
                                                     </div>
                                                 </td>
                                             ) : (
-                                                <td className="result-scroll-table-item delete" onClick={(e) => handleCallback(e, aRowList, 'DELETE')}>
-                                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                                        <MdDelete />
-                                                    </div>
-                                                </td>
+                                                !pReadOnly && (
+                                                    <td className="result-scroll-table-item delete" onClick={(e) => handleCallback(e, aRowList, 'DELETE')}>
+                                                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                            <MdDelete width={16} height={16} />
+                                                        </div>
+                                                    </td>
+                                                )
                                             ))}
                                     </tr>
                                 );
