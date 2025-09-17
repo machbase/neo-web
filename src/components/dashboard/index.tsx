@@ -45,6 +45,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const [sVariableModal, setVariableModal] = useState<boolean>(false);
     const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
     const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
+    const variableRef = useRef<HTMLDivElement>(null);
 
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
@@ -210,6 +211,29 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         initDashboard();
     }, []);
 
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (!sVariableCollapse) return;
+            const target = event.target as Element;
+            if (!target) return;
+            // Ignore clicks inside variable header area
+            if (variableRef.current && variableRef.current.contains(target)) return;
+            // Ignore clicks on variable related buttons
+            const variableButton = target.closest('[data-tooltip-id="variables-show-btn"]');
+            const variablePreview = target.closest('.board-header-variable-collapse');
+            const variablePreviewArea = target.closest('[class*="variable-preview"]');
+            if (variableButton || variablePreview || variablePreviewArea) return;
+            // Close variable panel for all other cases
+            setVariableCollapse(false);
+        };
+        if (sVariableCollapse) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [sVariableCollapse]);
+
     const handleSplitPaneSize = (varId: string = 'ALL') => {
         setSelectVariable(varId);
         if (varId !== sSelectVariable && sVariableCollapse) return;
@@ -367,7 +391,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                     </div>
                 )}
                 {sVariableCollapse && (
-                    <div className="variable-header-warp">
+                    <div ref={variableRef} className="variable-header-warp">
                         <div className="variable-header-close">
                             <IconButton
                                 pIsToopTip
@@ -376,7 +400,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                 pWidth={20}
                                 pHeight={20}
                                 pIcon={<IoClose />}
-                                onClick={() => handleSplitPaneSize()}
+                                onClick={() => setVariableCollapse(false)}
                             />
                         </div>
                         <VariableHeader pBoardInfo={pInfo} callback={initDashboard} pSelectVariable={sSelectVariable} />
