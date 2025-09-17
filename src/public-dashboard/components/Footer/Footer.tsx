@@ -9,7 +9,9 @@ const Footer = () => {
                     <img src={favicon} alt="Machbase Neo" />
                 </span>
                 <span className="footer-text">
-                    Powered by Machbase Neo - Global No.1 Performance & All-in-One Time-Series DBMS
+                    <a className="footer-link" href="https://neo.machbase.com" target="_blank" rel="noopener noreferrer">
+                        Powered by Machbase Neo - Global No.1 Performance & All-in-One Time-Series DBMS
+                    </a>
                 </span>
             </div>
         </div>

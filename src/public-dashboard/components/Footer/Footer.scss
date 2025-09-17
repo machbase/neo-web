@@ -4,13 +4,12 @@
     left: 0;
     right: 0;
     height: 40px;
-    background-color: transparent;
+    background-color: #262831;
     display: flex;
     align-items: center;
     justify-content: flex-start;
     z-index: 1000;
     padding: 8px 1.5rem;
-    
     .footer-content {
         display: flex;
         align-items: center;
@@ -18,7 +17,6 @@
         color: #f8f8f8;
         font-size: 14px;
         font-weight: 500;
-        
         .footer-icon {
             display: flex;
             align-items: center;
@@ -34,6 +32,20 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            
+            .footer-link {
+                color: #f8f8f8 !important;
+                text-decoration: none !important;
+                cursor: pointer;
+
+                &:hover,
+                &:focus,
+                &:active,
+                &:visited {
+                    text-decoration: none !important;
+                    color: #f8f8f8 !important;
+                }
+            }
         }
     }
     
