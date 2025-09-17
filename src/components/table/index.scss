@@ -20,10 +20,9 @@
 
         tr {
             th {
-                max-width: 300px;
                 font-weight: bold;
                 padding: 0 16px;
-                max-width: 20vw;
+                max-width: 100vw;
                 height: 25px;
                 text-align: start;
                 vertical-align: center !important;
@@ -49,7 +48,7 @@
                 text-overflow: ellipsis;
                 font-size: 14px;
                 white-space: nowrap;
-                max-width: 20vw;
+                max-width: 100vw;
                 font-weight: 300;
                 vertical-align: center !important;
                 padding: 0 16px;
