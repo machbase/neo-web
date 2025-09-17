@@ -31,6 +31,7 @@ const DashboardView = () => {
     const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
     const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
     const [sChartVariableId, setChartVariableId] = useState<string>('');
+    const variableRef = useRef<HTMLDivElement>(null);
 
     const getDshFile = async (aFileName: string | undefined) => {
         if (!aFileName) return;
@@ -162,6 +163,29 @@ const DashboardView = () => {
     }, [sBoardInformation]);
 
     useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (!sVariableCollapse) return;
+            const target = event.target as Element;
+            if (!target) return;
+            // Ignore clicks inside variable header area
+            if (variableRef.current && variableRef.current.contains(target)) return;
+            // Ignore clicks on variable related buttons
+            const variableButton = target.closest('[data-tooltip-id="variables-show-btn"]');
+            const variablePreview = target.closest('.board-header-variable-collapse');
+            const variablePreviewArea = target.closest('[class*="variable-preview"]');
+            if (variableButton || variablePreview || variablePreviewArea) return;
+            // Close variable panel for all other cases
+            setVariableCollapse(false);
+        };
+        if (sVariableCollapse) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [sVariableCollapse]);
+
+    useEffect(() => {
         const sIsLogin = localStorage.getItem('accessToken');
         if (!sIsLogin) localStorage.setItem('view', JSON.stringify({ path: '/view/' + sParams['*'] }));
         getDshFile(sParams['*']);
@@ -284,7 +308,7 @@ const DashboardView = () => {
                 {/* </Pane>
                 </SplitPane> */}
                 {sVariableCollapse && (
-                    <div className="variable-header-warp">
+                    <div ref={variableRef} className="variable-header-warp">
                         <div className="variable-header-close">
                             <IconButton
                                 pIsToopTip
@@ -293,7 +317,7 @@ const DashboardView = () => {
                                 pWidth={20}
                                 pHeight={20}
                                 pIcon={<IoClose />}
-                                onClick={() => handleSplitPaneSize()}
+                                onClick={() => setVariableCollapse(false)}
                             />
                         </div>
                         <VariableHeader pBoardInfo={sBoardInformation} callback={handleUpdateVariable} pSelectVariable={sSelectVariable} />

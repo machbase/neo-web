@@ -36,6 +36,10 @@ export const BadgeSelect = ({ pSelectedList, pList, pCallback }: BadgeSelectorIt
     const handleOutSideClick = useCallback(() => {
         setIsOpen(false);
     }, []);
+    const handleClick = (aItem: BadgeSelectorItemType) => {
+        pCallback(aItem);
+        setIsOpen(false);
+    };
 
     useOutsideClick(SelectorRef, () => sIsOpen && handleOutSideClick());
 
@@ -60,7 +64,7 @@ export const BadgeSelect = ({ pSelectedList, pList, pCallback }: BadgeSelectorIt
                                     className={`badge-select-tooltip-${aIdx + ''} badge-selector-list-box-item${
                                         pSelectedList?.includes(aItem.idx) ? ' badge-selector-active-item' : ''
                                     }`}
-                                    onClick={() => pCallback(aItem)}
+                                    onClick={() => handleClick(aItem)}
                                     style={{ boxShadow: `inset 4px 0 0 0 ${aItem.color}` }}
                                 >
                                     {aItem.label ? (
