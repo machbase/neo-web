@@ -383,11 +383,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     };
     const SqlResult = () => {
         return sSql ? (
-            <>
-                <div className="result-worksheet">
-                    <div className="result-worksheet-sql" dangerouslySetInnerHTML={{ __html: sSql }}></div>
-                </div>
-            </>
+            <div className="result-worksheet">
+                <div className="result-worksheet-sql" dangerouslySetInnerHTML={{ __html: sSql }} />
+            </div>
         ) : (
             <div className="result-worksheet-total">
                 <span>{sSqlReason}</span>
