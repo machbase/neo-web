@@ -17,7 +17,7 @@ export const executeQuery = async (query: string) => {
         const response = await fetch(`/db/query?q=${encodeURIComponent(query)}`, {
             method: 'GET',
             headers: {
-                'Accept': 'application/json'
+                Accept: 'application/json',
             },
         });
 
@@ -28,7 +28,7 @@ export const executeQuery = async (query: string) => {
             return {
                 data: { reason: `Query failed: ${response.statusText}` },
                 status: response.status,
-                success: false
+                success: false,
             };
         }
     } catch (error) {
@@ -36,7 +36,7 @@ export const executeQuery = async (query: string) => {
         return {
             data: { reason: `Network error: ${error}` },
             status: 500,
-            success: false
+            success: false,
         };
     }
 };
@@ -47,25 +47,25 @@ const getTqlChart = async (aData: string, _aType?: 'dsh') => {
             method: 'POST',
             headers: {
                 'X-Tql-Output': 'json',
-                'Accept': 'application/json'
+                Accept: 'application/json',
             },
             body: aData,
         });
 
         if (response.ok) {
             const result = await response.json();
-            return { 
-                data: result, 
-                success: true, 
+            return {
+                data: result,
+                success: true,
                 status: response.status,
-                headers: Object.fromEntries(response.headers.entries())
+                headers: Object.fromEntries(response.headers.entries()),
             };
         } else {
-            return { 
-                data: `Request failed: ${response.statusText}`, 
+            return {
+                data: `Request failed: ${response.statusText}`,
                 success: false,
                 status: response.status,
-                headers: Object.fromEntries(response.headers.entries())
+                headers: Object.fromEntries(response.headers.entries()),
             };
         }
     } catch (error) {
@@ -79,35 +79,35 @@ export const getTqlScripts = async (aFullPath: string) => {
         const sTargetPath = aFullPath.split('/').filter((aPath: string) => aPath !== '');
         const response = await fetch(`/db/tql/${sTargetPath.join('/')}`, {
             method: 'GET',
-            headers: { 
+            headers: {
                 'X-Tql-Output': 'json',
-                'Accept': 'application/json'
+                Accept: 'application/json',
             },
         });
 
         if (response.ok) {
             const result = await response.json();
-            return { 
-                data: result, 
-                success: true, 
+            return {
+                data: result,
+                success: true,
                 status: response.status,
-                headers: Object.fromEntries(response.headers.entries())
+                headers: Object.fromEntries(response.headers.entries()),
             };
         } else {
-            return { 
-                data: `Request failed: ${response.statusText}`, 
+            return {
+                data: `Request failed: ${response.statusText}`,
                 success: false,
                 status: response.status,
-                headers: Object.fromEntries(response.headers.entries())
+                headers: Object.fromEntries(response.headers.entries()),
             };
         }
     } catch (error) {
         console.error('getTqlScripts error:', error);
-        return { 
-            data: `Network error: ${error}`, 
+        return {
+            data: `Network error: ${error}`,
             success: false,
             status: 500,
-            headers: {}
+            headers: {},
         };
     }
 };
@@ -115,7 +115,7 @@ export const getTqlScripts = async (aFullPath: string) => {
 export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
     const sTime = aTargetInfo.tableInfo[1][0];
     const sQuery = `select min(${sTime}), max(${sTime}) from ${aTargetInfo.table}`;
-    
+
     const sData = await executeQuery(sQuery);
 
     if (sData.status >= 400) {
@@ -557,7 +557,18 @@ const fetchOnRollupTable = async (table: string) => {
 const getRollupTableList = async () => {
     const sData = await request({
         method: 'GET',
-        url: `/api/query?q=select u.name as user_name, root_table, interval_time, column_name, ext_type from v$rollup as v, m$sys_users as u where v.user_id = u.user_id group by root_table, interval_time, user_name, column_name, ext_type order by user_name, root_table asc, interval_time desc`,
+        url: `/api/query?q=select user_name, dbname || '.' || root_table as root_table, interval_time, column_name, ext_type  
+from (select case when v.database_id=-1 then 'MACHBASEDB' end as dbname, u.name as user_name, root_table, interval_time, column_name, ext_type  
+from v$rollup as v, m$sys_users as u  
+where v.user_id = u.user_id and v.database_id = -1 
+group by dbname, root_table, interval_time, user_name, column_name, ext_type 
+order by dbname, user_name, root_table asc, interval_time desc 
+union all 
+select m.MOUNTDB as dbname, u.name as user_name, root_table, interval_time, column_name, ext_type 
+from v$rollup as v, m$sys_users as u, V$STORAGE_MOUNT_DATABASES m 
+where v.database_id > -1 and v.user_id = u.user_id and v.database_id = m.BACKUP_TBSID 
+group by dbname, root_table, interval_time, user_name, column_name, ext_type 
+order by dbname, user_name, root_table asc, interval_time desc)`,
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
