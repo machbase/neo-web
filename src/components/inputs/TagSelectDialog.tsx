@@ -9,6 +9,7 @@ import { Input } from '@/components/inputs/Input';
 import { MdKeyboardDoubleArrowLeft, MdOutlineKeyboardDoubleArrowRight } from 'react-icons/md';
 import useDebounce from '@/hooks/useDebounce';
 import useOutsideClick from '@/hooks/useOutsideClick';
+import useEsc from '@/hooks/useEsc';
 import { Tooltip } from 'react-tooltip';
 
 interface TagSelectDialogProps {
@@ -31,7 +32,9 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
     const [sTagTotal, setTagTotal] = useState<number>(0);
     const [sSkipTagTotal, setSkipTagTotal] = useState<boolean>(false);
     const [sColumns, setColumns] = useState<any>();
+    const [sIsStartInner, setIsStartInner] = useState<any>(null);
     const pageRef = useRef(null);
+    const modalRef = useRef<HTMLDivElement>(null);
 
     const getTableInfo = async () => {
         const sFetchTableInfo: any = await fetchTableName(sSelectedTable);
@@ -153,67 +156,91 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
         }
     }, [pIsOpen, pInitialTag]);
 
+    // ESC key handler
+    useEsc(() => pCloseModal());
+
+    // Outside click handler for modal
+    useEffect(() => {
+        const handleInner = (event: MouseEvent) => {
+            if (modalRef.current) {
+                setIsStartInner(modalRef.current.contains(event.target as Node));
+            }
+        };
+
+        document.addEventListener('mousedown', handleInner);
+        return () => {
+            document.removeEventListener('mousedown', handleInner);
+        };
+    }, []);
+
+    const handleOverlayClick = (aEvent: React.MouseEvent<HTMLDivElement>) => {
+        if (modalRef.current && !modalRef.current.contains(aEvent.target as Node) && !sIsStartInner) {
+            pCloseModal();
+        }
+    };
+
     useDebounce([sTagPagination, sSearchText], getTagList, 200);
     useOutsideClick(pageRef, () => handleApplyPagenationInput('outsideClick'));
 
     if (!pIsOpen) return null;
 
     return (
-        <div className="modal-form-tag-select">
-            <div className="inner-form">
-                <div className="header">
-                    <div className="header-title">
-                        <BiSolidChart />
-                        Select Tag
-                    </div>
-                    <div className="header-close">
-                        <Close onClick={pCloseModal} color="#f8f8f8" />
-                    </div>
-                </div>
-                <div className="body">
-                    <div className="table-select">
-                        <div className="title">Table</div>
-                        <div className="combobox-select">
-                            <Input
-                                pValue={sSelectedTable}
-                                pWidth={175}
-                                pHeight={32}
-                                pIsDisabled
-                                onChange={() => {}}
-                            />
+        <div className="modal-overlay-tag-select" onClick={handleOverlayClick}>
+            <div ref={modalRef} className="modal-form-tag-select">
+                <div className="inner-form">
+                    <div className="header">
+                        <div className="header-title">
+                            <BiSolidChart />
+                            Select Tag
+                        </div>
+                        <div className="header-close">
+                            <Close onClick={pCloseModal} color="#f8f8f8" />
                         </div>
                     </div>
-                    <div className="tag-select">
-                        <div className="title">
-                            <span>Tag</span>
-                            <Tooltip anchorSelect={`.tooltip-tag-meta`} content={sTagTotal + ''} />
-                            <span className={`select-text tooltip-tag-meta`}>({sTagTotal})</span>
-                        </div>
-                        <div className="tag-form">
-                            <div className="filter-form-tag">
-                                <div className="tag-input-form">
-                                    <Input pValue={sTagInputValue} pSetValue={setTagInputValue} pIsFullWidth pHeight={36} onChange={filterTag} onEnter={handleSearch} />
-                                    <button className="search" onClick={handleSearch}>
-                                        <Search size={18} />
-                                    </button>
-                                </div>
+                    <div className="body">
+                        <div className="table-select">
+                            <div className="title">Table</div>
+                            <div className="combobox-select">
+                                <Input
+                                    pValue={sSelectedTable}
+                                    pWidth={175}
+                                    pHeight={32}
+                                    pIsDisabled
+                                    onChange={() => {}}
+                                />
                             </div>
-                            <div className="select-tag-form">
-                                <div className="select-tag-wrap">
-                                    <div className="select-tab">
-                                        {sTagList.map((aItem: string) => {
-                                            return (
-                                                <button key={aItem[1]} onClick={() => setTag(aItem[1])} style={{ margin: '1px' }}>
-                                                    <div className="tag-text">{aItem[1]}</div>
-                                                </button>
-                                            );
-                                        })}
-
-                                        {sTagList.length <= 0 && <div className="tag-search-select-body-content-no">no-data</div>}
+                        </div>
+                        <div className="tag-select">
+                            <div className="title">
+                                <span>Tag</span>
+                                <Tooltip anchorSelect={`.tooltip-tag-meta`} content={sTagTotal + ''} />
+                                <span className={`select-text tooltip-tag-meta`}>({sTagTotal})</span>
+                            </div>
+                            <div className="tag-form">
+                                <div className="filter-form-tag">
+                                    <div className="tag-input-form">
+                                        <Input pValue={sTagInputValue} pSetValue={setTagInputValue} pIsFullWidth pHeight={36} onChange={filterTag} onEnter={handleSearch} />
+                                        <button className="search" onClick={handleSearch}>
+                                            <Search size={18} />
+                                        </button>
                                     </div>
-                                    <div className="bottom-page">
-                                        <div className="pagination">
-                                            <button
+                                </div>
+                                <div className="select-tag-form">
+                                    <div className="select-tag-wrap">
+                                        <div className="select-tab">
+                                            {sTagList.map((aItem: string) => {
+                                                return (
+                                                    <button key={aItem[1]} onClick={() => setTag(aItem[1])} style={{ margin: '1px' }}>
+                                                        <div className="tag-text">{aItem[1]}</div>
+                                                    </button>
+                                                );
+                                            })}
+
+                                            {sTagList.length <= 0 && <div className="tag-search-select-body-content-no">no-data</div>}
+                                        </div>
+                                        <div className="bottom-page">
+                                            <div className="pagination">
+                                                <button
                                                 disabled={sTagPagination === 1}
                                                 style={sTagPagination === 1 ? { opacity: 0.4, cursor: 'default' } : {}}
                                                 onClick={() => {
@@ -224,29 +251,29 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
                                             >
                                                 <MdKeyboardDoubleArrowLeft />
                                             </button>
-                                            <button
+                                                <button
                                                 disabled={sTagPagination === 1}
                                                 style={sTagPagination === 1 ? { opacity: 0.4, cursor: 'default' } : {}}
                                                 onClick={() => setpagination(false)}
                                             >
                                                 <ArrowLeft />
                                             </button>
-                                            <div ref={pageRef} className="custom-input-wrapper" style={{ height: '20px' }}>
-                                                <input
-                                                    value={sKeepPageNum ?? ''}
-                                                    style={{ width: '45px', textAlign: 'center' }}
-                                                    onChange={handlePaginationInput}
-                                                    onKeyDown={handleApplyPagenationInput}
-                                                />
-                                            </div>
-                                            <button
+                                                <div ref={pageRef} className="custom-input-wrapper" style={{ height: '20px' }}>
+                                                    <input
+                                                        value={sKeepPageNum ?? ''}
+                                                        style={{ width: '45px', textAlign: 'center' }}
+                                                        onChange={handlePaginationInput}
+                                                        onKeyDown={handleApplyPagenationInput}
+                                                    />
+                                                </div>
+                                                <button
                                                 disabled={sTagPagination >= getMaxPageNum}
                                                 style={sTagPagination >= getMaxPageNum ? { opacity: 0.4, cursor: 'default' } : {}}
                                                 onClick={() => setpagination(true)}
                                             >
                                                 <ArrowRight />
                                             </button>
-                                            <button
+                                                <button
                                                 disabled={sTagPagination >= getMaxPageNum}
                                                 style={sTagPagination >= getMaxPageNum ? { opacity: 0.4, cursor: 'default' } : {}}
                                                 onClick={() => {
@@ -257,6 +284,7 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
                                             >
                                                 <MdOutlineKeyboardDoubleArrowRight />
                                             </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

@@ -279,6 +279,7 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                                 pHeight={33}
                                 onChange={HandleBlockSelection}
                                 pOptions={[...sBlockList.map((aAlias: any) => aAlias.name), 'All']}
+                                pIsToolTip={true}
                             />
                         </div>
                     </div>
