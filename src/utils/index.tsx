@@ -316,7 +316,14 @@ export const createMinMaxQuery = (tableTagMap: TableTagMap[], currentUserName: s
         if (tableInfo.length === 3) {
             tags = aInfo.tags[0];
             tableName = aInfo.table;
-            query += `select min(${aInfo.cols.time}) as min_tm, max(${aInfo.cols.time}) as max_tm from ${tableName} where ${aInfo.cols.name} = '${tags}'`;
+            query += `SELECT 
+                MAX(CASE WHEN rn = 1 THEN TIME END) AS min_tm,
+                MAX(CASE WHEN rn = 2 THEN TIME END) AS max_tm
+            FROM (
+                SELECT TIME, 1 as rn FROM (SELECT /*+ SCAN_FORWARD(${tableInfo.at(-1)}) */ TIME FROM ${tableName} WHERE ${aInfo.cols.name} = '${tags}' LIMIT 1)
+                UNION ALL
+                SELECT TIME, 2 as rn FROM (SELECT /*+ SCAN_BACKWARD(${tableInfo.at(-1)}) */ TIME FROM ${tableName} WHERE ${aInfo.cols.name} = '${tags}' LIMIT 1)
+            )`;
         }
         // MACHBASE DB
         else {

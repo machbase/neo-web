@@ -306,7 +306,7 @@ const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
     const query = createMinMaxQuery(convert, userName);
     const sData = await request({
         method: 'GET',
-        url: `/api/query?q=` + encodeURIComponent(`select MIN(min_tm), MAX(max_tm) from (${query})`),
+        url: `/api/query?q=` + encodeURIComponent(`${query}`),
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
