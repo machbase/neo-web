@@ -201,10 +201,8 @@ const Sql = ({
     };
 
     const fetchMoreResult = async () => {
-        // const paredQuery = sOldFetchTxt ?? getTargetQuery();
         const paredQuery = sOldFetchTxt;
         if (!paredQuery?.text) return;
-        if (paredQuery?.text?.toLowerCase().includes('limit')) return;
         if (sEndRecord) return;
         const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery?.text, sResultLimit, sTimeRange, sTimeZone, SQL_BASE_LIMIT, paredQuery?.env?.bridge));
         const sParsedSqlResult = JSON.parse(isJsonString(sSqlResult.request.response) ? sSqlResult.request.response : '{}');
@@ -220,7 +218,6 @@ const Sql = ({
                 )
             );
             setEndRecord(sParsedSqlResult.data.rows.length < SQL_BASE_LIMIT);
-            // setLogList([...sLogList, `${paredQuery}\n${sParsedSqlResult.elapse} : ${sParsedSqlResult.success}`]);
         }
     };
 
