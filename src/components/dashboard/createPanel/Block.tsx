@@ -1,6 +1,7 @@
 import { getTableInfo, getVirtualTableInfo } from '@/api/repository/api';
 import { getRollupTableList, getTqlChart } from '@/api/repository/machiot';
-import { BsArrowsCollapse, BsArrowsExpand, Close, GoPencil, Refresh, TbMath, TbMathOff } from '@/assets/icons/Icon';
+import { BsArrowsCollapse, BsArrowsExpand, Close, GoPencil, Refresh, Search, TbMath, TbMathOff } from '@/assets/icons/Icon';
+import { TagSearchSelect } from '@/components/inputs/TagSearchSelect';
 import { IconButton } from '@/components/buttons/IconButton';
 import { generateUUID } from '@/utils';
 import {
@@ -28,7 +29,7 @@ import { Input } from '@/components/inputs/Input';
 import { SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser';
 import { Error } from '@/components/toast/Toast';
 import { chartTypeConverter } from '@/utils/eChartHelper';
-import { TagSearchSelect } from '@/components/inputs/TagSearchSelect';
+import TagSelectDialog from '@/components/inputs/TagSelectDialog';
 import { Duration } from './Duration';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { InputSelector } from '@/components/inputs/InputSelector';
@@ -48,6 +49,12 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
     const [sIsMath, setIsMath] = useState<boolean>(false);
     const [sFormulaSelection, setFormulaSelection] = useState<boolean>(false);
+    const [sIsTagDialogOpen, setIsTagDialogOpen] = useState<boolean>(false);
+    const [sFilterTagDialogInfo, setFilterTagDialogInfo] = useState<{ isOpen: boolean; filterId: string | null; initialValue: string }>({
+        isOpen: false,
+        filterId: null,
+        initialValue: '',
+    });
     const sColorPickerRef = useRef<any>(null);
     const sMathRef = useRef<any>(null);
 
@@ -319,6 +326,17 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             };
         });
     };
+    const handleOpenFilterTagDialog = (aFilterId: string) => {
+        const sTargetFilter = pBlockInfo.filter.find((aFilter: any) => aFilter.id === aFilterId);
+        setFilterTagDialogInfo({ isOpen: true, filterId: aFilterId, initialValue: sTargetFilter?.value ?? '' });
+    };
+    const handleCloseFilterTagDialog = () => {
+        setFilterTagDialogInfo({ isOpen: false, filterId: null, initialValue: '' });
+    };
+    const handleFilterTagSelect = (aSelectedTag: string) => {
+        if (!sFilterTagDialogInfo.filterId) return;
+        changeValueOption('value', { target: { value: aSelectedTag } }, sFilterTagDialogInfo.filterId, 'filter');
+    };
     const addValue = () => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -569,16 +587,23 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         init();
     }, []);
 
+    useEffect(() => {
+        if (!sFilterTagDialogInfo.isOpen) return;
+        const sFilterExists = pBlockInfo.filter?.some((aFilter: any) => aFilter.id === sFilterTagDialogInfo.filterId);
+        if (!sFilterExists) handleCloseFilterTagDialog();
+    }, [pBlockInfo.filter, sFilterTagDialogInfo.filterId, sFilterTagDialogInfo.isOpen]);
+
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
     useOutsideClick(sMathRef, () => handleExitFormulaField(true));
 
     return (
-        <div className="series" id={Date()}>
-            <div className="row">
-                {/* TABLE */}
-                <div className="row-header">
-                    {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && (
-                        <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="row-header-left">
+        <>
+            <div className="series" id={Date()}>
+                <div className="row">
+                    {/* TABLE */}
+                    <div className="row-header">
+                        {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && (
+                            <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="row-header-left">
                             {/* TABLE */}
                             <div className="series-table">
                                 <span className="series-title">
@@ -653,7 +678,12 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                             pValue={pBlockInfo.tag}
                                             onChange={(aEvent: any) => changedOption('tag', aEvent)}
                                         />
-                                        <TagSearchSelect pTable={pBlockInfo.table} pCallback={handleTagSelect} pBlockOption={pBlockInfo} />
+                                        <TagSearchSelect 
+                                            pTable={pBlockInfo.table} 
+                                            pCallback={() => setIsTagDialogOpen(true)} 
+                                            pBlockOption={pBlockInfo}
+                                            pUseDialog={true}
+                                        />
                                     </div>
                                 ) : (
                                     <div className="tag-search-select-wrapper-custom">
@@ -863,6 +893,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                         pIdx={aIdx}
                                         pAddFilter={addFilter}
                                         pRemoveFilter={removeFilter}
+                                        pOpenTagDialog={handleOpenFilterTagDialog}
                                     />
                                 );
                             })}
@@ -877,7 +908,28 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                         <Duration pBlockInfo={pBlockInfo} pSetPanelOption={pSetPanelOption} />
                     </>
                 )}
+                </div>
             </div>
-        </div>
+            {sIsTagDialogOpen && (
+                <TagSelectDialog
+                    pTable={pBlockInfo.table}
+                    pCallback={handleTagSelect}
+                    pBlockOption={pBlockInfo}
+                    pIsOpen={sIsTagDialogOpen}
+                    pCloseModal={() => setIsTagDialogOpen(false)}
+                    pInitialTag={pBlockInfo.tag}
+                />
+            )}
+            {sFilterTagDialogInfo.isOpen && (
+                <TagSelectDialog
+                    pTable={pBlockInfo.table}
+                    pCallback={handleFilterTagSelect}
+                    pBlockOption={pBlockInfo}
+                    pIsOpen={sFilterTagDialogInfo.isOpen}
+                    pCloseModal={handleCloseFilterTagDialog}
+                    pInitialTag={sFilterTagDialogInfo.initialValue}
+                />
+            )}
+        </>
     );
 };

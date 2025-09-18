@@ -1,13 +1,13 @@
 @import '/src/assets/scss/theme.scss';
 
-.modal-form-tag {
+.modal-form-tag-select {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     background-color: #404457;
-    width: 600px;
-    height: 550px;
+    width: 580px;
+    height: 560px;
     z-index: $modal-idx;
     border-radius: 8px;
     border: solid 0.5px rgba(255, 255, 255, 0.5);
@@ -15,12 +15,6 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    p {
-        color: #fdb532;
-        font-size: 12px;
-        padding: 0 0 0 23%;
-        height: 5%;
-    }
 
     .inner-form {
         button {
@@ -52,36 +46,52 @@
             }
         }
     }
+    
     .body {
-        display: block;
+        display: flex;
         height: 100%;
         flex-direction: column;
         overflow: hidden;
+        background-color: #404457 !important;
     }
+    
     .table-select {
         height: 10%;
-        padding: 0 16% 0 8%;
+        padding: 0 32px 0 32px;
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
+        gap: 16px;
         .title {
             width: 20%;
             opacity: 0.5;
+            color: rgb(253, 181, 50);
+            display: flex;
+            align-items: center;
+            min-width: 100px;
+            flex-shrink: 0;
         }
         .combobox-select {
-            width: 80%;
+            width: 100%;
+            flex: 1;
         }
     }
+
     .tag-select {
-        padding: 0 16% 0 8%;
+        padding: 0 32px 32px 32px;
         display: flex;
-        flex-grow: 1;
-        height: 100%;
+        flex: 1;
+        min-height: 0;
+        align-items: flex-start;
+        gap: 16px;
         .tag-form {
             display: flex;
             flex-direction: column;
-            width: 80%;
-            gap: 8px;
+            width: 100%;
+            flex: 1;
+            gap: 12px;
+            height: 100%;
+            min-height: 0;
         }
         .filter-form-tag {
             width: 100%;
@@ -90,15 +100,22 @@
         .title {
             width: 20%;
             opacity: 0.5;
+            color: rgb(253, 181, 50);
             display: flex;
-            flex-direction: column;
-            align-items: start;
+            align-items: center;
+            flex-direction: row;
+            gap: 6px;
+            min-width: 100px;
+            flex-shrink: 0;
 
             text {
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
                 width: 100%;
+            }
+            .select-text {
+                opacity: 0.5;
             }
         }
         .tag-input-form {
@@ -124,17 +141,22 @@
             width: 100%;
             flex: 1;
             display: flex;
-            justify-content: space-between;
+            min-height: 0;
+            gap: 16px;
+            
             .select-tag-wrap {
-                height: 80%;
                 display: flex;
                 flex-direction: column;
-                justify-content: center;
-                width: 49%;
-                min-width: 0;
+                width: 100%;
+                min-height: 0;
+                flex: 1;
+                
                 .select-tab {
-                    margin: 1px;
-                    padding: 4px 8px;
+                    flex: 0 0 340px;
+                    height: 340px;
+                    max-height: 340px;
+                    margin: 0;
+                    padding: 0;
                     overflow-y: auto;
                     overflow-x: hidden;
                     display: flex;
@@ -144,37 +166,44 @@
                     min-height: 30px;
                     flex: 1;
                     border-radius: 8px;
-                    padding: 8px 0;
+                    
                     button {
                         width: 100%;
                         align-items: center;
                         border: none;
                         display: flex;
-                        justify-content: space-between;
+                        justify-content: flex-start;
                         gap: 5px;
                         color: white;
                         padding: 0 8px;
-                        padding-bottom: 4px;
-                        // min-height: 30px;
+                        height: 34px;
 
-                        .tag-text,
-                        .select-text {
+                        .tag-text {
                             overflow: hidden;
                             white-space: nowrap;
                             text-overflow: ellipsis;
-                            flex: 1 1 auto;
-                            min-width: 0;
-                            text-align: left;
-                        }
-                        .tag-text {
                             max-width: 100%;
-                            display: block;
                         }
-                        .select-text {
-                            max-width: calc(100% - 70px);
+                        
+                        &:hover {
+                            background-color: rgb(116, 116, 116);
+                            border-radius: 4px;
+                        }
+                        
+                        &.tag-search-select-body-content-active {
+                            background-color: #76777a;
+                            border-radius: 4px;
                         }
                     }
+                    
+                    .tag-search-select-body-content-no {
+                        cursor: default;
+                        padding: 2px 8px 2px 8px;
+                        color: white;
+                        opacity: 0.5;
+                    }
                 }
+                
                 .bottom-page {
                     padding-top: 8px;
                     button {
@@ -186,24 +215,30 @@
                         align-items: center;
                         display: flex;
                         border-radius: 6px;
+                        border: 1px solid rgba(255, 255, 255, 0.5);
+                        padding: 0;
                     }
-                    justify-content: space-between;
+                    justify-content: center;
                     display: flex;
                     align-items: center;
                     .pagination {
                         display: flex;
                         align-items: center;
                     }
+                    
+                    .custom-input-wrapper {
+                        height: 20px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        border-radius: 8px !important;
+
+                        input {
+                            text-align: center;
+                        }
+                    }
                 }
             }
         }
-    }
-
-    .footer {
-        height: 10%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 8px;
     }
 }
