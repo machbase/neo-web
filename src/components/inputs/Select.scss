@@ -29,6 +29,7 @@
 
     .select-options {
         width: 100%;
+        max-width: 100%;
         height: auto;
         position: absolute;
         top: 115%;
@@ -39,30 +40,58 @@
         border: solid 0.5px rgba(255, 255, 255, 0.5);
         border-radius: 8px;
         z-index: $dropdown-idx;
+        box-sizing: border-box;
 
         &-item-wrapper {
             width: 100%;
+            max-width: 100%;
             overflow-y: scroll;
+            overflow-x: hidden !important;
+            box-sizing: border-box;
 
             .options-item {
-                display: flex;
-                justify-content: flex-start;
-                padding: 0 0.5rem;
+                padding: 0.5rem;
                 border-radius: 8px;
+                cursor: pointer;
+                color: #f8f8f8;
+                
+                /* 간단한 ellipsis */
+                width: 100%;
+                box-sizing: border-box;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: block;
+                
                 &:hover {
                     background-color: rgb(128, 128, 128);
                 }
             }
             button {
                 width: 100%;
+                max-width: 100%;
                 margin: 0;
-                padding: 0;
+                padding: 0.5rem;
                 background-color: #323644;
                 color: white;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                box-sizing: border-box;
+                border: none;
+                text-align: left;
+                cursor: pointer;
+                display: inline-block;
+                vertical-align: top;
 
                 .select-text {
                     overflow: hidden;
                     text-overflow: ellipsis;
+                    white-space: nowrap;
+                    width: 100%;
+                    max-width: 100%;
+                    display: inline-block;
+                    vertical-align: top;
                 }
             }
         }
