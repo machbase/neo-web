@@ -366,10 +366,10 @@ export const MetaTablePage = ({
                                     <ExtensionTab.DpRow>
                                         {allowedV$() && (
                                             <ExtensionTab.TextButton
-                                                pText={`\bInfo`}
+                                                pText="Info"
                                                 mr="8px"
                                                 pType="STATUS"
-                                                pIcon={<BiInfoCircle />}
+                                                pIcon={<BiInfoCircle style={{ marginRight: '4px' }} />}
                                                 pCallback={() => handleVirtualModal(sFilter, true)}
                                             />
                                         )}

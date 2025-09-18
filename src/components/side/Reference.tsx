@@ -111,6 +111,7 @@ const Reference = ({ pValue }: any) => {
                 });
                 await quickInstallQueueRef.current;
                 setSelectedExtension('EXPLORER');
+                Success(`Creating in ${aFileNm} folder`);
             }
         } catch (error) {
             Error(`Quick install failed: ${error}`);
@@ -123,7 +124,7 @@ const Reference = ({ pValue }: any) => {
         await FetchQuickInstall(aFileNm, aPayload);
     };
     const checkProcessing = (aItem: REFERENCE_ITEM): boolean => {
-        return sProcessingList?.some((item) => item === aItem?.title);
+        return sProcessingList?.some((item) => item === aItem?.address?.substring(aItem?.address?.lastIndexOf('/') + 1));
     };
 
     return (
@@ -166,7 +167,6 @@ const QuickInstall = ({
         if (pIsProcessing) return;
         e.stopPropagation();
         const lastPath = aItem?.address?.substring(aItem?.address?.lastIndexOf('/') + 1);
-        Success(`Creating in ${lastPath} folder`);
         const sPaylod = { url: aItem?.address, command: 'clone' };
         await pQuickInstall(lastPath, sPaylod);
     };
