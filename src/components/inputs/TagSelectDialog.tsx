@@ -191,14 +191,14 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
                     <div className="header">
                         <div className="header-title">
                             <BiSolidChart />
-                            Select Tag
+                            Select {sSelectedTable}
                         </div>
                         <div className="header-close">
                             <Close onClick={pCloseModal} color="#f8f8f8" />
                         </div>
                     </div>
                     <div className="body">
-                        <div className="table-select">
+                        <div className="table-select" style={{ display: 'none' }}>
                             <div className="title">Table</div>
                             <div className="combobox-select">
                                 <Input
@@ -228,9 +228,10 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
                                 <div className="select-tag-form">
                                     <div className="select-tag-wrap">
                                         <div className="select-tab">
-                                            {sTagList.map((aItem: string) => {
+                                            {sTagList.map((aItem: string, aIdx: number) => {
                                                 return (
-                                                    <button key={aItem[1]} onClick={() => setTag(aItem[1])} style={{ margin: '1px' }}>
+                                                    <button key={aItem[1]} className={`tag-tooltip-${aIdx}`} onClick={() => setTag(aItem[1])} style={{ margin: '1px' }}>
+                                                        <Tooltip anchorSelect={`.tag-tooltip-${aIdx}`} content={aItem[1]} />
                                                         <div className="tag-text">{aItem[1]}</div>
                                                     </button>
                                                 );
