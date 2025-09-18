@@ -6,18 +6,20 @@ import { useParams } from 'react-router-dom';
 import moment from 'moment';
 import { Calendar, VscChevronLeft, VscChevronRight, VscSync } from '../../assets/icons/Icon';
 import { IconButton } from '../../components/buttons/IconButton';
+import { ShareButton } from '../../components/buttons/ShareButton';
 import { calcRefreshTime, setUnitTime } from '../../utils/dashboardUtil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '../../utils/constants';
 import { getId, isMobile } from '../../utils';
 import ViewTimeRangeModal from '../../components/modal/ViewTimeRangeModal';
 import { timeMinMaxConverter } from '../../utils/bgnEndTimeRange';
-import { fetchMountTimeMinMax, fetchTimeMinMax } from '../../api/repository/machiot';
+import { executeQuery, fetchMountTimeMinMax, fetchTimeMinMax } from '../../api/repository/machiot';
 import { CheckDataCompatibility } from '../../utils/CheckDataCompatibility';
 import { VariableHeader } from '../variable/VariableHeader';
 import { VARIABLE_TYPE } from '../variable';
 import { IoMdOptions } from 'react-icons/io';
 import { VariablePreview } from '../variable/VariablePreview';
 import { IoClose } from 'react-icons/io5';
+import Footer from '../Footer/Footer';
 
 const DashboardView = () => {
     const sParams = useParams();
@@ -32,6 +34,8 @@ const DashboardView = () => {
     const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
     const [sChartVariableId, setChartVariableId] = useState<string>('');
     const variableRef = useRef<HTMLDivElement>(null);
+    const [sLayoutWidth, setLayoutWidth] = useState<number>(0);
+    const [sShouldShowFooter, setShouldShowFooter] = useState<boolean>(false);
 
     const getDshFile = async (aFileName: string | undefined) => {
         if (!aFileName) return;
@@ -156,6 +160,12 @@ const DashboardView = () => {
         setChartVariableId(getId());
     };
 
+    const updateLayoutWidth = () => {
+        if (sLayoutRef.current) {
+            setLayoutWidth(sLayoutRef.current.clientWidth);
+        }
+    };
+
     useEffect(() => {
         if (sBoardInformation && sBoardInformation.dashboard.timeRange && sBoardInformation.dashboard.timeRange.refresh !== 'Off')
             ctrBoardInterval(sBoardInformation.dashboard.timeRange);
@@ -186,10 +196,86 @@ const DashboardView = () => {
     }, [sVariableCollapse]);
 
     useEffect(() => {
+        let isActive = true;
+
+        const fetchLicenseInfo = async () => {
+            const sQuery = 'select * from v$LICENSE_INFO';
+            try {
+                const sResult: any = await executeQuery(sQuery);
+
+                if (!isActive) return;
+
+                if (!sResult || sResult?.success === false) {
+                    setShouldShowFooter(false);
+                    if (sResult?.status && sResult?.data?.reason)
+                        console.error('Failed to fetch license info for footer visibility:', sResult.data.reason);
+                    return;
+                }
+
+                const sColumns = sResult?.data?.columns;
+                const sRows = sResult?.data?.rows;
+
+                if (!Array.isArray(sColumns) || !Array.isArray(sRows) || sRows.length === 0) {
+                    setShouldShowFooter(false);
+                    return;
+                }
+
+                const sFirstRow = sRows[0];
+                const sInfo = sColumns.reduce((acc: Record<string, any>, column: any, index: number) => {
+                    const key = typeof column === 'string' ? column.toLowerCase() : `col_${index}`;
+                    acc[key] = sFirstRow[index];
+                    return acc;
+                }, {} as Record<string, any>);
+
+                const sRawType = sInfo['type'];
+                const sType = (sRawType ?? '').toString().toUpperCase();
+                const sRawViol = sInfo['violate_status'];
+
+                const sViolNumber =
+                    sRawViol !== undefined && sRawViol !== null && sRawViol !== '' ? Number(sRawViol) : 0;
+                const sHasViolation = Number.isNaN(sViolNumber)
+                    ? sRawViol !== 0 && sRawViol !== '0'
+                    : sViolNumber !== 0;
+
+                setShouldShowFooter(sType === 'COMMUNITY' || sHasViolation);
+            } catch (error) {
+                if (isActive) setShouldShowFooter(false);
+                console.error('Failed to fetch license info for footer visibility:', error);
+            }
+        };
+
+        fetchLicenseInfo();
+
+        return () => {
+            isActive = false;
+        };
+    }, []);
+
+    useEffect(() => {
         const sIsLogin = localStorage.getItem('accessToken');
         if (!sIsLogin) localStorage.setItem('view', JSON.stringify({ path: '/view/' + sParams['*'] }));
         getDshFile(sParams['*']);
         GenChartVariableId();
+    }, []);
+
+    useEffect(() => {
+        updateLayoutWidth();
+        
+        let resizeTimeout: NodeJS.Timeout;
+        
+        const handleResize = () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                updateLayoutWidth();
+            }, 150);
+        };
+
+        window.addEventListener('resize', handleResize);
+        
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            clearTimeout(resizeTimeout);
+        };
     }, []);
 
     return sNotfound ? (
@@ -221,7 +307,16 @@ const DashboardView = () => {
                     </div>
                     <div className="header-menu">
                         <div className="list-menu">
-                            <IconButton pWidth={20} pHeight={20} pIcon={<VscSync />} onClick={handleRefresh} />
+                            <ShareButton />
+                            <IconButton 
+                                pIsToopTip
+                                pToolTipContent="Refresh"
+                                pToolTipId="refresh-btn"
+                                pWidth={20} 
+                                pHeight={20} 
+                                pIcon={<VscSync />} 
+                                onClick={handleRefresh} 
+                            />
                         </div>
                         <div className="calendar-group">
                             <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')} />
@@ -272,7 +367,7 @@ const DashboardView = () => {
                         cols={GRID_LAYOUT_COLS}
                         autoSize={true}
                         rowHeight={GRID_LAYOUT_ROW_HEIGHT}
-                        width={sLayoutRef.current?.clientWidth}
+                        width={sLayoutWidth}
                         isResizable={false}
                         isDraggable={false}
                     >
@@ -293,7 +388,7 @@ const DashboardView = () => {
                                         <Panel
                                             pBoardInfo={sBoardInformation}
                                             pPanelInfo={aItem}
-                                            pParentWidth={!sIsMobile && sLayoutRef?.current?.clientWidth ? sLayoutRef.current.clientWidth : aItem.w}
+                                            pParentWidth={!sIsMobile && sLayoutWidth ? sLayoutWidth : aItem.w}
                                             pChartVariableId={sChartVariableId}
                                             pIsHeader={false}
                                             pLoopMode={sBoardInformation?.dashboard.timeRange.refresh !== 'Off' || aItem?.timeRange?.refresh !== 'Off' ? true : false}
@@ -335,6 +430,7 @@ const DashboardView = () => {
                     pSaveCallback={handleDashboardTimeRange}
                 />
             )}
+            {sShouldShowFooter && <Footer />}
         </>
     );
 };
