@@ -14,8 +14,7 @@ const getTableName = (targetTxt: string) => {
 
 export const executeQuery = async (query: string) => {
     try {
-        const currentServerUrl = `${window.location.protocol}//${window.location.hostname}:5654`;
-        const response = await fetch(`${currentServerUrl}/db/query?q=${encodeURIComponent(query)}`, {
+        const response = await fetch(`/db/query?q=${encodeURIComponent(query)}`, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
