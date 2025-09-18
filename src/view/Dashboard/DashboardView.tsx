@@ -53,6 +53,7 @@ const DashboardView = () => {
         };
         setBoardInformation(updateBoardInfo as any);
         handleRefresh();
+        setVariableCollapse(false);
     };
     const handleDashboardTimeRange = async (sStart: any, sEnd: any, aBoardInfo?: any) => {
         const sBoard: any = aBoardInfo ?? sBoardInformation;
@@ -242,22 +243,6 @@ const DashboardView = () => {
                         </div>
                     </div>
                 </div>
-                {/* <SplitPane sashRender={() => <></>} split={'vertical'} sizes={sSideSizes} onChange={() => {}}>
-                    <Pane>
-                        <div className="variable-header-close">
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Close"
-                                pToolTipId="variables-close-btn"
-                                pWidth={20}
-                                pHeight={20}
-                                pIcon={<IoClose />}
-                                onClick={() => handleSplitPaneSize()}
-                            />
-                        </div>
-                        <VariableHeader pBoardInfo={sBoardInformation} callback={handleUpdateVariable} pSelectVariable={sSelectVariable} />
-                    </Pane>
-                    <Pane> */}
                 <div className="board-body">
                     <GridLayout
                         className="layout"
@@ -302,8 +287,6 @@ const DashboardView = () => {
                             })}
                     </GridLayout>
                 </div>
-                {/* </Pane>
-                </SplitPane> */}
                 {sVariableCollapse && (
                     <div ref={variableRef} className="variable-header-warp">
                         <div className="variable-header-close">

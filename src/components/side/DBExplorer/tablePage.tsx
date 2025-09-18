@@ -266,7 +266,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                     <ExtensionTab.Body fixed>
                         <ExtensionTab.ContentBlock pHoverNone>
                             <ExtensionTab.DpRowBetween>
-                                <div style={{ gap: '8px', display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                                <div style={{ gap: '8px', display: 'flex', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
                                     <ExtensionTab.SubTitle>Table</ExtensionTab.SubTitle>
                                     <BadgeSelectorItem
                                         item={{

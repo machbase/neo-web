@@ -63,6 +63,7 @@ const DashboardView = () => {
         };
         setBoardInformation(updateBoardInfo as any);
         handleRefresh();
+        setVariableCollapse(false);
     };
     const handleDashboardTimeRange = async (sStart: any, sEnd: any, aBoardInfo?: any) => {
         const sBoard: any = aBoardInfo ?? sBoardInformation;
@@ -207,8 +208,7 @@ const DashboardView = () => {
 
                 if (!sResult || sResult?.success === false) {
                     setShouldShowFooter(false);
-                    if (sResult?.status && sResult?.data?.reason)
-                        console.error('Failed to fetch license info for footer visibility:', sResult.data.reason);
+                    if (sResult?.status && sResult?.data?.reason) console.error('Failed to fetch license info for footer visibility:', sResult.data.reason);
                     return;
                 }
 
@@ -231,11 +231,8 @@ const DashboardView = () => {
                 const sType = (sRawType ?? '').toString().toUpperCase();
                 const sRawViol = sInfo['violate_status'];
 
-                const sViolNumber =
-                    sRawViol !== undefined && sRawViol !== null && sRawViol !== '' ? Number(sRawViol) : 0;
-                const sHasViolation = Number.isNaN(sViolNumber)
-                    ? sRawViol !== 0 && sRawViol !== '0'
-                    : sViolNumber !== 0;
+                const sViolNumber = sRawViol !== undefined && sRawViol !== null && sRawViol !== '' ? Number(sRawViol) : 0;
+                const sHasViolation = Number.isNaN(sViolNumber) ? sRawViol !== 0 && sRawViol !== '0' : sViolNumber !== 0;
 
                 setShouldShowFooter(sType === 'COMMUNITY' || sHasViolation);
             } catch (error) {
@@ -260,9 +257,9 @@ const DashboardView = () => {
 
     useEffect(() => {
         updateLayoutWidth();
-        
+
         let resizeTimeout: NodeJS.Timeout;
-        
+
         const handleResize = () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
@@ -271,7 +268,7 @@ const DashboardView = () => {
         };
 
         window.addEventListener('resize', handleResize);
-        
+
         return () => {
             window.removeEventListener('resize', handleResize);
             clearTimeout(resizeTimeout);
@@ -308,15 +305,7 @@ const DashboardView = () => {
                     <div className="header-menu">
                         <div className="list-menu">
                             <ShareButton />
-                            <IconButton 
-                                pIsToopTip
-                                pToolTipContent="Refresh"
-                                pToolTipId="refresh-btn"
-                                pWidth={20} 
-                                pHeight={20} 
-                                pIcon={<VscSync />} 
-                                onClick={handleRefresh} 
-                            />
+                            <IconButton pIsToopTip pToolTipContent="Refresh" pToolTipId="refresh-btn" pWidth={20} pHeight={20} pIcon={<VscSync />} onClick={handleRefresh} />
                         </div>
                         <div className="calendar-group">
                             <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')} />
@@ -343,22 +332,6 @@ const DashboardView = () => {
                         </div>
                     </div>
                 </div>
-                {/* <SplitPane sashRender={() => <></>} split={'vertical'} sizes={sSideSizes} onChange={() => {}}>
-                    <Pane>
-                        <div className="variable-header-close">
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Close"
-                                pToolTipId="variables-close-btn"
-                                pWidth={20}
-                                pHeight={20}
-                                pIcon={<IoClose />}
-                                onClick={() => handleSplitPaneSize()}
-                            />
-                        </div>
-                        <VariableHeader pBoardInfo={sBoardInformation} callback={handleUpdateVariable} pSelectVariable={sSelectVariable} />
-                    </Pane>
-                    <Pane> */}
                 <div className="board-body">
                     <GridLayout
                         className="layout"
@@ -400,8 +373,6 @@ const DashboardView = () => {
                             })}
                     </GridLayout>
                 </div>
-                {/* </Pane>
-                </SplitPane> */}
                 {sVariableCollapse && (
                     <div ref={variableRef} className="variable-header-warp">
                         <div className="variable-header-close">
