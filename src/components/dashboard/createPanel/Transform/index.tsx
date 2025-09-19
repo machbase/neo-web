@@ -55,12 +55,13 @@ export const Transform = ({ pPanelOption, pSetPanelOption, pBlockCount }: { pPan
         const sTmpPanelOpt = JSON.parse(JSON.stringify(pPanelOption));
         let tmpTransformBlockList: TransformBlockType[] = [];
         if (aMode === 'ADD') {
+            const currentLength = sTmpPanelOpt?.transformBlockList?.length ?? 0;
             tmpTransformBlockList = [
                 ...(sTmpPanelOpt.transformBlockList ?? []),
                 {
                     id: generateUUID(),
-                    alias: '',
-                    color: colorList[sTmpPanelOpt?.transformBlockList?.length ?? 0],
+                    alias: `Data${currentLength + 1}`,
+                    color: colorList[currentLength],
                     value: '',
                     valid: undefined, // check formula valid
                     isVisible: true,
