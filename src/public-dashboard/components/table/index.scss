@@ -1,5 +1,5 @@
 @import '/src/assets/scss/theme.scss';
-.default-table {
+.table {
     width: calc(100%);
     table-layout: auto;
     font-family: 'D2Coding';
@@ -20,27 +20,35 @@
 
         tr {
             th {
-                max-width: 300px;
                 font-weight: bold;
                 padding: 0 16px;
-                min-width: 100px;
+                max-width: 50vw;
                 height: 25px;
                 text-align: start;
                 vertical-align: center !important;
                 text-overflow: ellipsis;
                 white-space: nowrap;
+                overflow: hidden;
+
+                span {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
             }
         }
     }
 
     .table-body {
+        content-visibility: auto;
+
         tr {
             td {
                 overflow: hidden;
                 text-overflow: ellipsis;
                 font-size: 14px;
                 white-space: nowrap;
-                max-width: 20vw;
+                max-width: 50vw;
                 font-weight: 300;
                 vertical-align: center !important;
                 padding: 0 16px;
@@ -49,9 +57,38 @@
 
             .result-table-item {
                 cursor: default;
-            }
-            .result-table-item-action {
-                border: 1px solid;
+                overflow: hidden;
+                :hover {
+                    color: #fdb532;
+                }
+
+                &-copy-button {
+                    flex-direction: row;
+                    overflow: hidden;
+                    align-items: center;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    gap: 8px;
+
+                    &:hover {
+                        .result-table-item-copy-button-icon {
+                            opacity: 1;
+                        }
+                    }
+
+                    span {
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+
+                    &-icon {
+                        display: flex;
+                        opacity: 0;
+                        justify-content: center;
+                        align-items: center;
+                    }
+                }
             }
         }
 
@@ -59,10 +96,6 @@
             .dark-odd {
                 background-color: rgb(43, 43, 43);
             }
-        }
-
-        .result-body-tr:hover {
-            background-color: opacify($color: #4e4d4d, $amount: 0);
         }
 
         .row-num {

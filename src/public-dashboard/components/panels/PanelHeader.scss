@@ -1,0 +1,52 @@
+@import '/src/assets/scss/theme.scss';
+.panel-wrap {
+    .board-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: end;
+        width: 100%;
+        height: 30px;
+        padding: 4px 12px;
+        font-size: 14px;
+        .panel-header-navigator {
+            .tooltip {
+                z-index: $tooltip-idx;
+            }
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            .panel-header-time-range {
+                justify-content: center;
+                width: 25px;
+                min-width: 25px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+            }
+        }
+    }
+
+    .draggable-panel-header-menu {
+        // height: 22px;
+        padding: 4px;
+        border-bottom-left-radius: 4px;
+    }
+
+    .display-none {
+        display: none !important;
+    }
+    .cursor-grab {
+        cursor: grab;
+    }
+    .panel-theme-white {
+        color: black;
+        svg {
+            color: rgb(58, 58, 58);
+        }
+    }
+    .hidden-header-menu {
+        position: absolute;
+        top: 30px;
+        right: 5px;
+    }
+}

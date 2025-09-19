@@ -38,7 +38,7 @@ request.interceptors.request.use(
         const lastSegment = pathSegments[pathSegments.length - 1] || '';
         const lastDot = lastSegment.lastIndexOf('.');
         const lastExt = lastDot !== -1 ? lastSegment.slice(lastDot + 1).toLowerCase() : '';
-        const sViewMode = window.location.pathname.includes('/web/ui/view');
+        const sViewMode = window.location.pathname.includes('/web/ui/view') || window.location.pathname.includes('/web/ui/board');
         // const sDshFetch = config.url.includes('/api/tql/dsh');
         const sDshFetch = config.url.match(/\/api\/tql\/dsh$/gm);
         // const sTazFetch = config.url.includes('/api/tql/taz');
@@ -83,12 +83,7 @@ request.interceptors.request.use(
         }
 
         // Only treat as file GET when path does not denote a directory (no trailing slash)
-        if (
-            sFileOption !== -1 &&
-            (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1 || sFileDsh !== -1 || sFileWrk !== -1) &&
-            config.method === 'get' &&
-            !endsWithSlash
-        ) {
+        if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1 || sFileDsh !== -1 || sFileWrk !== -1) && config.method === 'get' && !endsWithSlash) {
             config.transformResponse = function (data: any) {
                 return data;
             };

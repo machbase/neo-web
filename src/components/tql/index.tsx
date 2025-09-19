@@ -45,7 +45,7 @@ const Tql = (props: TqlProps) => {
     const [sText, setText] = useState<string>('');
     const [sCsv, setCsv] = useState<string[][]>([]);
     const [sCsvHeader, setCsvHeader] = useState<string[]>([]);
-    const [sIsHeader, setHeader] = useState<boolean>(false);
+    const [sIsHeader, setHeader] = useState<boolean>(true);
     const [sMarkdown, setMarkdown] = useState<any>('');
     const [sVisualData, setVisualData] = useState<string>('');
     // const [sMapData, setMapData] = useState<any>(undefined);

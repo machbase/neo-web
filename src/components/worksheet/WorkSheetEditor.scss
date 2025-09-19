@@ -142,7 +142,7 @@
                 .result-worksheet-sql {
                     div {
                         table {
-                            border: solid 1px #393b41;
+                            // border: solid 1px #393b41;
                             border-radius: 10px;
                             width: calc(100%);
                             table-layout: auto;
@@ -163,10 +163,8 @@
 
                                 tr {
                                     th {
-                                        max-width: 300px;
                                         font-weight: bold;
                                         padding: 0 16px;
-                                        min-width: 100px;
                                         height: 25px;
                                         text-align: start;
                                         vertical-align: center !important;
@@ -183,7 +181,7 @@
                                         text-overflow: ellipsis;
                                         font-size: 14px;
                                         white-space: nowrap;
-                                        max-width: 20vw;
+                                        max-width: 50vw;
                                         font-weight: 300;
                                         vertical-align: center !important;
                                         padding: 0 16px;

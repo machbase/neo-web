@@ -22,6 +22,8 @@ import { Select } from '@/components/inputs/Select';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 import { IconButton } from '../buttons/IconButton';
+import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
+import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
 
 export interface SaveDashboardModalProps {
     setIsOpen: any;
@@ -52,9 +54,40 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     const [sSelectedBlock, setSelectedBlock] = useState<any>({ idx: 0, name: '', value: '' });
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
 
-    const GetQuery = () => {
-        const sStartTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.start ?? '') : setUnitTime(pDashboardTime.start);
-        const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.end ?? '') : setUnitTime(pDashboardTime.end);
+    const defaultMinMax = () => {
+        const now = Date.now();
+        return { min: Math.floor(now - 60 * 60 * 1000), max: Math.floor(now) };
+    };
+
+    const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
+        const sTargetTag = pPanelInfo?.blockList?.[0] ?? { tag: '' };
+        const hasName = sTargetTag.tag && sTargetTag.tag !== '';
+        const customName = sTargetTag.filter?.filter((aFilter: any) => {
+            if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
+        })?.[0]?.value;
+        if (hasName || (sTargetTag.useCustom && customName)) {
+            if (sTargetTag.customTable) return defaultMinMax();
+            let rows: any = undefined;
+            if (sTargetTag.table?.split('.')?.length > 2) rows = await fetchMountTimeMinMax(sTargetTag);
+            else rows = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: customName }) : await fetchTimeMinMax(sTargetTag);
+            const res = { min: Math.floor(rows?.[0]?.[0] / 1000000), max: Math.floor(rows?.[0]?.[1] / 1000000) };
+            if (!Number(res.min) || !Number(res.max)) return defaultMinMax();
+            return res;
+        }
+        return defaultMinMax();
+    };
+
+    const resolveTimeRange = async () => {
+        const startRaw = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.start ?? '' : pDashboardTime.start;
+        const endRaw = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.end ?? '' : pDashboardTime.end;
+        if (!isNaN(Number(startRaw)) && !isNaN(Number(endRaw))) return { min: Number(startRaw), max: Number(endRaw) };
+        const svr = await fetchTableTimeMinMax();
+        const mm = timeMinMaxConverter(startRaw, endRaw, svr) ?? { min: setUnitTime(startRaw), max: setUnitTime(endRaw) };
+        return mm;
+    };
+
+    const GetQuery = async () => {
+        const { min: sStartTime, max: sEndTime } = await resolveTimeRange();
         const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, pPanelInfo.w * 50);
         const [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
             chartTypeConverter(pPanelInfo.type),
@@ -74,10 +107,9 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
 
         return [sParsedQuery, sAliasList, sInjectionSrc];
     };
-    const GetSaveChartText = () => {
-        const [sParsedQuery, sAliasList, sInjectionSrc] = GetQuery();
-        const sStartTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.start ?? '') : setUnitTime(pDashboardTime.start);
-        const sEndTime = pPanelInfo.useCustomTime ? setUnitTime(pPanelInfo.timeRange.end ?? '') : setUnitTime(pDashboardTime.end);
+    const GetSaveChartText = async () => {
+        const [sParsedQuery, sAliasList, sInjectionSrc] = await GetQuery();
+        const { min: sStartTime, max: sEndTime } = await resolveTimeRange();
         const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
         const sParsedChartCode = DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery, true);
         const sUsePlg: boolean = !!pPanelInfo.plg;
@@ -91,8 +123,8 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
             `)`;
         return sResult;
     };
-    const GetSaveDataText = () => {
-        const [sParsedQuery] = GetQuery();
+    const GetSaveDataText = async () => {
+        const [sParsedQuery] = await GetQuery();
         const sOutputStr: string = sOutput === 'CHART' ? `${sOutput}()` : sOutput === 'DATA(JSON)' ? 'JSON()' : 'CSV()';
         const sTargetItem = sParsedQuery[sSelectedBlock.idx];
         let sResult = '';
@@ -101,9 +133,9 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         } else sResult = `SQL("${sTargetItem.sql}")\n` + sOutputStr;
         return sResult;
     };
-    const SetBlockAliasList = () => {
+    const SetBlockAliasList = async () => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const [_, sAliasList] = GetQuery();
+        const [_, sAliasList] = await GetQuery();
         setBlockList(sAliasList);
     };
     const handleClose = () => {
@@ -184,8 +216,8 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
 
     const saveFile = async () => {
         let sPayload: any = undefined;
-        if (sOutput === 'CHART') sPayload = GetSaveChartText();
-        else sPayload = GetSaveDataText();
+        if (sOutput === 'CHART') sPayload = await GetSaveChartText();
+        else sPayload = await GetSaveDataText();
         const sDupFile = sFileList && sFileList.find((aItem) => aItem.name === sSaveFileName);
 
         if (sDupFile) {

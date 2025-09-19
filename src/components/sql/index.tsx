@@ -17,6 +17,8 @@ import { MonacoEditor } from '../monaco/MonacoEditor';
 import { IconButton } from '@/components/buttons/IconButton';
 import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader } from '@/utils/sqlOriginDataDownloader';
 import { postSplitter } from '@/api/repository/api';
+import { Loader } from '../loader';
+import { SqlSplitHelper } from '@/utils/TQL/SqlSplitHelper';
 
 const Sql = ({
     pInfo,
@@ -43,6 +45,7 @@ const Sql = ({
     const [sResultLimit, setResultLimit] = useState<number>(1);
     const sEditorRef = useRef(null);
     const [sErrLog, setErrLog] = useState<string | null>(null);
+    const [sTextField, setTextField] = useState<string>('');
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
     const [sChartAxisList, setChartAxisList] = useState<string[]>([]);
     const [sChartQueryList, setChartQueryList] = useState<STATEMENT_TYPE[] | []>([]);
@@ -112,27 +115,13 @@ const Sql = ({
             selection: SelectionType;
         }
     ) => {
-        let parsedQuery: any = '';
         const splitList = await fetchSplitter();
         const location = aLocation ?? sSqlLocation;
+        const sParsedQuery = SqlSplitHelper(location, splitList);
 
-        // SINGLE
-        if (location.selection.endColumn === location.selection.startColumn && location.selection.endLineNumber === location.selection.startLineNumber) {
-            parsedQuery = splitList.filter((statement: any) => {
-                if (!statement.isComment && statement.beginLine <= location.selection.startLineNumber && location.selection.startLineNumber <= statement.endLine) {
-                    return statement;
-                }
-            });
-        }
-        // MULTIPLE
-        else {
-            parsedQuery = splitList.filter((statement: any) => {
-                if (!statement.isComment && statement.endLine >= location.selection.startLineNumber && statement.beginLine <= location.selection.endLineNumber) return statement;
-            });
-        }
         setSqlLocation(location);
-        if (!parsedQuery || parsedQuery.length === 0 || (parsedQuery.length === 1 && parsedQuery[0].length === 0)) return;
-        fetchSql(parsedQuery);
+        if (!sParsedQuery || sParsedQuery?.length === 0 || (sParsedQuery?.length === 1 && sParsedQuery[0]?.length === 0)) return;
+        fetchSql(sParsedQuery);
     };
 
     const fetchSplitter = async () => {
@@ -143,25 +132,16 @@ const Sql = ({
 
     const fetchSql = async (aParsedQuery: STATEMENT_TYPE[]) => {
         setEndRecord(() => false);
+        setTextField('Processing...');
         const sQueryReslutList: any = [];
         try {
-            const fetchQuery = (aQuery: STATEMENT_TYPE) => {
-                return new Promise((resolve, reject) => {
-                    setTimeout(async () => {
-                        const sQueryResult = await getTqlChart(sqlBasicFormatter(aQuery.text, 1, sTimeRange, sTimeZone, SQL_BASE_LIMIT, aQuery.env?.bridge));
-                        sQueryReslutList.push(sQueryResult);
-                        if (sQueryResult.data.success) resolve(true);
-                        else reject(false);
-                    }, 1);
-                });
-            };
-
-            await aParsedQuery.reduce(async (previousPromise: any, curQuery: STATEMENT_TYPE) => {
-                await previousPromise;
-                return fetchQuery(curQuery);
-            }, Promise.resolve());
+            for (const curQuery of aParsedQuery) {
+                const sQueryResult = await getTqlChart(sqlBasicFormatter(curQuery.text, 1, sTimeRange, sTimeZone, SQL_BASE_LIMIT, curQuery.env?.bridge));
+                sQueryReslutList.push(sQueryResult);
+                if (!sQueryResult?.data?.success) throw new Error('Query failed');
+            }
         } catch {
-            setErrLog(sQueryReslutList.at(-1).data.reason);
+            setErrLog(sQueryReslutList?.at(-1)?.data?.reason);
         }
 
         if (
@@ -193,11 +173,13 @@ const Sql = ({
 
         if (sQueryReslutList.at(-1).data.success === true) {
             setErrLog(null);
+            setTextField('');
             setEndRecord(sQueryReslutList.at(-1).data.data.rows.length < SQL_BASE_LIMIT);
             setSelectedSubTab('RESULT');
             setOldFetchTxt(sLowerQuery);
             return true;
         } else {
+            setTextField('');
             // setSelectedSubTab('LOG');
             return false;
         }
@@ -219,10 +201,8 @@ const Sql = ({
     };
 
     const fetchMoreResult = async () => {
-        // const paredQuery = sOldFetchTxt ?? getTargetQuery();
         const paredQuery = sOldFetchTxt;
         if (!paredQuery?.text) return;
-        if (paredQuery?.text?.toLowerCase().includes('limit')) return;
         if (sEndRecord) return;
         const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery?.text, sResultLimit, sTimeRange, sTimeZone, SQL_BASE_LIMIT, paredQuery?.env?.bridge));
         const sParsedSqlResult = JSON.parse(isJsonString(sSqlResult.request.response) ? sSqlResult.request.response : '{}');
@@ -238,7 +218,6 @@ const Sql = ({
                 )
             );
             setEndRecord(sParsedSqlResult.data.rows.length < SQL_BASE_LIMIT);
-            // setLogList([...sLogList, `${paredQuery}\n${sParsedSqlResult.elapse} : ${sParsedSqlResult.success}`]);
         }
     };
 
@@ -377,6 +356,13 @@ const Sql = ({
                             sErrLog ? (
                                 <div className="sql-error-body" style={{ padding: '0 1rem' }}>
                                     {sErrLog}
+                                </div>
+                            ) : sTextField === 'Processing...' ? (
+                                <div className="sql-processing-body" style={{ padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
+                                    <span>{sTextField}</span>
+                                    <div style={{ marginLeft: '4px' }}>
+                                        <Loader width="12px" height="12px" borderRadius="90%" />
+                                    </div>
                                 </div>
                             ) : (
                                 <RESULT

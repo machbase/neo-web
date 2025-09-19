@@ -1,0 +1,73 @@
+.statz-table-modal-wrap {
+    height: auto !important;
+    overflow: hidden;
+
+    .statz-table-modal {
+        display: flex;
+        flex-direction: column;
+        background-color: #262831;
+        max-width: 75% !important;
+        max-height: 50% !important;
+
+        .extension-tab-table-wrapper {
+            min-height: 100px !important;
+            height: auto;
+            padding: 0 36px;
+
+            .extension-tab-table {
+                overflow: auto;
+                &-header {
+                    position: sticky !important;
+                    top: 0;
+                }
+            }
+        }
+
+        &-pagination {
+            display: flex;
+            justify-content: center;
+            gap: 2px;
+
+            .statz-table-modal-input-wrapper {
+                margin: 0 12px;
+                height: 20px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                border-radius: 4px !important;
+                border: none;
+
+                input {
+                    width: 40px;
+                    min-width: 30px;
+                    max-width: 80px;
+                    text-align: center;
+                    border: none;
+                    background: transparent;
+                    color: inherit;
+                }
+            }
+
+            button {
+                width: 20px;
+                height: 20px;
+                color: white;
+                justify-content: center;
+                align-items: center;
+                display: flex;
+                border-radius: 6px;
+                padding: 0;
+                background-color: #262831;
+
+                svg {
+                    width: 16px;
+                    height: 16px;
+                }
+
+                &:hover {
+                    background-color: #353637;
+                }
+            }
+        }
+    }
+}

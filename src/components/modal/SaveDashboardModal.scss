@@ -1,4 +1,13 @@
 @import '/src/assets/scss/theme.scss';
+
+// Download modal specific styles
+.tql-download {
+    .modal {
+        width: 450px !important;
+        max-width: 450px !important;
+    }
+}
+
 .tql {
     svg {
         cursor: pointer;

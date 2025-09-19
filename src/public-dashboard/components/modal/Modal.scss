@@ -1,0 +1,66 @@
+@import '../../assets/scss/theme.scss';
+.modal-overlay {
+    width: 100vw;
+    height: 100vh;
+
+    background-color: rgba(0, 0, 0, 0.5);
+
+    position: fixed;
+    top: 0;
+    left: 0;
+
+    z-index: $modal-idx;
+}
+
+.modal {
+    width: 90%;
+    max-width: 744px;
+    max-height: 570px;
+
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    border-radius: 10px;
+
+    box-sizing: border-box;
+
+    svg {
+        font-size: 18px;
+    }
+
+    &-header {
+        width: 100%;
+    }
+
+    &-body {
+        width: 100%;
+    }
+
+    &-footer {
+        width: 100%;
+    }
+}
+
+.modal-theme-dark {
+    background-color: #404457;
+    color: white;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16), inset 0 -1px 8px 0 rgba(0, 0, 0, 0.3);
+    border: solid 0.5px rgba(255, 255, 255, 0.5);
+
+    svg {
+        color: white;
+    }
+}
+
+.modal-theme-white {
+    background-color: #ebebec;
+    color: black;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16), inset 0 -1px 8px 0 rgba(255, 255, 255, 0.3);
+    border: solid 0.5px rgba(38, 40, 49, 0.5);
+
+    svg {
+        color: black;
+    }
+}

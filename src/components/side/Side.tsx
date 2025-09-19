@@ -40,6 +40,8 @@ import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { VscCopy } from 'react-icons/vsc';
 import { FileCopy } from '@/utils/UpdateTree';
 import axios from 'axios';
+import { EXTENSION_SET } from '@/utils/constants';
+import { Error } from '../toast/Toast';
 
 const Side = ({
     pGetInfo,
@@ -165,6 +167,10 @@ any) => {
             const sContentResult: any = await getFiles(`${file.path}${file.name}`);
             const sFileExtension = extractionExtension(file.id);
             if (axios.isAxiosError(sContentResult)) return;
+            if (sContentResult?.hasOwnProperty('headers') || sContentResult?.hasOwnProperty('reason') || sContentResult?.data?.hasOwnProperty('reason')) {
+                const sParseData = typeof sContentResult?.data === 'string' ? JSON.parse(sContentResult?.data) : sContentResult?.data;
+                return Error(sContentResult?.reason ?? sParseData?.reason);
+            }
             let sTmpBoard: any = { id: sTmpId, name: file.name, type: sFileExtension, path: file.path, savedCode: sContentResult, code: '' };
             if (sFileExtension === 'wrk') {
                 const sTmpData = JSON.parse(sContentResult);
@@ -626,30 +632,34 @@ any) => {
                                                 </Menu.Item> */}
                                             </>
                                         ) : null}
-                                        {(selectedContextFile as any)?.type === 0 && !isImage((selectedContextFile as any).name as string) && (
-                                            <Menu.Item onClick={handleCopy}>
-                                                <VscCopy />
-                                                <span>Duplicate</span>
-                                            </Menu.Item>
-                                        )}
-                                        {!(selectedContextFile as any)?.readOnly && (
-                                            <Menu.Item onClick={handleRename}>
-                                                <Rename />
-                                                <span>Rename</span>
-                                            </Menu.Item>
-                                        )}
+                                        {(selectedContextFile as any)?.type === 0 &&
+                                            !isImage((selectedContextFile as any).name as string) &&
+                                            EXTENSION_SET.has(extractionExtension((selectedContextFile as any)?.id)) && (
+                                                <Menu.Item onClick={handleCopy}>
+                                                    <VscCopy />
+                                                    <span>Duplicate</span>
+                                                </Menu.Item>
+                                            )}
+                                        {!(selectedContextFile as any)?.readOnly &&
+                                            ((selectedContextFile as any)?.type === 1 || EXTENSION_SET.has(extractionExtension((selectedContextFile as any)?.id))) && (
+                                                <Menu.Item onClick={handleRename}>
+                                                    <Rename />
+                                                    <span>Rename</span>
+                                                </Menu.Item>
+                                            )}
                                         {(selectedContextFile as any)?.gitClone ? (
                                             <Menu.Item onClick={updateGitFolder}>
                                                 <Update />
                                                 <span>Update</span>
                                             </Menu.Item>
                                         ) : null}
-                                        {!(selectedContextFile as any)?.readOnly && (
-                                            <Menu.Item onClick={deleteFile}>
-                                                <Delete />
-                                                <span>Delete</span>
-                                            </Menu.Item>
-                                        )}
+                                        {!(selectedContextFile as any)?.readOnly &&
+                                            ((selectedContextFile as any)?.type === 1 || EXTENSION_SET.has(extractionExtension((selectedContextFile as any)?.id))) && (
+                                                <Menu.Item onClick={deleteFile}>
+                                                    <Delete />
+                                                    <span>Delete</span>
+                                                </Menu.Item>
+                                            )}
                                         {(selectedContextFile as any)?.content ? (
                                             <Menu.Item onClick={downloadFile}>
                                                 <Download />

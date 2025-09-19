@@ -32,10 +32,10 @@ export const binaryCodeEncodeBase64 = (aBinaryCode: ArrayBufferLike) => {
 };
 
 export const extractionExtension = (aFileName: string) => {
-    const sDotIndex = aFileName.lastIndexOf('.');
+    const sDotIndex = aFileName?.lastIndexOf('.');
     if (sDotIndex === -1) return '';
 
-    return aFileName.slice(sDotIndex + 1).toLowerCase();
+    return aFileName?.slice(sDotIndex + 1)?.toLowerCase();
 };
 
 export const getMonacoLines = (aWrapperHeight: number, aLineHeight: number) => {
@@ -53,8 +53,12 @@ export const generateUUID = () => {
 export const isRollup = (aRollups: any, aTableName: string, aInterval: number, aColumnName: string) => {
     const sSplitTableName = aTableName.split('.');
     let sUserName: string = ADMIN_ID.toUpperCase();
-    const sTableName: string = sSplitTableName.at(-1) as string;
+    let sDBNM: string = 'MACHBASEDB';
+    if (sSplitTableName.length > 2) sDBNM = sSplitTableName.at(-3) as string;
+
+    let sTableName: string = sSplitTableName.at(-1) as string;
     if (sSplitTableName.length > 1) sUserName = sSplitTableName.at(-2) as string;
+    sTableName = sDBNM + '.' + sTableName;
     if (!isEmpty(aRollups) && aRollups[sUserName] && aRollups[sUserName][sTableName] && aRollups[sUserName][sTableName][aColumnName] && aInterval > 0) {
         const aValue = aRollups[sUserName][sTableName][aColumnName];
         const aResult = aValue.find((aRollupTime: any) => aInterval % aRollupTime === 0);
@@ -66,8 +70,11 @@ export const isRollup = (aRollups: any, aTableName: string, aInterval: number, a
 export const isRollupExt = (aRollups: any, aTableName: string, aInterval: any) => {
     const sSplitTableName = aTableName.split('.');
     let sUserName: string = ADMIN_ID.toUpperCase();
-    const sTableName: string = sSplitTableName.at(-1) as string;
+    let sDBNM: string = 'MACHBASEDB';
+    if (sSplitTableName.length > 2) sDBNM = sSplitTableName.at(-3) as string;
+    let sTableName: string = sSplitTableName.at(-1) as string;
     if (sSplitTableName.length > 1) sUserName = sSplitTableName.at(-2) as string;
+    sTableName = sDBNM + '.' + sTableName;
     if (!isEmpty(aRollups) && aRollups[sUserName] && aRollups[sUserName][sTableName] && aRollups[sUserName][sTableName]['EXT_TYPE'] && aInterval > 0) {
         const aValue = aRollups[sUserName][sTableName]['VALUE'];
         let aResult = 0;
@@ -316,7 +323,14 @@ export const createMinMaxQuery = (tableTagMap: TableTagMap[], currentUserName: s
         if (tableInfo.length === 3) {
             tags = aInfo.tags[0];
             tableName = aInfo.table;
-            query += `select min(${aInfo.cols.time}) as min_tm, max(${aInfo.cols.time}) as max_tm from ${tableName} where ${aInfo.cols.name} = '${tags}'`;
+            query += `SELECT 
+                MIN(TIME) AS min_tm,
+                MAX(TIME) AS max_tm
+            FROM (
+                SELECT TIME FROM (SELECT /*+ SCAN_FORWARD(${tableInfo.at(-1)}) */ TIME FROM ${tableName} WHERE ${aInfo.cols.name} = '${tags}' LIMIT 1)
+                UNION ALL
+                SELECT TIME FROM (SELECT /*+ SCAN_BACKWARD(${tableInfo.at(-1)}) */ TIME FROM ${tableName} WHERE ${aInfo.cols.name} = '${tags}' LIMIT 1)
+            )`;
         }
         // MACHBASE DB
         else {

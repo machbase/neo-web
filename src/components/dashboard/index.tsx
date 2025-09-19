@@ -20,7 +20,7 @@ import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Input } from '../inputs/Input';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import { Error } from '../toast/Toast';
+import { Error, Success } from '../toast/Toast';
 import { Variable } from './variable';
 import { VariableHeader } from './variable/header';
 import { VariablePreview } from './variable/preview';
@@ -45,6 +45,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const [sVariableModal, setVariableModal] = useState<boolean>(false);
     const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
     const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
+    const variableRef = useRef<HTMLDivElement>(null);
 
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
@@ -129,8 +130,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     };
     const handleCopyLink = () => {
         const sTargetBoard = sBoardList.find((aBoard) => aBoard.id === pInfo.id);
-        const sTargetPath = `${window.location.origin + '/web/ui/view' + sTargetBoard?.path + sTargetBoard!.name.split('.')[0]}`;
+        const sTargetPath = `${window.location.origin + '/web/ui/board' + sTargetBoard?.path + sTargetBoard!.name.split('.')[0]}`;
         ClipboardCopy(sTargetPath);
+        Success('Copied!');
     };
     const changeDashboardName = (e: any) => {
         setBoardList(
@@ -209,6 +211,29 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     useEffect(() => {
         initDashboard();
     }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (!sVariableCollapse) return;
+            const target = event.target as Element;
+            if (!target) return;
+            // Ignore clicks inside variable header area
+            if (variableRef.current && variableRef.current.contains(target)) return;
+            // Ignore clicks on variable related buttons
+            const variableButton = target.closest('[data-tooltip-id="variables-show-btn"]');
+            const variablePreview = target.closest('.board-header-variable-collapse');
+            const variablePreviewArea = target.closest('[class*="variable-preview"]');
+            if (variableButton || variablePreview || variablePreviewArea) return;
+            // Close variable panel for all other cases
+            setVariableCollapse(false);
+        };
+        if (sVariableCollapse) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [sVariableCollapse]);
 
     const handleSplitPaneSize = (varId: string = 'ALL') => {
         setSelectVariable(varId);
@@ -367,7 +392,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                     </div>
                 )}
                 {sVariableCollapse && (
-                    <div className="variable-header-warp">
+                    <div ref={variableRef} className="variable-header-warp">
                         <div className="variable-header-close">
                             <IconButton
                                 pIsToopTip
@@ -376,7 +401,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                 pWidth={20}
                                 pHeight={20}
                                 pIcon={<IoClose />}
-                                onClick={() => handleSplitPaneSize()}
+                                onClick={() => setVariableCollapse(false)}
                             />
                         </div>
                         <VariableHeader pBoardInfo={pInfo} callback={initDashboard} pSelectVariable={sSelectVariable} />

@@ -112,6 +112,11 @@ export default defineConfig({
                 changeOrigin: true,
                 secure: false,
             },
+            '/db/query': {
+                target: `http${TestSecurity}://${TestTarget}`,
+                changeOrigin: true,
+                secure: false,
+            },
         },
     },
 });

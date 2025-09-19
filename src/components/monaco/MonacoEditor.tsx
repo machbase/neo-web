@@ -7,6 +7,7 @@ export interface MonacoEditorProps {
     pIsActiveTab: boolean;
     pText: string;
     pLang: string;
+    pIsReadOnly?: boolean;
     onChange: OnChange;
     onRunCode: (
         aText: string,
@@ -20,7 +21,7 @@ export interface MonacoEditorProps {
 }
 
 export const MonacoEditor = (props: MonacoEditorProps) => {
-    const { pIsActiveTab, pText, pLang, onChange, onRunCode, onSelectLine, setLineHeight } = props;
+    const { pIsActiveTab, pText, pLang, pIsReadOnly = false, onChange, onRunCode, onSelectLine, setLineHeight } = props;
     const sMonaco = useMonaco();
     const [sEditor, setEditor] = useState<any>(null);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
@@ -45,6 +46,10 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
         fontSize: 14,
         fontFamily: 'D2Coding',
         scrollBeyondLastLine: false,
+        readOnly: pIsReadOnly,
+        hover: {
+            enabled: !pIsReadOnly,
+        },
     };
 
     useEffect(() => {
@@ -88,15 +93,15 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
 
     const handleMount = (editor: any) => {
         setEditor(editor);
-        if (pIsActiveTab) editor.focus();
+        if (pIsActiveTab && !pIsReadOnly) editor.focus();
     };
 
     useEffect(() => {
-        if (pIsActiveTab && sEditor) sEditor.focus();
+        if (pIsActiveTab && sEditor && !pIsReadOnly) sEditor.focus();
     }, [pIsActiveTab]);
 
     const applyRunCode = (aText: string) => {
-        if (!sMonaco || !pIsActiveTab) return;
+        if (!sMonaco || !pIsActiveTab || pIsReadOnly) return;
 
         const runCode = {
             id: 'run-code',

@@ -7,8 +7,7 @@ import useOutsideClick from '@/hooks/useOutsideClick';
 import { sqlSheetFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
 import TABLE from '@/components/table';
 import './WorkSheetEditor.scss';
-import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
-import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
+import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff, IoPlayForwardSharp } from '@/assets/icons/Icon';
 import { IconButton } from '../buttons/IconButton';
 import { useSetRecoilState } from 'recoil';
 import { gConsoleSelector } from '@/recoil/recoil';
@@ -20,6 +19,7 @@ import { postSplitter } from '@/api/repository/api';
 import { ShowVisualization } from '../tql/ShowVisualization';
 // import { CheckObjectKey, E_VISUAL_LOAD_ID } from '@/utils/dashboardUtil';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
+import { LocationType, PositionType, SelectionType, SplitItemType, SqlSplitHelper } from '@/utils/TQL/SqlSplitHelper';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell';
 type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell';
@@ -41,11 +41,6 @@ interface WorkSheetEditorProps {
     setSheet: React.Dispatch<React.SetStateAction<any>>;
     pCallback: (aData: { id: string; event: CallbackEventType }) => void;
 }
-
-type LocationType = {
-    position: PositionType;
-    selection: SelectionType;
-};
 
 const defaultSqlLocation = {
     position: { column: 1, lineNumber: 1 },
@@ -202,11 +197,15 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             }
             setMarkdown(aText);
         }
-        if (sSelectedLang === 'SQL') getSqlData(aText, aLocation);
+        if (sSelectedLang === 'SQL') getSqlData(aText, { aLocation });
         if (sSelectedLang === 'Shell') {
             setProcessing(true);
             getShellData(aText);
         }
+    };
+    const handleRunCodeAll = (aText: string) => {
+        if (sSelectedLang === 'SQL') getSqlData(aText, { aRunAll: true });
+        return;
     };
     const getShellData = async (aText: string) => {
         const sShellQuery = `FAKE(once(1))\nSHELL(${'`' + aText + '`'})\nJSON(rowsFlatten(true))`;
@@ -242,55 +241,33 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         if (splitRes?.success) return splitRes.data.statements;
         return undefined;
     };
-    const getSqlData = async (aText: string, aLocation?: LocationType) => {
-        let parsedQuery: any = '';
-        const splitList = await fetchSplitter(aText);
-        const location = aLocation ?? sSqlLocation;
-
+    const getSqlData = async (aText: string, aOpt: { aLocation?: LocationType; aRunAll?: boolean }) => {
         setProcessing(true);
+        const splitList = await fetchSplitter(aText);
+        const location = aOpt.aLocation ?? sSqlLocation;
+        const sRunAllState = pAllRunCodeStatus ? true : aOpt.aRunAll ? true : false;
+        const sParsedQuery: SplitItemType[] = SqlSplitHelper(location, splitList, sRunAllState);
 
-        // SINGLE
-        if (location.selection.endColumn === location.selection.startColumn && location.selection.endLineNumber === location.selection.startLineNumber) {
-            parsedQuery = splitList.filter((statement: any) => {
-                if (!statement.isComment && statement.beginLine <= location.selection.startLineNumber && location.selection.startLineNumber <= statement.endLine) {
-                    return statement;
-                }
-            });
-        }
-        // MULTIPLE
-        else {
-            parsedQuery = splitList.filter((statement: any) => {
-                if (!statement.isComment && statement.endLine >= location.selection.startLineNumber && statement.beginLine <= location.selection.endLineNumber) return statement;
-            });
-        }
         setSqlLocation(location);
-        if (!parsedQuery || parsedQuery.length === 0 || (parsedQuery.length === 1 && parsedQuery[0].length === 0)) {
+        if (!sParsedQuery || sParsedQuery?.length === 0 || (sParsedQuery?.length === 1 && sParsedQuery[0]?.length === 0)) {
             setProcessing(false);
             if (pAllRunCodeStatus) pAllRunCodeCallback(true);
             return;
         }
-        fetchSql(parsedQuery);
+        fetchSql(sParsedQuery);
     };
     const fetchSql = async (aParsedQuery: STATEMENT_TYPE[]) => {
         const sQueryReslutList: any = [];
         try {
-            const fetchQuery = (aQuery: STATEMENT_TYPE) => {
-                return new Promise((resolve, reject) => {
-                    setTimeout(async () => {
-                        const sQueryResult = await getTqlChart(sqlSheetFormatter(aQuery.text, sResultContentType === 'brief', aQuery.env?.bridge));
-                        sQueryReslutList.push(sQueryResult);
-                        if (sQueryResult.status === 200) resolve(true);
-                        else reject(false);
-                    }, 1);
-                });
-            };
-            await aParsedQuery.reduce(async (previousPromise: any, curQuery: STATEMENT_TYPE) => {
-                await previousPromise;
-                return fetchQuery(curQuery);
-            }, Promise.resolve());
+            for (const curQuery of aParsedQuery) {
+                const sQueryResult = await getTqlChart(sqlSheetFormatter(curQuery.text, sResultContentType === 'brief', curQuery.env?.bridge));
+                sQueryReslutList.push(sQueryResult);
+                if (sQueryResult?.status !== 200) throw new Error('Query failed');
+            }
         } catch {
             setSqlReason(sQueryReslutList.at(-1)?.data?.reason);
         }
+
         if (sQueryReslutList.at(-1).status === 200 && aParsedQuery.length === sQueryReslutList.length) {
             const sLastQueryResult = sQueryReslutList.at(-1);
             if (sLastQueryResult.headers['content-type'] === 'application/json') {
@@ -406,11 +383,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     };
     const SqlResult = () => {
         return sSql ? (
-            <>
-                <div className="result-worksheet">
-                    <div className="result-worksheet-sql" dangerouslySetInnerHTML={{ __html: sSql }}></div>
-                </div>
-            </>
+            <div className="result-worksheet">
+                <div className="result-worksheet-sql" dangerouslySetInnerHTML={{ __html: sSql }} />
+            </div>
         ) : (
             <div className="result-worksheet-total">
                 <span>{sSqlReason}</span>
@@ -529,6 +504,16 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                             {VerticalDivision()}
                             {ResultContentType()}
                             <IconButton pIsToopTip pToolTipContent="Run code" pToolTipId="wrk-tab-panel-run" pIcon={<Play />} pIsActiveHover onClick={() => handleRunCode(sText)} />
+                            {sSelectedLang === 'SQL' ? (
+                                <IconButton
+                                    pIsToopTip
+                                    pToolTipContent="Run all code"
+                                    pToolTipId="wrk-tab-panel-run-all"
+                                    pIcon={<IoPlayForwardSharp />}
+                                    pIsActiveHover
+                                    onClick={() => handleRunCodeAll(sText)}
+                                />
+                            ) : null}
                             {VerticalDivision()}
                             <IconButton
                                 pIsToopTip

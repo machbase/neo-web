@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Search } from '@/assets/icons/Icon';
-import { MdKeyboardDoubleArrowLeft, MdOutlineKeyboardArrowDown, MdOutlineKeyboardArrowUp, MdOutlineKeyboardDoubleArrowRight } from 'react-icons/md';
+import { MdKeyboardDoubleArrowLeft, MdOutlineKeyboardArrowDown, MdOutlineKeyboardArrowUp, MdOutlineKeyboardDoubleArrowRight, MdOutlineOpenInNew } from 'react-icons/md';
 import { getTagPagination, getTagTotal } from '@/api/repository/machiot';
 import { Input } from './Input';
 import { Tooltip } from 'react-tooltip';
@@ -9,7 +9,7 @@ import useDebounce from '@/hooks/useDebounce';
 import './TagSearchSelect.scss';
 import useEsc from '@/hooks/useEsc';
 
-export const TagSearchSelect = ({ pTable, pCallback, pBlockOption }: { pTable: string; pCallback: (aSelectTag: string) => void; pBlockOption: any }) => {
+export const TagSearchSelect = ({ pTable, pCallback, pBlockOption, pUseDialog }: { pTable: string; pCallback: (aSelectTag: string) => void; pBlockOption: any; pUseDialog?: boolean }) => {
     const [sIsOpen, setIsOpen] = useState<boolean>(false);
     const [sTagPagination, setTagPagination] = useState(1);
     const [sKeepPageNum, setKeepPageNum] = useState<any>(1);
@@ -114,13 +114,23 @@ export const TagSearchSelect = ({ pTable, pCallback, pBlockOption }: { pTable: s
                 className="tag-search-select-open-btn-wrapper"
                 onClick={(e: any) => {
                     e.stopPropagation();
-                    setIsOpen(!sIsOpen);
+                    if (pUseDialog) {
+                        pCallback(''); // 다이얼로그 열기 용도로 콜백 호출
+                    } else {
+                        setIsOpen(!sIsOpen);
+                    }
                 }}
             >
-                {!sIsOpen && <MdOutlineKeyboardArrowDown />}
-                {sIsOpen && <MdOutlineKeyboardArrowUp />}
+                {pUseDialog ? (
+                    <MdOutlineOpenInNew />
+                ) : (
+                    <>
+                        {!sIsOpen && <MdOutlineKeyboardArrowDown />}
+                        {sIsOpen && <MdOutlineKeyboardArrowUp />}
+                    </>
+                )}
             </div>
-            {sIsOpen && (
+            {sIsOpen && !pUseDialog && (
                 <div className="tag-search-select-content-wrapper">
                     <div className="tag-search-select-header">
                         <Input pValue={sTagInputValue} pSetValue={setTagInputValue} pIsFullWidth pHeight={36} onChange={filterTag} onEnter={handleSearch} />
