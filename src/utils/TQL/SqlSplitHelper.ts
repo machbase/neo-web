@@ -29,7 +29,7 @@ export interface SplitItemType {
 
 export const SqlSplitHelper = (aLocation: LocationType, aSplitList: SplitItemType[], aRunAll?: boolean): SplitItemType[] => {
     let parsedQuery: SplitItemType[] = [];
-    if (aRunAll) return aSplitList;
+    if (aRunAll) return aSplitList?.filter((statement) => !statement?.isComment);
     // SINGLE
     if (aLocation.selection.endColumn === aLocation.selection.startColumn && aLocation.selection.endLineNumber === aLocation.selection.startLineNumber) {
         parsedQuery = aSplitList.filter((statement: SplitItemType) => {
