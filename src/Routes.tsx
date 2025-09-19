@@ -8,7 +8,7 @@ import { useToken } from './hooks/useToken';
 
 export const Routes = () => {
     const location = useLocation();
-    
+
     if (location.pathname.startsWith('/board')) {
         return <PublicApp />;
     }
@@ -22,6 +22,7 @@ export const Routes = () => {
         if (sHome !== undefined && !sHome) {
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
+            localStorage.removeItem('V$ROLLUP_VER');
             sNavigate('/login');
         }
     }, [sHome]);

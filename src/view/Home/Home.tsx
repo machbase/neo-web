@@ -10,13 +10,7 @@ import { getLogin } from '@/api/repository/login';
 import Body from '@/components/editor/Body';
 import { getId } from '@/utils';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import {
-    gConsoleSelector,
-    gLicense,
-    // gExtensionList,
-    gSelectedExtension,
-    gShellList,
-} from '@/recoil/recoil';
+import { gConsoleSelector, gLicense, gSelectedExtension, gShellList } from '@/recoil/recoil';
 import ReferenceList from '@/components/side/ReferenceList';
 import { DBExplorer } from '@/components/side/DBExplorer/DBExplorer';
 import { SecurityKey } from '@/components/side/SecurityKey';
@@ -28,6 +22,7 @@ import { BridgeSide } from '@/components/side/Bridge';
 import { AppStore } from '@/components/side/AppStore';
 import { GlobalChecker } from '@/components/GlobalChecker';
 import { EulaModal } from '@/components/modal/EulaModal';
+import { fetchQuery } from '@/api/repository/database';
 
 const Home = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);
@@ -119,6 +114,10 @@ const Home = () => {
             const sOrder = ['editable', 'cloneable', 'removable'];
             return sOrder.indexOf(aItem) - sOrder.indexOf(bItem);
         };
+        // RECENT = true, OLD = false
+        const sResRollupVer: any = await fetchQuery(`SELECT count(DATABASE_ID) FROM V$ROLLUP`);
+        if (sResRollupVer.svrState) localStorage.setItem('V$ROLLUP_VER', 'RECENT');
+        else localStorage.setItem('V$ROLLUP_VER', 'OLD');
 
         if (sHome && sResult?.shells && sResult.shells.length !== 0) {
             sResult.shells.forEach((aItem: any) => {

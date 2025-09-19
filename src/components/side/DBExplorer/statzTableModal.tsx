@@ -20,7 +20,8 @@ interface VirtualTableProps {
 const FETCH_LIMIT = 10;
 const TIME_24 = 'YYYY-MM-DD HH24:MI:SS';
 const ToCharTime = (aColumn: string) => `TO_CHAR(${aColumn}, '${TIME_24}') as '${aColumn}'`;
-const ToCharValue = (aColumn: string) => `TO_CHAR(${aColumn} ,'N0') as '${aColumn}'`;
+// const ToCharValue = (aColumn: string) => `TO_CHAR(${aColumn} ,'N0') as '${aColumn}'`;
+const ToCharValue = (aColumn: string) => `${aColumn}`;
 
 export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps) => {
     const [sStatzList, setStatzInfo] = useState<FetchCommonType>();

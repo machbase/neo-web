@@ -18,10 +18,12 @@ export const MetaTablePage = ({
     pIsActiveTab,
     pMTableInfo,
     pRefresh,
+    pMColInfo,
 }: {
     pIsActiveTab: boolean;
     pMTableInfo: any;
     pRefresh: { state: number; set: React.Dispatch<React.SetStateAction<number>> };
+    pMColInfo: any;
 }) => {
     const setBoardList = useSetRecoilState<any[]>(gBoardList);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
@@ -57,7 +59,7 @@ export const MetaTablePage = ({
     }, [sMetaTableInfo]);
     const mTableInfo = useMemo(() => {
         return pMTableInfo;
-    }, [pMTableInfo]);
+    }, [pMColInfo]);
 
     const FetchMetaTable = useCallback(
         async (opt: { page: number; filter: string }) => {
@@ -65,9 +67,9 @@ export const MetaTablePage = ({
             setIsLoading(true);
             const currentPage = opt?.page !== undefined ? opt?.page : sPage;
             const currentFilter = opt?.filter !== undefined ? opt.filter : sFilter;
-            const sTargetTable = `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}._${mTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE NAME LIKE '%${
-                currentFilter ? currentFilter + '%' : ''
-            }'`;
+            const sTargetTable = `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}._${mTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE ${
+                pMColInfo?.rows?.[0]?.[0]
+            } LIKE '%${currentFilter ? currentFilter + '%' : ''}'`;
             const sQuery = `select * from ${sTargetTable} order by _id asc`;
             const { svrState, svrData } = await fetchTqlQuery(sQuery, currentPage);
 
@@ -89,27 +91,27 @@ export const MetaTablePage = ({
     const FetchMetaTableCnt = useCallback(
         async (filter: string) => {
             const currentFilter = filter !== undefined ? filter : sFilter;
-            const sTargetTable = `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}._${mTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE NAME LIKE '%${
-                currentFilter ? currentFilter + '%' : ''
-            }'`;
+            const sTargetTable = `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}._${mTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE ${
+                pMColInfo?.rows?.[0]?.[0]
+            } LIKE '%${currentFilter ? currentFilter + '%' : ''}'`;
             const sQuery = `select count(*) from ${sTargetTable}`;
             const { svrState, svrData } = await fetchQuery(sQuery);
             if (svrState) setMetaTableCnt(svrData?.rows?.[0]?.[0] ?? 0);
             else setMetaTableCnt(0);
         },
-        [mTableInfo]
+        [pMColInfo]
     );
     const FetchTagMinMax = async (aTagNm: string) => {
-        const sQuery = `select min(time) as 'MIN', max(time) as 'MAX' from ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${
-            mTableInfo[E_TABLE_INFO.TB_NM]
-        } where NAME in ('${aTagNm}')`;
+        const sQuery = `select min(${pMColInfo?.rows[1][0]}) as 'MIN', max(${pMColInfo?.rows[1][0]}) as 'MAX' from ${mTableInfo[E_TABLE_INFO.DB_NM]}.${
+            mTableInfo[E_TABLE_INFO.USER_NM]
+        }.${mTableInfo[E_TABLE_INFO.TB_NM]} where ${pMColInfo?.rows?.[0]?.[0]} in ('${aTagNm}')`;
         const { svrData } = await fetchQuery(sQuery);
         const sTazBoard = GenTazDefault({
             aTag: aTagNm,
             aTime: { min: Math.floor(svrData?.rows?.[0]?.[0] / 1000000), max: Math.floor(svrData?.rows?.[0]?.[1] / 1000000) },
             aTableInfo: mTableInfo,
+            aColType: pMColInfo?.rows.map((row: string[]) => row[0]),
         });
-
         setBoardList((aPrev: any) => {
             return [...aPrev, sTazBoard];
         });
@@ -154,14 +156,16 @@ export const MetaTablePage = ({
         }
         if (aCommand === 'UPDATE') {
             const sConvertedStr = convertTagMetaForUpdate(aValues as STR_NUM_ARR_TYPE);
-            sQuery = `UPDATE ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${
-                mTableInfo[E_TABLE_INFO.TB_NM]
-            } METADATA SET ${sConvertedStr} WHERE NAME='${aTagNm}'`;
+            sQuery = `UPDATE ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]} METADATA SET ${sConvertedStr} WHERE ${
+                pMColInfo?.rows?.[0]?.[0]
+            }='${aTagNm}'`;
         }
         if (aCommand === 'DELETE') {
             // Close modal
             setIsOpenConfirm(false);
-            sQuery = `DELETE FROM ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]} METADATA WHERE NAME='${aTagNm}'`;
+            sQuery = `DELETE FROM ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]} METADATA WHERE ${
+                pMColInfo?.rows?.[0]?.[0]
+            }='${aTagNm}'`;
         }
 
         const { svrState, svrReason } = await fetchQuery(sQuery);
@@ -173,7 +177,7 @@ export const MetaTablePage = ({
                 setMetaTableInfo((prevInfo: any) => {
                     return {
                         ...prevInfo,
-                        rows: prevInfo?.rows?.filter((row: STR_NUM_ARR_TYPE) => row?.[sMetaTableInfo?.columns?.indexOf('NAME') as number] !== aTagNm),
+                        rows: prevInfo?.rows?.filter((row: STR_NUM_ARR_TYPE) => row?.[sMetaTableInfo?.columns?.indexOf(pMColInfo?.rows?.[0]?.[0]) as number] !== aTagNm),
                     };
                 });
             if (aCommand === 'UPDATE')
@@ -181,7 +185,7 @@ export const MetaTablePage = ({
                     return {
                         ...prevInfo,
                         rows: prevInfo?.rows?.map((row: STR_NUM_ARR_TYPE) => {
-                            if (row?.[sMetaTableInfo?.columns?.indexOf('NAME') as number] === aTagNm)
+                            if (row?.[sMetaTableInfo?.columns?.indexOf(pMColInfo?.rows?.[0]?.[0]) as number] === aTagNm)
                                 return [row?.[sMetaTableInfo?.columns?.indexOf('_ID') as number]]?.concat(aValues as STR_NUM_ARR_TYPE);
                             else return row;
                         }),
@@ -208,7 +212,7 @@ export const MetaTablePage = ({
     const handleUpdateMeta = useCallback(
         (aUpdateInfo: any) => {
             const rowWithoutId = removeIdFromRow(aUpdateInfo.modAfterInfo.row);
-            ModMeta('UPDATE', aUpdateInfo.modBeforeInfo.row[mMetaColumnList?.indexOf('NAME') as number], rowWithoutId);
+            ModMeta('UPDATE', aUpdateInfo.modBeforeInfo.row[mMetaColumnList?.indexOf(pMColInfo?.rows?.[0]?.[0]) as number], rowWithoutId);
         },
         [mMetaColumnList]
     );
@@ -217,7 +221,7 @@ export const MetaTablePage = ({
     };
     const handleDeleteMeta = useCallback(
         (aItem: any) => {
-            setDelInfo(aItem?.[sMetaTableInfo?.columns?.indexOf('NAME') as number]);
+            setDelInfo(aItem?.[sMetaTableInfo?.columns?.indexOf(pMColInfo?.rows?.[0]?.[0]) as number]);
             setIsOpenConfirm(true);
         },
         [sMetaTableInfo?.columns]
@@ -242,7 +246,7 @@ export const MetaTablePage = ({
         (item: STR_NUM_ARR_TYPE) => {
             FetchTagMinMax(item[1] as string);
         },
-        [mTableInfo]
+        [pMColInfo]
     );
 
     const handleEndOfContent = useCallback(() => {
@@ -273,7 +277,7 @@ export const MetaTablePage = ({
             }
             if (!sIsComponentLoad) setIsComponentLoad(true);
         }
-    }, [mTableInfo, pRefresh.state, pIsActiveTab]);
+    }, [pMColInfo, pRefresh.state, pIsActiveTab]);
 
     // Effect for page changes (pagination) - only for page > 0
     useEffect(() => {

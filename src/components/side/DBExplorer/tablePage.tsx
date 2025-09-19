@@ -64,7 +64,7 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
 
     const FetchRecordCount = async () => {
         let sSubCol = '';
-        if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) sSubCol = ', MIN(TIME) as MIN, MAX(TIME) as MAX';
+        if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) sSubCol = `, MIN(${mColList?.rows?.[1]?.[0]}) as MIN, MAX(${mColList?.rows?.[1]?.[0]}) as MAX`;
         if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.LOG) sSubCol = ', MIN(_ARRIVAL_TIME) as MIN, MAX(_ARRIVAL_TIME) as MAX';
         const sQuery = `SELECT COUNT(*) as CNT ${sSubCol} FROM ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]}`;
         const { svrState, svrData } = await fetchQuery(sQuery);
@@ -224,10 +224,13 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
     };
 
     useEffect(() => {
+        if (sColumnInfo) FetchRecordCount();
+    }, [sColumnInfo]);
+
+    useEffect(() => {
         if (pIsActiveTab) {
             if (mTableInfo) {
                 SetLastFetchTime();
-                FetchRecordCount();
                 FetchColumn();
                 FetchIndex();
                 // Cond retention (MACHBASEDB)
@@ -268,7 +271,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                     <ExtensionTab.Body fixed>
                         <ExtensionTab.ContentBlock pHoverNone>
                             <ExtensionTab.DpRowBetween>
-                                <div style={{ gap: '8px', display: 'flex', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div style={{ gap: '8px', display: 'flex', flexDirection: 'row', alignItems: 'center', textWrap: 'nowrap' }}>
                                     <ExtensionTab.SubTitle>Table</ExtensionTab.SubTitle>
                                     <BadgeSelectorItem
                                         item={{
@@ -278,7 +281,6 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                     />
                                     <ExtensionTab.ContentTitle>{`${mTableInfo[E_TABLE_INFO.TB_NM]}`}</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>{`(${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]})`}</ExtensionTab.ContentDesc>
-                                    <div style={{ color: '#1c1c21' }}>TABLE ID: {mTableInfo[E_TABLE_INFO.TB_ID]}</div>
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end' }}>
                                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -297,11 +299,13 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                     CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.LOG ? (
                                         <ExtensionTab.DpRowBetween>
                                             <div />
-                                            <ExtensionTab.ContentDesc>
-                                                {sRecordInfo?.min > 0 ? moment((sRecordInfo?.min as number) / 1000000).format('YYYY-MM-DD HH:mm:ss') : 'N/A'}
-                                                {' ~ '}
-                                                {sRecordInfo?.max > 0 ? moment((sRecordInfo?.max as number) / 1000000).format('YYYY-MM-DD HH:mm:ss') : 'N/A'}
-                                            </ExtensionTab.ContentDesc>
+                                            <div style={{ textWrap: 'nowrap' }}>
+                                                <ExtensionTab.ContentDesc>
+                                                    {sRecordInfo?.min > 0 ? moment((sRecordInfo?.min as number) / 1000000).format('YYYY-MM-DD HH:mm:ss') : 'N/A'}
+                                                    {' ~ '}
+                                                    {sRecordInfo?.max > 0 ? moment((sRecordInfo?.max as number) / 1000000).format('YYYY-MM-DD HH:mm:ss') : 'N/A'}
+                                                </ExtensionTab.ContentDesc>
+                                            </div>
                                         </ExtensionTab.DpRowBetween>
                                     ) : null}
                                 </div>
@@ -391,7 +395,9 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                             />
                         </ExtensionTab.DpRow>
                     </ExtensionTab.Header>
-                    <MetaTablePage pIsActiveTab={pIsActiveTab} pMTableInfo={mTableInfo} pRefresh={{ state: sRefreshCnt, set: setRefreshCnt }} />
+                    {mColList ? (
+                        <MetaTablePage pIsActiveTab={pIsActiveTab} pMTableInfo={mTableInfo} pMColInfo={mColList} pRefresh={{ state: sRefreshCnt, set: setRefreshCnt }} />
+                    ) : null}
                 </Pane>
             </SplitPane>
         </ExtensionTab>

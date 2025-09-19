@@ -166,7 +166,6 @@ const DashboardView = () => {
             setLayoutWidth(sLayoutRef.current.clientWidth);
         }
     };
-
     useEffect(() => {
         if (sBoardInformation && sBoardInformation.dashboard.timeRange && sBoardInformation.dashboard.timeRange.refresh !== 'Off')
             ctrBoardInterval(sBoardInformation.dashboard.timeRange);
