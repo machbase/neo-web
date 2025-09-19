@@ -362,20 +362,18 @@ export const MetaTablePage = ({
                                 <ExtensionTab.ContentDesc>count: {sMetaTableCnt?.toLocaleString() ?? 0}</ExtensionTab.ContentDesc>
                                 {sModUpdateInfo.isOpen ? (
                                     <div />
-                                ) : (
+                                ) : allowedV$() ? (
                                     <ExtensionTab.DpRow>
-                                        {allowedV$() && (
-                                            <ExtensionTab.TextButton
-                                                pText="Info"
-                                                mr="8px"
-                                                pType="STATUS"
-                                                pIcon={<BiInfoCircle style={{ marginRight: '4px' }} />}
-                                                pCallback={() => handleVirtualModal(sFilter, true)}
-                                            />
-                                        )}
+                                        <ExtensionTab.TextButton
+                                            pText="Info"
+                                            mr="8px"
+                                            pType="STATUS"
+                                            pIcon={<BiInfoCircle style={{ marginRight: '4px' }} />}
+                                            pCallback={() => handleVirtualModal(sFilter, true)}
+                                        />
                                         <ExtensionTab.TextButton pText="+ Insert" mr="0" pType="CREATE" pCallback={handleInsertBlock} />
                                     </ExtensionTab.DpRow>
-                                )}
+                                ) : null}
                             </ExtensionTab.DpRowBetween>
                             <ExtensionTab.Input
                                 pPlaceholder={'Search'}
