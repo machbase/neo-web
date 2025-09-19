@@ -53,8 +53,12 @@ export const generateUUID = () => {
 export const isRollup = (aRollups: any, aTableName: string, aInterval: number, aColumnName: string) => {
     const sSplitTableName = aTableName.split('.');
     let sUserName: string = ADMIN_ID.toUpperCase();
-    const sTableName: string = sSplitTableName.at(-1) as string;
+    let sDBNM: string = 'MACHBASEDB';
+    if (sSplitTableName.length > 2) sDBNM = sSplitTableName.at(-3) as string;
+
+    let sTableName: string = sSplitTableName.at(-1) as string;
     if (sSplitTableName.length > 1) sUserName = sSplitTableName.at(-2) as string;
+    sTableName = sDBNM + '.' + sTableName;
     if (!isEmpty(aRollups) && aRollups[sUserName] && aRollups[sUserName][sTableName] && aRollups[sUserName][sTableName][aColumnName] && aInterval > 0) {
         const aValue = aRollups[sUserName][sTableName][aColumnName];
         const aResult = aValue.find((aRollupTime: any) => aInterval % aRollupTime === 0);
@@ -66,8 +70,11 @@ export const isRollup = (aRollups: any, aTableName: string, aInterval: number, a
 export const isRollupExt = (aRollups: any, aTableName: string, aInterval: any) => {
     const sSplitTableName = aTableName.split('.');
     let sUserName: string = ADMIN_ID.toUpperCase();
-    const sTableName: string = sSplitTableName.at(-1) as string;
+    let sDBNM: string = 'MACHBASEDB';
+    if (sSplitTableName.length > 2) sDBNM = sSplitTableName.at(-3) as string;
+    let sTableName: string = sSplitTableName.at(-1) as string;
     if (sSplitTableName.length > 1) sUserName = sSplitTableName.at(-2) as string;
+    sTableName = sDBNM + '.' + sTableName;
     if (!isEmpty(aRollups) && aRollups[sUserName] && aRollups[sUserName][sTableName] && aRollups[sUserName][sTableName]['EXT_TYPE'] && aInterval > 0) {
         const aValue = aRollups[sUserName][sTableName]['VALUE'];
         let aResult = 0;
