@@ -194,14 +194,14 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                     if (sSelectedBlock.idx === -1) {
                         // All blocks selected - use base filename with numbering
                         const baseFileName = sSaveFileName.trim() || 
-                            (pPanelInfo.title || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
+                            (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
                         const baseWithoutExt = baseFileName.replace(/\.(json|csv)$/i, '');
                         const blockNumber = blockIndex + 1;
                         filename = `${baseWithoutExt}_${blockNumber}`;
                     } else {
                         // Single block selected - use filename as is
                         const baseFileName = sSaveFileName.trim() || 
-                            (pPanelInfo.title || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
+                            (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
                         filename = baseFileName.replace(/\.(json|csv)$/i, '');
                     }
                     
@@ -220,13 +220,7 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                 }
             }
             
-            // Show success/error messages
-            if (successCount > 0) {
-                Success(`Successfully downloaded ${successCount} file${successCount > 1 ? 's' : ''}`);
-            }
-            if (errorCount > 0) {
-                Error(`Failed to download ${errorCount} file${errorCount > 1 ? 's' : ''}`);
-            }
+            // Don't show toast messages
             
         } catch (error) {
             Error('Download failed. Please try again.');
@@ -240,7 +234,9 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
 
     useEffect(() => {
         SetBlockAliasList();
-        setSaveFileName(`${pPanelInfo.title !== '' ? pPanelInfo.title : 'panel_data'}`);
+        // Set initial filename based on first tag name
+        const firstTagName = pPanelInfo?.blockList?.[0]?.name || 'panel_data';
+        setSaveFileName(firstTagName.replace(/[^a-zA-Z0-9_-]/g, '_'));
     }, []);
 
     return (

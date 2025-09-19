@@ -17,6 +17,7 @@ import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot'
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import moment from 'moment';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
+import { Error } from '@/components/toast/Toast';
 
 const CreatePanel = ({
     pLoopMode,
@@ -62,6 +63,11 @@ const CreatePanel = ({
 
     // Create
     const addPanel = async () => {
+        // Validate transform aliases first
+        if (!validateTransformAliases(sPanelOption)) {
+            return;
+        }
+        
         if (sPanelOption.useCustomTime) {
             let sStart: any;
             let sEnd: any;
@@ -140,6 +146,11 @@ const CreatePanel = ({
     };
     // Edit
     const editPanel = () => {
+        // Validate transform aliases first
+        if (!validateTransformAliases(sPanelOption)) {
+            return;
+        }
+        
         let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
 
         if (sSaveTarget.path !== '') {
@@ -189,8 +200,25 @@ const CreatePanel = ({
             return { ...aPanelInfo, axisInterval: { IntervalType: '', IntervalValue: '' }, isAxisInterval: false };
         else return { ...aPanelInfo, isAxisInterval: true };
     };
+    
+    const validateTransformAliases = (aPanelInfo: any) => {
+        if (aPanelInfo?.transformBlockList && aPanelInfo.transformBlockList.length > 0) {
+            for (const transformBlock of aPanelInfo.transformBlockList) {
+                if (!transformBlock.alias || transformBlock.alias.trim() === '') {
+                    Error('Transform alias cannot be empty. Please enter an alias for all transform blocks.');
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
     // Preview
     const applyPanel = async (aTime?: any) => {
+        // Validate transform aliases first
+        if (!validateTransformAliases(sPanelOption)) {
+            return;
+        }
+        
         const sTmpPanelOption = checkXAxisInterval(sPanelOption);
         if (sPanelOption.type === 'Tql chart') {
             if (sTmpPanelOption.useCustomTime) {

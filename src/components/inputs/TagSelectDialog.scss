@@ -17,7 +17,7 @@
     transform: translate(-50%, -50%);
     background-color: #404457;
     width: 580px;
-    height: 560px;
+    height: 420px;
     z-index: $modal-idx;
     border-radius: 8px;
     border: solid 0.5px rgba(255, 255, 255, 0.5);
@@ -28,7 +28,7 @@
 
     .inner-form {
         button {
-            border: solid 0.5px #ffffff;
+            border: none;
             background-color: transparent;
             padding: 0;
         }
@@ -63,6 +63,9 @@
         flex-direction: column;
         overflow: hidden;
         background-color: #404457 !important;
+        border: none !important;
+        border-top: none !important;
+        border-bottom: none !important;
     }
     
     .table-select {
@@ -75,7 +78,6 @@
         .title {
             width: 20%;
             opacity: 0.5;
-            color: rgb(253, 181, 50);
             display: flex;
             align-items: center;
             min-width: 100px;
@@ -110,7 +112,6 @@
         .title {
             width: 20%;
             opacity: 0.5;
-            color: rgb(253, 181, 50);
             display: flex;
             align-items: center;
             flex-direction: row;
@@ -162,20 +163,15 @@
                 flex: 1;
                 
                 .select-tab {
-                    flex: 0 0 340px;
-                    height: 340px;
-                    max-height: 340px;
-                    margin: 0;
-                    padding: 0;
                     overflow-y: auto;
                     overflow-x: hidden;
                     display: flex;
                     flex-direction: column;
                     background-color: rgba(38, 40, 49, 0.5);
                     border: solid 0.5px rgba(255, 255, 255, 0.5);
-                    min-height: 30px;
-                    flex: 1;
+                    height: 256px;
                     border-radius: 8px;
+                    padding: 8px 0;
                     
                     button {
                         width: 100%;
@@ -186,7 +182,7 @@
                         gap: 5px;
                         color: white;
                         padding: 0 8px;
-                        height: 34px;
+                        height: 24px;
 
                         .tag-text {
                             overflow: hidden;
@@ -196,7 +192,7 @@
                         }
                         
                         &:hover {
-                            background-color: rgb(116, 116, 116);
+                            background-color: rgba(38, 40, 49, 0.8) !important;
                             border-radius: 4px;
                         }
                         
@@ -225,7 +221,7 @@
                         align-items: center;
                         display: flex;
                         border-radius: 6px;
-                        border: 1px solid rgba(255, 255, 255, 0.5);
+                        border: none;
                         padding: 0;
                     }
                     justify-content: center;
