@@ -1,7 +1,7 @@
 import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download } from '@/assets/icons/Icon';
 // import { IconButton } from '@/components/buttons/IconButton';
-import { gBoardList, GBoardListType, gSelectedTab } from '@/recoil/recoil';
-import { useRecoilState } from 'recoil';
+import { gBoardList, GBoardListType, gSelectedTab, gRollupTableList } from '@/recoil/recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import './PanelHeader.scss';
 import { Tooltip } from 'react-tooltip';
 import { generateRandomString, generateUUID, getId, isEmpty } from '@/utils';
@@ -10,10 +10,9 @@ import { useState, useRef } from 'react';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { convertChartDefault } from '@/utils/utils';
 import { ChartThemeTextColor, DEFAULT_CHART } from '@/utils/constants';
-import { Error } from '@/components/toast/Toast';
+import { Error, Success } from '@/components/toast/Toast';
 import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
 import { SaveDashboardModal } from '@/components/modal/SaveDashboardModal';
-import { PanelDataDownloadModal } from '@/components/modal/PanelDataDownloadModal';
 import { HiMiniDocumentDuplicate } from 'react-icons/hi2';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { concatTagSet } from '@/utils/helpers/tags';
@@ -22,15 +21,23 @@ import { TbZoomPan } from 'react-icons/tb';
 import { IoMdCheckmark } from 'react-icons/io';
 import { VariableParserForTql } from '@/utils/DashboardQueryParser';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
+import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
+import { calcInterval, CheckObjectKey, setUnitTime } from '@/utils/dashboardUtil';
+import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
+import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
+import { chartTypeConverter } from '@/utils/eChartHelper';
+import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOriginDataDownloader';
+import { fixedEncodeURIComponent } from '@/utils/utils';
+import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo }: any) => {
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState(gSelectedTab);
+    const sRollupTableList = useRecoilValue(gRollupTableList);
     const sHeaderId = generateRandomString();
     const sMenuRef = useRef<HTMLDivElement>(null);
     const [sDownloadModal, setDownloadModal] = useState<boolean>(false);
-    const [sDataDownloadModal, setDataDownloadModal] = useState<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
 
     const removePanel = () => {
@@ -153,9 +160,175 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         setIsContextMenu(false);
         setDownloadModal(true);
     };
-    const HandleDataDownload = () => {
+    // Helper functions for data download (moved from PanelDataDownloadModal)
+    const defaultMinMax = () => {
+        const now = Date.now();
+        return { min: Math.floor(now - 60 * 60 * 1000), max: Math.floor(now) };
+    };
+
+    const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
+        const sTargetTag = pPanelInfo?.blockList?.[0] ?? { tag: '' };
+        const hasName = sTargetTag.tag && sTargetTag.tag !== '';
+        const customName = sTargetTag.filter?.filter((aFilter: any) => {
+            if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
+        })?.[0]?.value;
+        if (hasName || (sTargetTag.useCustom && customName)) {
+            if (sTargetTag.customTable) return defaultMinMax();
+            let rows: any = undefined;
+            if (sTargetTag.table?.split('.')?.length > 2) rows = await fetchMountTimeMinMax(sTargetTag);
+            else rows = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: customName }) : await fetchTimeMinMax(sTargetTag);
+            const res = { min: Math.floor(rows?.[0]?.[0] / 1000000), max: Math.floor(rows?.[0]?.[1] / 1000000) };
+            if (!Number(res.min) || !Number(res.max)) return defaultMinMax();
+            return res;
+        }
+        return defaultMinMax();
+    };
+
+    const resolveTimeRange = async () => {
+        // Determine which time strings to use (panel custom vs dashboard)
+        const pDashboardTime = sBoardList.find((aItem: any) => aItem.id === sSelectedTab)?.dashboard.timeRange;
+        const startRaw = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.start ?? '' : pDashboardTime.start;
+        const endRaw = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.end ?? '' : pDashboardTime.end;
+
+        // If both are numeric, return directly
+        if (!isNaN(Number(startRaw)) && !isNaN(Number(endRaw))) return { min: Number(startRaw), max: Number(endRaw) };
+
+        // Fetch dataset min/max so 'last-*' can anchor to data's last timestamp
+        const svr = await fetchTableTimeMinMax();
+        const mm = timeMinMaxConverter(startRaw, endRaw, svr) ?? { min: setUnitTime(startRaw), max: setUnitTime(endRaw) };
+        return mm;
+    };
+
+    const GetQuery = async () => {
+        const { min: sStartTime, max: sEndTime } = await resolveTimeRange();
+        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, pPanelInfo.w * 50);
+        const [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
+            chartTypeConverter(pPanelInfo.type),
+            SqlResDataType(pPanelInfo.type),
+            pPanelInfo.blockList,
+            pPanelInfo.transformBlockList,
+            sRollupTableList,
+            pPanelInfo.xAxisOptions,
+            {
+                interval: sIntervalInfo,
+                start: sStartTime,
+                end: sEndTime,
+            },
+            undefined,
+            true
+        );
+
+        return [sParsedQuery, sAliasList, sInjectionSrc];
+    };
+
+    const GetSaveDataText = async (blockIndex: number) => {
+        const [sParsedQuery, sAliasList] = await GetQuery();
+        const { min: sStartTime, max: sEndTime } = await resolveTimeRange();
+        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, pPanelInfo.w * 50);
+        
+        const sTargetItem = sParsedQuery[blockIndex];
+        const sBlockInfo = sAliasList[blockIndex];
+        let sResult = '';
+        
+        // Apply variables replacement if board info and variables are available
+        let processedSql = sTargetItem.sql;
+        if (pBoardInfo?.dashboard?.variables && pBoardInfo.dashboard.variables.length > 0) {
+            const sTimeContext = {
+                interval: sIntervalInfo,
+                start: sStartTime,
+                end: sEndTime,
+            };
+            processedSql = replaceVariablesInTql(sTargetItem.sql, pBoardInfo.dashboard.variables, sTimeContext);
+        }
+        
+        // Get actual tag name from block info (alias name or original name)
+        const tagName = sBlockInfo?.name || 'UNKNOWN';
+        
+        if (CheckObjectKey(sTargetItem, 'trx')) {
+            sResult = processedSql + '\n' +
+                     `PUSHVALUE(0, '${tagName}', 'NAME')\n` +
+                     `MAPVALUE(1, round(value(1) * 1000) / 1000000, 'TIME')\n` +
+                     `CSV(header(true))`;
+        } else {
+            sResult = `SQL("${processedSql}")\n` +
+                     `PUSHVALUE(0, '${tagName}', 'NAME')\n` +
+                     `MAPVALUE(1, round(value(1) * 1000) / 1000000, 'TIME')\n` +
+                     `CSV(header(true))`;
+        }
+        return sResult;
+    };
+
+    const HandleDataDownload = async () => {
         setIsContextMenu(false);
-        setDataDownloadModal(true);
+        
+        try {
+            // Get all block aliases to determine how many blocks to download
+            const [_, sAliasList] = await GetQuery();
+            const sBlockList = sAliasList as any[];
+            
+            if (sBlockList.length === 0) {
+                Error('No data blocks found to download');
+                return;
+            }
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            // Download all blocks
+            const blocksToDownload = Array.from({ length: sBlockList.length }, (_, index) => index);
+
+            for (const blockIndex of blocksToDownload) {
+                try {
+                    const blockInfo = sBlockList[blockIndex];
+                    if (!blockInfo) {
+                        Error(`Block not found at index ${blockIndex}`);
+                        errorCount++;
+                        continue;
+                    }
+
+                    // Generate TQL query string
+                    const tqlQuery = await GetSaveDataText(blockIndex);
+                    
+                    // Create download URL
+                    const url = window.location.origin + '/web/api/tql-exec';
+                    const token = localStorage.getItem('accessToken');
+                    const encodedQuery = fixedEncodeURIComponent(tqlQuery);
+                    const downloadUrl = `${url}?$=${encodedQuery}&$token=${token}`;
+                    
+                    // Generate filename like Save TQL logic
+                    const extension = DOWNLOADER_EXTENSION.CSV;
+                    let filename: string;
+                    
+                    if (sBlockList.length > 1) {
+                        // Multiple blocks - use tag name with numbering (1, 2, 3...)
+                        const baseFileName = (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
+                        const blockNumber = blockIndex + 1;
+                        filename = `${baseFileName}_${blockNumber}`;
+                    } else {
+                        // Single block - use tag name as is
+                        filename = (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
+                    }
+                    
+                    // Direct URL download
+                    sqlOriginDataDownloader(downloadUrl, extension, filename);
+                    successCount++;
+                    
+                    // Add small delay between downloads to prevent browser issues
+                    if (blocksToDownload.length > 1) {
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                    
+                } catch (error) {
+                    Error(`Failed to download block ${blockIndex + 1}`);
+                    errorCount++;
+                }
+            }
+            
+            // Don't show toast messages
+            
+        } catch (error) {
+            Error('Download failed. Please try again.');
+        }
     };
     const handleCopyPanel = (aPanelInfo: any) => {
         const sTmpPanel = JSON.parse(JSON.stringify(aPanelInfo));
@@ -305,15 +478,6 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                     pDashboardTime={sBoardList.find((aItem: any) => aItem.id === sSelectedTab)?.dashboard.timeRange}
                     setIsOpen={setDownloadModal}
                     pPanelInfo={pPanelInfo}
-                    pIsDarkMode={true}
-                />
-            )}
-            {sDataDownloadModal && (
-                <PanelDataDownloadModal
-                    pDashboardTime={sBoardList.find((aItem: any) => aItem.id === sSelectedTab)?.dashboard.timeRange}
-                    setIsOpen={setDataDownloadModal}
-                    pPanelInfo={pPanelInfo}
-                    pBoardInfo={pBoardInfo}
                     pIsDarkMode={true}
                 />
             )}
