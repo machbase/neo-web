@@ -557,18 +557,16 @@ const fetchOnRollupTable = async (table: string) => {
 const getRollupTableList = async () => {
     const sData = await request({
         method: 'GET',
-        url: `/api/query?q=select user_name, dbname || '.' || root_table as root_table, interval_time, column_name, ext_type  
-from (select case when v.database_id=-1 then 'MACHBASEDB' end as dbname, u.name as user_name, root_table, interval_time, column_name, ext_type  
-from v$rollup as v, m$sys_users as u  
-where v.user_id = u.user_id and v.database_id = -1 
-group by dbname, root_table, interval_time, user_name, column_name, ext_type 
-order by dbname, user_name, root_table asc, interval_time desc 
-union all 
-select m.MOUNTDB as dbname, u.name as user_name, root_table, interval_time, column_name, ext_type 
-from v$rollup as v, m$sys_users as u, V$STORAGE_MOUNT_DATABASES m 
-where v.database_id > -1 and v.user_id = u.user_id and v.database_id = m.BACKUP_TBSID 
-group by dbname, root_table, interval_time, user_name, column_name, ext_type 
-order by dbname, user_name, root_table asc, interval_time desc)`,
+        url: `/api/query?q=select t1.user_name as user_name, 
+  case when t1.database_id = -1 then 'MACHBASEDB' else t2.MOUNTDB end || '.' || t1.root_table as root_table, 
+  t1.interval_time as interval_time, t1.column_name as column_name, t1.ext_type as ext_type 
+from (
+  select v.database_id, u.name as user_name, root_table, interval_time, column_name, ext_type 
+  from v$rollup as v, m$sys_users as u 
+  where v.user_id = u.user_id 
+  group by v.database_id, root_table, interval_time, user_name, column_name, ext_type 
+) as t1 LEFT OUTER JOIN V$STORAGE_MOUNT_DATABASES as t2 ON (t1.database_id = t2.BACKUP_TBSID) 
+order by user_name, root_table asc, interval_time desc`,
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
