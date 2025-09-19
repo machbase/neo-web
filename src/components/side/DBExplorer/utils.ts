@@ -97,7 +97,7 @@ export const GettColumnFlag = (aColFlag: number) => {
     }
     return '';
 };
-export const GenTazDefault = ({ aTag, aTime, aTableInfo }: { aTag: string; aTime: { min: number; max: number }; aTableInfo: any }) => {
+export const GenTazDefault = ({ aTag, aTime, aTableInfo, aColType }: { aTag: string; aTime: { min: number; max: number }; aTableInfo: any; aColType: string[] }) => {
     const sTags: any[] = [
         {
             key: getId(),
@@ -106,7 +106,7 @@ export const GenTazDefault = ({ aTag, aTime, aTableInfo }: { aTag: string; aTime
             calculationMode: 'avg',
             alias: '',
             weight: 1.0,
-            colName: { name: 'NAME', time: 'TIME', value: 'VALUE' },
+            colName: { name: aColType[0], time: aColType[1], value: aColType[2] },
         },
     ];
     const sNewData = {
