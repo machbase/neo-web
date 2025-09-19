@@ -10,9 +10,11 @@ export const ShareButton = () => {
     const menuRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLDivElement>(null);
 
-    const handleShareClick = (event: React.MouseEvent) => {
-        setIsMenuOpen(!isMenuOpen);
-    };
+    const handleShareClick = () =>
+        // event: React.MouseEvent
+        {
+            setIsMenuOpen(!isMenuOpen);
+        };
 
     const handleCopyLink = async () => {
         try {
@@ -26,8 +28,7 @@ export const ShareButton = () => {
         }
     };
 
-    const createEmbedCode = (url: string) =>
-        `<html><body style="margin:0px"><embed width="100%" height="100%" src="${url}"></body></html>`;
+    const createEmbedCode = (url: string) => `<html><body style="margin:0px"><embed width="100%" height="100%" src="${url}"></body></html>`;
 
     const handleCopyEmbedCode = async () => {
         try {
@@ -53,7 +54,7 @@ export const ShareButton = () => {
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        
+
         try {
             document.execCommand('copy');
             const isEmbedCode = text.includes('<html><body');
@@ -68,12 +69,7 @@ export const ShareButton = () => {
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (
-                menuRef.current &&
-                buttonRef.current &&
-                !menuRef.current.contains(event.target as Node) &&
-                !buttonRef.current.contains(event.target as Node)
-            ) {
+            if (menuRef.current && buttonRef.current && !menuRef.current.contains(event.target as Node) && !buttonRef.current.contains(event.target as Node)) {
                 setIsMenuOpen(false);
             }
         };
@@ -89,23 +85,11 @@ export const ShareButton = () => {
 
     return (
         <div className="share-button-wrapper" ref={buttonRef}>
-            <IconButton
-                pIsToopTip
-                pToolTipContent="Share"
-                pToolTipId="share-btn"
-                pWidth={20}
-                pHeight={20}
-                pIcon={<Share />}
-                onClick={handleShareClick}
-            />
+            <IconButton pIsToopTip pToolTipContent="Share" pToolTipId="share-btn" pWidth={20} pHeight={20} pIcon={<Share />} onClick={handleShareClick} />
             <div className="share-menu-container" ref={menuRef}>
                 <Menu isOpen={isMenuOpen}>
-                    <Menu.Item onClick={handleCopyLink}>
-                        Copy Public Link
-                    </Menu.Item>
-                    <Menu.Item onClick={handleCopyEmbedCode}>
-                        Copy Embed Code
-                    </Menu.Item>
+                    <Menu.Item onClick={handleCopyLink}>Copy Public Link</Menu.Item>
+                    <Menu.Item onClick={handleCopyEmbedCode}>Copy Embed Code</Menu.Item>
                 </Menu>
             </div>
         </div>

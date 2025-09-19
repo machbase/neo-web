@@ -4,7 +4,7 @@ import Modal from './Modal';
 import './SaveDashboardModal.scss';
 import { gRollupTableList } from '@/recoil/recoil';
 import { useRecoilValue } from 'recoil';
-import { Error, Success } from '@/components/toast/Toast';
+import { Error } from '@/components/toast/Toast';
 import { Download, Close } from '@/assets/icons/Icon';
 import { TextButton } from '../buttons/TextButton';
 import { calcInterval, CheckObjectKey, setUnitTime } from '@/utils/dashboardUtil';
@@ -12,7 +12,6 @@ import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
 import { Select } from '@/components/inputs/Select';
 import { chartTypeConverter } from '@/utils/eChartHelper';
-import { IconButton } from '../buttons/IconButton';
 import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOriginDataDownloader';
 import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
@@ -122,7 +121,7 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
             setSelectedBlock({
                 idx: blockIndex,
                 name: selectedValue,
-                value: selectedValue
+                value: selectedValue,
             });
         }
     };
@@ -131,11 +130,11 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
         const [sParsedQuery] = await GetQuery();
         const { min: sStartTime, max: sEndTime } = await resolveTimeRange();
         const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, pPanelInfo.w * 50);
-        
-        const sOutputStr: string = sOutput === 'DATA(JSON)' ? 'JSON()' : 'CSV()';
+
+        const sOutputStr: string = (sOutput as string) === 'DATA(JSON)' ? 'JSON()' : 'CSV()';
         const sTargetItem = sParsedQuery[blockIndex];
         let sResult = '';
-        
+
         // Apply variables replacement if board info and variables are available
         let processedSql = sTargetItem.sql;
         if (pBoardInfo?.dashboard?.variables && pBoardInfo.dashboard.variables.length > 0) {
@@ -146,28 +145,26 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
             };
             processedSql = replaceVariablesInTql(sTargetItem.sql, pBoardInfo.dashboard.variables, sTimeContext);
         }
-        
+
         if (CheckObjectKey(sTargetItem, 'trx')) {
             sResult = processedSql + '\n' + sOutputStr;
         } else sResult = `SQL("${processedSql}")\n` + sOutputStr;
         return sResult;
     };
 
-
-
-
     const handleDownload = async () => {
         if (sBlockList.length === 0) return;
-        
+
         setIsDownloading(true);
         let successCount = 0;
         let errorCount = 0;
-        
+
         try {
             // Determine which blocks to download
-            const blocksToDownload = sSelectedBlock.idx === -1 
-                ? Array.from({ length: sBlockList.length }, (_, index) => index)  // All blocks
-                : [sSelectedBlock.idx];  // Single selected block
+            const blocksToDownload =
+                sSelectedBlock.idx === -1
+                    ? Array.from({ length: sBlockList.length }, (_, index) => index) // All blocks
+                    : [sSelectedBlock.idx]; // Single selected block
 
             for (const blockIndex of blocksToDownload) {
                 try {
@@ -180,48 +177,44 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
 
                     // Generate TQL query string (same as GetSaveDataText)
                     const tqlQuery = await GetSaveDataText(blockIndex);
-                    
+
                     // Create download URL (same as SQL download pattern)
                     const url = window.location.origin + '/web/api/tql-exec';
                     const token = localStorage.getItem('accessToken');
                     const encodedQuery = fixedEncodeURIComponent(tqlQuery);
                     const downloadUrl = `${url}?$=${encodedQuery}&$token=${token}`;
-                    
+
                     // Generate filename - always use CSV
                     const extension = DOWNLOADER_EXTENSION.CSV;
                     let filename: string;
-                    
+
                     if (sSelectedBlock.idx === -1) {
                         // All blocks selected - use base filename with numbering
-                        const baseFileName = sSaveFileName.trim() || 
-                            (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
+                        const baseFileName = sSaveFileName.trim() || (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
                         const baseWithoutExt = baseFileName.replace(/\.(json|csv)$/i, '');
                         const blockNumber = blockIndex + 1;
                         filename = `${baseWithoutExt}_${blockNumber}`;
                     } else {
                         // Single block selected - use filename as is
-                        const baseFileName = sSaveFileName.trim() || 
-                            (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
+                        const baseFileName = sSaveFileName.trim() || (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
                         filename = baseFileName.replace(/\.(json|csv)$/i, '');
                     }
-                    
+
                     // Direct URL download (same as SQL pattern)
                     sqlOriginDataDownloader(downloadUrl, extension, filename);
                     successCount++;
-                    
+
                     // Add small delay between downloads to prevent browser issues
                     if (blocksToDownload.length > 1) {
-                        await new Promise(resolve => setTimeout(resolve, 200));
+                        await new Promise((resolve) => setTimeout(resolve, 200));
                     }
-                    
                 } catch (error) {
                     Error(`Failed to download block ${blockIndex + 1}`);
                     errorCount++;
                 }
             }
-            
+
             // Don't show toast messages
-            
         } catch (error) {
             Error('Download failed. Please try again.');
         } finally {
@@ -251,8 +244,6 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                         <Close onClick={handleClose} />
                     </div>
                 </Modal.Header>
-                <Modal.Body>
-                </Modal.Body>
                 <Modal.Footer>
                     <div className="save-option">
                         <div className="save-file-name" style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
@@ -281,7 +272,7 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                     </div>
                     <div className="button-group">
                         <TextButton
-                            pText={sIsDownloading ? "Downloading..." : "Download"}
+                            pText={sIsDownloading ? 'Downloading...' : 'Download'}
                             pBackgroundColor="#4199ff"
                             pIsDisabled={sBlockList.length === 0 || sIsDownloading}
                             onClick={handleDownload}

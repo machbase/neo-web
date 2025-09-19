@@ -10,7 +10,7 @@ import { useState, useRef } from 'react';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { convertChartDefault } from '@/utils/utils';
 import { ChartThemeTextColor, DEFAULT_CHART } from '@/utils/constants';
-import { Error, Success } from '@/components/toast/Toast';
+import { Error } from '@/components/toast/Toast';
 import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
 import { SaveDashboardModal } from '@/components/modal/SaveDashboardModal';
 import { HiMiniDocumentDuplicate } from 'react-icons/hi2';
@@ -225,11 +225,11 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         const [sParsedQuery, sAliasList] = await GetQuery();
         const { min: sStartTime, max: sEndTime } = await resolveTimeRange();
         const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, pPanelInfo.w * 50);
-        
+
         const sTargetItem = sParsedQuery[blockIndex];
         const sBlockInfo = sAliasList[blockIndex];
         let sResult = '';
-        
+
         // Apply variables replacement if board info and variables are available
         let processedSql = sTargetItem.sql;
         if (pBoardInfo?.dashboard?.variables && pBoardInfo.dashboard.variables.length > 0) {
@@ -240,40 +240,34 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             };
             processedSql = replaceVariablesInTql(sTargetItem.sql, pBoardInfo.dashboard.variables, sTimeContext);
         }
-        
+
         // Get actual tag name from block info (alias name or original name)
         const tagName = sBlockInfo?.name || 'UNKNOWN';
-        
+
         if (CheckObjectKey(sTargetItem, 'trx')) {
-            sResult = processedSql + '\n' +
-                     `PUSHVALUE(0, '${tagName}', 'NAME')\n` +
-                     `MAPVALUE(1, round(value(1) * 1000) / 1000000, 'TIME')\n` +
-                     `CSV(header(true))`;
+            sResult = processedSql + '\n' + `PUSHVALUE(0, '${tagName}', 'NAME')\n` + `MAPVALUE(1, round(value(1) * 1000) / 1000000, 'TIME')\n` + `CSV(header(true))`;
         } else {
-            sResult = `SQL("${processedSql}")\n` +
-                     `PUSHVALUE(0, '${tagName}', 'NAME')\n` +
-                     `MAPVALUE(1, round(value(1) * 1000) / 1000000, 'TIME')\n` +
-                     `CSV(header(true))`;
+            sResult = `SQL("${processedSql}")\n` + `PUSHVALUE(0, '${tagName}', 'NAME')\n` + `MAPVALUE(1, round(value(1) * 1000) / 1000000, 'TIME')\n` + `CSV(header(true))`;
         }
         return sResult;
     };
 
     const HandleDataDownload = async () => {
         setIsContextMenu(false);
-        
+
         try {
             // Get all block aliases to determine how many blocks to download
             const [_, sAliasList] = await GetQuery();
             const sBlockList = sAliasList as any[];
-            
+
             if (sBlockList.length === 0) {
                 Error('No data blocks found to download');
                 return;
             }
-            
+
             let successCount = 0;
             let errorCount = 0;
-            
+
             // Download all blocks
             const blocksToDownload = Array.from({ length: sBlockList.length }, (_, index) => index);
 
@@ -288,17 +282,17 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
 
                     // Generate TQL query string
                     const tqlQuery = await GetSaveDataText(blockIndex);
-                    
+
                     // Create download URL
                     const url = window.location.origin + '/web/api/tql-exec';
                     const token = localStorage.getItem('accessToken');
                     const encodedQuery = fixedEncodeURIComponent(tqlQuery);
                     const downloadUrl = `${url}?$=${encodedQuery}&$token=${token}`;
-                    
+
                     // Generate filename like Save TQL logic
                     const extension = DOWNLOADER_EXTENSION.CSV;
                     let filename: string;
-                    
+
                     if (sBlockList.length > 1) {
                         // Multiple blocks - use tag name with numbering (1, 2, 3...)
                         const baseFileName = (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -308,24 +302,22 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                         // Single block - use tag name as is
                         filename = (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
                     }
-                    
+
                     // Direct URL download
                     sqlOriginDataDownloader(downloadUrl, extension, filename);
                     successCount++;
-                    
+
                     // Add small delay between downloads to prevent browser issues
                     if (blocksToDownload.length > 1) {
-                        await new Promise(resolve => setTimeout(resolve, 200));
+                        await new Promise((resolve) => setTimeout(resolve, 200));
                     }
-                    
                 } catch (error) {
                     Error(`Failed to download block ${blockIndex + 1}`);
                     errorCount++;
                 }
             }
-            
+
             // Don't show toast messages
-            
         } catch (error) {
             Error('Download failed. Please try again.');
         }

@@ -1,27 +1,13 @@
+import './Panel.scss';
 import LineChart from './chart/LineChart';
 import PanelHeader from './PanelHeader';
-import './Panel.scss';
-import { useState } from 'react';
 import { ChartThemeBackgroundColor } from '../../utils/constants';
 import { ChartTheme } from '../../type/eChart';
 
-const Panel = ({
-    pLoopMode,
-    pChartVariableId,
-    pBoardInfo,
-    pPanelInfo,
-    pParentWidth,
-    pIsHeader,
-    pBoardTimeMinMax,
-    pIsActiveTab,
-}: any) => {
-    const [sRefreshCount, setRefreshCount] = useState<number>(0);
+const Panel = ({ pLoopMode, pChartVariableId, pBoardInfo, pPanelInfo, pParentWidth, pIsHeader, pBoardTimeMinMax, pIsActiveTab }: any) => {
     return (
         <div className="panel-wrap" style={{ backgroundColor: ChartThemeBackgroundColor[pPanelInfo.theme as ChartTheme] }}>
-            <PanelHeader
-                pPanelInfo={pPanelInfo}
-                pIsHeader={pIsHeader}
-            />
+            <PanelHeader pPanelInfo={pPanelInfo} pIsHeader={pIsHeader} />
             {pPanelInfo && (
                 <LineChart
                     pLoopMode={pLoopMode}
