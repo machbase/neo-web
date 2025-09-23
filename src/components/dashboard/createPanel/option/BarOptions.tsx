@@ -43,6 +43,7 @@ export const BarOptions = (props: BarOptionProps) => {
             <div style={sPolarMenuStyle}>
                 <span>Max</span>
                 <Input
+                    pType="number"
                     pWidth={100}
                     pHeight={25}
                     pBorderRadius={4}
