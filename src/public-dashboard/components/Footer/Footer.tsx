@@ -5,14 +5,21 @@ const Footer = () => {
     return (
         <div className="dashboard-footer">
             <div className="footer-content">
-                <span className="footer-icon">
-                    <img src={favicon} alt="Machbase Neo" />
-                </span>
-                <span className="footer-text">
-                    <a className="footer-link" href="https://neo.machbase.com" target="_blank" rel="noopener noreferrer">
-                        Powered by Machbase Neo - Global No.1 Performance & All-in-One Time-Series DBMS
+                <div className="footer-left">
+                    <a className="footer-left-link" href="https://neo.machbase.com" target="_blank" rel="noopener noreferrer">
+                        <span className="footer-icon">
+                            <img src={favicon} alt="Machbase Neo" />
+                        </span>
+                        <span className="footer-text">
+                            All-in-One Time-Series DBMS - Machbase Neo
+                        </span>
                     </a>
-                </span>
+                </div>
+                <div className="footer-right">
+                    <a className="footer-right-link" href="https://www.machbase.com/en" target="_blank" rel="noopener noreferrer">
+                        Powered by Machbase
+                    </a>
+                </div>
             </div>
         </div>
     );

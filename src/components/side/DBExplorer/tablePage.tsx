@@ -157,11 +157,13 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         } else setIndexInfo(undefined);
     };
     const FetchRollup = async () => {
-        const sQuery = `select v.rollup_table as 'ROLLUP', v.COLUMN_NAME as 'COLUMN', v.interval_time as 'INTERVAL', v.ENABLED from v$rollup v, m$sys_users m where v.database_id=${
-            mTableInfo[E_TABLE_INFO.DB_ID]
-        } and v.user_id=m.user_id and m.name=upper('${mTableInfo[E_TABLE_INFO.USER_NM]}') and root_table=upper('${
+        const sRollupVersion = localStorage.getItem('V$ROLLUP_VER');
+        const sDatabaseIdCondition = sRollupVersion === 'OLD' ? '' : `v.database_id=${mTableInfo[E_TABLE_INFO.DB_ID]} and `;
+
+        const sQuery = `select v.rollup_table as 'ROLLUP', v.COLUMN_NAME as 'COLUMN', v.interval_time as 'INTERVAL', v.ENABLED from v$rollup v, m$sys_users m where ${sDatabaseIdCondition}v.user_id=m.user_id and m.name=upper('${mTableInfo[E_TABLE_INFO.USER_NM]}') and root_table=upper('${
             mTableInfo[E_TABLE_INFO.TB_NM]
         }') group by root_table, column_name, enabled, interval_time, rollup_table order by interval_time asc`;
+
         const { svrState, svrData } = await fetchQuery(sQuery);
         if (svrState) {
             svrData.rows.map((row: (string | number)[]) => {

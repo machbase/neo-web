@@ -67,7 +67,7 @@ const CreatePanel = ({
         if (!validateTransformAliases(sPanelOption)) {
             return;
         }
-        
+
         if (sPanelOption.useCustomTime) {
             let sStart: any;
             let sEnd: any;
@@ -150,7 +150,7 @@ const CreatePanel = ({
         if (!validateTransformAliases(sPanelOption)) {
             return;
         }
-        
+
         let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
 
         if (sSaveTarget.path !== '') {
@@ -200,7 +200,7 @@ const CreatePanel = ({
             return { ...aPanelInfo, axisInterval: { IntervalType: '', IntervalValue: '' }, isAxisInterval: false };
         else return { ...aPanelInfo, isAxisInterval: true };
     };
-    
+
     const validateTransformAliases = (aPanelInfo: any) => {
         if (aPanelInfo?.transformBlockList && aPanelInfo.transformBlockList.length > 0) {
             for (const transformBlock of aPanelInfo.transformBlockList) {
@@ -218,7 +218,7 @@ const CreatePanel = ({
         if (!validateTransformAliases(sPanelOption)) {
             return;
         }
-        
+
         const sTmpPanelOption = checkXAxisInterval(sPanelOption);
         if (sPanelOption.type === 'Tql chart') {
             if (sTmpPanelOption.useCustomTime) {
@@ -505,7 +505,14 @@ const CreatePanel = ({
                             </Pane>
                             <Pane minSize="10%">
                                 {sPanelOption.id && (
-                                    <CreatePanelFooter pType={pType} pGetTables={getTables} pTableList={sTableList} pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} />
+                                    <CreatePanelFooter
+                                        pType={pType}
+                                        pVariables={pBoardInfo?.dashboard?.variables ?? []}
+                                        pGetTables={getTables}
+                                        pTableList={sTableList}
+                                        pPanelOption={sPanelOption}
+                                        pSetPanelOption={setPanelOption}
+                                    />
                                 )}
                             </Pane>
                         </SplitPane>

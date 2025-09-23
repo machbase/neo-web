@@ -15,10 +15,6 @@ export const replaceVariablesInTql = (
     variables: VARIABLE_TYPE[],
     timeContext: BlockTimeType
 ): string => {
-    if (!variables || variables.length === 0) {
-        return tqlString;
-    }
-    
     // Sort variables by key length (desc) to avoid partial overlap issues
     const parsedVariables = VariableParser(variables, timeContext).sort((a: any, b: any) => b.key.length - a.key.length);
     let processedTql = tqlString;

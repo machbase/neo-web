@@ -16,10 +16,10 @@ import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import { ALLOWED_TRX_CHART_TYPE, CheckAllowedTransformChartType, E_ALLOW_CHART_TYPE } from '@/utils/Chart/TransformDataParser';
 import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/BlockHelper';
 
-type FOOTER_MENU_TYPE = 'Query' | 'Transform' | 'Time';
+type FOOTER_MENU_TYPE = 'Series' | 'Transform' | 'Time';
 
-const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
-    const [sTab, setTab] = useState<FOOTER_MENU_TYPE>('Query');
+const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
+    const [sTab, setTab] = useState<FOOTER_MENU_TYPE>('Series');
 
     const setUseTimePicker = (aKey: string, aValue: any) => {
         pSetPanelOption((aPrev: any) => {
@@ -60,9 +60,14 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                             id: generateUUID(),
                             color: getTagColor(getUseColorList(aPrev.blockList)),
                             math: '',
+                            isValidMath: true,
                             alias: '',
+                            tag: '',
                             values: aPrev.blockList.at(-1).values.map((val: any) => {
                                 return { ...val, aggregator: aPrev.type === 'Text' ? 'value' : aPrev.blockList.at(-1).aggregator, id: generateUUID(), alias: '' };
+                            }),
+                            filter: aPrev.blockList.at(-1).filter.map((val: any) => {
+                                return { ...val, value: '' };
                             }),
                         },
                     ],
@@ -86,7 +91,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
     }, [pPanelOption.blockList, pPanelOption.transformBlockList, pPanelOption.type]);
 
     useEffect(() => {
-        if (!ALLOWED_TRX_CHART_TYPE.includes(chartTypeConverter(pPanelOption.type) as E_CHART_TYPE & E_ALLOW_CHART_TYPE)) setTab('Query');
+        if (!ALLOWED_TRX_CHART_TYPE.includes(chartTypeConverter(pPanelOption.type) as E_CHART_TYPE & E_ALLOW_CHART_TYPE)) setTab('Series');
     }, [pPanelOption.type]);
 
     return (
@@ -95,8 +100,8 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                 <>
                     <div className="chart-footer-tab">
                         <div>
-                            <div className={sTab === 'Query' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Query')}>
-                                Query
+                            <div className={sTab === 'Series' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Series')}>
+                                Series
                                 <span className="series-count">{`${getBlockCount.query}`}</span>
                             </div>
                             {CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType) && (
@@ -117,7 +122,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                         </div>
                     </div>
                     <div className="chart-footer">
-                        <div style={sTab === 'Query' ? {} : { display: 'none' }} className="body">
+                        <div style={sTab === 'Series' ? {} : { display: 'none' }} className="body">
                             {/* SET Block */}
                             {pTableList.length !== 0 &&
                                 pPanelOption.blockList.map((aItem: any, aIdx: number) => {
@@ -125,6 +130,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                                         <Block
                                             key={aItem.id}
                                             pBlockOrder={aIdx}
+                                            pVariables={pVariables}
                                             pType={pType}
                                             pPanelOption={pPanelOption}
                                             pTableList={pTableList}
@@ -156,7 +162,7 @@ const CreatePanelFooter = ({ pTableList, pType, pGetTables, pSetPanelOption, pPa
                         </div>
                         {sTab === 'Transform' && (
                             <div className="body">
-                                <Transform pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pBlockCount={getBlockCount} />
+                                <Transform pPanelOption={pPanelOption} pVariables={pVariables} pSetPanelOption={pSetPanelOption} pBlockCount={getBlockCount} />
                             </div>
                         )}
                         <div style={sTab === 'Time' ? {} : { display: 'none' }} className="body time-wrap">

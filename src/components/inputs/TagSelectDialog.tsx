@@ -51,7 +51,6 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
             return Error(sFetchTableInfo.message ?? '');
         }
     };
-    
     const getTagList = async () => {
         if (!pBlockOption.tableInfo || pBlockOption.tableInfo.length < 1) return;
         if (!sSelectedTable) return;
@@ -66,7 +65,6 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
         }
         const sColumnName = sColumn?.name || (pBlockOption.tableInfo && pBlockOption.tableInfo[0] && pBlockOption.tableInfo[0][0]);
         if (!sColumnName) return;
-        
         const sResult: any = await getTagPagination(sTable, sSearchText, sTagPagination, sColumnName);
         if (sResult.success) {
             if (!sSkipTagTotal && sTotalRes) setTotal(sTotalRes.data.rows[0][0]);
@@ -74,7 +72,6 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
         } else setTagList([]);
         setSkipTagTotal(false);
     };
-    
     const setTotal = (aTotal: number) => {
         sTagTotal !== aTotal && setTagTotal(aTotal);
     };
@@ -90,16 +87,13 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
             setKeepPageNum(1);
         } else getTagList();
     };
-    
     const setTag = async (aValue: any) => {
         pCallback(aValue);
         pCloseModal();
     };
-    
     const handlePaginationInput = (aEvent: any) => {
         setKeepPageNum(aEvent.target.value);
     };
-    
     const handleApplyPagenationInput = (aEvent: any) => {
         if (sKeepPageNum === sTagPagination) return;
         if (aEvent.keyCode === 13 || aEvent === 'outsideClick') {
@@ -117,13 +111,11 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
             setTagPagination(sKeepPageNum);
         }
     };
-    
     const setpagination = (aStatus: boolean) => {
         setSkipTagTotal(true);
         setTagPagination(aStatus ? sTagPagination + 1 : sTagPagination - 1);
         setKeepPageNum(aStatus ? sTagPagination + 1 : sTagPagination - 1);
     };
-    
     const getMaxPageNum = useMemo(() => {
         return Math.ceil(sTagTotal / 10);
     }, [sTagTotal]);
@@ -178,6 +170,11 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
             pCloseModal();
         }
     };
+    const handleClear = () => {
+        setTagInputValue('');
+        setSearchText('');
+        getTagList();
+    };
 
     useDebounce([sTagPagination, sSearchText], getTagList, 200);
     useOutsideClick(pageRef, () => handleApplyPagenationInput('outsideClick'));
@@ -201,13 +198,7 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
                         <div className="table-select" style={{ display: 'none' }}>
                             <div className="title">Table</div>
                             <div className="combobox-select">
-                                <Input
-                                    pValue={sSelectedTable}
-                                    pWidth={175}
-                                    pHeight={32}
-                                    pIsDisabled
-                                    onChange={() => {}}
-                                />
+                                <Input pValue={sSelectedTable} pWidth={175} pHeight={32} pIsDisabled onChange={() => {}} />
                             </div>
                         </div>
                         <div className="tag-select">
@@ -219,7 +210,12 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
                             <div className="tag-form">
                                 <div className="filter-form-tag">
                                     <div className="tag-input-form">
-                                        <Input pValue={sTagInputValue} pSetValue={setTagInputValue} pIsFullWidth pHeight={36} onChange={filterTag} onEnter={handleSearch} />
+                                        <div className="tag-input-form-search">
+                                            <Input pValue={sTagInputValue} pSetValue={setTagInputValue} pIsFullWidth pHeight={36} onChange={filterTag} onEnter={handleSearch} />
+                                            <button className="search" onClick={handleClear}>
+                                                <Close size={18} />
+                                            </button>
+                                        </div>
                                         <button className="search" onClick={handleSearch}>
                                             <Search size={18} />
                                         </button>
@@ -242,23 +238,23 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
                                         <div className="bottom-page">
                                             <div className="pagination">
                                                 <button
-                                                disabled={sTagPagination === 1}
-                                                style={sTagPagination === 1 ? { opacity: 0.4, cursor: 'default' } : {}}
-                                                onClick={() => {
-                                                    setSkipTagTotal(true);
-                                                    setTagPagination(1);
-                                                    setKeepPageNum(1);
-                                                }}
-                                            >
-                                                <MdKeyboardDoubleArrowLeft />
-                                            </button>
+                                                    disabled={sTagPagination === 1}
+                                                    style={sTagPagination === 1 ? { opacity: 0.4, cursor: 'default' } : {}}
+                                                    onClick={() => {
+                                                        setSkipTagTotal(true);
+                                                        setTagPagination(1);
+                                                        setKeepPageNum(1);
+                                                    }}
+                                                >
+                                                    <MdKeyboardDoubleArrowLeft />
+                                                </button>
                                                 <button
-                                                disabled={sTagPagination === 1}
-                                                style={sTagPagination === 1 ? { opacity: 0.4, cursor: 'default' } : {}}
-                                                onClick={() => setpagination(false)}
-                                            >
-                                                <ArrowLeft />
-                                            </button>
+                                                    disabled={sTagPagination === 1}
+                                                    style={sTagPagination === 1 ? { opacity: 0.4, cursor: 'default' } : {}}
+                                                    onClick={() => setpagination(false)}
+                                                >
+                                                    <ArrowLeft />
+                                                </button>
                                                 <div ref={pageRef} className="custom-input-wrapper" style={{ height: '20px' }}>
                                                     <input
                                                         value={sKeepPageNum ?? ''}
@@ -268,23 +264,23 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
                                                     />
                                                 </div>
                                                 <button
-                                                disabled={sTagPagination >= getMaxPageNum}
-                                                style={sTagPagination >= getMaxPageNum ? { opacity: 0.4, cursor: 'default' } : {}}
-                                                onClick={() => setpagination(true)}
-                                            >
-                                                <ArrowRight />
-                                            </button>
+                                                    disabled={sTagPagination >= getMaxPageNum}
+                                                    style={sTagPagination >= getMaxPageNum ? { opacity: 0.4, cursor: 'default' } : {}}
+                                                    onClick={() => setpagination(true)}
+                                                >
+                                                    <ArrowRight />
+                                                </button>
                                                 <button
-                                                disabled={sTagPagination >= getMaxPageNum}
-                                                style={sTagPagination >= getMaxPageNum ? { opacity: 0.4, cursor: 'default' } : {}}
-                                                onClick={() => {
-                                                    setSkipTagTotal(true);
-                                                    setTagPagination(getMaxPageNum);
-                                                    setKeepPageNum(getMaxPageNum);
-                                                }}
-                                            >
-                                                <MdOutlineKeyboardDoubleArrowRight />
-                                            </button>
+                                                    disabled={sTagPagination >= getMaxPageNum}
+                                                    style={sTagPagination >= getMaxPageNum ? { opacity: 0.4, cursor: 'default' } : {}}
+                                                    onClick={() => {
+                                                        setSkipTagTotal(true);
+                                                        setTagPagination(getMaxPageNum);
+                                                        setKeepPageNum(getMaxPageNum);
+                                                    }}
+                                                >
+                                                    <MdOutlineKeyboardDoubleArrowRight />
+                                                </button>
                                             </div>
                                         </div>
                                     </div>

@@ -56,7 +56,7 @@
             }
         }
     }
-    
+
     .body {
         display: flex;
         height: 100%;
@@ -67,7 +67,7 @@
         border-top: none !important;
         border-bottom: none !important;
     }
-    
+
     .table-select {
         height: 10%;
         padding: 0 32px 0 32px;
@@ -147,6 +147,28 @@
                 height: 34px;
                 font-size: 14px;
             }
+
+            .tag-input-form-search {
+                background-color: transparent;
+                width: 100%;
+                display: flex;
+
+                .custom-input-wrapper {
+                    border-radius: 4px 0 0 4px !important;
+                    border-right: none;
+                }
+
+                .search {
+                    display: flex;
+                    color: rgba(255, 255, 255, 0.5);
+                    border: solid 0.5px rgba(255, 255, 255, 0.5);
+                    border-radius: 0 4px 4px 0 !important;
+                    height: 100%;
+                    &:hover {
+                        background-color: #52535a;
+                    }
+                }
+            }
         }
         .select-tag-form {
             width: 100%;
@@ -154,14 +176,14 @@
             display: flex;
             min-height: 0;
             gap: 16px;
-            
+
             .select-tag-wrap {
                 display: flex;
                 flex-direction: column;
                 width: 100%;
                 min-height: 0;
                 flex: 1;
-                
+
                 .select-tab {
                     overflow-y: auto;
                     overflow-x: hidden;
@@ -172,7 +194,7 @@
                     height: 256px;
                     border-radius: 8px;
                     padding: 8px 0;
-                    
+
                     button {
                         width: 100%;
                         align-items: center;
@@ -190,18 +212,18 @@
                             text-overflow: ellipsis;
                             max-width: 100%;
                         }
-                        
+
                         &:hover {
                             background-color: rgba(38, 40, 49, 0.8) !important;
                             border-radius: 4px;
                         }
-                        
+
                         &.tag-search-select-body-content-active {
                             background-color: #76777a;
                             border-radius: 4px;
                         }
                     }
-                    
+
                     .tag-search-select-body-content-no {
                         cursor: default;
                         padding: 2px 8px 2px 8px;
@@ -209,7 +231,7 @@
                         opacity: 0.5;
                     }
                 }
-                
+
                 .bottom-page {
                     padding-top: 8px;
                     button {
@@ -231,7 +253,7 @@
                         display: flex;
                         align-items: center;
                     }
-                    
+
                     .custom-input-wrapper {
                         height: 20px;
                         display: flex;

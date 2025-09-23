@@ -1,6 +1,6 @@
 import './DashboardView.scss';
 import Panel from '../panels/Panel';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
 import { useParams } from 'react-router-dom';
 import moment from 'moment';
@@ -36,6 +36,10 @@ const DashboardView = () => {
     const variableRef = useRef<HTMLDivElement>(null);
     const [sLayoutWidth, setLayoutWidth] = useState<number>(0);
     const [sShouldShowFooter, setShouldShowFooter] = useState<boolean>(false);
+    const refreshTimeoutRef = useRef<NodeJS.Timeout>();
+    const lastRefreshTimeRef = useRef<number>(0);
+    const pendingRefreshRef = useRef<boolean>(false);
+    const resizeEndTimeoutRef = useRef<NodeJS.Timeout>();
 
     const getDshFile = async (aFileName: string | undefined) => {
         if (!aFileName) return;
@@ -133,16 +137,40 @@ const DashboardView = () => {
 
         handleDashboardTimeRange(sStartTime, sEndTime);
     };
-    const handleRefresh = async () => {
-        const sTimeRange = sBoardInformation?.dashboard.timeRange;
+    const handleRefresh = useCallback(async () => {
+        if (!sBoardInformation?.dashboard?.timeRange) {
+            return;
+        }
+
+        const sTimeRange = sBoardInformation.dashboard.timeRange;
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax(sBoardInformation);
         const sTimeMinMax = timeMinMaxConverter(sTimeRange.start, sTimeRange.end, sSvrRes);
+
         setBoardTimeMinMax(() => {
             return { min: sTimeMinMax.min, max: sTimeMinMax.max, refresh: true };
         });
         GenChartVariableId();
         return;
-    };
+    }, [sBoardInformation]);
+
+    const forceRefresh = useCallback(async () => {
+        const now = Date.now();
+        const timeSinceLastRefresh = now - lastRefreshTimeRef.current;
+
+        if (timeSinceLastRefresh < 1000 && pendingRefreshRef.current) {
+            return;
+        }
+
+        pendingRefreshRef.current = true;
+        lastRefreshTimeRef.current = now;
+
+        try {
+            await handleRefresh();
+        } catch (error) {
+        } finally {
+            pendingRefreshRef.current = false;
+        }
+    }, [handleRefresh, sBoardInformation]);
     const setIntervalTime = (aTimeRange: any): number => {
         return calcRefreshTime(aTimeRange.refresh);
     };
@@ -161,11 +189,36 @@ const DashboardView = () => {
         setChartVariableId(getId());
     };
 
-    const updateLayoutWidth = () => {
+    const updateLayoutWidth = useCallback(() => {
         if (sLayoutRef.current) {
-            setLayoutWidth(sLayoutRef.current.clientWidth);
+            const newWidth = sLayoutRef.current.clientWidth;
+            const widthDifference = Math.abs(newWidth - sLayoutWidth);
+
+
+            if (newWidth !== sLayoutWidth) {
+                setLayoutWidth(newWidth);
+
+                const significantChange = widthDifference > 20 || widthDifference > sLayoutWidth * 0.02;
+
+                if (significantChange) {
+
+                    if (resizeEndTimeoutRef.current) {
+                        clearTimeout(resizeEndTimeoutRef.current);
+                    }
+
+                    const timeoutId = setTimeout(() => {
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                forceRefresh();
+                            });
+                        });
+                    }, 300);
+
+                    resizeEndTimeoutRef.current = timeoutId;
+                }
+            }
         }
-    };
+    }, [sLayoutWidth, forceRefresh]);
     useEffect(() => {
         if (sBoardInformation && sBoardInformation.dashboard.timeRange && sBoardInformation.dashboard.timeRange.refresh !== 'Off')
             ctrBoardInterval(sBoardInformation.dashboard.timeRange);
@@ -254,23 +307,32 @@ const DashboardView = () => {
         GenChartVariableId();
     }, []);
 
+    // Optimized resize handler with throttling
+    const throttledUpdateLayoutWidth = useMemo(() => {
+        let timeoutId: NodeJS.Timeout;
+        return () => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(updateLayoutWidth, 16); // ~60fps throttle
+        };
+    }, [updateLayoutWidth]);
+
     useEffect(() => {
         updateLayoutWidth();
 
-        let resizeTimeout: NodeJS.Timeout;
-
-        const handleResize = () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                updateLayoutWidth();
-            }, 150);
-        };
-
-        window.addEventListener('resize', handleResize);
+        window.addEventListener('resize', throttledUpdateLayoutWidth);
 
         return () => {
-            window.removeEventListener('resize', handleResize);
-            clearTimeout(resizeTimeout);
+            window.removeEventListener('resize', throttledUpdateLayoutWidth);
+            clearTimeout(refreshTimeoutRef.current);
+            // DON'T clear resizeEndTimeoutRef here - it breaks pending timeouts!
+            // clearTimeout(resizeEndTimeoutRef.current);
+        };
+    }, [updateLayoutWidth, throttledUpdateLayoutWidth]);
+
+    // Separate cleanup for component unmount only
+    useEffect(() => {
+        return () => {
+            clearTimeout(resizeEndTimeoutRef.current);
         };
     }, []);
 

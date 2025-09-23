@@ -262,6 +262,7 @@ export const DefaultVariableTableOption = {
     value: 'VALUE',
     alias: '',
     math: '',
+    isValidMath: true,
     duration: { from: '', to: '' },
     customFullTyping: {
         use: false,
@@ -288,6 +289,7 @@ export const DefaultTagTableOption = {
     value: 'VALUE',
     alias: '',
     math: '',
+    isValidMath: true,
     duration: { from: '', to: '' },
     customFullTyping: {
         use: false,
@@ -314,6 +316,7 @@ export const DefaultLogTableOption = {
     value: '',
     alias: '',
     math: '',
+    isValidMath: true,
     duration: { from: '', to: '' },
     customFullTyping: {
         use: false,

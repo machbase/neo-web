@@ -1,17 +1,24 @@
-import { RecoilRoot } from 'recoil';
+import { RecoilRoot, useSetRecoilState } from 'recoil';
 import { PublicRoutes } from './PublicRoutes';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { fetchRollupVersion, getRollupTableList } from './api/repository/machiot';
+import { gRollupTableList } from './recoil/recoil';
 
-const PublicApp = () => {
+const PublicAppContent = () => {
+    const setRollupTabls = useSetRecoilState(gRollupTableList);
+
     const init = async () => {
         // RECENT = true, OLD = false
         const sResRollupVer: any = await fetchRollupVersion();
         if (sResRollupVer.svrState) localStorage.setItem('V$ROLLUP_VER', 'RECENT');
         else localStorage.setItem('V$ROLLUP_VER', 'OLD');
-        await getRollupTableList();
+
+        // Get rollup table list and set it to recoil state
+        const sRollupResult = await getRollupTableList();
+        setRollupTabls(sRollupResult);
     };
+
     useEffect(() => {
         init();
         const originalTitle = document.title;
@@ -22,10 +29,16 @@ const PublicApp = () => {
     }, []);
 
     return (
+        <div id="public-app-root">
+            <PublicRoutes />
+        </div>
+    );
+};
+
+const PublicApp = () => {
+    return (
         <RecoilRoot>
-            <div id="public-app-root">
-                <PublicRoutes />
-            </div>
+            <PublicAppContent />
             <Toaster
                 position="top-right"
                 toastOptions={{

@@ -23,6 +23,7 @@ import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { VscEye, VscEyeClosed } from 'react-icons/vsc';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import { chartTypeConverter } from '@/utils/eChartHelper';
+import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 
 const colorList = [
     '#607D8B', // Blue Grey
@@ -38,7 +39,17 @@ const colorList = [
     '#F44336', // Red
 ];
 
-export const Transform = ({ pPanelOption, pSetPanelOption, pBlockCount }: { pPanelOption: any; pSetPanelOption: React.Dispatch<React.SetStateAction<any>>; pBlockCount: any }) => {
+export const Transform = ({
+    pPanelOption,
+    pVariables,
+    pSetPanelOption,
+    pBlockCount,
+}: {
+    pPanelOption: any;
+    pVariables: any;
+    pSetPanelOption: React.Dispatch<React.SetStateAction<any>>;
+    pBlockCount: any;
+}) => {
     const [isModal, setIsModal] = useState<boolean>(false);
 
     function handleTransformBlockItem(aKey: TransformBlockKeyType, aValue: boolean | string | BadgeSelectorItemType, aIdx: number) {
@@ -103,6 +114,7 @@ export const Transform = ({ pPanelOption, pSetPanelOption, pBlockCount }: { pPan
                 return (
                     <TransformBlock
                         key={'transform-block-' + item.id + ''}
+                        pVariables={pVariables}
                         pTransformItem={item}
                         pQueryBlockList={getBlockList}
                         handleBlock={() => handleTransformBlock('DELETE', index)}
@@ -120,6 +132,7 @@ export const Transform = ({ pPanelOption, pSetPanelOption, pBlockCount }: { pPan
 };
 const TransformBlock = ({
     pTransformItem,
+    pVariables,
     pQueryBlockList,
     pChartType,
     pBlockCount,
@@ -128,6 +141,7 @@ const TransformBlock = ({
     handleModal,
 }: {
     pTransformItem: TransformBlockType;
+    pVariables: any;
     pQueryBlockList: BadgeSelectorItemType[];
     pChartType: ChartType;
     pBlockCount: any;
@@ -141,8 +155,17 @@ const TransformBlock = ({
     const handleFormula = async () => {
         if (pTransformItem?.selectedBlockIdxList.length > 0) {
             let sMapValue = pTransformItem.value;
-            // Replace {{variable}} with 1 for validation
-            sMapValue = sMapValue.replaceAll(VARIABLE_REGEX, '1');
+            const sParsedVasParsedFormula = replaceVariablesInTql(sMapValue, pVariables, {
+                interval: { IntervalType: '', IntervalValue: 0 },
+                start: '',
+                end: '',
+            });
+            if (sParsedVasParsedFormula.match(VARIABLE_REGEX)) {
+                Error('Please check the entered formula.');
+                return handleItem('valid', false);
+            }
+            sMapValue = sParsedVasParsedFormula;
+            pVariables;
             pTransformItem.selectedBlockIdxList.map((blockIdx: number, aIdx: number) => {
                 if (pQueryBlockList[blockIdx]) sMapValue = sMapValue.replaceAll(new RegExp(`\\b${TRX_REPLACE_LIST[blockIdx]}\\b`, 'g'), `value(${aIdx})`);
             });
@@ -219,7 +242,7 @@ const TransformBlock = ({
             </div>
             <div className="divider" />
             <div className="transform-block">
-                <span className="transform-block-title"> Query </span>
+                <span className="transform-block-title"> Series </span>
                 <BadgeSelect pSelectedList={pTransformItem.selectedBlockIdxList ?? []} pList={pQueryBlockList} pCallback={(aItem) => handleItem('selectBlockIdx', aItem)} />
             </div>
             <div className="divider" />

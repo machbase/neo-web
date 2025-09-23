@@ -90,7 +90,6 @@ export const VariableParserForTql = (aVariables: VARIABLE_TYPE[]) => {
     return defineVar;
 };
 
-
 /** Dashboard QUERY PARSER */
 export const DashboardQueryParser = (
     aChartType: string,
@@ -116,7 +115,7 @@ export const DashboardQueryParser = (
         aUniqueId,
         aRollupList
     );
-    
+
     return [sParsedQueryList, sAliasList, sInjectionSrc];
 };
 /** Combine table and user */
@@ -161,6 +160,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             color: bBlock.color,
             tableInfo: bBlock.tableInfo,
             math: bBlock?.math ?? '',
+            isValidMath: true,
             duration: bBlock?.duration ?? { from: '', to: '' },
             useFullTyping: bBlock.customFullTyping.use,
             isVisible: bBlock.isVisible,

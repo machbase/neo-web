@@ -58,6 +58,12 @@ export const isRollup = (aRollups: any, aTableName: string, aInterval: number, a
     if (sSplitTableName.length > 2) sDBNM = sSplitTableName.at(-3) as string;
     let sTableName: string = sSplitTableName.at(-1) as string;
     if (sSplitTableName.length > 1) sUserName = sSplitTableName.at(-2) as string;
+
+    // OLD version does not support MOUNTED DB
+    if (sRollupVersion === 'OLD' && sSplitTableName.length > 2 && sDBNM.toUpperCase() !== 'MACHBASEDB') {
+        return false;
+    }
+
     if (sRollupVersion === 'RECENT') sTableName = sDBNM + '.' + sTableName;
     if (!isEmpty(aRollups) && aRollups[sUserName] && aRollups[sUserName][sTableName] && aRollups[sUserName][sTableName][aColumnName] && aInterval > 0) {
         const aValue = aRollups[sUserName][sTableName][aColumnName];
@@ -75,11 +81,17 @@ export const isRollupExt = (aRollups: any, aTableName: string, aInterval: any) =
     if (sSplitTableName.length > 2) sDBNM = sSplitTableName.at(-3) as string;
     let sTableName: string = sSplitTableName.at(-1) as string;
     if (sSplitTableName.length > 1) sUserName = sSplitTableName.at(-2) as string;
+
+    // OLD version does not support MOUNTED DB
+    if (sRollupVersion === 'OLD' && sSplitTableName.length > 2 && sDBNM.toUpperCase() !== 'MACHBASEDB') {
+        return 0;
+    }
+
     if (sRollupVersion === 'RECENT') sTableName = sDBNM + '.' + sTableName;
     if (!isEmpty(aRollups) && aRollups[sUserName] && aRollups[sUserName][sTableName] && aRollups[sUserName][sTableName]['EXT_TYPE'] && aInterval > 0) {
         const aValue = aRollups[sUserName][sTableName]['VALUE'];
         let aResult = 0;
-        aValue.map((aRollupTime: any, idx: number) => {
+        aValue?.map((aRollupTime: any, idx: number) => {
             if (aInterval % aRollupTime === 0) aResult = aRollups[sUserName][sTableName]['EXT_TYPE'][idx];
         });
         return aResult;

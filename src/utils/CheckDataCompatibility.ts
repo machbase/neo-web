@@ -54,6 +54,8 @@ const DashboardCompatibility = (aData: any) => {
             const sResDataType: string = SqlResDataType(sChartType);
 
             const sValidBlockList = sBlockList.map((aBlock: any) => {
+                // Set block formula valid
+                if (!CheckObjectKey(aBlock, 'isValidMath')) aBlock.isValidMath = true;
                 // Set block visibility
                 if (!CheckObjectKey(aBlock, 'isVisible')) aBlock.isVisible = true;
                 // Skip validate variableBlock

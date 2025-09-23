@@ -60,6 +60,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const { pIsActiveTab, pData, pWrkId, pIdx, pAllRunCodeStatus, pAllRunCodeTargetIdx, pAllRunCodeList, pAllRunCodeCallback, setSheet, pWorkSheets, pCallback } = props;
     const sInitHeight = 200;
     const resizeRef = useRef<HTMLDivElement | null>(null);
+    const sScrollSpyRef = useRef<HTMLDivElement | null>(null);
     const [sText, setText] = useState<string>(pData.contents);
     const [initialPos, setInitialPos] = useState<number>(0);
     const [initialSize, setInitialSize] = useState<number>(pData.height ?? sInitHeight);
@@ -187,6 +188,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             selection: SelectionType;
         }
     ) => {
+        // Set scroll spy
+        if (sScrollSpyRef?.current) sScrollSpyRef?.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
         if (sSelectedLang === 'TQL') {
             setProcessing(true);
             getTqlData(aText);
@@ -586,7 +589,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         />
                     </div>
                 </div>
-                <div style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
+                <div ref={sScrollSpyRef} style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
                     {Result()}
                     <div style={{ margin: '1rem 0' }}>
                         <IconButton

@@ -133,7 +133,10 @@ export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
 
 export const fetchRollupVersion = async () => {
     const sData = await executeQuery('SELECT count(DATABASE_ID) FROM V$ROLLUP');
-    return sData;
+    return {
+        ...sData,
+        svrState: sData?.success ?? false
+    };
 };
 
 export const fetchTimeMinMax = async (aTargetInfo: any) => {

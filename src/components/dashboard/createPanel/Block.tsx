@@ -26,7 +26,7 @@ import { CompactPicker } from 'react-color';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { useRef } from 'react';
 import { Input } from '@/components/inputs/Input';
-import { SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser';
+import { CombineTableUser, SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser';
 import { Error } from '@/components/toast/Toast';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import TagSelectDialog from '@/components/inputs/TagSelectDialog';
@@ -38,8 +38,11 @@ import { FullQueryHelper } from './Block/FullQueryHelper';
 import { E_CHART_TYPE } from '@/type/eChart';
 import { TransformBlockType } from './Transform/type';
 import { VscEye, VscEyeClosed } from 'react-icons/vsc';
+import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
+import { BadgeStatus } from '@/components/badge';
+import useDebounce from '@/hooks/useDebounce';
 
-export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount }: any) => {
+export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
     const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
@@ -57,6 +60,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
     });
     const sColorPickerRef = useRef<any>(null);
     const sMathRef = useRef<any>(null);
+    const sCustomQueryRef = useRef<any>(null);
+    const [sIsValidCustomQuery, setIsValidCustomQuery] = useState<boolean>(false);
 
     const setOption = (aKey: string, aData: any) => {
         pSetPanelOption((aPrev: any) => {
@@ -146,6 +151,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value,
                             };
                             if (aKey === 'time') sTmpItem.duration = { from: '', to: '' };
+                            if (aKey === 'math') sTmpItem.isValidMath = true;
                             return sTmpItem;
                         } else return aItem;
                     }),
@@ -153,6 +159,42 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
             });
         }
     };
+    const getFullCustomQuery = () => {
+        const sTableName = CombineTableUser(pBlockInfo.table, pBlockInfo?.customTable);
+        let sName = pBlockInfo?.name ?? '';
+        let sTime = pBlockInfo?.time ?? '';
+        let sValue = pBlockInfo?.value ?? '';
+        let sAgg = pBlockInfo?.aggregator ?? '';
+        let sWhereNameIn: any = [];
+        let sAlias = pBlockInfo?.alias !== '' ? pBlockInfo?.alias : "'SERIES(0)'";
+
+        if (pBlockInfo.useCustom) {
+            sValue = pBlockInfo?.values?.[0]?.value !== '' ? pBlockInfo?.values?.[0]?.value : false;
+            sAlias = pBlockInfo?.values?.[0]?.alias !== '' ? pBlockInfo?.values?.[0]?.alias : "'SERIES(0)'";
+            sAgg = pBlockInfo?.values?.[0]?.aggregator !== '' ? pBlockInfo?.values?.[0]?.aggregator : false;
+            const sFilterTmp = pBlockInfo?.filter?.filter((aItem: any) => {
+                if (aItem?.useFilter) return aItem;
+                else return false;
+            });
+            sWhereNameIn = sFilterTmp.map((bItem: any) => {
+                if (bItem.useTyping) return bItem.typingValue;
+                else return `${bItem.column} ${bItem.operator} ${bItem.value}`;
+            });
+        } else sWhereNameIn = [`${sName} IN ('${pBlockInfo?.tag !== '' ? pBlockInfo?.tag : ' '}')`];
+
+        let sCombineValue = sAgg && sValue ? `${sAgg}(${sValue}) AS ${sAlias}` : `COUNT(*) AS ${sAlias}`;
+
+        if (sAgg && sValue && (sAgg?.toUpperCase() === 'first'.toUpperCase() || sAgg?.toUpperCase() == 'last'.toUpperCase()))
+            sCombineValue = `${sAgg}(${sTime}, ${sValue}) AS ${sAlias}`;
+        if (sAgg?.toUpperCase() === 'diff'.toUpperCase() || sAgg?.toUpperCase() === 'diff (abs)'.toUpperCase() || sAgg?.toUpperCase() === 'diff (no-negative)'.toUpperCase()) {
+            sCombineValue = `COUNT(*) AS ${sAlias}`;
+        }
+        let sQuery = `SELECT DATE_TRUNC('{{period_unit}}', ${sTime}, {{period_value}}) / 1000000 AS TIME, ${sCombineValue} FROM ${sTableName} WHERE ${sTime} BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) ${
+            sWhereNameIn?.length > 0 ? 'AND ' + sWhereNameIn?.join('AND') : ''
+        } GROUP BY TIME ORDER BY TIME`;
+        return sQuery;
+    };
+
     const changedOptionFullTyping = (aKey: string, aData: any) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -166,6 +208,13 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value,
                             },
                         };
+                        if (aKey === 'use' && aData?.target?.value === true) {
+                            sTmpItem.customFullTyping.text = getFullCustomQuery();
+                        }
+                        if (aKey === 'text') {
+                            if (aData?.target?.value?.trim() === '') setIsValidCustomQuery(true);
+                            else setIsValidCustomQuery(() => false);
+                        }
                         return sTmpItem;
                     } else return aItem;
                 }),
@@ -181,8 +230,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         );
         const sIsVirtualTable = aTable.includes('V$');
         const sData = sIsVirtualTable
-            ? await getVirtualTableInfo(sTable[6], aTable?.includes('.') ? (aTable.split('.').at(-1) as string) : aTable, sTable[1])
-            : await getTableInfo(sTable[6], sTable[2]);
+            ? await getVirtualTableInfo(sTable?.[6], aTable?.includes('.') ? (aTable.split('.').at(-1) as string) : aTable, sTable[1])
+            : await getTableInfo(sTable?.[6], sTable?.[2]);
         if (sData && sData?.data && sData?.data?.rows && sData?.data?.rows.length > 0) {
             if (pType === 'create') {
                 pSetPanelOption((aPrev: any) => {
@@ -232,40 +281,35 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 ? {
                                       ...aItem,
                                       name:
-                                          aItem?.name ??
                                           sData.data.rows.filter((aItem: any) => {
                                               return aItem[1] === 5;
-                                          })[0][0],
+                                          })[0][0] ?? aItem?.name,
                                       time:
-                                          aItem?.time ??
                                           sData.data.rows.filter((aItem: any) => {
                                               return aItem[1] === 6;
-                                          })[0][0],
+                                          })[0][0] ?? aItem?.time,
                                       value:
-                                          aItem?.value ??
                                           sData.data.rows.filter((aItem: any) => {
                                               return isNumberTypeColumn(aItem[1]);
-                                          })[0][0],
+                                          })[0][0] ?? aItem?.value,
                                       type: getTableType(sTable[4]),
                                       tableInfo: sData.data.rows,
                                       values: aItem.values.map((aItem: any) => {
                                           return {
                                               ...aItem,
                                               value:
-                                                  aItem.value ??
                                                   sData.data.rows.filter((bItem: any) => {
                                                       return isNumberTypeColumn(bItem[1]);
-                                                  })[0][0],
+                                                  })[0][0] ?? aItem.value,
                                           };
                                       }),
                                       filter: [
                                           {
                                               ...aItem.filter[0],
                                               column:
-                                                  aItem.filter[0].column ??
                                                   sData.data.rows.filter((aItem: any) => {
                                                       return aItem[1] === 5;
-                                                  })[0][0],
+                                                  })[0][0] ?? aItem.filter[0].column,
                                           },
                                       ],
                                   }
@@ -325,10 +369,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                 }),
             };
         });
-    };
-    const handleOpenFilterTagDialog = (aFilterId: string) => {
-        const sTargetFilter = pBlockInfo.filter.find((aFilter: any) => aFilter.id === aFilterId);
-        setFilterTagDialogInfo({ isOpen: true, filterId: aFilterId, initialValue: sTargetFilter?.value ?? '' });
     };
     const handleCloseFilterTagDialog = () => {
         setFilterTagDialogInfo({ isOpen: false, filterId: null, initialValue: '' });
@@ -441,8 +481,15 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         });
     };
     const validationFormula = async (aFormula: string): Promise<boolean> => {
+        const sParsedFormula = replaceVariablesInTql(aFormula, pVariables, {
+            interval: { IntervalType: '', IntervalValue: 0 },
+            start: '',
+            end: '',
+        });
+        if (sParsedFormula.match(VARIABLE_REGEX)) return false;
         const sResult: any = await getTqlChart(
-            `FAKE(json({[1709779542, 1]}))\nMAPVALUE(2, ${mathValueConverter(SqlResDataType(pPanelOption.type) === 'TIME_VALUE' ? '1' : '2', aFormula)})\nJSON()`
+            `FAKE(json({[1709779542, 1]}))\nMAPVALUE(2, ${mathValueConverter(SqlResDataType(pPanelOption.type) === 'TIME_VALUE' ? '1' : '2', sParsedFormula)})\nJSON()`,
+            'dsh'
         );
         if (!sResult?.data?.success || !sResult?.data?.data?.rows?.length) return false;
         else return true;
@@ -456,8 +503,14 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         if (!sIsMath) return;
         if (!pBlockInfo?.math || pBlockInfo?.math === '') return setIsMath(false);
         const sResValidation = await validationFormula(pBlockInfo?.math);
-        if (sResValidation) setIsMath(false);
-        else Error('Please check the entered formula.');
+        if (sResValidation) {
+            setIsMath(false);
+            setOption('isValidMath', true);
+        } else {
+            setOption('isValidMath', false);
+            Error('Please check the entered formula.');
+            setIsMath(false);
+        }
     };
     const handleEnterKey = (e: React.KeyboardEvent) => {
         if (e.key === 'Escape' || e.key === 'Enter') handleExitFormulaField();
@@ -593,8 +646,27 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
         if (!sFilterExists) handleCloseFilterTagDialog();
     }, [pBlockInfo.filter, sFilterTagDialogInfo.filterId, sFilterTagDialogInfo.isOpen]);
 
+    const handleExitCustomField = async () => {
+        if (sIsValidCustomQuery) return;
+        const sQuery = replaceVariablesInTql(pBlockInfo?.customFullTyping.text, pVariables, {
+            interval: { IntervalType: 'min', IntervalValue: 20 },
+            start: '1700000000',
+            end: '1700000000',
+        });
+        if (sQuery === '') return setIsValidCustomQuery(true);
+        const sResult: any = await getTqlChart(`SQL("${sQuery}")\nJSON()`, 'dsh');
+        if (!sResult?.data?.success) {
+            Error('Please check the entered formula.');
+            setIsValidCustomQuery(false);
+            return;
+        }
+        setIsValidCustomQuery(true);
+    };
+
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
     useOutsideClick(sMathRef, () => handleExitFormulaField(true));
+    // useOutsideClick(sCustomQueryRef, () => handleExitCustomField());
+    useDebounce([pBlockInfo?.customFullTyping.text], handleExitCustomField, 1000);
 
     return (
         <>
@@ -607,7 +679,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 {/* TABLE */}
                                 <div className="series-table">
                                     <span className="series-title">
-                                        Table <IconButton pDisabled={sIsLoadingRollup} pWidth={25} pHeight={26} pIcon={<Refresh />} onClick={HandleTable} />
+                                        Table
+                                        <IconButton pDisabled={sIsLoadingRollup} pWidth={25} pHeight={26} pIcon={<Refresh />} onClick={HandleTable} />
                                     </span>
                                     <InputSelector
                                         pFontSize={12}
@@ -641,13 +714,20 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                             </div>
                         )}
                         {pBlockInfo.customFullTyping.use && (
-                            <div className="row-header-left row-header-left-textarea">
+                            <div ref={sCustomQueryRef} className="row-header-left row-header-left-textarea" style={{ position: 'relative' }}>
                                 <textarea
                                     placeholder={FULL_TYPING_QUERY_PLACEHOLDER}
                                     defaultValue={pBlockInfo.customFullTyping.text}
                                     onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => changedOptionFullTyping('text', event)}
                                     style={{ height: 100 + 'px', width: '100%', padding: '4px 8px' }}
+                                    onFocus={(e) => e.target.setSelectionRange(0, pBlockInfo?.customFullTyping?.text?.length)}
+                                    autoFocus
                                 />
+                                {!sIsValidCustomQuery && (
+                                    <div style={{ display: 'flex', justifyContent: 'end', position: 'absolute', top: '-4px', right: '0px' }}>
+                                        <BadgeStatus />
+                                    </div>
+                                )}
                             </div>
                         )}
                         {!pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && (
@@ -741,7 +821,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 pWidth={20}
                                 pHeight={20}
                                 pIsActive={pBlockInfo.customFullTyping.use}
-                                pDisabled={!(pPanelOption.type === 'Line' || pPanelOption.type === 'Bar')}
+                                pDisabled={!(pPanelOption.type === 'Line' || pPanelOption.type === 'Bar') || pBlockInfo.customFullTyping?.text?.trim() !== ''}
                                 pIsToopTip
                                 pToolTipId={pBlockInfo.id + '-block-change-full-query-mode'}
                                 pToolTipContent={pBlockInfo.customFullTyping.use ? 'Selecting' : 'Typing'}
@@ -757,7 +837,24 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                     pIsActive={pBlockInfo?.math && pBlockInfo?.math !== ''}
                                     pToolTipContent={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'Enter formula' : pBlockInfo?.math}
                                     pToolTipId={pBlockInfo.id + '-block-math'}
-                                    pIcon={<div style={{ width: '16px', height: '16px' }}>{pBlockInfo?.math && pBlockInfo?.math !== '' ? <TbMath /> : <TbMathOff />}</div>}
+                                    pIcon={
+                                        <div style={{ width: '16px', height: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                            {pBlockInfo?.isValidMath ? (
+                                                pBlockInfo?.math && pBlockInfo?.math !== '' ? (
+                                                    <TbMath />
+                                                ) : (
+                                                    <TbMathOff />
+                                                )
+                                            ) : (
+                                                <div style={{ width: '16px', height: '16px', display: 'flex' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'end', position: 'absolute', top: '-6px', right: '-3px' }}>
+                                                        <BadgeStatus />
+                                                    </div>
+                                                    {pBlockInfo?.math && pBlockInfo?.math !== '' ? <TbMath /> : <TbMathOff />}
+                                                </div>
+                                            )}
+                                        </div>
+                                    }
                                     onClick={handleFormulaIconBtn}
                                 />
                                 {sIsMath && (
@@ -836,11 +933,14 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                 pIsToopTip
                                 pToolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                                 pToolTipId={pBlockInfo.id + '-block-expand'}
-                                pDisabled={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' || pPanelOption.type === 'Geomap'}
+                                pDisabled={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' || pPanelOption.type === 'Geomap' || pBlockInfo.customFullTyping.use}
                                 pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={16} /> : <BsArrowsExpand size={16} />}
                                 onClick={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
                             />
                             <IconButton
+                                pIsToopTip
+                                pToolTipContent={'Delete'}
+                                pToolTipId={pBlockInfo.id + '-block-delete'}
                                 pDisabled={pPanelOption.blockList.length === 1 || checkTransformDataUsage()}
                                 pWidth={20}
                                 pHeight={20}
@@ -850,7 +950,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                         </div>
                     </div>
                     {/* VALUE */}
-                    {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
+                    {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }} />}
                     {!pBlockInfo.customFullTyping.use && (
                         <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
                             <div style={{ width: '100%' }}>
@@ -890,7 +990,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pTableList, pType, pGetTables,
                                             pIdx={aIdx}
                                             pAddFilter={addFilter}
                                             pRemoveFilter={removeFilter}
-                                            pOpenTagDialog={handleOpenFilterTagDialog}
                                         />
                                     );
                                 })}
