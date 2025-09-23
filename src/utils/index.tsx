@@ -91,7 +91,7 @@ export const isRollupExt = (aRollups: any, aTableName: string, aInterval: any) =
     if (!isEmpty(aRollups) && aRollups[sUserName] && aRollups[sUserName][sTableName] && aRollups[sUserName][sTableName]['EXT_TYPE'] && aInterval > 0) {
         const aValue = aRollups[sUserName][sTableName]['VALUE'];
         let aResult = 0;
-        aValue.map((aRollupTime: any, idx: number) => {
+        aValue?.map((aRollupTime: any, idx: number) => {
             if (aInterval % aRollupTime === 0) aResult = aRollups[sUserName][sTableName]['EXT_TYPE'][idx];
         });
         return aResult;

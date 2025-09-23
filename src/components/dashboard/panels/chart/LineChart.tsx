@@ -3,7 +3,11 @@ import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart, getTqlScripts } fro
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { calcInterval, calcRefreshTime, decodeFormatterFunction, PanelIdParser, setUnitTime } from '@/utils/dashboardUtil';
 import { useEffect, useRef, useState } from 'react';
-import { DashboardQueryParser, DashboardHasValueQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
+import {
+    DashboardQueryParser,
+    // DashboardHasValueQueryParser,
+    SqlResDataType,
+} from '@/utils/DashboardQueryParser';
 import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
 import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
 import { useRecoilValue } from 'recoil';
@@ -21,8 +25,8 @@ import TABLE from '@/components/table';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { FakeTextBlock } from '@/utils/helpers/Dashboard/BlockHelper';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
-import TQL from '@/utils/TqlGenerator';
-import { Error } from '@/components/toast/Toast';
+// import TQL from '@/utils/TqlGenerator';
+// import { Error } from '@/components/toast/Toast';
 
 const LineChart = ({
     pIsActiveTab,
@@ -63,20 +67,20 @@ const LineChart = ({
         return { start: sStartTimeBeforeStart, end: sStartTimeBeforeEnd };
     };
 
-    const timeRangeChecker = async (aTime: any) => {
-        const { sHasState, sHasQuery } = DashboardHasValueQueryParser(
-            chartTypeConverter(pPanelInfo.type),
-            SqlResDataType(chartTypeConverter(pPanelInfo.type)),
-            pPanelInfo.blockList,
-            sRollupTableList,
-            aTime
-        );
-        if (sHasState) {
-            const sResult: any = await getTqlChart(`SQL("${sHasQuery}")\n${TQL.SINK._JSON()}`, 'dsh');
-            if (sResult?.data?.data?.rows?.[0]?.[0] <= 0)
-                Error(`No data exists from ${moment(aTime.start).format('yyyy-MM-DD HH:mm:ss')} to ${moment(aTime.end).format('yyyy-MM-DD HH:mm:ss')}.`);
-        }
-    };
+    // const timeRangeChecker = async (aTime: any) => {
+    //     const { sHasState, sHasQuery } = DashboardHasValueQueryParser(
+    //         chartTypeConverter(pPanelInfo.type),
+    //         SqlResDataType(chartTypeConverter(pPanelInfo.type)),
+    //         pPanelInfo.blockList,
+    //         sRollupTableList,
+    //         aTime
+    //     );
+    //     if (sHasState) {
+    //         const sResult: any = await getTqlChart(`SQL("${sHasQuery}")\n${TQL.SINK._JSON()}`, 'dsh');
+    //         if (sResult?.data?.data?.rows?.[0]?.[0] <= 0)
+    //             Error(`No data exists from ${moment(aTime.start).format('yyyy-MM-DD HH:mm:ss')} to ${moment(aTime.end).format('yyyy-MM-DD HH:mm:ss')}.`);
+    //     }
+    // };
     const executeTqlChart = async (aWidth?: number) => {
         if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
         setIsLoading(true);

@@ -169,9 +169,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         let sAlias = pBlockInfo?.alias !== '' ? pBlockInfo?.alias : "'SERIES(0)'";
 
         if (pBlockInfo.useCustom) {
-            sValue = pBlockInfo?.values?.[0]?.value ?? '';
-            sAlias = pBlockInfo?.values?.[0]?.alias ? pBlockInfo?.values?.[0]?.alias : "'SERIES(0)'";
-            sAgg = pBlockInfo?.values?.[0]?.aggregator ? pBlockInfo?.values?.[0]?.aggregator : false;
+            sValue = pBlockInfo?.values?.[0]?.value !== '' ? pBlockInfo?.values?.[0]?.value : false;
+            sAlias = pBlockInfo?.values?.[0]?.alias !== '' ? pBlockInfo?.values?.[0]?.alias : "'SERIES(0)'";
+            sAgg = pBlockInfo?.values?.[0]?.aggregator !== '' ? pBlockInfo?.values?.[0]?.aggregator : false;
             const sFilterTmp = pBlockInfo?.filter?.filter((aItem: any) => {
                 if (aItem?.useFilter) return aItem;
                 else return false;
@@ -182,10 +182,15 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
             });
         } else sWhereNameIn = [`${sName} IN ('${pBlockInfo?.tag !== '' ? pBlockInfo?.tag : ' '}')`];
 
-        const sCombineValue = sAgg && sValue ? `${sAgg}(${sValue}) AS ${sAlias}` : `COUNT(*) AS ${sAlias}`;
+        let sCombineValue = sAgg && sValue ? `${sAgg}(${sValue}) AS ${sAlias}` : `COUNT(*) AS ${sAlias}`;
 
+        if (sAgg && sValue && (sAgg?.toUpperCase() === 'first'.toUpperCase() || sAgg?.toUpperCase() == 'last'.toUpperCase()))
+            sCombineValue = `${sAgg}(${sTime}, ${sValue}) AS ${sAlias}`;
+        if (sAgg?.toUpperCase() === 'diff'.toUpperCase() || sAgg?.toUpperCase() === 'diff (abs)'.toUpperCase() || sAgg?.toUpperCase() === 'diff (no-negative)'.toUpperCase()) {
+            sCombineValue = `COUNT(*) AS ${sAlias}`;
+        }
         let sQuery = `SELECT DATE_TRUNC('{{period_unit}}', ${sTime}, {{period_value}}) / 1000000 AS TIME, ${sCombineValue} FROM ${sTableName} WHERE ${sTime} BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) ${
-            sWhereNameIn ? 'AND ' + sWhereNameIn?.join('AND') : ''
+            sWhereNameIn?.length > 0 ? 'AND ' + sWhereNameIn?.join('AND') : ''
         } GROUP BY TIME ORDER BY TIME`;
         return sQuery;
     };
