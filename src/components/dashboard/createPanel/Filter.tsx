@@ -2,19 +2,13 @@ import { Close, GoPencil, PlusCircle } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { Input } from '@/components/inputs/Input';
 import { InputSelector } from '@/components/inputs/InputSelector';
-import { TagSearchSelect } from '@/components/inputs/TagSearchSelect';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 
-const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pBlockInfo, pColumnList, pOpenTagDialog }: any) => {
+const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pBlockInfo, pColumnList }: any) => {
     const sFliterList = ['=', '<>', '>', '>=', '<', '<=', 'in', 'like'];
     const sIsNameColumn = (pFilterInfo.column ?? '').toUpperCase() === 'NAME';
     const sTableName = pBlockInfo?.table ?? '';
-    const sCanUseTagDialog =
-        sIsNameColumn &&
-        sTableName !== '' &&
-        !sTableName.match(VARIABLE_REGEX) &&
-        pBlockInfo?.tableInfo &&
-        pBlockInfo.tableInfo.length > 0;
+    const sCanUseTagDialog = sIsNameColumn && sTableName !== '' && !sTableName.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo && pBlockInfo.tableInfo.length > 0;
     const sToggleIcon = <GoPencil />;
 
     return (
@@ -65,7 +59,7 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                 <div className="series-table">
                     <Input
                         pBorderRadius={4}
-                        pWidth={436}
+                        pWidth={456}
                         pHeight={26}
                         pType="text"
                         pValue={pFilterInfo.typingValue}
@@ -76,22 +70,14 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
             ) : (
                 <div className="series-table">
                     {sCanUseTagDialog ? (
-                        <div className="tag-search-select-wrapper-custom">
-                            <Input
-                                pBorderRadius={4}
-                                pWidth={149}
-                                pHeight={26}
-                                pType="text"
-                                pValue={pFilterInfo.value}
-                                onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
-                            />
-                            <TagSearchSelect
-                                pTable={sTableName}
-                                pCallback={() => pOpenTagDialog(pFilterInfo.id)}
-                                pBlockOption={pBlockInfo}
-                                pUseDialog
-                            />
-                        </div>
+                        <Input
+                            pBorderRadius={4}
+                            pWidth={175}
+                            pHeight={26}
+                            pType="text"
+                            pValue={pFilterInfo.value}
+                            onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
+                        />
                     ) : (
                         <InputSelector
                             pBorderRadius={4}
@@ -110,7 +96,6 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                     pHeight={20}
                     pIsActive={pFilterInfo.useTyping}
                     pIsToopTip
-                    // pDisabled={!pColumnList[0]}
                     pToolTipContent={pFilterInfo.useTyping ? 'Selecting' : 'Typing'}
                     pToolTipId={pBlockInfo.id + '-block-filter-pencil' + pIdx}
                     pIcon={sToggleIcon}

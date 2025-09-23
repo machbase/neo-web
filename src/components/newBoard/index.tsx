@@ -123,7 +123,7 @@ const NewBoard = (props: NewBoardProps) => {
                           dashboard: {
                               variables: [],
                               timeRange: {
-                                  start: 'now-3h',
+                                  start: 'now-1h',
                                   end: 'now',
                                   refresh: 'Off',
                               },

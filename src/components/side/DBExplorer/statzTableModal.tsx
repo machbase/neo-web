@@ -31,7 +31,7 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
         let sCurPage = sPage ? sPage : 1;
         if (sCurPage > getMaxPageNum) sCurPage = getMaxPageNum;
         if (sCurPage < 1) sCurPage = 1;
-        const sQuery = `SELECT NAME, ${ToCharValue('ROW_COUNT')}, ${ToCharTime('MAX_TIME')}, ${ToCharTime('MAX_TIME')}, MIN_VALUE, ${ToCharTime(
+        const sQuery = `SELECT NAME, ${ToCharValue('ROW_COUNT')}, ${ToCharTime('MIN_TIME')}, ${ToCharTime('MAX_TIME')}, MIN_VALUE, ${ToCharTime(
             'MIN_VALUE_TIME'
         )}, MAX_VALUE, ${ToCharTime('MAX_VALUE_TIME')}, ${ToCharTime('RECENT_ROW_TIME')} FROM ${pModalInfo.table[E_TABLE_INFO.DB_NM]}.${pModalInfo.table[E_TABLE_INFO.USER_NM]}.V$${
             pModalInfo.table[E_TABLE_INFO.TB_NM]

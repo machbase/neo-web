@@ -89,7 +89,36 @@ export const VariableParserForTql = (aVariables: VARIABLE_TYPE[]) => {
     });
     return defineVar;
 };
+/** Dashboard Has Value Query Parser */
+export const DashboardHasValueQueryParser = (
+    aChartType: string,
+    aDataType: ChartDataType,
+    aBlockList: any,
+    aRollupList: any,
+    aTime: BlockTimeType
+): { sHasState: boolean; sHasQuery: string } => {
+    let sHasQuery = '';
+    if (aChartType === 'tql') return { sHasState: false, sHasQuery };
+    const sQueryBlock = BlockParser(aBlockList, aRollupList, aTime);
+    if (!(sQueryBlock && sQueryBlock?.length > 0)) return { sHasState: false, sHasQuery };
+    if (sQueryBlock[0]?.useFullTyping) return { sHasState: false, sHasQuery: sQueryBlock[0].text };
+    const sTimeWhere = GetTimeWhere(sQueryBlock[0].time, aTime);
+    const sFilterWhere = GetFilterWhere(sQueryBlock[0].filterList, sQueryBlock[0].useCustom, sQueryBlock[0]);
+    const sIsVirtualTable = sQueryBlock[0].tableName.includes('V$');
+    const sConbineWhere = GetConbineWhere(aDataType, sQueryBlock[0], aTime, sTimeWhere, sFilterWhere, '', '', false, true, sIsVirtualTable);
 
+    // BAR | LINE | SCATTER
+    if (aDataType === 'TIME_VALUE') sHasQuery = `SELECT count(*) FROM ${sQueryBlock[0].tableName} ${sConbineWhere} LIMIT 1`;
+    // PIE | GAUGE | LIQUIDFILL
+    if (aDataType === 'NAME_VALUE') {
+        if (sIsVirtualTable) {
+            const sTable = sQueryBlock[0].tableName.split('.').length > 1 ? sQueryBlock[0].tableName : ADMIN_ID + '.' + sQueryBlock[0].tableName;
+            sHasQuery = `SELECT count(*) FROM ${sTable} ${sConbineWhere} LIMIT 1`;
+        } else sHasQuery = `SELECT count(*) FROM ${sQueryBlock[0].tableName} ${sConbineWhere} LIMIT 1`;
+    }
+
+    return { sHasState: true, sHasQuery };
+};
 
 /** Dashboard QUERY PARSER */
 export const DashboardQueryParser = (
@@ -116,11 +145,11 @@ export const DashboardQueryParser = (
         aUniqueId,
         aRollupList
     );
-    
+
     return [sParsedQueryList, sAliasList, sInjectionSrc];
 };
 /** Combine table and user */
-const CombineTableUser = (table: string, customTable: boolean = false) => {
+export const CombineTableUser = (table: string, customTable: boolean = false) => {
     // Typing table
     if (customTable) return table;
     // Variable
@@ -161,6 +190,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             color: bBlock.color,
             tableInfo: bBlock.tableInfo,
             math: bBlock?.math ?? '',
+            isValidMath: bBlock?.isValidMath ?? true,
             duration: bBlock?.duration ?? { from: '', to: '' },
             useFullTyping: bBlock.customFullTyping.use,
             isVisible: bBlock.isVisible,
