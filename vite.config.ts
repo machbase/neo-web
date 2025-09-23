@@ -8,7 +8,16 @@ const TestTarget = 'localhost:5654';
 const TestSecurity = '';
 
 export default defineConfig({
-    plugins: [react(), svgr()],
+    plugins: [
+        react(),
+        svgr({
+            svgrOptions: {
+                exportType: 'named',
+                namedExport: 'ReactComponent',
+            },
+            include: '**/*.svg?react',
+        }),
+    ],
     resolve: {
         alias: [{ find: '@', replacement: path.resolve(__dirname, 'src') }],
     },
