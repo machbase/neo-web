@@ -9,7 +9,7 @@ import { gBoardList, gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import Panel from './panels/Panel';
 import CreatePanel from './createPanel/CreatePanel';
 import { IconButton } from '../buttons/IconButton';
-import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, VscSync, MdLink } from '@/assets/icons/Icon';
+import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, VscSync, MdLink, Share } from '@/assets/icons/Icon';
 import ModalTimeRange from '../tagAnalyzer/ModalTimeRange';
 import moment from 'moment';
 import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
@@ -27,6 +27,7 @@ import { VariablePreview } from './variable/preview';
 import { SiVectorworks } from 'react-icons/si';
 import { IoMdOptions } from 'react-icons/io';
 import { IoClose } from 'react-icons/io5';
+import ShareModal from './ShareModal';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
@@ -45,6 +46,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const [sVariableModal, setVariableModal] = useState<boolean>(false);
     const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
     const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
+    const [sShareModal, setShareModal] = useState<boolean>(false);
     const variableRef = useRef<HTMLDivElement>(null);
 
     const moveTimeRange = (aItem: string) => {
@@ -334,6 +336,15 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         {pIsSave ? (
                             <IconButton pIsToopTip pToolTipContent="Copy link" pToolTipId="dsh-tab-explorer-copy-link" pIcon={<MdLink size={18} />} onClick={handleCopyLink} />
                         ) : null}
+                        {pIsSave ? (
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Share"
+                                pToolTipId="dsh-tab-explorer-share"
+                                pIcon={<Share />}
+                                onClick={() => setShareModal(true)}
+                            />
+                        ) : null}
                         <IconButton
                             pIsToopTip
                             pToolTipContent="Variable config"
@@ -427,6 +438,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                     />
                 )}
                 {sVariableModal && <Variable pBoardInfo={pInfo} pSetModal={setVariableModal} />}
+                {sShareModal && <ShareModal isOpen={sShareModal} onClose={() => setShareModal(false)} boardInfo={pInfo} />}
             </div>
         )
     );

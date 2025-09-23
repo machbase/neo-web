@@ -80,6 +80,8 @@ export { FcFolder as TreeFolder, FcOpenedFolder as TreeFolderOpen } from 'react-
 
 export { IoArrowBackOutline, IoLogOutOutline as Logout, IoPlayForwardSharp, IoLogoJavascript } from 'react-icons/io5';
 
+export { IoMdShare as Share } from 'react-icons/io';
+
 export { PiFileCsvThin, PiSelectionPlusBold } from 'react-icons/pi';
 
 export { BiLineChart as LineChart, BiDownload, BiLink, BiPlay as Play, BiSolidDownArrow, BiSolidChart, BiSolidEdit } from 'react-icons/bi';
