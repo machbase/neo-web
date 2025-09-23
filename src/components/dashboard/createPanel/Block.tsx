@@ -164,26 +164,28 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         let sName = pBlockInfo?.name ?? '';
         let sTime = pBlockInfo?.time ?? '';
         let sValue = pBlockInfo?.value ?? '';
+        let sAgg = pBlockInfo?.aggregator ?? '';
         let sWhereNameIn: any = [];
+        let sAlias = pBlockInfo?.alias !== '' ? pBlockInfo?.alias : "'SERIES(0)'";
 
         if (pBlockInfo.useCustom) {
-            // if (type )
-            // sName = []
-            pBlockInfo?.useCustom ? pBlockInfo?.filter?.[0]?.value ?? '' : '';
+            sValue = pBlockInfo?.values?.[0]?.value ?? '';
+            sAlias = pBlockInfo?.values?.[0]?.alias ? pBlockInfo?.values?.[0]?.alias : "'SERIES(0)'";
+            sAgg = pBlockInfo?.values?.[0]?.aggregator ? pBlockInfo?.values?.[0]?.aggregator : false;
+            const sFilterTmp = pBlockInfo?.filter?.filter((aItem: any) => {
+                if (aItem?.useFilter) return aItem;
+                else return false;
+            });
+            sWhereNameIn = sFilterTmp.map((bItem: any) => {
+                if (bItem.useTyping) return bItem.typingValue;
+                else return `${bItem.column} ${bItem.operator} ${bItem.value}`;
+            });
+        } else sWhereNameIn = [`${sName} IN ('${pBlockInfo?.tag !== '' ? pBlockInfo?.tag : ' '}')`];
 
-            sValue = pBlockInfo?.values?.[0].value;
-            // log |  tag
-        } else {
-            sName = pBlockInfo.name;
-            sTime = pBlockInfo.time;
-            sValue = pBlockInfo.value;
-            sWhereNameIn = [`AND ${sName} IN ('${pBlockInfo?.tag !== '' ? pBlockInfo?.tag : ' '}')`];
-        }
-        const sAlias = pBlockInfo?.useCustom ? pBlockInfo?.values?.[0]?.alias : pBlockInfo?.alias;
-        let sQuery = `SELECT DATE_TRUNC('{{period_unit}}', ${sTime}, {{period_value}}) / 1000000 AS TIME, AVG(${sValue}) AS ${
-            sAlias !== '' ? sAlias : 'SERIES(0)'
-        } FROM ${sTableName} WHERE ${sTime} BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) ${
-            sWhereNameIn ? sWhereNameIn?.join('AND') : ''
+        const sCombineValue = sAgg && sValue ? `${sAgg}(${sValue}) AS ${sAlias}` : `COUNT(*) AS ${sAlias}`;
+
+        let sQuery = `SELECT DATE_TRUNC('{{period_unit}}', ${sTime}, {{period_value}}) / 1000000 AS TIME, ${sCombineValue} FROM ${sTableName} WHERE ${sTime} BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) ${
+            sWhereNameIn ? 'AND ' + sWhereNameIn?.join('AND') : ''
         } GROUP BY TIME ORDER BY TIME`;
         return sQuery;
     };
@@ -658,7 +660,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
 
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
     useOutsideClick(sMathRef, () => handleExitFormulaField(true));
-    useOutsideClick(sCustomQueryRef, () => handleExitCustomField());
+    // useOutsideClick(sCustomQueryRef, () => handleExitCustomField());
     useDebounce([pBlockInfo?.customFullTyping.text], handleExitCustomField, 1000);
 
     return (
