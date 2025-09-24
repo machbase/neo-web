@@ -29,6 +29,8 @@ type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete'
 type ShowResultType = 'brief' | 'all';
 
 interface WorkSheetEditorProps {
+    pTimeRange: string;
+    pTimeZone: string;
     pIsActiveTab: boolean;
     pData: any;
     pIdx: number;
@@ -57,7 +59,21 @@ const defaultSqlLocation = {
 };
 
 export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
-    const { pIsActiveTab, pData, pWrkId, pIdx, pAllRunCodeStatus, pAllRunCodeTargetIdx, pAllRunCodeList, pAllRunCodeCallback, setSheet, pWorkSheets, pCallback } = props;
+    const {
+        pTimeRange,
+        pTimeZone,
+        pIsActiveTab,
+        pData,
+        pWrkId,
+        pIdx,
+        pAllRunCodeStatus,
+        pAllRunCodeTargetIdx,
+        pAllRunCodeList,
+        pAllRunCodeCallback,
+        setSheet,
+        pWorkSheets,
+        pCallback,
+    } = props;
     const sInitHeight = 200;
     const resizeRef = useRef<HTMLDivElement | null>(null);
     const sScrollSpyRef = useRef<HTMLDivElement | null>(null);
@@ -263,7 +279,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         const sQueryReslutList: any = [];
         try {
             for (const curQuery of aParsedQuery) {
-                const sQueryResult = await getTqlChart(sqlSheetFormatter(curQuery.text, sResultContentType === 'brief', curQuery.env?.bridge));
+                const sQueryResult = await getTqlChart(
+                    sqlSheetFormatter({ aSql: curQuery.text, aBrief: sResultContentType === 'brief', bridge: curQuery.env?.bridge, aTimeFormat: pTimeRange, aTimeZone: pTimeZone })
+                );
                 sQueryReslutList.push(sQueryResult);
                 if (sQueryResult?.status !== 200) throw new Error('Query failed');
             }

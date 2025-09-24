@@ -7,6 +7,9 @@ import { getId, isEmpty } from '@/utils';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { Save, SaveAs, IoPlayForwardSharp } from '@/assets/icons/Icon';
 import { IconButton } from '../buttons/IconButton';
+import AUTOCOMBOBOX from '../sql/autoCombobox';
+import { IANA_TIMEZONES } from '@/assets/ts/timezones';
+import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 interface WorkSheetProps {
@@ -39,6 +42,8 @@ export const WorkSheet = (props: WorkSheetProps) => {
         status: true,
         type: 'mrk',
     };
+    const [sTimeRange, setTimeRange] = useState('2006-01-02 15:04:05');
+    const [sTimeZone, setTimeZone] = useState('LOCAL');
 
     const handleCallback = (aData: { id: string; event: CallbackEventType }) => {
         switch (aData.event) {
@@ -117,16 +122,20 @@ export const WorkSheet = (props: WorkSheetProps) => {
                     pIcon={<IoPlayForwardSharp />}
                     onClick={() => setAllRunCodeStatus(true)}
                 />
-                <div className="divider"></div>
-                <IconButton pPlace="bottom-start" pIsToopTip pToolTipContent="Save" pToolTipId="wrk-tab-save" pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
-                <IconButton
-                    pPlace="bottom-start"
-                    pIsToopTip
-                    pToolTipContent="Save as"
-                    pToolTipId="wrk-tab-save-as"
-                    pIcon={<SaveAs size={18} />}
-                    onClick={() => setIsSaveModal(true)}
-                />
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+                    <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
+                    <AUTOCOMBOBOX pName="sTimeZone" pList={IANA_TIMEZONES} pTarget={sTimeZone} pCallback={setTimeZone} />
+                    <div className="divider" />
+                    <IconButton pPlace="bottom-start" pIsToopTip pToolTipContent="Save" pToolTipId="wrk-tab-save" pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
+                    <IconButton
+                        pPlace="bottom-start"
+                        pIsToopTip
+                        pToolTipContent="Save as"
+                        pToolTipId="wrk-tab-save-as"
+                        pIcon={<SaveAs size={18} />}
+                        onClick={() => setIsSaveModal(true)}
+                    />
+                </div>
             </div>
             <div className="worksheet-body">
                 <div className="worksheet">
@@ -135,6 +144,8 @@ export const WorkSheet = (props: WorkSheetProps) => {
                         sWorkSheets.map((aSheetItem: any, aIdx: number) => {
                             return (
                                 <WorkSheetEditor
+                                    pTimeRange={sTimeRange}
+                                    pTimeZone={sTimeZone}
                                     pIsActiveTab={pIsActiveTab}
                                     key={'sheet-' + aSheetItem.id}
                                     pData={aSheetItem}

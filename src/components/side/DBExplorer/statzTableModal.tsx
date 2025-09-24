@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { E_TABLE_INFO, FetchCommonType } from './utils';
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { MdKeyboardDoubleArrowLeft, MdOutlineKeyboardDoubleArrowRight } from 'react-icons/md';
+import { useSchedule } from '@/hooks/useSchedule';
+import moment from 'moment';
 
 interface VirtualTableProps {
     pModalInfo: {
@@ -26,6 +28,7 @@ const ToCharValue = (aColumn: string) => `${aColumn}`;
 export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps) => {
     const [sStatzList, setStatzInfo] = useState<FetchCommonType>();
     const [sPage, setPage] = useState<number>(1);
+    const [sLastUpdated, setLastUpdated] = useState<Date>(new Date());
 
     const FetchTable = async () => {
         let sCurPage = sPage ? sPage : 1;
@@ -39,6 +42,7 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
         const { svrState, svrData } = await fetchQuery(sQuery);
         if (svrState) setStatzInfo(svrData);
         else setStatzInfo(undefined);
+        setLastUpdated(new Date());
     };
     const handleClose = () => {
         pSetModalInfo({ state: false, filter: '', table: undefined, recordCnt: 1 });
@@ -54,9 +58,8 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
     useEffect(() => {
         FetchTable();
     }, [sPage]);
-    useEffect(() => {
-        if (pModalInfo.state) FetchTable();
-    }, [pModalInfo]);
+
+    useSchedule(FetchTable, 1000 * 3); // 3s
 
     return pModalInfo.state ? (
         <div className="statz-table-modal-wrap">
@@ -66,10 +69,16 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
                         <ExtensionTab.ContentBlock pHoverNone>
                             <ExtensionTab.DpRowBetween>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
-                                    <ExtensionTab.SubTitle>Statz</ExtensionTab.SubTitle>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <ExtensionTab.SubTitle>
+                                            Real-Time Statistics of <span style={{ fontWeight: 'bold', color: 'yellow' }}>{pModalInfo?.table?.[E_TABLE_INFO.TB_NM]}</span> Table
+                                        </ExtensionTab.SubTitle>
+                                    </div>
                                     {pModalInfo?.filter && <ExtensionTab.ContentDesc>Filtered by '{pModalInfo.filter}'</ExtensionTab.ContentDesc>}
                                 </div>
-                                <Close style={{ cursor: 'pointer' }} onClick={handleClose} />
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end' }}>
+                                    <Close style={{ cursor: 'pointer' }} onClick={handleClose} />
+                                </div>
                             </ExtensionTab.DpRowBetween>
                         </ExtensionTab.ContentBlock>
                     </div>
@@ -82,6 +91,9 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
                     </ExtensionTab.ContentBlock>
                 )}
                 <Modal.Footer>
+                    <div style={{ padding: '20px 40px 0 20px', justifyItems: 'end' }}>
+                        <ExtensionTab.ContentDesc>Last updated: {moment(sLastUpdated)?.format('YYYY-MM-DD HH:mm:ss')}</ExtensionTab.ContentDesc>
+                    </div>
                     <ExtensionTab.ContentBlock pHoverNone>
                         <div className="statz-table-modal-pagination">
                             <button disabled={sPage <= 1} style={sPage <= 1 ? { opacity: 0.4, cursor: 'not-allowed' } : {}} onClick={() => setPage(1)}>

@@ -35,9 +35,9 @@ export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string,
     );
 };
 
-export const sqlSheetFormatter = (aSql: string, aBrief: boolean, bridge?: string) => {
+export const sqlSheetFormatter = ({ aSql, aBrief, bridge, aTimeFormat, aTimeZone }: { aSql: string; aBrief: boolean; bridge?: string; aTimeFormat: string; aTimeZone: string }) => {
     const bridgeText = bridge ? `bridge('${bridge}'),` : '';
-    return 'SQL(' + bridgeText + '`' + aSql + '`)\n' + `MARKDOWN(html(true), rownum(true), heading(true), brief(${aBrief}))`;
+    return 'SQL(' + bridgeText + '`' + aSql + '`)\n' + `MARKDOWN(html(true), rownum(true), heading(true), brief(${aBrief}), timeformat('${aTimeFormat}'), tz('${aTimeZone}'))`;
 };
 
 const Animation = `"animation": false`;
