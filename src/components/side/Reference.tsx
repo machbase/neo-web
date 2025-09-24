@@ -19,7 +19,7 @@ type REFERENCE_ITEM = {
     type: string;
     target?: string;
 };
-const SUPPORT_QUICK_INSTALL_LIST = ['Tutorials', 'Demo web app'];
+const SUPPORT_QUICK_INSTALL_LIST = ['Tutorials', 'Demo web app', 'Education'];
 
 const Reference = ({ pValue }: any) => {
     const [sCollapseTree, setCollapseTree] = useState(true);
