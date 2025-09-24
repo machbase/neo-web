@@ -1,6 +1,8 @@
 import './ShareModal.scss';
 import { Close, Copy, Share } from '../../assets/icons/Icon';
 import { Success } from '../toast/Toast';
+import { useState } from 'react';
+import useEsc from '../../hooks/useEsc';
 
 interface ShareModalProps {
     isOpen: boolean;
@@ -9,12 +11,20 @@ interface ShareModalProps {
 
 export const ShareModal = ({ isOpen, onClose }: ShareModalProps) => {
     const currentUrl = window.location.href;
+    const [activeTab, setActiveTab] = useState<'iframe' | 'embed'>('iframe');
+
+    useEsc(() => isOpen && onClose());
 
     const createIframeCode = (url: string) => `<iframe width="100%" height="100%" src="${url}" frameborder="0" allowfullscreen></iframe>`;
 
     const createEmbedCode = (url: string) => `<embed width="100%" height="100%" src="${url}">`;
 
     const handleCopyToClipboard = async (text: string, type: 'link' | 'iframe' | 'embed') => {
+        if (!navigator.clipboard || !navigator.clipboard.writeText) {
+            fallbackCopyToClipboard(text, type);
+            return;
+        }
+
         try {
             await navigator.clipboard.writeText(text);
             const messages = {
@@ -129,44 +139,40 @@ export const ShareModal = ({ isOpen, onClose }: ShareModalProps) => {
                                 </button>
                             </div>
 
-                            {/* Embed Options */}
-                            <div className="embed-options">
-                                <div className="embed-option">
-                                    <div className="embed-option-header">
-                                        <span className="embed-option-title">Embed (iframe)</span>
-                                        <button
-                                            className="embed-copy-button"
-                                            onClick={() => handleCopyToClipboard(createIframeCode(currentUrl), 'iframe')}
-                                        >
-                                            <Copy />
-                                        </button>
-                                    </div>
-                                    <textarea
-                                        value={createIframeCode(currentUrl)}
-                                        readOnly
-                                        className="embed-textarea"
-                                        rows={2}
-                                        onClick={(e) => e.currentTarget.select()}
-                                    />
+                            {/* Embed Tabs */}
+                            <div className="embed-section">
+                                <div className="embed-tabs">
+                                    <button
+                                        className={`embed-tab ${activeTab === 'iframe' ? 'active' : ''}`}
+                                        onClick={() => setActiveTab('iframe')}
+                                    >
+                                        iframe
+                                    </button>
+                                    <button
+                                        className={`embed-tab ${activeTab === 'embed' ? 'active' : ''}`}
+                                        onClick={() => setActiveTab('embed')}
+                                    >
+                                        embed
+                                    </button>
                                 </div>
 
-                                <div className="embed-option">
-                                    <div className="embed-option-header">
-                                        <span className="embed-option-title">Embed (embed)</span>
-                                        <button
-                                            className="embed-copy-button"
-                                            onClick={() => handleCopyToClipboard(createEmbedCode(currentUrl), 'embed')}
-                                        >
-                                            <Copy />
-                                        </button>
-                                    </div>
+                                <div className="embed-input-wrapper">
                                     <textarea
-                                        value={createEmbedCode(currentUrl)}
+                                        value={activeTab === 'iframe' ? createIframeCode(currentUrl) : createEmbedCode(currentUrl)}
                                         readOnly
-                                        className="embed-textarea"
+                                        className="embed-input"
                                         rows={2}
                                         onClick={(e) => e.currentTarget.select()}
                                     />
+                                    <button
+                                        className="copy-button"
+                                        onClick={() => handleCopyToClipboard(
+                                            activeTab === 'iframe' ? createIframeCode(currentUrl) : createEmbedCode(currentUrl),
+                                            activeTab
+                                        )}
+                                    >
+                                        <Copy />
+                                    </button>
                                 </div>
                             </div>
                         </div>
