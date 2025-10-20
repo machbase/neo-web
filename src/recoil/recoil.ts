@@ -89,23 +89,6 @@ export const gTables = atom<any>({
     key: 'gTables',
     default: [],
 });
-export const gConsoleSelector = selector<any>({
-    key: 'gConsoleSelector',
-    get: ({ get }) => {
-        const sArray: any = get(gConsoleList);
-        return sArray;
-    },
-    set: ({ set }, aNewValue) => {
-        if (aNewValue.length > 200) {
-            // 배열 길이가 200개를 초과하는 경우
-            // 첫 번째 요소를 제거한 후 나머지 요소를 유지
-            const sNewSlicedArray = aNewValue.slice(1, 201);
-            set(gConsoleList, sNewSlicedArray);
-        } else {
-            set(gConsoleList, aNewValue);
-        }
-    },
-});
 
 export const gRollupTableList = atom<any>({
     key: 'gRollupTableList',

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import SplitPane, { Pane, SashContent } from 'split-pane-react';
 import { getTqlChart } from '@/api/repository/machiot';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { gBoardList, gConsoleSelector, gSelectedTab } from '@/recoil/recoil';
+import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { Table } from './Table';
 import './index.scss';
 import { Markdown } from '../worksheet/Markdown';
@@ -28,6 +28,7 @@ import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { Loader } from '../loader';
 import { ShowVisualization } from './ShowVisualization';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
+import { gWsLog } from '@/recoil/websocket';
 interface TqlProps {
     pIsActiveTab: boolean;
     pCode: string;
@@ -54,7 +55,7 @@ const Tql = (props: TqlProps) => {
     const [sIsPrettier, setIsPrettier] = useState<boolean>(false);
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
-    const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
+    const setConsoleList = useSetRecoilState<any>(gWsLog);
     const tqlResultBodyRef = useRef(null);
     const [sLoadState, setLoadState] = useState<boolean>(false);
 

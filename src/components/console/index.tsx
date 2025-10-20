@@ -1,7 +1,7 @@
 import './index.scss';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRecoilState } from 'recoil';
-import { gConsoleSelector, gShellList } from '@/recoil/recoil';
+import { gShellList } from '@/recoil/recoil';
 import { VscAdd, VscChevronDown, VscTrash, VscChevronUp } from '@/assets/icons/Icon';
 import { getId, isEmpty } from '@/utils';
 import Shell from '../shell/Shell';
@@ -12,12 +12,13 @@ import icons from '@/utils/icons';
 import { stringParseNewDate } from '@/utils/helpers/date';
 import moment from 'moment';
 import { IconButton } from '../buttons/IconButton';
+import { gWsLog } from '@/recoil/websocket';
 
 const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => {
     const [sConsoleTab, setConsoleTab] = useState<any>([]);
     const [sSelectedTab, setSelectedTab] = useState('Console');
     const [sIsContextMenu, setIsContextMenu] = useState(false);
-    const [sConsoleList, setConsoleList] = useRecoilState<any>(gConsoleSelector);
+    const [sConsoleList, setConsoleList] = useRecoilState<any>(gWsLog);
     const [sSelectTask, setSelectTask] = useState('none');
     const MenuRef = useRef<HTMLDivElement>(null);
     const sFiledRef = useRef<HTMLDivElement>(null);

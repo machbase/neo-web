@@ -1,4 +1,4 @@
-import { GBoardListType, gBoardList, gConsoleSelector, gSelectedTab } from '@/recoil/recoil';
+import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gCopyFileTree, gDeleteFileList, gDeleteFileTree, gFileTree, gRecentDirectory, gRenameFile, gReplaceTree } from '@/recoil/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState, useRef } from 'react';
@@ -42,6 +42,7 @@ import { FileCopy } from '@/utils/UpdateTree';
 import axios from 'axios';
 import { EXTENSION_SET } from '@/utils/constants';
 import { Error } from '../toast/Toast';
+import { gWsLog } from '@/recoil/websocket';
 
 const Side = ({
     pGetInfo,
@@ -84,7 +85,7 @@ any) => {
     const [sIsGit, setIsGit] = useState(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
-    const [, setConsoleList] = useRecoilState<any>(gConsoleSelector);
+    const setConsoleList = useSetRecoilState<any>(gWsLog);
     const [sSideSizes, setSideSizes] = useState<any>(['15%', '85%']);
     // const [sSearchFilter, setSearchFilter] = useState<boolean>(false);
     // const [sSearchTxt, setSearchTxt] = useState<string>('');
