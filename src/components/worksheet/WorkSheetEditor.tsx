@@ -10,7 +10,6 @@ import './WorkSheetEditor.scss';
 import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff, IoPlayForwardSharp } from '@/assets/icons/Icon';
 import { IconButton } from '../buttons/IconButton';
 import { useSetRecoilState } from 'recoil';
-import { gConsoleSelector } from '@/recoil/recoil';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { ConfirmModal } from '../modal/ConfirmModal';
 import { Loader } from '../loader';
@@ -20,11 +19,13 @@ import { ShowVisualization } from '../tql/ShowVisualization';
 // import { CheckObjectKey, E_VISUAL_LOAD_ID } from '@/utils/dashboardUtil';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { LocationType, PositionType, SelectionType, SplitItemType, SqlSplitHelper } from '@/utils/TQL/SqlSplitHelper';
+import { gWsLog } from '@/recoil/websocket';
+import { Chat } from '../chat/Chat';
 
-type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell';
-type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell';
-type ServerLang = 'markdown' | 'SQL' | 'go' | 'shell';
-type ServerLangType = 'tql' | 'mrk' | 'sql' | 'shell';
+type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell' | 'Chat';
+type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell' | 'chat';
+type ServerLang = 'markdown' | 'SQL' | 'go' | 'shell' | 'chat';
+type ServerLangType = 'tql' | 'mrk' | 'sql' | 'shell' | 'chat';
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 type ShowResultType = 'brief' | 'all';
 
@@ -101,16 +102,26 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const ResultContentTypeRef = useRef(null);
     const [sShowResultContentType, setShowResultContentType] = useState<boolean>(false);
     const [sMonacoLineHeight, setMonacoLineHeight] = useState<number>(pData.lineHeight ?? 19);
-    const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
+    const setConsoleList = useSetRecoilState<any>(gWsLog);
     const wrkEditorRef = useRef<HTMLDivElement>(null);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sProcessing, setProcessing] = useState<boolean>(false);
-    const LANG = [
-        ['markdown', 'Markdown'],
-        ['SQL', 'SQL'],
-        ['go', 'TQL'],
-        ['shell', 'Shell'],
-    ];
+    const LANG =
+        localStorage.getItem('experimentMode') === 'true'
+            ? [
+                  ['markdown', 'Markdown'],
+                  ['SQL', 'SQL'],
+                  ['go', 'TQL'],
+                  ['shell', 'Shell'],
+                  ['chat', 'Chat'],
+              ]
+            : [
+                  ['markdown', 'Markdown'],
+                  ['SQL', 'SQL'],
+                  ['go', 'TQL'],
+                  ['shell', 'Shell'],
+              ];
+
     useEffect(() => {
         if (pAllRunCodeList.length > 0 && pAllRunCodeStatus && typeof pAllRunCodeTargetIdx === 'number' && pAllRunCodeList[pIdx] && pIdx === pAllRunCodeTargetIdx) {
             handleRunCode(sText);
@@ -168,6 +179,10 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             case 'shell':
                 setSelectedLang('Shell');
                 setMonacoLanguage('go');
+                return;
+            case 'chat':
+                setSelectedLang('Chat');
+                setMonacoLanguage('chat');
                 return;
             default:
                 setSelectedLang('Markdown');
@@ -250,6 +265,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         } else if (aLang === 'shell') {
             setSelectedLang('Shell');
             setMonacoLanguage('go');
+        } else if (aLang === 'chat') {
+            setSelectedLang('Chat');
+            setMonacoLanguage('chat');
         } else {
             setSelectedLang('Markdown');
             setMonacoLanguage('markdown');
@@ -519,12 +537,21 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         <div className="worksheet-editor-wrapper">
             <div ref={wrkEditorRef} className="worksheet-editor">
                 <div style={{ display: 'flex', width: '100%', justifyContent: 'end' }}>
-                    <div className="worksheet-content" style={{ display: !sCollapse ? 'block' : 'none' }}>
+                    <div className={`worksheet-content ${sSelectedLang === 'Chat' ? ' chat' : null}`} style={{ display: !sCollapse ? 'block' : 'none' }}>
                         <div className="worksheet-ctr">
                             {DropDown()}
                             {VerticalDivision()}
                             {ResultContentType()}
-                            <IconButton pIsToopTip pToolTipContent="Run code" pToolTipId="wrk-tab-panel-run" pIcon={<Play />} pIsActiveHover onClick={() => handleRunCode(sText)} />
+                            {sSelectedLang !== 'Chat' && (
+                                <IconButton
+                                    pIsToopTip
+                                    pToolTipContent="Run code"
+                                    pToolTipId="wrk-tab-panel-run"
+                                    pIcon={<Play />}
+                                    pIsActiveHover
+                                    onClick={() => handleRunCode(sText)}
+                                />
+                            )}
                             {sSelectedLang === 'SQL' ? (
                                 <IconButton
                                     pIsToopTip
@@ -535,7 +562,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                                     onClick={() => handleRunCodeAll(sText)}
                                 />
                             ) : null}
-                            {VerticalDivision()}
+                            {sSelectedLang !== 'Chat' && VerticalDivision()}
                             <IconButton
                                 pIsToopTip
                                 pToolTipContent="Move to upper"
@@ -581,7 +608,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                                 onClick={pWorkSheets.length > 1 ? handleDelete : () => null}
                             />
                         </div>
-                        <div ref={resizeRef} className="editor">
+                        <div ref={resizeRef} className="editor" style={{ display: sSelectedLang !== 'Chat' ? 'block' : 'none' }}>
                             <MonacoEditor
                                 pIsActiveTab={pIsActiveTab}
                                 pText={sText}
@@ -607,29 +634,32 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         />
                     </div>
                 </div>
-                <div ref={sScrollSpyRef} style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
-                    {Result()}
-                    <div style={{ margin: '1rem 0' }}>
-                        <IconButton
-                            pIsToopTip
-                            pToolTipContent="Clear"
-                            pToolTipId="wrk-tab-panel-clear"
-                            pWidth={40}
-                            pHeight={40}
-                            pIcon={<GrClearOption size={18} />}
-                            pIsActiveHover
-                            onClick={handleResultClear}
-                        />
-                    </div>
-                    {sProcessing && (
-                        <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
-                            <span>Processing...</span>
-                            <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
-                                <Loader width="12px" height="12px" borderRadius="90%" />
-                            </div>
+                {sSelectedLang !== 'Chat' && (
+                    <div ref={sScrollSpyRef} style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
+                        {Result()}
+                        <div style={{ margin: '1rem 0' }}>
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent="Clear"
+                                pToolTipId="wrk-tab-panel-clear"
+                                pWidth={40}
+                                pHeight={40}
+                                pIcon={<GrClearOption size={18} />}
+                                pIsActiveHover
+                                onClick={handleResultClear}
+                            />
                         </div>
-                    )}
-                </div>
+                        {sProcessing && (
+                            <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
+                                <span>Processing...</span>
+                                <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
+                                    <Loader width="12px" height="12px" borderRadius="90%" />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+                {sSelectedLang === 'Chat' && <Chat pIsActiveTab={pIsActiveTab} pWrkId={pWrkId} pIdx={pIdx} />}
             </div>
             {sIsDeleteModal && (
                 <ConfirmModal

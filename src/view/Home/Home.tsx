@@ -1,16 +1,14 @@
 import Extension from '@/components/extension/index';
 import Side from '@/components/side/Side';
 import './Home.scss';
-import { useNavigate } from 'react-router-dom';
 import SplitPane, { Pane } from 'split-pane-react';
 import Console from '@/components/console/index';
 import 'split-pane-react/esm/themes/default.css';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { getLogin } from '@/api/repository/login';
 import Body from '@/components/editor/Body';
-import { getId } from '@/utils';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { gConsoleSelector, gLicense, gSelectedExtension, gShellList } from '@/recoil/recoil';
+import { gLicense, gSelectedExtension, gShellList } from '@/recoil/recoil';
 import ReferenceList from '@/components/side/ReferenceList';
 import { DBExplorer } from '@/components/side/DBExplorer/DBExplorer';
 import { SecurityKey } from '@/components/side/SecurityKey';
@@ -23,8 +21,11 @@ import { AppStore } from '@/components/side/AppStore';
 import { GlobalChecker } from '@/components/GlobalChecker';
 import { EulaModal } from '@/components/modal/EulaModal';
 import { fetchQuery } from '@/api/repository/database';
+import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
+import { gWsLog } from '@/recoil/websocket';
+import { useNavigate } from 'react-router-dom';
 
-const Home = () => {
+const HomeContent = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);
     const [sTerminalSizes, setTerminalSizes] = useState<string[] | number[]>(['72%', '28%']);
     const [sTabList, setTabList] = useState<any>([]);
@@ -32,19 +33,16 @@ const Home = () => {
     const [sSavedPath, setSavedPath] = useState();
     const [sServer, setServer] = useState();
     const [sIsSidebar, setIsSidebar] = useState<boolean>(true);
-    const setConsoleList = useSetRecoilState<any>(gConsoleSelector);
-    const sNavigate = useNavigate();
+    const setConsoleList = useSetRecoilState<any>(gWsLog);
     const [sSelectedExtension] = useRecoilState<string>(gSelectedExtension);
-    // const [sExtensionList] = useRecoilState<any>(gExtensionList);
     const [sDragStat, setDragStat] = useState<boolean>(false);
     const [sHome, setHome] = useState<boolean>(false);
-    const timer: any = useRef();
-    const sWebSoc: any = useRef(null);
     const setShellList = useSetRecoilState<any>(gShellList);
     const [getLicense, setLicense] = useRecoilState(gLicense);
     const [openEula, setOpenEula] = useState<boolean>(false);
+    const { connectWebSocket, disconnectWebSocket } = useWebSocket();
+    const navigate = useNavigate();
 
-    let count = 0;
     const init = async () => {
         if (sSelectedExtension === '') {
             setIsSidebar(false);
@@ -57,40 +55,13 @@ const Home = () => {
             setShellList(sTermTypeList);
             setOpenEula(true);
             setLicense({ eulaRequired: sResult?.eulaRequired, licenseStatus: sResult?.licenseStatus?.toUpperCase() });
-            const sId = getId();
-            if (!sWebSoc.current) {
-                if (window.location.protocol.indexOf('https') === -1) {
-                    sWebSoc.current = new WebSocket(`ws://${window.location.host}/web/api/console/${sId}/data?token=${localStorage.getItem('accessToken')}`);
-                } else {
-                    sWebSoc.current = new WebSocket(`wss://${window.location.host}/web/api/console/${sId}/data?token=${localStorage.getItem('accessToken')}`);
-                }
-                sWebSoc.current.onmessage = (aEvent: any) => {
-                    setConsoleList((aData: any) => [...aData, JSON.parse(aEvent.data).log]);
-                };
-                sWebSoc.current.onopen = () => {
-                    localStorage.setItem('consoleId', sId);
-                    count = 0;
-                    clearInterval(timer.current);
-                    setConsoleList((aData: any) => [...aData, { timestamp: new Date().getTime(), level: '', task: '', message: 'Connection established' }]);
-                };
-                sWebSoc.current.onclose = async () => {
-                    sWebSoc.current = null;
-                    setConsoleList((aData: any) => [...aData, { timestamp: new Date().getTime(), level: '', task: '', message: 'Connection lost' }]);
-
-                    timer.current = setInterval(() => {
-                        if (count > 60) {
-                            localStorage.removeItem('accessToken');
-                            localStorage.removeItem('refreshToken');
-                            sNavigate('/login');
-                            clearInterval(timer.current);
-                        } else {
-                            init();
-                            count++;
-                        }
-                    }, 1000);
-                };
-            }
+            connectWebSocket();
             UncaughtErrorObserver(setConsoleList);
+        } else {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            navigate('/login');
+            return;
         }
     };
 
@@ -145,15 +116,14 @@ const Home = () => {
     useEffect(() => {
         sHome && getInfo();
     }, [sHome]);
+
     useEffect(() => {
-        sHome && init();
+        if (sHome) init();
         window.onbeforeunload = function () {
             return false;
         };
         return () => {
-            count = 61;
-            clearInterval(timer.current);
-            sWebSoc.current && sWebSoc.current.close();
+            disconnectWebSocket();
         };
     }, [sHome]);
 
@@ -243,4 +213,13 @@ const Home = () => {
         </div>
     );
 };
+
+const Home = () => {
+    return (
+        <WebSocketProvider>
+            <HomeContent />
+        </WebSocketProvider>
+    );
+};
+
 export default Home;
