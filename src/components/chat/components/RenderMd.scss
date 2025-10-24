@@ -1,0 +1,33 @@
+// Code copy button
+.code-copy-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+    border: 1px solid #4a4a4a;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+        background-color: #4a4a4a;
+    }
+
+    &:active {
+        background-color: #2a2a2a;
+    }
+}
+
+// Show copy button on hover
+pre:hover .code-copy-button {
+    opacity: 1;
+}

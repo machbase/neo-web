@@ -32,6 +32,7 @@ import { AppInfo } from '../side/AppStore/info';
 import { DBTablePage } from '../side/DBExplorer/tablePage';
 import { EXTENSION_SET, IMAGE_EXTENSION_LIST } from '@/utils/constants';
 import { UnknownExtension } from '../unknownExtension';
+import { Chat } from '../chat/Chat';
 
 const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -218,7 +219,9 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                     <PlusCircle className="plus-icon" size="20px" onClick={addFile} style={{ cursor: 'pointer' }}></PlusCircle>
                 </div>
             </div>
+
             <div style={{ height: 'calc(100% - 40px)', background: '#262831', zIndex: 2, position: 'relative' }}>
+                {/* <Chat pWrkId={sSelectedTab} pIdx={1} /> */}
                 {sBoardList.map((aItem) => {
                     return (
                         <div key={aItem.id} style={aItem.id === sSelectedTab ? { width: '100%', height: '100%' } : { display: 'none' }}>

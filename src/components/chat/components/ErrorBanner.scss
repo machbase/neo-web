@@ -1,0 +1,39 @@
+.error-banner {
+    background-color: rgba(220, 53, 69, 0.15);
+    border: 1px solid rgba(220, 53, 69, 0.4);
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 8px;
+}
+
+.error-banner-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.error-banner-icon {
+    color: #dc3545;
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.error-banner-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.error-banner-title {
+    color: #ff6b6b;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.error-banner-message {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    line-height: 1.4;
+}

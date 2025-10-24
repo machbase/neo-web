@@ -34,13 +34,17 @@
 
                     :hover {
                         color: #f8f8f8;
-                        background-color: #1f2127;
+                        background-color: rgb(95, 95, 95);
                     }
 
                     .dropdown {
                         display: flex;
                         justify-content: center;
                         align-items: center;
+                        min-height: 28px;
+                        max-height: 28px;
+                        padding: 0 4px;
+                        border-radius: 4px;
 
                         .worksheet-ctr-lang-content-list {
                             border: solid 1px #5e5e5e;
