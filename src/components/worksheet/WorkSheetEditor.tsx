@@ -108,9 +108,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const wrkEditorRef = useRef<HTMLDivElement>(null);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sProcessing, setProcessing] = useState<boolean>(false);
+    const chatLogic = useChat(pWrkId, pIdx, { model: pData?.chat?.model ?? '', provider: pData?.chat?.provider, name: pData?.chat?.name }, pData?.chat?.response);
 
-    // Chat hook - 항상 호출 (Hooks 규칙)
-    const chatLogic = useChat(pWrkId, pIdx);
     const LANG =
         localStorage.getItem('experimentMode') === 'true'
             ? [
@@ -151,11 +150,16 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         };
 
         if (sMonacoLanguage === 'sql') sPayload.brief = sResultContentType === 'brief';
+        if (sMonacoLanguage === 'chat')
+            sPayload.chat = {
+                response: chatLogic.messages,
+                ...chatLogic.selectedModel,
+            };
         if (sIndex !== -1) {
             sCopyWorkSheets[sIndex] = sPayload;
             setSheet(sCopyWorkSheets);
         }
-    }, [sText, initialSize, sCollapse, sSelectedLang, sResultContentType, sMonacoLineHeight]);
+    }, [chatLogic.messages, sText, initialSize, sCollapse, sSelectedLang, sResultContentType, sMonacoLineHeight]);
     useEffect(() => {
         if (resizeRef.current) {
             resizeRef.current.style.height = pData.height ? pData.height + 'px' : sInitHeight + 'px';
@@ -546,6 +550,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setTqlVisualData('');
         setTqlCsvHeader([]);
         setTqlCsv([]);
+        chatLogic.setMessages([]);
     };
 
     useOutsideClick(dropDownRef, () => setShowLang(false));

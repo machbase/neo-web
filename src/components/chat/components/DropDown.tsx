@@ -67,7 +67,7 @@ export const ModelDropDown = ({ pPosition = 'TOP', pList, pSelectedItem, onSelec
         <div ref={dropDownRef} className="dropdown-container">
             <div className="dropdown-content" onClick={handleToggle}>
                 <div className="dropdown-title">
-                    <span>{pSelectedItem.name === '' ? 'Please select' : pSelectedItem.name}</span>
+                    <span>{pSelectedItem.name === '' || !pSelectedItem.name ? 'Please select' : pSelectedItem.name}</span>
                 </div>
                 <ArrowDown size={16} style={{ transform: sShowLang ? 'rotate(180deg)' : '', transition: 'transform 0.2s' }} />
             </div>

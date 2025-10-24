@@ -25,13 +25,13 @@ const DEFAULT_DETAL_SET = (target: 'msg' | 'block'): Message => {
     };
 };
 
-export const useChat = (pWrkId: string, pIdx: number) => {
+export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pInitialMessages?: Message[]) => {
     const { msgBatch, sendMSG, socket } = useWebSocket();
-    const [messages, setMessages] = useState<Message[]>([]);
+    const [messages, setMessages] = useState<Message[]>(pInitialMessages ?? []);
     const [sInputValue, setInputValue] = useState('');
     const [sProcessingAnswer, setProcessingAnswer] = useState<boolean>(false);
     const [sInterruptId, setInterruptId] = useState<number>(-1);
-    const [sSelectedModel, setSelectedModel] = useState<Model>({ name: '', provider: '', model: '' });
+    const [sSelectedModel, setSelectedModel] = useState<Model>(pInitialModel ?? { name: '', provider: '', model: '' });
     const [sModelList, setModelList] = useState<{ label: string; items: Model[] }[]>([]);
 
     const isComposingRef = useRef<boolean>(false);
