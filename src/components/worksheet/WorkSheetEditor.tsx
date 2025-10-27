@@ -20,7 +20,9 @@ import { ShowVisualization } from '../tql/ShowVisualization';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { LocationType, PositionType, SelectionType, SplitItemType, SqlSplitHelper } from '@/utils/TQL/SqlSplitHelper';
 import { gWsLog } from '@/recoil/websocket';
-import { Chat } from '../chat/Chat';
+import { useChat } from '@/hooks/useChat';
+import { ChatMessageList } from '../chat/components/ChatMessageList';
+import { ModelDropDown } from '../chat/components/DropDown';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell' | 'Chat';
 type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell' | 'chat';
@@ -106,6 +108,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const wrkEditorRef = useRef<HTMLDivElement>(null);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sProcessing, setProcessing] = useState<boolean>(false);
+    const chatLogic = useChat(pWrkId, pIdx, { model: pData?.chat?.model ?? '', provider: pData?.chat?.provider, name: pData?.chat?.name }, pData?.chat?.response);
+
     const LANG =
         localStorage.getItem('experimentMode') === 'true'
             ? [
@@ -146,11 +150,16 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         };
 
         if (sMonacoLanguage === 'sql') sPayload.brief = sResultContentType === 'brief';
+        if (sMonacoLanguage === 'chat')
+            sPayload.chat = {
+                response: chatLogic.messages,
+                ...chatLogic.selectedModel,
+            };
         if (sIndex !== -1) {
             sCopyWorkSheets[sIndex] = sPayload;
             setSheet(sCopyWorkSheets);
         }
-    }, [sText, initialSize, sCollapse, sSelectedLang, sResultContentType, sMonacoLineHeight]);
+    }, [chatLogic.messages, sText, initialSize, sCollapse, sSelectedLang, sResultContentType, sMonacoLineHeight]);
     useEffect(() => {
         if (resizeRef.current) {
             resizeRef.current.style.height = pData.height ? pData.height + 'px' : sInitHeight + 'px';
@@ -235,6 +244,11 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         if (sSelectedLang === 'Shell') {
             setProcessing(true);
             getShellData(aText);
+        }
+        if (sSelectedLang === 'Chat') {
+            if (pAllRunCodeStatus) pAllRunCodeCallback(true);
+            chatLogic.setMessages([]);
+            chatLogic.sendMessageWithText(aText);
         }
     };
     const handleRunCodeAll = (aText: string) => {
@@ -383,6 +397,14 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 {sSelectedLang === 'SQL' ? SqlResult() : null}
                 {sSelectedLang === 'Markdown' ? <Markdown pIdx={pIdx} pContents={sMarkdown} pType="wrk-mrk" pData={pWrkId} /> : null}
                 {sSelectedLang === 'Shell' ? ShellResult() : null}
+                {sSelectedLang === 'Chat' ? ChatResult() : null}
+            </div>
+        );
+    };
+    const ChatResult = () => {
+        return (
+            <div className="chat-result-wrapper">
+                <ChatMessageList messages={chatLogic.messages} pWrkId={pWrkId} pIdx={pIdx} isProcessingAnswer={chatLogic.isProcessingAnswer} />
             </div>
         );
     };
@@ -528,6 +550,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setTqlVisualData('');
         setTqlCsvHeader([]);
         setTqlCsv([]);
+        chatLogic.setMessages([]);
     };
 
     useOutsideClick(dropDownRef, () => setShowLang(false));
@@ -542,16 +565,18 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                             {DropDown()}
                             {VerticalDivision()}
                             {ResultContentType()}
-                            {sSelectedLang !== 'Chat' && (
-                                <IconButton
-                                    pIsToopTip
-                                    pToolTipContent="Run code"
-                                    pToolTipId="wrk-tab-panel-run"
-                                    pIcon={<Play />}
-                                    pIsActiveHover
-                                    onClick={() => handleRunCode(sText)}
-                                />
+                            {sSelectedLang === 'Chat' && (
+                                <div style={{ display: 'flex' }}>
+                                    <ModelDropDown
+                                        pList={chatLogic.modelList}
+                                        pSelectedItem={chatLogic.selectedModel}
+                                        onSelect={chatLogic.setSelectedModel}
+                                        onFetch={chatLogic.getModelList}
+                                    />
+                                    {VerticalDivision()}
+                                </div>
                             )}
+                            <IconButton pIsToopTip pToolTipContent="Run code" pToolTipId="wrk-tab-panel-run" pIcon={<Play />} pIsActiveHover onClick={() => handleRunCode(sText)} />
                             {sSelectedLang === 'SQL' ? (
                                 <IconButton
                                     pIsToopTip
@@ -562,7 +587,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                                     onClick={() => handleRunCodeAll(sText)}
                                 />
                             ) : null}
-                            {sSelectedLang !== 'Chat' && VerticalDivision()}
+                            {VerticalDivision()}
                             <IconButton
                                 pIsToopTip
                                 pToolTipContent="Move to upper"
@@ -608,7 +633,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                                 onClick={pWorkSheets.length > 1 ? handleDelete : () => null}
                             />
                         </div>
-                        <div ref={resizeRef} className="editor" style={{ display: sSelectedLang !== 'Chat' ? 'block' : 'none' }}>
+                        <div ref={resizeRef} className="editor">
                             <MonacoEditor
                                 pIsActiveTab={pIsActiveTab}
                                 pText={sText}
@@ -634,32 +659,29 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         />
                     </div>
                 </div>
-                {sSelectedLang !== 'Chat' && (
-                    <div ref={sScrollSpyRef} style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
-                        {Result()}
-                        <div style={{ margin: '1rem 0' }}>
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Clear"
-                                pToolTipId="wrk-tab-panel-clear"
-                                pWidth={40}
-                                pHeight={40}
-                                pIcon={<GrClearOption size={18} />}
-                                pIsActiveHover
-                                onClick={handleResultClear}
-                            />
-                        </div>
-                        {sProcessing && (
-                            <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
-                                <span>Processing...</span>
-                                <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
-                                    <Loader width="12px" height="12px" borderRadius="90%" />
-                                </div>
-                            </div>
-                        )}
+                <div ref={sScrollSpyRef} style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
+                    {Result()}
+                    <div style={{ margin: '1rem 0' }}>
+                        <IconButton
+                            pIsToopTip
+                            pToolTipContent="Clear"
+                            pToolTipId="wrk-tab-panel-clear"
+                            pWidth={40}
+                            pHeight={40}
+                            pIcon={<GrClearOption size={18} />}
+                            pIsActiveHover
+                            onClick={handleResultClear}
+                        />
                     </div>
-                )}
-                {sSelectedLang === 'Chat' && <Chat pIsActiveTab={pIsActiveTab} pWrkId={pWrkId} pIdx={pIdx} />}
+                    {sProcessing && (
+                        <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
+                            <span>Processing...</span>
+                            <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
+                                <Loader width="12px" height="12px" borderRadius="90%" />
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
             {sIsDeleteModal && (
                 <ConfirmModal

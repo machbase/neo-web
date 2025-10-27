@@ -218,7 +218,9 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
                     <PlusCircle className="plus-icon" size="20px" onClick={addFile} style={{ cursor: 'pointer' }}></PlusCircle>
                 </div>
             </div>
+
             <div style={{ height: 'calc(100% - 40px)', background: '#262831', zIndex: 2, position: 'relative' }}>
+                {/* <Chat pWrkId={sSelectedTab} pIdx={1} /> */}
                 {sBoardList.map((aItem) => {
                     return (
                         <div key={aItem.id} style={aItem.id === sSelectedTab ? { width: '100%', height: '100%' } : { display: 'none' }}>
