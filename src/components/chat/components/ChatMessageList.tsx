@@ -22,7 +22,7 @@ export const ChatMessageList = ({ messages, pWrkId, pIdx, isProcessingAnswer = f
     }, [messages, autoScroll]);
 
     return (
-        <div className="chat-messages" style={{ paddingBottom: '100px' }}>
+        <div className="chat-messages">
             {messages.map((message) => (
                 <ChatMessageItem key={message.id} message={message} pWrkId={pWrkId} pIdx={pIdx} />
             ))}

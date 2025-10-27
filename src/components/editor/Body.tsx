@@ -32,7 +32,6 @@ import { AppInfo } from '../side/AppStore/info';
 import { DBTablePage } from '../side/DBExplorer/tablePage';
 import { EXTENSION_SET, IMAGE_EXTENSION_LIST } from '@/utils/constants';
 import { UnknownExtension } from '../unknownExtension';
-import { Chat } from '../chat/Chat';
 
 const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);

@@ -1,7 +1,7 @@
 import './RenderMd.scss';
 import { useEffect, useState, useRef } from 'react';
 import { useWebSocket } from '@/context/WebSocketContext';
-import { E_RPC_METHOD, E_WS_KEY, E_WS_TYPE } from '@/recoil/websocket';
+import { E_RPC_METHOD, E_WS_TYPE } from '@/recoil/websocket';
 import { WsRPC } from '@/utils/websocket';
 import { RpcResponseParser } from '@/utils/Chat/RpcResponseParser';
 
