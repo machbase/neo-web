@@ -174,7 +174,7 @@ any) => {
             }
             let sTmpBoard: any = { id: sTmpId, name: file.name, type: sFileExtension, path: file.path, savedCode: sContentResult, code: '' };
             if (sFileExtension === 'wrk') {
-                const sTmpData = JSON.parse(sContentResult);
+                const sTmpData: any = CheckDataCompatibility(sContentResult, sFileExtension);
                 if (sTmpData.data) {
                     sTmpBoard.sheet = sTmpData.data;
                     sTmpBoard.savedCode = JSON.stringify(sTmpData.data);

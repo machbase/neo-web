@@ -144,7 +144,22 @@ const TagAnalyzerCompatibility = (aData: any) => {
     } else return sTazInfo;
 };
 
+const WorkSheetCompatibility = (aData: any) => {
+    const sInfo = JSON.parse(aData);
+
+    if (localStorage.getItem('experimentMode') === 'false') {
+        if (sInfo?.data?.length > 0) {
+            const sSectionList = sInfo?.data?.map((aSection: any) => {
+                if (aSection?.type === 'chat') aSection.type = 'markdown';
+                return aSection;
+            });
+            return sSectionList;
+        }
+    } else return sInfo;
+};
+
 export const CheckDataCompatibility = (aData: any, sFileExtension: string) => {
     if (sFileExtension === 'dsh') return DashboardCompatibility(aData);
     if (sFileExtension === 'taz') return TagAnalyzerCompatibility(aData);
+    if (sFileExtension === 'wrk') return WorkSheetCompatibility(aData);
 };

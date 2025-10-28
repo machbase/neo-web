@@ -17,7 +17,7 @@ export const ChatMessageList = ({ messages, pWrkId, pIdx, isProcessingAnswer = f
 
     useEffect(() => {
         if (autoScroll) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            messagesEndRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
     }, [messages, autoScroll]);
 

@@ -77,7 +77,15 @@ export const RenderMd = ({ pContent, pWrkId, pIdx }: RenderMdProps) => {
 
             // Copy functionality
             copyButton.addEventListener('click', () => {
-                const code = codeElement.textContent || '';
+                // Clone the code element to manipulate it
+                const clonedElement = codeElement.cloneNode(true) as HTMLElement;
+
+                // Remove all line number elements (with user-select:none style) from the clone
+                const lineNumbers = clonedElement.querySelectorAll('span[style*="user-select:none"], span[style*="-webkit-user-select:none"]');
+                lineNumbers.forEach(el => el.remove());
+
+                // Get the text content from the cleaned clone
+                const code = clonedElement.textContent || '';
                 const originalHTML = copyButton.innerHTML;
 
                 // Fallback method using textarea (works in all contexts)
