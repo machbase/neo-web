@@ -141,11 +141,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     if (chatLogic && chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();
                     break;
                 case 'Markdown':
-                    break;
                 case 'TQL':
-                    break;
                 case 'Shell':
-                    break;
                 case 'SQL':
                     break;
             }
@@ -607,17 +604,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const handleInterrupt = () => {
         setProcessing(false);
         handleStopState(false);
-
-        if (sSelectedLang === 'TQL') {
-            setTqlVisualData('');
-            setTqlMarkdown('');
-            setTqlCsv([]);
-            setTqlCsvHeader([]);
-            setTqlTextResult('');
-        }
-        if (sSelectedLang === 'Markdown') setMarkdown('');
-        if (sSelectedLang === 'SQL') setSql('');
-        if (sSelectedLang === 'Shell') setShellTextResult([]);
         if (sSelectedLang === 'Chat' && chatLogic && chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();
     };
 
@@ -625,7 +611,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         if (!sProcessing) handleStopState(false);
     }, [sProcessing]);
     useEffect(() => {
-        if (!pStopState[pIdx]) handleInterrupt();
+        if (!pStopState[pIdx]) handleStopState(false);
     }, [pStopState[pIdx]]);
 
     useOutsideClick(dropDownRef, () => setShowLang(false));
@@ -755,16 +741,16 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                             onClick={handleResultClear}
                         />
                     </div>
+                    {sProcessing && sSelectedLang !== 'Chat' && (
+                        <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
+                            <span>Processing...</span>
+                            <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
+                                <Loader width="12px" height="12px" borderRadius="90%" />
+                            </div>
+                        </div>
+                    )}
                 </div>
                 <div ref={sScrollSpyRef} style={{ height: '1px', width: '100%' }} />
-                {sProcessing && sSelectedLang !== 'Chat' && (
-                    <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
-                        <span>Processing...</span>
-                        <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
-                            <Loader width="12px" height="12px" borderRadius="90%" />
-                        </div>
-                    </div>
-                )}
             </div>
             {sIsDeleteModal && (
                 <ConfirmModal
