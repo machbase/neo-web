@@ -9,9 +9,10 @@ interface RenderMdProps {
     pContent: string;
     pWrkId: string;
     pIdx: number;
+    pIsInterrupt: boolean;
 }
 
-export const RenderMd = ({ pContent, pWrkId, pIdx }: RenderMdProps) => {
+export const RenderMd = ({ pContent, pWrkId, pIdx, pIsInterrupt }: RenderMdProps) => {
     const { msgBatch, sendMSG } = useWebSocket();
     const [sElement, setElement] = useState<string | TrustedHTML>('');
     const [sRenderId, setRenderId] = useState<number>(-1);
@@ -25,7 +26,7 @@ export const RenderMd = ({ pContent, pWrkId, pIdx }: RenderMdProps) => {
     };
 
     useEffect(() => {
-        getRender();
+        if (!pIsInterrupt) getRender();
     }, []);
 
     useEffect(() => {
@@ -82,7 +83,7 @@ export const RenderMd = ({ pContent, pWrkId, pIdx }: RenderMdProps) => {
 
                 // Remove all line number elements (with user-select:none style) from the clone
                 const lineNumbers = clonedElement.querySelectorAll('span[style*="user-select:none"], span[style*="-webkit-user-select:none"]');
-                lineNumbers.forEach(el => el.remove());
+                lineNumbers.forEach((el) => el.remove());
 
                 // Get the text content from the cleaned clone
                 const code = clonedElement.textContent || '';

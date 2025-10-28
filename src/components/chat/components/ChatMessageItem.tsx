@@ -24,7 +24,7 @@ export const ChatMessageItem = ({ message, pWrkId, pIdx }: ChatMessageItemProps)
             {message.isProcess || message.role === 'user' ? (
                 <div className="chat-message-content">{message.content}</div>
             ) : (
-                <RenderMd pContent={message.content} pWrkId={pWrkId} pIdx={pIdx} />
+                <RenderMd pContent={message.content} pIsInterrupt={message.isInterrupt} pWrkId={pWrkId} pIdx={pIdx} />
             )}
         </div>
     );
