@@ -101,16 +101,19 @@ export const WorkSheet = (props: WorkSheetProps) => {
             })
         );
     };
+    const handleStopState = (aState: boolean) => {
+        setStopState(Array.from({ length: sWorkSheets?.length }, () => aState));
+    };
 
     useEffect(() => {
         if (sAllRunCodeStatus) {
-            setStopState(Array.from({ length: sWorkSheets?.length }, () => true));
+            handleStopState(true);
             const sTmp = new Array(sWorkSheets.length).fill(false);
             sTmp.splice(0, 1, true);
             setRunCodeTarget(0);
             setAllRunCodeList(sTmp);
         } else {
-            setStopState(Array.from({ length: sWorkSheets?.length }, () => false));
+            handleStopState(false);
             setRunCodeTarget(undefined);
             setAllRunCodeList([]);
         }
@@ -129,7 +132,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
                     pPlace="bottom-start"
                     pIsToopTip
                     pToolTipId="wrk-tab-run-code"
-                    onClick={() => setAllRunCodeStatus(!sAllRunCodeStatus)}
+                    onClick={checkSectionState() ? () => handleStopState(false) : () => setAllRunCodeStatus(!sAllRunCodeStatus)}
                     pToolTipContent={checkSectionState() ? 'Stop code' : 'Run code'}
                     pIcon={checkSectionState() ? <FaStop /> : <IoPlayForwardSharp />}
                 />

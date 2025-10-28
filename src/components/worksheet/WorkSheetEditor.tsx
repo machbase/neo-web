@@ -75,11 +75,12 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         pAllRunCodeStatus,
         pAllRunCodeTargetIdx,
         pAllRunCodeList,
+        pStopState,
         pSetStopState,
+        pCallback,
         pAllRunCodeCallback,
         setSheet,
         pWorkSheets,
-        pCallback,
     } = props;
     const sInitHeight = 200;
     const resizeRef = useRef<HTMLDivElement | null>(null);
@@ -254,11 +255,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             selection: SelectionType;
         }
     ) => {
-        pSetStopState((prev: boolean[]) => {
-            const sTmp = JSON.parse(JSON.stringify(prev));
-            sTmp[pIdx] = true;
-            return sTmp;
-        });
+        handleStopState(true);
         if (sSelectedLang === 'TQL') {
             setProcessing(true);
             getTqlData(aText);
@@ -600,13 +597,16 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setTqlCsv([]);
         chatLogic.setMessages([]);
     };
-    const handleInterrupt = () => {
-        setProcessing(false);
+    const handleStopState = (aState: boolean) => {
         pSetStopState((prev: boolean[]) => {
             const sTmp = JSON.parse(JSON.stringify(prev));
-            sTmp[pIdx] = false;
+            sTmp[pIdx] = aState;
             return sTmp;
         });
+    };
+    const handleInterrupt = () => {
+        setProcessing(false);
+        handleStopState(false);
 
         if (sSelectedLang === 'TQL') {
             setTqlVisualData('');
@@ -620,6 +620,13 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         if (sSelectedLang === 'Shell') setShellTextResult([]);
         if (sSelectedLang === 'Chat' && chatLogic && chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();
     };
+
+    useEffect(() => {
+        if (!sProcessing) handleStopState(false);
+    }, [sProcessing]);
+    useEffect(() => {
+        if (!pStopState[pIdx]) handleInterrupt();
+    }, [pStopState[pIdx]]);
 
     useOutsideClick(dropDownRef, () => setShowLang(false));
     useOutsideClick(ResultContentTypeRef, () => setShowResultContentType(false));
