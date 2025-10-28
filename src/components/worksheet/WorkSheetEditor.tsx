@@ -75,7 +75,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         pAllRunCodeStatus,
         pAllRunCodeTargetIdx,
         pAllRunCodeList,
-        pStopState,
         pSetStopState,
         pAllRunCodeCallback,
         setSheet,
