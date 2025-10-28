@@ -33,6 +33,7 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
     const [sInterruptId, setInterruptId] = useState<number>(-1);
     const [sSelectedModel, setSelectedModel] = useState<Model>(pInitialModel ?? { name: '', provider: '', model: '' });
     const [sModelList, setModelList] = useState<{ label: string; items: Model[] }[]>([]);
+    let callbackRef = useRef<any>(undefined);
 
     const isComposingRef = useRef<boolean>(false);
 
@@ -60,7 +61,13 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
                     } else if (msg.type === E_WS_TYPE.MSG) {
                         /** ANSWER */
                         if (msg[E_WS_KEY.MSG].type === E_MSG_TYPE.ANSWER_START) setProcessingAnswer(true);
-                        if (msg[E_WS_KEY.MSG].type === E_MSG_TYPE.ANSWER_STOP) setProcessingAnswer(false);
+                        if (msg[E_WS_KEY.MSG].type === E_MSG_TYPE.ANSWER_STOP) {
+                            if (callbackRef?.current) {
+                                callbackRef?.current();
+                                callbackRef.current = undefined;
+                            }
+                            setProcessingAnswer(false);
+                        }
                         /** DELTA */
                         if (msg[E_WS_KEY.MSG].type === E_MSG_TYPE.STREAM_MSG_DELTA || msg[E_WS_KEY.MSG].type === E_MSG_TYPE.STREAM_BLOCK_DELTA) {
                             const sType = msg[E_WS_KEY.MSG].type === E_MSG_TYPE.STREAM_MSG_DELTA ? 'msg' : 'block';
@@ -117,11 +124,14 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
     };
 
     // Send question message with text parameter
-    const sendMessageWithText = (text: string) => {
+    const sendMessageWithText = (text: string, aCallback?: (aVal: boolean) => void) => {
         if (!text.trim()) return;
         if (!sSelectedModel.model.trim()) return;
         if (!sSelectedModel.name.trim()) return;
         if (!sSelectedModel.provider.trim()) return;
+
+        if (aCallback) callbackRef.current = aCallback;
+        else callbackRef.current = undefined;
 
         const userMessage: Message = {
             id: `msg-${Date.now()}`,

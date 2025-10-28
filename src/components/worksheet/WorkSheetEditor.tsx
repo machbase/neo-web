@@ -23,6 +23,7 @@ import { gWsLog } from '@/recoil/websocket';
 import { useChat } from '@/hooks/useChat';
 import { ChatMessageList } from '../chat/components/ChatMessageList';
 import { ModelDropDown } from '../chat/components/DropDown';
+import { FaStop } from 'react-icons/fa';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell' | 'Chat';
 type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell' | 'chat';
@@ -42,6 +43,8 @@ interface WorkSheetEditorProps {
     pAllRunCodeStatus: boolean;
     pAllRunCodeList: boolean[];
     pAllRunCodeTargetIdx: number | undefined;
+    pStopState: boolean[];
+    pSetStopState: React.Dispatch<React.SetStateAction<any>>;
     pAllRunCodeCallback: (aStatus: boolean) => void;
     setSheet: React.Dispatch<React.SetStateAction<any>>;
     pCallback: (aData: { id: string; event: CallbackEventType }) => void;
@@ -72,6 +75,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         pAllRunCodeStatus,
         pAllRunCodeTargetIdx,
         pAllRunCodeList,
+        pSetStopState,
         pAllRunCodeCallback,
         setSheet,
         pWorkSheets,
@@ -129,6 +133,21 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     useEffect(() => {
         if (pAllRunCodeList.length > 0 && pAllRunCodeStatus && typeof pAllRunCodeTargetIdx === 'number' && pAllRunCodeList[pIdx] && pIdx === pAllRunCodeTargetIdx) {
             handleRunCode(sText);
+        } else {
+            setProcessing(false);
+            switch (sSelectedLang) {
+                case 'Chat':
+                    if (chatLogic && chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();
+                    break;
+                case 'Markdown':
+                    break;
+                case 'TQL':
+                    break;
+                case 'Shell':
+                    break;
+                case 'SQL':
+                    break;
+            }
         }
     }, [pAllRunCodeList]);
     useEffect(() => {
@@ -162,17 +181,24 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     }, [chatLogic.messages, sText, initialSize, sCollapse, sSelectedLang, sResultContentType, sMonacoLineHeight]);
     useEffect(() => {
         if (resizeRef.current) {
-            resizeRef.current.style.height = pData.height ? pData.height + 'px' : sInitHeight + 'px';
-            langConverter(pData.type);
-        }
-    }, []);
-    useEffect(() => {
-        if (resizeRef.current) {
             const sLines = getMonacoLines(pData.height ? pData.height : sInitHeight, pData.lineHeight ? pData.lineHeight : sMonacoLineHeight);
             const sCurrentHeight = sLines * sMonacoLineHeight;
             resizeRef.current.style.height = sCurrentHeight + 'px';
         }
     }, [sMonacoLineHeight]);
+    useEffect(() => {
+        if (resizeRef.current) {
+            resizeRef.current.style.height = pData.height ? pData.height + 'px' : sInitHeight + 'px';
+            langConverter(pData.type);
+        }
+
+        return () => {
+            if (chatLogic && chatLogic.isProcessingAnswer) {
+                chatLogic.handleInterruptMessage();
+                setProcessing(false);
+            }
+        };
+    }, []);
 
     const langConverter = (aTxt: ServerLangType) => {
         switch (aTxt) {
@@ -228,8 +254,11 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             selection: SelectionType;
         }
     ) => {
-        // Set scroll spy
-        if (sScrollSpyRef?.current) sScrollSpyRef?.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+        pSetStopState((prev: boolean[]) => {
+            const sTmp = JSON.parse(JSON.stringify(prev));
+            sTmp[pIdx] = true;
+            return sTmp;
+        });
         if (sSelectedLang === 'TQL') {
             setProcessing(true);
             getTqlData(aText);
@@ -246,10 +275,28 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             getShellData(aText);
         }
         if (sSelectedLang === 'Chat') {
-            if (pAllRunCodeStatus) pAllRunCodeCallback(true);
+            setProcessing(true);
             chatLogic.setMessages([]);
-            chatLogic.sendMessageWithText(aText);
+
+            if (pAllRunCodeStatus)
+                chatLogic.sendMessageWithText(aText, () => {
+                    pAllRunCodeCallback(true);
+                    setProcessing(false);
+                });
+            else
+                chatLogic.sendMessageWithText(aText, () => {
+                    setProcessing(false);
+                });
         }
+
+        // Scroll to the end after rendering is complete
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                if (sScrollSpyRef?.current) {
+                    sScrollSpyRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            }, 100);
+        });
     };
     const handleRunCodeAll = (aText: string) => {
         if (sSelectedLang === 'SQL') getSqlData(aText, { aRunAll: true });
@@ -391,13 +438,14 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         return <div className="worksheet-ctr-verti-divi" />;
     };
     const Result = () => {
+        if (sSelectedLang === 'Chat') return <div className="result">{ChatResult()}</div>;
+
         return (
             <div className={`result${sProcessing ? ' result-processed' : ''}`}>
                 {sSelectedLang === 'TQL' ? TqlResult() : null}
                 {sSelectedLang === 'SQL' ? SqlResult() : null}
                 {sSelectedLang === 'Markdown' ? <Markdown pIdx={pIdx} pContents={sMarkdown} pType="wrk-mrk" pData={pWrkId} /> : null}
                 {sSelectedLang === 'Shell' ? ShellResult() : null}
-                {sSelectedLang === 'Chat' ? ChatResult() : null}
             </div>
         );
     };
@@ -552,6 +600,26 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setTqlCsv([]);
         chatLogic.setMessages([]);
     };
+    const handleInterrupt = () => {
+        setProcessing(false);
+        pSetStopState((prev: boolean[]) => {
+            const sTmp = JSON.parse(JSON.stringify(prev));
+            sTmp[pIdx] = false;
+            return sTmp;
+        });
+
+        if (sSelectedLang === 'TQL') {
+            setTqlVisualData('');
+            setTqlMarkdown('');
+            setTqlCsv([]);
+            setTqlCsvHeader([]);
+            setTqlTextResult('');
+        }
+        if (sSelectedLang === 'Markdown') setMarkdown('');
+        if (sSelectedLang === 'SQL') setSql('');
+        if (sSelectedLang === 'Shell') setShellTextResult([]);
+        if (sSelectedLang === 'Chat' && chatLogic && chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();
+    };
 
     useOutsideClick(dropDownRef, () => setShowLang(false));
     useOutsideClick(ResultContentTypeRef, () => setShowResultContentType(false));
@@ -576,8 +644,15 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                                     {VerticalDivision()}
                                 </div>
                             )}
-                            <IconButton pIsToopTip pToolTipContent="Run code" pToolTipId="wrk-tab-panel-run" pIcon={<Play />} pIsActiveHover onClick={() => handleRunCode(sText)} />
-                            {sSelectedLang === 'SQL' ? (
+                            <IconButton
+                                pIsToopTip
+                                pToolTipContent={sProcessing ? 'Stop code' : 'Run code'}
+                                pToolTipId="wrk-tab-panel-run"
+                                pIcon={sProcessing ? <FaStop /> : <Play />}
+                                pIsActiveHover
+                                onClick={sProcessing ? () => handleInterrupt() : () => handleRunCode(sText)}
+                            />
+                            {sSelectedLang === 'SQL' && !sProcessing ? (
                                 <IconButton
                                     pIsToopTip
                                     pToolTipContent="Run all code"
@@ -659,7 +734,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         />
                     </div>
                 </div>
-                <div ref={sScrollSpyRef} style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
+                <div style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
                     {Result()}
                     <div style={{ margin: '1rem 0' }}>
                         <IconButton
@@ -673,15 +748,16 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                             onClick={handleResultClear}
                         />
                     </div>
-                    {sProcessing && (
-                        <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
-                            <span>Processing...</span>
-                            <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
-                                <Loader width="12px" height="12px" borderRadius="90%" />
-                            </div>
-                        </div>
-                    )}
                 </div>
+                <div ref={sScrollSpyRef} style={{ height: '1px', width: '100%' }} />
+                {sProcessing && sSelectedLang !== 'Chat' && (
+                    <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
+                        <span>Processing...</span>
+                        <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
+                            <Loader width="12px" height="12px" borderRadius="90%" />
+                        </div>
+                    </div>
+                )}
             </div>
             {sIsDeleteModal && (
                 <ConfirmModal

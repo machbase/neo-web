@@ -72,7 +72,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
                         batchTimerRef.current = setTimeout(() => {
                             flushMessageBuffer();
                             batchTimerRef.current = null;
-                        }, 1000); // Wait 1000ms
+                        }, 100); // Wait 100ms
                     }
                 }
             }

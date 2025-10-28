@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './WorkSheet.scss';
 import { WorkSheetEditor } from './WorkSheetEditor';
 import { useRecoilState, useSetRecoilState } from 'recoil';
@@ -10,6 +10,7 @@ import { IconButton } from '../buttons/IconButton';
 import AUTOCOMBOBOX from '../sql/autoCombobox';
 import { IANA_TIMEZONES } from '@/assets/ts/timezones';
 import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
+import { FaStop } from 'react-icons/fa';
 
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 interface WorkSheetProps {
@@ -44,6 +45,11 @@ export const WorkSheet = (props: WorkSheetProps) => {
     };
     const [sTimeRange, setTimeRange] = useState('2006-01-02 15:04:05');
     const [sTimeZone, setTimeZone] = useState('LOCAL');
+    const [sStopState, setStopState] = useState<boolean[]>(Array.from({ length: sWorkSheets?.length ?? 1 }, () => false));
+
+    const checkSectionState = useCallback(() => {
+        return sStopState?.some((state) => state) ?? false;
+    }, [sStopState]);
 
     const handleCallback = (aData: { id: string; event: CallbackEventType }) => {
         switch (aData.event) {
@@ -98,10 +104,15 @@ export const WorkSheet = (props: WorkSheetProps) => {
 
     useEffect(() => {
         if (sAllRunCodeStatus) {
+            setStopState(Array.from({ length: sWorkSheets?.length }, () => true));
             const sTmp = new Array(sWorkSheets.length).fill(false);
             sTmp.splice(0, 1, true);
             setRunCodeTarget(0);
             setAllRunCodeList(sTmp);
+        } else {
+            setStopState(Array.from({ length: sWorkSheets?.length }, () => false));
+            setRunCodeTarget(undefined);
+            setAllRunCodeList([]);
         }
     }, [sAllRunCodeStatus]);
     useEffect(() => {
@@ -117,10 +128,10 @@ export const WorkSheet = (props: WorkSheetProps) => {
                 <IconButton
                     pPlace="bottom-start"
                     pIsToopTip
-                    pToolTipContent="Run code"
                     pToolTipId="wrk-tab-run-code"
-                    pIcon={<IoPlayForwardSharp />}
-                    onClick={() => setAllRunCodeStatus(true)}
+                    onClick={() => setAllRunCodeStatus(!sAllRunCodeStatus)}
+                    pToolTipContent={checkSectionState() ? 'Stop code' : 'Run code'}
+                    pIcon={checkSectionState() ? <FaStop /> : <IoPlayForwardSharp />}
                 />
                 <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
                     <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
@@ -155,6 +166,8 @@ export const WorkSheet = (props: WorkSheetProps) => {
                                     pAllRunCodeStatus={sAllRunCodeStatus}
                                     pAllRunCodeList={sAllRunCodeList}
                                     pAllRunCodeCallback={(aStatus: boolean) => handleAllRunCode(aStatus, aIdx)}
+                                    pStopState={sStopState}
+                                    pSetStopState={setStopState}
                                     pWorkSheets={sWorkSheets}
                                     setSheet={handleUpdateSheet}
                                     pCallback={handleCallback}
