@@ -75,11 +75,12 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         pAllRunCodeStatus,
         pAllRunCodeTargetIdx,
         pAllRunCodeList,
+        pStopState,
         pSetStopState,
+        pCallback,
         pAllRunCodeCallback,
         setSheet,
         pWorkSheets,
-        pCallback,
     } = props;
     const sInitHeight = 200;
     const resizeRef = useRef<HTMLDivElement | null>(null);
@@ -140,11 +141,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     if (chatLogic && chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();
                     break;
                 case 'Markdown':
-                    break;
                 case 'TQL':
-                    break;
                 case 'Shell':
-                    break;
                 case 'SQL':
                     break;
             }
@@ -254,11 +252,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             selection: SelectionType;
         }
     ) => {
-        pSetStopState((prev: boolean[]) => {
-            const sTmp = JSON.parse(JSON.stringify(prev));
-            sTmp[pIdx] = true;
-            return sTmp;
-        });
+        handleStopState(true);
         if (sSelectedLang === 'TQL') {
             setProcessing(true);
             getTqlData(aText);
@@ -600,26 +594,25 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setTqlCsv([]);
         chatLogic.setMessages([]);
     };
-    const handleInterrupt = () => {
-        setProcessing(false);
+    const handleStopState = (aState: boolean) => {
         pSetStopState((prev: boolean[]) => {
             const sTmp = JSON.parse(JSON.stringify(prev));
-            sTmp[pIdx] = false;
+            sTmp[pIdx] = aState;
             return sTmp;
         });
-
-        if (sSelectedLang === 'TQL') {
-            setTqlVisualData('');
-            setTqlMarkdown('');
-            setTqlCsv([]);
-            setTqlCsvHeader([]);
-            setTqlTextResult('');
-        }
-        if (sSelectedLang === 'Markdown') setMarkdown('');
-        if (sSelectedLang === 'SQL') setSql('');
-        if (sSelectedLang === 'Shell') setShellTextResult([]);
+    };
+    const handleInterrupt = () => {
+        setProcessing(false);
+        handleStopState(false);
         if (sSelectedLang === 'Chat' && chatLogic && chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();
     };
+
+    useEffect(() => {
+        if (!sProcessing) handleStopState(false);
+    }, [sProcessing]);
+    useEffect(() => {
+        if (!pStopState[pIdx]) handleStopState(false);
+    }, [pStopState[pIdx]]);
 
     useOutsideClick(dropDownRef, () => setShowLang(false));
     useOutsideClick(ResultContentTypeRef, () => setShowResultContentType(false));
@@ -748,16 +741,16 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                             onClick={handleResultClear}
                         />
                     </div>
+                    {sProcessing && sSelectedLang !== 'Chat' && (
+                        <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
+                            <span>Processing...</span>
+                            <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
+                                <Loader width="12px" height="12px" borderRadius="90%" />
+                            </div>
+                        </div>
+                    )}
                 </div>
                 <div ref={sScrollSpyRef} style={{ height: '1px', width: '100%' }} />
-                {sProcessing && sSelectedLang !== 'Chat' && (
-                    <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
-                        <span>Processing...</span>
-                        <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
-                            <Loader width="12px" height="12px" borderRadius="90%" />
-                        </div>
-                    </div>
-                )}
             </div>
             {sIsDeleteModal && (
                 <ConfirmModal

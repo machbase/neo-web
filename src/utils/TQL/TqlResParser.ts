@@ -58,7 +58,12 @@ export const DetermineTqlResultType = (
             } else sData = typeof aResult?.data === 'object' ? JSON.stringify(aResult?.data) : aResult?.data;
         } else if (aResult?.headers['content-type']?.includes('json')) {
             if (aResult?.data && typeof aResult?.data === 'object' && aResult?.data?.success) {
-                if (type === E_TQL_SCR.WRK) sData = JSON.stringify(WrkJsonParser(aResult?.data));
+                if (type === E_TQL_SCR.WRK) {
+                    if (CheckObjectKey(aResult?.data?.data, 'message')) {
+                        sData = aResult.data.data.message;
+                        sType = TqlResType.TEXT;
+                    } else sData = JSON.stringify(WrkJsonParser(aResult?.data));
+                }
                 if (type === E_TQL_SCR.TQL) sData = JSON.stringify(aResult?.data);
                 if (type === E_TQL_SCR.DSH) sData = JSON.stringify(aResult?.data);
             } else sData = typeof aResult?.data === 'object' ? JSON.stringify(aResult?.data) : aResult?.data;

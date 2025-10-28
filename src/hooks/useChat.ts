@@ -10,6 +10,7 @@ export interface Message {
     role: 'user' | 'assistant';
     type: 'block' | 'msg' | 'answer' | 'question';
     isProcess: boolean;
+    isInterrupt: boolean;
 }
 
 const DEFAULT_DETAL_SET = (target: 'msg' | 'block'): Message => {
@@ -22,6 +23,7 @@ const DEFAULT_DETAL_SET = (target: 'msg' | 'block'): Message => {
         role: 'assistant',
         type: target,
         isProcess: true,
+        isInterrupt: false,
     };
 };
 
@@ -140,6 +142,7 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
             role: 'user',
             type: 'question',
             isProcess: false,
+            isInterrupt: false,
         };
         setMessages((prev) => [...prev, userMessage]);
 
@@ -163,6 +166,11 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
 
     // Send Interrupt message
     const handleInterruptMessage = () => {
+        const sTmp = JSON.parse(JSON.stringify(messages))?.map((message: Message) => {
+            return { ...message, isInterrupt: true };
+        });
+        setMessages(sTmp);
+        // setMessages([]);
         const sGenObj = WsMSG.GenInterruptObj(pWrkId, pIdx, sInterruptId);
         sendMSG(sGenObj);
     };
