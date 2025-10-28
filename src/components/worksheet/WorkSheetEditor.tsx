@@ -137,9 +137,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setProcessing(false);
             switch (sSelectedLang) {
                 case 'Chat':
-                    if (chatLogic && !chatLogic.isProcessingAnswer) {
-                        chatLogic.handleInterruptMessage();
-                    }
+                    if (chatLogic && chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();
                     break;
                 case 'Markdown':
                     break;
@@ -195,7 +193,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
 
         return () => {
-            if (chatLogic && !chatLogic.isProcessingAnswer) {
+            if (chatLogic && chatLogic.isProcessingAnswer) {
                 chatLogic.handleInterruptMessage();
                 setProcessing(false);
             }
@@ -620,7 +618,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         if (sSelectedLang === 'Markdown') setMarkdown('');
         if (sSelectedLang === 'SQL') setSql('');
         if (sSelectedLang === 'Shell') setShellTextResult([]);
-        if (sSelectedLang === 'Chat' && chatLogic && !chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();
+        if (sSelectedLang === 'Chat' && chatLogic && chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();
     };
 
     useOutsideClick(dropDownRef, () => setShowLang(false));
