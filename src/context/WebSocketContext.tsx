@@ -46,6 +46,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         if (msgBufferRef.current.length > 0) {
             setMsgBatch([...msgBufferRef.current]);
             msgBufferRef.current = [];
+            setTimeout(() => setMsgBatch([]), 200);
         }
     }, []);
 
@@ -66,7 +67,6 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
                 if (!!sMsg) {
                     // Add message to batch buffer
                     msgBufferRef.current.push(sMsg);
-
                     // Start timer if not already running
                     if (!batchTimerRef.current) {
                         batchTimerRef.current = setTimeout(() => {

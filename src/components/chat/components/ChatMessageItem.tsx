@@ -2,6 +2,7 @@ import './ChatMessageItem.scss';
 import { SaveCricle } from '@/assets/icons/Icon';
 import { Message } from '@/hooks/useChat';
 import { RenderMd } from './RenderMd';
+import { ErrorBanner } from './ErrorBanner';
 
 interface ChatMessageItemProps {
     message: Message;
@@ -10,6 +11,13 @@ interface ChatMessageItemProps {
 }
 
 export const ChatMessageItem = ({ message, pWrkId, pIdx }: ChatMessageItemProps) => {
+    if (message.type === 'error')
+        return (
+            <div className="chat-message-error">
+                <ErrorBanner message={message.content} />
+            </div>
+        );
+
     return (
         <div key={message.id} className={`chat-message ${message.role}`}>
             <div className="chat-message-header">
@@ -21,6 +29,7 @@ export const ChatMessageItem = ({ message, pWrkId, pIdx }: ChatMessageItemProps)
                     )
                 ) : null}
             </div>
+
             {message.isProcess || message.role === 'user' ? (
                 <div className="chat-message-content">{message.content}</div>
             ) : (

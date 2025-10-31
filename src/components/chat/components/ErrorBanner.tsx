@@ -1,8 +1,8 @@
 import './ErrorBanner.scss';
 
 interface ErrorBannerProps {
-    code: number;
     message: string;
+    code?: number;
 }
 
 export const ErrorBanner = ({ code, message }: ErrorBannerProps) => {
@@ -13,7 +13,7 @@ export const ErrorBanner = ({ code, message }: ErrorBannerProps) => {
             <div className="error-banner-content">
                 <span className="error-banner-icon">⚠</span>
                 <div className="error-banner-text">
-                    <div className="error-banner-title">Error Code: {code}</div>
+                    {code && <div className="error-banner-title">Error Code: {code}</div>}
                     <div className="error-banner-message">{message}</div>
                 </div>
             </div>

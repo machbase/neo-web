@@ -4,21 +4,22 @@ import Modal from '../modal/Modal';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, Close } from '@/assets/icons/Icon';
 import { useWebSocket } from '@/context/WebSocketContext';
-import { E_RPC_METHOD, E_WS_KEY, E_WS_TYPE } from '@/recoil/websocket';
+import { E_RPC_METHOD, E_WS_TYPE } from '@/recoil/websocket';
 import { WsRPC } from '@/utils/websocket';
 import { SkeletonContainer, SkeletonItem } from './components/Skeleton';
 import { RPC_ERROR_TYPE, RpcResponseParser } from '@/utils/Chat/RpcResponseParser';
 import { ErrorBanner } from './components/ErrorBanner';
 import { Loader } from '../loader';
+import { createPortal } from 'react-dom';
+import useOutsideClick from '@/hooks/useOutsideClick';
 
 const PROVIDER_ALLOWED_METHOD_LIST = [E_RPC_METHOD.LLM_GET_PROVIDERS, E_RPC_METHOD.LLM_GET_PROVIDER_CONF, E_RPC_METHOD.LLM_SET_PROVIDER_CONF];
 const PROVIDER_UNIQUE_ID = 'provider-modal';
 const PROVIDER_SESSION_ID = 3000;
 const PROVIDER_ERR_DEFAULT = { code: -1, message: '' };
 
-export const ProviderModal = ({ pTrigger }: { pTrigger: React.ReactElement }) => {
+export const ProviderModal = ({ pCallback }: { pCallback: () => void }) => {
     const { msgBatch, sendMSG } = useWebSocket();
-    const [sIsProviderModal, setIsProviderModal] = useState<boolean>(false);
     const [sProviderList, setProviderList] = useState<any[]>([]);
     const [sIsProviderLoad, setIsProviderLoad] = useState<boolean>(false);
     const [sSelectedProvider, setSelectedProvider] = useState<string>('');
@@ -73,7 +74,7 @@ export const ProviderModal = ({ pTrigger }: { pTrigger: React.ReactElement }) =>
                 return item;
             });
         if (changedItems.length > 0) updateProviderConf(changedItems);
-        else setIsProviderModal(false);
+        else closeHelper();
     };
     const handleSelectProvider = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aProvider: string) => {
         e.stopPropagation();
@@ -102,11 +103,10 @@ export const ProviderModal = ({ pTrigger }: { pTrigger: React.ReactElement }) =>
         }
     }, [sSelectedProvider]);
     useEffect(() => {
-        if (sIsProviderModal) {
-            setIsProviderLoad(true);
-            getProviderList();
-        } else handleClearData();
-    }, [sIsProviderModal]);
+        setIsProviderLoad(true);
+        getProviderList();
+        return () => handleClearData();
+    }, []);
     useEffect(() => {
         if (sError.message.length > 0) {
             const timer = setTimeout(() => {
@@ -118,9 +118,8 @@ export const ProviderModal = ({ pTrigger }: { pTrigger: React.ReactElement }) =>
 
     useEffect(() => {
         if (msgBatch.length === 0) return;
-        if (!sIsProviderModal) return;
 
-        msgBatch.forEach((msg) => {
+        msgBatch?.forEach((msg) => {
             if (msg && Object.keys(msg).length > 0) {
                 if (msg.session?.id === PROVIDER_UNIQUE_ID && msg.session?.idx === PROVIDER_SESSION_ID && PROVIDER_ALLOWED_METHOD_LIST.includes(msg.session.method)) {
                     if (msg.type === E_WS_TYPE.RPC_RSP) {
@@ -136,8 +135,8 @@ export const ProviderModal = ({ pTrigger }: { pTrigger: React.ReactElement }) =>
                                 break;
                             case E_RPC_METHOD.LLM_GET_PROVIDER_CONF:
                                 if (rpcState) {
-                                    const sProviderConfList = Object.keys(rpcData)?.map((aKey: string) => {
-                                        return { name: aKey, value: msg[E_WS_KEY.RPC]?.result?.[aKey] };
+                                    const sProviderConfList = Object.keys(rpcData?.config)?.map((aKey: string) => {
+                                        return { name: aKey, value: rpcData?.config?.[aKey] };
                                     });
                                     setOriginProviderConf(sProviderConfList);
                                     setUpdateProviderConf(sProviderConfList);
@@ -150,7 +149,7 @@ export const ProviderModal = ({ pTrigger }: { pTrigger: React.ReactElement }) =>
                                 break;
                             case E_RPC_METHOD.LLM_SET_PROVIDER_CONF:
                                 setIsSave(false);
-                                if (rpcState) setIsProviderModal(false);
+                                if (rpcState) closeHelper();
                                 else setError(rpcData);
                                 break;
                         }
@@ -160,97 +159,100 @@ export const ProviderModal = ({ pTrigger }: { pTrigger: React.ReactElement }) =>
         });
     }, [msgBatch]);
 
-    useEsc(() => sIsProviderModal && setIsProviderModal(false));
+    const closeHelper = () => {
+        pCallback && pCallback();
+    };
 
-    return (
-        <>
-            <div onClick={() => setIsProviderModal(true)}>{pTrigger}</div>
-            {sIsProviderModal && (
-                <div className="provider-modal">
-                    <Modal pIsDarkMode className="provider-modal-wh" onOutSideClose={() => setIsProviderModal(false)}>
-                        <Modal.Header>
-                            <div className="provider-modal-header">
-                                <div className="provider-modal-title">
-                                    <span>Set provider</span>
+    useEsc(() => closeHelper());
+    useOutsideClick(dropdownRef, () => setShowProviderDropdown(false));
+
+    return createPortal(
+        <div className="provider-modal">
+            <Modal pIsDarkMode className="provider-modal-wh" onOutSideClose={closeHelper}>
+                <Modal.Header>
+                    <div className="provider-modal-header">
+                        <div className="provider-modal-title">
+                            <span>Set provider</span>
+                        </div>
+                        <Close style={{ cursor: 'pointer' }} onClick={closeHelper} />
+                    </div>
+                </Modal.Header>
+                <Modal.Body>
+                    {sIsProviderLoad ? (
+                        <div className="model-modal-body">
+                            <SkeletonContainer pStyle={{ display: 'flex', flexDirection: 'row', width: '100%', padding: '8px' }}>
+                                <SkeletonItem pLength={1} pStyle={{ minHeight: '33px', maxHeight: '33px', minWidth: '100px', maxWidth: '100px' }} />
+                                <SkeletonItem pLength={1} pStyle={{ minHeight: '33px', maxHeight: '33px', flex: 1 }} />
+                            </SkeletonContainer>
+                        </div>
+                    ) : (
+                        <div className="provider-modal-body provider-modal-form-container">
+                            <div className="provider-modal-form-fields">
+                                <div className="provider-modal-form-field">
+                                    <div className="provider-modal-field-label">Provider</div>
+                                    <div ref={dropdownRef} className="provider-modal-provider-dropdown">
+                                        <div onClick={handleProviderDropbox} className={`provider-modal-provider-select ${sSelectedProvider ? 'has-value' : 'placeholder'}`}>
+                                            <span>{sSelectedProvider || 'Select provider'}</span>
+                                            <ArrowDown size={16} className={`arrow ${sShowProviderDropdown ? 'open' : ''}`} />
+                                        </div>
+                                        {sShowProviderDropdown && (
+                                            <div className="provider-modal-provider-dropdown-list">
+                                                {sProviderList?.map((item, aIdx: number) => {
+                                                    const isSelected = sSelectedProvider === item;
+                                                    return (
+                                                        <div
+                                                            key={'provider-' + aIdx?.toString()}
+                                                            onClick={(e) => handleSelectProvider(e, item)}
+                                                            className={`provider-modal-provider-dropdown-item ${isSelected ? 'selected' : ''}`}
+                                                        >
+                                                            <span>{item}</span>
+                                                            {isSelected && <span>✓</span>}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <Close style={{ cursor: 'pointer' }} onClick={() => setIsProviderModal(false)} />
-                            </div>
-                        </Modal.Header>
-                        <Modal.Body>
-                            {sIsProviderLoad ? (
-                                <div className="model-modal-body">
-                                    <SkeletonContainer pStyle={{ display: 'flex', flexDirection: 'row', width: '100%', padding: '8px' }}>
-                                        <SkeletonItem pLength={1} pStyle={{ minHeight: '33px', maxHeight: '33px', minWidth: '100px', maxWidth: '100px' }} />
+                                {sIsConfLoad ? (
+                                    <SkeletonContainer pStyle={{ display: 'flex', flexDirection: 'row', width: '100%' }}>
+                                        <SkeletonItem pLength={1} pStyle={{ minHeight: '33px', maxHeight: '33px', minWidth: '90px', maxWidth: '90px' }} />
                                         <SkeletonItem pLength={1} pStyle={{ minHeight: '33px', maxHeight: '33px', flex: 1 }} />
                                     </SkeletonContainer>
-                                </div>
-                            ) : (
-                                <div className="provider-modal-body provider-modal-form-container">
-                                    <div className="provider-modal-form-fields">
-                                        <div className="provider-modal-form-field">
-                                            <div className="provider-modal-field-label">Provider</div>
-                                            <div ref={dropdownRef} className="provider-modal-provider-dropdown">
-                                                <div
-                                                    onClick={handleProviderDropbox}
-                                                    className={`provider-modal-provider-select ${sSelectedProvider ? 'has-value' : 'placeholder'}`}
-                                                >
-                                                    <span>{sSelectedProvider || 'Select provider'}</span>
-                                                    <ArrowDown size={16} className={`arrow ${sShowProviderDropdown ? 'open' : ''}`} />
-                                                </div>
-                                                {sShowProviderDropdown && (
-                                                    <div className="provider-modal-provider-dropdown-list">
-                                                        {sProviderList?.map((item, aIdx: number) => {
-                                                            const isSelected = sSelectedProvider === item;
-                                                            return (
-                                                                <div
-                                                                    key={'provider-' + aIdx?.toString()}
-                                                                    onClick={(e) => handleSelectProvider(e, item)}
-                                                                    className={`provider-modal-provider-dropdown-item ${isSelected ? 'selected' : ''}`}
-                                                                >
-                                                                    <span>{item}</span>
-                                                                    {isSelected && <span>✓</span>}
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
+                                ) : sOriginProviderConf && sOriginProviderConf?.length > 0 ? (
+                                    sUpdateProviderConf?.map((providerConf, aIdx: number) => {
+                                        if (!sSelectedProvider) return null;
+                                        return (
+                                            <div className="provider-modal-form-field" key={providerConf.name}>
+                                                <div className="provider-modal-field-label">{providerConf.name}</div>
+                                                <input
+                                                    className="provider-modal-form-input"
+                                                    value={providerConf.value}
+                                                    style={{ flex: 3 }}
+                                                    onChange={(e) => handleConfValue(e, aIdx)}
+                                                />
                                             </div>
-                                        </div>
-                                        {sIsConfLoad ? (
-                                            <SkeletonContainer pStyle={{ display: 'flex', flexDirection: 'row', width: '100%' }}>
-                                                <SkeletonItem pLength={1} pStyle={{ minHeight: '33px', maxHeight: '33px', minWidth: '90px', maxWidth: '90px' }} />
-                                                <SkeletonItem pLength={1} pStyle={{ minHeight: '33px', maxHeight: '33px', flex: 1 }} />
-                                            </SkeletonContainer>
-                                        ) : sOriginProviderConf && sOriginProviderConf?.length > 0 ? (
-                                            sUpdateProviderConf?.map((providerConf, aIdx: number) => {
-                                                return (
-                                                    <div className="provider-modal-form-field" key={providerConf.name}>
-                                                        <div className="provider-modal-field-label">{providerConf.name}</div>
-                                                        <input
-                                                            className="provider-modal-form-input"
-                                                            value={providerConf.value}
-                                                            style={{ flex: 3 }}
-                                                            onChange={(e) => handleConfValue(e, aIdx)}
-                                                        />
-                                                    </div>
-                                                );
-                                            })
-                                        ) : null}
-                                    </div>
-                                    <ErrorBanner code={sError.code} message={sError.message} />
-                                </div>
-                            )}
-                        </Modal.Body>
-                        <Modal.Footer>
-                            <div className="provider-modal-footer">
-                                <button disabled={sIsSave} className={`provider-modal-footer-item ${!sSelectedProvider ? 'disabled' : ''}`} onClick={handleConfSave}>
-                                    {sIsSave ? <Loader width="16px" height="16px" borderRadius="90%" /> : 'Save'}
-                                </button>
+                                        );
+                                    })
+                                ) : null}
                             </div>
-                        </Modal.Footer>
-                    </Modal>
-                </div>
-            )}
-        </>
+                            <ErrorBanner code={sError.code} message={sError.message} />
+                        </div>
+                    )}
+                </Modal.Body>
+                <Modal.Footer>
+                    <div className="provider-modal-footer">
+                        <button
+                            disabled={!sSelectedProvider || !sOriginProviderConf}
+                            className={`provider-modal-footer-item ${!sSelectedProvider ? 'disabled' : ''}`}
+                            onClick={handleConfSave}
+                        >
+                            {sIsSave ? <Loader width="16px" height="16px" borderRadius="90%" /> : 'Save'}
+                        </button>
+                    </div>
+                </Modal.Footer>
+            </Modal>
+        </div>,
+        document.body
     );
 };
