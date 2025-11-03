@@ -8,7 +8,7 @@ export interface Message {
     content: string;
     timestamp: number;
     role: 'user' | 'assistant';
-    type: 'block' | 'msg' | 'answer' | 'question';
+    type: 'block' | 'msg' | 'answer' | 'question' | 'error';
     isProcess: boolean;
     isInterrupt: boolean;
 }
@@ -43,7 +43,7 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
     useEffect(() => {
         if (msgBatch.length === 0) return;
 
-        msgBatch.forEach((msg) => {
+        msgBatch?.forEach((msg) => {
             if (msg && Object.keys(msg).length > 0) {
                 if (msg.session?.id === pWrkId && msg.session?.idx === pIdx) {
                     if (msg.type === E_WS_TYPE.RPC_RSP) {

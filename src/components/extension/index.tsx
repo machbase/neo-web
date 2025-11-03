@@ -11,12 +11,13 @@ import { logOut } from '@/api/repository/login';
 import { useNavigate } from 'react-router-dom';
 import { RxLapTimer } from 'react-icons/rx';
 import { generateUUID, getId } from '@/utils';
-import { GiTallBridge } from 'react-icons/gi';
+import { GiBrain, GiTallBridge } from 'react-icons/gi';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { Password } from '../password';
 import { VscExtensions } from 'react-icons/vsc';
 import { BadgeStatus } from '../badge';
 import { StatzTableModal } from '@/components/modal/StatzTableModal';
+import { ProviderModal } from '../chat/ProviderModal';
 
 const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any) => {
     const sNavigate = useNavigate();
@@ -25,12 +26,12 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
     const [sExtensionList] = useRecoilState<any>(gExtensionList);
     const [sSelectedExtension, setSelectedExtension] = useRecoilState<string>(gSelectedExtension);
     const [sIsLicenseModal, setIsLicenseModal] = useState<boolean>(false);
+    const [sIsProviderModal, setIsProviderModal] = useState<boolean>(false);
     const [sIsPWDModal, setIsPWDModal] = useState<boolean>(false);
     const [sIsStatzTableModal, setIsStatzTableModal] = useState<boolean>(false);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const getGLicense = useRecoilValue(gLicense);
-
 
     const selectExtension = async (aItem: any) => {
         // EULA TEST
@@ -142,6 +143,10 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
         setIsOpen(false);
         setIsStatzTableModal(true);
     };
+    const handleProvider = () => {
+        setIsOpen(false);
+        setIsProviderModal(true);
+    };
 
     useOutsideClick(MenuRef, () => setIsOpen(false));
 
@@ -192,6 +197,12 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
                                     <TableHeader />
                                     <span>Statz Table</span>
                                 </Menu.Item>
+                                {localStorage.getItem('experimentMode') === 'true' && (
+                                    <Menu.Item onClick={handleProvider}>
+                                        <GiBrain />
+                                        <span>Configure AI</span>
+                                    </Menu.Item>
+                                )}
                                 <Menu.Item onClick={handlePWD}>
                                     <RiLockPasswordLine />
                                     <span>Change password</span>
@@ -208,6 +219,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
             {sIsLicenseModal ? <LicenseModal pIsDarkMode setIsOpen={setIsLicenseModal} /> : null}
             {sIsPWDModal && <Password setIsOpen={setIsPWDModal} />}
             {sIsStatzTableModal && <StatzTableModal setIsOpen={setIsStatzTableModal} />}
+            {sIsProviderModal && <ProviderModal pCallback={() => setIsProviderModal(false)} />}
         </>
     );
 };

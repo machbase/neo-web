@@ -262,6 +262,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 pAllRunCodeCallback(true);
             }
             setMarkdown(aText);
+            handleStopState(false);
         }
         if (sSelectedLang === 'SQL') getSqlData(aText, { aLocation });
         if (sSelectedLang === 'Shell') {
@@ -271,6 +272,24 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         if (sSelectedLang === 'Chat') {
             setProcessing(true);
             chatLogic.setMessages([]);
+
+            if (!chatLogic.selectedModel || !aText.trim()) {
+                setProcessing(false);
+                if (pAllRunCodeStatus) pAllRunCodeCallback(true);
+                handleStopState(false);
+                chatLogic.setMessages([
+                    {
+                        id: 'error-msg',
+                        content: 'Please enter model or content.',
+                        timestamp: 0,
+                        role: 'assistant',
+                        type: 'error',
+                        isProcess: false,
+                        isInterrupt: false,
+                    },
+                ]);
+                return;
+            }
 
             if (pAllRunCodeStatus)
                 chatLogic.sendMessageWithText(aText, () => {

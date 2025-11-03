@@ -26,6 +26,8 @@ export const ModelDropDown = ({ pPosition = 'TOP', pList, pSelectedItem, onSelec
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sRmModel, setRmModel] = useState<Model>({ provider: '', model: '', name: '' });
+    const [sIsModelModal, setIsModelModal] = useState<boolean>(false);
+    const [sIsProviderModal, setIsProviderModal] = useState<boolean>(false);
     const dropDownRef = useRef(null);
     const { sendMSG } = useWebSocket();
 
@@ -37,30 +39,32 @@ export const ModelDropDown = ({ pPosition = 'TOP', pList, pSelectedItem, onSelec
     const handleToggle = () => {
         if (!sShowLang) {
             setIsLoading(true);
+            setShowLang(!sShowLang);
             onFetch();
-        }
-        setShowLang(!sShowLang);
+        } else setShowLang(false);
     };
 
     const handleDeleteClick = (e: React.MouseEvent, model: Model) => {
         e.stopPropagation();
         setRmModel(model);
         setIsDeleteModal(true);
+        setShowLang(false);
     };
-
     const delModel = () => {
         const sGenObj = WsRPC.LLM.GenModelRmObj(MODEL_DROPDOWN_UNIQUE_ID, MODEL_DROPDOWN_INDEX_ID, sRmModel);
         setRmModel({ provider: '', model: '', name: '' });
         setIsDeleteModal(false);
         sendMSG(sGenObj);
-        onFetch();
+    };
+    const closeHelper = () => {
+        setShowLang(false);
     };
 
     useEffect(() => {
         if (pList && pList?.length > 0) setIsLoading(false);
     }, [pList]);
 
-    useOutsideClick(dropDownRef, () => setShowLang(false));
+    useOutsideClick(dropDownRef, () => closeHelper());
     useEsc(() => setShowLang(false));
 
     return (
@@ -116,8 +120,24 @@ export const ModelDropDown = ({ pPosition = 'TOP', pList, pSelectedItem, onSelec
                             <Skeleton pLength={2} pStyle={{ minHeight: '20px', maxHeight: '20px' }} />
                         ) : (
                             <>
-                                <ModelModal pTrigger={<div className="dropdown-menu-item">Add model</div>} pCloseDropdown={handleToggle} />
-                                <ProviderModal pTrigger={<div className="dropdown-menu-item">Set provider </div>} />
+                                <div
+                                    className="dropdown-menu-item"
+                                    onClick={() => {
+                                        setIsModelModal(!sIsModelModal);
+                                        setShowLang(false);
+                                    }}
+                                >
+                                    Add model
+                                </div>
+                                <div
+                                    className="dropdown-menu-item"
+                                    onClick={() => {
+                                        setIsProviderModal(!sIsProviderModal);
+                                        setShowLang(false);
+                                    }}
+                                >
+                                    Set provider
+                                </div>
                             </>
                         )}
                     </div>
@@ -126,6 +146,8 @@ export const ModelDropDown = ({ pPosition = 'TOP', pList, pSelectedItem, onSelec
             {sIsDeleteModal && (
                 <ConfirmModal pIsDarkMode setIsOpen={setIsDeleteModal} pCallback={delModel} pContents={<div className="body-content">{`Do you want to delete this model?`}</div>} />
             )}
+            {sIsModelModal && <ModelModal pCallback={() => setIsModelModal(false)} />}
+            {sIsProviderModal && <ProviderModal pCallback={() => setIsProviderModal(false)} />}
         </div>
     );
 };

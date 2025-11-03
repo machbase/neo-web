@@ -32,7 +32,7 @@ export const SqlSplitHelper = (aLocation: LocationType, aSplitList: SplitItemTyp
     if (aRunAll) return aSplitList?.filter((statement) => !statement?.isComment);
     // SINGLE
     if (aLocation.selection.endColumn === aLocation.selection.startColumn && aLocation.selection.endLineNumber === aLocation.selection.startLineNumber) {
-        parsedQuery = aSplitList.filter((statement: SplitItemType) => {
+        parsedQuery = aSplitList?.filter((statement: SplitItemType) => {
             if (!statement.isComment && statement.beginLine <= aLocation.selection.startLineNumber && aLocation.selection.startLineNumber <= statement.endLine) {
                 return statement;
             }
@@ -40,7 +40,7 @@ export const SqlSplitHelper = (aLocation: LocationType, aSplitList: SplitItemTyp
     }
     // MULTIPLE
     else {
-        parsedQuery = aSplitList.filter((statement: SplitItemType) => {
+        parsedQuery = aSplitList?.filter((statement: SplitItemType) => {
             if (!statement.isComment && statement.endLine >= aLocation.selection.startLineNumber && statement.beginLine <= aLocation.selection.endLineNumber) return statement;
         });
     }
