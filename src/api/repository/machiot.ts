@@ -1,6 +1,6 @@
 import request from '@/api/core';
 import { Error } from '@/components/toast/Toast';
-import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt } from '@/utils';
+import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt, convertToNewRollupSyntax } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { getInterval } from '@/utils/DashboardQueryParser';
 import { removeV$Table } from '@/utils/dbUtils';
@@ -102,12 +102,10 @@ const fetchCalculationData = async (params: any) => {
 
     let sSubQuery = '';
     let sMainQuery = '';
-    let sTimeCalc = '';
     let sOnedayOversize = '';
     let sRollupValue = 1;
 
     if (Rollup && IntervalType === 'day' && IntervalValue > 1) {
-        sTimeCalc = '1hour';
         sOnedayOversize = `to_char(mTime / ${IntervalValue * 60 * 60 * 24 * 1000000000}  * ${IntervalValue * 60 * 60 * 24 * 1000000000})`;
     } else if (!Rollup) {
         if (IntervalType === 'sec') {
@@ -117,17 +115,18 @@ const fetchCalculationData = async (params: any) => {
         } else if (IntervalType === 'hour') {
             sRollupValue = 3600;
         }
-        sTimeCalc = IntervalValue + IntervalType;
         sOnedayOversize = 'mTime';
     } else {
-        sTimeCalc = IntervalValue + IntervalType;
         sOnedayOversize = 'mTime';
     }
 
     if (CalculationMode === 'sum' || CalculationMode === 'min' || CalculationMode === 'max') {
-        let sCol = `${sTime} rollup ${sTimeCalc}`;
+        let sCol: string;
 
-        if (!Rollup) {
+        if (Rollup) {
+            // Use new ROLLUP syntax
+            sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
+        } else {
             sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
         }
 
@@ -137,10 +136,15 @@ const fetchCalculationData = async (params: any) => {
         }`;
     }
     if (CalculationMode === 'avg') {
-        let sCol = `${sTime} rollup ${sTimeCalc}`;
-        if (!Rollup) {
+        let sCol: string;
+
+        if (Rollup) {
+            // Use new ROLLUP syntax
+            sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
+        } else {
             sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
         }
+
         sSubQuery = `select ${sCol} as mTime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
         sMainQuery = `SELECT to_timestamp(${sOnedayOversize}) / 1000000.0 AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${
             Count * 1
@@ -148,8 +152,12 @@ const fetchCalculationData = async (params: any) => {
     }
 
     if (CalculationMode === 'cnt') {
-        let sCol = `${sTime} rollup ${sTimeCalc}`;
-        if (!Rollup) {
+        let sCol: string;
+
+        if (Rollup) {
+            // Use new ROLLUP syntax
+            sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
+        } else {
             sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
         }
 
@@ -159,10 +167,13 @@ const fetchCalculationData = async (params: any) => {
 
     if (CalculationMode === 'first' || CalculationMode === 'last') {
         const sIsExtRollup = isRollupExt(RollupList, sTableName, getInterval(IntervalType, IntervalValue));
-        let sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
+        let sCol: string;
 
         if (Rollup && sIsExtRollup) {
-            sCol = `${sTime} rollup ${sTimeCalc}`;
+            // 새 ROLLUP 문법 사용
+            sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
+        } else {
+            sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
         }
 
         sSubQuery = `select ${sCol} as mTime,  ${CalculationMode}(time, ${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} Group by mtime order by mtime `;

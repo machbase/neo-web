@@ -98,6 +98,35 @@ export const isRollupExt = (aRollups: any, aTableName: string, aInterval: any) =
     } else return 0;
 };
 
+/**
+ * Helper function to convert ROLLUP query syntax
+ * Old syntax: time ROLLUP 5 min
+ * New syntax: ROLLUP('MINUTE', 5, time)
+ */
+export const convertToNewRollupSyntax = (timeColumn: string, intervalType: string, intervalValue: number): string => {
+    let timeUnit: string;
+
+    // Map time unit
+    switch (intervalType.toLowerCase()) {
+        case 'sec':
+            timeUnit = 'SECOND';
+            break;
+        case 'min':
+            timeUnit = 'MINUTE';
+            break;
+        case 'hour':
+            timeUnit = 'HOUR';
+            break;
+        case 'day':
+            timeUnit = 'DAY';
+            break;
+        default:
+            timeUnit = intervalType.toUpperCase();
+    }
+
+    return `ROLLUP('${timeUnit}', ${intervalValue}, ${timeColumn})`;
+};
+
 export const decodeJwt = (aToken: string) => {
     const sBase64Url = aToken.split('.')[1];
     const sBase64 = sBase64Url.replace(/-/g, '+').replace(/_/g, '/');
