@@ -197,10 +197,12 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
                                     <TableHeader />
                                     <span>Statz Table</span>
                                 </Menu.Item>
-                                <Menu.Item onClick={handleProvider}>
-                                    <GiBrain />
-                                    <span>Configure AI</span>
-                                </Menu.Item>
+                                {localStorage.getItem('experimentMode') === 'true' && (
+                                    <Menu.Item onClick={handleProvider}>
+                                        <GiBrain />
+                                        <span>Configure AI</span>
+                                    </Menu.Item>
+                                )}
                                 <Menu.Item onClick={handlePWD}>
                                     <RiLockPasswordLine />
                                     <span>Change password</span>
