@@ -1,5 +1,5 @@
 import moment from 'moment';
-import { isRollup, isRollupExt } from '.';
+import { isRollup, isRollupExt, convertToNewRollupSyntax } from '.';
 import { ADMIN_ID } from './constants';
 import { VARIABLE_REGEX } from './CheckDataCompatibility';
 import { DEFAULT_VARIABLE_LIST, VARIABLE_TYPE } from '../components/variable';
@@ -243,15 +243,15 @@ const GetTimeColumn = (aUseAgg: boolean, aTable: any, aInterval: { IntervalType:
         if (isFirstOrLastAggregator(changeAggText(aAggregator))) {
             const sIsExtRollup = isRollupExt(aRollupList, aTable.tableName, getInterval(aInterval.IntervalType, aInterval.IntervalValue));
             if (sIsExtRollup) {
-                if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `${aTable.time} ROLLUP 1 day`;
-                else return `${aTable.time} ROLLUP ${aInterval.IntervalValue} ${aInterval.IntervalType}`;
+                // Use new ROLLUP syntax
+                return convertToNewRollupSyntax(aTable.time, aInterval.IntervalType, aInterval.IntervalValue);
             } else {
                 if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `DATE_TRUNC('day', ${aTable.time}, 1)`;
                 else return `DATE_TRUNC('${aInterval.IntervalType}', ${aTable.time}, ${aInterval.IntervalValue})`;
             }
         } else {
-            if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `${aTable.time} ROLLUP 1 day`;
-            else return `${aTable.time} ROLLUP ${aInterval.IntervalValue} ${aInterval.IntervalType}`;
+            // Use new ROLLUP syntax
+            return convertToNewRollupSyntax(aTable.time, aInterval.IntervalType, aInterval.IntervalValue);
         }
     } else {
         if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `DATE_TRUNC('day', ${aTable.time}, 1)`;

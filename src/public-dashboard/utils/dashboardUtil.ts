@@ -1,4 +1,4 @@
-import { getId } from '.';
+import { getId, convertToNewRollupSyntax } from '.';
 import {
     DefaultBarChartOption,
     DefaultLineChartOption,
@@ -147,7 +147,8 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
         let sSubQTime = '';
         let sSubQValue = '';
 
-        sSubQTime = `${aInfo.time} ROLLUP 1 HOUR as TIME`;
+        // Use new ROLLUP syntax: ROLLUP('HOUR', 1, time_column)
+        sSubQTime = `${convertToNewRollupSyntax(aInfo.time, 'hour', 1)} as TIME`;
 
         if (aInfo.aggregator === 'avg') {
             sSubQValue = `sum(${aInfo.value}) as SVAL, count(${aInfo.value}) as CVAL`;
