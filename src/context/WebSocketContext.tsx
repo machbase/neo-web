@@ -27,7 +27,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     const isConnectingRef = useRef<boolean>(false);
     const [sMsgBatch, setMsgBatch] = useState<any[]>([]);
     const msgBufferRef = useRef<any[]>([]);
-    const batchTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const batchTimerRef = useRef<number | null>(null);
     const setConsoleList = useSetRecoilState<any>(gWsLog);
     const navigate = useNavigate();
     const { handleWsMsg } = useWsRouter();
@@ -67,12 +67,12 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
                 if (!!sMsg) {
                     // Add message to batch buffer
                     msgBufferRef.current.push(sMsg);
-                    // Start timer if not already running
+                    // Use requestAnimationFrame for next frame update (~16ms)
                     if (!batchTimerRef.current) {
-                        batchTimerRef.current = setTimeout(() => {
+                        batchTimerRef.current = requestAnimationFrame(() => {
                             flushMessageBuffer();
                             batchTimerRef.current = null;
-                        }, 100); // Wait 100ms
+                        });
                     }
                 }
             }
@@ -126,7 +126,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
             timerRef.current = null;
         }
         if (batchTimerRef.current) {
-            clearTimeout(batchTimerRef.current);
+            cancelAnimationFrame(batchTimerRef.current);
             batchTimerRef.current = null;
         }
         if (socketRef.current) {
@@ -139,7 +139,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     useEffect(() => {
         return () => {
             if (batchTimerRef.current) {
-                clearTimeout(batchTimerRef.current);
+                cancelAnimationFrame(batchTimerRef.current);
             }
         };
     }, []);
