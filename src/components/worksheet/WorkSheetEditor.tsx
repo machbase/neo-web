@@ -651,7 +651,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                                         pList={chatLogic.modelList}
                                         pSelectedItem={chatLogic.selectedModel}
                                         onSelect={chatLogic.setSelectedModel}
-                                        onFetch={chatLogic.getModelList}
+                                        onFetch={chatLogic.getListModels}
                                     />
                                     {VerticalDivision()}
                                 </div>
