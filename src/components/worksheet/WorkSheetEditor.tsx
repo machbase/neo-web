@@ -191,7 +191,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
 
         return () => {
-            if (chatLogic && chatLogic.isProcessingAnswer) {
+            if (chatLogic && chatLogic?.processingAnswerRef?.current) {
                 chatLogic.handleInterruptMessage();
                 setProcessing(false);
             }

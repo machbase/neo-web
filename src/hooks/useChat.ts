@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useWebSocket } from '@/context/WebSocketContext';
 import { E_MSG_TYPE, E_RPC_METHOD, E_WS_KEY, E_WS_TYPE, RPC_LLM_LIST } from '@/recoil/websocket';
 import { Model, WsMSG, WsRPC } from '@/utils/websocket';
@@ -39,6 +39,11 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
     let callbackRef = useRef<any>(undefined);
 
     const isComposingRef = useRef<boolean>(false);
+    const processingAnswerRef = useRef<boolean>(false);
+
+    const getProcessingAnswer = useMemo(() => {
+        return sProcessingAnswer;
+    }, [sProcessingAnswer]);
 
     // WebSocket message processing
     useEffect(() => {
@@ -66,13 +71,17 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
                         }
                     } else if (msg.type === E_WS_TYPE.MSG) {
                         /** ANSWER */
-                        if (msg[E_WS_KEY.MSG].type === E_MSG_TYPE.ANSWER_START) setProcessingAnswer(true);
+                        if (msg[E_WS_KEY.MSG].type === E_MSG_TYPE.ANSWER_START) {
+                            setProcessingAnswer(true);
+                            processingAnswerRef.current = true;
+                        }
                         if (msg[E_WS_KEY.MSG].type === E_MSG_TYPE.ANSWER_STOP) {
                             if (callbackRef?.current) {
                                 callbackRef?.current();
                                 callbackRef.current = undefined;
                             }
                             setProcessingAnswer(false);
+                            processingAnswerRef.current = false;
                         }
                         /** DELTA */
                         if (msg[E_WS_KEY.MSG].type === E_MSG_TYPE.STREAM_MSG_DELTA || msg[E_WS_KEY.MSG].type === E_MSG_TYPE.STREAM_BLOCK_DELTA) {
@@ -187,7 +196,8 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
         setMessages,
         inputValue: sInputValue,
         setInputValue,
-        isProcessingAnswer: sProcessingAnswer,
+        isProcessingAnswer: getProcessingAnswer,
+        processingAnswerRef,
         selectedModel: sSelectedModel,
         setSelectedModel,
         modelList: sModelList,
