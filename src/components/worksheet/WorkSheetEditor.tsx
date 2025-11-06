@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import { getTqlChart } from '@/api/repository/machiot';
 import { Markdown } from '@/components/worksheet/Markdown';
