@@ -100,6 +100,8 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <MuiFolder />;
         case 'openDirectory':
             return <MuiFolderOpen />;
+        case 'console':
+            return <GoTerminal />;
         case 'console-network-outline':
             return <GoCommandPalette />;
         case 'console-network':
