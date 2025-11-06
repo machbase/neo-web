@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import './WorkSheet.scss';
 import { WorkSheetEditor } from './WorkSheetEditor';
 import { useRecoilState, useSetRecoilState } from 'recoil';
@@ -47,9 +47,47 @@ export const WorkSheet = (props: WorkSheetProps) => {
     const [sTimeZone, setTimeZone] = useState('LOCAL');
     const [sStopState, setStopState] = useState<boolean[]>(Array.from({ length: sWorkSheets?.length ?? 1 }, () => false));
 
+    // Queue-based scroll handler with 1 second delay between items
+    const scrollQueueRef = useRef<HTMLElement[]>([]);
+    const isProcessingQueueRef = useRef<boolean>(false);
+    const sDelay = 1000;
+
     const checkSectionState = useCallback(() => {
         return sStopState?.some((state) => state) ?? false;
     }, [sStopState]);
+
+    // Process scroll queue with 1 second delay between each item
+    const processScrollQueue = useCallback(() => {
+        if (isProcessingQueueRef.current || scrollQueueRef.current.length === 0) {
+            return;
+        }
+
+        isProcessingQueueRef.current = true;
+
+        const processNext = (delay: number = 0) => {
+            setTimeout(() => {
+                if (scrollQueueRef.current.length === 0) {
+                    isProcessingQueueRef.current = false;
+                    return;
+                }
+                const element = scrollQueueRef.current.shift();
+                if (element) element.scrollIntoView({ block: 'end', behavior: 'smooth' });
+                if (scrollQueueRef.current.length > 0) processNext(delay);
+                else isProcessingQueueRef.current = false;
+            }, delay);
+        };
+
+        processNext(sDelay);
+    }, []);
+
+    // Add element to scroll queue and start processing
+    const handleScrollToElement = useCallback(
+        (element: HTMLElement) => {
+            scrollQueueRef.current.push(element);
+            processScrollQueue();
+        },
+        [processScrollQueue]
+    );
 
     const handleCallback = (aData: { id: string; event: CallbackEventType }) => {
         switch (aData.event) {
@@ -181,6 +219,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
                                     pWorkSheets={sWorkSheets}
                                     setSheet={handleUpdateSheet}
                                     pCallback={handleCallback}
+                                    pScrollToElement={handleScrollToElement}
                                 />
                             );
                         })}

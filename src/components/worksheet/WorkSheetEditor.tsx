@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import { getTqlChart } from '@/api/repository/machiot';
 import { Markdown } from '@/components/worksheet/Markdown';
@@ -16,7 +16,6 @@ import { Loader } from '../loader';
 import { GrClearOption } from 'react-icons/gr';
 import { postSplitter } from '@/api/repository/api';
 import { ShowVisualization } from '../tql/ShowVisualization';
-// import { CheckObjectKey, E_VISUAL_LOAD_ID } from '@/utils/dashboardUtil';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { LocationType, PositionType, SelectionType, SplitItemType, SqlSplitHelper } from '@/utils/TQL/SqlSplitHelper';
 import { gWsLog } from '@/recoil/websocket';
@@ -48,6 +47,7 @@ interface WorkSheetEditorProps {
     pAllRunCodeCallback: (aStatus: boolean) => void;
     setSheet: React.Dispatch<React.SetStateAction<any>>;
     pCallback: (aData: { id: string; event: CallbackEventType }) => void;
+    pScrollToElement: (element: HTMLElement) => void;
 }
 
 const defaultSqlLocation = {
@@ -81,6 +81,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         pAllRunCodeCallback,
         setSheet,
         pWorkSheets,
+        pScrollToElement,
     } = props;
     const sInitHeight = 200;
     const resizeRef = useRef<HTMLDivElement | null>(null);
@@ -93,7 +94,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sTqlResultType, setTqlResultType] = useState<'html' | TqlResType>(pData.tqlType ?? 'text');
     const [sTqlTextResult, setTqlTextResult] = useState<string>('');
     const [sShellResult, setShellTextResult] = useState<string[] | undefined>(undefined);
-    // const [sTqlChartData, setTqlChartData] = useState<string>('');
     const [sTqlVisualData, setTqlVisualData] = useState<string>('');
     const [sTqlMarkdown, setTqlMarkdown] = useState<any>('');
     const [sTqlCsv, setTqlCsv] = useState<string[][]>([]);
@@ -260,6 +260,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         if (sSelectedLang === 'Markdown') {
             if (pAllRunCodeStatus) {
                 pAllRunCodeCallback(true);
+                pScrollToElement(sScrollSpyRef?.current as HTMLDivElement);
             }
             setMarkdown(aText);
             handleStopState(false);
@@ -273,7 +274,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setProcessing(true);
             chatLogic.setMessages([]);
 
-            if (!chatLogic.selectedModel || !aText.trim()) {
+            if (!chatLogic.selectedModel.model || !aText.trim()) {
                 setProcessing(false);
                 if (pAllRunCodeStatus) pAllRunCodeCallback(true);
                 handleStopState(false);
@@ -301,15 +302,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     setProcessing(false);
                 });
         }
-
-        // Scroll to the end after rendering is complete
-        requestAnimationFrame(() => {
-            setTimeout(() => {
-                if (sScrollSpyRef?.current) {
-                    sScrollSpyRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                }
-            }, 100);
-        });
     };
     const handleRunCodeAll = (aText: string) => {
         if (sSelectedLang === 'SQL') getSqlData(aText, { aRunAll: true });
@@ -614,6 +606,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         chatLogic.setMessages([]);
     };
     const handleStopState = (aState: boolean) => {
+        if (pIdx + 1 === pWorkSheets?.length && pAllRunCodeStatus) pScrollToElement(sScrollSpyRef?.current as HTMLDivElement);
+
         pSetStopState((prev: boolean[]) => {
             const sTmp = JSON.parse(JSON.stringify(prev));
             sTmp[pIdx] = aState;
@@ -627,11 +621,22 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     };
 
     useEffect(() => {
-        if (!sProcessing) handleStopState(false);
+        if (!sProcessing) {
+            handleStopState(false);
+        }
     }, [sProcessing]);
     useEffect(() => {
-        if (!pStopState[pIdx]) handleStopState(false);
+        if (!pStopState[pIdx]) {
+            handleStopState(false);
+        }
     }, [pStopState[pIdx]]);
+
+    // Notify parent to scroll after result is rendered
+    useEffect(() => {
+        if (pAllRunCodeStatus && !sProcessing && sScrollSpyRef?.current) {
+            pScrollToElement(sScrollSpyRef.current);
+        }
+    }, [sProcessing, sSql, sTqlTextResult, sTqlVisualData, sTqlCsv, sMarkdown, sShellResult, chatLogic.messages]);
 
     useOutsideClick(dropDownRef, () => setShowLang(false));
     useOutsideClick(ResultContentTypeRef, () => setShowResultContentType(false));
