@@ -37,6 +37,30 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
 
     const Resizer = () => <SashContent className={`security-key-sash-style`} />;
 
+    const formatDuration = (value: number, unit: 'ms' | 's' = 's') => {
+        const milliseconds = unit === 'ms' ? value : value * 1000;
+        const duration = moment.duration(milliseconds);
+
+        const years = duration.years();
+        const months = duration.months();
+        const days = duration.days();
+        const hours = duration.hours();
+        const minutes = duration.minutes();
+        const seconds = duration.seconds();
+        const ms = duration.milliseconds();
+
+        const parts = [];
+        if (years > 0) parts.push(`${years}y`);
+        if (months > 0) parts.push(`${months}M`);
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0) parts.push(`${hours}h`);
+        if (minutes > 0) parts.push(`${minutes}m`);
+        if (seconds > 0) parts.push(`${seconds}s`);
+        if (unit === 'ms' && ms > 0) parts.push(`${ms}ms`);
+
+        return parts?.join(' ') ?? '';
+    };
+
     // Memoization tableInfo
     const mTableInfo = useMemo(() => {
         return pCode?.code?.tableInfo;
@@ -160,16 +184,16 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         const sRollupVersion = localStorage.getItem('V$ROLLUP_VER');
         const sDatabaseIdCondition = sRollupVersion === 'OLD' ? '' : `v.database_id=${mTableInfo[E_TABLE_INFO.DB_ID]} and `;
 
-        const sQuery = `select v.rollup_table as 'ROLLUP', v.COLUMN_NAME as 'COLUMN', v.interval_time as 'INTERVAL', v.ENABLED from v$rollup v, m$sys_users m where ${sDatabaseIdCondition}v.user_id=m.user_id and m.name=upper('${mTableInfo[E_TABLE_INFO.USER_NM]}') and root_table=upper('${
-            mTableInfo[E_TABLE_INFO.TB_NM]
-        }') group by root_table, column_name, enabled, interval_time, rollup_table order by interval_time asc`;
+        const sQuery = `select v.rollup_table as 'ROLLUP', v.COLUMN_NAME as 'COLUMN', v.interval_time as 'INTERVAL', v.ENABLED from v$rollup v, m$sys_users m where ${sDatabaseIdCondition}v.user_id=m.user_id and m.name=upper('${
+            mTableInfo[E_TABLE_INFO.USER_NM]
+        }') and root_table=upper('${mTableInfo[E_TABLE_INFO.TB_NM]}') group by root_table, column_name, enabled, interval_time, rollup_table order by interval_time asc`;
 
         const { svrState, svrData } = await fetchQuery(sQuery);
         if (svrState) {
             svrData.rows.map((row: (string | number)[]) => {
                 const intervalValue = row[svrData.columns.indexOf('INTERVAL')];
                 if (intervalValue === null || intervalValue === undefined || Number.isNaN(intervalValue as number)) return row;
-                else return (row[svrData.columns.indexOf('INTERVAL')] = intervalValue + ' ms');
+                else return (row[svrData.columns.indexOf('INTERVAL')] = formatDuration(intervalValue as number, 'ms'));
             });
             setRollupInfo(svrData);
         } else setRollupInfo(undefined);
@@ -183,12 +207,12 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
             svrData.rows.map((row: (string | number)[]) => {
                 const durationValue = row[svrData.columns.indexOf('DURATION')];
                 if (durationValue === null || durationValue === undefined || Number.isNaN(durationValue as number)) return row;
-                else return (row[svrData.columns.indexOf('DURATION')] = durationValue + ' ms');
+                else return (row[svrData.columns.indexOf('DURATION')] = formatDuration(durationValue as number, 's'));
             });
             svrData.rows.map((row: (string | number)[]) => {
                 const intervalValue = row[svrData.columns.indexOf('INTERVAL')];
                 if (intervalValue === null || intervalValue === undefined || Number.isNaN(intervalValue as number)) return row;
-                else return (row[svrData.columns.indexOf('INTERVAL')] = intervalValue + ' ms');
+                else return (row[svrData.columns.indexOf('INTERVAL')] = formatDuration(intervalValue as number, 's'));
             });
             svrData.rows.map((row: (string | number)[]) => {
                 const lastDeletedTime = row[svrData.columns.indexOf('LAST_DELETED_TIME')];
