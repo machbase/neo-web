@@ -245,8 +245,9 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         FetchRollupState(sRollupName as string, sCommand as string);
     };
     const rollupStateElement = (item: (string | number)[]) => {
-        if (item[sRollupInfo?.columns?.indexOf('ENABLED') as number] === 1) return <ExtensionTab.Switch pState={true} pCallback={(e) => handleRollupState(e, item)} />;
-        else return <ExtensionTab.Switch pState={false} pCallback={(e) => handleRollupState(e, item)} />;
+        if (item[sRollupInfo?.columns?.indexOf('ENABLED') as number] === 1)
+            return <ExtensionTab.Switch pReadOnly={mTableInfo[E_TABLE_INFO.DB_ID] !== -1} pState={true} pCallback={(e) => handleRollupState(e, item)} />;
+        else return <ExtensionTab.Switch pReadOnly={mTableInfo[E_TABLE_INFO.DB_ID] !== -1} pState={false} pCallback={(e) => handleRollupState(e, item)} />;
     };
 
     useEffect(() => {
@@ -262,8 +263,8 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 // Cond retention (MACHBASEDB)
                 if (mTableInfo[E_TABLE_INFO.DB_ID] === -1) FetchRetention();
                 else setRetentionInfo(undefined);
-                // Cond rollup (MACHBASEDB + TAG)
-                if (mTableInfo[E_TABLE_INFO.DB_ID] === -1 && CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) {
+                // Cond rollup (TAG)
+                if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) {
                     FetchRollup();
                     FetchIndexGapForTag();
                 } else {
