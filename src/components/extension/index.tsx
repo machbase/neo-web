@@ -18,6 +18,7 @@ import { VscExtensions } from 'react-icons/vsc';
 import { BadgeStatus } from '../badge';
 import { StatzTableModal } from '@/components/modal/StatzTableModal';
 import { ProviderModal } from '../chat/ProviderModal';
+import { useExperiment } from '@/hooks/useExperiment';
 
 const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any) => {
     const sNavigate = useNavigate();
@@ -32,6 +33,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const getGLicense = useRecoilValue(gLicense);
+    const { getExperiment } = useExperiment();
 
     const selectExtension = async (aItem: any) => {
         // EULA TEST
@@ -165,7 +167,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
                         sExtensionList.length !== 0 &&
                         sExtensionList.map((aItem: any, aIdx: number) => {
                             return (
-                                ((localStorage.getItem('experimentMode') === 'true' && aItem.label === 'APPSTORE') || aItem.label !== 'APPSTORE') && (
+                                ((getExperiment() && aItem.label === 'APPSTORE') || aItem.label !== 'APPSTORE') && (
                                     <div key={aIdx} className={`extension-top-list-item`} onClick={() => selectExtension(aItem)}>
                                         <ExtensionBtn pLabel={aItem.label} pIcon={setIcon(aItem.id)} />
                                     </div>
@@ -197,7 +199,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
                                     <TableHeader />
                                     <span>Statz Table</span>
                                 </Menu.Item>
-                                {localStorage.getItem('experimentMode') === 'true' && (
+                                {getExperiment() && (
                                     <Menu.Item onClick={handleProvider}>
                                         <GiBrain />
                                         <span>Configure AI</span>

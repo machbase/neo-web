@@ -4,6 +4,7 @@ import { gWsLog } from '@/recoil/websocket';
 import { getId } from '@/utils';
 import { useNavigate } from 'react-router-dom';
 import { useWsRouter } from '@/hooks/websocket/useWsRouter';
+import { useExperiment } from '@/hooks/useExperiment';
 
 interface WebSocketContextType {
     socket: React.MutableRefObject<WebSocket | null>;
@@ -30,10 +31,11 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     const batchTimerRef = useRef<number | null>(null);
     const setConsoleList = useSetRecoilState<any>(gWsLog);
     const navigate = useNavigate();
+    const { getExperiment } = useExperiment();
     const { handleWsMsg } = useWsRouter();
 
     const sendMSG = useCallback((message: any) => {
-        if (localStorage.getItem('experimentMode') !== 'true') return;
+        if (!getExperiment()) return;
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
             socketRef.current.send(JSON.stringify(message));
         } else {

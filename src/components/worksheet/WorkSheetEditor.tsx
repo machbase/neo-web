@@ -23,6 +23,7 @@ import { useChat } from '@/hooks/useChat';
 import { ChatMessageList } from '../chat/components/ChatMessageList';
 import { ModelDropDown } from '../chat/components/DropDown';
 import { FaStop } from 'react-icons/fa';
+import { useExperiment } from '@/hooks/useExperiment';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell' | 'Chat';
 type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell' | 'chat';
@@ -114,22 +115,22 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sProcessing, setProcessing] = useState<boolean>(false);
     const chatLogic = useChat(pWrkId, pIdx, { model: pData?.chat?.model ?? '', provider: pData?.chat?.provider, name: pData?.chat?.name }, pData?.chat?.response);
+    const { getExperiment } = useExperiment();
 
-    const LANG =
-        localStorage.getItem('experimentMode') === 'true'
-            ? [
-                  ['markdown', 'Markdown'],
-                  ['SQL', 'SQL'],
-                  ['go', 'TQL'],
-                  ['shell', 'Shell'],
-                  ['chat', 'Chat'],
-              ]
-            : [
-                  ['markdown', 'Markdown'],
-                  ['SQL', 'SQL'],
-                  ['go', 'TQL'],
-                  ['shell', 'Shell'],
-              ];
+    const LANG = getExperiment()
+        ? [
+              ['markdown', 'Markdown'],
+              ['SQL', 'SQL'],
+              ['go', 'TQL'],
+              ['shell', 'Shell'],
+              ['chat', 'Chat'],
+          ]
+        : [
+              ['markdown', 'Markdown'],
+              ['SQL', 'SQL'],
+              ['go', 'TQL'],
+              ['shell', 'Shell'],
+          ];
 
     useEffect(() => {
         if (pAllRunCodeList.length > 0 && pAllRunCodeStatus && typeof pAllRunCodeTargetIdx === 'number' && pAllRunCodeList[pIdx] && pIdx === pAllRunCodeTargetIdx) {
