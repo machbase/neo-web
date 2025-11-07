@@ -9,6 +9,7 @@ import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { generateUUID, parseCodeBlocks } from '@/utils';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Success } from '@/components/toast/Toast';
+import { ShadowContent } from './ShadowContent';
 
 interface MarkdownProps {
     pContents?: any;
@@ -114,11 +115,12 @@ export const Markdown = (props: MarkdownProps) => {
     };
 
     return (
-        <div
-            ref={sBodyRef}
+        <ShadowContent
+            html={sMdxText}
             className={`mrk-form markdown-body mrk${sMarkdownId}`}
-            style={{ backgroundColor: '#1B1C21', width: '100%' }}
-            dangerouslySetInnerHTML={{ __html: sMdxText }}
+            onShadowRootCreated={(shadowRoot) => {
+                sBodyRef.current = shadowRoot.host;
+            }}
         />
     );
 };
