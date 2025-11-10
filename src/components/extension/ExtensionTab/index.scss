@@ -94,6 +94,11 @@
             -webkit-appearance: none;
             -moz-appearance: none;
         }
+        .extension-tab-switch-readonly {
+            opacity: 0.5;
+            color: #999;
+            cursor: not-allowed !important;
+        }
         .extension-tab-switch-label {
             position: relative;
             cursor: pointer;
@@ -121,7 +126,7 @@
             border-radius: 20px;
             background: rgba(255, 255, 255, 0.3);
             transition: 0.2s;
-            cursor: pointer;
+            cursor: inherit !important;
         }
         .extension-tab-switch-input:checked + .extension-tab-switch-label {
             background: #005fb8;

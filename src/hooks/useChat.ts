@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useWebSocket } from '@/context/WebSocketContext';
 import { E_MSG_TYPE, E_RPC_METHOD, E_WS_KEY, E_WS_TYPE, RPC_LLM_LIST } from '@/recoil/websocket';
 import { Model, WsMSG, WsRPC } from '@/utils/websocket';
+import { RpcResponseParser } from '@/utils/Chat/RpcResponseParser';
 
 export interface Message {
     id: string;
@@ -34,10 +35,15 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
     const [sProcessingAnswer, setProcessingAnswer] = useState<boolean>(false);
     const [sInterruptId, setInterruptId] = useState<number>(-1);
     const [sSelectedModel, setSelectedModel] = useState<Model>(pInitialModel ?? { name: '', provider: '', model: '' });
-    const [sModelList, setModelList] = useState<{ label: string; items: Model[] }[]>([]);
+    const [sModelList, setModelList] = useState<{ label: string; items: Model[]; exist: boolean }[]>([]);
     let callbackRef = useRef<any>(undefined);
 
     const isComposingRef = useRef<boolean>(false);
+    const processingAnswerRef = useRef<boolean>(false);
+
+    const getProcessingAnswer = useMemo(() => {
+        return sProcessingAnswer;
+    }, [sProcessingAnswer]);
 
     // WebSocket message processing
     useEffect(() => {
@@ -49,26 +55,33 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
                     if (msg.type === E_WS_TYPE.RPC_RSP) {
                         // LLM
                         if (RPC_LLM_LIST.includes(msg.session.method)) {
+                            const { rpcState, rpcData } = RpcResponseParser(msg);
                             switch (msg.session.method) {
-                                case E_RPC_METHOD.LLM_GET_MODELS:
-                                    const sLabelList = Object.keys(msg[E_WS_KEY.RPC]?.result);
-                                    setModelList(
-                                        sLabelList.map((label: string) => {
-                                            return { label: label, items: msg[E_WS_KEY.RPC]?.result[label] };
-                                        })
-                                    );
+                                case E_RPC_METHOD.LLM_GET_LIST_MODELS:
+                                    if (rpcState) {
+                                        const sLabelList = Object.keys(rpcData);
+                                        setModelList(
+                                            sLabelList.map((label: string) => {
+                                                return { label: label, items: rpcData?.[label]?.models ?? [], exist: rpcData?.[label]?.config_exist ?? false };
+                                            })
+                                        );
+                                    } else setModelList([]);
                                     break;
                             }
                         }
                     } else if (msg.type === E_WS_TYPE.MSG) {
                         /** ANSWER */
-                        if (msg[E_WS_KEY.MSG].type === E_MSG_TYPE.ANSWER_START) setProcessingAnswer(true);
+                        if (msg[E_WS_KEY.MSG].type === E_MSG_TYPE.ANSWER_START) {
+                            setProcessingAnswer(true);
+                            processingAnswerRef.current = true;
+                        }
                         if (msg[E_WS_KEY.MSG].type === E_MSG_TYPE.ANSWER_STOP) {
                             if (callbackRef?.current) {
                                 callbackRef?.current();
                                 callbackRef.current = undefined;
                             }
                             setProcessingAnswer(false);
+                            processingAnswerRef.current = false;
                         }
                         /** DELTA */
                         if (msg[E_WS_KEY.MSG].type === E_MSG_TYPE.STREAM_MSG_DELTA || msg[E_WS_KEY.MSG].type === E_MSG_TYPE.STREAM_BLOCK_DELTA) {
@@ -119,9 +132,9 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
         }
     }, [socket?.current]);
 
-    // Get model list
-    const getModelList = () => {
-        const sGenObj = WsRPC.LLM.GenModelsObj(pWrkId, pIdx);
+    // Get list models
+    const getListModels = () => {
+        const sGenObj = WsRPC.LLM.GenModelListObj(pWrkId, pIdx);
         sendMSG(sGenObj);
     };
 
@@ -183,7 +196,8 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
         setMessages,
         inputValue: sInputValue,
         setInputValue,
-        isProcessingAnswer: sProcessingAnswer,
+        isProcessingAnswer: getProcessingAnswer,
+        processingAnswerRef,
         selectedModel: sSelectedModel,
         setSelectedModel,
         modelList: sModelList,
@@ -191,7 +205,7 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
         isConnected,
         handleSendMessage,
         handleInterruptMessage,
-        getModelList,
+        getListModels,
         sendMessageWithText,
     };
 };

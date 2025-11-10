@@ -8,6 +8,7 @@ import { Refresh, GearFill, Delete, MdRawOn, MdFlagCircle, PiSelectionPlusBold, 
 import { IconButton } from '@/components/buttons/IconButton';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
+import { useExperiment } from '@/hooks/useExperiment';
 
 const PanelHeader = ({
     pResetData,
@@ -39,6 +40,7 @@ const PanelHeader = ({
     const [sEditPanel, setEditPanel] = useState<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sIsSavedToLocalModal, setIsSavedToLocalModal] = useState<boolean>(false);
+    const { getExperiment } = useExperiment();
 
     const clickHeader = () => {
         pGetChartInfo(pPanelRange.startTime, pPanelRange.endTime, pPanelInfo, pIsRaw);
@@ -177,7 +179,7 @@ const PanelHeader = ({
                     />
                 )}
                 {/* Saved to local */}
-                {!pIsEdit && localStorage.getItem('experimentMode') === 'true' && (
+                {!pIsEdit && getExperiment() && (
                     <IconButton
                         pWidth={25}
                         pHeight={25}

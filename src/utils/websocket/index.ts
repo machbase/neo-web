@@ -55,13 +55,18 @@ const setProviderConfig = <T>(aUId: string, aIdx: number, aProvider: string, aBo
 };
 
 /** MODEL */
+export interface ModelListType {
+    label: string;
+    items: Model[];
+    exist: boolean;
+}
 export interface Model {
     name: string;
     provider: string;
     model: string;
 }
-const getModels = (aUId: string, aIdx: number) => {
-    const sMethod = E_RPC_METHOD.LLM_GET_MODELS;
+const getListModels = (aUId: string, aIdx: number) => {
+    const sMethod = E_RPC_METHOD.LLM_GET_LIST_MODELS;
     return {
         type: E_WS_TYPE.RPC_REQ,
         session: JSON.stringify({
@@ -136,7 +141,7 @@ const LLM = {
     GenProviderConfObj: getProviderConfig,
     GenProviderConfSetObj: setProviderConfig,
     /** MODEL */
-    GenModelsObj: getModels,
+    GenModelListObj: getListModels,
     GenModelAddObj: addModels,
     GenModelRmObj: rmModels,
 };

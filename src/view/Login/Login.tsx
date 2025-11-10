@@ -6,6 +6,7 @@ import { postLogin } from '../../api/repository/login';
 import { useNavigate } from 'react-router-dom';
 import LOGIN_BG_IMG from '@/assets/image/neow_img_login_bg.webp';
 import { VscWarning } from 'react-icons/vsc';
+import { useExperiment } from '@/hooks/useExperiment';
 
 const Login = () => {
     const sNavigate = useNavigate();
@@ -16,6 +17,7 @@ const Login = () => {
     const sIdRef = useRef<HTMLInputElement>(null);
     const sPasswordRef = useRef<HTMLInputElement>(null);
     const [sIsLogin, setIsLogin] = useState<any>(undefined);
+    const { setExperiment, rmExperiment } = useExperiment();
 
     const handleLoginId = (aEvent: ChangeEvent<HTMLInputElement>) => {
         setLoginId(aEvent.target.value);
@@ -60,7 +62,7 @@ const Login = () => {
             const sIsView = localStorage.getItem('view');
             localStorage.setItem('accessToken', sReturn.accessToken);
             localStorage.setItem('refreshToken', sReturn.refreshToken);
-            sReturn.option && sReturn.option.experimentMode ? localStorage.setItem('experimentMode', sReturn.option.experimentMode) : localStorage.removeItem('experimentMode');
+            sReturn.option && sReturn.option.experimentMode ? setExperiment(sReturn.option.experimentMode) : rmExperiment();
             if (sIsView) {
                 sNavigate(JSON.parse(sIsView).path);
                 localStorage.removeItem('view');

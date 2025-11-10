@@ -4,6 +4,7 @@ import { chartTypeConverter } from './eChartHelper';
 import { concatTagSet } from './helpers/tags';
 import { DIFF_LIST } from './aggregatorConstants';
 import { TransformBlockType } from '@/components/dashboard/createPanel/Transform/type';
+import { useExperiment } from '@/hooks/useExperiment';
 
 export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
 export const VARIABLE_RM_REGEX = /^{+|}+$/g;
@@ -145,9 +146,10 @@ const TagAnalyzerCompatibility = (aData: any) => {
 };
 
 const WorkSheetCompatibility = (aData: any) => {
+    const { getExperiment } = useExperiment();
     const sInfo = JSON.parse(aData);
 
-    if (localStorage.getItem('experimentMode') === 'false') {
+    if (!getExperiment()) {
         if (sInfo?.data?.length > 0) {
             const sSectionList = sInfo?.data?.map((aSection: any) => {
                 if (aSection?.type === 'chat') aSection.type = 'markdown';

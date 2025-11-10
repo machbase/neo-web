@@ -821,12 +821,28 @@ const ScrollTable = React.memo(
     }
 );
 
-const Switch = ({ pState, pCallback, pBadge, pBadgeL = false }: { pState: boolean; pCallback: (aItem: any) => void; pBadge?: string; pBadgeL?: boolean }) => {
+const Switch = ({
+    pState,
+    pCallback,
+    pBadge,
+    pBadgeL = false,
+    pReadOnly = false,
+}: {
+    pState: boolean;
+    pCallback: (aItem: any) => void;
+    pBadge?: string;
+    pBadgeL?: boolean;
+    pReadOnly?: boolean;
+}) => {
+    const handleSwitch = (e: React.MouseEvent<HTMLLabelElement, MouseEvent>) => {
+        if (!pReadOnly) pCallback(e);
+    };
+
     return (
         <div className="extension-tab-switch-wrapper">
             {!!pBadge && pBadgeL && <span className={`extension-tab-badge ${!pBadge ? '' : 'extension-tab-badge-active'}`}>{pBadge}</span>}
             <input type="checkbox" id="switch" className="extension-tab-switch-input" readOnly checked={pState} />
-            <label htmlFor="switch" className="extension-tab-switch-label" onClick={pCallback}>
+            <label htmlFor="switch" className={`extension-tab-switch-label${pReadOnly ? ' extension-tab-switch-readonly' : ''}`} onClick={handleSwitch}>
                 <span className="extension-tab-switch-label-btn" />
             </label>
             {!!pBadge && !pBadgeL && <span className={`extension-tab-badge ${!pBadge ? '' : 'extension-tab-badge-active'}`}>{pBadge}</span>}

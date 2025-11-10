@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { BsArrowUp } from 'react-icons/bs';
 import { FaStop } from 'react-icons/fa';
 import { Message } from '@/hooks/useChat';
-import { Model } from '@/utils/websocket';
+import { Model, ModelListType } from '@/utils/websocket';
 import { ChatMessageList } from './ChatMessageList';
 import { ModelDropDown } from './DropDown';
 
@@ -11,13 +11,13 @@ interface ChatViewProps {
     pIdx: number;
     pWrkId: string;
     messages: Message[];
-    modelList: { label: string; items: Model[] }[];
+    modelList: ModelListType[];
     inputValue: string;
     isConnected: boolean;
     selectedModel: Model;
     isComposingRef: React.MutableRefObject<boolean>;
     isProcessingAnswer: boolean;
-    getModelList: () => void;
+    getListModels: () => void;
     setInputValue: (value: string) => void;
     setSelectedModel: (model: Model) => void;
     handleSendMessage: () => void;
@@ -34,7 +34,7 @@ export const ChatView = ({
     selectedModel,
     isComposingRef,
     isProcessingAnswer,
-    getModelList,
+    getListModels,
     setInputValue,
     setSelectedModel,
     handleSendMessage,
@@ -108,7 +108,7 @@ export const ChatView = ({
                             <div className="divider" />
                             <div className="chat-controls">
                                 <div className="chat-controls-left">
-                                    <ModelDropDown pPosition="BOTTOM" pList={modelList} pSelectedItem={selectedModel} onSelect={setSelectedModel} onFetch={getModelList} />
+                                    <ModelDropDown pPosition="BOTTOM" pList={modelList} pSelectedItem={selectedModel} onSelect={setSelectedModel} onFetch={getListModels} />
                                 </div>
                                 <div className="chat-controls-right">
                                     {isProcessingAnswer ? (

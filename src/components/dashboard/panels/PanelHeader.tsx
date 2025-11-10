@@ -29,6 +29,7 @@ import { chartTypeConverter } from '@/utils/eChartHelper';
 import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOriginDataDownloader';
 import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
+import { useExperiment } from '@/hooks/useExperiment';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo }: any) => {
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
@@ -39,6 +40,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     const sMenuRef = useRef<HTMLDivElement>(null);
     const [sDownloadModal, setDownloadModal] = useState<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
+    const { getExperiment } = useExperiment();
 
     const removePanel = () => {
         setBoardList(
@@ -422,7 +424,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                     <Delete />
                                     <span>Delete</span>
                                 </Menu.Item>
-                                {localStorage.getItem('experimentMode') && pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && (
+                                {getExperiment() && pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && (
                                     <Menu.Item onClick={HandleDownload}>
                                         <VscGraphScatter />
                                         <span>Save to tql</span>

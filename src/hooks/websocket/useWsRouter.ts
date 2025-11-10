@@ -1,9 +1,11 @@
 import { useSetRecoilState } from 'recoil';
 import { useCallback } from 'react';
 import { E_WS_TYPE, gWsLog, WS_LOG_LIMIT } from '@/recoil/websocket';
+import { useExperiment } from '../useExperiment';
 
 export const useWsRouter = () => {
     const setLogList = useSetRecoilState(gWsLog);
+    const { getExperiment } = useExperiment();
 
     const handleWsMsg = useCallback(
         (msg: any) => {
@@ -25,7 +27,7 @@ export const useWsRouter = () => {
 
                 case E_WS_TYPE.RPC_RSP:
                 case E_WS_TYPE.MSG:
-                    if (localStorage.getItem('experimentMode') === 'true') {
+                    if (getExperiment()) {
                         const sParsedSession = JSON.parse(sParsedMsg?.session);
                         sParsedMsg.session = sParsedSession;
                         return sParsedMsg;

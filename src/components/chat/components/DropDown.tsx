@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ArrowDown, Delete } from '@/assets/icons/Icon';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import useEsc from '@/hooks/useEsc';
-import { Model, WsRPC } from '@/utils/websocket';
+import { Model, ModelListType, WsRPC } from '@/utils/websocket';
 import { Skeleton, SkeletonLabel } from './Skeleton';
 import { ModelModal } from '../ModelModal';
 import { ProviderModal } from '../ProviderModal';
@@ -12,7 +12,7 @@ import { useWebSocket } from '@/context/WebSocketContext';
 
 interface ModelDropDownProps {
     pPosition?: 'BOTTOM' | 'TOP';
-    pList: { label: string; items: Model[] }[];
+    pList: ModelListType[];
     pSelectedItem: Model;
     onSelect: (value: Model) => void;
     onFetch: () => void;
@@ -85,36 +85,40 @@ export const ModelDropDown = ({ pPosition = 'TOP', pList, pSelectedItem, onSelec
                             <Skeleton pLength={2} pStyle={{ minHeight: '20px', maxHeight: '20px' }} />
                         </>
                     ) : (
-                        pList.map((aItem: { label: string; items: Model[] }, aIdx: number) => {
-                            return (
-                                <div className="dropdown-menu-body" key={aItem.label + aIdx.toString()}>
-                                    <div className="dropdown-menu-label">{aItem.label}</div>
-                                    {aItem.items?.map((bItem, bIdx: number) => {
-                                        const isSelected = bItem.name === pSelectedItem.name && bItem.provider === pSelectedItem.provider && bItem.model === pSelectedItem.model;
-                                        return (
-                                            <div key={aItem.label + bItem.name + aIdx.toString() + bIdx.toString()} className="dropdown-menu-item-wrap">
-                                                <div
-                                                    className={`dropdown-menu-item ${isSelected ? 'selected' : ''}`}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleSelect(bItem);
-                                                    }}
-                                                >
-                                                    <span className="dropdown-menu-item-name" style={{ whiteSpace: 'nowrap' }}>
-                                                        {bItem.name}
-                                                    </span>
+                        <>
+                            {pList?.map((aItem: ModelListType, aIdx: number) => {
+                                if (!aItem?.exist || aItem?.items?.length === 0) return null;
+                                return (
+                                    <div className="dropdown-menu-body" key={aItem.label + aIdx.toString()}>
+                                        <div className="dropdown-menu-label">{aItem.label}</div>
+                                        {aItem.items?.map((bItem, bIdx: number) => {
+                                            const isSelected =
+                                                bItem.name === pSelectedItem.name && bItem.provider === pSelectedItem.provider && bItem.model === pSelectedItem.model;
+                                            return (
+                                                <div key={aItem.label + bItem.name + aIdx.toString() + bIdx.toString()} className="dropdown-menu-item-wrap">
+                                                    <div
+                                                        className={`dropdown-menu-item ${isSelected ? 'selected' : ''}`}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleSelect(bItem);
+                                                        }}
+                                                    >
+                                                        <span className="dropdown-menu-item-name" style={{ whiteSpace: 'nowrap' }}>
+                                                            {bItem.name}
+                                                        </span>
+                                                    </div>
+                                                    <div className="dropdown-menu-item-delete" onClick={(e) => handleDeleteClick(e, bItem)}>
+                                                        <Delete />
+                                                    </div>
                                                 </div>
-                                                <div className="dropdown-menu-item-delete" onClick={(e) => handleDeleteClick(e, bItem)}>
-                                                    <Delete />
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            );
-                        })
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })}
+                            {pList?.some((item) => item?.exist && item?.items?.length > 0) && <div className="divider" />}
+                        </>
                     )}
-                    <div className="divider" />
                     <div className="dropdown-menu-footer">
                         {sIsLoading ? (
                             <Skeleton pLength={2} pStyle={{ minHeight: '20px', maxHeight: '20px' }} />

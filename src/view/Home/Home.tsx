@@ -24,6 +24,7 @@ import { fetchQuery } from '@/api/repository/database';
 import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
 import { gWsLog } from '@/recoil/websocket';
 import { useNavigate } from 'react-router-dom';
+import { useExperiment } from '@/hooks/useExperiment';
 
 const HomeContent = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);
@@ -42,6 +43,7 @@ const HomeContent = () => {
     const [openEula, setOpenEula] = useState<boolean>(false);
     const { connectWebSocket, disconnectWebSocket } = useWebSocket();
     const navigate = useNavigate();
+    const { setExperiment } = useExperiment();
 
     const init = async () => {
         if (sSelectedExtension === '') {
@@ -50,7 +52,7 @@ const HomeContent = () => {
         }
         const sResult: any = await getLogin();
         if (sResult?.reason === 'success') {
-            localStorage.setItem('experimentMode', sResult?.experimentMode ?? false);
+            setExperiment(sResult?.experimentMode ?? false);
             const sTermTypeList = sResult?.shells.filter((aShell: any) => aShell.type === 'term');
             setShellList(sTermTypeList);
             setOpenEula(true);
@@ -78,7 +80,7 @@ const HomeContent = () => {
 
     const getInfo = async () => {
         const sResult: any = await getLogin();
-        localStorage.setItem('experimentMode', sResult?.experimentMode ?? false);
+        setExperiment(sResult?.experimentMode ?? false);
         setLicense({ eulaRequired: sResult?.eulaRequired, licenseStatus: sResult?.licenseStatus?.toUpperCase() });
         setServer(sResult?.server);
         const sortAttributes = (aItem: string, bItem: string) => {

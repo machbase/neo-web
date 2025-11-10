@@ -92,7 +92,8 @@ const NewBoard = (props: NewBoardProps) => {
                     aType.icon === 'monitor' ||
                     aType.icon === 'monitor-small' ||
                     aType.icon === 'laptop' ||
-                    aType.icon === 'fish'
+                    aType.icon === 'fish' ||
+                    aType.icon === 'console'
                 ) {
                     return icons(aType.icon, true);
                 } else {

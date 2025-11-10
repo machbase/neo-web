@@ -6,6 +6,7 @@ import { useRef, useState, useEffect } from 'react';
 import { getStatzConfig, setStatzConfig } from '@/api/repository/statz';
 import { Error } from '@/components/toast/Toast';
 import './StatzTableModal.scss';
+import { Loader } from '../loader';
 
 export const StatzTableModal = ({ setIsOpen }: { setIsOpen: (aState: boolean) => void }) => {
     const [sTableName, setTableName] = useState<string>('');
@@ -14,6 +15,7 @@ export const StatzTableModal = ({ setIsOpen }: { setIsOpen: (aState: boolean) =>
     const sApplyBtnRef = useRef(null);
 
     const handleApply = async () => {
+        if (sIsLoading) return;
         setIsLoading(true);
         try {
             const result: any = await setStatzConfig(sTableName);
@@ -51,9 +53,7 @@ export const StatzTableModal = ({ setIsOpen }: { setIsOpen: (aState: boolean) =>
     const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.which === 13 || e.keyCode === 13) {
             e.preventDefault();
-            if (sApplyBtnRef.current) {
-                (sApplyBtnRef.current as HTMLElement).focus();
-            }
+            handleApply();
         }
     };
 
@@ -92,9 +92,9 @@ export const StatzTableModal = ({ setIsOpen }: { setIsOpen: (aState: boolean) =>
                         </div>
                     </Modal.Body>
                     <Modal.Footer>
-                        <div ref={sApplyBtnRef} className="statz-table-modal-footer">
-                            <button onClick={handleApply} disabled={sIsLoading}>
-                                {sIsLoading ? 'Applying...' : 'Apply'}
+                        <div className="statz-table-modal-footer">
+                            <button ref={sApplyBtnRef} onClick={handleApply} disabled={sIsLoading}>
+                                {sIsLoading ? <Loader width="16px" height="16px" borderRadius="90%" /> : 'Apply'}
                             </button>
                         </div>
                     </Modal.Footer>

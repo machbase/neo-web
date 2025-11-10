@@ -37,6 +37,7 @@ export enum E_RPC_METHOD {
     LLM_GET_MODELS = 'llmGetModels',
     LLM_ADD_MODELS = 'llmAddModels',
     LLM_RM_MODELS = 'llmRemoveModels',
+    LLM_GET_LIST_MODELS = 'llmListModels',
 
     MD_RENDER = 'markdownRender',
 }
@@ -47,6 +48,7 @@ export const RPC_LLM_LIST = [
     E_RPC_METHOD.LLM_GET_MODELS,
     E_RPC_METHOD.LLM_ADD_MODELS,
     E_RPC_METHOD.LLM_RM_MODELS,
+    E_RPC_METHOD.LLM_GET_LIST_MODELS,
 ];
 
 interface WS_COMM_TYPE {
