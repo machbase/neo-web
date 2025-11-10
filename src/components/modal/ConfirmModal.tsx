@@ -4,16 +4,18 @@ import { TextButton } from '@/components/buttons/TextButton';
 import Modal from './Modal';
 import React from 'react';
 import { VscQuestion } from 'react-icons/vsc';
+import { Loader } from '../loader';
 
 export interface DeleteModalProps {
     setIsOpen: any;
     pContents: React.ReactNode;
     pCallback: () => void;
     pIsDarkMode?: boolean;
+    pState?: boolean;
 }
 
 export const ConfirmModal = (props: DeleteModalProps) => {
-    const { setIsOpen, pIsDarkMode, pContents, pCallback } = props;
+    const { setIsOpen, pIsDarkMode, pContents, pCallback, pState } = props;
 
     const handleClose = () => {
         setIsOpen(false);
@@ -42,8 +44,8 @@ export const ConfirmModal = (props: DeleteModalProps) => {
                 </Modal.Body>
                 <Modal.Footer>
                     <div className="button-group">
-                        <TextButton pText="OK" pBackgroundColor="#4199ff" onClick={() => handleCallback()} />
-                        <div style={{ width: '10px' }}></div>
+                        <TextButton pIsLoad={pState} pText="OK" pBackgroundColor="#4199ff" onClick={() => handleCallback()} />
+                        <div style={{ width: '10px' }} />
                         <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />
                     </div>
                 </Modal.Footer>

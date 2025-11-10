@@ -253,7 +253,7 @@ const DBDiv = (aIcon: React.ReactElement, aName: string, aClassName: string): JS
         </div>
     );
 };
-export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate }: any) => {
+export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextMenu }: any) => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sCollapseTree, setCollapseTree] = useState(true);
@@ -353,6 +353,7 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate }: any) =>
                                 pShowHiddenObj={pShowHiddenObj}
                                 pRefresh={pRefresh}
                                 pHandleDBTablePage={handleDBTablePage}
+                                pContextMenu={pContextMenu}
                             />
                         );
                     })}
@@ -368,6 +369,7 @@ interface UserDivPropsType {
     pShowUserIcon: boolean;
     pRefresh: number;
     pHandleDBTablePage: (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => void;
+    pContextMenu: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTableInfo: (number | string)[], aUser: string, aPriv: string) => void;
 }
 const UserDiv = (props: UserDivPropsType): JSX.Element => {
     const [sCollapseTree, setCollapseTree] = useState(true);
@@ -442,6 +444,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                                     onColumnInfo={getColumnIndexInfoData}
                                                     pRefresh={props.pRefresh}
                                                     pHandleDBTablePage={props.pHandleDBTablePage}
+                                                    pContextMenu={props.pContextMenu}
                                                 />
                                             )}
                                         </div>
@@ -469,6 +472,7 @@ interface TableDivPropsType {
     onTableInfo: (aDatabaseId: string, aTableId: string) => any;
     onColumnInfo: (aDatabaseId: string, atableId: string) => any;
     pHandleDBTablePage: (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => void;
+    pContextMenu: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTableInfo: (number | string)[], aUser: string, aPriv: string) => void;
 }
 const TableDiv = (props: TableDivPropsType): JSX.Element => {
     const [sRecordCount, setRecordCount] = useState<number>(0);
@@ -482,6 +486,9 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
         if (res.success && res.data && res.data.rows[0][0]) setRecordCount(res.data.rows[0][0]);
         else setRecordCount(0);
     };
+    const handleContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        props.pContextMenu(e, props.pTable, props.pUserName, props.pPriv);
+    };
 
     useEffect(() => {
         if (props.pTableFlag == 0 || !props.pShowHiddenObj) fetchRecordCount();
@@ -489,7 +496,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
 
     return (
         <>
-            <div className="table-column-wrap" onClick={handleTableDetail}>
+            <div className="table-column-wrap" onClick={handleTableDetail} onContextMenu={handleContextMenu}>
                 <div className="table-column-l">
                     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         <IconButton

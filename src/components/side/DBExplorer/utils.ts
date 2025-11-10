@@ -130,3 +130,14 @@ export const GenTazDefault = ({ aTag, aTime, aTableInfo, aColType }: { aTag: str
 
     return sBoardInfo;
 };
+
+export const TABLE_PERMISSION = {
+    SELECT: 1,
+    INSERT: 2,
+    DELETE: 4,
+    UPDATE: 8,
+} as const;
+
+export const hasTablePermission = (permissions: number, permission: number): boolean => {
+    return (permissions & permission) === permission;
+};

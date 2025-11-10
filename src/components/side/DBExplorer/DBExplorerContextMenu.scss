@@ -1,0 +1,5 @@
+@import '/src/assets/scss/theme.scss';
+.db-explorer-context-menu {
+    position: fixed;
+    z-index: $modal-idx;
+}

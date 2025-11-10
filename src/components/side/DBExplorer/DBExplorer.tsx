@@ -10,6 +10,11 @@ import { DBMountModal } from './DBMountModal';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gBackupList, gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { DB_EXPLORER_CONTEXT_MENU_TYPE, DBExplorerContextMenu, E_DB_DDL, TABLE_CONTEXT_MENU_INITIAL_VALUE } from './DBExplorerContextMenu';
+import { E_TABLE_INFO } from './utils';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { fetchQuery } from '@/api/repository/database';
+import { Error } from '@/components/toast/Toast';
 
 export const DBExplorer = ({ pServer }: any) => {
     const [sDBList, setDBList] = useState<any>([]);
@@ -18,6 +23,13 @@ export const DBExplorer = ({ pServer }: any) => {
     const [mountModalOpen, setMountModalOpen] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sBackupList, setBackupList] = useRecoilState<any[]>(gBackupList);
+    /** Context menu */
+    const [sIsContextMenu, setIsContextMenu] = useState<DB_EXPLORER_CONTEXT_MENU_TYPE>(TABLE_CONTEXT_MENU_INITIAL_VALUE);
+    /** Drop info */
+    const [sIsDropModal, setIsDropModal] = useState<boolean>(false);
+    const [sDropTableInfo, setDropTableInfo] = useState<{ label: string; table: (string | number)[]; cascade: boolean }>({ label: '', table: [], cascade: false });
+    const [sIsDrop, setIsDrop] = useState<boolean>(false);
+
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
 
     /** Converte table type */
@@ -172,6 +184,39 @@ export const DBExplorer = ({ pServer }: any) => {
             return;
         }
     };
+    const handleDropTable = async () => {
+        if (sIsDrop) return;
+        setIsDrop(true);
+        const sQuery = `DROP TABLE ${sDropTableInfo.label}${sDropTableInfo.cascade ? ' CASCADE' : ''}`;
+        const { svrState, svrReason } = await fetchQuery(sQuery);
+        if (svrState) init();
+        else Error(svrReason);
+        /** Initial */
+        setDropTableInfo({ label: '', table: [], cascade: false });
+        setIsDrop(false);
+        setIsDropModal(false);
+    };
+    const handleDropTableModal = (aKey: E_DB_DDL | '', aOpt: typeof TABLE_CONTEXT_MENU_INITIAL_VALUE.options) => {
+        if (aKey === E_DB_DDL.DELETE) {
+            const sLabel = aOpt.table[0] === 'MACHBASEDB' && aOpt.table[1] === aOpt.userNm ? aOpt.table[3] : `${aOpt.table[1]}.${aOpt.table[3]}`;
+            setDropTableInfo({ label: sLabel as string, table: aOpt.table, cascade: false });
+            setIsDropModal(true);
+        }
+        setIsContextMenu(TABLE_CONTEXT_MENU_INITIAL_VALUE);
+    };
+    const handleContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTable: (string | number)[], aLoginUser: string, pPriv: string) => {
+        if (aTable[E_TABLE_INFO.DB_ID] === -1) {
+            const userPermissions = pPriv && pPriv !== '' ? pPriv?.split('|')?.[0].trim() : 0;
+            if (
+                isCurUserEqualAdmin() ||
+                (aTable[E_TABLE_INFO.USER_NM] as string).toUpperCase() === aLoginUser.toUpperCase()
+                // || hasTablePermission(userPermissions as number, TABLE_PERMISSION.DELETE)
+            ) {
+                e.preventDefault();
+                setIsContextMenu({ open: true, x: e.pageX, y: e.pageY, options: { table: aTable, userNm: aLoginUser, permissions: userPermissions as number } });
+            }
+        }
+    };
 
     useEffect(() => {
         init();
@@ -224,18 +269,51 @@ export const DBExplorer = ({ pServer }: any) => {
                 </div>
             </div>
             <div style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
+                {/* DB LIST */}
                 {sCollapseTree &&
                     sDBList &&
                     sDBList.length !== 0 &&
                     sDBList.map((aDB: any, aIdx: number) => {
-                        return <TableInfo pShowHiddenObj={true} key={aIdx} pValue={aDB} pRefresh={sRefresh} pUpdate={init} />;
+                        return <TableInfo pShowHiddenObj={true} key={aIdx} pValue={aDB} pRefresh={sRefresh} pUpdate={init} pContextMenu={handleContextMenu} />;
                     })}
                 {/* BACKUP DB LIST */}
                 {isCurUserEqualAdmin() && sBackupList && sBackupList.length !== 0 && (
                     <BackupTableInfo pValue={sBackupList} pRefresh={init} pBackupRefresh={getBackupDatabaseList} />
                 )}
+                {/* Context menu */}
+                {sIsContextMenu.open && <DBExplorerContextMenu pContextInfo={sIsContextMenu} pCallback={handleDropTableModal} />}
             </div>
             {mountModalOpen && <DBMountModal setIsOpen={setMountModalOpen} pRefresh={init} />}
+            {sIsDropModal && (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={setIsDropModal}
+                    pCallback={handleDropTable}
+                    pState={sIsDrop}
+                    pContents={
+                        <div className="body-content">
+                            <span>{`Do you want to drop this table (${sDropTableInfo?.label})`}</span>
+                            <>
+                                <div style={{ height: '10px' }} />
+                                <div className="body-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: '4px' }}>
+                                    <input
+                                        id="fileCheck"
+                                        type="checkbox"
+                                        onChange={() => {
+                                            setDropTableInfo((prev) => {
+                                                return { ...prev, cascade: !prev.cascade };
+                                            });
+                                        }}
+                                    />
+                                    <label className="label" htmlFor="fileCheck">
+                                        Cascade delete table
+                                    </label>
+                                </div>
+                            </>
+                        </div>
+                    }
+                />
+            )}
         </div>
     );
 };
