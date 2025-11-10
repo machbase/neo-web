@@ -80,7 +80,6 @@ const HomeContent = () => {
 
     const getInfo = async () => {
         const sResult: any = await getLogin();
-        // localStorage.setItem('experimentMode', sResult?.experimentMode ?? false);
         setExperiment(sResult?.experimentMode ?? false);
         setLicense({ eulaRequired: sResult?.eulaRequired, licenseStatus: sResult?.licenseStatus?.toUpperCase() });
         setServer(sResult?.server);

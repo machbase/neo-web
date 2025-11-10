@@ -4,7 +4,6 @@ import { TextButton } from '@/components/buttons/TextButton';
 import Modal from './Modal';
 import React from 'react';
 import { VscQuestion } from 'react-icons/vsc';
-import { Loader } from '../loader';
 
 export interface DeleteModalProps {
     setIsOpen: any;
