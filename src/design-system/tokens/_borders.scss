@@ -1,0 +1,27 @@
+/**
+ * Border Tokens
+ */
+
+@use './colors' as c;
+
+// ============================================
+// Border Width
+// ============================================
+$border-width-thin: 1px;
+$border-width-medium: 2px;
+
+// ============================================
+// Border Style
+// ============================================
+$border-style-solid: solid;
+$border-style-inset: inset;
+
+// ============================================
+// Preset Borders
+// ============================================
+$border-default: solid 1px c.$border-color-default;
+$border-light: solid 1px c.$border-color-light;
+$border-medium: solid 1px c.$border-color-medium;
+$border-focus: solid 1px c.$border-color-focus;
+$border-active: solid 2px c.$border-color-active;
+$border-hr: 1px inset c.$border-color-default;

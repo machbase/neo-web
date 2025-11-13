@@ -18,11 +18,17 @@
         min-height: 18px;
         border-radius: 5px;
         font-size: 18px;
-        color: #939498;
         cursor: pointer;
         &:hover {
             color: #f8f8f8;
         }
+    }
+    .divider {
+        display: flex;
+        height: 20px;
+        width: 2px;
+        margin: auto 8px;
+        background-color: #393b41;
     }
     .sql-option-ctr {
         display: flex;

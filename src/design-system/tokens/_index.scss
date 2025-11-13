@@ -1,0 +1,32 @@
+/**
+ * Design System Tokens Index
+ *
+ * Export all design tokens for centralized import
+ *
+ * Usage:
+ * @use '@/design-system/tokens' as t;
+ *
+ * // Using tokens
+ * .button {
+ *   background-color: t.$btn-create;
+ *   color: t.$text-primary;
+ *   padding: t.$spacing-8 t.$spacing-16;
+ * }
+ *
+ * // Using mixins
+ * .my-button {
+ *   @include t.button-base;
+ *   @include t.button-primary;
+ * }
+ */
+
+@forward './colors';
+@forward './spacing';
+@forward './typography';
+@forward './border-radius';
+@forward './shadows';
+@forward './z-index';
+@forward './transitions';
+@forward './sizes';
+@forward './borders';
+@forward './mixins';

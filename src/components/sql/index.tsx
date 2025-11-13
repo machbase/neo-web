@@ -2,13 +2,11 @@ import { useEffect, useState, useRef } from 'react';
 import SplitPane, { Pane } from 'split-pane-react';
 import RESULT from './result';
 import CHART from '@/components/chart';
-import AUTOCOMBOBOX from './autoCombobox';
 import { gBoardList } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import { getTqlChart } from '@/api/repository/machiot';
 import { SQL_BASE_LIMIT, sqlBasicFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
-import { IANA_TIMEZONES } from '@/assets/ts/timezones';
-import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
+import { Button } from '@/design-system/components';
 import './index.scss';
 import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, SaveAs, Download } from '@/assets/icons/Icon';
 import { fixedEncodeURIComponent, isJsonString } from '@/utils/utils';
@@ -19,6 +17,8 @@ import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader } from '@/utils/sqlOrigin
 import { postSplitter } from '@/api/repository/api';
 import { Loader } from '../loader';
 import { SqlSplitHelper } from '@/utils/TQL/SqlSplitHelper';
+import { RiTimeZoneLine } from 'react-icons/ri';
+import { TimeZoneModal } from '../modal/TimeZoneModal';
 
 const Sql = ({
     pInfo,
@@ -38,6 +38,7 @@ const Sql = ({
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
     const [sTimeRange, setTimeRange] = useState('2006-01-02 15:04:05');
     const [sTimeZone, setTimeZone] = useState('LOCAL');
+    const [sIsTimeZoneModal, setIsTimeZoneModal] = useState<boolean>(false);
     const [sSelectedSubTab, setSelectedSubTab] = useState<'RESULT' | 'CHART' | 'LOG'>('RESULT');
     // const [sLogList, setLogList] = useState<string[]>([]);
     const [sSqlQueryTxt, setSqlQueryTxt] = useState<string>(pInfo.code);
@@ -236,6 +237,11 @@ const Sql = ({
             sqlOriginDataDownloader(sql, DOWNLOADER_EXTENSION.CSV);
         }
     };
+    const handleTimeZone = (time: { timeFormat: string; timeZone: string }) => {
+        setTimeRange(time.timeFormat);
+        setTimeZone(time.timeZone);
+        setIsTimeZoneModal(false);
+    };
 
     useEffect(() => {
         if (sMoreResult) {
@@ -267,8 +273,15 @@ const Sql = ({
                     >
                         <IconButton pIsToopTip pToolTipContent="Run code" pToolTipId="sql-tab-explorer-run-code" pIcon={<Play />} onClick={checkCtrl} />
                         <div className="sql-option-ctr">
-                            <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
-                            <AUTOCOMBOBOX pName="sTimeZone" pList={IANA_TIMEZONES} pTarget={sTimeZone} pCallback={setTimeZone} />
+                            <Button
+                                size="icon"
+                                variant="none"
+                                isToolTip
+                                toolTipContent="Time format / Time zone"
+                                icon={<RiTimeZoneLine size={18} />}
+                                onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
+                            />
+                            <div className="divider" />
                             <IconButton pIsToopTip pToolTipContent="Save" pToolTipId="sql-tab-explorer-save" pIcon={<Save />} onClick={pHandleSaveModalOpen} />
                             <IconButton pIsToopTip pToolTipContent="Save as" pToolTipId="sql-tab-explorer-save-as" pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
                         </div>
@@ -386,6 +399,7 @@ const Sql = ({
                     </div>
                 </Pane>
             </SplitPane>
+            <TimeZoneModal isOpen={sIsTimeZoneModal} formatInitValue={sTimeRange} zoneInitValue={sTimeZone} onClose={handleTimeZone} />
         </div>
     );
 };

@@ -1,42 +1,42 @@
-import useEsc from '@/hooks/useEsc';
-import { Modal } from '@/components/modal/Modal';
+import { useEffect, useState } from 'react';
+import { Modal, PasswordInput, Alert } from '@/design-system/components';
 import { RiLockPasswordLine } from 'react-icons/ri';
-import { Close } from '@/assets/icons/Icon';
 import { getUserName } from '@/utils';
-import { VscEye, VscEyeClosed, VscWarning } from 'react-icons/vsc';
-import { useEffect, useRef, useState } from 'react';
 import { changePwd, getLogin } from '@/api/repository/login';
 import { checkPwdPolicy, parsePwd } from './utils';
-import './index.scss';
 
-export const Password = ({ setIsOpen }: { setIsOpen: (aState: boolean) => void }) => {
+interface PasswordProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export const PasswordModal = ({ isOpen, onClose }: PasswordProps) => {
     const [sCurrentUserName, setCurUserName] = useState<string>('');
     const [sNewPassword, setNewPassword] = useState<string>('');
     const [sConfirmPassword, setConfirmPassword] = useState<string>('');
     const [sPwdDiff, setPwdDiff] = useState<string | undefined>(undefined);
     const [sRes, setRes] = useState<any>(undefined);
-    const sRef = useRef(null);
-    const sConfirmPwdRef = useRef(null);
-    const sChangeBtnRef = useRef(null);
+    const [sIsLoading, setIsLoading] = useState<boolean>(false);
 
     const handleChange = async () => {
         const sPolicyRes = checkPwdPolicy(sNewPassword, sConfirmPassword);
         if (sPolicyRes) return setPwdDiff(sPolicyRes);
         else setPwdDiff(undefined);
 
-        // eslint-disable-next-line no-useless-escape
+        setIsLoading(true);
         const sParsedNewPwd = parsePwd(sNewPassword);
         const sPwdRes = await changePwd(sCurrentUserName, sParsedNewPwd);
         const sParsedRes = sPwdRes?.data ? sPwdRes.data : sPwdRes;
         setRes(sParsedRes);
+        setIsLoading(false);
 
         if (sParsedRes.success) {
-            const test = setTimeout(() => {
-                setIsOpen(false);
-                clearTimeout(test);
+            setTimeout(() => {
+                onClose();
             }, 1000);
         }
     };
+
     const init = async () => {
         const sChcekRes: any = await getLogin();
         if (sChcekRes.success) setCurUserName(getUserName()?.toUpperCase());
@@ -47,100 +47,59 @@ export const Password = ({ setIsOpen }: { setIsOpen: (aState: boolean) => void }
         init();
     }, []);
 
-    useEsc(() => setIsOpen && setIsOpen(false));
-
-    return (
-        <div className="change-password-wrapper">
-            <div ref={sRef} style={{ display: 'flex' }}>
-                <Modal pIsDarkMode className="change-password-modal" onOutSideClose={() => setIsOpen(false)}>
-                    <Modal.Header>
-                        <div className="change-password-modal-header">
-                            <div className="title">
-                                <RiLockPasswordLine />
-                                <span className="text">Change password</span>
-                            </div>
-                            <Close style={{ cursor: 'pointer' }} onClick={() => setIsOpen(false)} />
-                        </div>
-                    </Modal.Header>
-                    {sRes && sRes.success ? (
-                        <div className="res-success">
-                            <span>{sRes.reason}</span>
-                        </div>
-                    ) : (
-                        <>
-                            <Modal.Body>
-                                <div className="change-password-modal-body">
-                                    <div className="content-user-name">
-                                        <div>User: {sCurrentUserName}</div>
-                                    </div>
-                                    <PasswordForm pTitle="New password:" pCallback={setNewPassword} pFocus pTabIdx={1} pEnterNextRef={sConfirmPwdRef} />
-                                    <div ref={sConfirmPwdRef}>
-                                        <PasswordForm pTitle="Confirm password:" pCallback={setConfirmPassword} pTabIdx={2} pEnterNextRef={sChangeBtnRef} />
-                                    </div>
-                                    {sPwdDiff && (
-                                        <div className="res-err">
-                                            <VscWarning style={{ fill: '#ff5353' }} />
-                                            <span className="res-err-text">{sPwdDiff}</span>
-                                        </div>
-                                    )}
-                                    {sRes && !sRes.success && (
-                                        <div className="res-err">
-                                            <VscWarning style={{ fill: '#ff5353' }} />
-                                            <span className="res-err-text">{sRes.reason}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </Modal.Body>
-                            <Modal.Footer>
-                                <div ref={sChangeBtnRef} className="change-password-modal-footer">
-                                    <button onClick={handleChange}>Change password</button>
-                                </div>
-                            </Modal.Footer>
-                        </>
-                    )}
-                </Modal>
-            </div>
-        </div>
-    );
-};
-
-const PasswordForm = ({
-    pTitle,
-    pCallback,
-    pFocus = false,
-    pTabIdx,
-    pEnterNextRef,
-}: {
-    pTitle: string;
-    pCallback: (aText: string) => void;
-    pFocus?: boolean;
-    pTabIdx: number;
-    pEnterNextRef?: any;
-}) => {
-    const [sState, setState] = useState<boolean>(false);
-
-    const handleText = (e: any) => {
-        pCallback(e.target.value);
+    const handleClose = () => {
+        if (!sIsLoading) {
+            onClose();
+        }
     };
-    const handleEnter = (e: any) => {
-        if (e.which === 13 || e.keyCode === 13) {
-            e.preventDefault();
-            if (pEnterNextRef.current.getElementsByTagName('input').length > 0) return pEnterNextRef.current.getElementsByTagName('input')[0].focus();
-            if (pEnterNextRef.current.getElementsByTagName('button').length > 0) return pEnterNextRef.current.getElementsByTagName('button')[0].focus();
-            else return;
+
+    const handleEnter = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !sIsLoading) {
+            handleChange();
         }
     };
 
     return (
-        <div className="content">
-            <div className="title">{pTitle}</div>
-            <div className="item-wrapper">
-                <input autoFocus={pFocus} onChange={handleText} type={sState ? 'text' : 'password'} style={{ imeMode: 'inactive' }} tabIndex={pTabIdx} onKeyDown={handleEnter} />
-                <button className={sState ? 'btn-active' : 'btn-none'} onClick={() => setState(!sState)} tabIndex={-1}>
-                    {sState && <VscEye />}
-                    {!sState && <VscEyeClosed />}
-                </button>
-            </div>
-        </div>
+        <Modal.Root isOpen={isOpen} onClose={handleClose} closeOnEscape={!sIsLoading} closeOnOutsideClick={!sIsLoading}>
+            <Modal.Header>
+                <Modal.Title>
+                    <RiLockPasswordLine />
+                    <span> Change password</span>
+                </Modal.Title>
+                {!sIsLoading && <Modal.Close />}
+            </Modal.Header>
+            <Modal.Body>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {/* User Info */}
+                    {/* <span>User: {sCurrentUserName}</span> */}
+                    {/* New Password */}
+                    <PasswordInput
+                        label="New password"
+                        labelPosition="left"
+                        value={sNewPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        onKeyDown={handleEnter}
+                        autoFocus
+                    />
+                    {/* Confirm Password */}
+                    <PasswordInput
+                        label="Confirm password"
+                        labelPosition="left"
+                        value={sConfirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        onKeyDown={handleEnter}
+                    />
+                    {/* Error Messages */}
+                    {sPwdDiff && <Alert variant="error" message={sPwdDiff} />}
+                    {sRes && <Alert variant={sRes.success ? 'success' : 'error'} message={sRes.reason} />}
+                </div>
+            </Modal.Body>
+            <Modal.Footer>
+                <Modal.Confirm onClick={handleChange} disabled={sIsLoading} loading={sIsLoading}>
+                    Apply
+                </Modal.Confirm>
+                <Modal.Cancel onClick={onClose}>Cancel</Modal.Cancel>
+            </Modal.Footer>
+        </Modal.Root>
     );
 };

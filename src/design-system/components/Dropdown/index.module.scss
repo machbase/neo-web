@@ -1,0 +1,213 @@
+@use '@/design-system/tokens' as t;
+
+.dropdown-container {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-8;
+
+    &--full-width {
+        width: 100%;
+    }
+
+    &--label-left {
+        .dropdown-field-wrapper {
+            flex-direction: row;
+            align-items: center;
+            gap: t.$spacing-12;
+
+            .dropdown-label {
+                margin-bottom: 0;
+                white-space: nowrap;
+                min-width: 120px;
+                flex-shrink: 0;
+            }
+
+            .dropdown {
+                flex: 1;
+            }
+        }
+    }
+
+    &--label-top {
+        .dropdown-field-wrapper {
+            flex-direction: column;
+        }
+    }
+}
+
+.dropdown-field-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-8;
+}
+
+.dropdown-label {
+    font-size: t.$font-size-base;
+    font-weight: 500;
+    color: t.$text-secondary;
+    user-select: none;
+}
+
+.dropdown {
+    position: relative;
+    width: 100%;
+
+    // Trigger button
+    &__trigger {
+        @include t.flex-row(t.$spacing-8);
+        @include t.interactive-field-base;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        height: t.$input-height;
+        padding: 0 t.$spacing-12;
+        cursor: pointer;
+        outline: none;
+        box-sizing: border-box;
+
+        &:hover:not(:disabled):not(&--open) {
+            border-color: #5a5a5a;
+        }
+
+        &:active:not(:disabled) {
+            @include t.interactive-field-active;
+        }
+
+        &:focus-visible {
+            border-color: t.$border-color-focus;
+            box-shadow: 0 0 0 2px rgba(0, 108, 210, 0.2);
+        }
+
+        // Open state (matches Input focus-within style)
+        &--open:not(:disabled) {
+            @include t.interactive-field-active;
+        }
+
+        &:disabled {
+            @include t.disabled-state;
+            cursor: not-allowed;
+        }
+
+        // Placeholder state
+        &--placeholder {
+            color: t.$text-tertiary;
+        }
+
+        // Has value state
+        &--has-value {
+            color: #e0e0e0;
+        }
+    }
+
+    // Trigger text
+    &__trigger-text {
+        flex: 1;
+        text-align: left;
+        @include t.text-ellipsis;
+        font-size: t.$font-size-sm;
+    }
+
+    // Trigger icon (arrow)
+    &__trigger-icon {
+        flex-shrink: 0;
+        color: t.$dropdown-trigger-icon-color;
+        transition: transform 0.2s ease;
+
+        &--open {
+            transform: rotate(180deg);
+        }
+    }
+
+    // Menu container
+    &__menu {
+        position: absolute;
+        top: calc(100% + t.$spacing-4);
+        left: 0;
+        right: 0;
+        background-color: t.$dropdown-bg;
+        border: 1px solid t.$dropdown-border;
+        border-radius: t.$border-radius-base;
+        box-shadow: t.$dropdown-shadow;
+        z-index: t.$z-index-modal-dropdown; // Use higher z-index to work inside modals
+        max-height: t.$dropdown-max-height;
+        overflow-y: auto;
+        overflow-x: hidden;
+        @include t.scrollbar;
+        @include t.fade-in(0.15s);
+        animation: slideDown 0.15s ease-out;
+    }
+
+    // List container
+    &__list {
+        padding: t.$spacing-4;
+        margin: 0;
+        list-style: none;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: t.$spacing-2;
+    }
+
+    // Individual option
+    &__option {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: t.$spacing-10;
+        padding: t.$spacing-6 t.$spacing-8;
+        border-radius: t.$border-radius-sm;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+        color: t.$text-primary;
+        font-size: t.$font-size-sm;
+
+        &:hover:not(&--disabled) {
+            background-color: t.$dropdown-option-hover-bg;
+        }
+
+        &--focused:not(&--disabled) {
+            background-color: t.$dropdown-option-hover-bg;
+        }
+
+        &--selected {
+            background-color: t.$dropdown-option-selected-bg;
+            color: t.$text-primary;
+        }
+
+        &--disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            color: t.$text-disabled;
+
+            &:hover {
+                background-color: transparent;
+            }
+        }
+    }
+
+    // Option label
+    &__option-label {
+        flex: 1;
+        @include t.text-ellipsis;
+    }
+
+    // Option checkmark
+    &__option-check {
+        flex-shrink: 0;
+        color: #e0e0e0;
+    }
+}
+
+// Dropdown slide-down animation
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

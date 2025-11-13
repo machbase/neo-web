@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
 import './WorkSheet.scss';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { WorkSheetEditor } from './WorkSheetEditor';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
@@ -7,10 +7,10 @@ import { getId, isEmpty } from '@/utils';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { Save, SaveAs, IoPlayForwardSharp } from '@/assets/icons/Icon';
 import { IconButton } from '../buttons/IconButton';
-import AUTOCOMBOBOX from '../sql/autoCombobox';
-import { IANA_TIMEZONES } from '@/assets/ts/timezones';
-import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 import { FaStop } from 'react-icons/fa';
+import { Button } from '@/design-system/components';
+import { RiTimeZoneLine } from 'react-icons/ri';
+import { TimeZoneModal } from '../modal/TimeZoneModal';
 
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 interface WorkSheetProps {
@@ -45,6 +45,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
     };
     const [sTimeRange, setTimeRange] = useState('2006-01-02 15:04:05');
     const [sTimeZone, setTimeZone] = useState('LOCAL');
+    const [sIsTimeZoneModal, setIsTimeZoneModal] = useState<boolean>(false);
     const [sStopState, setStopState] = useState<boolean[]>(Array.from({ length: sWorkSheets?.length ?? 1 }, () => false));
 
     // Queue-based scroll handler with 1 second delay between items
@@ -149,6 +150,11 @@ export const WorkSheet = (props: WorkSheetProps) => {
             setAllRunCodeList([]);
         }
     };
+    const handleTimeZone = (time: { timeFormat: string; timeZone: string }) => {
+        setTimeRange(time.timeFormat);
+        setTimeZone(time.timeZone);
+        setIsTimeZoneModal(false);
+    };
 
     useEffect(() => {
         if (sAllRunCodeStatus) {
@@ -182,8 +188,14 @@ export const WorkSheet = (props: WorkSheetProps) => {
                     pIcon={checkSectionState() ? <FaStop /> : <IoPlayForwardSharp />}
                 />
                 <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-                    <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
-                    <AUTOCOMBOBOX pName="sTimeZone" pList={IANA_TIMEZONES} pTarget={sTimeZone} pCallback={setTimeZone} />
+                    <Button
+                        size="icon"
+                        variant="none"
+                        isToolTip
+                        toolTipContent="Time format / Time zone"
+                        icon={<RiTimeZoneLine size={18} />}
+                        onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
+                    />
                     <div className="divider" />
                     <IconButton pPlace="bottom-start" pIsToopTip pToolTipContent="Save" pToolTipId="wrk-tab-save" pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
                     <IconButton
@@ -225,6 +237,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
                         })}
                 </div>
             </div>
+            <TimeZoneModal isOpen={sIsTimeZoneModal} formatInitValue={sTimeRange} zoneInitValue={sTimeZone} onClose={handleTimeZone} />
         </div>
     );
 };

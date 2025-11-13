@@ -1,0 +1,70 @@
+/**
+ * Spacing Tokens
+ */
+
+// ============================================
+// Pixel Values
+// ============================================
+$spacing-0: 0;
+$spacing-1: 1px;
+$spacing-2: 2px;
+$spacing-4: 4px;
+$spacing-6: 6px;
+$spacing-8: 8px;
+$spacing-10: 10px;
+$spacing-12: 12px;
+$spacing-16: 16px;
+$spacing-20: 20px;
+$spacing-24: 24px;
+$spacing-32: 32px;
+$spacing-36: 36px;
+$spacing-40: 40px;
+$spacing-48: 48px;
+$spacing-80: 80px;
+
+// ============================================
+// Component Specific Spacing
+// ============================================
+
+// Button
+$button-padding-x: 16px;
+$button-padding-y: 8px;
+$button-gap: 4px;
+
+// Input
+$input-padding-x: 8px;
+$input-padding-y: 4px;
+
+// Chat Input
+$chat-input-padding-x: 12px;
+$chat-input-padding-y: 8px;
+
+// TextArea
+$textarea-padding: 8px;
+
+// Icon Button
+$icon-button-padding: 4px;
+$icon-button-margin: 4px;
+
+// Content Block
+$content-block-padding-x: 16px;
+$content-block-padding-y: 12px;
+$content-block-margin: 10px 20px;
+
+// Table
+$table-cell-padding-x: 8px;
+$table-cell-padding-y: 2px;
+$table-header-padding-y: 4px;
+
+// Header
+$header-padding-x: 1rem;
+
+// Message
+$message-padding-x: 12px;
+$message-padding-y: 8px;
+$message-gap: 12px;
+
+// Scroll Spyder
+$scroll-spyder-padding-y: 10px;
+$scroll-spyder-padding-x: 20px;
+$scroll-spyder-width: 150px;

@@ -1,23 +1,23 @@
 import { getLicense, postLicense } from '@/api/repository/api';
-import { Modal } from '@/components/modal/Modal';
-import './LicenseModal.scss';
+import { Modal, Button } from '@/design-system/components';
 import { useEffect, useState } from 'react';
-import { Close, Key } from '@/assets/icons/Icon';
-import { TextButton } from '../buttons/TextButton';
-import useEsc from '@/hooks/useEsc';
+import { Key } from '@/assets/icons/Icon';
+import './LicenseModal.scss';
 
 export interface LicenseModalProps {
-    pIsDarkMode: boolean;
-    setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isOpen: boolean;
+    onClose: () => void;
 }
 
 export const LicenseModal = (props: LicenseModalProps) => {
-    const { pIsDarkMode, setIsOpen } = props;
+    const { isOpen, onClose } = props;
     const [sLicense, setLicense] = useState<any>();
 
     useEffect(() => {
-        getLicenseData();
-    }, []);
+        if (isOpen) {
+            getLicenseData();
+        }
+    }, [isOpen]);
 
     const getLicenseData = async () => {
         const sResult: any = await getLicense();
@@ -38,65 +38,59 @@ export const LicenseModal = (props: LicenseModalProps) => {
             if (sResult.success) {
                 setLicense(sResult.data);
             } else {
-                if (sResult.data.reason.indexOf('token') !== -1) setIsOpen(false);
+                if (sResult.data.reason.indexOf('token') !== -1) onClose();
             }
         } else {
             console.error('files is null');
         }
     };
 
-    useEsc(() => setIsOpen && setIsOpen(false));
-
     return (
-        <div className="license-modal">
-            <Modal pIsDarkMode={pIsDarkMode} className="license-modal-wh" onOutSideClose={() => setIsOpen(false)}>
-                <Modal.Header>
-                    <div className="license-modal-header">
-                        <div className="title">
-                            <Key />
-                            <span>License</span>
-                        </div>
-                        <Close style={{ cursor: 'pointer' }} onClick={() => setIsOpen(false)} />
+        <Modal.Root isOpen={isOpen} onClose={onClose}>
+            <Modal.Header>
+                <Modal.Title>
+                    <Key />
+                    <span>License</span>
+                </Modal.Title>
+                <Modal.Close />
+            </Modal.Header>
+
+            <Modal.Body className="license-modal-body">
+                <div className="license-modal-content">
+                    <div>Type</div>
+                    <div>{sLicense?.type}</div>
+                </div>
+                <div className="license-modal-content">
+                    <div>Customer</div>
+                    <div>{sLicense?.customer}</div>
+                </div>
+                <div className="license-modal-content">
+                    <div>Country Code</div>
+                    <div>{sLicense?.countryCode}</div>
+                </div>
+                <div className="license-modal-content">
+                    <div>Project</div>
+                    <div>{sLicense?.project}</div>
+                </div>
+                <div className="license-modal-content">
+                    <div>Install Date</div>
+                    <div>{sLicense?.installDate}</div>
+                </div>
+                <div className="license-modal-content">
+                    <div>License Status</div>
+                    <div>{sLicense?.licenseStatus}</div>
+                </div>
+            </Modal.Body>
+
+            <Modal.Footer className="license-modal-footer">
+                <Button variant="secondary">
+                    <div className="license-modal-register">
+                        <label htmlFor="license-register">Register License...</label>
+                        <input id="license-register" type="file" onChange={onUploadLicense} />
                     </div>
-                </Modal.Header>
-                <Modal.Body>
-                    <div className="license-modal-body">
-                        <div className="content">
-                            <div>Type</div>
-                            <div>{sLicense?.type}</div>
-                        </div>
-                        <div className="content">
-                            <div>Customer</div>
-                            <div>{sLicense?.customer}</div>
-                        </div>
-                        <div className="content">
-                            <div>Conntry Code</div>
-                            <div>{sLicense?.countryCode}</div>
-                        </div>
-                        <div className="content">
-                            <div>Project</div>
-                            <div>{sLicense?.project}</div>
-                        </div>
-                        <div className="content">
-                            <div>Install Date</div>
-                            <div>{sLicense?.installDate}</div>
-                        </div>
-                        <div className="content">
-                            <div>License Status</div>
-                            <span> {sLicense?.licenseStatus}</span>
-                        </div>
-                    </div>
-                </Modal.Body>
-                <Modal.Footer>
-                    <div className="license-modal-footer">
-                        <div className="register">
-                            <label htmlFor="license-register">Register License...</label>
-                            <input id="license-register" type="file" onChange={onUploadLicense} />
-                        </div>
-                        <TextButton pWidth={120} pHeight={40} pText="Close" pBackgroundColor="#666979" onClick={() => setIsOpen(false)} />
-                    </div>
-                </Modal.Footer>
-            </Modal>
-        </div>
+                </Button>
+                <Modal.Cancel onClick={onClose}>Cancel</Modal.Cancel>
+            </Modal.Footer>
+        </Modal.Root>
     );
 };
