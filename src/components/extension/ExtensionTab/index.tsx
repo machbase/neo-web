@@ -1,5 +1,5 @@
 import './index.scss';
-import { ArrowDown, Calendar, LuFlipVertical, Play, Save, VscWarning } from '@/assets/icons/Icon';
+import { ArrowDown, Calendar, Copy, LuFlipVertical, Play, Save, VscWarning } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import React, { useEffect, useRef, useState } from 'react';
 import { DateCalendar, LocalizationProvider, MultiSectionDigitalClock } from '@mui/x-date-pickers';
@@ -16,6 +16,7 @@ import { GiCancel } from 'react-icons/gi';
 import useEsc from '@/hooks/useEsc';
 import { MuiTagAnalyzer } from '@/assets/icons/Mui';
 import { BiEdit, BiInfoCircle } from 'react-icons/bi';
+import { FaCheck } from 'react-icons/fa';
 
 export const ExtensionTab = ({ children, pRef }: { children: React.ReactNode; pRef?: React.MutableRefObject<any> }) => {
     return (
@@ -198,8 +199,12 @@ const DpRow = ({ children }: { children: React.ReactNode }) => {
 const DpRowTL = ({ children }: { children: React.ReactNode }) => {
     return <div className="extension-tab-dp-row-tl ">{children}</div>;
 };
-const DpRowBetween = ({ children }: { children: React.ReactNode }) => {
-    return <div className="extension-tab-dp-row-bt">{children}</div>;
+const DpRowBetween = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => {
+    return (
+        <div className="extension-tab-dp-row-bt" style={{ ...style }}>
+            {children}
+        </div>
+    );
 };
 const ContentText = ({ pContent, pWrap = false }: { pContent: string; pWrap?: boolean }) => {
     return (
@@ -634,7 +639,7 @@ const ScrollTable = React.memo(
             }
         };
         const handleUpdateModInfo = (e: React.FormEvent<HTMLInputElement>, aRowIdx: number) => {
-            let sUpdateValue = JSON.parse(JSON.stringify(sModInfo?.modAfterInfo?.row));
+            const sUpdateValue = JSON.parse(JSON.stringify(sModInfo?.modAfterInfo?.row));
             sUpdateValue[aRowIdx] = (e.target as HTMLInputElement).value;
             setModInfo((prev) => {
                 return {
@@ -744,7 +749,10 @@ const ScrollTable = React.memo(
                                                             pCallback={(e) => handleUpdateModInfo(e, bIdx)}
                                                         />
                                                     ) : (
-                                                        <span>{aRowData ?? ''}</span>
+                                                        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                                                            <span>{aRowData?.toString()}</span>
+                                                            {aRowData !== null && aRowData?.toString().trim() !== '' && <Text aRowData={aRowData} />}
+                                                        </div>
                                                     )}
                                                 </td>
                                             );
@@ -820,6 +828,24 @@ const ScrollTable = React.memo(
         );
     }
 );
+
+const Text = ({ aRowData }: { aRowData: string }) => {
+    const [copy, setCopy] = useState(false);
+    const handle = () => {
+        if (copy) return;
+        setCopy(true);
+        ClipboardCopy(aRowData);
+        setTimeout(() => {
+            setCopy(false);
+        }, 600);
+    };
+    return (
+        <div className="result-scroll-table-item-copy" onClick={handle}>
+            {copy && <FaCheck />}
+            {!copy && <Copy />}
+        </div>
+    );
+};
 
 const Switch = ({
     pState,
