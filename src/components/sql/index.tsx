@@ -145,18 +145,6 @@ const Sql = ({
             setErrLog(sQueryReslutList?.at(-1)?.data?.reason);
         }
 
-        if (
-            !sTimeRange.includes('ns') &&
-            !sTimeRange.includes('us') &&
-            !sTimeRange.includes('ms') &&
-            !sTimeRange.includes('s') &&
-            !sTimeZone.includes('LOCAL') &&
-            !sTimeZone.includes('UTC')
-        ) {
-            const sAddTimezoneTxt = sTimeZone.split('/')[0];
-            sQueryReslutList[sQueryReslutList.length - 1].data.data.columns[1] += ` (${sAddTimezoneTxt})`;
-        }
-
         const sLowerQuery = aParsedQuery[sQueryReslutList.length - 1];
 
         // insert, create, delete, update...
