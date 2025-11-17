@@ -1,0 +1,113 @@
+@use '@/design-system/tokens' as t;
+
+// Overlay
+.modal__overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: t.$z-index-modal;
+    @include t.flex-center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+// Modal container
+.modal {
+    display: flex;
+    flex-direction: column;
+    width: 480px;
+    max-width: 90vw;
+    max-height: 90vh;
+    background-color: #2a2a2a;
+    border: 1px solid #3e3e3e;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    color: t.$text-primary;
+    cursor: default;
+
+    // Header
+    &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: t.$spacing-16 t.$spacing-20;
+    }
+
+    // Title
+    &__title {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        align-items: center;
+        font-size: t.$font-size-lg;
+        font-weight: 600;
+        color: t.$text-primary;
+    }
+
+    // Body
+    &__body {
+        flex: 1;
+        padding: t.$spacing-16 t.$spacing-32;
+        overflow-y: auto;
+        @include t.scrollbar;
+        font-size: t.$font-size-base;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    // Footer
+    &__footer {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: t.$spacing-8;
+        padding: t.$spacing-16 t.$spacing-20;
+    }
+
+    // Close button (X)
+    &__close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: t.$spacing-24;
+        height: t.$spacing-24;
+        padding: 0;
+        background: transparent;
+        border: none;
+        color: t.$text-secondary;
+        cursor: pointer;
+        border-radius: t.$border-radius-sm;
+        transition: t.$transition-default;
+
+        &:hover {
+            color: t.$text-primary;
+            background-color: t.$bg-hover;
+        }
+
+        &:active {
+            transform: scale(0.95);
+        }
+    }
+}
+
+// Animations
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

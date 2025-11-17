@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
 import './WorkSheet.scss';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { WorkSheetEditor } from './WorkSheetEditor';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
@@ -7,10 +7,10 @@ import { getId, isEmpty } from '@/utils';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { Save, SaveAs, IoPlayForwardSharp } from '@/assets/icons/Icon';
 import { IconButton } from '../buttons/IconButton';
-import AUTOCOMBOBOX from '../sql/autoCombobox';
-import { IANA_TIMEZONES } from '@/assets/ts/timezones';
-import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 import { FaStop } from 'react-icons/fa';
+import { Button } from '@/design-system/components';
+import { RiTimeZoneLine } from 'react-icons/ri';
+import { TimeZoneModal } from '../modal/TimeZoneModal';
 
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 interface WorkSheetProps {
@@ -45,49 +45,44 @@ export const WorkSheet = (props: WorkSheetProps) => {
     };
     const [sTimeRange, setTimeRange] = useState('2006-01-02 15:04:05');
     const [sTimeZone, setTimeZone] = useState('LOCAL');
+    const [sIsTimeZoneModal, setIsTimeZoneModal] = useState<boolean>(false);
     const [sStopState, setStopState] = useState<boolean[]>(Array.from({ length: sWorkSheets?.length ?? 1 }, () => false));
-
-    // Queue-based scroll handler with 1 second delay between items
-    const scrollQueueRef = useRef<HTMLElement[]>([]);
-    const isProcessingQueueRef = useRef<boolean>(false);
-    const sDelay = 1000;
+    const [sCurrentScrollTop, setCurrentScrollTop] = useState<number>(0);
+    const worksheetBodyRef = useRef<HTMLDivElement>(null);
+    const SCROLL_GAP = 10;
+    const LAST_CHILD_DELAY = 1000; // 1s
 
     const checkSectionState = useCallback(() => {
         return sStopState?.some((state) => state) ?? false;
     }, [sStopState]);
 
-    // Process scroll queue with 1 second delay between each item
-    const processScrollQueue = useCallback(() => {
-        if (isProcessingQueueRef.current || scrollQueueRef.current.length === 0) {
-            return;
-        }
-
-        isProcessingQueueRef.current = true;
-
-        const processNext = (delay: number = 0) => {
-            setTimeout(() => {
-                if (scrollQueueRef.current.length === 0) {
-                    isProcessingQueueRef.current = false;
-                    return;
+    const handleScrollToElement = useCallback(
+        (targetScrollTop: number, isLastChild: boolean = false) => {
+            if (!worksheetBodyRef?.current || targetScrollTop <= sCurrentScrollTop) return;
+            const executeScroll = () => {
+                if (worksheetBodyRef.current) {
+                    if (isLastChild) setTimeout(() => ((worksheetBodyRef?.current as any).scrollTop = targetScrollTop * 2), LAST_CHILD_DELAY);
+                    else worksheetBodyRef.current.scrollTop = targetScrollTop - SCROLL_GAP;
+                    setCurrentScrollTop(targetScrollTop);
                 }
-                const element = scrollQueueRef.current.shift();
-                if (element) element.scrollIntoView({ block: 'end', behavior: 'smooth' });
-                if (scrollQueueRef.current.length > 0) processNext(delay);
-                else isProcessingQueueRef.current = false;
-            }, delay);
+            };
+            executeScroll();
+        },
+        [sCurrentScrollTop]
+    );
+
+    // Track scroll position
+    useEffect(() => {
+        const element = worksheetBodyRef.current;
+        if (!element) return;
+
+        const handleScroll = () => {
+            setCurrentScrollTop(element.scrollTop);
         };
 
-        processNext(sDelay);
+        element.addEventListener('scroll', handleScroll);
+        return () => element.removeEventListener('scroll', handleScroll);
     }, []);
-
-    // Add element to scroll queue and start processing
-    const handleScrollToElement = useCallback(
-        (element: HTMLElement) => {
-            scrollQueueRef.current.push(element);
-            processScrollQueue();
-        },
-        [processScrollQueue]
-    );
 
     const handleCallback = (aData: { id: string; event: CallbackEventType }) => {
         switch (aData.event) {
@@ -149,6 +144,19 @@ export const WorkSheet = (props: WorkSheetProps) => {
             setAllRunCodeList([]);
         }
     };
+    const handleTimeZone = (time: { timeFormat: string; timeZone: string }) => {
+        setTimeRange(time.timeFormat);
+        setTimeZone(time.timeZone);
+        setIsTimeZoneModal(false);
+    };
+    const handleAllRun = () => {
+        const element = worksheetBodyRef.current;
+        if (element) {
+            element.scrollTop = 0;
+        }
+
+        setAllRunCodeStatus(!sAllRunCodeStatus);
+    };
 
     useEffect(() => {
         if (sAllRunCodeStatus) {
@@ -177,13 +185,19 @@ export const WorkSheet = (props: WorkSheetProps) => {
                     pPlace="bottom-start"
                     pIsToopTip
                     pToolTipId="wrk-tab-run-code"
-                    onClick={checkSectionState() ? handleInterrupt : () => setAllRunCodeStatus(!sAllRunCodeStatus)}
+                    onClick={checkSectionState() ? handleInterrupt : handleAllRun}
                     pToolTipContent={checkSectionState() ? 'Stop code' : 'Run code'}
                     pIcon={checkSectionState() ? <FaStop /> : <IoPlayForwardSharp />}
                 />
                 <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-                    <AUTOCOMBOBOX pName="sTimeRange" pList={TIME_FORMAT_LIST} pTarget={sTimeRange} pCallback={setTimeRange} />
-                    <AUTOCOMBOBOX pName="sTimeZone" pList={IANA_TIMEZONES} pTarget={sTimeZone} pCallback={setTimeZone} />
+                    <Button
+                        size="icon"
+                        variant="none"
+                        isToolTip
+                        toolTipContent="Time format / Time zone"
+                        icon={<RiTimeZoneLine size={18} />}
+                        onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
+                    />
                     <div className="divider" />
                     <IconButton pPlace="bottom-start" pIsToopTip pToolTipContent="Save" pToolTipId="wrk-tab-save" pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
                     <IconButton
@@ -196,7 +210,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
                     />
                 </div>
             </div>
-            <div className="worksheet-body">
+            <div ref={worksheetBodyRef} className="worksheet-body">
                 <div className="worksheet">
                     {sWorkSheets &&
                         sWorkSheets.length !== 0 &&
@@ -225,6 +239,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
                         })}
                 </div>
             </div>
+            <TimeZoneModal isOpen={sIsTimeZoneModal} formatInitValue={sTimeRange} zoneInitValue={sTimeZone} onClose={handleTimeZone} />
         </div>
     );
 };

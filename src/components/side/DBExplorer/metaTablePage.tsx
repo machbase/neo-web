@@ -119,7 +119,7 @@ export const MetaTablePage = ({
     };
 
     const convertTagMetaForInsert = (aValues: STR_NUM_ARR_TYPE) => {
-        let sResultList = mMetaColumnListWithoutID?.map((colNm: string, idx: number) => {
+        const sResultList = mMetaColumnListWithoutID?.map((colNm: string, idx: number) => {
             if (DATA_NUMBER_TYPE.includes(sMetaTableInfo?.types?.[sMetaTableInfo?.columns?.indexOf(colNm) as number] as string)) {
                 if (aValues[idx] === null || aValues[idx] === undefined || aValues[idx] === '') return 'null';
                 else return aValues[idx];
@@ -131,7 +131,7 @@ export const MetaTablePage = ({
         return sResultList;
     };
     const convertTagMetaForUpdate = (aValues: STR_NUM_ARR_TYPE) => {
-        let sResultList = mMetaColumnListWithoutID?.map((colNm: string, idx: number) => {
+        const sResultList = mMetaColumnListWithoutID?.map((colNm: string, idx: number) => {
             if (DATA_NUMBER_TYPE.includes(sMetaTableInfo?.types?.[sMetaTableInfo?.columns?.indexOf(colNm) as number] as string)) {
                 if (aValues[idx] === null || aValues[idx] === undefined || aValues[idx] === '') return `${colNm}=NULL`;
                 else return `${colNm}=${Number(aValues[idx])}`;
@@ -277,7 +277,7 @@ export const MetaTablePage = ({
             }
             if (!sIsComponentLoad) setIsComponentLoad(true);
         }
-    }, [pMColInfo, pRefresh.state, pIsActiveTab]);
+    }, [pMColInfo, pRefresh.state]);
 
     // Effect for page changes (pagination) - only for page > 0
     useEffect(() => {

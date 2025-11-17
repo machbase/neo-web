@@ -48,7 +48,7 @@ interface WorkSheetEditorProps {
     pAllRunCodeCallback: (aStatus: boolean) => void;
     setSheet: React.Dispatch<React.SetStateAction<any>>;
     pCallback: (aData: { id: string; event: CallbackEventType }) => void;
-    pScrollToElement: (element: HTMLElement) => void;
+    pScrollToElement: (targetScrollTop: number, isLastChild?: boolean) => void;
 }
 
 const defaultSqlLocation = {
@@ -261,7 +261,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         if (sSelectedLang === 'Markdown') {
             if (pAllRunCodeStatus) {
                 pAllRunCodeCallback(true);
-                pScrollToElement(sScrollSpyRef?.current as HTMLDivElement);
+                pScrollToElement(getScrollTopToElement(sScrollSpyRef?.current), isLastChild());
             }
             setMarkdown(aText);
             handleStopState(false);
@@ -607,7 +607,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         chatLogic.setMessages([]);
     };
     const handleStopState = (aState: boolean) => {
-        if (pIdx + 1 === pWorkSheets?.length && pAllRunCodeStatus) pScrollToElement(sScrollSpyRef?.current as HTMLDivElement);
+        if (isLastChild() && pAllRunCodeStatus) pScrollToElement(getScrollTopToElement(sScrollSpyRef?.current), true);
 
         pSetStopState((prev: boolean[]) => {
             const sTmp = JSON.parse(JSON.stringify(prev));
@@ -635,9 +635,24 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     // Notify parent to scroll after result is rendered
     useEffect(() => {
         if (pAllRunCodeStatus && !sProcessing && sScrollSpyRef?.current) {
-            pScrollToElement(sScrollSpyRef.current);
+            pScrollToElement(getScrollTopToElement(sScrollSpyRef.current), isLastChild());
         }
     }, [sProcessing, sSql, sTqlTextResult, sTqlVisualData, sTqlCsv, sMarkdown, sShellResult, chatLogic.messages]);
+
+    // Calculate scroll position to element relative to parent container
+    const getScrollTopToElement = (element: HTMLElement | null): number => {
+        if (!element) return 0;
+        const parentContainer = element.closest('.worksheet-body') as HTMLElement;
+        if (!parentContainer) return 0;
+        const elementRect = element.getBoundingClientRect();
+        const containerRect = parentContainer.getBoundingClientRect();
+        return parentContainer.scrollTop + (elementRect.top - containerRect.top);
+    };
+
+    // Check if this is the last child
+    const isLastChild = (): boolean => {
+        return pIdx + 1 === pWorkSheets?.length;
+    };
 
     useOutsideClick(dropDownRef, () => setShowLang(false));
     useOutsideClick(ResultContentTypeRef, () => setShowResultContentType(false));

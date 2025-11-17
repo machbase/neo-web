@@ -1,0 +1,250 @@
+@use '@/design-system/tokens' as t;
+
+.combobox-container {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-8;
+
+    &--full-width {
+        width: 100%;
+    }
+
+    &--label-left {
+        .combobox-field-wrapper {
+            flex-direction: row;
+            align-items: center;
+            gap: t.$spacing-12;
+
+            .combobox-label {
+                margin-bottom: 0;
+                white-space: nowrap;
+                min-width: 120px;
+                flex-shrink: 0;
+            }
+
+            .combobox {
+                flex: 1;
+            }
+        }
+    }
+
+    &--label-top {
+        .combobox-field-wrapper {
+            flex-direction: column;
+        }
+    }
+}
+
+.combobox-field-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-8;
+}
+
+.combobox-label {
+    font-size: t.$font-size-base;
+    font-weight: 500;
+    color: t.$text-secondary;
+    user-select: none;
+}
+
+.combobox {
+    position: relative;
+    width: 100%;
+
+    // Input wrapper - contains input and buttons
+    &__input-wrapper {
+        position: relative;
+        @include t.flex-row(0);
+        align-items: center;
+    }
+
+    // Input icon (left)
+    &__input-icon {
+        position: absolute;
+        left: t.$spacing-12;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: t.$text-secondary;
+        flex-shrink: 0;
+    }
+
+    // Input field
+    &__input {
+        @include t.input-base;
+        font-size: t.$font-size-sm;
+        flex: 1;
+        height: t.$input-height;
+        padding: 0 t.$spacing-32 0 t.$spacing-12;
+        background-color: #2b2b2b;
+        border: 1px solid #3a3a3a;
+        border-radius: t.$border-radius-base;
+        cursor: pointer;
+        box-sizing: border-box;
+
+        &:focus {
+            cursor: text;
+            border-color: t.$border-color-focus;
+        }
+
+        &:disabled {
+            @include t.disabled-state;
+            cursor: not-allowed;
+        }
+    }
+
+    // Input with left icon - add padding
+    &__input-icon + &__input {
+        padding-left: t.$spacing-36;
+    }
+
+    // Trigger button (styled by Button component)
+    &__trigger {
+        position: absolute;
+        right: t.$spacing-4;
+        top: 50%;
+        transform: translateY(-50%) !important;
+        width: t.$input-action-button-width;
+        height: t.$input-action-button-height;
+        padding: 0 !important;
+        min-width: unset !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        :global([class*='icon']) {
+            transition: transform 0.2s ease;
+        }
+
+        &--open :global([class*='icon']) {
+            transform: rotate(180deg);
+        }
+    }
+
+    // Clear button
+    &__clear {
+        position: absolute;
+        right: t.$spacing-32; // Right of trigger button
+        top: 50%;
+        transform: translateY(-50%);
+        width: t.$spacing-20;
+        height: t.$spacing-20;
+        padding: 0;
+        background: transparent;
+        border: none;
+        color: t.$text-hint;
+        cursor: pointer;
+        @include t.flex-center;
+        border-radius: t.$border-radius-circle;
+        transition: t.$transition-default;
+
+        &:hover {
+            color: t.$text-primary;
+            background-color: t.$bg-hover;
+        }
+    }
+
+    // Dropdown container
+    &__dropdown {
+        background-color: t.$dropdown-bg;
+        border: 1px solid t.$dropdown-border;
+        border-radius: t.$border-radius-base;
+        box-shadow: t.$dropdown-shadow;
+        z-index: t.$z-index-modal-dropdown; // Use higher z-index to work inside modals
+        max-height: t.$dropdown-max-height;
+        overflow: hidden;
+        @include t.fade-in(0.15s);
+
+        // Animation for dropdown appearance
+        animation: slideDown 0.15s ease-out;
+    }
+
+    // List container
+    &__list {
+        @include t.scrollbar;
+        max-height: t.$dropdown-max-height;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: t.$spacing-4;
+        margin: 0;
+        list-style: none;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: t.$spacing-2;
+    }
+
+    // Individual option
+    &__option {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: t.$spacing-10;
+        padding: t.$spacing-6 t.$spacing-8;
+        border-radius: t.$border-radius-sm;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+        color: t.$text-secondary;
+        font-size: t.$font-size-sm;
+
+        &:hover:not(&--disabled) {
+            background-color: t.$dropdown-option-hover-bg;
+        }
+
+        &--focused:not(&--disabled) {
+            background-color: t.$dropdown-option-hover-bg;
+        }
+
+        &--selected {
+            background-color: t.$dropdown-option-selected-bg;
+            color: t.$text-primary;
+        }
+
+        &--disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            color: t.$text-disabled;
+
+            &:hover {
+                background-color: transparent;
+            }
+        }
+    }
+
+    // Option label
+    &__option-label {
+        flex: 1;
+        @include t.text-ellipsis;
+    }
+
+    // Option checkmark
+    &__option-check {
+        flex-shrink: 0;
+        color: t.$text-primary;
+    }
+
+    // Empty state
+    &__empty {
+        padding: t.$spacing-16 t.$spacing-12;
+        text-align: center;
+        color: t.$text-hint;
+        font-size: t.$font-size-sm;
+    }
+}
+
+// Dropdown slide-down animation
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

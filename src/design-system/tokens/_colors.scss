@@ -1,0 +1,148 @@
+/**
+ * Color Tokens
+ */
+
+// ============================================
+// Background Colors
+// ============================================
+$bg-primary: #1c1c21;
+$bg-secondary: #1b1c21;
+$bg-header: #262831;
+$bg-elevated: #2c2c2c;
+$bg-input: rgba(255, 255, 255, 0.13);
+$bg-input-dark: #353535;
+$bg-hover: rgb(64, 64, 64);
+$bg-hover-light: rgb(75, 75, 75);
+$bg-hover-block: #262831;
+$bg-active: rgb(0, 83, 160);
+$bg-active-hover: rgb(0, 108, 210);
+$bg-user-message: rgb(65, 65, 66);
+
+// ============================================
+// Text Colors
+// ============================================
+$text-primary: #f1f1f1;
+$text-secondary: #c4c4c4;
+$text-tertiary: #a3a3a3;
+$text-disabled: #818181;
+$text-muted: #727272;
+$text-hint: #aaaaaa;
+$text-row-number: #3b3b3b;
+$text-chat-header: #666;
+$text-active: rgb(243, 243, 243);
+
+// ============================================
+// Border Colors
+// ============================================
+$border-color-default: rgba(255, 255, 255, 0.13);
+$border-color-light: #f1f1f125;
+$border-color-medium: #626263;
+$border-color-focus: rgb(0, 108, 210);
+$border-color-active: #005fb8;
+
+// ============================================
+// Primary Colors
+// ============================================
+$primary-base: #005fb8;
+$primary-hover: #0075e2;
+$primary-light: rgb(0, 108, 210);
+$primary-dark: rgb(0, 83, 160);
+
+// ============================================
+// Semantic Colors
+// ============================================
+// Success
+$success-main: #71e071;
+$success-light: #9df486;
+
+// Error
+$error-main: rgb(255, 83, 83);
+$error-light: #fa6464;
+
+// Warning
+$warning-main: #ff9800;
+
+// Info
+$info-main: #005fb8;
+
+// ============================================
+// Button Colors
+// ============================================
+$btn-delete: #ff4747;
+$btn-create: #005fb8;
+$btn-copy: #6f7173;
+$btn-status: #009688;
+$btn-disabled: #6f7173;
+$btn-send: #5b5b5b;
+$btn-send-border: #626263;
+
+// ============================================
+// Status Circle Colors
+// ============================================
+$status-true: #9df486;
+$status-false: #fa6464;
+$status-none: #717171;
+
+// ============================================
+// Scrollbar Colors
+// ============================================
+$scrollbar-thumb: #4c4c4c;
+$scrollbar-border: #727272;
+$scrollbar-track: transparent;
+
+// ============================================
+// Switch Colors
+// ============================================
+$switch-bg: rgba(255, 255, 255, 0.13);
+$switch-bg-hover: rgba(255, 255, 255, 0.1);
+$switch-bg-active: #005fb8;
+$switch-bg-active-hover: #0075e2;
+$switch-thumb: rgba(255, 255, 255, 0.3);
+$switch-thumb-active: #f1f1f1;
+$switch-border: rgba(255, 255, 255, 0.13);
+$switch-border-active: #0075e2;
+
+// ============================================
+// Selector/Dropdown Colors
+// ============================================
+$selector-bg: rgba(255, 255, 255, 0.13);
+$selector-border: rgba(255, 255, 255, 0.13);
+$selector-hover: #005fb8;
+$selector-selected: #005fb8;
+
+// ============================================
+// Overlay/Shadow Colors
+// ============================================
+$overlay-shadow: #00000020;
+
+// ============================================
+// Common
+// ============================================
+$color-black: #000000;
+$color-white: #ffffff;
+$color-transparent: transparent;
+
+// ============================================
+// Material UI Integration
+// ============================================
+$mui-selected: #005fb8;
+$mui-text: #c4c4c4;
+
+// ============================================
+// Dropdown/Menu Colors
+// ============================================
+$dropdown-bg: #2d2d2d;
+$dropdown-border: #3e3e3e;
+$dropdown-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+$dropdown-option-hover-bg: #3d3d3d;
+$dropdown-option-selected-bg: transparent;
+$dropdown-trigger-icon-color: #7a7a7a;
+
+// ============================================
+// Menu Colors (Alias for Dropdown)
+// ============================================
+$menu-bg: $dropdown-bg;
+$menu-border: $dropdown-border;
+$menu-item-text: #e8e8e8;
+$menu-item-hover-bg: $dropdown-option-hover-bg;
+$menu-item-icon: #b0b0b0;

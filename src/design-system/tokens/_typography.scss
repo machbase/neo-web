@@ -1,0 +1,43 @@
+/**
+ * Typography Tokens
+ */
+
+// ============================================
+// Font Family
+// ============================================
+$font-family-default: inherit;
+$font-family-pretendard: 'Pretendard';
+$font-family-initial: initial;
+
+// ============================================
+// Font Size
+// ============================================
+$font-size-xs: 10px; // Chat header
+$font-size-sm: 12px; // Badge, MUI
+$font-size-base: 13px; // Default text, buttons
+$font-size-md: 15px; // Table header, textarea
+$font-size-lg: 17px; // Content title
+$font-size-xl: 30px; // Sub title
+
+// ============================================
+// Font Weight
+// ============================================
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// ============================================
+// Line Height
+// ============================================
+$line-height-tight: 1.25;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.75;
+
+// ============================================
+// Text Transform
+// ============================================
+$text-transform-uppercase: uppercase;
+$text-transform-lowercase: lowercase;
+$text-transform-capitalize: capitalize;
+$text-transform-none: none;

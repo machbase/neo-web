@@ -1,29 +1,26 @@
 import './index.scss';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase, VscKey, GoTerminal, TableHeader } from '@/assets/icons/Icon';
 import ExtensionBtn from '@/components/extension/ExtensionBtn';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { BADGE_KEYWORD, gBoardList, gExtensionList, gLicense, gSelectedExtension, gSelectedTab } from '@/recoil/recoil';
-import Menu from '../contextMenu/Menu';
-import useOutsideClick from '@/hooks/useOutsideClick';
-import { LicenseModal } from '@/components/modal/LicenseModal';
+import { Menu } from '@/design-system/components';
 import { logOut } from '@/api/repository/login';
 import { useNavigate } from 'react-router-dom';
 import { RxLapTimer } from 'react-icons/rx';
 import { generateUUID, getId } from '@/utils';
 import { GiBrain, GiTallBridge } from 'react-icons/gi';
 import { RiLockPasswordLine } from 'react-icons/ri';
-import { Password } from '../password';
+import { PasswordModal } from '../password';
 import { VscExtensions } from 'react-icons/vsc';
 import { BadgeStatus } from '../badge';
-import { StatzTableModal } from '@/components/modal/StatzTableModal';
-import { ProviderModal } from '../chat/ProviderModal';
 import { useExperiment } from '@/hooks/useExperiment';
+import { LicenseModal } from '../modal/LicenseModal';
+import { StatzTableModal } from '../modal/StatzTableModal';
+import { ProviderModal } from '../chat/ProviderModal';
 
 const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any) => {
     const sNavigate = useNavigate();
-    const [isOpen, setIsOpen] = useState<boolean>(false);
-    const MenuRef = useRef<HTMLDivElement>(null);
     const [sExtensionList] = useRecoilState<any>(gExtensionList);
     const [sSelectedExtension, setSelectedExtension] = useRecoilState<string>(gSelectedExtension);
     const [sIsLicenseModal, setIsLicenseModal] = useState<boolean>(false);
@@ -98,7 +95,6 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
         }
     };
     const handleSSHKeys = () => {
-        setIsOpen(false);
         const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
             return prev || cur.type === 'ssh-key';
         }, false);
@@ -138,19 +134,17 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
         }
     };
     const handlePWD = () => {
-        setIsOpen(false);
         setIsPWDModal(true);
     };
     const handleStatzTable = () => {
-        setIsOpen(false);
         setIsStatzTableModal(true);
     };
     const handleProvider = () => {
-        setIsOpen(false);
         setIsProviderModal(true);
     };
-
-    useOutsideClick(MenuRef, () => setIsOpen(false));
+    const handleLicense = () => {
+        setIsLicenseModal(true);
+    };
 
     useEffect(() => {
         if (pIsSidebar) {
@@ -176,52 +170,39 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
                         })}
                 </div>
                 <div className="extension-bottom-list">
-                    <div
-                        ref={MenuRef}
-                        style={{
-                            position: 'relative',
-                            cursor: 'pointer',
-                        }}
-                    >
-                        <ExtensionBtn isBadge={getGLicense?.licenseStatus !== BADGE_KEYWORD} pIcon={<Gear />} onClick={() => setIsOpen(!isOpen)} />
-                        <div style={{ position: 'absolute', bottom: 1, left: '100%' }}>
-                            <Menu isOpen={isOpen}>
-                                <Menu.Item onClick={() => setIsLicenseModal(true)}>
-                                    <Key />
-                                    <span>License</span>
-                                    {getGLicense?.licenseStatus !== BADGE_KEYWORD && <BadgeStatus />}
+                    <Menu.Root>
+                        <Menu.Trigger>
+                            <ExtensionBtn isBadge={getGLicense?.licenseStatus !== BADGE_KEYWORD} pIcon={<Gear />} />
+                        </Menu.Trigger>
+                        <Menu.Content align="left">
+                            <Menu.Item icon={<Key />} rightIcon={getGLicense?.licenseStatus !== BADGE_KEYWORD && <BadgeStatus />} onClick={handleLicense}>
+                                <span>License</span>
+                            </Menu.Item>
+                            <Menu.Item icon={<VscKey />} onClick={handleSSHKeys}>
+                                SSH Keys
+                            </Menu.Item>
+                            <Menu.Item icon={<TableHeader />} onClick={handleStatzTable}>
+                                Statz Table
+                            </Menu.Item>
+                            {getExperiment() && (
+                                <Menu.Item icon={<GiBrain />} onClick={handleProvider}>
+                                    Configure AI
                                 </Menu.Item>
-                                <Menu.Item onClick={handleSSHKeys}>
-                                    <VscKey />
-                                    <span>SSH Keys</span>
-                                </Menu.Item>
-                                <Menu.Item onClick={handleStatzTable}>
-                                    <TableHeader />
-                                    <span>Statz Table</span>
-                                </Menu.Item>
-                                {getExperiment() && (
-                                    <Menu.Item onClick={handleProvider}>
-                                        <GiBrain />
-                                        <span>Configure AI</span>
-                                    </Menu.Item>
-                                )}
-                                <Menu.Item onClick={handlePWD}>
-                                    <RiLockPasswordLine />
-                                    <span>Change password</span>
-                                </Menu.Item>
-                                <Menu.Item onClick={logout}>
-                                    <Logout />
-                                    <span>Logout</span>
-                                </Menu.Item>
-                            </Menu>
-                        </div>
-                    </div>
+                            )}
+                            <Menu.Item icon={<RiLockPasswordLine />} onClick={handlePWD}>
+                                Change password
+                            </Menu.Item>
+                            <Menu.Item icon={<Logout />} onClick={logout}>
+                                Logout
+                            </Menu.Item>
+                        </Menu.Content>
+                    </Menu.Root>
                 </div>
             </div>
-            {sIsLicenseModal ? <LicenseModal pIsDarkMode setIsOpen={setIsLicenseModal} /> : null}
-            {sIsPWDModal && <Password setIsOpen={setIsPWDModal} />}
-            {sIsStatzTableModal && <StatzTableModal setIsOpen={setIsStatzTableModal} />}
-            {sIsProviderModal && <ProviderModal pCallback={() => setIsProviderModal(false)} />}
+            {sIsLicenseModal ? <LicenseModal isOpen={sIsLicenseModal} onClose={() => setIsLicenseModal(false)} /> : null}
+            {sIsPWDModal ? <PasswordModal isOpen={sIsPWDModal} onClose={() => setIsPWDModal(false)} /> : null}
+            {sIsStatzTableModal ? <StatzTableModal isOpen={sIsStatzTableModal} onClose={() => setIsStatzTableModal(false)} /> : null}
+            {sIsProviderModal ? <ProviderModal isOpen={sIsProviderModal} onClose={() => setIsProviderModal(false)} /> : null}
         </>
     );
 };

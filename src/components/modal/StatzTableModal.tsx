@@ -1,18 +1,18 @@
-import useEsc from '@/hooks/useEsc';
-import { Modal } from '@/components/modal/Modal';
+import { useState, useEffect } from 'react';
+import { Modal } from '@/design-system/components/Modal';
 import { TableHeader } from '@/assets/icons/Icon';
-import { Close } from '@/assets/icons/Icon';
-import { useRef, useState, useEffect } from 'react';
 import { getStatzConfig, setStatzConfig } from '@/api/repository/statz';
 import { Error } from '@/components/toast/Toast';
-import './StatzTableModal.scss';
-import { Loader } from '../loader';
+import { Input } from '@/design-system/components';
 
-export const StatzTableModal = ({ setIsOpen }: { setIsOpen: (aState: boolean) => void }) => {
+interface StatzTableModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export const StatzTableModal = ({ isOpen, onClose }: StatzTableModalProps) => {
     const [sTableName, setTableName] = useState<string>('');
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
-    const sRef = useRef(null);
-    const sApplyBtnRef = useRef(null);
 
     const handleApply = async () => {
         if (sIsLoading) return;
@@ -20,7 +20,7 @@ export const StatzTableModal = ({ setIsOpen }: { setIsOpen: (aState: boolean) =>
         try {
             const result: any = await setStatzConfig(sTableName);
             if (result && result.success) {
-                setIsOpen(false);
+                onClose();
             } else {
                 Error('Failed to set statz config');
             }
@@ -43,8 +43,10 @@ export const StatzTableModal = ({ setIsOpen }: { setIsOpen: (aState: boolean) =>
     };
 
     useEffect(() => {
-        loadCurrentConfig();
-    }, []);
+        if (isOpen) {
+            loadCurrentConfig();
+        }
+    }, [isOpen]);
 
     const handleTableNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setTableName(e.target.value);
@@ -53,53 +55,44 @@ export const StatzTableModal = ({ setIsOpen }: { setIsOpen: (aState: boolean) =>
     const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.which === 13 || e.keyCode === 13) {
             e.preventDefault();
-            handleApply();
+            if (!sIsLoading) {
+                handleApply();
+            }
         }
     };
 
-    useEsc(() => setIsOpen && setIsOpen(false));
+    const handleClose = () => {
+        if (!sIsLoading) {
+            onClose();
+        }
+    };
 
     return (
-        <div className="statz-table-wrapper">
-            <div ref={sRef} style={{ display: 'flex' }}>
-                <Modal pIsDarkMode className="statz-table-modal" onOutSideClose={() => setIsOpen(false)}>
-                    <Modal.Header>
-                        <div className="statz-table-modal-header">
-                            <div className="title">
-                                <TableHeader />
-                                <span className="text">Statz Table</span>
-                            </div>
-                            <Close style={{ cursor: 'pointer' }} onClick={() => setIsOpen(false)} />
-                        </div>
-                    </Modal.Header>
-                    <Modal.Body>
-                        <div className="statz-table-modal-body">
-                            <div className="content">
-                                <div className="title">Table name:</div>
-                                <div className="item-wrapper">
-                                    <input
-                                        autoFocus={true}
-                                        onChange={handleTableNameChange}
-                                        type="text"
-                                        style={{ imeMode: 'inactive' }}
-                                        tabIndex={1}
-                                        onKeyDown={handleEnter}
-                                        placeholder="Enter table name"
-                                        value={sTableName}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </Modal.Body>
-                    <Modal.Footer>
-                        <div className="statz-table-modal-footer">
-                            <button ref={sApplyBtnRef} onClick={handleApply} disabled={sIsLoading}>
-                                {sIsLoading ? <Loader width="16px" height="16px" borderRadius="90%" /> : 'Apply'}
-                            </button>
-                        </div>
-                    </Modal.Footer>
-                </Modal>
-            </div>
-        </div>
+        <Modal.Root isOpen={isOpen} onClose={handleClose} closeOnEscape={!sIsLoading} closeOnOutsideClick={!sIsLoading}>
+            <Modal.Header>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <TableHeader />
+                    <Modal.Title>Statz Table</Modal.Title>
+                </div>
+                {!sIsLoading && <Modal.Close />}
+            </Modal.Header>
+            <Modal.Body>
+                <Input
+                    autoFocus
+                    label="Table name"
+                    labelPosition="left"
+                    placeholder="Enter table name"
+                    value={sTableName}
+                    onChange={handleTableNameChange}
+                    onKeyDown={handleEnter}
+                />
+            </Modal.Body>
+            <Modal.Footer>
+                <Modal.Confirm onClick={handleApply} disabled={sIsLoading} loading={sIsLoading}>
+                    Apply
+                </Modal.Confirm>
+                <Modal.Cancel onClick={handleClose}>Cancel</Modal.Cancel>
+            </Modal.Footer>
+        </Modal.Root>
     );
 };

@@ -1,0 +1,610 @@
+/**
+ * Design System Mixins
+ * Reusable style patterns extracted from ExtensionTab and Chat components
+ */
+
+@use './colors' as c;
+@use './spacing' as s;
+@use './typography' as t;
+@use './border-radius' as br;
+@use './shadows' as sh;
+@use './transitions' as tr;
+@use './borders' as b;
+@use './sizes' as sz;
+
+// ============================================
+// Layout Mixins
+// ============================================
+
+/**
+ * Flexbox center alignment
+ * Common pattern for centering content
+ */
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/**
+ * Flexbox column layout
+ */
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/**
+ * Flexbox row layout with gap
+ */
+@mixin flex-row($gap: s.$spacing-8) {
+  display: flex;
+  flex-direction: row;
+  gap: $gap;
+}
+
+/**
+ * Full width and height
+ */
+@mixin full-size {
+  width: 100%;
+  height: 100%;
+}
+
+// ============================================
+// Interactive Mixins
+// ============================================
+
+/**
+ * Hover background effect
+ * Used in ExtensionTab hover states
+ */
+@mixin hover-bg($bg-color: c.$bg-hover) {
+  transition: tr.$transition-default;
+
+  &:hover {
+    background-color: $bg-color;
+  }
+}
+
+/**
+ * Hover with primary color
+ * Used for interactive elements
+ */
+@mixin hover-primary {
+  transition: tr.$transition-default;
+  cursor: pointer;
+
+  &:hover {
+    background-color: c.$primary-hover;
+  }
+}
+
+/**
+ * Active state
+ * Used in tables and selectable items
+ */
+@mixin active-state {
+  background-color: c.$bg-active;
+  color: c.$text-active;
+}
+
+/**
+ * Focus ring
+ * Accessibility-friendly focus indicator
+ */
+@mixin focus-ring($color: c.$border-color-focus) {
+  &:focus {
+    outline: none;
+    border-color: $color;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color;
+    outline-offset: 2px;
+  }
+}
+
+/**
+ * Focus-within container
+ * Used in Chat input container
+ */
+@mixin focus-within($border-color: c.$border-color-focus) {
+  &:focus-within {
+    border-color: $border-color;
+  }
+}
+
+/**
+ * Disabled state
+ * Common disabled styling
+ */
+@mixin disabled-state {
+  &:disabled,
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+// ============================================
+// Input Mixins
+// ============================================
+
+/**
+ * Interactive field base styling
+ * Common styling for Input, Dropdown, Combobox
+ * Provides consistent border, background, and transition effects
+ */
+@mixin interactive-field-base {
+  background-color: #2a2a2a;
+  border: 1px solid #3e3e3e;
+  border-radius: br.$border-radius-base;
+  transition: border-color 0.3s ease, outline 0.3s ease;
+}
+
+/**
+ * Interactive field hover state
+ * Applied when not disabled or active
+ */
+@mixin interactive-field-hover {
+  &:hover:not(:disabled):not(.active):not(.open) {
+    border-color: #5a5a5a;
+  }
+}
+
+/**
+ * Interactive field active/focus state
+ * Blue border with outline for focused/active state
+ */
+@mixin interactive-field-active {
+  border-color: rgb(0, 108, 210);
+  outline: 2px solid rgba(0, 108, 210, 0.1);
+  outline-offset: 0;
+}
+
+/**
+ * Base input styling
+ * Used across ExtensionTab and Chat inputs
+ */
+@mixin input-base {
+  background-color: c.$bg-input;
+  color: c.$text-primary;
+  border: b.$border-default;
+  border-radius: br.$border-radius-sm;
+  padding: s.$input-padding-y s.$input-padding-x;
+  font-size: t.$font-size-md;
+  transition: tr.$transition-default;
+
+  &::placeholder {
+    color: c.$text-tertiary;
+    font-size: t.$font-size-sm;
+  }
+
+  @include focus-ring;
+}
+
+/**
+ * Chat-style input
+ * Larger, rounded input for chat
+ */
+@mixin input-chat {
+  background-color: c.$bg-input-dark;
+  color: c.$text-primary;
+  border: none;
+  border-radius: br.$border-radius-xl;
+  padding: s.$chat-input-padding-y s.$chat-input-padding-x;
+  font-size: t.$font-size-md;
+  line-height: t.$line-height-normal;
+  resize: none;
+}
+
+// ============================================
+// Button Mixins
+// ============================================
+
+/**
+ * Base button styling
+ * Common button foundation
+ */
+@mixin button-base {
+  @include flex-center;
+  padding: s.$button-padding-y s.$button-padding-x;
+  font-size: t.$font-size-base;
+  font-weight: t.$font-weight-semibold;
+  border-radius: br.$border-radius-sm;
+  border: b.$border-default;
+  transition: tr.$transition-default;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: c.$border-color-default;
+  }
+
+  @include disabled-state;
+}
+
+/**
+ * Text button (ExtensionTab style)
+ * Small action buttons
+ */
+@mixin button-text {
+  @include flex-center;
+  height: s.$button-height;
+  padding: s.$spacing-4;
+  color: c.$text-primary;
+  font-size: t.$font-size-base;
+  border-radius: br.$border-radius-xs;
+  transition: tr.$transition-default;
+  text-overflow: ellipsis;
+  overflow: hidden;
+
+  &:hover {
+    border: b.$border-default;
+  }
+}
+
+/**
+ * Icon button
+ * Square button for icons
+ */
+@mixin button-icon {
+  @include flex-center;
+  width: sz.$icon-button-size;
+  height: sz.$icon-button-size;
+  padding: s.$spacing-4;
+  margin: s.$spacing-4;
+  border-radius: br.$border-radius-base;
+  border: b.$border-default;
+  cursor: pointer;
+  transition: tr.$transition-default;
+
+  &:hover {
+    background-color: c.$primary-base;
+  }
+
+  &.active {
+    background-color: c.$primary-base;
+  }
+}
+
+/**
+ * Primary button variant
+ */
+@mixin button-primary {
+  background-color: c.$btn-create;
+  color: c.$text-primary;
+
+  &:hover {
+    background-color: c.$primary-hover;
+  }
+}
+
+/**
+ * Danger button variant
+ */
+@mixin button-danger {
+  background-color: c.$btn-delete;
+  color: c.$text-primary;
+
+  &:hover {
+    background-color: c.$error-main;
+  }
+}
+
+/**
+ * Send button (Chat style)
+ */
+@mixin button-send {
+  @include flex-center;
+  width: s.$chat-send-button-size;
+  height: s.$chat-send-button-size;
+  background-color: c.$btn-send;
+  color: c.$color-white;
+  border: solid 1px c.$btn-send-border;
+  border-radius: br.$border-radius-md;
+  padding: 0;
+  cursor: pointer;
+
+  @include disabled-state;
+}
+
+// ============================================
+// Card/Container Mixins
+// ============================================
+
+/**
+ * Content block
+ * Used in ExtensionTab for content sections
+ */
+@mixin content-block {
+  padding: s.$content-block-padding-y s.$content-block-padding-x;
+  border-radius: br.$border-radius-base;
+
+  @include hover-bg(c.$bg-hover-block);
+}
+
+/**
+ * Card with border
+ */
+@mixin card {
+  background-color: c.$bg-primary;
+  border: b.$border-light;
+  border-radius: br.$border-radius-md;
+  padding: s.$content-block-padding-y s.$content-block-padding-x;
+  box-shadow: sh.$shadow-md;
+}
+
+/**
+ * Input container
+ * Wrapper for inputs with border
+ */
+@mixin input-container {
+  background-color: c.$bg-input;
+  border: b.$border-light;
+  border-radius: br.$border-radius-sm;
+  padding: 0 s.$spacing-4;
+
+  @include focus-within;
+
+  input {
+    border: none;
+    background-color: transparent;
+    height: 100%;
+  }
+}
+
+/**
+ * Chat input container
+ * Rounded container with focus state
+ */
+@mixin chat-input-container {
+  display: flex;
+  flex: 1;
+  max-width: s.$chat-input-max-width;
+  flex-direction: column;
+  border: solid 1px c.$border-color-medium;
+  border-radius: br.$border-radius-lg;
+  background-color: c.$bg-input-dark;
+
+  @include focus-within(c.$border-color-focus);
+}
+
+// ============================================
+// Table Mixins
+// ============================================
+
+/**
+ * Table header
+ */
+@mixin table-header {
+  text-align: left;
+  font-size: t.$font-size-md;
+  font-weight: t.$font-weight-semibold;
+  font-family: t.$font-family-initial;
+  color: c.$text-disabled;
+
+  th {
+    padding: s.$table-header-padding-y s.$table-cell-padding-x;
+    background-color: c.$bg-elevated;
+  }
+}
+
+/**
+ * Table body
+ */
+@mixin table-body {
+  color: c.$text-secondary;
+  text-align: left;
+  font-size: t.$font-size-base;
+
+  td {
+    padding: s.$table-cell-padding-y s.$table-cell-padding-x;
+  }
+
+  tr {
+    @include hover-bg(c.$bg-hover);
+
+    &.active {
+      @include active-state;
+    }
+  }
+}
+
+// ============================================
+// Scrollbar Mixins
+// ============================================
+
+/**
+ * Custom scrollbar styling
+ * Used in ExtensionTab tables
+ */
+@mixin scrollbar {
+  &::-webkit-scrollbar {
+    width: sz.$scrollbar-width;
+    height: sz.$scrollbar-height;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: c.$scrollbar-track;
+    border-radius: br.$border-radius-sm;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: c.$scrollbar-thumb;
+    border-radius: br.$border-radius-sm;
+    background-clip: padding-box;
+    border: 2px solid c.$scrollbar-border;
+  }
+}
+
+// ============================================
+// Text Mixins
+// ============================================
+
+/**
+ * Ellipsis overflow
+ * Truncate text with ellipsis
+ */
+@mixin text-ellipsis {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/**
+ * Multi-line ellipsis
+ */
+@mixin text-ellipsis-multiline($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/**
+ * Text with word wrap
+ */
+@mixin text-wrap {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+// ============================================
+// Utility Mixins
+// ============================================
+
+/**
+ * Horizontal divider
+ */
+@mixin divider {
+  width: 100%;
+  height: 1px;
+  background-color: c.$border-medium;
+}
+
+/**
+ * HR line (ExtensionTab style)
+ */
+@mixin hr {
+  border-bottom: b.$border-hr;
+  width: 100%;
+}
+
+/**
+ * Hidden visually but accessible
+ * For screen readers
+ */
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/**
+ * Reset appearance
+ * Remove default browser styling
+ */
+@mixin reset-appearance {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+/**
+ * Gradient overlay (Chat style)
+ * Fade effect for scrollable content
+ */
+@mixin gradient-overlay($color: c.$bg-secondary) {
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba($color, 0) 0%,
+      rgba($color, 0.8) 87%,
+      rgba($color, 0.8) 100%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/**
+ * Absolute positioning with full coverage
+ */
+@mixin absolute-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+// ============================================
+// Animation Mixins
+// ============================================
+
+/**
+ * Smooth transition
+ */
+@mixin transition($property: all, $duration: tr.$transition-duration-fast) {
+  transition: $property $duration tr.$transition-easing-default;
+}
+
+/**
+ * Fade in animation
+ */
+@mixin fade-in($duration: tr.$transition-duration-normal) {
+  animation: fadeIn $duration tr.$transition-easing-default;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/**
+ * Slide in animation
+ */
+@mixin slide-in($direction: up, $duration: tr.$transition-duration-normal) {
+  animation: slideIn#{$direction} $duration tr.$transition-easing-default;
+
+  @if $direction == up {
+    @keyframes slideInup {
+      from {
+        transform: translateY(10px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+  }
+}

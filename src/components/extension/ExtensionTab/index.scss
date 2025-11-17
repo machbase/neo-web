@@ -322,6 +322,20 @@
                 td {
                     padding: 2px;
                     padding-left: 8px;
+
+                    .result-scroll-table-item-copy {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        padding: 4px;
+                        opacity: 0;
+                    }
+                    &:hover {
+                        .result-scroll-table-item-copy {
+                            opacity: 1;
+                            cursor: pointer;
+                        }
+                    }
                 }
             }
         }

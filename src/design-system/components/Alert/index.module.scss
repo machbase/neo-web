@@ -1,0 +1,130 @@
+@use '@/design-system/tokens' as t;
+
+.alert {
+    border-radius: t.$border-radius-base;
+    padding: t.$spacing-12;
+    display: flex;
+    flex-direction: column;
+
+    // Error variant
+    &--error {
+        background-color: rgba(220, 53, 69, 0.15);
+        border: 1px solid rgba(220, 53, 69, 0.4);
+
+        .alert__icon {
+            color: #dc3545;
+        }
+
+        .alert__title {
+            color: #ff6b6b;
+        }
+
+        .alert__message {
+            color: rgba(255, 255, 255, 0.8);
+        }
+    }
+
+    // Warning variant
+    &--warning {
+        background-color: rgba(255, 193, 7, 0.15);
+        border: 1px solid rgba(255, 193, 7, 0.4);
+
+        .alert__icon {
+            color: #ffc107;
+        }
+
+        .alert__title {
+            color: #ffdb4d;
+        }
+
+        .alert__message {
+            color: rgba(255, 255, 255, 0.8);
+        }
+    }
+
+    // Info variant
+    &--info {
+        background-color: rgba(13, 110, 253, 0.15);
+        border: 1px solid rgba(13, 110, 253, 0.4);
+
+        .alert__icon {
+            color: #0d6efd;
+        }
+
+        .alert__title {
+            color: #4d9fff;
+        }
+
+        .alert__message {
+            color: rgba(255, 255, 255, 0.8);
+        }
+    }
+
+    // Success variant
+    &--success {
+        background-color: rgba(25, 135, 84, 0.15);
+        border: 1px solid rgba(25, 135, 84, 0.4);
+
+        .alert__icon {
+            color: #198754;
+        }
+
+        .alert__title {
+            color: #4dba7d;
+        }
+
+        .alert__message {
+            color: rgba(255, 255, 255, 0.8);
+        }
+    }
+
+    &__content {
+        display: flex;
+        align-items: flex-start;
+        gap: t.$spacing-10;
+    }
+
+    &__icon {
+        font-size: 18px;
+        line-height: 1;
+        flex-shrink: 0;
+    }
+
+    &__text {
+        display: flex;
+        flex-direction: column;
+        gap: t.$spacing-4;
+        flex: 1;
+    }
+
+    &__title {
+        font-weight: 600;
+        font-size: t.$font-size-sm;
+    }
+
+    &__message {
+        font-size: t.$font-size-sm;
+        line-height: 1.4;
+    }
+
+    &__close {
+        flex-shrink: 0;
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s ease;
+
+        &:hover {
+            color: rgba(255, 255, 255, 0.9);
+        }
+    }
+}

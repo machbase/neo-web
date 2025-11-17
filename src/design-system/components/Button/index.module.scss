@@ -1,0 +1,157 @@
+@use '@/design-system/tokens' as t;
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: t.$spacing-8;
+    font-family: inherit;
+    font-weight: 500;
+    border: none;
+    border-radius: t.$border-radius-base;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    white-space: nowrap;
+    user-select: none;
+
+    &:focus-visible {
+        outline: 2px solid t.$border-color-focus;
+        outline-offset: 2px;
+    }
+
+    &:active:not(:disabled) {
+        transform: scale(0.98);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    // Variants
+    &--primary {
+        background-color: rgb(0, 108, 210);
+        color: #ffffff;
+        border: 1px solid rgb(0, 108, 210);
+
+        &:hover:not(:disabled) {
+            background-color: rgb(0, 90, 180);
+            border-color: rgb(0, 90, 180);
+        }
+    }
+
+    &--secondary {
+        background-color: transparent;
+        color: t.$text-primary;
+        border: 1px solid #3e3e3e;
+
+        &:hover:not(:disabled) {
+            background-color: t.$bg-hover;
+            border-color: #5a5a5a;
+        }
+    }
+
+    &--ghost {
+        background-color: transparent;
+        color: t.$text-primary;
+        border: 1px solid transparent;
+
+        &:hover:not(:disabled) {
+            background-color: t.$bg-hover;
+        }
+    }
+
+    &--danger {
+        background-color: #e53935;
+        color: #ffffff;
+        border: 1px solid #e53935;
+
+        &:hover:not(:disabled) {
+            background-color: #c62828;
+            border-color: #c62828;
+        }
+    }
+
+    &--none {
+        background-color: transparent;
+        color: t.$text-primary;
+        border: 1px solid transparent;
+        opacity: 0.5;
+
+        &:hover:not(:disabled) {
+            opacity: 1;
+        }
+    }
+
+    // Sizes
+    &--icon {
+        padding: t.$spacing-2;
+        font-size: t.$font-size-sm;
+        min-height: 28px;
+        min-width: 28px;
+    }
+    &--sm {
+        padding: t.$spacing-4 t.$spacing-12;
+        font-size: t.$font-size-sm;
+        min-height: 28px;
+    }
+
+    &--md {
+        padding: t.$spacing-6 t.$spacing-16;
+        font-size: t.$font-size-base;
+        min-height: 36px;
+    }
+
+    &--lg {
+        padding: t.$spacing-8 t.$spacing-20;
+        font-size: t.$font-size-base;
+        min-height: 44px;
+    }
+
+    // States
+    &--loading {
+        pointer-events: none;
+    }
+
+    &--full-width {
+        width: 100%;
+    }
+
+    // Elements
+    &__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    &__text {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    &__spinner {
+        animation: spin 0.8s linear infinite;
+    }
+}
+
+// Icon Button
+.icon-button {
+    padding: t.$spacing-8;
+    min-height: auto;
+    aspect-ratio: 1;
+
+    .button__text {
+        display: none;
+    }
+}
+
+// Spinner animation
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}

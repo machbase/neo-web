@@ -1,0 +1,13 @@
+/**
+ * Border Radius Tokens
+ */
+
+$border-radius-none: 0;
+$border-radius-xs: 2px; // TextButton
+$border-radius-sm: 3px; // Input, Checkbox, MUI selected
+$border-radius-base: 4px; // IconButton, Selector, Switch item
+$border-radius-md: 8px; // Chat send button, Collapse hover, Message
+$border-radius-lg: 10px; // Chat input container
+$border-radius-xl: 12px; // Chat input
+$border-radius-circle: 50%; // Status circle
+$border-radius-round: 20px; // Switch

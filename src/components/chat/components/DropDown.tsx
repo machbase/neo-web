@@ -150,8 +150,8 @@ export const ModelDropDown = ({ pPosition = 'TOP', pList, pSelectedItem, onSelec
             {sIsDeleteModal && (
                 <ConfirmModal pIsDarkMode setIsOpen={setIsDeleteModal} pCallback={delModel} pContents={<div className="body-content">{`Do you want to delete this model?`}</div>} />
             )}
-            {sIsModelModal && <ModelModal pCallback={() => setIsModelModal(false)} />}
-            {sIsProviderModal && <ProviderModal pCallback={() => setIsProviderModal(false)} />}
+            {sIsModelModal && <ModelModal isOpen={sIsModelModal} onClose={() => setIsModelModal(false)} />}
+            {sIsProviderModal && <ProviderModal isOpen={sIsProviderModal} onClose={() => setIsProviderModal(false)} />}
         </div>
     );
 };

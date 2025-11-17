@@ -1,0 +1,102 @@
+@use '@/design-system/tokens' as t;
+
+.menu {
+    position: relative;
+    display: inline-block;
+
+    &__trigger {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: t.$text-primary;
+        outline: none;
+
+        &:hover {
+            opacity: 0.8;
+        }
+
+        &:focus-visible {
+            outline: 2px solid t.$border-color-focus;
+            outline-offset: 2px;
+        }
+    }
+
+    &__content {
+        background-color: t.$menu-bg;
+        border: 1px solid t.$menu-border;
+        border-radius: t.$border-radius-sm;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: t.$z-index-modal-dropdown;
+        min-width: t.$menu-min-width;
+        padding: t.$spacing-4;
+        @include t.fade-in(0.15s);
+        animation: slideDown 0.15s ease-out;
+    }
+
+    &__item {
+        display: flex;
+        align-items: center;
+        gap: t.$spacing-10;
+        padding: t.$spacing-4 t.$spacing-8;
+        border-radius: t.$border-radius-sm;
+        border: none;
+        background: transparent;
+        color: t.$menu-item-text;
+        font-size: t.$font-size-sm;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+        width: 100%;
+        height: t.$menu-item-height;
+        text-align: left;
+        white-space: nowrap;
+        outline: none;
+
+        &:hover:not(&--disabled) {
+            background-color: t.$menu-item-hover-bg;
+        }
+
+        &:focus-visible:not(&--disabled) {
+            background-color: t.$menu-item-hover-bg;
+        }
+
+        &--disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+    }
+
+    &__item-icon {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: t.$menu-item-icon;
+        font-size: t.$menu-icon-size;
+    }
+
+    &__item-label {
+        flex: 1;
+    }
+
+    &__divider {
+        height: 1px;
+        background-color: t.$menu-border;
+        margin: t.$spacing-4 0;
+    }
+}
+
+// Menu slide-down animation
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

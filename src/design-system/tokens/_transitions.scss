@@ -1,0 +1,16 @@
+/**
+ * Transition Tokens
+ */
+
+// Duration
+$transition-duration-fast: 0.2s;
+$transition-duration-normal: 0.3s;
+
+// Easing
+$transition-easing-default: ease;
+$transition-easing-linear: linear;
+$transition-easing-in-out: ease-in-out;
+
+// Preset transitions
+$transition-switch: 0.2s;
+$transition-default: all 0.2s ease;

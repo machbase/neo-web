@@ -68,7 +68,10 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
     // Memoization column list
     const mColList = useMemo(() => {
         if (!sColumnInfo) return undefined;
-        let sTmpColInfo = { ...sColumnInfo, rows: sColumnInfo.rows.filter((row: (string | number)[]) => !(row[sColumnInfo.columns.indexOf('DESC')] as string)?.includes('meta')) };
+        const sTmpColInfo = {
+            ...sColumnInfo,
+            rows: sColumnInfo.rows.filter((row: (string | number)[]) => !(row[sColumnInfo.columns.indexOf('DESC')] as string)?.includes('meta')),
+        };
 
         if (!sIsHiddenCol) return sTmpColInfo;
         const sTmpRows = sTmpColInfo?.rows?.filter((row: (string | number)[]) => {
@@ -280,7 +283,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 setTagIndexGap(undefined);
             }
         }
-    }, [mTableInfo, sRefreshCnt, pIsActiveTab]);
+    }, [mTableInfo, sRefreshCnt]);
 
     // Init screen size
     useEffect(() => {
@@ -293,11 +296,11 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
     return (
         <ExtensionTab pRef={sBodyRef}>
             <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
-                <Pane minSize={500}>
+                <Pane minSize={500} style={{ display: 'flex', flexDirection: 'column' }}>
                     <ExtensionTab.Header />
                     <ExtensionTab.Body fixed>
                         <ExtensionTab.ContentBlock pHoverNone>
-                            <ExtensionTab.DpRowBetween>
+                            <ExtensionTab.DpRowBetween style={{ flexWrap: 'wrap' }}>
                                 <div style={{ gap: '8px', display: 'flex', flexDirection: 'row', alignItems: 'center', textWrap: 'nowrap' }}>
                                     <ExtensionTab.SubTitle>Table</ExtensionTab.SubTitle>
                                     <BadgeSelectorItem
@@ -309,7 +312,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                     <ExtensionTab.ContentTitle>{`${mTableInfo[E_TABLE_INFO.TB_NM]}`}</ExtensionTab.ContentTitle>
                                     <ExtensionTab.ContentDesc>{`(${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]})`}</ExtensionTab.ContentDesc>
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end', justifyContent: 'end', flex: 1 }}>
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <ExtensionTab.ContentDesc>Record: {sRecordInfo?.cnt?.toLocaleString() ?? '0'}</ExtensionTab.ContentDesc>
                                         <IconButton
