@@ -8,6 +8,8 @@
     justify-content: space-between;
     align-items: center;
     flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
 
     .extension-top-list-item {
         width: 48px;

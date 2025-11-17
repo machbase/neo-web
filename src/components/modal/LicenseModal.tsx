@@ -56,30 +56,42 @@ export const LicenseModal = (props: LicenseModalProps) => {
             </Modal.Header>
 
             <Modal.Body className="license-modal-body">
-                <div className="license-modal-content">
-                    <div>Type</div>
-                    <div>{sLicense?.type}</div>
-                </div>
-                <div className="license-modal-content">
-                    <div>Customer</div>
-                    <div>{sLicense?.customer}</div>
-                </div>
-                <div className="license-modal-content">
-                    <div>Country Code</div>
-                    <div>{sLicense?.countryCode}</div>
-                </div>
-                <div className="license-modal-content">
-                    <div>Project</div>
-                    <div>{sLicense?.project}</div>
-                </div>
-                <div className="license-modal-content">
-                    <div>Install Date</div>
-                    <div>{sLicense?.installDate}</div>
-                </div>
-                <div className="license-modal-content">
-                    <div>License Status</div>
-                    <div>{sLicense?.licenseStatus}</div>
-                </div>
+                <Modal.Content>
+                    <div className="license-modal-content">
+                        <div>Type</div>
+                        <div>{sLicense?.type}</div>
+                    </div>
+                </Modal.Content>
+                <Modal.Content>
+                    <div className="license-modal-content">
+                        <div>Customer</div>
+                        <div>{sLicense?.customer}</div>
+                    </div>
+                </Modal.Content>
+                <Modal.Content>
+                    <div className="license-modal-content">
+                        <div>Country Code</div>
+                        <div>{sLicense?.countryCode}</div>
+                    </div>
+                </Modal.Content>
+                <Modal.Content>
+                    <div className="license-modal-content">
+                        <div>Project</div>
+                        <div>{sLicense?.project}</div>
+                    </div>
+                </Modal.Content>
+                <Modal.Content>
+                    <div className="license-modal-content">
+                        <div>Install Date</div>
+                        <div>{sLicense?.installDate}</div>
+                    </div>
+                </Modal.Content>
+                <Modal.Content>
+                    <div className="license-modal-content">
+                        <div>License Status</div>
+                        <div>{sLicense?.licenseStatus}</div>
+                    </div>
+                </Modal.Content>
             </Modal.Body>
 
             <Modal.Footer className="license-modal-footer">

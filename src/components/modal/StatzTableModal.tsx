@@ -70,10 +70,10 @@ export const StatzTableModal = ({ isOpen, onClose }: StatzTableModalProps) => {
     return (
         <Modal.Root isOpen={isOpen} onClose={handleClose} closeOnEscape={!sIsLoading} closeOnOutsideClick={!sIsLoading}>
             <Modal.Header>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Modal.Title>
                     <TableHeader />
-                    <Modal.Title>Statz Table</Modal.Title>
-                </div>
+                    Statz Table
+                </Modal.Title>
                 {!sIsLoading && <Modal.Close />}
             </Modal.Header>
             <Modal.Body>

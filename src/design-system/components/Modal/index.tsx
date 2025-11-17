@@ -70,6 +70,21 @@ const ModalTitle = ({ children, className, style }: ModalTitleProps) => {
     );
 };
 
+// Title Component
+interface ModalTitleSubProps {
+    children: React.ReactNode;
+    className?: string;
+    style?: React.CSSProperties;
+}
+
+const ModalTitleSub = ({ children, className, style }: ModalTitleSubProps) => {
+    return (
+        <div className={`${styles['modal__title__sub']} ${className ?? ''}`} style={style}>
+            {children}
+        </div>
+    );
+};
+
 // Body Component
 interface ModalBodyProps {
     children: React.ReactNode;
@@ -80,6 +95,21 @@ interface ModalBodyProps {
 const ModalBody = ({ children, className, style }: ModalBodyProps) => {
     return (
         <div className={`${styles['modal__body']} ${className ?? ''}`} style={style}>
+            {children}
+        </div>
+    );
+};
+
+// Body Content Component
+interface ModalBodyContentProps {
+    children: React.ReactNode;
+    className?: string;
+    style?: React.CSSProperties;
+}
+
+const ModalBodyContent = ({ children, className, style }: ModalBodyContentProps) => {
+    return (
+        <div className={`${styles['modal__body__content']} ${className ?? ''}`} style={style}>
             {children}
         </div>
     );
@@ -170,7 +200,9 @@ export const Modal = {
     Root: ModalRoot,
     Header: ModalHeader,
     Title: ModalTitle,
+    TitleSub: ModalTitleSub,
     Body: ModalBody,
+    Content: ModalBodyContent,
     Footer: ModalFooter,
     Close: ModalClose,
     Confirm: ModalConfirm,

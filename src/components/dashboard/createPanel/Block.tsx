@@ -29,7 +29,7 @@ import { Input } from '@/components/inputs/Input';
 import { CombineTableUser, SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser';
 import { Error } from '@/components/toast/Toast';
 import { chartTypeConverter } from '@/utils/eChartHelper';
-import TagSelectDialog from '@/components/inputs/TagSelectDialog';
+import TagSelectDialog from '@/components/inputs/TagSelectDialog.new';
 import { Duration } from './Duration';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { InputSelector } from '@/components/inputs/InputSelector';
@@ -161,8 +161,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     };
     const getFullCustomQuery = () => {
         const sTableName = CombineTableUser(pBlockInfo.table, pBlockInfo?.customTable);
-        let sName = pBlockInfo?.name ?? '';
-        let sTime = pBlockInfo?.time ?? '';
+        const sName = pBlockInfo?.name ?? '';
+        const sTime = pBlockInfo?.time ?? '';
         let sValue = pBlockInfo?.value ?? '';
         let sAgg = pBlockInfo?.aggregator ?? '';
         let sWhereNameIn: any = [];
@@ -189,7 +189,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         if (sAgg?.toUpperCase() === 'diff'.toUpperCase() || sAgg?.toUpperCase() === 'diff (abs)'.toUpperCase() || sAgg?.toUpperCase() === 'diff (no-negative)'.toUpperCase()) {
             sCombineValue = `COUNT(*) AS ${sAlias}`;
         }
-        let sQuery = `SELECT DATE_TRUNC('{{period_unit}}', ${sTime}, {{period_value}}) / 1000000 AS TIME, ${sCombineValue} FROM ${sTableName} WHERE ${sTime} BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) ${
+        const sQuery = `SELECT DATE_TRUNC('{{period_unit}}', ${sTime}, {{period_value}}) / 1000000 AS TIME, ${sCombineValue} FROM ${sTableName} WHERE ${sTime} BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) ${
             sWhereNameIn?.length > 0 ? 'AND ' + sWhereNameIn?.join('AND') : ''
         } GROUP BY TIME ORDER BY TIME`;
         return sQuery;
@@ -545,7 +545,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     /** return agg list based on chart type */
     const getAggregatorList = useMemo((): string[] => {
         const sChartConvertType = chartTypeConverter(pPanelOption.type);
-        let sChartDataType = SqlResDataType(sChartConvertType);
+        const sChartDataType = SqlResDataType(sChartConvertType);
 
         if (sChartConvertType === 'geomap') return geomapAggregatorList;
         if (sChartDataType === 'TIME_VALUE') {
@@ -562,7 +562,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     /** return table list + virtual table list */
     const getTableList = useMemo((): string[] => {
         const sUseCustom = pBlockInfo.useCustom;
-        let sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
+        const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
         let sAggList: string[] = [];
         if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : [...tagAggregatorList, ...DIFF_LIST];
         if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;

@@ -2,13 +2,14 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import { gTables } from '@/recoil/recoil';
 import { fetchTableName, getTagPagination, getTagTotal } from '@/api/repository/machiot';
-import { BiSolidChart, Search, Close } from '@/assets/icons/Icon';
+import { BiSolidChart, Search } from '@/assets/icons/Icon';
 import { Error } from '@/components/toast/Toast';
 import { Modal } from '@/design-system/components/Modal';
 import { Button } from '@/design-system/components/Button';
 import { Input } from '@/design-system/components/Input';
 import useDebounce from '@/hooks/useDebounce';
 import { Pagination, List } from '@/design-system/components';
+import { IoBackspaceOutline } from 'react-icons/io5';
 
 interface TagSelectDialogProps {
     pTable: string;
@@ -86,7 +87,6 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
         pCloseModal();
     };
 
-
     const handleClear = () => {
         setTagInputValue('');
         setSearchText('');
@@ -137,7 +137,7 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
                 </Modal.Title>
                 <Modal.Close />
             </Modal.Header>
-            <Modal.Body style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px 32px', backgroundColor: '#404457' }}>
+            <Modal.Body>
                 <div style={{ display: 'flex', flexDirection: 'row', gap: '4px' }}>
                     <Input
                         value={sTagInputValue}
@@ -153,54 +153,51 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
                         placeholder="Search tags..."
                         fullWidth
                         size="md"
-                        rightIcon={<Button icon={<Close size={16} />} variant="ghost" size="icon" onClick={handleClear} />}
+                        rightIcon={<Button isToolTip toolTipContent="Clear" icon={<IoBackspaceOutline size={16} />} variant="ghost" size="icon" onClick={handleClear} />}
                     />
-                    <Button icon={<Search size={16} />} variant="primary" size="sm" onClick={handleSearch} />
+                    <Button icon={<Search size={16} />} isToolTip toolTipContent="Search" variant="primary" size="sm" onClick={handleSearch} />
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                    <List
-                        items={sTagList.map((aItem: string) => ({
-                            id: aItem[1],
-                            label: aItem[1],
-                            tooltip: aItem[1],
-                        }))}
-                        onItemClick={(itemId) => setTag(itemId as string)}
-                        emptyMessage="no-data"
-                        maxHeight="100%"
-                        style={{ backgroundColor: '#404457', borderColor: 'rgba(255, 255, 255, 0.5)' }}
-                    />
+                <List
+                    items={sTagList.map((aItem: string) => ({
+                        id: aItem[1],
+                        label: aItem[1],
+                        tooltip: aItem[1],
+                    }))}
+                    onItemClick={(itemId) => setTag(itemId as string)}
+                    emptyMessage="no-data"
+                    maxHeight="100%"
+                />
 
-                    <Pagination
-                        ref={pageRef}
-                        currentPage={sTagPagination}
-                        totalPages={getMaxPageNum}
-                        onPageChange={(page) => {
-                            setSkipTagTotal(true);
-                            setTagPagination(page);
-                            setKeepPageNum(page);
-                        }}
-                        onPageInputChange={(value) => setKeepPageNum(Number(value) || '')}
-                        onPageInputApply={(event) => {
-                            if (sKeepPageNum === sTagPagination) return;
-                            if (event === 'outsideClick' || (event as React.KeyboardEvent).key === 'Enter') {
-                                if (!Number(sKeepPageNum)) {
-                                    setKeepPageNum(1);
-                                    setTagPagination(1);
-                                    return;
-                                }
-                                if (getMaxPageNum < Number(sKeepPageNum)) {
-                                    setKeepPageNum(getMaxPageNum);
-                                    setTagPagination(getMaxPageNum);
-                                    return;
-                                }
-                                setSkipTagTotal(true);
-                                setTagPagination(Number(sKeepPageNum));
+                <Pagination
+                    ref={pageRef}
+                    currentPage={sTagPagination}
+                    totalPages={getMaxPageNum}
+                    onPageChange={(page) => {
+                        setSkipTagTotal(true);
+                        setTagPagination(page);
+                        setKeepPageNum(page);
+                    }}
+                    onPageInputChange={(value) => setKeepPageNum(Number(value) || '')}
+                    onPageInputApply={(event) => {
+                        if (sKeepPageNum === sTagPagination) return;
+                        if (event === 'outsideClick' || (event as React.KeyboardEvent).key === 'Enter') {
+                            if (!Number(sKeepPageNum)) {
+                                setKeepPageNum(1);
+                                setTagPagination(1);
+                                return;
                             }
-                        }}
-                        inputValue={sKeepPageNum.toString()}
-                    />
-                </div>
+                            if (getMaxPageNum < Number(sKeepPageNum)) {
+                                setKeepPageNum(getMaxPageNum);
+                                setTagPagination(getMaxPageNum);
+                                return;
+                            }
+                            setSkipTagTotal(true);
+                            setTagPagination(Number(sKeepPageNum));
+                        }
+                    }}
+                    inputValue={sKeepPageNum.toString()}
+                />
             </Modal.Body>
             <Modal.Footer>
                 <Modal.Cancel onClick={pCloseModal}>Cancel</Modal.Cancel>
