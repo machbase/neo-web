@@ -52,15 +52,42 @@ const Pagination = React.forwardRef<HTMLDivElement, PaginationProps>(
         };
 
         const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-            // Validate page number before applying
             const input = e.currentTarget;
-            const pageNum = parseInt(input.value, 10);
+            const currentValue = parseInt(input.value, 10) || 0;
 
-            // Only apply if valid page number
-            if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
-                onPageInputApply?.(e);
-            } else if (input.value === '') {
-                // Allow empty string (user clearing input)
+            // Handle arrow keys for incrementing/decrementing
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const newValue = Math.min(currentValue + 1, totalPages);
+                if (newValue >= 1) {
+                    onPageInputChange?.(newValue.toString());
+                }
+                return;
+            }
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const newValue = Math.max(currentValue - 1, 1);
+                if (newValue >= 1) {
+                    onPageInputChange?.(newValue.toString());
+                }
+                return;
+            }
+
+            // Handle Enter key
+            if (e.key === 'Enter') {
+                const pageNum = parseInt(input.value, 10);
+
+                // Adjust page number if out of range
+                let adjustedPageNum = pageNum;
+                if (isNaN(pageNum) || pageNum < 1) {
+                    adjustedPageNum = 1;
+                } else if (pageNum > totalPages) {
+                    adjustedPageNum = totalPages;
+                }
+
+                // Update input with adjusted page number and apply
+                onPageInputChange?.(adjustedPageNum.toString());
                 onPageInputApply?.(e);
             }
         };
