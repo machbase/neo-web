@@ -15,6 +15,7 @@ import {
     nameValueVirtualAggList,
     tagAggregatorList,
 } from '@/utils/dashboardUtil';
+import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 import { DIFF_LIST } from '@/utils/aggregatorConstants';
 import { useEffect, useMemo, useState } from 'react';
 import Filter from './Filter';
@@ -584,7 +585,14 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                 };
             });
         }
-        const sTableList = pTableList.map((aItem: any) => aItem[3]);
+
+        const sSortedTableList = [...pTableList].sort((aTable: any, bTable: any) => {
+            const aType = getTableType(aTable[4]);
+            const bType = getTableType(bTable[4]);
+            return TableTypeOrderList.indexOf(aType) - TableTypeOrderList.indexOf(bType);
+        });
+
+        const sTableList = sSortedTableList.map((aItem: any) => aItem[3]);
 
         if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
             // sTagTableList has only MACHBASEDB

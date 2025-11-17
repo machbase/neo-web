@@ -12,6 +12,7 @@ import { IsKeyword, MountNameRegEx } from '@/utils/database';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useSetRecoilState } from 'recoil';
+import { TableTypeOrderList } from './utils';
 
 const TAB_TYPE = 'DBTable';
 
@@ -373,7 +374,7 @@ interface UserDivPropsType {
 }
 const UserDiv = (props: UserDivPropsType): JSX.Element => {
     const [sCollapseTree, setCollapseTree] = useState(true);
-    const TableTypeList: string[] = ['tag', 'log', 'fixed', 'volatile', 'lookup', 'keyValue'];
+
     let sUserName = getUserName();
     if (sUserName) sUserName = sUserName?.toUpperCase();
 
@@ -424,7 +425,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
             )}
             {props.pUserData && props.pUserData.tableList && props.pUserData.total > 0 && sCollapseTree && (
                 <div className="table-wrap db-exp-comm">
-                    {TableTypeList.map((aTableType: string, aIdx: number) => {
+                    {TableTypeOrderList.map((aTableType: string, aIdx: number) => {
                         return (
                             <div key={`table-${aTableType}-${aIdx}`}>
                                 {props.pUserData.tableList[aTableType].map((aTable: any, bIdx: number) => {
