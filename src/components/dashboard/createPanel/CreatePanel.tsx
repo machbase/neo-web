@@ -10,6 +10,7 @@ import CreatePanelRight from './CreatePanelRight';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType, PanelIdParser } from '@/utils/dashboardUtil';
+import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 import { getTableList, postFileList } from '@/api/repository/api';
 import { decodeJwt, generateUUID, isValidJSON, parseDashboardTables } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
@@ -356,11 +357,16 @@ const CreatePanel = ({
                             setAppliedPanelOption(JSON.parse(JSON.stringify(sOption)));
                             return;
                         }
-                        const sTableType = getTableType(newTable[0][4]);
+                        const sSortedTable = [...newTable].sort((aTable: any, bTable: any) => {
+                            const aType = getTableType(aTable[4]);
+                            const bType = getTableType(bTable[4]);
+                            return TableTypeOrderList.indexOf(aType) - TableTypeOrderList.indexOf(bType);
+                        });
+                        const sTableType = getTableType(sSortedTable[0][4]);
                         sOption = {
                             ...sOption,
                             id: generateUUID(),
-                            blockList: createDefaultTagTableOption(decodeJwt(sToken).sub, newTable[0], sTableType, ''),
+                            blockList: createDefaultTagTableOption(decodeJwt(sToken).sub, sSortedTable[0], sTableType, ''),
                         };
                         sOption.chartOptions = getDefaultSeriesOption(sOption.type);
                         setPanelOption(sOption);
