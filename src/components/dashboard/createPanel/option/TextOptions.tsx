@@ -3,13 +3,14 @@ import { Collapse } from '@/components/collapse/Collapse';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 import useOutsideClick from '@/hooks/useOutsideClick';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import CompactPicker from 'react-color/lib/components/compact/Compact';
 import { MultiColorPkr } from './MultiColorPkr';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { BadgeSelect, BadgeSelectorItemType } from '@/components/inputs/BadgeSelector';
 import { getChartSeriesName } from '@/utils/dashboardUtil';
 import { E_BLOCK_TYPE } from '@/utils/Chart/TransformDataParser';
+import { ChartThemeTextColor } from '@/utils/constants';
 
 interface ChartOptionProps {
     pPanelOption: any;
@@ -25,6 +26,23 @@ export const TextOptions = (props: ChartOptionProps) => {
 
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
     useOutsideClick(sChartColorPickerRef, () => setIsChartColorPicker(false));
+
+    // Apply theme color to text option and chart option when theme changes or panel type changes to text
+    useEffect(() => {
+        if (pPanelOption.type === 'Text') {
+            const sThemeColor = ChartThemeTextColor[pPanelOption.theme as keyof typeof ChartThemeTextColor] || '#333333';
+            pSetPanelOption((aPrev: any) => {
+                return {
+                    ...aPrev,
+                    chartOptions: {
+                        ...aPrev.chartOptions,
+                        color: [[pPanelOption.chartOptions?.color?.[0]?.[0] ?? 0, sThemeColor]],
+                        chartColor: sThemeColor,
+                    },
+                };
+            });
+        }
+    }, [pPanelOption.theme]);
 
     const getBlockList = useMemo((): any[] => {
         const sTmpBlockList = JSON.parse(JSON.stringify(pPanelOption?.blockList));
