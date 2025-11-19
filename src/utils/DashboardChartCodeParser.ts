@@ -1,10 +1,48 @@
+const ERR_COLOR = '#fa6464';
+const ERR_FONT_SIZE = '18';
+/** SYNTAX_ERR */
+const SYNTAX_ERR = (trigger: string, position: 'top' | 'center' | 'bottom') => {
+    return `if (${trigger}) {
+        \tconst sExistGraphicOpt = _chartOption.graphic?.map((graphicOpt) => graphicOpt?.style?.text)
+        \t_chartOption.graphic = [{
+        \t\ttype: 'text',
+        \t\tleft: 'center',
+        \t\ttop: '${position}',
+        \t\tstyle: {
+        \t\t\ttext: (sExistGraphicOpt ?? '') + obj?.reason + '\\n',
+        \t\t\tfontSize: ${ERR_FONT_SIZE},
+        \t\t\tfontWeight: 'normal',
+        \t\t\tfill: '${ERR_COLOR}',
+        \t\t\twidth: _chart.getWidth() * 0.9,
+        \t\t\toverflow: 'break'
+        \t\t}
+        \t}];
+        \t_chart.setOption(_chartOption)
+        \treturn;
+    }`;
+};
+/** SYNTAX_ERR_TEXT */
+const SYNTAX_ERR_TEXT = (aPanelId?: string) => {
+    return `\t\t\t\tif (!obj?.success) {
+        \t\t\t\t\tconst sDOM = document.getElementById('${aPanelId}-text');
+        \t\t\t\t\tif (sDOM) {
+        \t\t\t\t\t\tsDOM.innerText = obj?.reason ?? '';
+        \t\t\t\t\t\tsDOM.style.color = '${ERR_COLOR}';
+        \t\t\t\t\t\tsDOM.style.fontSize = ${ERR_FONT_SIZE} + 'px';
+        \t\t\t\t\t\treturn;
+        \t\t\t\t\t}
+        \t\t\t\t}`;
+};
+
 /** NAME_VALUE func */
 const NameValueFunc = (aChartType: string) => {
     const sIsGauge = aChartType === 'gauge';
-    const sGaugeNaNFormatter = `if (isNaN(Number.parseFloat(obj.data.rows[0][0].value))) {_chartOption.series[0].detail.formatter = function (value) {return 'No-data'}}`;
+    const sPosition = sIsGauge || aChartType === 'pie' ? 'bottom' : 'center';
+    const sGaugeNaNFormatter = `if (isNaN(Number.parseFloat(obj?.data?.rows?.[0]?.[0].value))) {_chartOption.series[0].detail.formatter = function (value) {return 'No-data'}}`;
     return `(obj) => {
+        \t${SYNTAX_ERR('!obj.success', sPosition)}
         \t\t${sIsGauge && sGaugeNaNFormatter}
-        \t\tsData[aIdx] = obj.data.rows?.[0]?.[0] ?? 0;
+        \t\tsData[aIdx] = obj?.data?.rows?.[0]?.[0] ?? 0;
         \t\tsCount += 1;
         \t\t_chartOption.series[0] = { ..._chartOption.series[0], data: sData };
         \t\tif (sCount === sQuery.length) _chart.setOption(_chartOption);
@@ -13,6 +51,7 @@ const NameValueFunc = (aChartType: string) => {
 /** TIME_VALUE func */
 const TimeValueFunc = () => {
     return `(obj) => {
+       \t${SYNTAX_ERR('!obj.success', 'center')}
         \t\tif (sQuery?.[aIdx]?.alias === '') _chartOption.series[aIdx].name = obj?.data?.columns?.[1];
         \t\t_chartOption.series[aIdx].data = obj?.data?.rows ?? [];
         \t\t_chart.setOption(_chartOption);
@@ -21,7 +60,8 @@ const TimeValueFunc = () => {
 /** LIQUIDFILL NAME_VALUE func */
 const LiquidNameValueFunc = (aChartOptions: any) => {
     return `(obj) => {
-        \t\tlet sValue = obj.data.rows[0][0].value;
+        \t${SYNTAX_ERR('!obj.success', 'bottom')}
+        \t\tlet sValue = obj?.data?.rows?.[0]?.[0]?.value;
         \t\t_chartOption.series[aIdx].data = [ (sValue - ${aChartOptions.minData}) / ( ${aChartOptions.maxData} -  ${aChartOptions.minData}) ]
         \t\t_chartOption.series[aIdx].label.formatter = function() {
         \t\t\tif (isNaN(Number.parseFloat(sValue))) return 'No-data';
@@ -44,6 +84,7 @@ const TextFunc = (aChartOptions: any, aPanelId?: string) => {
         \t\tconst setColor = (aValue) => {
         \t\t\t${colorInjectTxt.join('')}
         \t\t}
+        \t\t${SYNTAX_ERR_TEXT(aPanelId)}
         \t\tif (aIdx === 1) {
         \t\t\t_chartOption.series[0].data = obj?.data?.rows ?? [];
         \t\t\t_chart.setOption(_chartOption);
@@ -87,9 +128,11 @@ const Geomapfunc = (aChartOptions: any) => {
         })
     }`;
 };
+
 /** ADV SCATTER func*/
 const AdvScatterFunc = () => {
     return `(obj) => {
+        \t\t${SYNTAX_ERR('!obj.success', 'center')}
         \t\tif (sQuery?.[aIdx]?.alias === '') _chartOption.series[aIdx].name = obj?.data?.columns?.[1];
         \t\t_chartOption.series[aIdx].data = obj?.data?.rows ?? [];
         \t\t_chart.setOption(_chartOption);
