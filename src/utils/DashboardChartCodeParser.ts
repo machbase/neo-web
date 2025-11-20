@@ -3,13 +3,14 @@ const ERR_FONT_SIZE = '18';
 /** SYNTAX_ERR */
 const SYNTAX_ERR = (trigger: string, position: 'top' | 'center' | 'bottom') => {
     return `if (${trigger}) {
-        \tconst sExistGraphicOpt = _chartOption.graphic?.map((graphicOpt) => graphicOpt?.style?.text)
+        const isDuplicateError = sErr?.some((err) => err === obj?.reason);
+        if (!isDuplicateError) sErr?.push(obj?.reason)
         \t_chartOption.graphic = [{
         \t\ttype: 'text',
         \t\tleft: 'center',
         \t\ttop: '${position}',
         \t\tstyle: {
-        \t\t\ttext: (sExistGraphicOpt ?? '') + obj?.reason + '\\n',
+        \t\t\ttext: sErr?.join('\\n'),
         \t\t\tfontSize: ${ERR_FONT_SIZE},
         \t\t\tfontWeight: 'normal',
         \t\t\tfill: '${ERR_COLOR}',
@@ -181,6 +182,7 @@ export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string,
     return `{
         let sQuery = ${JSON.stringify(sDynamicVariable)};
         let sData = [];
+        let sErr = [];
         let sCount = 0;
         ${sFunction}
         ${sLoop}
