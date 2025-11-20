@@ -18,7 +18,7 @@ import {
     chartTypeConverter,
     DefaultVariableTableOption,
 } from '@/utils/eChartHelper';
-import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartAxisTooltipFormatter } from '@/utils/constants';
+import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartAxisTooltipFormatter, DB_STRING_TYPE } from '@/utils/constants';
 import { ChartType } from '@/type/eChart';
 import moment from 'moment';
 import { SqlResDataType } from './DashboardQueryParser';
@@ -776,6 +776,12 @@ export const isNumberTypeColumn = (aType: number) => {
     } else {
         return false;
     }
+};
+
+export const isStringTypeColumn = (aType: number) => {
+    const colType = TABLE_COLUMN_TYPE.find((item) => item.key === aType);
+    if (colType && DB_STRING_TYPE.some((item) => item === colType.value)) return true;
+    else return false;
 };
 
 export const createGaugeQuery = (aInfo: any, aStart: number, aEnd: number) => {

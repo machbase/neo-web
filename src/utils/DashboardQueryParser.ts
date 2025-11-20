@@ -351,7 +351,10 @@ const UseGroupByTime = (aValueList: any) => {
 const GetAlias = (aValue: any) => {
     if (!aValue) return;
     if (aValue?.alias && aValue?.alias !== '') return aValue.alias;
-    else return `${aValue.value}${aValue.aggregator !== 'value' && aValue.aggregator !== 'none' ? '(' + aValue.aggregator + ')' : ''}`;
+    else
+        return `${aValue.value}${
+            aValue.aggregator?.toUpperCase() !== 'value'.toUpperCase() && aValue.aggregator?.toUpperCase() !== 'none'.toUpperCase() ? '(' + aValue.aggregator + ')' : ''
+        }`;
 };
 const UseCountAll = (aValueList: any) => {
     const sUseCountAll = aValueList.reduce((preV: boolean, aValue: any) => {
@@ -466,7 +469,11 @@ const QueryParser = (
             return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, dataType: aResDataType, sql: aQuery.text, useQuery: aQuery.isVisible };
         }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
-        const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
+        const sUseAgg: boolean =
+            aQuery.valueList[0]?.aggregator !== '' &&
+            aQuery.valueList[0]?.aggregator?.toUpperCase() !== 'none'.toUpperCase() &&
+            aQuery.valueList[0]?.aggregator?.toUpperCase() !== 'value'.toUpperCase() &&
+            !sUseDiff;
         const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval, aQuery.valueList[0]?.aggregator, aRollupList);
         const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo);
         const sTimeWhere = GetTimeWhere(aQuery.time, aTime);

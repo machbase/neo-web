@@ -442,6 +442,7 @@ export const TABLE_COLUMN_TYPE = [
     { key: 112, value: 'ULONG' },
 ];
 export const DB_NUMBER_TYPE = ['SHORT', 'INTEGER', 'LONG', 'FLOAT', 'DOUBLE', 'USHORT', 'UINTEGER', 'ULONG'];
+export const DB_STRING_TYPE = ['VARCHAR', 'DATETIME', 'IPV4', 'IPV6', 'TEXT', 'CLOB', 'JSON'];
 
 // dashboard e-chart setting value
 // export type SeriesType = 'line' | 'bar' | 'scatter' | 'pie' | 'radar' | 'candlestick' | 'heatmap' | 'sankey' | 'gauge' | 'liquidFill' | 'wordCloud';
@@ -514,7 +515,7 @@ export const ChartAxisTooltipFormatter = (aOpt: any, aUnit?: string, aDecimals?:
             else name = targetBlock?.tag + '(' + targetBlock?.aggregator + ')';
         }
         sInjectionOutput = `let output = '<div><table><tr><td  style="color: ${targetBlock.color}"><b>X-axis</b>&ensp;:</td><td> ${
-            '&ensp;' + name + '&ensp;'
+            '&ensp;' + JSON.stringify(name).replaceAll("'", '"') + '&ensp;'
         } </td> <td><b>' + parseFloat(params[0].axisValue)${aDecimals ? '.toFixed(' + aDecimals + ')' : ''} ${
             aUnit ? "+ ' " + aUnit.replaceAll("'", '"') + "'" : ''
         } + '</b></td></tr></table></div>';`;
@@ -542,7 +543,7 @@ export const ChartItemTooltipFormatter = (aOpt: any, aUnit?: string, aDecimals?:
             else name = targetBlock?.tag + '(' + targetBlock?.aggregator + ')';
         }
         sInjectionOutput = `let output = '<div><table><tr><td  style="color: ${targetBlock.color}"><b>X-axis</b>&ensp;:</td><td> ${
-            '&ensp;' + name + '&ensp;'
+            '&ensp;' + JSON.stringify(name).replaceAll("'", '"') + '&ensp;'
         } </td> <td><b>' + params.data[0]${aDecimals ? '.toFixed(' + aDecimals + ')' : ''} ${
             aUnit ? "+ ' " + aUnit.replaceAll("'", '"') + "'" : ''
         } + '</b></td></tr></table></div>';`;

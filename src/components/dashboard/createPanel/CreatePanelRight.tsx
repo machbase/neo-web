@@ -76,7 +76,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                         return { ...qBlock, isVisible: true };
                     } else return { ...qBlock, isVisible: false };
                 });
-                const sTrxBlock: TrxParsedBlockType[] = sResVal.transformBlockList.map((tBlock: TrxParsedBlockType) => {
+                const sTrxBlock: TrxParsedBlockType[] = sResVal?.transformBlockList.map((tBlock: TrxParsedBlockType) => {
                     if (sLimit > 0) {
                         --sLimit;
                         return { ...tBlock, isVisible: true };

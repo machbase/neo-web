@@ -208,15 +208,15 @@ export const AGGREGATOR_VALIDATION_RULES = {
 
 // Helper functions
 export const isFirstOrLastAggregator = (aggregator: string): boolean => {
-    return aggregator === AGGREGATOR_TYPE.FIRST || aggregator === AGGREGATOR_TYPE.LAST;
+    return aggregator?.toUpperCase() === AGGREGATOR_TYPE.FIRST?.toUpperCase() || aggregator?.toUpperCase() === AGGREGATOR_TYPE.LAST?.toUpperCase();
 };
 
 export const isValueOrNoneAggregator = (aggregator: string): boolean => {
-    return aggregator === AGGREGATOR_TYPE.VALUE || aggregator === AGGREGATOR_TYPE.NONE;
+    return aggregator?.toUpperCase() === AGGREGATOR_TYPE.VALUE?.toUpperCase() || aggregator?.toUpperCase() === AGGREGATOR_TYPE.NONE?.toUpperCase();
 };
 
 export const isCountAllAggregator = (aggregator: string): boolean => {
-    return aggregator === AGGREGATOR_TYPE.COUNT_ALL;
+    return aggregator?.toUpperCase() === AGGREGATOR_TYPE.COUNT_ALL?.toUpperCase();
 };
 
 export const getAggregatorDisplayName = (aggregator: string): string => {
@@ -224,11 +224,11 @@ export const getAggregatorDisplayName = (aggregator: string): string => {
 };
 
 export const getAggregatorSqlFunction = (aggregator: string): string => {
-    return AGGREGATOR_SQL_MAP[aggregator as AGGREGATOR_TYPE] || aggregator;
+    return AGGREGATOR_SQL_MAP[aggregator?.toLowerCase() as AGGREGATOR_TYPE] || aggregator;
 };
 
 export const getDiffSqlFunction = (diff: string): string => {
-    return DIFF_SQL_MAP[diff as keyof typeof DIFF_SQL_MAP] || 'DIFF';
+    return DIFF_SQL_MAP[diff?.toLowerCase() as keyof typeof DIFF_SQL_MAP] || 'DIFF';
 };
 
 export const getDefaultAggregator = (context: keyof typeof DEFAULT_AGGREGATORS): string => {
@@ -236,5 +236,5 @@ export const getDefaultAggregator = (context: keyof typeof DEFAULT_AGGREGATORS):
 };
 
 export const getAggregatorValidationRule = (aggregator: string) => {
-    return AGGREGATOR_VALIDATION_RULES[aggregator as AGGREGATOR_TYPE];
+    return AGGREGATOR_VALIDATION_RULES[aggregator?.toLowerCase() as AGGREGATOR_TYPE];
 };
