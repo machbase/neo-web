@@ -77,7 +77,7 @@ export const VariableHeader = ({
     }, [pBoardInfo?.dashboard?.variables]);
 
     return (
-        <div className="board-header-variable-wrap">
+        <div className="board-header-variable-wrap scrollbar-dark">
             <div className="board-header-variable-overflow">
                 <div className="board-header-variable">
                     {sUpdateVarList &&

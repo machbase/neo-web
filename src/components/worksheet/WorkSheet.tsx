@@ -210,7 +210,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
                     />
                 </div>
             </div>
-            <div ref={worksheetBodyRef} className="worksheet-body">
+            <div ref={worksheetBodyRef} className="worksheet-body scrollbar-dark-border">
                 <div className="worksheet">
                     {sWorkSheets &&
                         sWorkSheets.length !== 0 &&

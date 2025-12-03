@@ -161,7 +161,7 @@ export const Shell = ({ pServer }: any) => {
                     </span>
                 </div>
             </div>
-            <div style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
+            <div className="scrollbar-dark" style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
                 {sCollapseTree &&
                     getShowShellList &&
                     getShowShellList.length !== 0 &&

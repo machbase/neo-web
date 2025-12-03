@@ -214,7 +214,7 @@ const ComboboxList = ({ children, className, emptyMessage = 'No results found' }
     const combobox = useComboboxContext();
 
     return (
-        <ul {...combobox.getListProps()} className={`${styles['combobox__list']} ${className ?? ''}`}>
+        <ul {...combobox.getListProps()} className={`${styles['combobox__list']} scrollbar-dark ${className ?? ''}`}>
             {combobox.filteredOptions.length === 0 ? (
                 <li className={styles['combobox__empty']}>{emptyMessage}</li>
             ) : (

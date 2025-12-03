@@ -180,7 +180,7 @@ const NewBoard = (props: NewBoardProps) => {
     }, [sShellList, pGetInfo]);
 
     return (
-        <div className="inner">
+        <div className="inner scrollbar-dark">
             <div className="title">
                 <p className="main_title">New...</p>
             </div>

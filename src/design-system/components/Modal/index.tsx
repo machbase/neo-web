@@ -94,7 +94,7 @@ interface ModalBodyProps {
 
 const ModalBody = ({ children, className, style }: ModalBodyProps) => {
     return (
-        <div className={`${styles['modal__body']} ${className ?? ''}`} style={style}>
+        <div className={`${styles['modal__body']} scrollbar-dark ${className ?? ''}`} style={style}>
             {children}
         </div>
     );

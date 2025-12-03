@@ -196,7 +196,7 @@ export const FFTModal = (props: FFTModalProps) => {
                                     style={{ display: isDropboxOpen ? 'block' : 'none', maxHeight: '200px', borderRadius: '8px' }}
                                     onClick={(aEvent) => aEvent.stopPropagation()}
                                 >
-                                    <div className="select-options-item-wrapper" style={{ maxHeight: '160px' }}>
+                                    <div className="select-options-item-wrapper scrollbar-dark-border" style={{ maxHeight: '160px' }}>
                                         {pInfo.map((aOption: FFTInfo, aIdx: number) => (
                                             <button
                                                 key={aIdx}

@@ -97,7 +97,7 @@ export const InputSelector = (props: SelectProps) => {
                 style={{ display: isOpen ? 'block' : 'none', maxHeight: pHeight * 5 + 'px', borderRadius: pBorderRadius + 'px' }}
                 onClick={(aEvent) => aEvent.stopPropagation()}
             >
-                <div className="select-options-item-wrapper" style={{ maxHeight: pHeight * 4 + 'px' }}>
+                <div className="select-options-item-wrapper scrollbar-dark" style={{ maxHeight: pHeight * 4 + 'px' }}>
                     {pOptions.map((aOption: string, aIdx) => (
                         <button key={aIdx} className={`select-tooltip-${aIdx} options-item`} onClick={() => handleSelect(aOption, 'customSelect')} style={{ fontSize: pFontSize }}>
                             <Tooltip anchorSelect={`.select-tooltip-${aIdx}`} content={aOption} />

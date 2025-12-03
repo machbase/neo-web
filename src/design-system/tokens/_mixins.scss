@@ -414,33 +414,6 @@
 }
 
 // ============================================
-// Scrollbar Mixins
-// ============================================
-
-/**
- * Custom scrollbar styling
- * Used in ExtensionTab tables
- */
-@mixin scrollbar {
-    &::-webkit-scrollbar {
-        width: sz.$scrollbar-width;
-        height: sz.$scrollbar-height;
-    }
-
-    &::-webkit-scrollbar-track {
-        background-color: c.$scrollbar-track;
-        border-radius: br.$border-radius-sm;
-    }
-
-    &::-webkit-scrollbar-thumb {
-        background-color: c.$scrollbar-thumb;
-        border-radius: br.$border-radius-sm;
-        background-clip: padding-box;
-        border: 2px solid c.$scrollbar-border;
-    }
-}
-
-// ============================================
 // Text Mixins
 // ============================================
 

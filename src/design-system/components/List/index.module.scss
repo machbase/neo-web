@@ -18,7 +18,6 @@
         height: 100%;
         padding: t.$spacing-4;
         gap: t.$spacing-2;
-        @include t.scrollbar;
     }
 
     &__item {

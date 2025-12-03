@@ -169,7 +169,6 @@
 
     // List container
     &__list {
-        @include t.scrollbar;
         max-height: t.$dropdown-max-height;
         overflow-y: auto;
         overflow-x: hidden;

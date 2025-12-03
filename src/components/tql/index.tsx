@@ -233,7 +233,7 @@ const Tql = (props: TqlProps) => {
                                 />
                             </div>
                         </div>
-                        <div ref={tqlResultBodyRef} className="tql-result-body" style={{ backgroundColor: '#1B1C21' }}>
+                        <div ref={tqlResultBodyRef} className="tql-result-body scrollbar-dark" style={{ backgroundColor: '#1B1C21' }}>
                             {sResultType === 'csv' ? <Table headers={sCsvHeader} items={sIsHeader ? sCsv : sCsv.filter((_, aIdx) => aIdx !== 0)} /> : null}
                             {sResultType === 'text' && sTextField ? (
                                 sIsPrettier && isValidJSON(sTextField) ? (

@@ -3,6 +3,7 @@ import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import type { OnChange } from '@monaco-editor/react';
 import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
+import scrollbar from '@/design-system/tokens/scrollbar.module.scss';
 export interface MonacoEditorProps {
     pIsActiveTab: boolean;
     pText: string;
@@ -50,6 +51,12 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
         hover: {
             enabled: !pIsReadOnly,
         },
+        scrollbar: {
+            vertical: 'auto' as const,
+            horizontal: 'auto' as const,
+            verticalScrollbarSize: 5,
+            horizontalScrollbarSize: 5,
+        },
     };
 
     useEffect(() => {
@@ -65,6 +72,9 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
             rules: [],
             colors: {
                 'editor.background': '#1F2127',
+                'scrollbarSlider.background': scrollbar.thumb,
+                'scrollbarSlider.hoverBackground': scrollbar.thumbHover,
+                'scrollbarSlider.activeBackground': scrollbar.thumbHover,
             },
         });
         sMonaco.editor.setTheme('my-theme');

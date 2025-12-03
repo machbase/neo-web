@@ -151,7 +151,7 @@ export const TimerSide = ({ pServer }: any) => {
                 </span>
             </SideCollapse>
 
-            <div style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
+            <div className="scrollbar-dark" style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
                 {sIsCollapse &&
                     sTimerList &&
                     sTimerList.length !== 0 &&

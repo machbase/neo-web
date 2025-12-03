@@ -297,7 +297,7 @@ const Sql = ({
                                 justifyContent: 'space-between',
                             }}
                         >
-                            <div className="sql-tab-round-wrapper">
+                            <div className="sql-tab-round-wrapper scrollbar-dark">
                                 {sSqlTabList.map((aTab: SqlTabType) => {
                                     return (
                                         <div className="sql-tab-round" key={aTab} style={{ display: 'flex', flexDirection: 'row' }}>

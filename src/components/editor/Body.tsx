@@ -198,7 +198,7 @@ const Body = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDra
     return (
         <div ref={sBodyRef} style={{ width: '100%', height: '100%', background: '#262831' }}>
             <div className="tab">
-                <div className="tab-list" onWheel={handleMouseWheel} ref={sTabRef}>
+                <div className="tab-list scrollbar-dark-border" onWheel={handleMouseWheel} ref={sTabRef}>
                     {sBoardList.length !== 0 &&
                         sBoardList.map((aBoard: any, aIdx: number) => {
                             return (

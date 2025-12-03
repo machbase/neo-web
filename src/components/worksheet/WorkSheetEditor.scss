@@ -229,22 +229,5 @@
                 }
             }
         }
-
-        .result::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
-        }
-        .result::-webkit-scrollbar-thumb {
-            background-color: #464646 !important;
-            border-radius: 10px;
-            background-clip: padding-box;
-        }
-        .result::-webkit-scrollbar-track {
-            background-color: transparent;
-            border-radius: 10px;
-        }
-        .result::-webkit-scrollbar-corner {
-            background: transparent !important;
-        }
     }
 }

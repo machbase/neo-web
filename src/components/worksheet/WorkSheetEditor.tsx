@@ -444,10 +444,10 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         return <div className="worksheet-ctr-verti-divi" />;
     };
     const Result = () => {
-        if (sSelectedLang === 'Chat') return <div className="result">{ChatResult()}</div>;
+        if (sSelectedLang === 'Chat') return <div className="result scrollbar-dark">{ChatResult()}</div>;
 
         return (
-            <div className={`result${sProcessing ? ' result-processed' : ''}`}>
+            <div className={`result scrollbar-dark${sProcessing ? ' result-processed' : ''}`}>
                 {sSelectedLang === 'TQL' ? TqlResult() : null}
                 {sSelectedLang === 'SQL' ? SqlResult() : null}
                 {sSelectedLang === 'Markdown' ? <Markdown pIdx={pIdx} pContents={sMarkdown} pType="wrk-mrk" pData={pWrkId} /> : null}

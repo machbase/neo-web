@@ -200,7 +200,7 @@ export const BridgeSide = ({ pServer }: any) => {
                 </span>
             </SideCollapse>
 
-            <div style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
+            <div className="scrollbar-dark" style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
                 {sIsCollapse &&
                     sBridge &&
                     sBridge.length !== 0 &&

@@ -363,7 +363,7 @@ const HierarchicalComboboxList = ({ categories: propCategories, className, empty
     return (
         <div className={`${styles['hierarchical-combobox__container']} ${className ?? ''}`}>
             {/* Left column - Categories */}
-            <ul className={styles['hierarchical-combobox__categories']}>
+            <ul className={`${styles['hierarchical-combobox__categories']} scrollbar-dark`}>
                 {filteredCategories.map((category) => {
                     const isSelected = dropdown.selectedCategory === category.id;
                     const hasItems = category.items && category.items.length > 0;
@@ -385,7 +385,7 @@ const HierarchicalComboboxList = ({ categories: propCategories, className, empty
             </ul>
 
             {/* Right column - Items for selected category */}
-            <ul className={styles['hierarchical-combobox__items']}>
+            <ul className={`${styles['hierarchical-combobox__items']} scrollbar-dark`}>
                 {displayItems.length > 0 ? (
                     displayItems
                         .filter((item) => item.label.toLowerCase().includes(dropdown.searchQuery.toLowerCase()))

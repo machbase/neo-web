@@ -343,7 +343,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                         </ExtensionTab.ContentBlock>
                         <ExtensionTab.Hr />
                     </ExtensionTab.Body>
-                    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flex: 1, height: 'calc(100% - 130px)' }}>
+                    <div className="scrollbar-dark-border" style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flex: 1, height: 'calc(100% - 130px)' }}>
                         {/* COLUMN */}
                         {mColList?.rows && mColList?.rows?.length > 0 && (
                             <ExtensionTab.ContentBlock>

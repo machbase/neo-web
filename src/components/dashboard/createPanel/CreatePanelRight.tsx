@@ -129,7 +129,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
                     pOptions={ChartTypeList.map((aType: { key: string; value: string }) => aType.key) as string[]}
                 />
-                <div className="content" style={{ height: '100%' }}>
+                <div className="content scrollbar-dark-border" style={{ height: '100%' }}>
                     {chartTypeConverter(pPanelOption.type) !== E_CHART_TYPE.TQL && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
                     {useXAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.xAxisOptions && (
                         <XAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />

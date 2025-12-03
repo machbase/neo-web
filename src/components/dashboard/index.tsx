@@ -355,7 +355,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                     </div>
                 </div>
                 {pWidth && (
-                    <div className="board-body">
+                    <div className="board-body scrollbar-dark">
                         <GridLayout
                             className="layout"
                             useCSSTransforms={false}

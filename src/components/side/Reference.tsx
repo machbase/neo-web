@@ -135,7 +135,7 @@ const Reference = ({ pValue }: any) => {
                     <span className="title-text">{pValue.label}</span>
                 </div>
             </div>
-            <div style={{ overflow: 'auto' }}>
+            <div className="scrollbar-dark" style={{ overflow: 'auto' }}>
                 {sCollapseTree &&
                     pValue.items.map((aItem: REFERENCE_ITEM, aIdx: number) => {
                         return (

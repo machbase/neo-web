@@ -69,7 +69,7 @@ const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, pHelpTxt, onMoreResul
     }, [pSqlResponseData]);
 
     return (
-        <div ref={sRootRef} className="sql-result-wrapper" style={{ display: pDisplay }}>
+        <div ref={sRootRef} className="sql-result-wrapper scrollbar-dark" style={{ display: pDisplay }}>
             <TABLE
                 pTableData={pSqlResponseData}
                 pMaxShowLen={pMaxShowLen}

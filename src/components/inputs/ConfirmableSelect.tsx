@@ -111,7 +111,7 @@ export const ConfirmableSelect = (props: ConfirmableSelectProps) => {
                     style={{ display: isOpen ? 'block' : 'none', maxHeight: pHeight * 5 + 'px', borderRadius: pBorderRadius + 'px' }}
                     onClick={(aEvent) => aEvent.stopPropagation()}
                 >
-                    <div className="select-options-item-wrapper" style={{ maxHeight: pHeight * 4 + 'px' }}>
+                    <div className="select-options-item-wrapper scrollbar-dark" style={{ maxHeight: pHeight * 4 + 'px' }}>
                         {!pIsToolTip &&
                             pOptions.map((aOption: string, aIdx) => (
                                 <div key={aOption + aIdx} className="options-item" onClick={() => handleSelect(aOption, aIdx)} style={{ fontSize: pFontSize }}>

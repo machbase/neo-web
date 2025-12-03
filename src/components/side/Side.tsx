@@ -522,7 +522,7 @@ any) => {
                         <span className="title-text">OPEN EDITORS</span>
                     </div>
                     {
-                        <div className="editors-form">
+                        <div className="editors-form scrollbar-dark">
                             {sBoardList.length !== 0 &&
                                 sBoardList.map((aBoard: any, aIdx: any) => {
                                     return <OpenFile pBoard={aBoard} pSetSelectedTab={setSelectedTab} pIdx={aIdx} key={aBoard.id} />;
@@ -594,6 +594,7 @@ any) => {
                             <>
                                 <div
                                     ref={sFileTreeRef}
+                                    className="scrollbar-dark"
                                     style={{
                                         backgroundColor: '#333333',
                                         height: `calc(100% - 22px)`,

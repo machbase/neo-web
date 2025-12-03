@@ -4,7 +4,7 @@ import { Tooltip } from 'react-tooltip';
 
 export const VariablePreview = ({ pBoardInfo, callback }: { pBoardInfo: any; callback: (selectItem: string) => void }) => {
     return (
-        <div className="board-header-variable-preview-wrap">
+        <div className="board-header-variable-preview-wrap scrollbar-dark">
             <div className="board-header-variable-preview">
                 {pBoardInfo &&
                     pBoardInfo?.dashboard &&

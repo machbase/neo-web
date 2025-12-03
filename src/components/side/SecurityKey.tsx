@@ -145,7 +145,7 @@ export const SecurityKey = ({ pServer }: any) => {
                     </span>
                 </div>
             </div>
-            <div style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
+            <div className="scrollbar-dark" style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
                 {sCollapseTree &&
                     sSecurityKeyList &&
                     sSecurityKeyList.length !== 0 &&

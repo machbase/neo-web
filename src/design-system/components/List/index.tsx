@@ -31,7 +31,7 @@ const List = React.forwardRef<HTMLDivElement, ListProps>(({ items, onItemClick, 
             {isLoading ? (
                 <div className={styles['list__empty']}>Loading...</div>
             ) : items.length > 0 ? (
-                <div className={styles['list__items']}>
+                <div className={`${styles['list__items']} scrollbar-dark-border`}>
                     {items.map((item) => {
                         const tooltipId = `list-tooltip-${item.id}`;
                         return (

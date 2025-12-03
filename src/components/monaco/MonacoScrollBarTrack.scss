@@ -1,3 +1,12 @@
+@use '@/design-system/tokens' as t;
+
 .decorationsOverviewRuler {
     background-color: #1f2127;
+}
+
+// Monaco scrollbar styling to match design system
+.monaco-editor {
+    .slider {
+        border-radius: t.$border-radius-sm !important;
+    }
 }
