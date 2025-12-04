@@ -111,7 +111,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         const [sParsedQuery, sAliasList, sInjectionSrc] = await GetQuery();
         const { min: sStartTime, max: sEndTime } = await resolveTimeRange();
         const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
-        const sParsedChartCode = DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery, true);
+        const sParsedChartCode = DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery, pPanelInfo.version, true);
         const sUsePlg: boolean = !!pPanelInfo.plg;
         let sResult: string = `${sInjectionSrc}\n` + `CHART(\n`;
         if (sUsePlg) sResult += `\tplugins('${pPanelInfo.plg}'),\n`;

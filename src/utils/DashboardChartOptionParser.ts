@@ -1,10 +1,13 @@
 import { E_CHART_TYPE } from '@/type/eChart';
 import { isEmpty, isObjectEmpty } from '.';
 import { SqlResDataType } from './DashboardQueryParser';
-import { ChartItemTooltipFormatter, ChartAxisTooltipFormatter, ChartSeriesColorList } from './constants';
+import { ChartSeriesColorList } from './constants';
 import { chartTypeConverter } from './eChartHelper';
 import { CHART_AXIS_UNITS } from './Chart/AxisConstants';
 import { E_BLOCK_TYPE } from './Chart/TransformDataParser';
+import { unitFormatter } from './Chart/formatters';
+import { compareVersions } from './version/utils';
+// import { generateTooltipAxisFunction } from './Chart/formatters/tooltipFormatter';
 // structure of chart common option
 const StructureOfCommonOption = `{
     "legend": {
@@ -115,7 +118,6 @@ const StructureSeriesOption: any = {
         "detail": {
             "fontSize": $valueFontSize$,
             "valueAnimation": $valueAnimation$,
-            "formatter": "function (params) { return params.toFixed($gaugeValueLimit$) }",
             "offsetCenter": [0, "$alignCenter$%"]
         },
         "itemStyle": {
@@ -304,20 +306,18 @@ const ReplaceCommonOpt = (aOpt: any, aPanelType: string) => {
     });
 
     const sResult = JSON.parse(sParsedOpt);
-    if (sResult.tooltip.show && sResult.tooltip.trigger === 'axis' && sDataType === 'TIME_VALUE')
-        sResult.tooltip.formatter = ChartAxisTooltipFormatter(
-            aOpt,
-            aCommonOpt['tooltipUnit'],
-            aCommonOpt['tooltipDecimals'],
-            aPanelType === E_CHART_TYPE.ADV_SCATTER ? 'VALUE' : 'TIME'
-        );
-    if (sResult.tooltip.show && sResult.tooltip.trigger === 'item' && sDataType === 'TIME_VALUE')
-        sResult.tooltip.formatter = ChartItemTooltipFormatter(
-            aOpt,
-            aCommonOpt['tooltipUnit'],
-            aCommonOpt['tooltipDecimals'],
-            aPanelType === E_CHART_TYPE.ADV_SCATTER ? 'VALUE' : 'TIME'
-        );
+    if (sResult.tooltip.show && sDataType === 'TIME_VALUE') {
+        let sUnit = aCommonOpt['tooltipUnit'];
+        if (compareVersions(aOpt.version, '1.0.1') < 0) {
+            sUnit = { suffix: aOpt?.commonOptions?.tooltipUnit ?? '' };
+        }
+        sResult.tooltip.formatter = unitFormatter(sUnit, aCommonOpt['tooltipDecimals'], 'TOOLTIP', {
+            type: sResult.tooltip.trigger,
+            opt: aOpt,
+            panelType: aPanelType === E_CHART_TYPE.ADV_SCATTER ? 'VALUE' : 'TIME',
+        });
+    }
+
     if (sResult.legend.left !== 'center') sResult.legend.padding = [30, 0, 0, 0];
     if (aPanelType === 'text') {
         sResult.legend = { show: false };
@@ -421,13 +421,16 @@ const LabelFormatter = (aLabel: CHART_AXIS_UNITS) => {
         };
     }
 };
-const CheckYAxis = (yAxisOptions: any) => {
+
+const CheckYAxis = (yAxisOptions: any, panelVersion: string) => {
     const sResult = yAxisOptions.map((aYAxis: any) => {
         const sReturn: any = JSON.parse(JSON.stringify(aYAxis));
         if (sReturn?.title !== '') sReturn.name = aYAxis?.label?.title;
         else delete sReturn.name;
         if (sReturn?.label) {
-            sReturn['axisLabel'] = LabelFormatter(aYAxis.label);
+            // version > '1.0.1'
+            if (compareVersions(panelVersion, '1.0.1') < 0) sReturn['axisLabel'] = LabelFormatter(aYAxis.label);
+            else sReturn['axisLabel'] = unitFormatter(aYAxis?.unit, aYAxis?.label?.decimals);
             delete sReturn.label;
         }
         if (sReturn?.offset !== '') sReturn.offset = Number(sReturn.offset) ?? 0;
@@ -441,7 +444,7 @@ const CheckYAxis = (yAxisOptions: any) => {
     });
     return sResult;
 };
-const CheckXAxis = (xAxisOptions: any, aChartType: string) => {
+const CheckXAxis = (xAxisOptions: any, aChartType: string, panelVersion: string) => {
     const sResult = xAxisOptions.map((aAxis: any) => {
         const sReturn: any = JSON.parse(JSON.stringify(aAxis));
         if (aChartType !== E_CHART_TYPE.ADV_SCATTER) {
@@ -453,7 +456,9 @@ const CheckXAxis = (xAxisOptions: any, aChartType: string) => {
             return sReturn;
         }
         if (sReturn?.label) {
-            sReturn['axisLabel'] = LabelFormatter(aAxis.label);
+            // version > '1.0.1'
+            if (compareVersions(panelVersion, '1.0.1') < 0) sReturn['axisLabel'] = LabelFormatter(aAxis.label);
+            else sReturn['axisLabel'] = unitFormatter(aAxis?.unit, aAxis?.label?.decimals);
             delete sReturn.label;
         }
         if (sReturn?.offset !== '') sReturn.offset = Number(sReturn.offset) ?? 0;
@@ -480,8 +485,8 @@ export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTim
         SqlResDataType(sConvertedChartType),
         sTagList.map((aTagInfo: any) => aTagInfo?.name),
         aOptionInfo.chartOptions,
-        CheckXAxis(aOptionInfo.xAxisOptions, sConvertedChartType),
-        CheckYAxis(aOptionInfo.yAxisOptions),
+        CheckXAxis(aOptionInfo.xAxisOptions, sConvertedChartType, aOptionInfo.version),
+        CheckYAxis(aOptionInfo.yAxisOptions, aOptionInfo.version),
         aTime
     );
     const sParsedOpt = ParseOpt(
@@ -492,5 +497,16 @@ export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTim
         sTypeOpt,
         sUseDualYAxis ? aOptionInfo.yAxisOptions[1].useBlockList : []
     );
+
+    // if (SqlResDataType(sConvertedChartType) === 'TIME_VALUE' && sConvertedChartType !== E_CHART_TYPE.ADV_SCATTER && sConvertedChartType !== E_CHART_TYPE.GEOMAP) {
+    //     const sUnitFormatterList = sParsedOpt.yAxis.map((aOpt: any) => {
+    //         return aOpt?.axisLabel?.formatter;
+    //     });
+    //     const sAliasList = sParsedOpt.series.map((aSeries: any, idx: number) => ({
+    //         seriesIndex: idx,
+    //         yAxisIdx: aSeries.yAxisIndex ?? 0,
+    //     }));
+    //     sParsedOpt.tooltip.formatter = generateTooltipAxisFunction(aOptionInfo, 'TIME', sUnitFormatterList, sAliasList);
+    // }
     return sParsedOpt;
 };

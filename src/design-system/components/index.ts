@@ -27,3 +27,6 @@ export type { PaginationProps } from './Pagination';
 
 export { default as List } from './List';
 export type { ListProps, ListItem } from './List';
+
+export { HierarchicalCombobox } from './HierarchicalCombobox';
+export type { HierarchicalComboboxItem, HierarchicalComboboxCategory, HierarchicalComboboxRootProps } from './HierarchicalCombobox';

@@ -65,7 +65,7 @@
     // Sizes
     &--sm {
         padding: t.$spacing-4 t.$spacing-8;
-        min-height: 28px;
+        max-height: 32px;
 
         .input {
             font-size: t.$font-size-sm;
@@ -127,7 +127,7 @@
         padding-right: t.$spacing-2;
 
         .input {
-            padding-right: 0;
+            padding-right: t.$spacing-8;
         }
     }
 }

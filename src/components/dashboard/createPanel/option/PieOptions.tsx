@@ -27,7 +27,7 @@ export const PieOptions = (props: PieOptionProps) => {
                 <span>Doughnut ratio</span>
                 <Input
                     pType="number"
-                    pWidth={100}
+                    pWidth={'100%'}
                     pHeight={25}
                     pBorderRadius={4}
                     pValue={pPanelOption.chartOptions?.doughnutRatio ?? 0}

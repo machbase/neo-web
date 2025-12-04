@@ -74,7 +74,7 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
                 <div className="menu-style">
                     <span>Type</span>
                     <Select
-                        pWidth={100}
+                        pWidth={'100%'}
                         pHeight={25}
                         pBorderRadius={4}
                         pNoneValue="none"
@@ -87,7 +87,7 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
                     <span>Value</span>
                     <Input
                         pType="number"
-                        pWidth={100}
+                        pWidth={'100%'}
                         pHeight={25}
                         pBorderRadius={4}
                         pPlaceHolder={'auto'}
@@ -123,7 +123,7 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
                                     <span>Latitude</span>
                                     <Select
                                         pIsToolTip
-                                        pWidth={100}
+                                        pWidth={'100%'}
                                         pHeight={25}
                                         pBorderRadius={4}
                                         pInitValue={pPanelOption.chartOptions?.coorLat?.[idx] >= 0 ? sValueList?.[idx]?.[pPanelOption.chartOptions?.coorLat?.[idx]] : ''}
@@ -135,7 +135,7 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
                                     <span>Longitude</span>
                                     <Select
                                         pIsToolTip
-                                        pWidth={100}
+                                        pWidth={'100%'}
                                         pHeight={25}
                                         pBorderRadius={4}
                                         pInitValue={pPanelOption.chartOptions?.coorLon?.[idx] >= 0 ? sValueList?.[idx]?.[pPanelOption.chartOptions?.coorLon?.[idx]] : ''}
@@ -149,7 +149,7 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
                                         {pPanelOption.chartOptions.marker?.[idx]?.shape === 'circle' && ' (meter)'}
                                     </span>
                                     <Select
-                                        pWidth={100}
+                                        pWidth={'100%'}
                                         pHeight={25}
                                         pBorderRadius={4}
                                         pInitValue={pPanelOption.chartOptions.marker?.[idx]?.shape ?? 'circle'}
@@ -162,7 +162,7 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
                                         <span>Marker radius</span>
                                         <Input
                                             pType="number"
-                                            pWidth={100}
+                                            pWidth={'100%'}
                                             pHeight={25}
                                             pBorderRadius={4}
                                             pValue={pPanelOption.chartOptions.marker?.[idx]?.radius ?? 30}

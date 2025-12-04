@@ -4,6 +4,7 @@ import { chartTypeConverter } from './eChartHelper';
 import { concatTagSet } from './helpers/tags';
 import { DIFF_LIST } from './aggregatorConstants';
 import { TransformBlockType } from '../type/transform';
+import { getVersionByKey } from './version/utils';
 
 export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
 export const VARIABLE_RM_REGEX = /^{+|}+$/g;
@@ -21,6 +22,9 @@ const DashboardCompatibility = (aData: any) => {
     if (sDashboardInfo?.dashboard.panels.length > 0) {
         const sPanelList = sDashboardInfo.dashboard.panels;
         const sVaildPanelList = sPanelList.map((aPanel: any) => {
+            // Add version
+            aPanel.version = getVersionByKey(aPanel);
+
             if (aPanel.type === 'Text') {
                 if (!CheckObjectKey(aPanel.chartOptions, 'textSeries')) aPanel.chartOptions.textSeries = [0];
                 if (!CheckObjectKey(aPanel.chartOptions, 'chartSeries')) aPanel.chartOptions.chartSeries = [0];

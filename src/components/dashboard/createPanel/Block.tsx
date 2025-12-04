@@ -30,7 +30,7 @@ import { Input } from '@/components/inputs/Input';
 import { CombineTableUser, SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser';
 import { Error } from '@/components/toast/Toast';
 import { chartTypeConverter } from '@/utils/eChartHelper';
-import TagSelectDialog from '@/components/inputs/TagSelectDialog.new';
+import TagSelectDialog from '@/components/inputs/TagSelectDialog';
 import { Duration } from './Duration';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { InputSelector } from '@/components/inputs/InputSelector';
@@ -207,7 +207,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
             sIsAgg = true;
         }
         const sQuery = `SELECT DATE_TRUNC('{{period_unit}}', ${sTime}, {{period_value}}) / 1000000 AS TIME, ${sCombineValue} FROM ${sTableName} WHERE ${sTime} BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) ${
-            sWhereNameIn?.length > 0 ? 'AND ' + sWhereNameIn?.join('AND') : ''
+            sWhereNameIn?.length > 0 ? 'AND ' + sWhereNameIn?.join(' AND ') : ''
         }${sIsAgg ? ' GROUP BY TIME' : ''} ORDER BY TIME`;
         return sQuery;
     };

@@ -23,6 +23,8 @@
 .dropdown-title {
     max-width: 100px;
     text-wrap: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .dropdown-content {

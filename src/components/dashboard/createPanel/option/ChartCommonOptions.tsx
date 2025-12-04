@@ -8,6 +8,8 @@ import { CompactPicker } from 'react-color';
 import { useRef, useState } from 'react';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { IconButton } from '@/components/buttons/IconButton';
+import { HierarchicalCombobox } from '@/design-system/components';
+import { findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 
 interface ChartCommonOptionsProps {
     pPanelOption: any;
@@ -29,13 +31,15 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
         });
     };
     const handleCommonOption = (aValue: string | boolean, aKey: string) => {
+        let sValue: any = aValue;
+        if (aKey === 'tooltipUnit') sValue = findUnitById(aValue as string);
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
                 id: generateUUID(),
                 commonOptions: {
                     ...aPrev.commonOptions,
-                    [aKey]: aValue,
+                    [aKey]: sValue,
                     isInsideTitle: true,
                 },
             };
@@ -88,20 +92,22 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         </div>
                     )}
                 </div>
-                <Input
-                    pType="text"
-                    pIsFullWidth
-                    pHeight={30}
-                    pValue={pPanelOption.title}
-                    pSetValue={() => null}
-                    pBorderRadius={4}
-                    onChange={(aEvent: any) => handleTitle(aEvent)}
-                />
+                <div className="menu-style">
+                    <Input
+                        pType="text"
+                        pIsFullWidth
+                        pHeight={25}
+                        pValue={pPanelOption.title}
+                        pSetValue={() => null}
+                        pBorderRadius={4}
+                        onChange={(aEvent: any) => handleTitle(aEvent)}
+                    />
+                </div>
                 <div style={{ height: '10px' }} />
                 <div className="menu-style">
                     <span>Theme</span>
                     <Select
-                        pWidth={100}
+                        pWidth={'100%'}
                         pHeight={25}
                         pFontSize={14}
                         pBorderRadius={4}
@@ -125,11 +131,11 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                             <span>Vertical</span>
                             <Select
                                 pFontSize={14}
-                                pWidth={100}
+                                pWidth={'100%'}
+                                pHeight={25}
                                 pBorderRadius={4}
                                 pIsDisabled={!pPanelOption.commonOptions.isLegend}
                                 pInitValue={pPanelOption.commonOptions.legendTop}
-                                pHeight={25}
                                 onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'legendTop')}
                                 pOptions={ChartLegendTopList}
                             />
@@ -138,11 +144,11 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                             <span>Horizontal</span>
                             <Select
                                 pFontSize={14}
-                                pWidth={100}
+                                pWidth={'100%'}
+                                pHeight={25}
                                 pBorderRadius={4}
                                 pIsDisabled={!pPanelOption.commonOptions.isLegend}
                                 pInitValue={pPanelOption.commonOptions.legendLeft}
-                                pHeight={25}
                                 onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'legendLeft')}
                                 pOptions={ChartLegendLeftList}
                             />
@@ -151,11 +157,11 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                             <span>Alignment type</span>
                             <Select
                                 pFontSize={14}
-                                pWidth={100}
+                                pWidth={'100%'}
+                                pHeight={25}
                                 pBorderRadius={4}
                                 pIsDisabled={!pPanelOption.commonOptions.isLegend}
                                 pInitValue={pPanelOption.commonOptions.legendOrient}
-                                pHeight={25}
                                 onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'legendOrient')}
                                 pOptions={ChartLegendOrientList}
                             />
@@ -166,7 +172,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         <div className="menu-style">
                             <span>Top</span>
                             <Input
-                                pWidth={100}
+                                pWidth={'100%'}
                                 pHeight={25}
                                 pBorderRadius={4}
                                 pValue={pPanelOption.commonOptions.gridTop}
@@ -176,7 +182,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         <div className="menu-style">
                             <span>Bottom</span>
                             <Input
-                                pWidth={100}
+                                pWidth={'100%'}
                                 pHeight={25}
                                 pBorderRadius={4}
                                 pValue={pPanelOption.commonOptions.gridBottom}
@@ -186,7 +192,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         <div className="menu-style">
                             <span>Left</span>
                             <Input
-                                pWidth={100}
+                                pWidth={'100%'}
                                 pHeight={25}
                                 pBorderRadius={4}
                                 pValue={pPanelOption.commonOptions.gridLeft}
@@ -196,7 +202,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         <div className="menu-style">
                             <span>Right</span>
                             <Input
-                                pWidth={100}
+                                pWidth={'100%'}
                                 pHeight={25}
                                 pBorderRadius={4}
                                 pValue={pPanelOption.commonOptions.gridRight}
@@ -215,7 +221,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         <div className="menu-style">
                             <span>Type</span>
                             <Select
-                                pWidth={100}
+                                pWidth={'100%'}
                                 pHeight={25}
                                 pFontSize={14}
                                 pBorderRadius={4}
@@ -225,11 +231,11 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                                 pOptions={ChartTooltipTriggerList}
                             />
                         </div>
-                        <div className="menu-style">
+                        {/* <div className="menu-style">
                             <div>Unit</div>
                             <Input
                                 pType="text"
-                                pWidth={100}
+                                pWidth={'100%'}
                                 pHeight={25}
                                 pPlaceHolder="none"
                                 pIsDisabled={!pPanelOption.commonOptions.isTooltip}
@@ -237,12 +243,25 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                                 pValue={pPanelOption.commonOptions?.tooltipUnit ?? ''}
                                 onChange={(aEvent) => handleCommonOption(aEvent.target.value, 'tooltipUnit')}
                             />
+                        </div> */}
+                        <div className="menu-style" style={{ display: 'flex', flex: 1, width: '100%', paddingRight: '10px' }}>
+                            <span>Unit</span>
+                            <HierarchicalCombobox.Root
+                                value={pPanelOption?.commonOptions?.tooltipUnit?.id ?? ''}
+                                categories={UNITS}
+                                onChange={(value) => handleCommonOption(value, 'tooltipUnit')}
+                            >
+                                <HierarchicalCombobox.Input />
+                                <HierarchicalCombobox.Menu>
+                                    <HierarchicalCombobox.List emptyMessage="No units available" />
+                                </HierarchicalCombobox.Menu>
+                            </HierarchicalCombobox.Root>
                         </div>
                         <div className="menu-style">
                             <div>Decimals</div>
                             <Input
                                 pType="number"
-                                pWidth={100}
+                                pWidth={'100%'}
                                 pHeight={25}
                                 pPlaceHolder="auto"
                                 pBorderRadius={4}

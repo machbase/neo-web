@@ -19,6 +19,8 @@ import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import moment from 'moment';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { Error } from '@/components/toast/Toast';
+import { getDefaultVersionForExtension } from '@/utils/version/utils';
+import { E_VERSIONED_EXTENSION } from '@/utils/version/constants';
 
 const CreatePanel = ({
     pLoopMode,
@@ -94,6 +96,7 @@ const CreatePanel = ({
         sPanelOption.w = getChartDefaultWidthSize(sPanelOption.type, !!sPanelOption.chartOptions?.isPolar);
 
         const sTmpPanelInfo = checkXAxisInterval(sPanelOption);
+        sTmpPanelInfo.version = getDefaultVersionForExtension(E_VERSIONED_EXTENSION.DSH);
 
         let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
         if (sSaveTarget?.path !== '') {
@@ -153,6 +156,8 @@ const CreatePanel = ({
         }
 
         let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+        const sTmpPanelInfo = checkXAxisInterval(sPanelOption);
+        sTmpPanelInfo.version = getDefaultVersionForExtension(E_VERSIONED_EXTENSION.DSH);
 
         if (sSaveTarget.path !== '') {
             const sNewPanelId = generateUUID();
@@ -161,7 +166,7 @@ const CreatePanel = ({
                     const sTmpDashboard = {
                         ...aItem.dashboard,
                         panels: aItem.dashboard.panels.map((bItem: any) => {
-                            return bItem.id === pPanelId ? { ...checkXAxisInterval(sPanelOption), id: sNewPanelId } : bItem;
+                            return bItem.id === pPanelId ? { ...sTmpPanelInfo, id: sNewPanelId } : bItem;
                         }),
                     };
                     sSaveTarget = {
@@ -181,7 +186,7 @@ const CreatePanel = ({
                     const sTmpDashboard = {
                         ...aItem.dashboard,
                         panels: aItem.dashboard.panels.map((bItem: any) => {
-                            return bItem.id === pPanelId ? { ...checkXAxisInterval(sPanelOption), id: sNewPanelId } : bItem;
+                            return bItem.id === pPanelId ? { ...sTmpPanelInfo, id: sNewPanelId } : bItem;
                         }),
                     };
                     sSaveTarget = {
@@ -221,6 +226,8 @@ const CreatePanel = ({
         }
 
         const sTmpPanelOption = checkXAxisInterval(sPanelOption);
+        sTmpPanelOption.version = getDefaultVersionForExtension(E_VERSIONED_EXTENSION.DSH);
+
         if (sPanelOption.type === 'Tql chart') {
             if (sTmpPanelOption.useCustomTime) {
                 let sStart: any;

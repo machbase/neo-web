@@ -37,7 +37,7 @@ export const AdvancedScatterOptions = (props: ScatterOptionProps) => {
             <div className="menu-style">
                 <span>Type</span>
                 <Select
-                    pWidth={100}
+                    pWidth={'100%'}
                     pHeight={25}
                     pBorderRadius={4}
                     pFontSize={12}
@@ -49,7 +49,7 @@ export const AdvancedScatterOptions = (props: ScatterOptionProps) => {
             <div className="menu-style">
                 <span>Size</span>
                 <Input
-                    pWidth={100}
+                    pWidth={'100%'}
                     pHeight={25}
                     pBorderRadius={4}
                     pValue={pPanelOption.chartOptions?.symbolSize}

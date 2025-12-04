@@ -3,6 +3,8 @@ import { Collapse } from '@/components/collapse/Collapse';
 import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
 import { MultiColorPkr } from './MultiColorPkr';
+import { HierarchicalCombobox } from '@/design-system/components';
+import { findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 
 interface GaugeOptionProps {
     pPanelOption: any;
@@ -13,12 +15,17 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
 
     const handleGaugeOption = (aValue: string | boolean, aKey: string) => {
+        let sValue: any = aValue;
+        if (aKey === 'unit') {
+            const sTargetUnit = findUnitById(aValue as string);
+            sValue = sTargetUnit;
+        }
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
                 chartOptions: {
                     ...aPrev.chartOptions,
-                    [aKey]: aValue,
+                    [aKey]: sValue,
                 },
             };
         });
@@ -61,11 +68,31 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
 
     return (
         <div>
+            <div className="menu-style" style={{ display: 'flex', flex: 1, width: '100%', paddingRight: '10px' }}>
+                <span>Unit</span>
+                <HierarchicalCombobox.Root value={pPanelOption?.chartOptions?.unit?.id ?? ''} categories={UNITS} onChange={(value) => handleGaugeOption(value, 'unit')}>
+                    <HierarchicalCombobox.Input />
+                    <HierarchicalCombobox.Menu>
+                        <HierarchicalCombobox.List emptyMessage="No units available" />
+                    </HierarchicalCombobox.Menu>
+                </HierarchicalCombobox.Root>
+            </div>
+            <div className="menu-style">
+                <div>Decimal</div>
+                <Input
+                    pType="number"
+                    pHeight={25}
+                    pWidth={'100%'}
+                    pBorderRadius={4}
+                    pValue={pPanelOption.chartOptions?.digit}
+                    onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'digit')}
+                />
+            </div>
             <div className="menu-style">
                 <div>Min</div>
                 <Input
                     pType="number"
-                    pWidth={100}
+                    pWidth={'100%'}
                     pHeight={25}
                     pBorderRadius={4}
                     pValue={pPanelOption.chartOptions?.min}
@@ -76,7 +103,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                 <div>Max</div>
                 <Input
                     pType="number"
-                    pWidth={100}
+                    pWidth={'100%'}
                     pHeight={25}
                     pBorderRadius={4}
                     pValue={pPanelOption.chartOptions?.max}
@@ -89,8 +116,8 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                     <div>Label distance</div>
                     <Input
                         pType="number"
+                        pWidth={'100%'}
                         pHeight={25}
-                        pWidth={100}
                         pBorderRadius={4}
                         pValue={pPanelOption.chartOptions?.axisLabelDistance}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'axisLabelDistance')}
@@ -139,8 +166,8 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                     <div>Size</div>
                     <Input
                         pType="number"
+                        pWidth={'100%'}
                         pHeight={25}
-                        pWidth={100}
                         pBorderRadius={4}
                         pIsDisabled={!pPanelOption.chartOptions?.isAnchor}
                         pValue={pPanelOption.chartOptions?.anchorSize}
@@ -154,8 +181,8 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                     <div>Font size</div>
                     <Input
                         pType="number"
+                        pWidth={'100%'}
                         pHeight={25}
-                        pWidth={100}
                         pBorderRadius={4}
                         pValue={pPanelOption.chartOptions?.valueFontSize}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'valueFontSize')}
@@ -165,24 +192,14 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                     <div>Offset form center</div>
                     <Input
                         pType="number"
+                        pWidth={'100%'}
                         pHeight={25}
-                        pWidth={100}
                         pBorderRadius={4}
                         pValue={pPanelOption.chartOptions?.alignCenter}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'alignCenter')}
                     />
                 </div>
-                <div className="menu-style">
-                    <div>Decimal places</div>
-                    <Input
-                        pType="number"
-                        pHeight={25}
-                        pWidth={100}
-                        pBorderRadius={4}
-                        pValue={pPanelOption.chartOptions?.gaugeValueLimit}
-                        onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'gaugeValueLimit')}
-                    />
-                </div>
+
                 <CheckBox
                     pText="Active animation"
                     pDefaultChecked={pPanelOption.chartOptions?.valueAnimation ?? false}
