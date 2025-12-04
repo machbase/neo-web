@@ -1,7 +1,7 @@
 import { E_CHART_TYPE } from '../type/eChart';
 import { isEmpty, isObjectEmpty } from '.';
 import { SqlResDataType } from './DashboardQueryParser';
-import { ChartItemTooltipFormatter, ChartAxisTooltipFormatter, ChartSeriesColorList } from './constants';
+import { ChartSeriesColorList } from './constants';
 import { chartTypeConverter } from './eChartHelper';
 import { CHART_AXIS_UNITS } from './Chart/AxisConstants';
 import { E_BLOCK_TYPE } from './Chart/TransformDataParser';
