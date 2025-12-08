@@ -42,20 +42,23 @@ const SYNTAX_ERR_TEXT = (aPanelId?: string) => {
 const NameValueFunc = (aChartType: string, aChartOptions: any, aVersion: string) => {
     const sIsGauge = aChartType === 'gauge';
     const sPosition = sIsGauge || aChartType === 'pie' ? 'bottom' : 'center';
+    const sVersion = compareVersions(aVersion, '1.0.1');
     let sUnit = aChartOptions?.unit;
     let sDigit = aChartOptions?.digit;
-    if (compareVersions(aVersion, '1.0.1') < 0) {
+    let sAxis = `{ ..._chartOption.series[0], data: sData }`;
+    if (sVersion < 0) {
         sUnit = { suffix: aChartOptions?.unit ?? '' };
         if (sIsGauge) sDigit = aChartOptions?.gaugeValueLimit;
     }
     const sFormatter = unitFormatter(sUnit, sDigit);
+    if (sVersion >= 0 && sIsGauge) sAxis = `{ ..._chartOption.series[0], axisLabel: {..._chartOption.series[0], formatter: ${sFormatter.formatter}}, data: sData }`;
     const sGaugeNaNFormatter = `if (isNaN(Number.parseFloat(obj?.data?.rows?.[0]?.[0].value))) {_chartOption.series[0].detail.formatter = function (value) {return 'No-data'}} else {_chartOption.series[0].detail.formatter = ${sFormatter.formatter}}`;
     return `(obj) => {
         \t${SYNTAX_ERR('!obj.success', sPosition)}
         \t\t${sIsGauge && sGaugeNaNFormatter}
         \t\tsData[aIdx] = obj?.data?.rows?.[0]?.[0] ?? 0;
         \t\tsCount += 1;
-        \t\t_chartOption.series[0] = { ..._chartOption.series[0], data: sData };
+        \t\t_chartOption.series[0] = ${sAxis};
         \t\tif (sCount === sQuery.length) _chart.setOption(_chartOption);
         \t}`;
 };
