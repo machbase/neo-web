@@ -3,13 +3,16 @@ import { Collapse } from '@/components/collapse/Collapse';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
 import useOutsideClick from '@/hooks/useOutsideClick';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import CompactPicker from 'react-color/lib/components/compact/Compact';
 import { MultiColorPkr } from './MultiColorPkr';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { BadgeSelect, BadgeSelectorItemType } from '@/components/inputs/BadgeSelector';
 import { getChartSeriesName } from '@/utils/dashboardUtil';
 import { E_BLOCK_TYPE } from '@/utils/Chart/TransformDataParser';
+import { ChartThemeTextColor } from '@/utils/constants';
+import { HierarchicalCombobox } from '@/design-system/components';
+import { findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 
 interface ChartOptionProps {
     pPanelOption: any;
@@ -25,6 +28,23 @@ export const TextOptions = (props: ChartOptionProps) => {
 
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
     useOutsideClick(sChartColorPickerRef, () => setIsChartColorPicker(false));
+
+    // Apply theme color to text option and chart option when theme changes or panel type changes to text
+    useEffect(() => {
+        if (pPanelOption.type === 'Text') {
+            const sThemeColor = ChartThemeTextColor[pPanelOption.theme as keyof typeof ChartThemeTextColor] || '#333333';
+            pSetPanelOption((aPrev: any) => {
+                return {
+                    ...aPrev,
+                    chartOptions: {
+                        ...aPrev.chartOptions,
+                        color: [[pPanelOption.chartOptions?.color?.[0]?.[0] ?? 0, sThemeColor]],
+                        chartColor: sThemeColor,
+                    },
+                };
+            });
+        }
+    }, [pPanelOption.theme]);
 
     const getBlockList = useMemo((): any[] => {
         const sTmpBlockList = JSON.parse(JSON.stringify(pPanelOption?.blockList));
@@ -76,12 +96,18 @@ export const TextOptions = (props: ChartOptionProps) => {
     };
 
     const HandleOption = (aEvent: any, aKey: any) => {
+        let sValue: any = '';
+        if (aKey === 'unit') {
+            const sTargetUnit = findUnitById(aEvent);
+            sValue = sTargetUnit;
+        } else sValue = aEvent.target.value;
+
         pSetPanelOption((prev: any) => {
             return {
                 ...prev,
                 chartOptions: {
                     ...prev.chartOptions,
-                    [aKey]: aEvent.target.value,
+                    [aKey]: sValue,
                 },
             };
         });
@@ -125,40 +151,37 @@ export const TextOptions = (props: ChartOptionProps) => {
     return (
         <div className="text-options-wrap">
             <Collapse title="Text option" isOpen>
-                <div className="menu-style">
-                    <span>Font size</span>
-                    <Input
-                        pType="number"
-                        pWidth={100}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pValue={pPanelOption.chartOptions?.fontSize ?? 50}
-                        pSetValue={() => null}
-                        onChange={(aEvent: any) => HandleOption(aEvent, 'fontSize')}
-                    />
-                </div>
-                <div className="menu-style">
+                <div className="menu-style" style={{ display: 'flex', flex: 1, width: '100%', paddingRight: '10px' }}>
                     <span>Unit</span>
-                    <Input
-                        pType="text"
-                        pWidth={100}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pValue={pPanelOption.chartOptions?.unit ?? ''}
-                        pSetValue={() => null}
-                        onChange={(aEvent: any) => HandleOption(aEvent, 'unit')}
-                    />
+                    <HierarchicalCombobox.Root value={pPanelOption?.chartOptions?.unit?.id ?? ''} categories={UNITS} onChange={(value) => HandleOption(value, 'unit')}>
+                        <HierarchicalCombobox.Input />
+                        <HierarchicalCombobox.Menu>
+                            <HierarchicalCombobox.List emptyMessage="No units available" />
+                        </HierarchicalCombobox.Menu>
+                    </HierarchicalCombobox.Root>
                 </div>
                 <div className="menu-style">
-                    <span>Digit</span>
+                    <span>Decimals</span>
                     <Input
                         pType="number"
-                        pWidth={100}
+                        pWidth={'100%'}
                         pHeight={25}
                         pBorderRadius={4}
                         pValue={pPanelOption.chartOptions?.digit ?? 0}
                         pSetValue={() => null}
                         onChange={(aEvent: any) => HandleOption(aEvent, 'digit')}
+                    />
+                </div>
+                <div className="menu-style">
+                    <span>Font size</span>
+                    <Input
+                        pType="number"
+                        pWidth={'100%'}
+                        pHeight={25}
+                        pBorderRadius={4}
+                        pValue={pPanelOption.chartOptions?.fontSize ?? 50}
+                        pSetValue={() => null}
+                        onChange={(aEvent: any) => HandleOption(aEvent, 'fontSize')}
                     />
                 </div>
                 <div className="divider" />
@@ -167,8 +190,11 @@ export const TextOptions = (props: ChartOptionProps) => {
                         {pPanelOption.chartOptions?.color.map((aAxisColor: any, aIdx: number) => {
                             if (aIdx === 0)
                                 return (
-                                    <div key={aIdx} ref={sColorPickerRef}>
-                                        <div className="menu-style" style={{ position: 'relative' }}>
+                                    <div key={aIdx} ref={sColorPickerRef} style={{ display: 'flex', flex: 1, alignContent: 'center' }}>
+                                        <div
+                                            className="menu-style"
+                                            style={{ position: 'relative', flexDirection: 'row', justifyContent: 'start', gap: '18px', alignItems: 'cetner' }}
+                                        >
                                             <span>Default</span>
                                             <IconButton
                                                 pWidth={20}
@@ -200,8 +226,7 @@ export const TextOptions = (props: ChartOptionProps) => {
                                                 </div>
                                             )}
                                             {pPanelOption.chartOptions?.color.length === 1 && (
-                                                <div className="menu-style" style={{ justifyContent: 'end', flexGrow: 1 }}>
-                                                    <div />
+                                                <div className="menu-style" style={{ justifyContent: 'end', flexGrow: 1, alignContent: 'center' }}>
                                                     <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={() => HandleItem('add', 1)} />
                                                 </div>
                                             )}
@@ -238,7 +263,7 @@ export const TextOptions = (props: ChartOptionProps) => {
                 <div className="menu-style">
                     <span>Type</span>
                     <Select
-                        pWidth={100}
+                        pWidth={'100%'}
                         pHeight={25}
                         pBorderRadius={4}
                         pFontSize={12}
@@ -252,7 +277,7 @@ export const TextOptions = (props: ChartOptionProps) => {
                         <span>Opacity (0 ~ 1)</span>
                         <Input
                             pType="number"
-                            pWidth={100}
+                            pWidth={'100%'}
                             pHeight={25}
                             pMin={0}
                             pMax={1}
@@ -268,7 +293,7 @@ export const TextOptions = (props: ChartOptionProps) => {
                         <Input
                             pType="number"
                             pHeight={25}
-                            pWidth={100}
+                            pWidth={'100%'}
                             pBorderRadius={4}
                             pValue={pPanelOption.chartOptions?.symbolSize}
                             onChange={(aEvent: any) => HandleOption(aEvent, 'symbolSize')}

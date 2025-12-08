@@ -84,6 +84,11 @@
         border-radius: t.$border-radius-base;
         cursor: pointer;
         box-sizing: border-box;
+        transition: border-color 0.15s ease;
+
+        &:hover:not(:disabled) {
+            border-color: #5a5a5a;
+        }
 
         &:focus {
             cursor: text;

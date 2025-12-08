@@ -9,6 +9,7 @@ $bg-primary: #1c1c21;
 $bg-secondary: #1b1c21;
 $bg-header: #262831;
 $bg-elevated: #2c2c2c;
+$bg-panel: #404457;
 $bg-input: rgba(255, 255, 255, 0.13);
 $bg-input-dark: #353535;
 $bg-hover: rgb(64, 64, 64);
@@ -137,6 +138,7 @@ $dropdown-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 $dropdown-option-hover-bg: #3d3d3d;
 $dropdown-option-selected-bg: transparent;
 $dropdown-trigger-icon-color: #7a7a7a;
+$dropdown-option-hover-bg-light: rgba(255, 255, 255, 0.05);
 
 // ============================================
 // Menu Colors (Alias for Dropdown)

@@ -59,13 +59,9 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
 
                 if (sIsAdvScatter) sResVal.commonOptions.tooltipTrigger = 'item';
             }
-            if (sIsTql) {
-                sResVal.tqlInfo = { path: '', params: [{ name: '', value: '', format: '' }], chart_id: '' };
-                sResVal.theme = 'white';
-            } else {
-                sResVal.tqlInfo = { path: '', params: [{ name: '', value: '', format: '' }], chart_id: '' };
-                sResVal.theme = 'dark';
-            }
+            if (sIsTql) sResVal.tqlInfo = { path: '', params: [{ name: '', value: '', format: '' }], chart_id: '' };
+            else sResVal.tqlInfo = { path: '', params: [{ name: '', value: '', format: '' }], chart_id: '' };
+
             if (sIsPlgChart) sResVal.plg = sIsPlgChart.plg;
             else sResVal.plg = undefined;
 
@@ -80,7 +76,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                         return { ...qBlock, isVisible: true };
                     } else return { ...qBlock, isVisible: false };
                 });
-                const sTrxBlock: TrxParsedBlockType[] = sResVal.transformBlockList.map((tBlock: TrxParsedBlockType) => {
+                const sTrxBlock: TrxParsedBlockType[] = sResVal?.transformBlockList?.map((tBlock: TrxParsedBlockType) => {
                     if (sLimit > 0) {
                         --sLimit;
                         return { ...tBlock, isVisible: true };

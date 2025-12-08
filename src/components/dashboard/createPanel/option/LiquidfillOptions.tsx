@@ -6,6 +6,8 @@ import useOutsideClick from '@/hooks/useOutsideClick';
 import { useRef, useState } from 'react';
 import { CompactPicker } from 'react-color';
 import './options.scss';
+import { HierarchicalCombobox } from '@/design-system/components';
+import { findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 
 interface LiquidfillOptionProps {
     pPanelOption: any;
@@ -21,12 +23,17 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
     useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
 
     const HandleOption = (aEvent: any, aKey: any) => {
+        let sValue: any = '';
+        if (aKey === 'unit') {
+            const sTargetUnit = findUnitById(aEvent);
+            sValue = sTargetUnit;
+        } else sValue = aEvent.target.value;
         pSetPanelOption((prev: any) => {
             return {
                 ...prev,
                 chartOptions: {
                     ...prev.chartOptions,
-                    [aKey]: aEvent.target.value,
+                    [aKey]: sValue,
                 },
             };
         });
@@ -34,11 +41,32 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
 
     return (
         <div className="liquid-fill-options-wrape">
+            <div className="menu-style" style={{ display: 'flex', flex: 1, width: '100%', paddingRight: '10px' }}>
+                <span>Unit</span>
+                <HierarchicalCombobox.Root value={pPanelOption?.chartOptions?.unit?.id ?? ''} categories={UNITS} onChange={(value) => HandleOption(value, 'unit')}>
+                    <HierarchicalCombobox.Input />
+                    <HierarchicalCombobox.Menu>
+                        <HierarchicalCombobox.List emptyMessage="No units available" />
+                    </HierarchicalCombobox.Menu>
+                </HierarchicalCombobox.Root>
+            </div>
+            <div className="menu-style">
+                <span>Decimals</span>
+                <Input
+                    pType="number"
+                    pWidth={'100%'}
+                    pHeight={25}
+                    pBorderRadius={4}
+                    pValue={pPanelOption.chartOptions?.digit ?? 0}
+                    pSetValue={() => null}
+                    onChange={(aEvent: any) => HandleOption(aEvent, 'digit')}
+                />
+            </div>
             <div className="menu-style">
                 <span>Min</span>
                 <Input
                     pType="number"
-                    pWidth={100}
+                    pWidth={'100%'}
                     pHeight={25}
                     pBorderRadius={4}
                     pValue={pPanelOption.chartOptions?.minData ?? 0}
@@ -50,7 +78,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                 <span>Max</span>
                 <Input
                     pType="number"
-                    pWidth={100}
+                    pWidth={'100%'}
                     pHeight={25}
                     pBorderRadius={4}
                     pValue={pPanelOption.chartOptions?.maxData ?? 100}
@@ -63,7 +91,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                 <span>Shape</span>
                 <Select
                     pFontSize={12}
-                    pWidth={100}
+                    pWidth={'100%'}
                     pBorderRadius={4}
                     pHeight={25}
                     pInitValue={pPanelOption.chartOptions?.shape}
@@ -72,34 +100,10 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                 />
             </div>
             <div className="menu-style">
-                <span>Unit</span>
-                <Input
-                    pType="text"
-                    pWidth={100}
-                    pHeight={25}
-                    pBorderRadius={4}
-                    pValue={pPanelOption.chartOptions?.unit ?? '%'}
-                    pSetValue={() => null}
-                    onChange={(aEvent: any) => HandleOption(aEvent, 'unit')}
-                />
-            </div>
-            <div className="menu-style">
-                <span>Digit</span>
-                <Input
-                    pType="number"
-                    pWidth={100}
-                    pHeight={25}
-                    pBorderRadius={4}
-                    pValue={pPanelOption.chartOptions?.digit ?? 0}
-                    pSetValue={() => null}
-                    onChange={(aEvent: any) => HandleOption(aEvent, 'digit')}
-                />
-            </div>
-            <div className="menu-style">
                 <span>Font size</span>
                 <Input
                     pType="number"
-                    pWidth={100}
+                    pWidth={'100%'}
                     pHeight={25}
                     pBorderRadius={4}
                     pValue={pPanelOption.chartOptions?.fontSize ?? 50}
@@ -112,7 +116,7 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                 <span>Wave amplitude</span>
                 <Input
                     pType="number"
-                    pWidth={100}
+                    pWidth={'100%'}
                     pHeight={25}
                     pBorderRadius={4}
                     pValue={pPanelOption.chartOptions?.amplitude ?? 0}

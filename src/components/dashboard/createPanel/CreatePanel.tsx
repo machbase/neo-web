@@ -10,6 +10,7 @@ import CreatePanelRight from './CreatePanelRight';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType, PanelIdParser } from '@/utils/dashboardUtil';
+import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 import { getTableList, postFileList } from '@/api/repository/api';
 import { decodeJwt, generateUUID, isValidJSON, parseDashboardTables } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
@@ -18,6 +19,8 @@ import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import moment from 'moment';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { Error } from '@/components/toast/Toast';
+import { getDefaultVersionForExtension } from '@/utils/version/utils';
+import { E_VERSIONED_EXTENSION } from '@/utils/version/constants';
 
 const CreatePanel = ({
     pLoopMode,
@@ -93,6 +96,7 @@ const CreatePanel = ({
         sPanelOption.w = getChartDefaultWidthSize(sPanelOption.type, !!sPanelOption.chartOptions?.isPolar);
 
         const sTmpPanelInfo = checkXAxisInterval(sPanelOption);
+        sTmpPanelInfo.version = getDefaultVersionForExtension(E_VERSIONED_EXTENSION.DSH);
 
         let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
         if (sSaveTarget?.path !== '') {
@@ -152,6 +156,8 @@ const CreatePanel = ({
         }
 
         let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+        const sTmpPanelInfo = checkXAxisInterval(sPanelOption);
+        sTmpPanelInfo.version = getDefaultVersionForExtension(E_VERSIONED_EXTENSION.DSH);
 
         if (sSaveTarget.path !== '') {
             const sNewPanelId = generateUUID();
@@ -160,7 +166,7 @@ const CreatePanel = ({
                     const sTmpDashboard = {
                         ...aItem.dashboard,
                         panels: aItem.dashboard.panels.map((bItem: any) => {
-                            return bItem.id === pPanelId ? { ...checkXAxisInterval(sPanelOption), id: sNewPanelId } : bItem;
+                            return bItem.id === pPanelId ? { ...sTmpPanelInfo, id: sNewPanelId } : bItem;
                         }),
                     };
                     sSaveTarget = {
@@ -180,7 +186,7 @@ const CreatePanel = ({
                     const sTmpDashboard = {
                         ...aItem.dashboard,
                         panels: aItem.dashboard.panels.map((bItem: any) => {
-                            return bItem.id === pPanelId ? { ...checkXAxisInterval(sPanelOption), id: sNewPanelId } : bItem;
+                            return bItem.id === pPanelId ? { ...sTmpPanelInfo, id: sNewPanelId } : bItem;
                         }),
                     };
                     sSaveTarget = {
@@ -220,6 +226,8 @@ const CreatePanel = ({
         }
 
         const sTmpPanelOption = checkXAxisInterval(sPanelOption);
+        sTmpPanelOption.version = getDefaultVersionForExtension(E_VERSIONED_EXTENSION.DSH);
+
         if (sPanelOption.type === 'Tql chart') {
             if (sTmpPanelOption.useCustomTime) {
                 let sStart: any;
@@ -356,11 +364,16 @@ const CreatePanel = ({
                             setAppliedPanelOption(JSON.parse(JSON.stringify(sOption)));
                             return;
                         }
-                        const sTableType = getTableType(newTable[0][4]);
+                        const sSortedTable = [...newTable].sort((aTable: any, bTable: any) => {
+                            const aType = getTableType(aTable[4]);
+                            const bType = getTableType(bTable[4]);
+                            return TableTypeOrderList.indexOf(aType) - TableTypeOrderList.indexOf(bType);
+                        });
+                        const sTableType = getTableType(sSortedTable[0][4]);
                         sOption = {
                             ...sOption,
                             id: generateUUID(),
-                            blockList: createDefaultTagTableOption(decodeJwt(sToken).sub, newTable[0], sTableType, ''),
+                            blockList: createDefaultTagTableOption(decodeJwt(sToken).sub, sSortedTable[0], sTableType, ''),
                         };
                         sOption.chartOptions = getDefaultSeriesOption(sOption.type);
                         setPanelOption(sOption);

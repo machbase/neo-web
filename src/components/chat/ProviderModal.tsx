@@ -168,7 +168,7 @@ export const ProviderModal = ({ isOpen, onClose }: ProviderModalProps) => {
                         <SkeletonItem pLength={1} pStyle={{ minHeight: '33px', maxHeight: '33px', flex: 1 }} />
                     </SkeletonContainer>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <>
                         {/* Provider Dropdown */}
                         <Dropdown.Root
                             label="Provider"
@@ -207,7 +207,7 @@ export const ProviderModal = ({ isOpen, onClose }: ProviderModalProps) => {
                         ) : null}
                         {/* Error Banner */}
                         <Alert variant="error" title={sError.code !== -1 ? `Error Code: ${sError.code}` : undefined} message={sError.message} />
-                    </div>
+                    </>
                 )}
             </Modal.Body>
             <Modal.Footer>

@@ -22,16 +22,7 @@ import { TqlCsvParser } from '../../../utils/tqlCsvParser';
 import { FakeTextBlock } from '../../../utils/helpers/Dashboard/BlockHelper';
 import { replaceVariablesInTql } from '../../../utils/TqlVariableReplacer';
 
-const LineChart = ({
-    pIsActiveTab,
-    pLoopMode,
-    pChartVariableId,
-    pPanelInfo,
-    pParentWidth,
-    pIsHeader,
-    pBoardTimeMinMax,
-    pBoardInfo,
-}: any) => {
+const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pParentWidth, pIsHeader, pBoardTimeMinMax, pBoardInfo }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
     const [sChartData, setChartData] = useState<any>(undefined);
     const [sIsMessage, setIsMessage] = useState<any>('Please set up a Query.');
@@ -184,6 +175,7 @@ const LineChart = ({
                 pPanelInfo.chartOptions,
                 chartTypeConverter(pPanelInfo.type),
                 sParsedQuery,
+                pPanelInfo.version,
                 false,
                 PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)
             );
@@ -218,18 +210,15 @@ const LineChart = ({
                         geomapID('${PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}'),
                         size('${sRefClientWidth}px','${sRefClientHeight}px')
                     )`;
-                
+
                 const sTimeContext = {
                     interval: sIntervalInfo,
                     start: sStartTime,
-                    end: sEndTime
+                    end: sEndTime,
                 };
                 const sFinalGeomapTql = replaceVariablesInTql(sGeomapTql, pBoardInfo.dashboard.variables, sTimeContext);
-                
-                sResult = await getTqlChart(
-                    sFinalGeomapTql,
-                    'dsh'
-                );
+
+                sResult = await getTqlChart(sFinalGeomapTql, 'dsh');
             } else {
                 const tql = `${sInjectionSrc}
                      CHART(
@@ -240,19 +229,16 @@ const LineChart = ({
                         chartOption(${decodeFormatterFunction(JSON.stringify(sParsedChartOption))}),
                         chartJSCode(${sParsedChartCode})
                     )`;
-                
+
                 const sTimeContext = {
                     interval: sIntervalInfo,
                     start: sStartTime,
-                    end: sEndTime
+                    end: sEndTime,
                 };
 
                 const sFinalTql = replaceVariablesInTql(tql, pBoardInfo.dashboard.variables, sTimeContext);
 
-                sResult = await getTqlChart(
-                    sFinalTql,
-                    'dsh'
-                );
+                sResult = await getTqlChart(sFinalTql, 'dsh');
             }
 
             if (sResult && !sResult?.data?.reason) {

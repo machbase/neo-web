@@ -82,8 +82,8 @@ export const LineOptions = (props: LineOptionProps) => {
                         <span>Opacity (0 ~ 1)</span>
                         <Input
                             pType="number"
-                            pWidth={100}
-                            pHeight={25}
+                            pWidth={'100%'}
+                            pHeight={30}
                             pMin={0}
                             pMax={1}
                             pBorderRadius={4}
@@ -113,8 +113,8 @@ export const LineOptions = (props: LineOptionProps) => {
             <div className="menu-style">
                 <span>Type</span>
                 <Select
-                    pWidth={100}
-                    pHeight={25}
+                    pWidth={'100%'}
+                    pHeight={30}
                     pBorderRadius={4}
                     pFontSize={12}
                     pInitValue={pPanelOption.chartOptions?.symbol}
@@ -126,8 +126,8 @@ export const LineOptions = (props: LineOptionProps) => {
             <div className="menu-style">
                 <span>Size</span>
                 <Input
-                    pWidth={100}
-                    pHeight={25}
+                    pWidth={'100%'}
+                    pHeight={30}
                     pBorderRadius={4}
                     pIsDisabled={pPanelOption.chartOptions?.symbol === 'none' || !pPanelOption.chartOptions?.isSymbol}
                     pValue={pPanelOption.chartOptions?.symbolSize}

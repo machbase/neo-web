@@ -15,7 +15,8 @@ import {
     nameValueVirtualAggList,
     tagAggregatorList,
 } from '@/utils/dashboardUtil';
-import { DIFF_LIST } from '@/utils/aggregatorConstants';
+import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
+import { DIFF_LIST, isCountAllAggregator } from '@/utils/aggregatorConstants';
 import { useEffect, useMemo, useState } from 'react';
 import Filter from './Filter';
 import './Block.scss';
@@ -130,7 +131,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         } else if (aKey === 'aggregator' && !SEPARATE_DIFF) {
             if (aData.target.name === 'customInput') setSelectedTableType('variable_tag');
 
-            const sDiffVal: boolean = aData.target.value.includes('diff');
+            const sDiffVal: boolean = aData.target.value?.toUpperCase()?.includes('diff'.toUpperCase());
             pSetPanelOption((aPrev: any) => {
                 return {
                     ...aPrev,
@@ -161,41 +162,87 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     };
     const getFullCustomQuery = () => {
         const sTableName = CombineTableUser(pBlockInfo.table, pBlockInfo?.customTable);
-        let sName = pBlockInfo?.name ?? '';
-        let sTime = pBlockInfo?.time ?? '';
+        const sName = pBlockInfo?.name ?? '';
+        const sTime = pBlockInfo?.time ?? '';
+        let sIsAgg =
+            pBlockInfo?.aggregator !== '' && pBlockInfo?.aggregator?.toUpperCase() !== 'value'.toUpperCase() && pBlockInfo?.aggregator?.toUpperCase() !== 'none'.toUpperCase();
+        let sIsCountAll = isCountAllAggregator(pBlockInfo?.aggregator ?? '');
         let sValue = pBlockInfo?.value ?? '';
         let sAgg = pBlockInfo?.aggregator ?? '';
         let sWhereNameIn: any = [];
         let sAlias = pBlockInfo?.alias !== '' ? pBlockInfo?.alias : "'SERIES(0)'";
 
         if (pBlockInfo.useCustom) {
+            sIsAgg =
+                pBlockInfo?.values?.[0]?.aggregator !== '' &&
+                pBlockInfo?.values?.[0]?.aggregator?.toUpperCase() !== 'value'.toUpperCase() &&
+                pBlockInfo?.values?.[0]?.aggregator?.toUpperCase() !== 'none'.toUpperCase();
+            sIsCountAll = isCountAllAggregator(pBlockInfo?.values?.[0]?.aggregator ?? '');
             sValue = pBlockInfo?.values?.[0]?.value !== '' ? pBlockInfo?.values?.[0]?.value : false;
+            sAgg = pBlockInfo?.values?.[0]?.aggregator !== '' ? pBlockInfo?.values?.[0]?.aggregator : '';
             sAlias = pBlockInfo?.values?.[0]?.alias !== '' ? pBlockInfo?.values?.[0]?.alias : "'SERIES(0)'";
-            sAgg = pBlockInfo?.values?.[0]?.aggregator !== '' ? pBlockInfo?.values?.[0]?.aggregator : false;
             const sFilterTmp = pBlockInfo?.filter?.filter((aItem: any) => {
                 if (aItem?.useFilter) return aItem;
                 else return false;
             });
             sWhereNameIn = sFilterTmp.map((bItem: any) => {
                 if (bItem.useTyping) return bItem.typingValue;
-                else return `${bItem.column} ${bItem.operator} ${bItem.value}`;
+                else {
+                    // Check varchar type
+                    const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)[1] === 5;
+                    const sValue = sUseQuote ? `'${bItem.value.includes(',') ? bItem.value.split(',').join("','") : bItem.value}'` : bItem.value;
+                    const sTypingValue =
+                        bItem.column === 'NAME' && bItem.operator === 'in' ? `${bItem.column} ${bItem.operator} (${sValue})` : `${bItem.column} ${bItem.operator} ${sValue}`;
+                    return sTypingValue;
+                }
             });
-        } else sWhereNameIn = [`${sName} IN ('${pBlockInfo?.tag !== '' ? pBlockInfo?.tag : ' '}')`];
+        } else sWhereNameIn = pBlockInfo?.tag !== '' ? [`${sName} IN ('${pBlockInfo?.tag}')`] : [];
 
-        let sCombineValue = sAgg && sValue ? `${sAgg}(${sValue}) AS ${sAlias}` : `COUNT(*) AS ${sAlias}`;
+        let sCombineValue = sIsAgg && sValue ? `${sAgg}(${sValue}) AS ${sAlias}` : !sIsCountAll ? `(${sValue}) AS ${sAlias}` : `COUNT(*) AS ${sAlias}`;
 
         if (sAgg && sValue && (sAgg?.toUpperCase() === 'first'.toUpperCase() || sAgg?.toUpperCase() == 'last'.toUpperCase()))
             sCombineValue = `${sAgg}(${sTime}, ${sValue}) AS ${sAlias}`;
         if (sAgg?.toUpperCase() === 'diff'.toUpperCase() || sAgg?.toUpperCase() === 'diff (abs)'.toUpperCase() || sAgg?.toUpperCase() === 'diff (no-negative)'.toUpperCase()) {
             sCombineValue = `COUNT(*) AS ${sAlias}`;
+            sIsAgg = true;
         }
-        let sQuery = `SELECT DATE_TRUNC('{{period_unit}}', ${sTime}, {{period_value}}) / 1000000 AS TIME, ${sCombineValue} FROM ${sTableName} WHERE ${sTime} BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) ${
-            sWhereNameIn?.length > 0 ? 'AND ' + sWhereNameIn?.join('AND') : ''
-        } GROUP BY TIME ORDER BY TIME`;
+        const sQuery = `SELECT DATE_TRUNC('{{period_unit}}', ${sTime}, {{period_value}}) / 1000000 AS TIME, ${sCombineValue} FROM ${sTableName} WHERE ${sTime} BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) ${
+            sWhereNameIn?.length > 0 ? 'AND ' + sWhereNameIn?.join(' AND ') : ''
+        }${sIsAgg ? ' GROUP BY TIME' : ''} ORDER BY TIME`;
         return sQuery;
     };
 
+    const allowFullTyping = (): boolean => {
+        if (pBlockInfo?.customFullTyping?.use) return true;
+        else {
+            if (pBlockInfo?.useCustom) {
+                const hasDiffAggregator = pBlockInfo?.values?.some(
+                    (item: any) =>
+                        item?.aggregator?.toLowerCase() === 'diff' || item?.aggregator?.toLowerCase() === 'diff (abs)' || item?.aggregator?.toLowerCase() === 'diff (no-negative)'
+                );
+                return !hasDiffAggregator;
+            } else {
+                if (
+                    pBlockInfo?.aggregator?.toLowerCase() === 'diff' ||
+                    pBlockInfo?.aggregator?.toLowerCase() === 'diff (abs)' ||
+                    pBlockInfo?.aggregator?.toLowerCase() === 'diff (no-negative)'
+                ) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
     const changedOptionFullTyping = (aKey: string, aData: any) => {
+        if (aKey === 'use' && aData?.target?.value === true) {
+            const checkDiff = allowFullTyping();
+            if (!checkDiff) {
+                Error('Full typing is not available when using Diff aggregator.');
+                return;
+            }
+        }
+
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
@@ -344,11 +391,10 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                       } else sUseFilter = bItem.useFilter;
                                       if (aKey === 'useTyping' && aData.target.value && bItem.useFilter) {
                                           if (pBlockInfo.customTable) return { ...bItem, useFilter: sUseFilter, typingValue: '', [aKey]: aData.target.value };
-
                                           if (pBlockInfo.tableInfo?.length < 1) return { ...bItem, useFilter: sUseFilter, typingValue: '', [aKey]: aData.target.value };
                                           // Check varchar type
                                           const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)[1] === 5;
-                                          const sValue = sUseQuote ? `"${bItem.value.includes(',') ? bItem.value.split(',').join('","') : bItem.value}"` : bItem.value;
+                                          const sValue = sUseQuote ? `'${bItem.value.includes(',') ? bItem.value.split(',').join("','") : bItem.value}'` : bItem.value;
                                           const sTypingValue =
                                               bItem.column === 'NAME' && bItem.operator === 'in'
                                                   ? `${bItem.column} ${bItem.operator} (${sValue})`
@@ -357,7 +403,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                       }
                                       return { ...bItem, useFilter: sUseFilter, [aKey]: aData.target.value };
                                   } else if (aChangedKey === 'values' && aKey === 'aggregator' && !SEPARATE_DIFF) {
-                                      const sDiffVal: boolean = aData.target.value.includes('diff');
+                                      const sDiffVal: boolean = aData?.target?.value?.toUpperCase().includes('diff'.toUpperCase());
                                       return { ...bItem, aggregator: aData.target.value, diff: sDiffVal ? aData.target.value : 'none' };
                                   } else
                                       return bItem.id === aId
@@ -545,7 +591,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     /** return agg list based on chart type */
     const getAggregatorList = useMemo((): string[] => {
         const sChartConvertType = chartTypeConverter(pPanelOption.type);
-        let sChartDataType = SqlResDataType(sChartConvertType);
+        const sChartDataType = SqlResDataType(sChartConvertType);
 
         if (sChartConvertType === 'geomap') return geomapAggregatorList;
         if (sChartDataType === 'TIME_VALUE') {
@@ -562,7 +608,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     /** return table list + virtual table list */
     const getTableList = useMemo((): string[] => {
         const sUseCustom = pBlockInfo.useCustom;
-        let sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
+        const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
         let sAggList: string[] = [];
         if (sChartDataType === 'TIME_VALUE') sAggList = SEPARATE_DIFF ? tagAggregatorList : [...tagAggregatorList, ...DIFF_LIST];
         if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
@@ -584,7 +630,14 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                 };
             });
         }
-        const sTableList = pTableList.map((aItem: any) => aItem[3]);
+
+        const sSortedTableList = [...pTableList].sort((aTable: any, bTable: any) => {
+            const aType = getTableType(aTable[4]);
+            const bType = getTableType(bTable[4]);
+            return TableTypeOrderList.indexOf(aType) - TableTypeOrderList.indexOf(bType);
+        });
+
+        const sTableList = sSortedTableList.map((aItem: any) => aItem[3]);
 
         if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
             // sTagTableList has only MACHBASEDB

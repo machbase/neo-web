@@ -1,36 +1,111 @@
+import { unitFormatter } from './Chart/formatters';
+import { compareVersions } from './version/utils';
+
+const ERR_COLOR = '#fa6464';
+const ERR_FONT_SIZE = '18';
+/** SYNTAX_ERR */
+const SYNTAX_ERR = (trigger: string, position: 'top' | 'center' | 'bottom') => {
+    return `if (${trigger}) {
+        const isDuplicateError = sErr?.some((err) => err === obj?.reason);
+        const sTknRegex = /token is expired by/i;
+        const isTknExpired = sErr?.some((err) => err === sTknRegex(obj?.reason));
+        if (!isDuplicateError && !isTknExpired) sErr?.push(obj?.reason);
+        \t_chartOption.graphic = [{
+        \t\ttype: 'text',
+        \t\tleft: 'center',
+        \t\ttop: '${position}',
+        \t\tstyle: {
+        \t\t\ttext: sErr?.join('\\n'),
+        \t\t\tfontSize: ${ERR_FONT_SIZE},
+        \t\t\tfontWeight: 'normal',
+        \t\t\tfill: '${ERR_COLOR}',
+        \t\t\twidth: _chart.getWidth() * 0.9,
+        \t\t\toverflow: 'break'
+        \t\t}
+        \t}];
+        \t_chart.setOption(_chartOption)
+        \treturn;
+    } else {
+        sErr = [];
+        _chartOption.graphic = [{
+        \t\ttype: 'text',
+        \t\tleft: 'center',
+        \t\ttop: '${position}',
+        \t\tstyle: {
+        \t\t\ttext: '',
+        \t\t\tfontSize: ${ERR_FONT_SIZE},
+        \t\t\tfontWeight: 'normal',
+        \t\t\tfill: '${ERR_COLOR}',
+        \t\t\twidth: _chart.getWidth() * 0.9,
+        \t\t\toverflow: 'break'
+        \t\t}
+        \t}];
+        _chart.setOption(_chartOption);
+    }`;
+};
+/** SYNTAX_ERR_TEXT */
+const SYNTAX_ERR_TEXT = (aPanelId?: string) => {
+    return `\t\t\t\tif (!obj?.success) {
+        \t\t\t\t\tconst sDOM = document.getElementById('${aPanelId}-text');
+        \t\t\t\t\tif (sDOM) {
+        \t\t\t\t\t\tsDOM.innerText = obj?.reason ?? '';
+        \t\t\t\t\t\tsDOM.style.color = '${ERR_COLOR}';
+        \t\t\t\t\t\tsDOM.style.fontSize = ${ERR_FONT_SIZE} + 'px';
+        \t\t\t\t\t\treturn;
+        \t\t\t\t\t}
+        \t\t\t\t}`;
+};
 /** NAME_VALUE func */
-const NameValueFunc = (aChartType: string) => {
+const NameValueFunc = (aChartType: string, aChartOptions: any, aVersion: string) => {
     const sIsGauge = aChartType === 'gauge';
-    const sGaugeNaNFormatter = `if (isNaN(Number.parseFloat(obj.data.rows[0][0].value))) {_chartOption.series[0].detail.formatter = function (value) {return 'No-data'}}`;
+    const sPosition = sIsGauge || aChartType === 'pie' ? 'bottom' : 'center';
+    const sVersion = compareVersions(aVersion, '1.0.1');
+    let sUnit = aChartOptions?.unit;
+    let sDigit = aChartOptions?.digit;
+    let sAxis = `{ ..._chartOption.series[0], data: sData }`;
+    if (sVersion < 0) {
+        sUnit = { suffix: aChartOptions?.unit ?? '' };
+        if (sIsGauge) sDigit = aChartOptions?.gaugeValueLimit;
+    }
+    const sFormatter = unitFormatter(sUnit, sDigit);
+    if (sVersion >= 0 && sIsGauge) sAxis = `{ ..._chartOption.series[0], axisLabel: {..._chartOption.series[0], formatter: ${sFormatter.formatter}}, data: sData }`;
+    const sGaugeNaNFormatter = `if (isNaN(Number.parseFloat(obj?.data?.rows?.[0]?.[0].value))) {_chartOption.series[0].detail.formatter = function (value) {return 'No-data'}} else {_chartOption.series[0].detail.formatter = ${sFormatter.formatter}}`;
     return `(obj) => {
+        \t${SYNTAX_ERR('!obj.success', sPosition)}
         \t\t${sIsGauge && sGaugeNaNFormatter}
-        \t\tsData[aIdx] = obj.data.rows?.[0]?.[0] ?? 0;
+        \t\tsData[aIdx] = obj?.data?.rows?.[0]?.[0] ?? 0;
         \t\tsCount += 1;
-        \t\t_chartOption.series[0] = { ..._chartOption.series[0], data: sData };
+        \t\t_chartOption.series[0] = ${sAxis};
         \t\tif (sCount === sQuery.length) _chart.setOption(_chartOption);
         \t}`;
 };
 /** TIME_VALUE func */
 const TimeValueFunc = () => {
     return `(obj) => {
+       \t${SYNTAX_ERR('!obj.success', 'center')}
         \t\tif (sQuery?.[aIdx]?.alias === '') _chartOption.series[aIdx].name = obj?.data?.columns?.[1];
         \t\t_chartOption.series[aIdx].data = obj?.data?.rows ?? [];
         \t\t_chart.setOption(_chartOption);
         \t}`;
 };
 /** LIQUIDFILL NAME_VALUE func */
-const LiquidNameValueFunc = (aChartOptions: any) => {
+const LiquidNameValueFunc = (aChartOptions: any, aVersion: string) => {
+    let sUnit = aChartOptions?.unit;
+    if (compareVersions(aVersion, '1.0.1') < 0) sUnit = { suffix: aChartOptions?.unit ?? '' };
+    const sFormatter = unitFormatter(sUnit, aChartOptions?.digit);
     return `(obj) => {
-        \t\tlet sValue = obj.data.rows[0][0].value;
+        \t${SYNTAX_ERR('!obj.success', 'bottom')}
+        \t\tconst unitFormatter = ${sFormatter.formatter};
+        \t\tlet sValue = obj?.data?.rows?.[0]?.[0]?.value;
         \t\t_chartOption.series[aIdx].data = [ (sValue - ${aChartOptions.minData}) / ( ${aChartOptions.maxData} -  ${aChartOptions.minData}) ]
         \t\t_chartOption.series[aIdx].label.formatter = function() {
         \t\t\tif (isNaN(Number.parseFloat(sValue))) return 'No-data';
-        \t\t\telse return Number.parseFloat(sValue).toFixed(${aChartOptions.digit}) + "${aChartOptions.unit}";
+        \t\t\telse return unitFormatter(sValue)
         \t\t}
         \t\t_chart.setOption(_chartOption)}`;
 };
 /** TEXT func */
-const TextFunc = (aChartOptions: any, aPanelId?: string) => {
+const TextFunc = (aChartOptions: any, aVersion: string, aPanelId?: string) => {
     const tmpColorSet = JSON.parse(JSON.stringify(aChartOptions.color));
     const tmpPop = tmpColorSet.shift();
     tmpColorSet.sort((a: any, b: any) => parseFloat(b[0]) - parseFloat(a[0]));
@@ -40,10 +115,15 @@ const TextFunc = (aChartOptions: any, aPanelId?: string) => {
         if (aIdx === 0) return `if (aValue > ${parseInt(aChartOption[0])}) return '${aChartOption[1]}';`;
         else return `else if (aValue > ${parseInt(aChartOption[0])}) return '${aChartOption[1]}';`;
     });
+    let sUnit = aChartOptions?.unit;
+    if (compareVersions(aVersion, '1.0.1') < 0) sUnit = { suffix: aChartOptions?.unit ?? '' };
+    const sFormatter = unitFormatter(sUnit, aChartOptions?.digit);
     return `(obj) => {
         \t\tconst setColor = (aValue) => {
         \t\t\t${colorInjectTxt.join('')}
         \t\t}
+        \t\tconst unitFormatter = ${sFormatter.formatter};
+        \t\t${SYNTAX_ERR_TEXT(aPanelId)}
         \t\tif (aIdx === 1) {
         \t\t\t_chartOption.series[0].data = obj?.data?.rows ?? [];
         \t\t\t_chart.setOption(_chartOption);
@@ -51,11 +131,11 @@ const TextFunc = (aChartOptions: any, aPanelId?: string) => {
         \t\t\tconst sDOM = document.getElementById('${aPanelId}-text');
         \t\t\tif (sDOM) {
         \t\t\t\tvar sFontSize = ${aChartOptions?.fontSize ?? 100};
-        \t\t\t\tconst sValue = obj?.data?.rows[0]?.[0]?.value ? obj?.data?.rows[0]?.[0]?.value.toFixed(${aChartOptions?.digit ?? ''}) : '';
+        \t\t\t\tconst sValue = obj?.data?.rows[0]?.[0]?.value ? unitFormatter(obj?.data?.rows[0]?.[0]?.value) : '';
         \t\t\t\tconst sColor = setColor(sValue);
         \t\t\t\tsDOM.style.color = sColor;
         \t\t\t\tsDOM.style.fontSize = sFontSize + 'px';
-        \t\t\t\tsDOM.innerText = isNaN(sValue) ? 'no-data' : sValue${aChartOptions?.unit ? ' +"' + aChartOptions.unit + '"' : ''};
+        \t\t\t\tsDOM.innerText = sValue ?? 'no-data';
         \t\t\t};
         \t\t}
         \t}`;
@@ -90,25 +170,26 @@ const Geomapfunc = (aChartOptions: any) => {
 /** ADV SCATTER func*/
 const AdvScatterFunc = () => {
     return `(obj) => {
+        \t\t${SYNTAX_ERR('!obj.success', 'center')}
         \t\tif (sQuery?.[aIdx]?.alias === '') _chartOption.series[aIdx].name = obj?.data?.columns?.[1];
         \t\t_chartOption.series[aIdx].data = obj?.data?.rows ?? [];
         \t\t_chart.setOption(_chartOption);
         \t}`;
 };
 
-export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string, aParsedQuery: any, isSave: boolean = false, aPanelId?: string) => {
+export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string, aParsedQuery: any, aPanelVersion: string, isSave: boolean = false, aPanelId?: string) => {
     const sDataType = aParsedQuery[0]?.dataType ?? 'TIME_VALUE';
     const sAccToken = localStorage.getItem('accessToken');
     const sXConsoleId = localStorage.getItem('consoleId');
     let sInjectFunc = null;
 
     if (aChartType === 'geomap') return Geomapfunc(aChartOptions);
-    else if (aChartType === 'text') sInjectFunc = TextFunc(aChartOptions, aPanelId);
+    else if (aChartType === 'text') sInjectFunc = TextFunc(aChartOptions, aPanelVersion, aPanelId);
     else if (aChartType === 'advScatter') sInjectFunc = AdvScatterFunc();
     else {
         if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc();
-        if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc(aChartType);
-        if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidNameValueFunc(aChartOptions);
+        if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc(aChartType, aChartOptions, aPanelVersion);
+        if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidNameValueFunc(aChartOptions, aPanelVersion);
     }
     // GEN variable
     const sDynamicVariable = aParsedQuery.map((aQuery: any) => {
@@ -138,6 +219,7 @@ export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string,
     return `{
         let sQuery = ${JSON.stringify(sDynamicVariable)};
         let sData = [];
+        let sErr = [];
         let sCount = 0;
         ${sFunction}
         ${sLoop}

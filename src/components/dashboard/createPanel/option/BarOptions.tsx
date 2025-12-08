@@ -11,14 +11,6 @@ interface BarOptionProps {
 export const BarOptions = (props: BarOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
 
-    const sPolarMenuStyle = {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginRight: '10px',
-        marginBottom: '5px',
-    };
-
     const handleBarOption = (aEvent: any, aKey: any, aIsCheckbox: boolean) => {
         const sValue = aIsCheckbox ? aEvent.target.checked : isNaN(Number(aEvent.target.value)) ? aEvent.target.value : Number(aEvent.target.value);
         pSetPanelOption((aPrev: any) => {
@@ -40,59 +32,59 @@ export const BarOptions = (props: BarOptionProps) => {
             <div className="divider" />
             <CheckBox pText="Polar mode" pDefaultChecked={pPanelOption.chartOptions?.isPolar ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isPolar', true)} />
             <div style={{ height: '10px' }} />
-            <div style={sPolarMenuStyle}>
+            <div className="menu-style">
                 <span>Max</span>
                 <Input
                     pType="number"
-                    pWidth={100}
-                    pHeight={25}
+                    pWidth={'100%'}
+                    pHeight={30}
                     pBorderRadius={4}
                     pIsDisabled={!pPanelOption.chartOptions?.isPolar}
                     pValue={pPanelOption.chartOptions?.maxValue}
                     onChange={(aEvent: any) => handleBarOption(aEvent, 'maxValue', false)}
                 />
             </div>
-            <div style={sPolarMenuStyle}>
+            <div className="menu-style">
                 <span>Start angle</span>
                 <Input
                     pType="number"
-                    pWidth={100}
-                    pHeight={25}
+                    pWidth={'100%'}
+                    pHeight={30}
                     pBorderRadius={4}
                     pIsDisabled={!pPanelOption.chartOptions?.isPolar}
                     pValue={pPanelOption.chartOptions?.startAngle}
                     onChange={(aEvent: any) => handleBarOption(aEvent, 'startAngle', false)}
                 />
             </div>
-            <div style={sPolarMenuStyle}>
+            <div className="menu-style">
                 <span>Radius</span>
                 <Input
                     pType="number"
-                    pWidth={100}
-                    pHeight={25}
+                    pWidth={'100%'}
+                    pHeight={30}
                     pBorderRadius={4}
                     pIsDisabled={!pPanelOption.chartOptions?.isPolar}
                     pValue={pPanelOption.chartOptions?.polarRadius}
                     onChange={(aEvent: any) => handleBarOption(aEvent, 'polarRadius', false)}
                 />
             </div>
-            <div style={sPolarMenuStyle}>
+            <div className="menu-style">
                 <span>Polar size</span>
                 <Input
                     pType="number"
-                    pWidth={100}
-                    pHeight={25}
+                    pWidth={'100%'}
+                    pHeight={30}
                     pBorderRadius={4}
                     pIsDisabled={!pPanelOption.chartOptions?.isPolar}
                     pValue={pPanelOption.chartOptions?.polarSize}
                     onChange={(aEvent: any) => handleBarOption(aEvent, 'polarSize', false)}
                 />
             </div>
-            <div style={sPolarMenuStyle}>
+            <div className="menu-style">
                 <span>Polar axis</span>
                 <Select
-                    pWidth={100}
-                    pHeight={25}
+                    pWidth={'100%'}
+                    pHeight={30}
                     pBorderRadius={4}
                     pIsDisabled={!pPanelOption.chartOptions?.isPolar}
                     pInitValue={pPanelOption.chartOptions?.polarAxis}

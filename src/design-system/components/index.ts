@@ -21,3 +21,12 @@ export { Alert } from './Alert';
 export type { AlertProps, AlertVariant } from './Alert';
 
 export { Menu } from './Menu';
+
+export { default as Pagination } from './Pagination';
+export type { PaginationProps } from './Pagination';
+
+export { default as List } from './List';
+export type { ListProps, ListItem } from './List';
+
+export { HierarchicalCombobox } from './HierarchicalCombobox';
+export type { HierarchicalComboboxItem, HierarchicalComboboxCategory, HierarchicalComboboxRootProps } from './HierarchicalCombobox';

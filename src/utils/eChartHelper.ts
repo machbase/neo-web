@@ -200,7 +200,7 @@ export const DefaultGaugeChartOption = {
     min: 0 as number,
     max: 100 as number,
     tagLimit: 1 as number,
-    gaugeValueLimit: 0 as number | undefined,
+    digit: 0 as number | undefined,
     axisLineStyleWidth: 10 as number,
     isAxisLineStyleColor: false as boolean,
     axisLineStyleColor: [

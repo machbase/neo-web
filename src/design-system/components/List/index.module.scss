@@ -1,0 +1,71 @@
+@use '@/design-system/tokens' as t;
+
+.list {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: t.$menu-bg;
+    border: 1px solid t.$menu-border;
+    border-radius: t.$border-radius-sm;
+    max-height: 80vh;
+    height: t.$list-default-height;
+
+    &__items {
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        overflow-x: hidden;
+        height: 100%;
+        padding: t.$spacing-4;
+        gap: t.$spacing-2;
+        @include t.scrollbar;
+    }
+
+    &__item {
+        display: flex;
+        align-items: center;
+        padding: t.$spacing-4 t.$spacing-8;
+        text-align: left;
+        border: none;
+        background-color: transparent;
+        color: t.$menu-item-text;
+        cursor: pointer;
+        border-radius: t.$border-radius-sm;
+        transition: background-color 0.15s ease;
+        font-size: t.$font-size-base;
+        font-family: inherit;
+        height: t.$menu-item-height;
+        min-height: t.$menu-item-height;
+        flex-shrink: 0;
+        white-space: nowrap;
+        outline: none;
+
+        &:hover {
+            background-color: t.$menu-item-hover-bg;
+        }
+
+        &:focus-visible {
+            background-color: t.$menu-item-hover-bg;
+        }
+    }
+
+    &__item-label {
+        display: block;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    &__empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        color: t.$text-muted;
+        font-size: t.$font-size-base;
+        padding: t.$spacing-4 t.$spacing-8;
+        text-align: center;
+    }
+}

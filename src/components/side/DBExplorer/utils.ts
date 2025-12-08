@@ -3,6 +3,8 @@ import { concatTagSet } from '@/utils/helpers/tags';
 import { convertChartDefault } from '@/utils/utils';
 import { DEFAULT_CHART as TAZ_DEFAULT } from '@/utils/constants';
 
+export const TableTypeOrderList: string[] = ['tag', 'log', 'fixed', 'volatile', 'lookup', 'keyValue'];
+
 export type STR_NUM_ARR_TYPE = (string | number)[];
 export type FetchCommonType = {
     columns: string[];

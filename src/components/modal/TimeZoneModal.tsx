@@ -32,33 +32,22 @@ export const TimeZoneModal = ({ isOpen, onClose, formatInitValue = '2006-01-02 1
                 </Modal.Title>
                 <Modal.Close />
             </Modal.Header>
-
             <Modal.Body>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <Combobox.Root
-                        label="Time format"
-                        labelPosition="left"
-                        options={TIME_FORMAT_LIST}
-                        value={sTimeFormat}
-                        onChange={setTimeFormat}
-                        placeholder="Select time format"
-                    >
-                        <Combobox.Input />
-                        <Combobox.Trigger icon={<MdOutlineKeyboardArrowDown size={14} />} />
-                        <Combobox.Dropdown>
-                            <Combobox.List />
-                        </Combobox.Dropdown>
-                    </Combobox.Root>
-                    <Combobox.Root label="Time zone" labelPosition="left" options={IANA_TIMEZONES} value={sTimeZone} onChange={setTimeZone} placeholder="Select time zone">
-                        <Combobox.Input />
-                        <Combobox.Trigger icon={<MdOutlineKeyboardArrowDown size={14} />} />
-                        <Combobox.Dropdown>
-                            <Combobox.List />
-                        </Combobox.Dropdown>
-                    </Combobox.Root>
-                </div>
+                <Combobox.Root label="Time format" labelPosition="left" options={TIME_FORMAT_LIST} value={sTimeFormat} onChange={setTimeFormat} placeholder="Select time format">
+                    <Combobox.Input />
+                    <Combobox.Trigger icon={<MdOutlineKeyboardArrowDown size={14} />} />
+                    <Combobox.Dropdown>
+                        <Combobox.List />
+                    </Combobox.Dropdown>
+                </Combobox.Root>
+                <Combobox.Root label="Time zone" labelPosition="left" options={IANA_TIMEZONES} value={sTimeZone} onChange={setTimeZone} placeholder="Select time zone">
+                    <Combobox.Input />
+                    <Combobox.Trigger icon={<MdOutlineKeyboardArrowDown size={14} />} />
+                    <Combobox.Dropdown>
+                        <Combobox.List />
+                    </Combobox.Dropdown>
+                </Combobox.Root>
             </Modal.Body>
-
             <Modal.Footer>
                 <Modal.Confirm onClick={handleSave}>Apply</Modal.Confirm>
                 <Modal.Cancel onClick={handleClose}>Cancel</Modal.Cancel>

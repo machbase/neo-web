@@ -5,8 +5,9 @@ import { BadgeSelect, BadgeSelectorItemType } from '@/components/inputs/BadgeSel
 import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
+import { HierarchicalCombobox } from '@/design-system/components';
 import { E_CHART_TYPE } from '@/type/eChart';
-import { ChartAxisUnits } from '@/utils/Chart/AxisConstants';
+import { findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 import { E_BLOCK_TYPE } from '@/utils/Chart/TransformDataParser';
 import { getChartSeriesName } from '@/utils/dashboardUtil';
 import { chartTypeConverter } from '@/utils/eChartHelper';
@@ -34,9 +35,9 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
 
     const handleYAxisOption = (aKey: string, aEvent: any, aIdx: number) => {
         const sCurrentYAxis = JSON.parse(JSON.stringify(pPanelOption.yAxisOptions));
-        if (aKey === 'key') {
-            const sTargetLabel = ChartAxisUnits.find((unit) => unit[aKey] === aEvent.target.value);
-            sCurrentYAxis[aIdx].label = sTargetLabel;
+        if (aKey === 'unit') {
+            const sTargetUnit = findUnitById(aEvent);
+            sCurrentYAxis[aIdx].unit = sTargetUnit;
         } else if (aKey === 'scale') sCurrentYAxis[aIdx][aKey] = !aEvent.target.checked;
         else if (aKey === 'offset') sCurrentYAxis[aIdx][aKey] = aEvent.target.value;
         else sCurrentYAxis[aIdx].label[aKey] = aEvent.target.value;
@@ -137,16 +138,28 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
             <Collapse title="yAxis">
                 {pPanelOption.yAxisOptions.map((aItem: any, aIndex: number) => (
                     <div key={aItem.type + aIndex}>
-                        <div style={{ border: 'solid 1px #777777', borderRadius: '5px', padding: '10px 0 10px 10px' }}>
+                        <div style={{ border: 'solid 1px #777777', borderRadius: '5px', padding: '10px 0 10px 10px', marginRight: '8px' }}>
                             {aIndex === 1 && (
                                 <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 10px 10px 0' }}>
                                     <IconButton pWidth={15} pHeight={15} pIcon={<Close />} onClick={addRemoveYAixs} />
                                 </div>
                             )}
                             <div className="menu-style">
+                                <div>Name</div>
+                                <Input
+                                    pType="text"
+                                    pWidth={'100%'}
+                                    pHeight={25}
+                                    pPlaceHolder="none"
+                                    pBorderRadius={4}
+                                    pValue={aItem?.label?.title ?? ''}
+                                    onChange={(aEvent) => handleYAxisOption('title', aEvent, aIndex)}
+                                />
+                            </div>
+                            <div className="menu-style">
                                 <div>Position</div>
                                 <Select
-                                    pWidth={100}
+                                    pWidth={'100%'}
                                     pHeight={25}
                                     pBorderRadius={4}
                                     pInitValue={aItem.position}
@@ -154,51 +167,38 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                                     pOptions={sPositionList}
                                 />
                             </div>
-                            <Collapse title="Options">
-                                <div className="menu-style">
-                                    <div>Offset</div>
-                                    <Input
-                                        pType="number"
-                                        pWidth={100}
-                                        pHeight={25}
-                                        pPlaceHolder="auto"
-                                        pBorderRadius={4}
-                                        pValue={aItem?.offset ?? ''}
-                                        onChange={(aEvent) => handleYAxisOption('offset', aEvent, aIndex)}
-                                    />
-                                </div>
+                            <div className="menu-style">
+                                <div>Offset</div>
+                                <Input
+                                    pType="number"
+                                    pWidth={'100%'}
+                                    pHeight={25}
+                                    pPlaceHolder="auto"
+                                    pBorderRadius={4}
+                                    pValue={aItem?.offset ?? ''}
+                                    onChange={(aEvent) => handleYAxisOption('offset', aEvent, aIndex)}
+                                />
+                            </div>
+                            <div style={{ paddingRight: '8px' }}>
                                 <div className="divider" />
-                                <div className="menu-style">
-                                    <div>Type</div>
-                                    <Select
-                                        pWidth={100}
-                                        pHeight={25}
-                                        pBorderRadius={4}
-                                        pInitValue={aItem?.label?.key ?? 'value'}
-                                        onChange={(aEvent) => handleYAxisOption('key', aEvent, aIndex)}
-                                        pOptions={ChartAxisUnits.map((aUnit) => {
-                                            return aUnit.key;
-                                        })}
-                                    />
+                            </div>
+                            {/* TICK  */}
+                            <Collapse title="Tick options">
+                                <div className="menu-style" style={{ display: 'flex', flex: 1, width: '100%', paddingRight: '10px' }}>
+                                    <span>Unit</span>
+                                    <HierarchicalCombobox.Root value={aItem?.unit?.id ?? ''} categories={UNITS} onChange={(value) => handleYAxisOption('unit', value, aIndex)}>
+                                        <HierarchicalCombobox.Input />
+                                        <HierarchicalCombobox.Menu>
+                                            <HierarchicalCombobox.List emptyMessage="No units available" />
+                                        </HierarchicalCombobox.Menu>
+                                    </HierarchicalCombobox.Root>
                                 </div>
+
                                 <div className="menu-style">
-                                    <div>Unit</div>
-                                    <Input
-                                        pType="text"
-                                        pWidth={100}
-                                        pHeight={25}
-                                        pIsDisabled={aItem?.label?.name !== 'value'}
-                                        pPlaceHolder={aItem?.label?.name === 'byte' || aItem?.label?.name === 'percent' ? 'auto' : 'none'}
-                                        pBorderRadius={4}
-                                        pValue={aItem?.label?.unit ?? ''}
-                                        onChange={(aEvent) => handleYAxisOption('unit', aEvent, aIndex)}
-                                    />
-                                </div>
-                                <div className="menu-style">
-                                    <div>Decimals</div>
+                                    <span>Decimals</span>
                                     <Input
                                         pType="number"
-                                        pWidth={100}
+                                        pWidth={'100%'}
                                         pHeight={25}
                                         pPlaceHolder="auto"
                                         pBorderRadius={4}
@@ -206,24 +206,12 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                                         onChange={(aEvent) => handleYAxisOption('decimals', aEvent, aIndex)}
                                     />
                                 </div>
-                                <div className="menu-style">
-                                    <div>Name</div>
-                                    <Input
-                                        pType="text"
-                                        pWidth={100}
-                                        pHeight={25}
-                                        pPlaceHolder="none"
-                                        pBorderRadius={4}
-                                        pValue={aItem?.label?.title ?? ''}
-                                        onChange={(aEvent) => handleYAxisOption('title', aEvent, aIndex)}
-                                    />
-                                </div>
-                                <div className="divider" />
+
                                 <div className="menu-style">
                                     <div>Min</div>
                                     <Input
                                         pType="number"
-                                        pWidth={100}
+                                        pWidth={'100%'}
                                         pHeight={25}
                                         pBorderRadius={4}
                                         pPlaceHolder={'auto'}
@@ -235,7 +223,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                                     <div>Max</div>
                                     <Input
                                         pType="number"
-                                        pWidth={100}
+                                        pWidth={'100%'}
                                         pHeight={25}
                                         pBorderRadius={4}
                                         pPlaceHolder={'auto'}
@@ -243,6 +231,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                                         onChange={(aEvent: any) => HandleMinMax('max', aEvent.target.value, aIndex)}
                                     />
                                 </div>
+
                                 <div className="menu-style">
                                     <CheckBox pText="Start at zero" pDefaultChecked={!aItem?.scale} onChange={(aEvent: any) => handleYAxisOption('scale', aEvent, aIndex)} />
                                 </div>

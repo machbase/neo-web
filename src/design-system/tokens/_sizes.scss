@@ -86,3 +86,9 @@ $menu-icon-size: 15px;
 // Dropdown/Combobox
 // ============================================
 $dropdown-max-height: 300px;
+
+// ============================================
+// List
+// ============================================
+// Default height for 10 items: (28px * 10) + (4px * 2) + (2px * 9) = 309px
+$list-default-height: 309px;

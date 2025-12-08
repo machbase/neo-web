@@ -26,13 +26,13 @@ export const MultiColorPkr = (props: MultiColorPkrStyle) => {
 
     return (
         <div className="gauge-options-wrape">
-            <div className="menu-style">
+            <div className="menu-style" style={{ flexDirection: 'row' }}>
                 <div ref={sColorPickerRef} style={{ position: 'relative', display: 'flex' }}>
                     {props?.prefix && <span style={{ marginRight: '30px', height: '25px', alignItems: 'center', display: 'flex' }}>{props.prefix}</span>}
                     <div style={{ marginRight: '10px' }}>
                         <Input
                             pType="number"
-                            pWidth={100}
+                            pWidth={'100%'}
                             pHeight={25}
                             pBorderRadius={4}
                             pMin={min}
@@ -70,7 +70,7 @@ export const MultiColorPkr = (props: MultiColorPkrStyle) => {
                         </div>
                     )}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'row' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'end' }}>
                     {itemLen === aIdx + 1 ? (
                         <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={() => HandleItem('add', aIdx)} />
                     ) : (

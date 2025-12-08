@@ -22,7 +22,19 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                     )}
                 </span>
             </div>
-            {!pFilterInfo.useTyping && (
+            {pFilterInfo.useTyping ? (
+                <div className="series-table">
+                    <Input
+                        pBorderRadius={4}
+                        pWidth={456}
+                        pHeight={26}
+                        pType="text"
+                        pValue={pFilterInfo.typingValue}
+                        pSetValue={() => null}
+                        onChange={(aEvent: any) => pChangeValueOption('typingValue', aEvent, pFilterInfo.id, 'filter')}
+                    />
+                </div>
+            ) : (
                 <>
                     <div className="series-table">
                         <InputSelector
@@ -38,42 +50,30 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                             })}
                         />
                     </div>
-                    <div className="series-table operator">
-                        <InputSelector
-                            pFontSize={12}
-                            pWidth={70}
-                            pBorderRadius={4}
-                            pInitValue={pFilterInfo.operator ?? sFliterList[0]}
-                            pHeight={26}
-                            onChange={(aEvent: any) => pChangeValueOption('operator', aEvent, pFilterInfo.id, 'filter')}
-                            pOptions={sFliterList}
-                        />
+                    <div style={{ display: 'flex' }}>
+                        <div className="series-table operator">
+                            <InputSelector
+                                pFontSize={12}
+                                pWidth={70}
+                                pBorderRadius={4}
+                                pInitValue={pFilterInfo.operator ?? sFliterList[0]}
+                                pHeight={26}
+                                onChange={(aEvent: any) => pChangeValueOption('operator', aEvent, pFilterInfo.id, 'filter')}
+                                pOptions={sFliterList}
+                            />
+                        </div>
+                        <div className="series-table">
+                            <Input
+                                pBorderRadius={4}
+                                pWidth={175}
+                                pHeight={26}
+                                pType="text"
+                                pValue={pFilterInfo.value}
+                                onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
+                            />
+                        </div>
                     </div>
                 </>
-            )}
-            {pFilterInfo.useTyping ? (
-                <div className="series-table">
-                    <Input
-                        pBorderRadius={4}
-                        pWidth={456}
-                        pHeight={26}
-                        pType="text"
-                        pValue={pFilterInfo.typingValue}
-                        pSetValue={() => null}
-                        onChange={(aEvent: any) => pChangeValueOption('typingValue', aEvent, pFilterInfo.id, 'filter')}
-                    />
-                </div>
-            ) : (
-                <div className="series-table">
-                    <Input
-                        pBorderRadius={4}
-                        pWidth={175}
-                        pHeight={26}
-                        pType="text"
-                        pValue={pFilterInfo.value}
-                        onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
-                    />
-                </div>
             )}
             <div className="series-table padding-4">
                 <IconButton

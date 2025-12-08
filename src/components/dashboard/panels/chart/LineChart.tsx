@@ -217,6 +217,7 @@ const LineChart = ({
                 pPanelInfo.chartOptions,
                 chartTypeConverter(pPanelInfo.type),
                 sParsedQuery,
+                pPanelInfo.version,
                 false,
                 PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)
             );

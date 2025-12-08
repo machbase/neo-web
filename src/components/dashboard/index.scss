@@ -138,7 +138,8 @@
 
 .menu-style {
     display: flex;
-    align-items: center;
+    align-items: start;
+    flex-direction: column;
     justify-content: space-between;
     margin-right: 10px;
     margin-bottom: 5px;

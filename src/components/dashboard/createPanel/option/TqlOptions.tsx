@@ -27,7 +27,7 @@ export const TqlOptions = (props: GaugeOptionProps) => {
                 <div className="menu-style">
                     <span>Theme</span>
                     <Select
-                        pWidth={100}
+                        pWidth={'100%'}
                         pHeight={25}
                         pFontSize={14}
                         pBorderRadius={4}

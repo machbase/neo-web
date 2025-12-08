@@ -7,8 +7,9 @@ import { BadgeSelect, BadgeSelectorItemType } from '@/components/inputs/BadgeSel
 import CheckBox from '@/components/inputs/CheckBox';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
+import { HierarchicalCombobox } from '@/design-system/components';
 import { E_CHART_TYPE } from '@/type/eChart';
-import { ChartAxisUnits } from '@/utils/Chart/AxisConstants';
+import { ChartAxisUnits, findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 import { getChartSeriesName } from '@/utils/dashboardUtil';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { useMemo } from 'react';
@@ -95,10 +96,13 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
     // };
     const handleXAxisOption = (aKey: string, aEvent: any) => {
         const sCurrentXAxis = JSON.parse(JSON.stringify(pPanelOption.xAxisOptions));
-        if (aKey === 'key') {
+        if (aKey === 'unit') {
+            const sTargetUnit = findUnitById(aEvent);
+            sCurrentXAxis[0].unit = sTargetUnit;
+        } else if (aKey === 'key') {
             const sTargetLabel = ChartAxisUnits.find((unit) => unit[aKey] === aEvent.target.value);
             sCurrentXAxis[0].label = sTargetLabel;
-        } else if (aKey === 'unit' || aKey === 'decimals') sCurrentXAxis[0].label[aKey] = aEvent.target.value;
+        } else if (aKey === 'decimals') sCurrentXAxis[0].label[aKey] = aEvent.target.value;
         else sCurrentXAxis[0][aKey] = !aEvent.target.checked;
 
         pSetPanelOption((aPrev: any) => {
@@ -155,7 +159,7 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                 <div className="menu-style">
                     <span>Interval type</span>
                     <Select
-                        pWidth={100}
+                        pWidth={'100%'}
                         pHeight={25}
                         pBorderRadius={4}
                         pNoneValue="none"
@@ -168,7 +172,7 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                     <span>Interval value</span>
                     <Input
                         pType="number"
-                        pWidth={100}
+                        pWidth={'100%'}
                         pHeight={25}
                         pBorderRadius={4}
                         pPlaceHolder={'auto'}
@@ -178,37 +182,24 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                 </div>
                 {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && (
                     <Collapse title="Options">
-                        <div className="menu-style">
-                            <div>Type</div>
-                            <Select
-                                pWidth={100}
-                                pHeight={25}
-                                pBorderRadius={4}
-                                pInitValue={pPanelOption?.xAxisOptions[0]?.label?.key ?? 'value'}
-                                pOptions={ChartAxisUnits.map((aUnit) => {
-                                    return aUnit.key;
-                                })}
-                                onChange={(aEvent) => handleXAxisOption('key', aEvent)}
-                            />
-                        </div>
-                        <div className="menu-style">
-                            <div>Unit</div>
-                            <Input
-                                pType="text"
-                                pWidth={100}
-                                pHeight={25}
-                                pBorderRadius={4}
-                                pValue={pPanelOption?.xAxisOptions[0]?.label?.unit ?? ''}
-                                pPlaceHolder={pPanelOption?.xAxisOptions[0]?.label?.name === 'byte' || pPanelOption?.xAxisOptions[0]?.label?.name === 'percent' ? 'auto' : 'none'}
-                                pIsDisabled={pPanelOption?.xAxisOptions[0]?.label?.name !== 'value'}
-                                onChange={(aEvent) => handleXAxisOption('unit', aEvent)}
-                            />
+                        <div className="menu-style" style={{ display: 'flex', flex: 1, width: '100%', paddingRight: '10px' }}>
+                            <span>Unit</span>
+                            <HierarchicalCombobox.Root
+                                value={pPanelOption?.xAxisOptions[0]?.unit?.id ?? ''}
+                                categories={UNITS}
+                                onChange={(value) => handleXAxisOption('unit', value)}
+                            >
+                                <HierarchicalCombobox.Input />
+                                <HierarchicalCombobox.Menu>
+                                    <HierarchicalCombobox.List emptyMessage="No units available" />
+                                </HierarchicalCombobox.Menu>
+                            </HierarchicalCombobox.Root>
                         </div>
                         <div className="menu-style">
                             <div>Decimals</div>
                             <Input
                                 pType="number"
-                                pWidth={100}
+                                pWidth={'100%'}
                                 pHeight={25}
                                 pPlaceHolder="auto"
                                 pBorderRadius={4}
@@ -216,12 +207,12 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                                 onChange={(aEvent) => handleXAxisOption('decimals', aEvent)}
                             />
                         </div>
-                        <div className="divider" />
+
                         <div className="menu-style">
                             <div>Min</div>
                             <Input
                                 pType="number"
-                                pWidth={100}
+                                pWidth={'100%'}
                                 pHeight={25}
                                 pBorderRadius={4}
                                 pPlaceHolder={'auto'}
@@ -233,7 +224,7 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                             <div>Max</div>
                             <Input
                                 pType="number"
-                                pWidth={100}
+                                pWidth={'100%'}
                                 pHeight={25}
                                 pBorderRadius={4}
                                 pPlaceHolder={'auto'}
@@ -252,7 +243,9 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                 )}
                 {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && (
                     <>
-                        <div className="divider" />
+                        <div style={{ paddingRight: '8px' }}>
+                            <div className="divider" />
+                        </div>
                         <span>Series</span>
                         <div style={{ padding: '8px 10px 0 0' }}>
                             <BadgeSelect pSelectedList={pPanelOption?.xAxisOptions[0]?.useBlockList || [0]} pList={getBlockList} pCallback={handleSeries} />

@@ -69,30 +69,21 @@ export const PasswordModal = ({ isOpen, onClose }: PasswordProps) => {
                 {!sIsLoading && <Modal.Close />}
             </Modal.Header>
             <Modal.Body>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {/* User Info */}
-                    {/* <span>User: {sCurrentUserName}</span> */}
-                    {/* New Password */}
-                    <PasswordInput
-                        label="New password"
-                        labelPosition="left"
-                        value={sNewPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        onKeyDown={handleEnter}
-                        autoFocus
-                    />
-                    {/* Confirm Password */}
-                    <PasswordInput
-                        label="Confirm password"
-                        labelPosition="left"
-                        value={sConfirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        onKeyDown={handleEnter}
-                    />
-                    {/* Error Messages */}
-                    {sPwdDiff && <Alert variant="error" message={sPwdDiff} />}
-                    {sRes && <Alert variant={sRes.success ? 'success' : 'error'} message={sRes.reason} />}
-                </div>
+                {/* User Info */}
+                {/* <span>User: {sCurrentUserName}</span> */}
+                {/* New Password */}
+                <PasswordInput label="New password" labelPosition="left" value={sNewPassword} onChange={(e) => setNewPassword(e.target.value)} onKeyDown={handleEnter} autoFocus />
+                {/* Confirm Password */}
+                <PasswordInput
+                    label="Confirm password"
+                    labelPosition="left"
+                    value={sConfirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onKeyDown={handleEnter}
+                />
+                {/* Error Messages */}
+                {sPwdDiff && <Alert variant="error" message={sPwdDiff} />}
+                {sRes && <Alert variant={sRes.success ? 'success' : 'error'} message={sRes.reason} />}
             </Modal.Body>
             <Modal.Footer>
                 <Modal.Confirm onClick={handleChange} disabled={sIsLoading} loading={sIsLoading}>
