@@ -7,7 +7,9 @@ const ERR_FONT_SIZE = '18';
 const SYNTAX_ERR = (trigger: string, position: 'top' | 'center' | 'bottom') => {
     return `if (${trigger}) {
         const isDuplicateError = sErr?.some((err) => err === obj?.reason);
-        if (!isDuplicateError) sErr?.push(obj?.reason)
+        const sTknRegex = /token is expired by/i;
+        const isTknExpired = sErr?.some((err) => err === sTknRegex(obj?.reason));
+        if (!isDuplicateError && !isTknExpired) sErr?.push(obj?.reason);
         \t_chartOption.graphic = [{
         \t\ttype: 'text',
         \t\tleft: 'center',
@@ -23,6 +25,22 @@ const SYNTAX_ERR = (trigger: string, position: 'top' | 'center' | 'bottom') => {
         \t}];
         \t_chart.setOption(_chartOption)
         \treturn;
+    } else {
+        sErr = [];
+        _chartOption.graphic = [{
+        \t\ttype: 'text',
+        \t\tleft: 'center',
+        \t\ttop: '${position}',
+        \t\tstyle: {
+        \t\t\ttext: '',
+        \t\t\tfontSize: ${ERR_FONT_SIZE},
+        \t\t\tfontWeight: 'normal',
+        \t\t\tfill: '${ERR_COLOR}',
+        \t\t\twidth: _chart.getWidth() * 0.9,
+        \t\t\toverflow: 'break'
+        \t\t}
+        \t}];
+        _chart.setOption(_chartOption);
     }`;
 };
 /** SYNTAX_ERR_TEXT */
@@ -37,7 +55,6 @@ const SYNTAX_ERR_TEXT = (aPanelId?: string) => {
         \t\t\t\t\t}
         \t\t\t\t}`;
 };
-
 /** NAME_VALUE func */
 const NameValueFunc = (aChartType: string, aChartOptions: any, aVersion: string) => {
     const sIsGauge = aChartType === 'gauge';
@@ -150,7 +167,6 @@ const Geomapfunc = (aChartOptions: any) => {
         })
     }`;
 };
-
 /** ADV SCATTER func*/
 const AdvScatterFunc = () => {
     return `(obj) => {
