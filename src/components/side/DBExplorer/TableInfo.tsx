@@ -1,7 +1,7 @@
 import './TableInfo.scss';
 import { getTableInfo, getColumnIndexInfo, getRecordCount, unMountDB, mountDB, backupStatus } from '@/api/repository/api';
 import React, { useEffect, useRef, useState } from 'react';
-import { FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser, VscWarning } from '@/assets/icons/Icon';
+import { FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser, VscWarning, VscChevronDown, Copy } from '@/assets/icons/Icon';
 import { generateUUID, getUserName, isCurUserEqualAdmin } from '@/utils';
 import { IconButton } from '@/components/buttons/IconButton';
 import { TbDatabaseMinus, TbDatabasePlus, TbFileDatabase } from 'react-icons/tb';
@@ -13,6 +13,11 @@ import { LuDatabaseBackup } from 'react-icons/lu';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { TableTypeOrderList } from './utils';
+import { getColumnType } from '@/utils/dashboardUtil';
+import { ClipboardCopy } from '@/utils/ClipboardCopy';
+import { FaCheck } from 'react-icons/fa';
+import { Tooltip } from 'react-tooltip';
+import { Virtuoso } from 'react-virtuoso';
 
 const TAB_TYPE = 'DBTable';
 
@@ -378,12 +383,6 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
     let sUserName = getUserName();
     if (sUserName) sUserName = sUserName?.toUpperCase();
 
-    const getTableInfoData = async (aDatabaseId: string, aTableId: string) => {
-        return await getTableInfo(aDatabaseId, aTableId);
-    };
-    const getColumnIndexInfoData = async (aDatabaseId: string, aTableId: string) => {
-        return await getColumnIndexInfo(aDatabaseId, aTableId);
-    };
     const checkDisplay = (aValue: number): boolean => {
         if (aValue === 0) return true;
         if (!props.pShowHiddenObj) return true;
@@ -441,8 +440,6 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                                     pTableType={aTableType}
                                                     pTableFlag={aTable[5]}
                                                     pPriv={aTable[7] ?? ''}
-                                                    onTableInfo={getTableInfoData}
-                                                    onColumnInfo={getColumnIndexInfoData}
                                                     pRefresh={props.pRefresh}
                                                     pHandleDBTablePage={props.pHandleDBTablePage}
                                                     pContextMenu={props.pContextMenu}
@@ -470,23 +467,25 @@ interface TableDivPropsType {
     pUserName: string;
     pTable: (string | number)[];
     pRefresh: number;
-    onTableInfo: (aDatabaseId: string, aTableId: string) => any;
-    onColumnInfo: (aDatabaseId: string, atableId: string) => any;
     pHandleDBTablePage: (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => void;
     pContextMenu: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTableInfo: (number | string)[], aUser: string, aPriv: string) => void;
 }
 const TableDiv = (props: TableDivPropsType): JSX.Element => {
+    const [sIsOpen, setIsOpen] = useState<boolean>(false);
     const [sRecordCount, setRecordCount] = useState<number>(0);
     const sPriv = props?.pPriv && props.pPriv !== '' ? props.pPriv?.split('|')?.[1].trim() : '';
 
     const handleTableDetail = () => {
         props.pHandleDBTablePage(props.pUserName, props.pTable);
+        setIsOpen(!sIsOpen);
     };
+
     const fetchRecordCount = async () => {
         const res: any = await getRecordCount(`${props.pTable[3].toString()}`, `${props.pTable[0] !== 'MACHBASEDB' ? props.pTable[0] + '.' : ''}${props.pTable[1].toString()}`);
         if (res.success && res.data && res.data.rows[0][0]) setRecordCount(res.data.rows[0][0]);
         else setRecordCount(0);
     };
+
     const handleContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
         props.pContextMenu(e, props.pTable, props.pUserName, props.pPriv);
     };
@@ -499,6 +498,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
         <>
             <div className="table-column-wrap" onClick={handleTableDetail} onContextMenu={handleContextMenu}>
                 <div className="table-column-l">
+                    <VscChevronDown className={`table-arrow ${sIsOpen ? 'table-arrow-open' : ''}`} />
                     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         <IconButton
                             pWidth={'100%'}
@@ -522,6 +522,294 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
                     <span className="r-txt">{sRecordCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
                 </div>
             </div>
+            {sIsOpen && (
+                <ColumnDiv pKey={props.pTable[0] as string} pShowHiddenObj={props.pShowHiddenObj} pDatabaseId={props.pTable[6].toString()} pTableId={props.pTable[2].toString()} />
+            )}
         </>
+    );
+};
+
+interface ColumnDivPropsType {
+    pKey: string;
+    pShowHiddenObj: boolean;
+    pDatabaseId: string;
+    pTableId: string;
+}
+const ColumnNameCopy = ({ columnName }: { columnName: string }) => {
+    const [copied, setCopied] = useState(false);
+    const tooltipId = `column-name-${columnName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+    const handleCopy = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (copied) return;
+        setCopied(true);
+        ClipboardCopy(columnName);
+        setTimeout(() => {
+            setCopied(false);
+        }, 600);
+    };
+    return (
+        <div className="column-name-copy-wrapper">
+            <span className={`column-name-text tooltip-${tooltipId}`}>{columnName}</span>
+            <Tooltip place="top" positionStrategy="fixed" anchorSelect={`.tooltip-${tooltipId}`} content={columnName} delayShow={700} style={{ zIndex: 9999 }} />
+            <div className="column-name-copy-icon" onClick={handleCopy}>
+                {copied ? <FaCheck /> : <Copy />}
+            </div>
+        </div>
+    );
+};
+
+const ColumnSkeleton = ({ count = 5 }: { count?: number }) => {
+    return (
+        <div className="column-skeleton-wrapper">
+            {Array.from({ length: count }).map((_, index) => (
+                <div className="table-column-content" key={`skeleton-${index}`}>
+                    <span style={{ marginRight: '4px', opacity: '0.5' }}>{index >= count - 1 ? '└─' : '├─'}</span>
+                    <div className="table-column-content-row">
+                        <div className="skeleton skeleton-text" style={{ width: '60%' }}></div>
+                        <div className="skeleton skeleton-text" style={{ width: '25%', marginRight: '16px' }}></div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+const LabelSkeleton = () => {
+    return (
+        <div className="col-label-wrap">
+            <div className="table-wrap-label-content" style={{ height: '21px' }}>
+                <div className="skeleton skeleton-text" style={{ width: '12px', height: '12px', minWidth: '12px', marginRight: '4px' }}></div>
+                <div className="skeleton skeleton-text" style={{ width: '70px', height: '14px' }}></div>
+            </div>
+        </div>
+    );
+};
+
+const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
+    const [sColOpen, setColOpen] = useState<boolean>(false);
+    const [sIndexOpen, setIndexOpen] = useState<boolean>(false);
+    const [sColumnList, setColumnList] = useState<(string | number)[][]>([]);
+    const [sIndexList, setIndexList] = useState<(string | number)[][]>([]);
+    const [sColumnsLoading, setColumnsLoading] = useState<boolean>(false);
+    const [sIndexLoading, setIndexLoading] = useState<boolean>(true);
+    const [sIndexFetched, setIndexFetched] = useState<boolean>(false);
+
+    const getIndexType = (aType: number): string => {
+        switch (aType) {
+            case 1:
+                return 'BITMAP';
+            case 2:
+                return 'KEYWORD';
+            case 3:
+                return 'REDBLACK';
+            case 6:
+                return 'LSM';
+            case 8:
+                return 'REDBLACK';
+            case 9:
+                return 'KETWORD_LSM';
+            case 11:
+                return 'TAG';
+            default:
+                return '';
+        }
+    };
+
+    const checkDisplay = (aColumn: string, aData?: (string | number)[]): boolean => {
+        // if (!props.pShowHiddenObj) return true;
+        switch (aColumn) {
+            case 'column': {
+                if (!aData) return false;
+                if (aData[3].toString() === '65534') return false;
+                if (aData[3].toString() === '0' && aData[0].toString() === '_ARRIVAL_TIME') return false;
+                if (aData[3].toString() === '0' && aData[0].toString() === '_ROWID') return false;
+                return true;
+            }
+            default:
+                return true;
+        }
+    };
+
+    const handleColumnsToggle = async () => {
+        const newColOpen = !sColOpen;
+        setColOpen(newColOpen);
+
+        if (newColOpen) {
+            setColumnsLoading(true);
+            try {
+                const res = await getTableInfo(props.pDatabaseId, props.pTableId);
+                if (res.data && res.data.rows) {
+                    setColumnList(res.data.rows);
+                }
+            } finally {
+                setTimeout(() => {
+                    setColumnsLoading(false);
+                }, 350);
+            }
+        }
+    };
+
+    const handleIndexToggle = () => {
+        setIndexOpen(!sIndexOpen);
+    };
+
+    useEffect(() => {
+        const fetchIndexCheck = async () => {
+            setIndexLoading(true);
+            try {
+                const res = await getColumnIndexInfo(props.pDatabaseId, props.pTableId);
+                if (res.data && res.data.rows && res.data.rows.length > 0) {
+                    setIndexList(res.data.rows);
+                }
+                setIndexFetched(true);
+            } catch {
+                setIndexFetched(true);
+            } finally {
+                setTimeout(() => {
+                    setIndexLoading(false);
+                }, 350);
+            }
+        };
+
+        fetchIndexCheck();
+    }, [props.pDatabaseId, props.pTableId]);
+
+    // Filter columns and indexes
+    const visibleColumns = sColumnList.filter((col) => checkDisplay('column', col));
+    const visibleIndexes = sIndexList.filter(() => checkDisplay('index'));
+
+    return (
+        <div className="col-div-wrap">
+            {sIndexLoading ? (
+                <>
+                    <LabelSkeleton />
+                </>
+            ) : (
+                <>
+                    {/* Columns Section */}
+                    <div className="col-label-wrap" onClick={handleColumnsToggle}>
+                        <LabelDiv pTxt="columns" pIsOpen={sColOpen} />
+                    </div>
+                    {sColOpen && (
+                        <>
+                            {sColumnsLoading ? (
+                                <ColumnSkeleton count={3} />
+                            ) : visibleColumns.length > 50 ? (
+                                <Virtuoso
+                                    style={{ height: '40vh' }}
+                                    data={visibleColumns}
+                                    itemContent={(index, bColumn) => {
+                                        const isLast = index === visibleColumns.length - 1;
+                                        return (
+                                            <div className="table-column-content">
+                                                <span style={{ marginRight: '4px', opacity: '0.5' }}>{isLast ? '└─' : '├─'}</span>
+                                                <div className="table-column-content-row">
+                                                    <div className="l-txt">
+                                                        <ColumnNameCopy columnName={bColumn[0].toString()} />
+                                                    </div>
+                                                    <div className="r-txt">
+                                                        {getColumnType(bColumn[1] as number) + ' '}
+                                                        {bColumn[1] === 5 && `(${bColumn[2]})`}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    }}
+                                />
+                            ) : (
+                                <div className="col-list-wrapper">
+                                    {visibleColumns.map((bColumn, index) => {
+                                        const isLast = index === visibleColumns.length - 1;
+                                        return (
+                                            <div className="table-column-content" key={`${props.pKey}-col-${index}`}>
+                                                <span style={{ marginRight: '4px', opacity: '0.5' }}>{isLast ? '└─' : '├─'}</span>
+                                                <div className="table-column-content-row">
+                                                    <div className="l-txt">
+                                                        <ColumnNameCopy columnName={bColumn[0].toString()} />
+                                                    </div>
+                                                    <div className="r-txt">
+                                                        {getColumnType(bColumn[1] as number) + ' '}
+                                                        {bColumn[1] === 5 && `(${bColumn[2]})`}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    {/* Index Section */}
+                    {sIndexFetched && visibleIndexes.length > 0 && (
+                        <>
+                            <div className="col-label-wrap" onClick={handleIndexToggle}>
+                                <LabelDiv pTxt="index" pIsOpen={sIndexOpen} />
+                            </div>
+                            {sIndexOpen && (
+                                <>
+                                    {visibleIndexes.length > 50 ? (
+                                        <Virtuoso
+                                            style={{ height: '40vh' }}
+                                            data={visibleIndexes}
+                                            itemContent={(index, aIndex) => {
+                                                const isLast = index === visibleIndexes.length - 1;
+                                                return (
+                                                    <div className="table-column-content">
+                                                        <span style={{ marginRight: '4px', opacity: '0.5' }}>{isLast ? '└─' : '├─'}</span>
+                                                        <div className="table-column-content-row">
+                                                            <div className="l-txt">
+                                                                <ColumnNameCopy columnName={aIndex[1].toString()} />
+                                                            </div>
+                                                            <div className="r-txt">
+                                                                <span>{getIndexType(aIndex[2] as number)}</span>
+                                                                <span style={{ marginLeft: '3px' }}>({aIndex[0]})</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }}
+                                        />
+                                    ) : (
+                                        <div className="col-list-wrapper">
+                                            {visibleIndexes.map((aIndex, index) => {
+                                                const isLast = index === visibleIndexes.length - 1;
+                                                return (
+                                                    <div className="table-column-content" key={`${props.pKey}-idx-${index}`}>
+                                                        <span style={{ marginRight: '4px', opacity: '0.5' }}>{isLast ? '└─' : '├─'}</span>
+                                                        <div className="table-column-content-row">
+                                                            <div className="l-txt">
+                                                                <ColumnNameCopy columnName={aIndex[1].toString()} />
+                                                            </div>
+                                                            <div className="r-txt">
+                                                                <span>{getIndexType(aIndex[2] as number)}</span>
+                                                                <span style={{ marginLeft: '3px' }}>({aIndex[0]})</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </>
+                    )}
+                </>
+            )}
+        </div>
+    );
+};
+interface LabelDivPropsType {
+    pTxt: string;
+    pIsOpen?: boolean;
+}
+const LabelDiv = (props: LabelDivPropsType): JSX.Element => {
+    return (
+        <div className="table-wrap-label-content">
+            {props.pIsOpen !== undefined && <VscChevronDown className={`label-arrow ${props.pIsOpen ? 'label-arrow-open' : ''}`} />}
+            <span>{props.pTxt}</span>
+        </div>
     );
 };

@@ -196,22 +196,62 @@
     flex-direction: column;
 
     &-label {
+        position: relative;
         &-content {
-            padding-left: 52px;
-            cursor: default;
+            padding-left: 40px;
+            cursor: pointer;
             font-size: 14px;
             color: #c4cae1;
             overflow: hidden;
             text-overflow: ellipsis;
+            // position: fixed;
+            top: 0;
+            left: 0;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+
+            &:hover {
+                background-color: #242424;
+            }
+
+            .label-arrow {
+                width: 12px;
+                height: 12px;
+                min-width: 12px;
+                margin-right: 4px;
+                transition: transform 0.2s ease;
+                opacity: 1;
+                transform: rotate(-90deg);
+
+                &.label-arrow-open {
+                    transform: rotate(0deg);
+                }
+            }
         }
     }
 
     &-content {
         .table-column-wrap {
-            padding-left: 48px;
+            padding-left: 28px;
             display: flex;
             flex-direction: row;
             justify-content: space-between;
+
+            .table-arrow {
+                width: 12px;
+                height: 12px;
+                min-width: 12px;
+                margin-right: 4px;
+                transition: transform 0.2s ease;
+                opacity: 1;
+                transform: rotate(-90deg);
+                align-self: center;
+
+                &.table-arrow-open {
+                    transform: rotate(0deg);
+                }
+            }
 
             .icon-btn-wrapper {
                 justify-content: start;
@@ -255,7 +295,7 @@
             display: flex;
             flex-direction: row;
             cursor: default;
-            padding-left: 52px;
+            padding-left: 40px;
 
             &-row {
                 width: 100%;
@@ -270,9 +310,46 @@
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
+
+            &:hover {
+                background-color: #242424;
+
+                .column-name-copy-icon {
+                    opacity: 1;
+                }
+            }
         }
-        .table-column-content:hover {
-            background-color: #242424;
+    }
+
+    .column-name-copy-wrapper {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-right: 8px;
+
+        .column-name-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .column-name-copy-icon {
+            display: flex;
+            opacity: 0;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: opacity 0.2s ease;
+
+            svg {
+                width: 12px;
+                height: 12px;
+            }
         }
     }
     .r-txt {
@@ -307,4 +384,54 @@
 }
 .db-exp-arrow-bottom {
     rotate: 90deg;
+}
+
+.col-div-wrap {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    flex-direction: column;
+    position: relative;
+    overflow: visible;
+}
+
+.col-label-wrap {
+    position: relative;
+    z-index: 1;
+    padding: 2px 0;
+    background-color: #333333;
+
+    &.has-shadow {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+}
+
+.col-list-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.column-skeleton-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.skeleton {
+    background: linear-gradient(90deg, rgba(224, 224, 224, 0.15) 25%, rgba(224, 224, 224, 0.25) 50%, rgba(224, 224, 224, 0.15) 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s ease-in-out infinite;
+    border-radius: 4px;
+
+    &.skeleton-text {
+        height: 16px;
+    }
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
 }
