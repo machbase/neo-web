@@ -150,6 +150,7 @@
         width: 100%;
         min-height: 32px;
         .extension-tab-table {
+            table-layout: fixed;
             width: 100%;
             &-header {
                 text-align: left;

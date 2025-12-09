@@ -17,6 +17,7 @@ import useEsc from '@/hooks/useEsc';
 import { MuiTagAnalyzer } from '@/assets/icons/Mui';
 import { BiEdit, BiInfoCircle } from 'react-icons/bi';
 import { FaCheck } from 'react-icons/fa';
+import { TableVirtuoso } from 'react-virtuoso';
 
 export const ExtensionTab = ({ children, pRef }: { children: React.ReactNode; pRef?: React.MutableRefObject<any> }) => {
     return (
@@ -516,6 +517,77 @@ const Table = ({
     };
 
     useOutsideClick(tableRef, () => setActive([]));
+
+    // Use virtualization for large datasets (>50 rows)
+    const useVirtualization = pList && pList.rows && pList.rows.length > 50;
+
+    if (useVirtualization) {
+        return (
+            <div ref={tableRef} className="extension-tab-table-wrapper">
+                <TableVirtuoso
+                    style={{ height: '40vh' }}
+                    data={pList.rows}
+                    fixedHeaderContent={() => (
+                        <tr>
+                            {dotted && <th style={{ cursor: 'default' }} />}
+                            {pList.columns.map((aColumn: string, aIdx: number) => {
+                                return (
+                                    <th key={aColumn + '-' + aIdx} style={{ cursor: 'default' }}>
+                                        <span>{aColumn}</span>
+                                    </th>
+                                );
+                            })}
+                            {rowDeleteCallback && <th className="extension-tab-table-header-action" style={{ cursor: 'default' }} />}
+                            {actionCallback && <th className="extension-tab-table-header-action" style={{ cursor: 'default' }} />}
+                        </tr>
+                    )}
+                    itemContent={(_aIdx, aRowList) => (
+                        <>
+                            {dotted && (
+                                <td className="result-table-item" style={{ cursor: 'default' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <VscCircleFilled />
+                                    </div>
+                                </td>
+                            )}
+                            {aRowList.map((aRowData: any, rIdx: number) => {
+                                if (isObject(aRowData)) return null;
+                                return (
+                                    <td className="result-table-item" key={generateUUID()}>
+                                        <span>{replaceCell?.key === pList?.columns[rIdx] ? replaceCell?.value(aRowList) : aRowData ?? ''}</span>
+                                    </td>
+                                );
+                            })}
+                            {rowDeleteCallback && (
+                                <td className="result-table-item action" onClick={(e) => handleDelete(e, aRowList)}>
+                                    <MdDelete />
+                                </td>
+                            )}
+                            {actionCallback && (
+                                <td className="result-table-item action" onClick={(e) => handleAction(e, aRowList)}>
+                                    <Play />
+                                </td>
+                            )}
+                        </>
+                    )}
+                    components={{
+                        Table: ({ style, ...props }) => <table {...props} className="extension-tab-table" style={{ ...style, width: '100%' }} />,
+                        TableHead: React.forwardRef(({ style, ...props }, ref) => (
+                            <thead {...props} ref={ref} className="extension-tab-table-header" style={style} />
+                        )),
+                        TableBody: React.forwardRef(({ style, ...props }, ref) => (
+                            <tbody {...props} ref={ref} className="extension-tab-table-body" style={style} />
+                        )),
+                        TableRow: ({ item, ...props }) => {
+                            const aRowList = item as any;
+                            const aIdx = pList.rows.indexOf(aRowList);
+                            return <tr {...props} className={checkActiveRow(aRowList, aIdx)} onClick={(e) => handleRowClick(e, aRowList)} />;
+                        },
+                    }}
+                />
+            </div>
+        );
+    }
 
     return (
         <div ref={tableRef} className="extension-tab-table-wrapper scrollbar-dark-border">
