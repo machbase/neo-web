@@ -30,7 +30,7 @@ const Body = ({ children, pSpyder, pSpyderChildren, fixed = false }: { children:
     return (
         <div className={`extension-tab-body-wrapper${fixed ? ' fixed' : ''}`}>
             {pSpyder && <ScrollSpyder>{pSpyderChildren}</ScrollSpyder>}
-            <div className="extension-tab-body-content">{children}</div>
+            <div className="extension-tab-body-content scrollbar-dark-border">{children}</div>
         </div>
     );
 };
@@ -511,7 +511,7 @@ const Table = ({
     useOutsideClick(tableRef, () => setActive([]));
 
     return (
-        <div ref={tableRef} className="extension-tab-table-wrapper">
+        <div ref={tableRef} className="extension-tab-table-wrapper scrollbar-dark-border">
             <table className="extension-tab-table">
                 <thead className="extension-tab-table-header">
                     {pList && pList.columns ? (
@@ -683,7 +683,7 @@ const ScrollTable = React.memo(
         });
 
         return (
-            <div ref={tableRef} className="extension-tab-scroll-table-wrapper">
+            <div ref={tableRef} className="extension-tab-scroll-table-wrapper scrollbar-dark-border">
                 <table className="extension-tab-scroll-table">
                     <thead className="extension-tab-scroll-table-header">
                         {pList && pList?.columns ? (

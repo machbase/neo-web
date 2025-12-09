@@ -157,7 +157,7 @@ const DropdownMenu = ({ children, className }: DropdownMenuProps) => {
     return createPortal(
         <div
             ref={menuRef}
-            className={`${styles['dropdown__menu']} ${className ?? ''}`}
+            className={`${styles['dropdown__menu']} scrollbar-dark ${className ?? ''}`}
             style={{
                 position: 'absolute',
                 top: `${position.top}px`,

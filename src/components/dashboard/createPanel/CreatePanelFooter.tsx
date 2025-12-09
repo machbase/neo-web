@@ -122,7 +122,7 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
                         </div>
                     </div>
                     <div className="chart-footer">
-                        <div style={sTab === 'Series' ? {} : { display: 'none' }} className="body">
+                        <div style={sTab === 'Series' ? {} : { display: 'none' }} className="body scrollbar-dark-border">
                             {/* SET Block */}
                             {pTableList.length !== 0 &&
                                 pPanelOption.blockList.map((aItem: any, aIdx: number) => {
@@ -161,11 +161,11 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
                             )}
                         </div>
                         {sTab === 'Transform' && (
-                            <div className="body">
+                            <div className="body scrollbar-dark-border">
                                 <Transform pPanelOption={pPanelOption} pVariables={pVariables} pSetPanelOption={pSetPanelOption} pBlockCount={getBlockCount} />
                             </div>
                         )}
-                        <div style={sTab === 'Time' ? {} : { display: 'none' }} className="body time-wrap">
+                        <div style={sTab === 'Time' ? {} : { display: 'none' }} className="body time-wrap scrollbar-dark-border">
                             <div className="time-form">
                                 <div className="time-header">Custom time range</div>
                                 <div className="time-set-form">

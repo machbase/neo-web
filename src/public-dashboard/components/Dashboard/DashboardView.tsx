@@ -393,7 +393,7 @@ const DashboardView = () => {
                         </div>
                     </div>
                 </div>
-                <div className="board-body">
+                <div className="board-body scrollbar-dark">
                     <GridLayout
                         className="layout"
                         useCSSTransforms={false}

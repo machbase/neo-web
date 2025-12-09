@@ -73,21 +73,6 @@
 /* .xterm::selection {
     background: #000 !important;
 } */
-.xterm .xterm-viewport::-webkit-scrollbar {
-    width: 10px;
-    height: 5px;
-}
-
-.xterm .xterm-viewport::-webkit-scrollbar-track {
-    -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
-    background: transparent;
-}
-
-.xterm .xterm-viewport::-webkit-scrollbar-thumb {
-    width: 5px;
-    height: 5px;
-    background-color: rgba(255, 255, 255, 0.2);
-}
 
 .xterm .xterm-screen {
     position: relative;

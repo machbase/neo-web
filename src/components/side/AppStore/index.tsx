@@ -77,7 +77,7 @@ export const AppStore = ({ pServer }: any) => {
                     )}
                 </span>
             </div>
-            <div className="app-store-wrap" style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
+            <div className="app-store-wrap scrollbar-dark" style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
                 {/* SEARCH */}
                 <div ref={searchRef} className="app-search-warp">
                     <input placeholder="Search" autoFocus onChange={handleSearchTxt} className="app-search-input" onKeyDown={(e) => EnterCallback(e, () => setEnter(sEnter + 1))} />

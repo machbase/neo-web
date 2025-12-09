@@ -12,7 +12,7 @@ interface ItemProps extends ChildProps {
 
 export const Menu = ({ children, isOpen }: MenuProps) => {
     return (
-        <div className="menu-wrapper" style={{ display: isOpen ? 'flex' : 'none' }}>
+        <div className="menu-wrapper scrollbar-dark" style={{ display: isOpen ? 'flex' : 'none' }}>
             {children}
         </div>
     );

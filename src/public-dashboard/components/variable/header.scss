@@ -6,9 +6,6 @@
     align-items: start;
     background-color: #262831;
     flex-direction: column;
-    ::-webkit-scrollbar-thumb {
-        background-color: rgb(73, 81, 89);
-    }
 
     .board-header-variable-overflow {
         display: flex;
@@ -54,7 +51,4 @@
             background-color: #262831 !important;
         }
     }
-}
-.board-header-variable-wrap::-webkit-scrollbar-thumb {
-    background-color: rgb(73, 81, 89);
 }

@@ -2,6 +2,7 @@
     width: 100%;
     overflow: auto;
     height: calc(100% - 40px);
+
     .scroll-wrapper {
         position: relative;
         overflow: scroll;
@@ -36,21 +37,4 @@
         // height: 40px;
         padding: 10px;
     }
-}
-
-.sql-result-wrapper::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-}
-.sql-result-wrapper::-webkit-scrollbar-thumb {
-    background-color: #4c4c4c !important;
-    border-radius: 10px;
-    background-clip: padding-box;
-}
-.sql-result-wrapper::-webkit-scrollbar-track {
-    background-color: transparent;
-    border-radius: 10px;
-}
-.sql-result-wrapper::-webkit-scrollbar-corner {
-    background: transparent !important;
 }

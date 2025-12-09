@@ -78,23 +78,6 @@
     overflow-y: auto;
 }
 
-.tql-result-body::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-}
-.tql-result-body::-webkit-scrollbar-thumb {
-    background-color: #4c4c4c !important;
-    border-radius: 10px;
-    background-clip: padding-box;
-}
-.tql-result-body::-webkit-scrollbar-track {
-    background-color: transparent;
-    border-radius: 10px;
-}
-.tql-result-body::-webkit-scrollbar-corner {
-    background: transparent !important;
-}
-
 .tql-result-btn-group {
     display: flex;
     gap: 3px;

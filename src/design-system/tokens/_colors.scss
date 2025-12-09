@@ -87,9 +87,19 @@ $status-none: #717171;
 // ============================================
 // Scrollbar Colors
 // ============================================
-$scrollbar-thumb: #4c4c4c;
-$scrollbar-border: #727272;
+$scrollbar-thumb: #686868;
+$scrollbar-thumb-hover: #5c5c5c;
+$scrollbar-border: #686868;
 $scrollbar-track: transparent;
+$scrollbar-track-bg: #2a2a2a;
+
+$scrollbar-thumb-light: #ffffffcc;
+$scrollbar-thumb-light-hover: #ffffff;
+$scrollbar-border-light: #ffffffcc;
+$scrollbar-track-light-bg: #ffffff0f;
+
+$scrollbar-thumb-light-hex8: '#ffffffcc';
+$scrollbar-thumb-light-hover-hex8: '#ffffff';
 
 // ============================================
 // Switch Colors

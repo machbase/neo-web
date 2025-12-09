@@ -56,7 +56,6 @@
         flex: 1;
         padding: t.$spacing-16 t.$spacing-32;
         overflow-y: auto;
-        @include t.scrollbar;
         font-size: t.$font-size-base;
         color: rgba(255, 255, 255, 0.7);
         display: flex;

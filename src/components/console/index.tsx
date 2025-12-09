@@ -198,7 +198,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                     )}
                 </div>
             </div>
-            <div ref={consoleRef} className="console-body">
+            <div ref={consoleRef} className="console-body scrollbar-dark-border">
                 {sConsoleTab.map((aItem: any) => {
                     return (
                         <div key={aItem.id} className={`${aItem.id === sSelectedTab ? 'active-console' : 'display-none'}`}>

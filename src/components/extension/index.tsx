@@ -155,7 +155,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
     }, [pIsSidebar]);
     return (
         <>
-            <div className="extension-form">
+            <div className="extension-form scrollbar-dark">
                 <div className="extension-top-list">
                     {sExtensionList &&
                         sExtensionList.length !== 0 &&

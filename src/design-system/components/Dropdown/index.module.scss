@@ -132,7 +132,6 @@
         max-height: t.$dropdown-max-height;
         overflow-y: auto;
         overflow-x: hidden;
-        @include t.scrollbar;
         @include t.fade-in(0.15s);
         animation: slideDown 0.15s ease-out;
     }

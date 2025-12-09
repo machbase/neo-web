@@ -412,7 +412,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                             <span style={{ width: '32%' }}>Last modified</span>
                             <span style={{ width: '20%' }}>Size</span>
                         </div>
-                        <div className={`${pIsDarkMode ? 'file-broswer-dark-content' : 'file-broswer-content'}`}>
+                        <div className={`${pIsDarkMode ? 'file-broswer-dark-content' : 'file-broswer-content'} scrollbar-dark-border`}>
                             {sFilterFileList &&
                                 sFilterFileList.map((aItem, aIdx) => {
                                     return (

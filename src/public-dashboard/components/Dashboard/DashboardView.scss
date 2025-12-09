@@ -1,5 +1,6 @@
 .dashboard-view-wrap {
     height: 100vh;
+    overflow: hidden;
     .react-split {
         height: calc(100% - 50px) !important;
     }

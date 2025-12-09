@@ -33,7 +33,7 @@ const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     };
 
     return (
-        <div className="data-form">
+        <div className="data-form scrollbar-dark-border">
             <div>Tags</div>
             {pPanelInfo.index_key &&
                 pPanelInfo.tag_set.map((aItem: any) => {
