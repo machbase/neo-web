@@ -34,6 +34,7 @@ export const InputSelector = (props: SelectProps) => {
     } = props;
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [sValue, setValue] = useState<string>(pInitValue);
+    const [sHoveredIdx, setHoveredIdx] = useState<number | null>(null);
     const optionRef = useRef<HTMLDivElement>(null);
     const isMounted = useRef(false);
 
@@ -99,8 +100,15 @@ export const InputSelector = (props: SelectProps) => {
             >
                 <div className="select-options-item-wrapper scrollbar-dark" style={{ maxHeight: pHeight * 4 + 'px' }}>
                     {pOptions.map((aOption: string, aIdx) => (
-                        <button key={aIdx} className={`select-tooltip-${aIdx} options-item`} onClick={() => handleSelect(aOption, 'customSelect')} style={{ fontSize: pFontSize }}>
-                            <Tooltip anchorSelect={`.select-tooltip-${aIdx}`} content={aOption} />
+                        <button
+                            key={aIdx}
+                            className={`select-tooltip-${aIdx} options-item`}
+                            onClick={() => handleSelect(aOption, 'customSelect')}
+                            onMouseEnter={() => setHoveredIdx(aIdx)}
+                            onMouseLeave={() => setHoveredIdx(null)}
+                            style={{ fontSize: pFontSize }}
+                        >
+                            {sHoveredIdx === aIdx && <Tooltip anchorSelect={`.select-tooltip-${aIdx}`} content={aOption} positionStrategy="fixed" />}
                             <div className="select-text">{aOption}</div>
                         </button>
                     ))}
