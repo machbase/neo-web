@@ -28,6 +28,7 @@
             width: 320px !important;
             .MuiList-root {
                 color: #c4c4c4;
+                @extend .scrollbar-dark-border;
             }
         }
     }

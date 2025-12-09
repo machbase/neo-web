@@ -32,7 +32,7 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     };
 
     return (
-        <div className="axes-form">
+        <div className="axes-form scrollbar-dark-border">
             <div className="x-axis">
                 <div className="x-axis-title">X-Axis</div>
                 <div className="x-axis-tick-line pt-12">
