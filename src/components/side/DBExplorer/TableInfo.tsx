@@ -697,6 +697,7 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                                 <ColumnSkeleton count={3} />
                             ) : visibleColumns.length > 50 ? (
                                 <Virtuoso
+                                    className="scrollbar-dark"
                                     style={{ height: '40vh' }}
                                     data={visibleColumns}
                                     itemContent={(index, bColumn) => {
@@ -751,6 +752,7 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                                 <>
                                     {visibleIndexes.length > 50 ? (
                                         <Virtuoso
+                                            className="scrollbar-dark"
                                             style={{ height: '40vh' }}
                                             data={visibleIndexes}
                                             itemContent={(index, aIndex) => {

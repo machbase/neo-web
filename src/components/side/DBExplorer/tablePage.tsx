@@ -123,7 +123,7 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
         } else setColumnInfo(undefined);
     };
     const FetchIndexGapForTag = async () => {
-        const sQuery = `SELECT TABLE_ID AS 'TABLE', INDEX_STATE AS STATE, (TABLE_END_RID-MEMORY_INDEX_END_RID) AS MEMORY_GAP, (TABLE_END_RID-DISK_INDEX_END_RID) AS DISK_GAP FROM V$STORAGE_TAG_INDEX WHERE INDEX_ID = 4294967295 AND TABLE_ID IN (SELECT ID FROM m$SYS_TABLES WHERE NAME LIKE '_${
+        const sQuery = `SELECT TABLE_ID AS 'TABLE', INDEX_STATE AS STATE, (TABLE_END_RID-DISK_INDEX_END_RID) AS DISK_GAP, (TABLE_END_RID-MEMORY_INDEX_END_RID) AS MEMORY_GAP FROM V$STORAGE_TAG_INDEX WHERE INDEX_ID = 4294967295 AND TABLE_ID IN (SELECT ID FROM m$SYS_TABLES WHERE NAME LIKE '_${
             mTableInfo[E_TABLE_INFO.TB_NM]
         }_DATA%' AND DATABASE_ID=${mTableInfo[E_TABLE_INFO.DB_ID]} AND USER_ID=(SELECT USER_ID FROM M$SYS_USERS WHERE NAME=upper('${
             mTableInfo[E_TABLE_INFO.USER_NM]
@@ -133,7 +133,7 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
             svrData.rows.map((row: (string | number)[], idx: number) => {
                 const tableValue = row[svrData.columns.indexOf('TABLE')];
                 if (tableValue === null || tableValue === undefined || Number.isNaN(tableValue as number)) return row;
-                else return (row[svrData.columns.indexOf('TABLE')] = `DATA${idx}`);
+                else return (row[svrData.columns.indexOf('TABLE')] = `DATA${idx} (${row[svrData.columns.indexOf('TABLE')]})`);
             });
             svrData.rows.map((row: (string | number)[]) => {
                 const tableValue = row[svrData.columns.indexOf('MEMORY_GAP')];
@@ -154,12 +154,12 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
             mTableInfo[E_TABLE_INFO.DB_ID]
         } and c.table_id=${mTableInfo[E_TABLE_INFO.TB_ID]}`;
         if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG)
-            sQuery = `SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', SUM(vi.TABLE_END_RID - vi.MEMORY_INDEX_END_RID) AS MEMORY_GAP, SUM(vi.TABLE_END_RID - vi.DISK_INDEX_END_RID) AS DISK_GAP FROM (SELECT * from V$STORAGE_TAG_INDEX where index_id <> 4294967295) as vi INNER JOIN (SELECT i.name AS NAME, i.type AS TYPE, c.name AS COLUMN_NAME, i.id AS index_id, c.table_id FROM m$sys_index_columns c INNER JOIN m$sys_indexes i ON c.table_id = i.table_id AND c.index_id = i.id WHERE c.table_id=${
+            sQuery = `SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', SUM(vi.TABLE_END_RID - vi.DISK_INDEX_END_RID) AS DISK_GAP FROM (SELECT * from V$STORAGE_TAG_INDEX where index_id <> 4294967295) as vi INNER JOIN (SELECT i.name AS NAME, i.type AS TYPE, c.name AS COLUMN_NAME, i.id AS index_id, c.table_id FROM m$sys_index_columns c INNER JOIN m$sys_indexes i ON c.table_id = i.table_id AND c.index_id = i.id WHERE c.table_id=${
                 mTableInfo[E_TABLE_INFO.TB_ID]
             }) as sub ON vi.INDEX_ID = sub.index_id group by sub.name, sub.TYPE, sub.COLUMN_NAME`;
         if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.LOG)
             sQuery = `
-SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.END_RID) AS GAP FROM V$STORAGE_DC_TABLE_INDEXES vi INNER JOIN (SELECT i.name AS NAME, i.type AS TYPE, c.name AS COLUMN_NAME, i.id AS index_id, c.table_id FROM m$sys_index_columns c INNER JOIN m$sys_indexes i ON c.table_id = i.table_id AND c.index_id = i.id WHERE c.table_id=${
+SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.END_RID) AS DISK_GAP FROM V$STORAGE_DC_TABLE_INDEXES vi INNER JOIN (SELECT i.name AS NAME, i.type AS TYPE, c.name AS COLUMN_NAME, i.id AS index_id, c.table_id FROM m$sys_index_columns c INNER JOIN m$sys_indexes i ON c.table_id = i.table_id AND c.index_id = i.id WHERE c.table_id=${
                 mTableInfo[E_TABLE_INFO.TB_ID]
             }) sub ON vi.id = sub.index_id`;
 
@@ -169,11 +169,6 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 const typeValue = row[svrData.columns.indexOf('TYPE')];
                 if (typeValue === null || typeValue === undefined || Number.isNaN(typeValue as number)) return row;
                 else return (row[svrData.columns.indexOf('TYPE')] = CheckIndexFlag(typeValue as number));
-            });
-            svrData.rows.map((row: (string | number)[]) => {
-                const tableValue = row[svrData.columns.indexOf('MEMORY_GAP')];
-                if (tableValue === null || tableValue === undefined || Number.isNaN(tableValue as number)) return row;
-                else return (row[svrData.columns.indexOf('MEMORY_GAP')] = row[svrData.columns.indexOf('MEMORY_GAP')].toLocaleString() ?? '0');
             });
             svrData.rows.map((row: (string | number)[]) => {
                 const tableValue = row[svrData.columns.indexOf('DISK_GAP')];
@@ -382,7 +377,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                         {/* INDEX */}
                         {sIndexInfo?.rows && sIndexInfo?.rows?.length > 0 && (
                             <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentTitle>Index</ExtensionTab.ContentTitle>
+                                <ExtensionTab.ContentTitle>tag indexes</ExtensionTab.ContentTitle>
                                 <ExtensionTab.Table pList={{ columns: sIndexInfo?.columns, rows: sIndexInfo.rows }} />
                             </ExtensionTab.ContentBlock>
                         )}

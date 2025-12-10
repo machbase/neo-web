@@ -523,8 +523,9 @@ const Table = ({
 
     if (useVirtualization) {
         return (
-            <div ref={tableRef} className="extension-tab-table-wrapper">
+            <div ref={tableRef} className="extension-tab-table-wrapper scrollbar-dark-border">
                 <TableVirtuoso
+                    className="scrollbar-dark"
                     style={{ height: '40vh' }}
                     data={pList.rows}
                     fixedHeaderContent={() => (
@@ -572,12 +573,8 @@ const Table = ({
                     )}
                     components={{
                         Table: ({ style, ...props }) => <table {...props} className="extension-tab-table" style={{ ...style, width: '100%' }} />,
-                        TableHead: React.forwardRef(({ style, ...props }, ref) => (
-                            <thead {...props} ref={ref} className="extension-tab-table-header" style={style} />
-                        )),
-                        TableBody: React.forwardRef(({ style, ...props }, ref) => (
-                            <tbody {...props} ref={ref} className="extension-tab-table-body" style={style} />
-                        )),
+                        TableHead: React.forwardRef(({ style, ...props }, ref) => <thead {...props} ref={ref} className="extension-tab-table-header" style={style} />),
+                        TableBody: React.forwardRef(({ style, ...props }, ref) => <tbody {...props} ref={ref} className="extension-tab-table-body" style={style} />),
                         TableRow: ({ item, ...props }) => {
                             const aRowList = item as any;
                             const aIdx = pList.rows.indexOf(aRowList);
