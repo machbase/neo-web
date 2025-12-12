@@ -135,7 +135,7 @@ export const fetchRollupVersion = async () => {
     const sData = await executeQuery('SELECT count(DATABASE_ID) FROM V$ROLLUP');
     return {
         ...sData,
-        svrState: sData?.success ?? false
+        svrState: sData?.success ?? false,
     };
 };
 
@@ -311,7 +311,6 @@ const fetchCalculationData = async (params: any) => {
         let sCol: string;
 
         if (Rollup && sIsExtRollup) {
-            // 새 ROLLUP 문법 사용
             sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
         } else {
             sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
