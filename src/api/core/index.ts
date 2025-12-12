@@ -44,6 +44,8 @@ request.interceptors.request.use(
         // const sTazFetch = config.url.includes('/api/tql/taz');
         const sTazFetch = config.url.match(/\/api\/tql\/taz$/gm);
 
+        const sCheckConsoleNone = config.headers?.['X-Console-Log-Level']?.toUpperCase() === 'NONE';
+
         if (
             !sTazFetch &&
             !sDshFetch &&
@@ -51,7 +53,8 @@ request.interceptors.request.use(
             !config.url.includes('logout') &&
             !config.url.includes('relogin') &&
             !config.url.includes('check') &&
-            !sViewMode
+            !sViewMode &&
+            !sCheckConsoleNone
         ) {
             sHeaders['X-Console-Id'] = localStorage.getItem('consoleId');
         }

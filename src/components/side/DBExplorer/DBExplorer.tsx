@@ -11,12 +11,14 @@ import { LuDatabaseBackup } from 'react-icons/lu';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gBackupList, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { DB_EXPLORER_CONTEXT_MENU_TYPE, DBExplorerContextMenu, E_DB_DDL, TABLE_CONTEXT_MENU_INITIAL_VALUE } from './DBExplorerContextMenu';
-import { E_TABLE_INFO } from './utils';
+import { CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE } from './utils';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { fetchQuery } from '@/api/repository/database';
 import { Error } from '@/components/toast/Toast';
+import { useExperiment } from '@/hooks/useExperiment';
 
 export const DBExplorer = ({ pServer }: any) => {
+    const { getExperiment } = useExperiment();
     const [sDBList, setDBList] = useState<any>([]);
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sRefresh, setRefresh] = useState<number>(0);
@@ -186,8 +188,9 @@ export const DBExplorer = ({ pServer }: any) => {
     };
     const handleDropTable = async () => {
         if (sIsDrop) return;
+        const sCasCade = CheckTableFlag(sDropTableInfo?.table?.[E_TABLE_INFO.TB_TYPE] as any) === E_TABLE_TYPE.TAG ? sDropTableInfo?.cascade : false;
         setIsDrop(true);
-        const sQuery = `DROP TABLE ${sDropTableInfo.label}${sDropTableInfo.cascade ? ' CASCADE' : ''}`;
+        const sQuery = `DROP TABLE ${sDropTableInfo?.table?.[E_TABLE_INFO.USER_NM]}.${sDropTableInfo?.table?.[E_TABLE_INFO.TB_NM]}${sCasCade ? ' CASCADE' : ''}`;
         const { svrState, svrReason } = await fetchQuery(sQuery);
         if (svrState) init();
         else Error(svrReason);
@@ -205,6 +208,7 @@ export const DBExplorer = ({ pServer }: any) => {
         setIsContextMenu(TABLE_CONTEXT_MENU_INITIAL_VALUE);
     };
     const handleContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTable: (string | number)[], aLoginUser: string, pPriv: string) => {
+        if (!getExperiment()) return;
         if (aTable[E_TABLE_INFO.DB_ID] === -1) {
             const userPermissions = pPriv && pPriv !== '' ? pPriv?.split('|')?.[0].trim() : 0;
             if (
@@ -293,23 +297,25 @@ export const DBExplorer = ({ pServer }: any) => {
                     pContents={
                         <div className="body-content">
                             <span>{`Do you want to drop this table (${sDropTableInfo?.label})`}</span>
-                            <>
-                                <div style={{ height: '10px' }} />
-                                <div className="body-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: '4px' }}>
-                                    <input
-                                        id="fileCheck"
-                                        type="checkbox"
-                                        onChange={() => {
-                                            setDropTableInfo((prev) => {
-                                                return { ...prev, cascade: !prev.cascade };
-                                            });
-                                        }}
-                                    />
-                                    <label className="label" htmlFor="fileCheck">
-                                        Cascade delete table
-                                    </label>
-                                </div>
-                            </>
+                            {CheckTableFlag(sDropTableInfo?.table?.[E_TABLE_INFO.TB_TYPE] as any) === E_TABLE_TYPE.TAG ? (
+                                <>
+                                    <div style={{ height: '10px' }} />
+                                    <div className="body-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: '4px' }}>
+                                        <input
+                                            id="fileCheck"
+                                            type="checkbox"
+                                            onChange={() => {
+                                                setDropTableInfo((prev) => {
+                                                    return { ...prev, cascade: !prev.cascade };
+                                                });
+                                            }}
+                                        />
+                                        <label className="label" htmlFor="fileCheck">
+                                            Cascade delete table
+                                        </label>
+                                    </div>
+                                </>
+                            ) : null}
                         </div>
                     }
                 />

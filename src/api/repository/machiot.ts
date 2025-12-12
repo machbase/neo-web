@@ -170,7 +170,6 @@ const fetchCalculationData = async (params: any) => {
         let sCol: string;
 
         if (Rollup && sIsExtRollup) {
-            // 새 ROLLUP 문법 사용
             sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
         } else {
             sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;

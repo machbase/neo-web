@@ -17,6 +17,7 @@ import useEsc from '@/hooks/useEsc';
 import { MuiTagAnalyzer } from '@/assets/icons/Mui';
 import { BiEdit, BiInfoCircle } from 'react-icons/bi';
 import { FaCheck } from 'react-icons/fa';
+import { TableVirtuoso } from 'react-virtuoso';
 
 export const ExtensionTab = ({ children, pRef }: { children: React.ReactNode; pRef?: React.MutableRefObject<any> }) => {
     return (
@@ -480,6 +481,7 @@ const Table = ({
     dotted,
     activeRow = false,
     replaceCell = { target: undefined, value: undefined },
+    cellWidthFix = false,
     actionCallback = undefined,
     rowSelectCallback = () => {},
     rowDeleteCallback = undefined,
@@ -487,19 +489,40 @@ const Table = ({
     pList: any;
     dotted?: boolean;
     activeRow?: boolean;
-    replaceCell?: any;
+    replaceCell?: any | any[];
+    cellWidthFix?: boolean;
     actionCallback?: (item: string[]) => void | undefined;
     rowSelectCallback?: (item: string[]) => void;
     rowDeleteCallback?: (item: string[]) => void | undefined;
 }) => {
     const tableRef = useRef<any>(null);
     const [active, setActive] = useState<string[]>();
+    const [columnWidths, setColumnWidths] = useState<number[]>([]);
+    const [widthsCaptured, setWidthsCaptured] = useState(false);
 
     const checkActiveRow = (item: string[], idx: number): string => {
         const result: string[] = ['result-body-tr'];
         if (activeRow && active && item?.join() === active.join()) result.push('active-row');
         if (Number(idx) % 2 !== 0) result.push('dark-odd');
         return result?.join(' ');
+    };
+
+    // Helper function to get cell renderer from replaceCell (supports both object and array)
+    const getCellRenderer = (columnName: string) => {
+        if (Array.isArray(replaceCell)) {
+            const cellConfig = replaceCell.find((config) => config?.key === columnName);
+            return cellConfig?.value;
+        }
+        return replaceCell?.key === columnName ? replaceCell?.value : undefined;
+    };
+
+    // Helper function to get maxWidth from replaceCell
+    const getCellMaxWidth = (columnName: string) => {
+        if (Array.isArray(replaceCell)) {
+            const cellConfig = replaceCell.find((config) => config?.key === columnName);
+            return cellConfig?.maxWidth;
+        }
+        return replaceCell?.key === columnName ? replaceCell?.maxWidth : undefined;
     };
     const handleDelete = (e: React.MouseEvent, item: string[]) => {
         e.stopPropagation();
@@ -517,16 +540,134 @@ const Table = ({
 
     useOutsideClick(tableRef, () => setActive([]));
 
+    // Capture column widths after first render when cellWidthFix is true
+    useEffect(() => {
+        if (cellWidthFix && !widthsCaptured && tableRef.current) {
+            const table = tableRef.current.querySelector('table');
+            if (table) {
+                const headerCells = table.querySelectorAll('thead th');
+                const widths: number[] = [];
+                let totalWidth = 0;
+
+                headerCells.forEach((cell: HTMLElement) => {
+                    const width = cell.offsetWidth;
+                    widths.push(width);
+                    totalWidth += width;
+                });
+
+                if (widths.length > 0 && totalWidth > 0) {
+                    // Convert absolute widths to percentages to prevent horizontal scroll
+                    const percentageWidths = widths.map((width) => (width / totalWidth) * 100);
+                    setColumnWidths(percentageWidths);
+                    setWidthsCaptured(true);
+                }
+            }
+        }
+    }, [cellWidthFix, widthsCaptured, pList]);
+
+    // Use virtualization for large datasets (>50 rows)
+    const useVirtualization = pList && pList.rows && pList.rows.length > 50;
+
+    if (useVirtualization) {
+        return (
+            <div ref={tableRef} className="extension-tab-table-wrapper scrollbar-dark-border">
+                <TableVirtuoso
+                    className="scrollbar-dark"
+                    style={{ height: '40vh' }}
+                    data={pList.rows}
+                    fixedHeaderContent={() => (
+                        <tr>
+                            {dotted && <th style={{ cursor: 'default', maxWidth: '20px' }} />}
+                            {pList.columns.map((aColumn: string, aIdx: number) => {
+                                const maxWidth = getCellMaxWidth(aColumn);
+                                const capturedWidth = widthsCaptured && columnWidths[aIdx] ? `${columnWidths[aIdx]}%` : undefined;
+                                return (
+                                    <th
+                                        key={aColumn + '-' + aIdx}
+                                        style={{
+                                            cursor: 'default',
+                                            ...(capturedWidth && { width: capturedWidth }),
+                                            ...(maxWidth && !capturedWidth && { maxWidth, width: maxWidth }),
+                                        }}
+                                    >
+                                        <span>{aColumn}</span>
+                                    </th>
+                                );
+                            })}
+                            {rowDeleteCallback && <th className="extension-tab-table-header-action" style={{ cursor: 'default' }} />}
+                            {actionCallback && <th className="extension-tab-table-header-action" style={{ cursor: 'default' }} />}
+                        </tr>
+                    )}
+                    itemContent={(_aIdx, aRowList) => (
+                        <>
+                            {dotted && (
+                                <td className="result-table-item" style={{ cursor: 'default', maxWidth: '20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <VscCircleFilled />
+                                    </div>
+                                </td>
+                            )}
+                            {aRowList.map((aRowData: any, rIdx: number) => {
+                                if (isObject(aRowData)) return null;
+                                const renderer = getCellRenderer(pList?.columns[rIdx]);
+                                return (
+                                    <td className="result-table-item" key={generateUUID()}>
+                                        {renderer ? renderer(aRowList) : <span>{aRowData ?? ''}</span>}
+                                    </td>
+                                );
+                            })}
+                            {rowDeleteCallback && (
+                                <td className="result-table-item action" onClick={(e) => handleDelete(e, aRowList)}>
+                                    <MdDelete />
+                                </td>
+                            )}
+                            {actionCallback && (
+                                <td className="result-table-item action" onClick={(e) => handleAction(e, aRowList)}>
+                                    <Play />
+                                </td>
+                            )}
+                        </>
+                    )}
+                    components={{
+                        Table: ({ style, ...props }) => (
+                            <table
+                                {...props}
+                                className="extension-tab-table"
+                                style={cellWidthFix && widthsCaptured ? { ...style, width: '100%', tableLayout: 'fixed' } : { ...style, width: '100%' }}
+                            />
+                        ),
+                        TableHead: React.forwardRef(({ style, ...props }, ref) => <thead {...props} ref={ref} className="extension-tab-table-header" style={style} />),
+                        TableBody: React.forwardRef(({ style, ...props }, ref) => <tbody {...props} ref={ref} className="extension-tab-table-body" style={style} />),
+                        TableRow: ({ item, ...props }) => {
+                            const aRowList = item as any;
+                            const aIdx = pList.rows.indexOf(aRowList);
+                            return <tr {...props} className={checkActiveRow(aRowList, aIdx)} onClick={(e) => handleRowClick(e, aRowList)} />;
+                        },
+                    }}
+                />
+            </div>
+        );
+    }
+
     return (
         <div ref={tableRef} className="extension-tab-table-wrapper scrollbar-dark-border">
-            <table className="extension-tab-table">
+            <table className="extension-tab-table" style={cellWidthFix && widthsCaptured ? { tableLayout: 'fixed' } : {}}>
                 <thead className="extension-tab-table-header">
                     {pList && pList.columns ? (
                         <tr>
-                            {dotted && <th style={{ cursor: 'default' }} />}
+                            {dotted && <th style={{ cursor: 'default', maxWidth: '20px' }} />}
                             {pList.columns.map((aColumn: string, aIdx: number) => {
+                                const maxWidth = getCellMaxWidth(aColumn);
+                                const capturedWidth = widthsCaptured && columnWidths[aIdx] ? `${columnWidths[aIdx]}%` : undefined;
                                 return (
-                                    <th key={aColumn + '-' + aIdx} style={{ cursor: 'default' }}>
+                                    <th
+                                        key={aColumn + '-' + aIdx}
+                                        style={{
+                                            cursor: 'default',
+                                            ...(capturedWidth && { width: capturedWidth }),
+                                            ...(maxWidth && !capturedWidth && { maxWidth, width: maxWidth }),
+                                        }}
+                                    >
                                         <span>{aColumn}</span>
                                     </th>
                                 );
@@ -544,7 +685,7 @@ const Table = ({
                               return (
                                   <tr key={'tbody-row' + aIdx} className={checkActiveRow(aRowList, aIdx)} onClick={(e) => handleRowClick(e, aRowList)}>
                                       {dotted && (
-                                          <td className="result-table-item" style={{ cursor: 'default' }}>
+                                          <td className="result-table-item" style={{ cursor: 'default', maxWidth: '20px' }}>
                                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                   <VscCircleFilled />
                                               </div>
@@ -552,9 +693,10 @@ const Table = ({
                                       )}
                                       {aRowList.map((aRowData: any, rIdx: number) => {
                                           if (isObject(aRowData)) return null;
+                                          const renderer = getCellRenderer(pList?.columns[rIdx]);
                                           return (
                                               <td className="result-table-item" key={generateUUID()}>
-                                                  <span>{replaceCell?.key === pList?.columns[rIdx] ? replaceCell?.value(aRowList) : aRowData ?? ''}</span>
+                                                  {renderer ? renderer(aRowList) : <span>{aRowData ?? ''}</span>}
                                               </td>
                                           );
                                       })}
