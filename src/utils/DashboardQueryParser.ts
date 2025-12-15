@@ -466,7 +466,7 @@ const QueryParser = (
     let sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         if (aQuery.useFullTyping) {
             sAliasList.push({ name: 'series(' + aIdx.toString() + ')', color: aQuery.color, useQuery: aQuery.isVisible, type: E_BLOCK_TYPE.STD });
-            return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, dataType: aResDataType, sql: aQuery.text, useQuery: aQuery.isVisible };
+            return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, time: aTime, dataType: aResDataType, sql: aQuery.text, useQuery: aQuery.isVisible };
         }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean =
@@ -520,6 +520,7 @@ const QueryParser = (
             sql: sSql,
             tql: sTql,
             name: aQuery.name,
+            time: aTime,
             useQuery: aQuery.isVisible,
         };
     });

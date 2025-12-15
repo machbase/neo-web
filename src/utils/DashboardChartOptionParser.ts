@@ -52,7 +52,8 @@ const StructureSeriesOption: any = {
     bar: `
         "coordinateSystem": "cartesian2d",
         "large": $isLarge$,
-        "stack": $isStack$
+        "stack": $isStack$,
+        "barMaxWidth": 50
     `,
     scatter: `
         "large": $isLarge$,

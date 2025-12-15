@@ -328,35 +328,40 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 ? {
                                       ...aItem,
                                       name:
+                                          aItem?.name ??
                                           sData.data.rows.filter((aItem: any) => {
                                               return aItem[1] === 5;
-                                          })[0][0] ?? aItem?.name,
+                                          })[0][0],
                                       time:
+                                          aItem?.time ??
                                           sData.data.rows.filter((aItem: any) => {
                                               return aItem[1] === 6;
-                                          })[0][0] ?? aItem?.time,
+                                          })[0][0],
                                       value:
+                                          aItem?.value ??
                                           sData.data.rows.filter((aItem: any) => {
                                               return isNumberTypeColumn(aItem[1]);
-                                          })[0][0] ?? aItem?.value,
+                                          })[0][0],
                                       type: getTableType(sTable[4]),
                                       tableInfo: sData.data.rows,
                                       values: aItem.values.map((aItem: any) => {
                                           return {
                                               ...aItem,
                                               value:
+                                                  aItem.value ??
                                                   sData.data.rows.filter((bItem: any) => {
                                                       return isNumberTypeColumn(bItem[1]);
-                                                  })[0][0] ?? aItem.value,
+                                                  })[0][0],
                                           };
                                       }),
                                       filter: [
                                           {
                                               ...aItem.filter[0],
                                               column:
+                                                  aItem.filter[0].column ??
                                                   sData.data.rows.filter((aItem: any) => {
                                                       return aItem[1] === 5;
-                                                  })[0][0] ?? aItem.filter[0].column,
+                                                  })[0][0],
                                           },
                                       ],
                                   }
