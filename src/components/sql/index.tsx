@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import SplitPane, { Pane } from 'split-pane-react';
+import { SplitPane, Pane } from '@/design-system/components';
 import RESULT from './result';
 import CHART from '@/components/chart';
 import { gBoardList } from '@/recoil/recoil';

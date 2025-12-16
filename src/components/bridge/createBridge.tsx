@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { ExtensionTab } from '../extension/ExtensionTab';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { Pane, SashContent } from 'split-pane-react';
-import SplitPane from 'split-pane-react/esm/SplitPane';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { gBoardList, gBridgeList } from '@/recoil/recoil';
 import { VscWarning } from 'react-icons/vsc';
 import { IconButton } from '../buttons/IconButton';

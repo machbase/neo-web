@@ -1,8 +1,8 @@
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gActiveBridge, gActiveSubr, gBoardList, gBridgeList, gSelectedTab } from '@/recoil/recoil';
-import { Pane, SashContent } from 'split-pane-react';
-import SplitPane from 'split-pane-react/esm/SplitPane';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { BridgeItemType, commandBridge, delBridge } from '@/api/repository/bridge';
 import { CreateBridge } from './createBridge';
 import { useEffect, useRef, useState } from 'react';

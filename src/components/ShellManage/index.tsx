@@ -2,11 +2,11 @@ import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { getLogin as getShellList } from '@/api/repository/login';
 import { gActiveShellManage, gBoardList, gSelectedTab, gShellList, gShowShellList } from '@/recoil/recoil';
-import { Pane, SashContent } from 'split-pane-react';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { useEffect, useState } from 'react';
 import { copyShell, postShell, removeShell } from '@/api/repository/api';
 import icons from '@/utils/icons';
-import SplitPane from 'split-pane-react/esm/SplitPane';
 import { ConfirmModal } from '../modal/ConfirmModal';
 
 interface ShellAttrType {

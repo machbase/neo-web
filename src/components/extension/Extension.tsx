@@ -1,10 +1,8 @@
-import './index.scss';
 import { useState, useEffect } from 'react';
 import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase, VscKey, GoTerminal, TableHeader } from '@/assets/icons/Icon';
-import ExtensionBtn from '@/components/extension/ExtensionBtn';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { BADGE_KEYWORD, gBoardList, gExtensionList, gLicense, gSelectedExtension, gSelectedTab } from '@/recoil/recoil';
-import { Menu } from '@/design-system/components';
+import { GNB, Menu } from '@/design-system/components';
 import { logOut } from '@/api/repository/login';
 import { useNavigate } from 'react-router-dom';
 import { RxLapTimer } from 'react-icons/rx';
@@ -19,7 +17,14 @@ import { LicenseModal } from '../modal/LicenseModal';
 import { StatzTableModal } from '../modal/StatzTableModal';
 import { ProviderModal } from '../chat/ProviderModal';
 
-const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any) => {
+interface ExtensionProps {
+    pHandleSideBar: (isOpen: boolean) => void;
+    pSetSideSizes: (sizes: string[] | number[]) => void;
+    pIsSidebar: boolean;
+    pSetEula: (open: boolean) => void;
+}
+
+const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: ExtensionProps) => {
     const sNavigate = useNavigate();
     const [sExtensionList] = useRecoilState<any>(gExtensionList);
     const [sSelectedExtension, setSelectedExtension] = useRecoilState<string>(gSelectedExtension);
@@ -40,7 +45,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
         if (aItem.label === sSelectedExtension) {
             setSelectedExtension('');
             pHandleSideBar(false);
-            pSetSideSizes([0, '100%']);
+            pSetSideSizes(['0%', '100%']);
         } else {
             if (!pIsSidebar) {
                 pSetSideSizes(['15%', '85%']);
@@ -49,6 +54,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
             setSelectedExtension(aItem.id);
         }
     };
+
     const logout = async () => {
         const sLogout: any = await logOut();
         if (sLogout.success) {
@@ -62,6 +68,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
             sNavigate('/login');
         }
     };
+
     const setIcon = (aId: any) => {
         switch (aId) {
             case 'SQL':
@@ -94,6 +101,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
                 return <Cmd />;
         }
     };
+
     const handleSSHKeys = () => {
         const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
             return prev || cur.type === 'ssh-key';
@@ -133,15 +141,19 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
             return;
         }
     };
+
     const handlePWD = () => {
         setIsPWDModal(true);
     };
+
     const handleStatzTable = () => {
         setIsStatzTableModal(true);
     };
+
     const handleProvider = () => {
         setIsProviderModal(true);
     };
+
     const handleLicense = () => {
         setIsLicenseModal(true);
     };
@@ -153,26 +165,46 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
             setSelectedExtension('');
         }
     }, [pIsSidebar]);
+
     return (
         <>
-            <div className="extension-form scrollbar-dark">
-                <div className="extension-top-list">
+            <GNB.Root
+                selectedId={sSelectedExtension}
+                onSelect={(item) => {
+                    const extensionItem = sExtensionList.find((ext: any) => ext.id === item.id);
+                    if (extensionItem) {
+                        selectExtension(extensionItem);
+                    }
+                }}
+            >
+                <GNB.Container position="top">
                     {sExtensionList &&
                         sExtensionList.length !== 0 &&
                         sExtensionList.map((aItem: any, aIdx: number) => {
+                            // Filter out APPSTORE if experiment mode is off
+                            if (!getExperiment() && aItem.label === 'APPSTORE') return null;
+
                             return (
-                                ((getExperiment() && aItem.label === 'APPSTORE') || aItem.label !== 'APPSTORE') && (
-                                    <div key={aIdx} className={`extension-top-list-item`} onClick={() => selectExtension(aItem)}>
-                                        <ExtensionBtn pLabel={aItem.label} pIcon={setIcon(aItem.id)} />
-                                    </div>
-                                )
+                                <GNB.Item
+                                    key={aIdx}
+                                    id={aItem.id}
+                                    label={aItem.label}
+                                    icon={setIcon(aItem.id)}
+                                    onClick={(item) => {
+                                        const extensionItem = sExtensionList.find((ext: any) => ext.id === item.id);
+                                        if (extensionItem) {
+                                            selectExtension(extensionItem);
+                                        }
+                                    }}
+                                />
                             );
                         })}
-                </div>
-                <div className="extension-bottom-list">
+                </GNB.Container>
+
+                <GNB.Container position="bottom">
                     <Menu.Root>
                         <Menu.Trigger>
-                            <ExtensionBtn isBadge={getGLicense?.licenseStatus !== BADGE_KEYWORD} pIcon={<Gear />} />
+                            <GNB.Item asChild id="SETTINGS" label="Settings" icon={<Gear />} badge={getGLicense?.licenseStatus !== BADGE_KEYWORD ? <BadgeStatus /> : undefined} />
                         </Menu.Trigger>
                         <Menu.Content align="left">
                             <Menu.Item icon={<Key />} rightIcon={getGLicense?.licenseStatus !== BADGE_KEYWORD && <BadgeStatus />} onClick={handleLicense}>
@@ -197,8 +229,9 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
                             </Menu.Item>
                         </Menu.Content>
                     </Menu.Root>
-                </div>
-            </div>
+                </GNB.Container>
+            </GNB.Root>
+
             {sIsLicenseModal ? <LicenseModal isOpen={sIsLicenseModal} onClose={() => setIsLicenseModal(false)} /> : null}
             {sIsPWDModal ? <PasswordModal isOpen={sIsPWDModal} onClose={() => setIsPWDModal(false)} /> : null}
             {sIsStatzTableModal ? <StatzTableModal isOpen={sIsStatzTableModal} onClose={() => setIsStatzTableModal(false)} /> : null}
@@ -206,4 +239,5 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: any)
         </>
     );
 };
+
 export default Extension;

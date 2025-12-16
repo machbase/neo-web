@@ -2,7 +2,7 @@ import './CreatePanel.scss';
 import { Calendar, IoArrowBackOutline, VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { IconButton } from '@/components/buttons/IconButton';
 import { TextButton } from '@/components/buttons/TextButton';
-import SplitPane, { Pane } from 'split-pane-react';
+import { SplitPane, Pane } from '@/design-system/components';
 import { useEffect, useState } from 'react';
 import CreatePanelBody from './CreatePanelBody';
 import CreatePanelFooter from './CreatePanelFooter';

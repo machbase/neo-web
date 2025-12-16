@@ -30,3 +30,8 @@ export type { ListProps, ListItem } from './List';
 
 export { HierarchicalCombobox } from './HierarchicalCombobox';
 export type { HierarchicalComboboxItem, HierarchicalComboboxCategory, HierarchicalComboboxRootProps } from './HierarchicalCombobox';
+
+export { GNB } from './GNB';
+export type { GNBRootProps, GNBContainerProps, GNBItemProps, GNBDividerProps } from './GNB';
+
+export { SplitPane, Pane } from './SplitPane';

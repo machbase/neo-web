@@ -6,9 +6,9 @@ import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { ExtensionTab } from '../extension/ExtensionTab';
 import { gBoardList, gKeyList } from '@/recoil/recoil';
 import { useSetRecoilState } from 'recoil';
-import { Pane, SashContent } from 'split-pane-react';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import moment from 'moment';
-import SplitPane from 'split-pane-react/esm/SplitPane';
 import './createKey.scss';
 
 export const CreateKey = () => {

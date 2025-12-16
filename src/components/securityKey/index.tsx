@@ -4,8 +4,8 @@ import { CreateKey } from '@/components/securityKey/createKey';
 import { useRecoilState } from 'recoil';
 import { gActiveKey, gBoardList, gKeyList } from '@/recoil/recoil';
 import { changeUtcToText } from '@/utils/helpers/date';
-import { Pane, SashContent } from 'split-pane-react';
-import SplitPane from 'split-pane-react/esm/SplitPane';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { useState } from 'react';
 import { ConfirmModal } from '../modal/ConfirmModal';
 

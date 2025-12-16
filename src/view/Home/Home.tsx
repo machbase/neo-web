@@ -1,9 +1,7 @@
-import Extension from '@/components/extension/index';
 import Side from '@/components/side/Side';
 import './Home.scss';
-import SplitPane, { Pane } from 'split-pane-react';
 import Console from '@/components/console/index';
-import 'split-pane-react/esm/themes/default.css';
+import { SplitPane, Pane } from '@/design-system/components';
 import { useEffect, useState } from 'react';
 import { getLogin } from '@/api/repository/login';
 import Body from '@/components/editor/Body';
@@ -25,6 +23,7 @@ import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
 import { gWsLog } from '@/recoil/websocket';
 import { useNavigate } from 'react-router-dom';
 import { useExperiment } from '@/hooks/useExperiment';
+import Extension from '@/components/extension/Extension';
 
 const HomeContent = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);
@@ -135,15 +134,7 @@ const HomeContent = () => {
         <div className={sDragStat ? 'check-draged home-form' : 'home-form'}>
             <Extension pSetSideSizes={setSideSizes} pIsSidebar={sIsSidebar} pHandleSideBar={setIsSidebar} pSetEula={setOpenEula} />
             <div className="body-form">
-                <SplitPane
-                    sashRender={() => <></>}
-                    split="vertical"
-                    allowResize={sIsSidebar}
-                    sizes={sSideSizes}
-                    onChange={setSideSizes}
-                    onDragEnd={changeDraged}
-                    onDragStart={setStatus}
-                >
+                <SplitPane split="vertical" allowResize={sIsSidebar} sizes={sSideSizes} onChange={setSideSizes} onDragEnd={changeDraged} onDragStart={setStatus}>
                     <Pane minSize={0} maxSize="50%">
                         {sHome && (
                             <div style={{ height: '100%' }}>
@@ -167,7 +158,6 @@ const HomeContent = () => {
                             }}
                         >
                             <SplitPane
-                                sashRender={() => <></>}
                                 split="horizontal"
                                 sizes={sTerminalSizes}
                                 onChange={setTerminalSizes}

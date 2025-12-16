@@ -1,7 +1,7 @@
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
-import { Pane, SashContent } from 'split-pane-react';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { useEffect, useState } from 'react';
-import SplitPane from 'split-pane-react/esm/SplitPane';
 import { backupStatus, databaseBackup, getAllowBackupTable, getBackupDBList } from '@/api/repository/api';
 import { IconButton } from '@/components/buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';

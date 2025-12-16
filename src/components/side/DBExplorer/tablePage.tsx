@@ -1,9 +1,9 @@
 import moment from 'moment';
-import SplitPane from 'split-pane-react/esm/SplitPane';
 import { IconButton } from '@/components/buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
-import { Pane, SashContent } from 'split-pane-react';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
 import { getColumnType as GetColumnType } from '@/utils/dashboardUtil';

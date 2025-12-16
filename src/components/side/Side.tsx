@@ -29,7 +29,7 @@ import OpenFile from './OpenFile';
 import { FolderModal } from '../modal/FolderModal';
 import { getFileList, postFileList } from '@/api/repository/api';
 import { DeleteModal } from '../modal/DeleteModal';
-import SplitPane, { Pane } from 'split-pane-react';
+import { SplitPane, Pane } from '@/design-system/components';
 import { IconButton } from '@/components/buttons/IconButton';
 // import { SearchInput } from '../inputs/SearchInput';
 // import { TreeViewFilter } from '@/utils/treeViewFilter';

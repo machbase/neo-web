@@ -1,14 +1,14 @@
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { gActiveSubr, gDelSubr, gStateSubr } from '@/recoil/recoil';
-import { Pane, SashContent } from 'split-pane-react';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { commandSubr, delSubr, getSubrItem } from '@/api/repository/bridge';
 import { useEffect, useState } from 'react';
 import { ConfirmModal } from '../../modal/ConfirmModal';
 import { AUTO_START_DESC } from '../../timer/content';
 import { CreateSubr } from './createSubr';
 import { VscWarning } from 'react-icons/vsc';
-import SplitPane from 'split-pane-react/esm/SplitPane';
 
 export const Subscriber = ({ pCode }: { pCode: any }) => {
     const setDelSubr = useSetRecoilState(gDelSubr);

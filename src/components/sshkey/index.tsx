@@ -1,6 +1,6 @@
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
-import { Pane, SashContent } from 'split-pane-react';
-import SplitPane from 'split-pane-react/esm/SplitPane';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { useEffect, useState } from 'react';
 import { ConfirmModal } from '../modal/ConfirmModal';
 import { IconButton } from '../buttons/IconButton';

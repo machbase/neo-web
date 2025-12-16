@@ -1,11 +1,11 @@
 import { ExtensionTab } from '@/components/extension/ExtensionTab';
 import { useRecoilState } from 'recoil';
 import { gActiveTimer, gBoardList, gTimerList } from '@/recoil/recoil';
-import { Pane, SashContent } from 'split-pane-react';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { EditTimer } from './editTimer';
 import { TimerItemType, delTimer, getTimer, getTimerItem, modTimer, sendTimerCommand } from '@/api/repository/timer';
 import { useState, useEffect } from 'react';
-import SplitPane from 'split-pane-react/esm/SplitPane';
 import { AUTO_START_DESC } from './content';
 import { SelectFileBtn } from '../buttons/SelectFileBtn';
 import { OpenFileBtn } from '../buttons/OpenFileBtn';
