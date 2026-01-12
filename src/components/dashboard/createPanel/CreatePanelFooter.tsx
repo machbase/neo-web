@@ -66,7 +66,7 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
 
     return (
         <Page style={{ padding: '8px 8px 8px 16px' }}>
-            {pPanelOption.type !== 'Tql chart' && (
+            {pPanelOption.type !== 'Tql chart' && pPanelOption.type !== 'Blackbox' && (
                 <>
                     <Page.TabContainer>
                         <Page.TabList>
@@ -147,6 +147,12 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
                 </>
             )}
             {pPanelOption.type === 'Tql chart' && <TqlBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
+            {pPanelOption.type === 'Blackbox' && (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#888', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    Blackbox panel has no series configuration.
+                </div>
+            )}
+        </div>
         </Page>
     );
 };
