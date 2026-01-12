@@ -1,4 +1,5 @@
 import LineChart from './chart/LineChart';
+import BlackboxPanel from './blackbox/BlackboxPanel';
 import PanelHeader from './PanelHeader';
 import './Panel.scss';
 import { useState } from 'react';
@@ -36,24 +37,34 @@ const Panel = ({
                 pIsHeader={pIsHeader}
             />
             {pPanelInfo && (
-                <LineChart
-                    pLoopMode={pLoopMode}
-                    pDragStat={pDragStat}
-                    pInsetDraging={pInsetDraging}
-                    pBoardInfo={pBoardInfo}
-                    pType={pType}
-                    pPanelInfo={pPanelInfo}
-                    pModifyState={pModifyState}
-                    pSetModifyState={pSetModifyState}
-                    pParentWidth={pParentWidth}
-                    pIsHeader={pIsHeader}
-                    pChartVariableId={pChartVariableId}
-                    pIsView={pIsView}
-                    pBoardTimeMinMax={pBoardTimeMinMax}
-                    pIsActiveTab={pIsActiveTab}
-                />
+                pPanelInfo.type === 'Blackbox' ? (
+                    <BlackboxPanel
+                        pPanelInfo={pPanelInfo}
+                        pBoardInfo={pBoardInfo}
+                        pParentWidth={pParentWidth}
+                        pIsHeader={pIsHeader}
+                    />
+                ) : (
+                    <LineChart
+                        pLoopMode={pLoopMode}
+                        pDragStat={pDragStat}
+                        pInsetDraging={pInsetDraging}
+                        pBoardInfo={pBoardInfo}
+                        pType={pType}
+                        pPanelInfo={pPanelInfo}
+                        pModifyState={pModifyState}
+                        pSetModifyState={pSetModifyState}
+                        pParentWidth={pParentWidth}
+                        pIsHeader={pIsHeader}
+                        pChartVariableId={pChartVariableId}
+                        pIsView={pIsView}
+                        pBoardTimeMinMax={pBoardTimeMinMax}
+                        pIsActiveTab={pIsActiveTab}
+                    />
+                )
             )}
         </div>
     );
 };
 export default Panel;
+

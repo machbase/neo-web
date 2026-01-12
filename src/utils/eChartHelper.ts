@@ -244,6 +244,18 @@ export const DefaultChartOption = {
     h: 7 as number, // height
 };
 
+// Blackbox panel option - independent from chart system
+export const DefaultBlackboxOption = {
+    id: undefined as string | undefined,
+    title: 'Blackbox Panel' as string,
+    type: 'Blackbox' as string,
+    theme: 'dark' as ChartTheme,
+    x: 0 as number,
+    y: 0 as number,
+    w: 6 as number,
+    h: 6 as number,
+};
+
 export const DefaultVariableTableOption = {
     id: generateUUID(),
     table: '' as string | undefined,

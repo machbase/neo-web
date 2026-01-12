@@ -128,6 +128,13 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
                     pOptions={ChartTypeList.map((aType: { key: string; value: string }) => aType.key) as string[]}
                 />
+                <div className="content scrollbar-dark-border" style={{ height: '100%' }}>
+                    {pPanelOption.type === 'Blackbox' ? (
+                        <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
+                            Blackbox panel has no additional options.
+                        </div>
+                    ) : (
+                        <>
                 {chartTypeConverter(pPanelOption.type) !== E_CHART_TYPE.TQL && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
                 {useXAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.xAxisOptions && (
                     <XAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
@@ -163,6 +170,8 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                 )}
                 <div className="divider" />
                 {/* </div> */}
+                        </>
+                    )}
             </Page.Body>
         </Page>
     );
