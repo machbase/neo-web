@@ -41,6 +41,7 @@ const Panel = ({
                     <BlackboxPanel
                         pPanelInfo={pPanelInfo}
                         pBoardInfo={pBoardInfo}
+                        pBoardTimeMinMax={pBoardTimeMinMax}
                         pParentWidth={pParentWidth}
                         pIsHeader={pIsHeader}
                     />
