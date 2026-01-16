@@ -1,7 +1,6 @@
 import { KeyItemType, getKeyList } from '@/api/repository/key';
 import { MouseEvent, useEffect, useState } from 'react';
 import { MdRefresh } from 'react-icons/md';
-import { IconButton } from '../../buttons/IconButton';
 import { gActiveKey, gBoardList, gKeyList, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { getId } from '@/utils';
@@ -11,7 +10,7 @@ import { Button, Side } from '@/design-system/components';
 
 export const SecurityKeySide = () => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
-    const [sActiveKeyName, setActiveKeyName] = useRecoilState<any>(gActiveKey);
+    const [, setActiveKeyName] = useRecoilState<any>(gActiveKey);
     const [sSecurityKeyList, setSecurityKeyList] = useRecoilState<KeyItemType[] | undefined>(gKeyList);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sCollapseTree, setCollapseTree] = useState(true);

@@ -115,26 +115,32 @@ export const setUnitTime = (aTime: any) => {
         if (aTime.includes('-')) sAggrPlus = false;
 
         const sCalcTime = aTime.slice(0, -1).split(sAggrPlus ? '+' : '-')[1];
+        const sCalcTimeNum = parseFloat(sCalcTime);
+
+        // Add validation for invalid number
+        if (isNaN(sCalcTimeNum)) {
+            return new Date().getTime();
+        }
 
         let sSecTime = -1;
         switch (aTime.slice(-1)) {
             case 's':
-                sSecTime = sCalcTime * 1000;
+                sSecTime = sCalcTimeNum * 1000;
                 break;
             case 'm':
-                sSecTime = sCalcTime * 1000 * 60;
+                sSecTime = sCalcTimeNum * 1000 * 60;
                 break;
             case 'h':
-                sSecTime = sCalcTime * 1000 * 3600;
+                sSecTime = sCalcTimeNum * 1000 * 3600;
                 break;
             case 'd':
-                sSecTime = sCalcTime * 1000 * 24 * 3600;
+                sSecTime = sCalcTimeNum * 1000 * 24 * 3600;
                 break;
             case 'M':
-                sSecTime = sCalcTime * 1000 * 24 * 3600 * 30;
+                sSecTime = sCalcTimeNum * 1000 * 24 * 3600 * 30;
                 break;
             case 'y':
-                sSecTime = sCalcTime * 1000 * 24 * 3600 * 365;
+                sSecTime = sCalcTimeNum * 1000 * 24 * 3600 * 365;
                 break;
         }
 

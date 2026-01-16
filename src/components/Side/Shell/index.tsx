@@ -1,7 +1,6 @@
 import { getLogin as getShellList } from '@/api/repository/login';
 import { MouseEvent, useEffect, useState } from 'react';
 import { MdRefresh } from 'react-icons/md';
-import { VscChevronDown, VscChevronRight } from 'react-icons/vsc';
 
 import { gActiveShellManage, gBoardList, gSelectedTab, gShellList, gShowShellList } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
@@ -17,7 +16,7 @@ export const ShellSide = () => {
     const [sShellList, setShellList] = useRecoilState<any>(gShellList);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sCollapseTree, setCollapseTree] = useState(true);
-    const [sActiveShellName, setActiveShellName] = useRecoilState<any>(gActiveShellManage);
+    const [, setActiveShellName] = useRecoilState<any>(gActiveShellManage);
 
     /** Set key list */
     const shellList = async (aEvent?: MouseEvent) => {

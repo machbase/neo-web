@@ -65,7 +65,7 @@ const AddTag = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
     };
 
     const removeSelectedTag = (aIdx: any) => {
-        setSelectedTag(sSelectedTag.filter((aItem: any, bIdx: number) => bIdx !== aIdx));
+        setSelectedTag(sSelectedTag.filter((_aItem: any, bIdx: number) => bIdx !== aIdx));
     };
 
     const setTagMode = (value: string, aValue: any) => {

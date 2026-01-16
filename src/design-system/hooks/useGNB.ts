@@ -42,7 +42,6 @@ export const useGNB = ({ items = [], selectedId: controlledSelectedId, onSelect 
 
     // Use controlled value if provided, otherwise use internal state
     const selectedId = controlledSelectedId !== undefined ? controlledSelectedId : internalSelectedId;
-    const setSelectedId = controlledSelectedId !== undefined ? () => {} : setInternalSelectedId;
 
     const isItemSelected = useCallback(
         (itemId: string): boolean => {

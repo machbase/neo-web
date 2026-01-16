@@ -1,8 +1,6 @@
-import { IconButton } from '@/components/buttons/IconButton';
 import { HierarchicalCombobox, Dropdown, Input, Checkbox, Page, ColorPicker } from '@/design-system/components';
 import useOutsideClick from '@/hooks/useOutsideClick';
-import { useRef, useState } from 'react';
-import { CompactPicker } from 'react-color';
+import { useRef } from 'react';
 // import './options.scss';
 import { findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 
@@ -15,9 +13,8 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
     const sShapeList = ['container', 'circle', 'rect', 'roundRect', 'triangle', 'diamond', 'pin', 'arrow'];
     const sColorPickerRef = useRef<any>(null);
-    const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
 
-    useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
+    useOutsideClick(sColorPickerRef, () => {});
 
     const HandleOption = (aEvent: any, aKey: any) => {
         let sValue: any = '';

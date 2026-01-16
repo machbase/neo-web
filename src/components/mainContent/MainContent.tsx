@@ -197,7 +197,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
 
     return (
         <div ref={sBodyRef} style={{ width: '100%', height: '100%', background: '#262831' }}>
-            <Tabs.Root selectedTab={sSelectedTab} onTabSelect={(tab) => setSelectTab(tab.id)} onTabClose={(tab, idx) => {}} className="tabs-wrapper">
+            <Tabs.Root selectedTab={sSelectedTab} onTabSelect={(tab) => setSelectTab(tab.id)} onTabClose={() => {}} className="tabs-wrapper">
                 <Tabs.Header>
                     <Tabs.List onWheel={handleMouseWheel}>
                         {sBoardList.length !== 0 &&

@@ -2,7 +2,6 @@ import CreateChart from './CreateChart';
 import Panel from './panel/Panel';
 import { useEffect, useState } from 'react';
 import TimeRangeModal from '../modal/TimeRangeModal';
-import moment from 'moment';
 import { formatTimeValue } from '@/utils/dashboardUtil';
 import { Calendar, Save, Refresh, SaveAs, MdOutlineStackedLineChart, LuTimerReset } from '@/assets/icons/Icon';
 import OverlapModal from './OverlapModal';

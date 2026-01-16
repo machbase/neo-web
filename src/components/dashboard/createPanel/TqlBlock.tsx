@@ -46,7 +46,7 @@ export const TqlBlock = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any;
                                 size="md"
                                 style={{ width: '250px' }}
                             />
-                            <SelectFileBtn pType="tql" pCallback={handleTql} btnHeight="26px" />
+                            <SelectFileBtn pType="tql" pCallback={handleTql} />
                             <OpenFileBtn pType="tql" pFileInfo={pPanelOption.tqlInfo} btnHeight="26px" />
                         </Page.DpRow>
                         <Page.DpRow style={{ padding: '0', flexDirection: 'column', alignItems: 'start', gap: '4px' }}>
@@ -58,7 +58,9 @@ export const TqlBlock = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any;
                         </Page.DpRow>
                     </Page.ContentBlock>
                 )}
-                {sSelectTab === 'time' && <TimeRangeBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pEnableLastToNowConversion={true} pUseTqlTimeRange={true} />}
+                {sSelectTab === 'time' && (
+                    <TimeRangeBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pEnableLastToNowConversion={true} pUseTqlTimeRange={true} />
+                )}
             </Page.Body>
         </>
     );

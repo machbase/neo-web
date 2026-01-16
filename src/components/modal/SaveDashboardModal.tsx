@@ -20,7 +20,7 @@ import { chartTypeConverter } from '@/utils/eChartHelper';
 import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
-import { Button, Modal, Input, FileListHeader, Dropdown, Page } from '@/design-system/components';
+import { Button, Modal, Input, FileListHeader, Dropdown } from '@/design-system/components';
 
 export interface SaveDashboardModalProps {
     setIsOpen: any;

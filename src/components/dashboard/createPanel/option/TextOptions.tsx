@@ -1,4 +1,4 @@
-import { InputSelect, Dropdown, Input, Page, Button, ColorPicker, BadgeSelect, type BadgeSelectItem, HierarchicalCombobox } from '@/design-system/components';
+import { Dropdown, Input, Page, Button, ColorPicker, BadgeSelect, type BadgeSelectItem, HierarchicalCombobox } from '@/design-system/components';
 import { useEffect, useMemo } from 'react';
 import { MultiColorPkr } from './MultiColorPkr';
 import { PlusCircle } from '@/assets/icons/Icon';
@@ -14,17 +14,6 @@ interface ChartOptionProps {
 
 export const TextOptions = (props: ChartOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
-
-    // Flatten UNITS for InputSelect
-    const unitOptions = useMemo(() => {
-        return UNITS.flatMap(
-            (category) =>
-                category.items?.map((item) => ({
-                    label: item.label,
-                    value: item.id,
-                })) || []
-        );
-    }, []);
 
     // Apply theme color to text option and chart option when theme changes or panel type changes to text
     useEffect(() => {
