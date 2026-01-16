@@ -1,4 +1,4 @@
-import { Input } from '@/components/inputs/Input';
+import { Page, Input as DSInput } from '@/design-system/components';
 
 export const Duration = ({ pBlockInfo, pSetPanelOption }: { pBlockInfo: any; pSetPanelOption: any }) => {
     const sDurationRegex = /^[0-9smhdwMy+-]+$/;
@@ -16,34 +16,32 @@ export const Duration = ({ pBlockInfo, pSetPanelOption }: { pBlockInfo: any; pSe
     };
 
     return (
-        <div className="values filter">
-            <div className="series-table">
-                <span className="series-title">Duration</span>
-                <div className="series-table" style={{ marginRight: '106px' }}>
-                    <Input
-                        pPlaceHolder="From  ex) -30s"
-                        pBorderRadius={4}
-                        pWidth={175}
-                        pHeight={26}
-                        pType="text"
-                        pValue={pBlockInfo?.duration?.from ?? ''}
-                        pSetValue={() => null}
+        <>
+            <Page.Divi />
+            <Page.ContentBlock style={{ padding: '4px' }} pHoverNone>
+                <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
+                    <DSInput
+                        label="Duration From"
+                        labelPosition="left"
+                        placeholder="From  ex) -30s"
+                        type="text"
+                        value={pBlockInfo?.duration?.from ?? ''}
                         onChange={(aEvent: any) => handleOption(aEvent, 'from')}
+                        size="md"
+                        style={{ width: '160px' }}
                     />
-                </div>
-                <div className="series-table">
-                    <Input
-                        pPlaceHolder="To  ex) +30s"
-                        pBorderRadius={4}
-                        pWidth={175}
-                        pHeight={26}
-                        pType="text"
-                        pValue={pBlockInfo?.duration?.to ?? ''}
-                        pSetValue={() => null}
+                    <DSInput
+                        label="Duration To"
+                        labelPosition="left"
+                        placeholder="To  ex) +30s"
+                        type="text"
+                        value={pBlockInfo?.duration?.to ?? ''}
                         onChange={(aEvent: any) => handleOption(aEvent, 'to')}
+                        size="md"
+                        style={{ width: '160px' }}
                     />
-                </div>
-            </div>
-        </div>
+                </Page.DpRow>
+            </Page.ContentBlock>
+        </>
     );
 };

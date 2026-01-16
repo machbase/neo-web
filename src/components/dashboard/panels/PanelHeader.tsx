@@ -1,16 +1,14 @@
 import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download } from '@/assets/icons/Icon';
-// import { IconButton } from '@/components/buttons/IconButton';
 import { gBoardList, GBoardListType, gSelectedTab, gRollupTableList } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import './PanelHeader.scss';
 import { Tooltip } from 'react-tooltip';
 import { generateRandomString, generateUUID, getId, isEmpty } from '@/utils';
-import Menu from '@/components/contextMenu/Menu';
-import { useState, useRef } from 'react';
-import useOutsideClick from '@/hooks/useOutsideClick';
+import { Menu } from '@/design-system/components';
+import { useState } from 'react';
 import { convertChartDefault } from '@/utils/utils';
 import { ChartThemeTextColor, DEFAULT_CHART } from '@/utils/constants';
-import { Error } from '@/components/toast/Toast';
+import { Toast } from '@/design-system/components';
 import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
 import { SaveDashboardModal } from '@/components/modal/SaveDashboardModal';
 import { HiMiniDocumentDuplicate } from 'react-icons/hi2';
@@ -30,17 +28,42 @@ import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOrigin
 import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { useExperiment } from '@/hooks/useExperiment';
+import { Button } from '@/design-system/components';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo }: any) => {
-    const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const sHeaderId = generateRandomString();
-    const sMenuRef = useRef<HTMLDivElement>(null);
     const [sDownloadModal, setDownloadModal] = useState<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const { getExperiment } = useExperiment();
+
+    // Convert timeRange with special values (now, last) to actual timestamps
+    const getConvertedTimeRange = () => {
+        const timeRange = sBoardList.find((aItem: any) => aItem.id === sSelectedTab)?.dashboard.timeRange;
+        if (!timeRange) return undefined;
+
+        const start = timeRange.start;
+        const end = timeRange.end;
+
+        // If both are already numbers (timestamps), return as is
+        if (typeof start === 'number' && typeof end === 'number') {
+            return timeRange;
+        }
+
+        // If either contains 'now' or 'last', convert them
+        if ((typeof start === 'string' && (start.includes('now') || start.includes('last'))) ||
+            (typeof end === 'string' && (end.includes('now') || end.includes('last')))) {
+            return {
+                ...timeRange,
+                start: setUnitTime(start),
+                end: setUnitTime(end),
+            };
+        }
+
+        return timeRange;
+    };
 
     const removePanel = () => {
         setBoardList(
@@ -57,25 +80,16 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             })
         );
     };
-    const handleContextMenu = (aEvent: React.MouseEvent) => {
-        aEvent.preventDefault();
-        setIsContextMenu(!sIsContextMenu);
-    };
     const handleDeleteOnMenu = () => {
         removePanel();
     };
-    const handleDelete = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setIsContextMenu(false);
+    const handleDelete = () => {
         setIsDeleteModal(true);
     };
-    const handleMoveEditOnMenu = (aEvent: React.MouseEvent, aPanelId: string) => {
-        aEvent.stopPropagation();
+    const handleMoveEditOnMenu = (aPanelId: string) => {
         pShowEditPanel('edit', aPanelId);
-        setIsContextMenu(false);
     };
-    const handleMoveTagz = (aEvent: React.MouseEvent) => {
-        aEvent.stopPropagation();
+    const handleMoveTagz = () => {
         const sTags = [] as any[];
 
         pPanelInfo.blockList
@@ -112,9 +126,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             }
             createTagzTab(pPanelInfo.title, tagzFormat, sTime);
         } else {
-            Error('Cannot view taganalyzer because there is no tag. (Custom tags are not supported in the TagAnalyzer)');
+            Toast.error('Cannot view taganalyzer because there is no tag. (Custom tags are not supported in the TagAnalyzer)');
         }
-        setIsContextMenu(false);
     };
     const createTag = (aInfo: any) => {
         return {
@@ -159,7 +172,6 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         setSelectedTab(sId);
     };
     const HandleDownload = () => {
-        setIsContextMenu(false);
         setDownloadModal(true);
     };
     // Helper functions for data download (moved from PanelDataDownloadModal)
@@ -255,15 +267,13 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     };
 
     const HandleDataDownload = async () => {
-        setIsContextMenu(false);
-
         try {
             // Get all block aliases to determine how many blocks to download
             const [_, sAliasList] = await GetQuery();
             const sBlockList = sAliasList as any[];
 
             if (sBlockList.length === 0) {
-                Error('No data blocks found to download');
+                Toast.error('No data blocks found to download');
                 return;
             }
 
@@ -277,7 +287,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                 try {
                     const blockInfo = sBlockList[blockIndex];
                     if (!blockInfo) {
-                        Error(`Block not found at index ${blockIndex}`);
+                        Toast.error(`Block not found at index ${blockIndex}`);
                         errorCount++;
                         continue;
                     }
@@ -314,14 +324,14 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                         await new Promise((resolve) => setTimeout(resolve, 200));
                     }
                 } catch (error) {
-                    Error(`Failed to download block ${blockIndex + 1}`);
+                    Toast.error(`Failed to download block ${blockIndex + 1}`);
                     errorCount++;
                 }
             }
 
             // Don't show toast messages
         } catch (error) {
-            Error('Download failed. Please try again.');
+            Toast.error('Download failed. Please try again.');
         }
     };
     const handleCopyPanel = (aPanelInfo: any) => {
@@ -345,7 +355,6 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             } else return aItem;
         });
         setBoardList(() => sTabList);
-        setIsContextMenu(false);
     };
     const handleGeomapZoom = () => {
         const sTmpPanel = JSON.parse(JSON.stringify(pPanelInfo));
@@ -372,66 +381,63 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         setBoardList(() => sTabList);
     };
 
-    useOutsideClick(sMenuRef, () => setIsContextMenu(false));
     return (
         <>
             {!pIsView && (
                 // <div className={`draggable-panel-header ${pIsHeader || pType !== undefined ? 'display-none' : ''}`}>
                 <div className={`draggable-panel-header ${pType !== undefined ? 'display-none' : ''}`}>
-                    <div ref={sMenuRef} className="draggable-panel-header-menu">
-                        <div className="draggable-panel-header-menu-icon" onClick={handleContextMenu} style={{ backgroundColor: 'none', cursor: 'pointer' }}>
-                            <GoGrabber
-                                size={20}
-                                color={
-                                    pPanelInfo.type === 'Geomap'
-                                        ? pPanelInfo?.titleColor && pPanelInfo?.titleColor !== ''
-                                            ? pPanelInfo?.titleColor
-                                            : '#000000'
-                                        : ChartThemeTextColor[pPanelInfo.theme as ChartTheme]
-                                }
-                            />
-                        </div>
-                        <div className="hidden-header-menu" style={{ cursor: 'pointer' }}>
-                            <Menu isOpen={sIsContextMenu}>
-                                <Menu.Item onClick={(aEvent: any) => handleMoveEditOnMenu(aEvent, pPanelInfo.id)}>
-                                    <GearFill />
-                                    <span>Setting</span>
+                    <div className="draggable-panel-header-menu">
+                        <Menu.Root>
+                            <Menu.Trigger>
+                                <Button
+                                    size="side"
+                                    variant="ghost"
+                                    icon={
+                                        <GoGrabber
+                                            size={20}
+                                            color={
+                                                pPanelInfo.type === 'Geomap'
+                                                    ? pPanelInfo?.titleColor && pPanelInfo?.titleColor !== ''
+                                                        ? pPanelInfo?.titleColor
+                                                        : '#000000'
+                                                    : ChartThemeTextColor[pPanelInfo.theme as ChartTheme]
+                                            }
+                                        />
+                                    }
+                                />
+                            </Menu.Trigger>
+                            <Menu.Content>
+                                <Menu.Item onClick={() => handleMoveEditOnMenu(pPanelInfo.id)} icon={<GearFill />}>
+                                    Setting
                                 </Menu.Item>
                                 {pPanelInfo.type === 'Geomap' && (
-                                    <Menu.Item onClick={handleGeomapZoom}>
-                                        <TbZoomPan />
-                                        <span>Use zoom control</span>
-                                        {pPanelInfo.chartOptions.useZoomControl && <IoMdCheckmark />}
+                                    <Menu.Item onClick={handleGeomapZoom} icon={<TbZoomPan />} rightIcon={pPanelInfo.chartOptions.useZoomControl ? <IoMdCheckmark /> : undefined}>
+                                        Use zoom control
                                     </Menu.Item>
                                 )}
-                                <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)}>
-                                    <HiMiniDocumentDuplicate />
-                                    <span>Duplicate</span>
+                                <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)} icon={<HiMiniDocumentDuplicate />}>
+                                    Duplicate
                                 </Menu.Item>
                                 {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && (
-                                    <Menu.Item onClick={handleMoveTagz}>
-                                        <MuiTagAnalyzerGray className="mui-svg-hover" width={13} />
-                                        <span>Show Taganalyzer</span>
+                                    <Menu.Item onClick={handleMoveTagz} icon={<MuiTagAnalyzerGray className="mui-svg-hover" width={13} />}>
+                                        Show Taganalyzer
                                     </Menu.Item>
                                 )}
                                 {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && (
-                                    <Menu.Item onClick={HandleDataDownload}>
-                                        <Download />
-                                        <span>Download data</span>
+                                    <Menu.Item onClick={HandleDataDownload} icon={<Download />}>
+                                        Download data
                                     </Menu.Item>
                                 )}
-                                <Menu.Item onClick={handleDelete}>
-                                    <Delete />
-                                    <span>Delete</span>
+                                <Menu.Item onClick={handleDelete} icon={<Delete />}>
+                                    Delete
                                 </Menu.Item>
                                 {getExperiment() && pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && (
-                                    <Menu.Item onClick={HandleDownload}>
-                                        <VscGraphScatter />
-                                        <span>Save to tql</span>
+                                    <Menu.Item onClick={HandleDownload} icon={<VscGraphScatter />}>
+                                        Save to tql
                                     </Menu.Item>
                                 )}
-                            </Menu>
-                        </div>
+                            </Menu.Content>
+                        </Menu.Root>
                     </div>
                 </div>
             )}
@@ -469,10 +475,9 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             </div>
             {sDownloadModal && (
                 <SaveDashboardModal
-                    pDashboardTime={sBoardList.find((aItem: any) => aItem.id === sSelectedTab)?.dashboard.timeRange}
+                    pDashboardTime={getConvertedTimeRange()}
                     setIsOpen={setDownloadModal}
                     pPanelInfo={pPanelInfo}
-                    pIsDarkMode={true}
                 />
             )}
             {sIsDeleteModal && (

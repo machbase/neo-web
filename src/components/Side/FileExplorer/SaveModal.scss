@@ -1,0 +1,80 @@
+@use '@/design-system/tokens' as t;
+
+.save-modal {
+    // Navigation bar
+    &__nav {
+        display: flex;
+        flex-direction: row;
+        padding: 0 t.$spacing-20 t.$spacing-4 t.$spacing-20;
+        gap: t.$spacing-8;
+        border-bottom: 1px solid #3e3e3e;
+    }
+
+    // File list container
+    &__file-list {
+        display: flex;
+        flex-direction: column;
+        padding: t.$spacing-4 t.$spacing-8;
+    }
+
+    // File row
+    &__file-row {
+        height: 30px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding: t.$spacing-4 t.$spacing-8;
+        border-radius: t.$border-radius-sm;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        &--selected {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+    }
+
+    // File info sections
+    &__file-name {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: t.$spacing-8;
+        flex: 1;
+        font-size: t.$font-size-sm;
+        min-width: 0;
+
+        span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    &__file-modified,
+    &__file-size {
+        flex: 1;
+        font-size: t.$font-size-sm;
+        color: t.$text-secondary;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    // Footer input wrapper
+    &__footer-input {
+        display: flex;
+        align-items: center;
+        gap: t.$spacing-8;
+        flex: 1;
+    }
+
+    // Context menu
+    &__context-menu {
+        position: fixed;
+        z-index: t.$z-index-modal + 1;
+    }
+}

@@ -9,7 +9,7 @@ export const useWsRouter = () => {
 
     const handleWsMsg = useCallback(
         (msg: any) => {
-            let sParsedMsg = JSON.parse(msg);
+            const sParsedMsg = JSON.parse(msg);
             const sType: string = sParsedMsg?.type ?? 'Unknown';
 
             switch (sType) {

@@ -22,8 +22,8 @@
 .item {
     white-space: nowrap;
     width: 100%;
-    height: auto;
-    min-height: 1.3rem;
+    min-height: 22px;
+    max-height: 22px;
     padding: 0 8px;
     display: flex;
     align-items: center;

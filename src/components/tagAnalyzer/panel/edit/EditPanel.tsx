@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import './EditPanel.scss';
 import Panel from '../Panel';
 import Axes from './Axes';
 import Data from './Data';
@@ -8,13 +7,13 @@ import TimeRange from './TimeRange';
 import General from './General';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { GearFill, Close } from '@/assets/icons/Icon';
-import { TextButton } from '@/components/buttons/TextButton';
+import { IoArrowBackOutline } from '@/assets/icons/Icon';
 import { deepEqual } from '@/utils/index';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { convertTimeToFullDate } from '@/utils/helpers/date';
 import { fetchVirtualStatTable } from '@/api/repository/machiot';
+import { Page, Pane, Button } from '@/design-system/components';
 
 const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, pNavigatorRange }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
@@ -25,7 +24,7 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
     const [sCopyPanelInfo, setCopyPanelInfo] = useState<any>({});
     const [sIsConfirmModal, setIsConfirmModal] = useState<boolean>(false);
     const [sLoading] = useState<boolean>(false);
-    const [sData] = useState<any>(['General', 'Data', 'Axes', 'Display', 'TimeRange']);
+    const [sData] = useState<any>(['General', 'Data', 'Axes', 'Display', 'Time']);
 
     const timeConverter = async (aTargetTime: any) => {
         let sData: any = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
@@ -127,64 +126,65 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
     }, []);
 
     return (
-        <div className="edit-modal">
-            <div className="modal-header">
-                <div className="modal-title">
-                    <GearFill></GearFill>
-                    Edit Chart
-                </div>
-                <Close onClick={() => pSetEditPanel(false)} color="#f8f8f8"></Close>
-            </div>
-            <div className="modal-body">
-                <div className="chart">
-                    {sPanelInfo.index_key && !sLoading && (
-                        <Panel pBgnEndTimeRange={sBgnEndTimeRange} pNavigatorRange={pNavigatorRange} pBoardInfo={pBoardInfo} pPanelInfo={sPanelInfo} pIsEdit={true} />
-                    )}
-                </div>
-                <div className="edit-form">
-                    <div className="edit-form-tabs">
-                        {sData.map((aItem: string) => {
-                            return (
-                                <div key={aItem}>
-                                    <button
-                                        style={
-                                            aItem === sSelectedTab
-                                                ? { color: '#fdb532', boxShadow: 'inset 0 1px 3px 0 rgba(0, 0, 0, 0.16)', background: 'rgba(247, 247, 248, 0.08)' }
-                                                : {}
-                                        }
-                                        onClick={() => setSelectedTab(aItem)}
-                                    >
+        <div
+            style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: '100%',
+                height: '100%',
+                zIndex: 9999,
+                backgroundColor: 'var(--color-background-primary)',
+            }}
+        >
+            <Page style={{ width: '100%', height: '100%' }}>
+                <Page.Header>
+                    <Page.DpRow>
+                        <Button variant="ghost" size="icon" icon={<IoArrowBackOutline size={16} />} onClick={() => pSetEditPanel(false)} aria-label="Back" />
+                        Edit panel
+                    </Page.DpRow>
+                    <Page.DpRow>
+                        <Page.TextButton pText="Discard" pType="DELETE" pCallback={() => pSetEditPanel(false)} pWidth="75px" mb="0px" mr="4px" />
+                        <Page.TextButton pText="Apply" pType="STATUS" pCallback={apply} pWidth="75px" mb="0px" mr="4px" />
+                        <Page.TextButton pText="Save" pType="CREATE" pCallback={checkSameWithConfirmModal} pWidth="65px" mb="0px" mr="4px" />
+                    </Page.DpRow>
+                </Page.Header>
+
+                <Pane minSize="330px">
+                    <Page style={{ padding: '8px 16px' }}>
+                        {sPanelInfo.index_key && !sLoading && (
+                            <Panel pBgnEndTimeRange={sBgnEndTimeRange} pNavigatorRange={pNavigatorRange} pBoardInfo={pBoardInfo} pPanelInfo={sPanelInfo} pIsEdit={true} />
+                        )}
+                    </Page>
+                </Pane>
+                <Page style={{ height: 2 }}>
+                    <Page.Divi spacing="0" />
+                </Page>
+                <Page style={{ height: '100%' }}>
+                    <Page.DpRow style={{ height: '100%', padding: '8px 16px', flexDirection: 'column', justifyContent: 'start', alignItems: 'start' }}>
+                        <Page.TabContainer>
+                            <Page.TabList>
+                                {sData.map((aItem: string) => (
+                                    <Page.TabItem key={aItem} active={sSelectedTab === aItem} onClick={() => setSelectedTab(aItem)}>
                                         {aItem}
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                    <div style={{ height: 'calc(100% - 60px)' }}>
-                        <div style={sSelectedTab === 'General' ? { height: '100%' } : { display: 'none' }}>
-                            {sCopyPanelInfo.index_key && <General pSetCopyPanelInfo={setCopyPanelInfo} pPanelInfo={sCopyPanelInfo}></General>}
-                        </div>
-                        <div style={sSelectedTab === 'Data' ? { height: '100%' } : { display: 'none' }}>
-                            {sCopyPanelInfo.index_key && <Data pSetCopyPanelInfo={setCopyPanelInfo} pPanelInfo={sCopyPanelInfo}></Data>}
-                        </div>
-                        <div style={sSelectedTab === 'Axes' ? { height: '100%' } : { display: 'none' }}>
-                            {sCopyPanelInfo.index_key && <Axes pSetCopyPanelInfo={setCopyPanelInfo} pPanelInfo={sCopyPanelInfo}></Axes>}
-                        </div>
-                        <div style={sSelectedTab === 'Display' ? { height: '100%' } : { display: 'none' }}>
-                            {sCopyPanelInfo.index_key && <Display pSetCopyPanelInfo={setCopyPanelInfo} pPanelInfo={sCopyPanelInfo}></Display>}
-                        </div>
-                        <div style={sSelectedTab === 'TimeRange' ? { height: '100%' } : { display: 'none' }}>
-                            {sCopyPanelInfo.index_key && <TimeRange pPanelInfo={sCopyPanelInfo} pSetCopyPanelInfo={setCopyPanelInfo} />}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div className="modal-footer">
-                <TextButton pWidth={100} pHeight={30} pText="Apply" pBackgroundColor="#fdb532" onClick={apply} />
-                <TextButton pWidth={100} pHeight={30} pText="OK" pBackgroundColor="#4199ff" onClick={checkSameWithConfirmModal} />
-                <TextButton pWidth={100} pHeight={30} pText="Cancel" pBackgroundColor="#666979" onClick={() => pSetEditPanel(false)} />
-            </div>
-            {sIsConfirmModal ? (
+                                    </Page.TabItem>
+                                ))}
+                            </Page.TabList>
+                        </Page.TabContainer>
+                        <Page.Body style={{ display: 'flex', flexDirection: 'column', borderRadius: '4px', border: '1px solid #b8c8da41', padding: '6px', gap: '8px' }}>
+                            {sSelectedTab === 'General' && sCopyPanelInfo.index_key && <General pSetCopyPanelInfo={setCopyPanelInfo} pPanelInfo={sCopyPanelInfo} />}
+                            {sSelectedTab === 'Data' && sCopyPanelInfo.index_key && <Data pSetCopyPanelInfo={setCopyPanelInfo} pPanelInfo={sCopyPanelInfo} />}
+                            {sSelectedTab === 'Axes' && sCopyPanelInfo.index_key && <Axes pSetCopyPanelInfo={setCopyPanelInfo} pPanelInfo={sCopyPanelInfo} />}
+                            {sSelectedTab === 'Display' && sCopyPanelInfo.index_key && <Display pSetCopyPanelInfo={setCopyPanelInfo} pPanelInfo={sCopyPanelInfo} />}
+                            {sSelectedTab === 'Time' && sCopyPanelInfo.index_key && <TimeRange pPanelInfo={sCopyPanelInfo} pSetCopyPanelInfo={setCopyPanelInfo} />}
+                        </Page.Body>
+                    </Page.DpRow>
+                </Page>
+            </Page>
+
+            {sIsConfirmModal && (
                 <ConfirmModal
                     pIsDarkMode
                     setIsOpen={setIsConfirmModal}
@@ -196,7 +196,7 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
                         </>
                     }
                 />
-            ) : null}
+            )}
         </div>
     );
 };

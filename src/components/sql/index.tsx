@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { SplitPane, Pane } from '@/design-system/components';
+import { SplitPane, Pane, Page, Tabs } from '@/design-system/components';
 import RESULT from './result';
 import CHART from '@/components/chart';
 import { gBoardList } from '@/recoil/recoil';
@@ -8,11 +8,10 @@ import { getTqlChart } from '@/api/repository/machiot';
 import { SQL_BASE_LIMIT, sqlBasicFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
 import { Button } from '@/design-system/components';
 import './index.scss';
-import { BarChart, AiOutlineFileDone, AiOutlineSnippets, Save, LuFlipVertical, Play, SaveAs, Download } from '@/assets/icons/Icon';
+import { BarChart, AiOutlineFileDone, Save, LuFlipVertical, Play, SaveAs, Download } from '@/assets/icons/Icon';
 import { fixedEncodeURIComponent, isJsonString } from '@/utils/utils';
 import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 import { MonacoEditor } from '../monaco/MonacoEditor';
-import { IconButton } from '@/components/buttons/IconButton';
 import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader } from '@/utils/sqlOriginDataDownloader';
 import { postSplitter } from '@/api/repository/api';
 import { Loader } from '../loader';
@@ -39,12 +38,11 @@ const Sql = ({
     const [sTimeRange, setTimeRange] = useState('2006-01-02 15:04:05');
     const [sTimeZone, setTimeZone] = useState('LOCAL');
     const [sIsTimeZoneModal, setIsTimeZoneModal] = useState<boolean>(false);
-    const [sSelectedSubTab, setSelectedSubTab] = useState<'RESULT' | 'CHART' | 'LOG'>('RESULT');
+    const [sSelectedSubTab, setSelectedSubTab] = useState<'RESULT' | 'CHART'>('RESULT');
     // const [sLogList, setLogList] = useState<string[]>([]);
     const [sSqlQueryTxt, setSqlQueryTxt] = useState<string>(pInfo.code);
     const [sSqlResponseData, setSqlResponseData] = useState<any>();
     const [sResultLimit, setResultLimit] = useState<number>(1);
-    const sEditorRef = useRef(null);
     const [sErrLog, setErrLog] = useState<string | null>(null);
     const [sTextField, setTextField] = useState<string>('');
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
@@ -81,7 +79,6 @@ const Sql = ({
     enum SqlTabType {
         RESULT = 'RESULT',
         CHART = 'CHART',
-        LOG = 'LOG',
     }
     const sSqlTabList: SqlTabType[] = [SqlTabType.RESULT, SqlTabType.CHART];
 
@@ -180,8 +177,6 @@ const Sql = ({
                 return <AiOutlineFileDone />;
             case SqlTabType.CHART:
                 return <BarChart />;
-            case SqlTabType.LOG:
-                return <AiOutlineSnippets />;
         }
     };
 
@@ -239,156 +234,132 @@ const Sql = ({
     }, [sMoreResult]);
 
     return (
-        <div ref={sSaveCommand} style={{ width: '100%', height: '100%' }}>
-            <SplitPane
-                sashRender={() => <></>}
-                split={isVertical ? 'vertical' : 'horizontal'}
-                onDragEnd={() => pSetDragStat(false)}
-                onDragStart={() => pSetDragStat(true)}
-                sizes={sizes}
-                onChange={setSizes}
-            >
-                <Pane minSize={50}>
-                    <div
-                        className="sql-header"
-                        style={{
-                            height: '40px',
-                            background: '#262831',
-                            justifyContent: 'space-between',
-                        }}
-                        ref={sNavi}
-                        onWheel={handleMouseWheel}
-                    >
-                        <IconButton pIsToopTip pToolTipContent="Run code" pToolTipId="sql-tab-explorer-run-code" pIcon={<Play />} onClick={checkCtrl} />
-                        <div className="sql-option-ctr">
-                            <Button
-                                size="icon"
-                                variant="none"
-                                isToolTip
-                                toolTipContent="Time format / Time zone"
-                                icon={<RiTimeZoneLine size={18} />}
-                                onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
+        <>
+            <Page pRef={sSaveCommand}>
+                <SplitPane
+                    sashRender={() => <></>}
+                    split={isVertical ? 'vertical' : 'horizontal'}
+                    onDragEnd={() => pSetDragStat(false)}
+                    onDragStart={() => pSetDragStat(true)}
+                    sizes={sizes}
+                    onChange={setSizes}
+                >
+                    <Pane minSize={50}>
+                        <Page.Header>
+                            <Button size="icon" variant="ghost" isToolTip toolTipContent="Run code" icon={<Play size={16} />} onClick={checkCtrl} />
+                            <Button.Group>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    isToolTip
+                                    toolTipContent="Time format / Time zone"
+                                    icon={<RiTimeZoneLine size={16} />}
+                                    onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
+                                />
+                                <Button size="icon" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} />
+                                <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={16} />} onClick={() => setIsSaveModal(true)} />
+                            </Button.Group>
+                        </Page.Header>
+                        <Page.Body>
+                            <MonacoEditor
+                                pIsActiveTab={pIsActiveTab}
+                                pText={sSqlQueryTxt}
+                                pLang="sql"
+                                onChange={handleChangeText}
+                                onRunCode={sqlMultiLineParser}
+                                onSelectLine={setSqlLocation}
                             />
-                            <div className="divider" />
-                            <IconButton pIsToopTip pToolTipContent="Save" pToolTipId="sql-tab-explorer-save" pIcon={<Save />} onClick={pHandleSaveModalOpen} />
-                            <IconButton pIsToopTip pToolTipContent="Save as" pToolTipId="sql-tab-explorer-save-as" pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
-                        </div>
-                    </div>
-                    <div ref={sEditorRef} style={{ height: 'calc(100% - 40px)', width: '100%' }}>
-                        <MonacoEditor
-                            pIsActiveTab={pIsActiveTab}
-                            pText={sSqlQueryTxt}
-                            pLang="sql"
-                            onChange={handleChangeText}
-                            onRunCode={sqlMultiLineParser}
-                            onSelectLine={setSqlLocation}
-                        />
-                    </div>
-                </Pane>
-                <Pane style={{ overflow: 'initial' }}>
-                    <div className={'sql-body'} style={{ height: '100%', marginLeft: '1px' }}>
-                        <div
-                            className="sql_tab"
-                            style={{
-                                height: '40px',
-                                background: '#262831',
-                                display: 'flex',
-                                flexDirection: 'row',
-                                justifyContent: 'space-between',
-                            }}
-                        >
-                            <div className="sql-tab-round-wrapper scrollbar-dark">
-                                {sSqlTabList.map((aTab: SqlTabType) => {
-                                    return (
-                                        <div className="sql-tab-round" key={aTab} style={{ display: 'flex', flexDirection: 'row' }}>
-                                            {sSelectedSubTab === aTab ? (
-                                                <div className="round_right_wrap">
-                                                    <div className="round_right"></div>
-                                                </div>
-                                            ) : (
-                                                <></>
-                                            )}
-                                            <button
-                                                className={sSelectedSubTab === aTab ? 'sql_tab_button sql_tab_select' : 'sql_tab_button sql_tab_none_select'}
-                                                onClick={() => setSelectedSubTab(aTab)}
-                                            >
-                                                {getSubTabIcon(aTab)}
-                                                <span>{aTab}</span>
-                                            </button>
-                                            {sSelectedSubTab === aTab ? (
-                                                <div className="round_left_wrap">
-                                                    <div className="round_left"></div>
-                                                </div>
-                                            ) : (
-                                                <></>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <div className="sub-tab-header-icon-ctr">
-                                <IconButton
-                                    pIsToopTip
-                                    pToolTipContent="Download CSV"
-                                    pToolTipId="sql-tab-divider-explorer-download"
-                                    pIcon={<Download />}
-                                    pDisabled={!sOldFetchTxt || !sSqlResponseData || (sSqlResponseData?.rows?.length === 1 && sSqlResponseData?.columns?.length === 1)}
+                        </Page.Body>
+                    </Pane>
+                    <Pane style={{ overflow: 'initial' }} minSize={50}>
+                        <Page.Header>
+                            <Tabs.Root
+                                selectedTab={sSelectedSubTab}
+                                onTabSelect={(tab) => {
+                                    const tabValue = tab.id as 'RESULT' | 'CHART';
+                                    setSelectedSubTab(tabValue);
+                                }}
+                            >
+                                <Tabs.Header variant="sub">
+                                    <Tabs.List onWheel={handleMouseWheel}>
+                                        {sSqlTabList.map((aTab: SqlTabType) => {
+                                            return (
+                                                <Tabs.Item key={aTab} value={aTab} variant="sub">
+                                                    {getSubTabIcon(aTab)}
+                                                    <span>{aTab}</span>
+                                                </Tabs.Item>
+                                            );
+                                        })}
+                                    </Tabs.List>
+                                </Tabs.Header>
+                            </Tabs.Root>
+                            <Button.Group>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    disabled={!sOldFetchTxt || !sSqlResponseData || (sSqlResponseData?.rows?.length === 1 && sSqlResponseData?.columns?.length === 1)}
+                                    isToolTip
+                                    toolTipContent="Download CSV"
+                                    icon={<Download size={16} />}
                                     onClick={handleDownloadCSV}
                                 />
-                                <IconButton
-                                    pIsToopTip
-                                    pToolTipContent="Vertical"
-                                    pToolTipId="sql-tab-divider-explorer-hori"
-                                    pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
-                                    pIsActive={isVertical}
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    isToolTip
+                                    toolTipContent="Vertical"
+                                    icon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} size={16} />}
+                                    active={isVertical}
                                     onClick={handleSplitVertical}
                                 />
-                                <IconButton
-                                    pIsToopTip
-                                    pToolTipContent="Horizontal"
-                                    pToolTipId="sql-tab-divider-explorer-ver"
-                                    pIcon={<LuFlipVertical />}
-                                    pIsActive={!isVertical}
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    isToolTip
+                                    toolTipContent="Horizontal"
+                                    icon={<LuFlipVertical size={16} />}
+                                    active={!isVertical}
                                     onClick={handleSplitHorizontal}
                                 />
-                            </div>
-                        </div>
-                        {sSelectedSubTab === 'RESULT' ? (
-                            sErrLog ? (
-                                <div className="sql-error-body" style={{ padding: '0 1rem' }}>
-                                    {sErrLog}
-                                </div>
-                            ) : sTextField === 'Processing...' ? (
-                                <div className="sql-processing-body" style={{ padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
-                                    <span>{sTextField}</span>
-                                    <div style={{ marginLeft: '4px' }}>
-                                        <Loader width="12px" height="12px" borderRadius="90%" />
+                            </Button.Group>
+                        </Page.Header>
+                        <Page.Body>
+                            {sSelectedSubTab === 'RESULT' ? (
+                                sErrLog ? (
+                                    <div className="sql-error-body" style={{ padding: '0 1rem' }}>
+                                        {sErrLog}
                                     </div>
-                                </div>
-                            ) : (
-                                <RESULT
-                                    pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'}
-                                    pSqlResponseData={sSqlResponseData}
-                                    onMoreResult={() => onMoreResult()}
-                                    pHelpTxt={sOldFetchTxt?.text ?? ''}
-                                />
-                            )
-                        ) : null}
+                                ) : sTextField === 'Processing...' ? (
+                                    <div className="sql-processing-body" style={{ padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
+                                        <span>{sTextField}</span>
+                                        <div style={{ marginLeft: '4px' }}>
+                                            <Loader width="12px" height="12px" borderRadius="90%" />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <RESULT
+                                        pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'}
+                                        pSqlResponseData={sSqlResponseData}
+                                        onMoreResult={() => onMoreResult()}
+                                        pHelpTxt={sOldFetchTxt?.text ?? ''}
+                                    />
+                                )
+                            ) : null}
 
-                        {/* <LOG pDisplay={sSelectedSubTab === 'LOG' ? '' : 'none'} pLogList={sLogList} onClearLog={() => onClearLog()} /> */}
-                        <CHART
-                            pQueryList={sChartQueryList}
-                            pDisplay={sSelectedSubTab === 'CHART' ? '' : 'none'}
-                            pChartAixsList={sChartAxisList}
-                            pIsVertical={isVertical}
-                            pSqlQueryTxt={getTargetQuery}
-                            pSizes={sizes}
-                        />
-                    </div>
-                </Pane>
-            </SplitPane>
+                            <CHART
+                                pQueryList={sChartQueryList}
+                                pDisplay={sSelectedSubTab === 'CHART' ? '' : 'none'}
+                                pChartAixsList={sChartAxisList}
+                                pIsVertical={isVertical}
+                                pSqlQueryTxt={getTargetQuery}
+                                pSizes={sizes}
+                            />
+                        </Page.Body>
+                    </Pane>
+                </SplitPane>
+            </Page>
             <TimeZoneModal isOpen={sIsTimeZoneModal} formatInitValue={sTimeRange} zoneInitValue={sTimeZone} onClose={handleTimeZone} />
-        </div>
+        </>
     );
 };
 

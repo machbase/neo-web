@@ -87,7 +87,8 @@ const Chart = ({
             chart: {
                 spacing: pPanelInfo.show_legend === 'Y' ? [10, 10, 15, 10] : [10, 10, 30, 10],
                 height: 300,
-                backgroundColor: '#262831',
+                backgroundColor: '#252525',
+                fill: 'red',
                 type: pPanelInfo.fill > 0 ? 'area' : 'line',
                 zoomType: 'x',
                 lineWidth: 1,

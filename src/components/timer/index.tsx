@@ -1,4 +1,4 @@
-import { ExtensionTab } from '@/components/extension/ExtensionTab';
+import { Alert, Button, Checkbox, Page } from '@/design-system/components';
 import { useRecoilState } from 'recoil';
 import { gActiveTimer, gBoardList, gTimerList } from '@/recoil/recoil';
 import { SplitPane, Pane } from '@/design-system/components';
@@ -185,81 +185,83 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         <>
             {/* Show info */}
             {sActiveTimer && sPayload && (
-                <ExtensionTab>
+                <Page>
                     <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={['50', '50']} onChange={() => {}}>
                         <Pane minSize={400}>
-                            <ExtensionTab.Header />
-                            <ExtensionTab.Body>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.SubTitle>
+                            <Page.Header />
+                            <Page.Body>
+                                <Page.ContentBlock>
+                                    <Page.SubTitle>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', flexDirection: 'row', alignContent: 'center' }}>
                                             <div style={{ display: 'flex' }}>Timer</div>
                                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end', marginTop: '20px' }}>
-                                                <ExtensionTab.Switch
+                                                <Page.Switch
                                                     pState={sPayload.state === 'RUNNING' || sPayload.state === 'STARTING'}
                                                     pCallback={handleCommand}
                                                     pBadge={sPayload.state}
                                                     pBadgeL={true}
                                                 />
                                                 {sCommandRes && (
-                                                    <ExtensionTab.ContentDesc>
+                                                    <Page.ContentDesc>
                                                         <div style={{ marginTop: '-10px' }}>
-                                                            <ExtensionTab.TextResErr pText={sCommandRes} />
+                                                            <Page.TextResErr pText={sCommandRes} />
                                                         </div>
-                                                    </ExtensionTab.ContentDesc>
+                                                    </Page.ContentDesc>
                                                 )}
                                             </div>
                                         </div>
-                                    </ExtensionTab.SubTitle>
+                                    </Page.SubTitle>
 
-                                    <ExtensionTab.Hr />
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
+                                    <Page.Hr />
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
                                     {/* NAME */}
-                                    <ExtensionTab.ContentTitle>Name</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{sPayload.name}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
+                                    <Page.ContentTitle>Name</Page.ContentTitle>
+                                    <Page.ContentDesc>{sPayload.name}</Page.ContentDesc>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
                                     {/* Auto start */}
-                                    <ExtensionTab.ContentTitle>Auto start</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.DpRow>
-                                        <ExtensionTab.Checkbox
-                                            pValue={sPayload.autoStart}
-                                            pCallback={(value: boolean) => handlePayload('autoStart', { target: { value } } as any)}
-                                        />
-                                        <ExtensionTab.ContentDesc>{AUTO_START_DESC}</ExtensionTab.ContentDesc>
-                                    </ExtensionTab.DpRow>
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
+                                    <Page.ContentTitle>Auto start</Page.ContentTitle>
+                                    <Checkbox
+                                        size="sm"
+                                        label={<Page.ContentDesc>{AUTO_START_DESC}</Page.ContentDesc>}
+                                        checked={sPayload.autoStart}
+                                        onChange={(e: any) => handlePayload('autoStart', { target: { value: e.target.checked } } as any)}
+                                    />
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
                                     {/* Schedule */}
-                                    <ExtensionTab.ContentTitle>schedule</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.Input pValue={sPayload.schedule} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('schedule', event)} />
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
+                                    <Page.ContentTitle>schedule</Page.ContentTitle>
+                                    <Page.Input pValue={sPayload.schedule} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('schedule', event)} />
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
                                     {/* Task */}
-                                    <ExtensionTab.ContentTitle>task</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.DpRow>
-                                        <ExtensionTab.Input pValue={sPayload.task} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('task', event)} />
-                                        <SelectFileBtn pType="tql" pCallback={handleTql} btnWidth={'100px'} btnHeight="26px" />
-                                        <OpenFileBtn pType="tql" pFileInfo={{ path: sPayload.task }} btnWidth={'80px'} btnHeight="26px" pErrorCallback={setResOpenFile} />
-                                    </ExtensionTab.DpRow>
-                                    {sResOpenFile && <ExtensionTab.TextResErr pText={sResOpenFile} />}
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
+                                    <Page.ContentTitle>task</Page.ContentTitle>
+                                    <Page.DpRow>
+                                        <Page.Input pValue={sPayload.task} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('task', event)} />
+                                        <Button.Group>
+                                            <div />
+                                            <SelectFileBtn pType="tql" pCallback={handleTql} />
+                                            <OpenFileBtn pType="tql" pFileInfo={{ path: sPayload.task }} pErrorCallback={setResOpenFile} />
+                                        </Button.Group>
+                                    </Page.DpRow>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock pHoverNone>{sResOpenFile && <Alert variant="error" message={sResOpenFile} />}</Page.ContentBlock>
+                                <Page.ContentBlock>
                                     {/* BTN */}
-                                    <ExtensionTab.DpRow>
-                                        <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
-                                        <ExtensionTab.TextButton pText="Save" pType="CREATE" pCallback={editItem} />
-                                    </ExtensionTab.DpRow>
-                                    {sResMessage && <ExtensionTab.TextResErr pText={sResMessage} />}
-                                </ExtensionTab.ContentBlock>
-                            </ExtensionTab.Body>
+                                    <Page.DpRow>
+                                        <Page.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
+                                        <Page.TextButton pText="Save" pType="CREATE" pCallback={editItem} />
+                                    </Page.DpRow>
+                                    {sResMessage && <Alert variant="error" message={sResMessage} />}
+                                </Page.ContentBlock>
+                            </Page.Body>
                         </Pane>
                         <Pane>
-                            <ExtensionTab.Header />
+                            <Page.Header />
                         </Pane>
                     </SplitPane>
-                </ExtensionTab>
+                </Page>
             )}
             {/* Show create */}
             {!sActiveTimer && <EditTimer />}

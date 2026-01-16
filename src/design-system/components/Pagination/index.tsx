@@ -23,7 +23,6 @@ const Pagination = React.forwardRef<HTMLDivElement, PaginationProps>(
 
         const handleFirstPage = () => {
             onPageChange(1);
-            onPageInputApply?.('outsideClick');
         };
 
         const handlePreviousPage = () => {
@@ -40,7 +39,6 @@ const Pagination = React.forwardRef<HTMLDivElement, PaginationProps>(
 
         const handleLastPage = () => {
             onPageChange(totalPages);
-            onPageInputApply?.('outsideClick');
         };
 
         const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,8 +84,10 @@ const Pagination = React.forwardRef<HTMLDivElement, PaginationProps>(
                     adjustedPageNum = totalPages;
                 }
 
-                // Update input with adjusted page number and apply
-                onPageInputChange?.(adjustedPageNum.toString());
+                // Update input and trigger page change
+                onPageChange(adjustedPageNum);
+
+                // Call the optional apply callback if provided (for additional custom behavior)
                 onPageInputApply?.(e);
             }
         };

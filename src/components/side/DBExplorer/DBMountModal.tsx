@@ -1,10 +1,8 @@
-import { Close, VscWarning } from '@/assets/icons/Icon';
 import { useState } from 'react';
-import { TextButton } from '@/components/buttons/TextButton';
 import { mountDB } from '@/api/repository/api';
-import Modal from '@/components/modal/Modal';
 import { IsKeyword, MountNameRegEx } from '@/utils/database';
-import './DBMountModal.scss';
+import { Modal, Input, Alert } from '@/design-system/components';
+import styles from './DBMountModal.module.scss';
 
 export const DBMountModal = ({ setIsOpen, pRefresh }: { setIsOpen: (status: boolean) => void; pRefresh: () => void }) => {
     const [mountDBInfo, setMountDBInfo] = useState<{ name: string; path: string }>({ name: '', path: '' });
@@ -46,60 +44,29 @@ export const DBMountModal = ({ setIsOpen, pRefresh }: { setIsOpen: (status: bool
     };
 
     return (
-        <div className="db-mount-modal">
-            <Modal pIsDarkMode onOutSideClose={handleClose}>
-                <Modal.Header>
-                    <div className="title">
-                        <div className="title-content">
-                            <span>Database Mount</span>
-                        </div>
-                        <Close onClick={handleClose} />
-                    </div>
-                </Modal.Header>
-                <Modal.Body>
-                    <div className={'file-dark'}>
-                        <div className={`file-dark-content`}>
-                            <div className={`file-dark-content-name`}>
-                                <div className={`file-dark-content-name-wrap`}>
-                                    <span>Name</span>
-                                </div>
-                                <div className={`input-wrapper input-wrapper-dark`}>
-                                    <input autoFocus onChange={(e) => handleMountDBInfo('name', e)} value={mountDBInfo.name} />
-                                </div>
-                                {IsKeyword(mountDBInfo.name) && (
-                                    <div className="mount-res-err" style={{ display: 'flex', marginTop: '8px' }}>
-                                        <VscWarning color="rgb(255, 83, 83)" />
-                                        <span style={{ color: 'rgb(255, 83, 83)', fontSize: '14px', marginLeft: '4px' }}>Mount name cannot be a keyword.</span>
-                                    </div>
-                                )}
-                            </div>
-                            <div className={`file-dark-content-name`}>
-                                <div className={`file-dark-content-name-wrap`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                    <div style={{ display: 'flex', alignItems: 'baseline' }}>
-                                        <span>Path</span>
-                                    </div>
-                                </div>
-                                <div className={`input-wrapper input-wrapper-dark`} style={{ paddingRight: '0px' }}>
-                                    <input onChange={(e) => handleMountDBInfo('path', e)} value={mountDBInfo.path} onKeyDown={handleEnter} />
-                                </div>
-                            </div>
-                            {mountState && (
-                                <div className="mount-res-err" style={{ display: 'flex' }}>
-                                    <VscWarning color="rgb(255, 83, 83)" />
-                                    <span style={{ color: 'rgb(255, 83, 83)', fontSize: '14px', marginLeft: '4px' }}>{mountState}</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </Modal.Body>
-                <Modal.Footer>
-                    <div className="button-group">
-                        <TextButton pText="OK" pBackgroundColor="#4199ff" pIsDisabled={mountLoad || IsKeyword(mountDBInfo.name)} onClick={handleMount} pIsLoad={mountLoad} />
-                        <div style={{ width: '10px' }}></div>
-                        <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />
-                    </div>
-                </Modal.Footer>
-            </Modal>
-        </div>
+        <Modal.Root isOpen={true} onClose={handleClose} className={styles['db-mount-modal']}>
+            <Modal.Header>
+                <Modal.Title>Database Mount</Modal.Title>
+                <Modal.Close />
+            </Modal.Header>
+            <Modal.Body>
+                <Input
+                    label="Name"
+                    autoFocus
+                    value={mountDBInfo.name}
+                    onChange={(e) => handleMountDBInfo('name', e)}
+                    error={IsKeyword(mountDBInfo.name) ? 'Mount name cannot be a keyword.' : undefined}
+                    fullWidth
+                />
+                <Input label="Path" value={mountDBInfo.path} onChange={(e) => handleMountDBInfo('path', e)} onKeyDown={handleEnter} fullWidth />
+                {mountState && <Alert variant="error" message={mountState} />}
+            </Modal.Body>
+            <Modal.Footer>
+                <Modal.Confirm onClick={handleMount} disabled={mountLoad || IsKeyword(mountDBInfo.name)} loading={mountLoad}>
+                    OK
+                </Modal.Confirm>
+                <Modal.Cancel onClick={handleClose}>Cancel</Modal.Cancel>
+            </Modal.Footer>
+        </Modal.Root>
     );
 };

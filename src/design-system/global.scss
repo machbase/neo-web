@@ -1,0 +1,41 @@
+/**
+ * Design System Global Styles
+ *
+ * This file contains global styles that apply to all design system components.
+ * Import this file in your main application entry point to ensure consistent
+ * typography and styling across all design system components.
+ */
+
+@use './tokens' as t;
+
+// Apply design system typography globally to the entire application
+body {
+    font-family: t.$font-family-pretendard;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+// Ensure all elements inherit the Pretendard font
+* {
+    font-family: t.$font-family-pretendard;
+}
+
+// Reset common form elements to use design system defaults
+button,
+input,
+textarea,
+select {
+    font-family: t.$font-family-pretendard;
+}
+
+// Exceptions: Keep monospace fonts for code/console areas
+.console-body,
+.console-body *,
+.task,
+.task *,
+.xterm,
+.xterm *,
+.monaco-editor,
+.monaco-editor * {
+    font-family: 'D2Coding', monospace !important;
+}

@@ -1,5 +1,4 @@
-import { Input } from '@/components/inputs/Input';
-import './General.scss';
+import { Input, Checkbox, Page } from '@/design-system/components';
 
 const GeneralOptions = ['use_zoom', 'use_time_keeper'];
 
@@ -17,30 +16,24 @@ const General = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     };
 
     return (
-        <div className="general">
-            <div className="first-row">
-                <div className="chart-title">
-                    <div className="title-text">Chart Title</div>
-                    <Input
-                        pWidth={180}
-                        pHeight={28}
-                        pValue={pPanelInfo.chart_title}
-                        pSetValue={() => null}
-                        onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, chart_title: aEvent.target.value })}
-                    />
-                </div>
-            </div>
-            <div className="second-row">
-                <div className="row-options">
-                    <input checked={pPanelInfo.use_zoom === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, GeneralOptions[0])} type="checkbox" />
-                    <span>Use Zoom when dragging</span>
-                </div>
-                <div className="row-options">
-                    <input checked={pPanelInfo.use_time_keeper === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, GeneralOptions[1])} type="checkbox" />
-                    <span>Keep Navigator Posistion</span>
-                </div>
-            </div>
-        </div>
+        <Page.ContentBlock style={{ padding: '4px' }} pHoverNone>
+            <Input
+                label="Chart title"
+                value={pPanelInfo.chart_title}
+                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, chart_title: aEvent.target.value })}
+                size="md"
+                style={{ width: '180px' }}
+            />
+            <Page.DpRow style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px', alignItems: 'start' }}>
+                <Checkbox checked={pPanelInfo.use_zoom === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, GeneralOptions[0])} label="Use Zoom when dragging" size="sm" />
+                <Checkbox
+                    checked={pPanelInfo.use_time_keeper === 'Y'}
+                    onChange={(aEvent: any) => getCheckboxValue(aEvent, GeneralOptions[1])}
+                    label="Keep Navigator Posistion"
+                    size="sm"
+                />
+            </Page.DpRow>
+        </Page.ContentBlock>
     );
 };
 

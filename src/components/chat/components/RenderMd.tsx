@@ -139,8 +139,8 @@ export const RenderMd = ({ pContent, pWrkId, pIdx, pIsInterrupt }: RenderMdProps
         <div
             ref={renderContainerRef}
             id={`render-md-${sRenderId}`}
-            className={`mrk-form markdown-body `}
-            style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#1B1C21', width: '100%' }}
+            className={`mrk-form markdown-body`}
+            style={{ display: 'flex', flexDirection: 'column', width: '100%' }}
             dangerouslySetInnerHTML={{ __html: sElement }}
         />
     );

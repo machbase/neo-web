@@ -1,9 +1,9 @@
-import './TimeRange.scss';
 import { useEffect, useState } from 'react';
 import moment from 'moment';
-import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
 import { changeTextToUtc } from '@/utils/helpers/date';
-import DatePicker from '@/components/datePicker/DatePicker';
+import { Button, DatePicker, Page, QuickTimeRange } from '@/design-system/components';
+import { VscTrash } from '@/assets/icons/Icon';
+import { TIME_RANGE } from '@/utils/constants';
 
 const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const [sStartTime, setStartTime] = useState<any>('');
@@ -27,6 +27,7 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                 : moment.unix(sBoardEndTime / 1000).format('YYYY-MM-DD HH:mm:ss')
         );
     }, []);
+
     const handleStartTime = (aEvent: any, aIsApply: boolean) => {
         if (aIsApply) {
             pSetCopyPanelInfo({ ...pPanelInfo, range_bgn: (changeTextToUtc(aEvent) as number) * 1000 });
@@ -71,30 +72,51 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
         setEndTime(aValue.value[1]);
     };
 
+    const handleClear = () => {
+        pSetCopyPanelInfo({ ...pPanelInfo, range_bgn: '', range_end: '' });
+        setStartTime('');
+        setEndTime('');
+    };
+
     return (
-        <div className="time-range">
-            <div className="first-row">
-                <div className="from">
-                    <span className="span-from">From</span>
-                    <DatePicker
-                        pTopPixel={-370}
-                        pTimeValue={sStartTime}
-                        onChange={(date: any) => handleStartTime(date, false)}
-                        pSetApply={(date: any) => handleStartTime(date, true)}
-                    />
-                </div>
-                <div className="to">
-                    <span className="span-to">To</span>
-                    <DatePicker pTopPixel={-370} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date, false)} pSetApply={(date: any) => handleEndTime(date, true)} />
-                </div>
-            </div>
-            <div className="second-row">
-                <div className="quick-range">Quick Range</div>
-                <div>
-                    <SelectTimeRanges onClick={handleQuickTime} />
-                </div>
-            </div>
-        </div>
+        <>
+            <Page.ContentBlock pHoverNone style={{ padding: 0, margin: 0 }}>
+                <Page.ContentTitle>Custom time range</Page.ContentTitle>
+            </Page.ContentBlock>
+            <Page.DpRow style={{ alignItems: 'start', padding: 0 }}>
+                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                        <DatePicker
+                            pLabel="From"
+                            pTopPixel={-370}
+                            pTimeValue={sStartTime}
+                            onChange={(date: any) => handleStartTime(date, false)}
+                            pSetApply={(date: any) => handleStartTime(date, true)}
+                        />
+                    </Page.ContentBlock>
+                    <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                        <DatePicker
+                            pLabel="To"
+                            pTopPixel={-370}
+                            pTimeValue={sEndTime}
+                            onChange={(date: any) => handleEndTime(date, false)}
+                            pSetApply={(date: any) => handleEndTime(date, true)}
+                        />
+                    </Page.ContentBlock>
+                    <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                        <Page.DpRow style={{ justifyContent: 'end' }}>
+                            <Button variant="ghost" onClick={handleClear}>
+                                <VscTrash size={16} />
+                                <span>Clear</span>
+                            </Button>
+                        </Page.DpRow>
+                    </Page.ContentBlock>
+                </Page.ContentBlock>
+                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    <QuickTimeRange options={TIME_RANGE} onSelect={handleQuickTime} title="" />
+                </Page.ContentBlock>
+            </Page.DpRow>
+        </>
     );
 };
 

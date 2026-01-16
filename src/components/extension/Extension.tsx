@@ -17,14 +17,14 @@ import { LicenseModal } from '../modal/LicenseModal';
 import { StatzTableModal } from '../modal/StatzTableModal';
 import { ProviderModal } from '../chat/ProviderModal';
 
-interface ExtensionProps {
+interface GNBPanelProps {
     pHandleSideBar: (isOpen: boolean) => void;
     pSetSideSizes: (sizes: string[] | number[]) => void;
     pIsSidebar: boolean;
     pSetEula: (open: boolean) => void;
 }
 
-const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: ExtensionProps) => {
+const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPanelProps) => {
     const sNavigate = useNavigate();
     const [sExtensionList] = useRecoilState<any>(gExtensionList);
     const [sSelectedExtension, setSelectedExtension] = useRecoilState<string>(gSelectedExtension);
@@ -204,7 +204,7 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: Exte
                 <GNB.Container position="bottom">
                     <Menu.Root>
                         <Menu.Trigger>
-                            <GNB.Item asChild id="SETTINGS" label="Settings" icon={<Gear />} badge={getGLicense?.licenseStatus !== BADGE_KEYWORD ? <BadgeStatus /> : undefined} />
+                            <GNB.Item id="SETTINGS" label="Settings" icon={<Gear />} badge={getGLicense?.licenseStatus !== BADGE_KEYWORD ? <BadgeStatus /> : undefined} />
                         </Menu.Trigger>
                         <Menu.Content align="left">
                             <Menu.Item icon={<Key />} rightIcon={getGLicense?.licenseStatus !== BADGE_KEYWORD && <BadgeStatus />} onClick={handleLicense}>
@@ -240,4 +240,4 @@ const Extension = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: Exte
     );
 };
 
-export default Extension;
+export default GNBPanel;

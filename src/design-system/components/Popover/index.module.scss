@@ -1,0 +1,28 @@
+@use '@/design-system/tokens' as t;
+
+.popover {
+    background-color: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    box-shadow: t.$shadow-lg;
+    padding: 4px 8px;
+    z-index: t.$z-index-modal;
+    min-width: 200px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: auto;
+
+    // Smooth appearance
+    animation: popoverFadeIn 0.15s ease-out;
+}
+
+@keyframes popoverFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

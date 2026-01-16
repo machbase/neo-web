@@ -1,9 +1,8 @@
-import { ExtensionTab } from '@/components/extension/ExtensionTab';
+import { Button, Page } from '@/design-system/components';
 import { SplitPane, Pane } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { useEffect, useState } from 'react';
 import { ConfirmModal } from '../modal/ConfirmModal';
-import { IconButton } from '../buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
 import { EXEC_SSH_KEY, GEN_SSH_KEY, INFO_SSH_KEY, USE_SSH_KEY } from './contents';
 import { SSHKEY_ITEM_TYPE, addSSHKey, delSSHKey, getSSHKeys } from '@/api/repository/sshKey';
@@ -85,68 +84,68 @@ export const SSHKey = () => {
     return (
         <>
             {/* Show info */}
-            <ExtensionTab>
+            <Page>
                 <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                     <Pane minSize={400}>
-                        <ExtensionTab.Header />
-                        <ExtensionTab.Body>
-                            <ExtensionTab.ContentBlock>
+                        <Page.Header />
+                        <Page.Body>
+                            <Page.ContentBlock>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <ExtensionTab.SubTitle>{INFO_SSH_KEY.title}</ExtensionTab.SubTitle>
-                                    {!sAddSSHKeyState && <ExtensionTab.TextButton pText="New SSH key" pWidth="100px" pType="CREATE" pCallback={handleCreate} mr="0px" />}
+                                    <Page.SubTitle>{INFO_SSH_KEY.title}</Page.SubTitle>
+                                    {!sAddSSHKeyState && <Page.TextButton pText="New SSH key" pWidth="100px" pType="CREATE" pCallback={handleCreate} mr="0px" />}
                                 </div>
-                                <ExtensionTab.Space pHeight="4px" />
-                                <ExtensionTab.Hr />
-                            </ExtensionTab.ContentBlock>
+                                <Page.Space pHeight="4px" />
+                                <Page.Hr />
+                            </Page.ContentBlock>
                             {sAddSSHKeyState && (
                                 <>
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.DpRow>
-                                            <ExtensionTab.ContentTitle>{INFO_SSH_KEY.cre_alias}</ExtensionTab.ContentTitle>
-                                            <ExtensionTab.ContentDesc>
+                                    <Page.ContentBlock>
+                                        <Page.DpRow>
+                                            <Page.ContentTitle>{INFO_SSH_KEY.cre_alias}</Page.ContentTitle>
+                                            <Page.ContentDesc>
                                                 <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                            </ExtensionTab.ContentDesc>
-                                        </ExtensionTab.DpRow>
-                                        <ExtensionTab.Input pAutoFocus pValue={sAlias} pWidth="100%" pCallback={(event: React.FormEvent<HTMLInputElement>) => handleAlias(event)} />
-                                    </ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.DpRow>
-                                            <ExtensionTab.ContentTitle>{INFO_SSH_KEY.cre_title}</ExtensionTab.ContentTitle>
-                                            <ExtensionTab.ContentDesc>
+                                            </Page.ContentDesc>
+                                        </Page.DpRow>
+                                        <Page.Input pAutoFocus pValue={sAlias} pWidth="100%" pCallback={(event: React.FormEvent<HTMLInputElement>) => handleAlias(event)} />
+                                    </Page.ContentBlock>
+                                    <Page.ContentBlock>
+                                        <Page.DpRow>
+                                            <Page.ContentTitle>{INFO_SSH_KEY.cre_title}</Page.ContentTitle>
+                                            <Page.ContentDesc>
                                                 <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                            </ExtensionTab.ContentDesc>
-                                        </ExtensionTab.DpRow>
-                                        <ExtensionTab.TextArea pContent={sAddSSHKeyInfo} pHeight={80} pCallback={handleAddSSHKeyInfo} pPlaceHolder={INFO_SSH_KEY.cre_desc} />
-                                        <ExtensionTab.ContentDesc>{INFO_SSH_KEY.cre_support}</ExtensionTab.ContentDesc>
-                                        <ExtensionTab.Space pHeight="16px" />
-                                        <ExtensionTab.TextButton pText="Add SSH key" pWidth="100px" pType="CREATE" pCallback={genSSHKey} mr="8px" />
-                                        <ExtensionTab.TextButton pText="Cancel" pWidth="80px" pType="DELETE" pCallback={() => setAddSSHKeyState(false)} mr="0px" />
+                                            </Page.ContentDesc>
+                                        </Page.DpRow>
+                                        <Page.TextArea pContent={sAddSSHKeyInfo} pHeight={80} pCallback={handleAddSSHKeyInfo} pPlaceHolder={INFO_SSH_KEY.cre_desc} />
+                                        <Page.ContentDesc>{INFO_SSH_KEY.cre_support}</Page.ContentDesc>
+                                        <Page.Space pHeight="16px" />
+                                        <Page.TextButton pText="Add SSH key" pWidth="100px" pType="CREATE" pCallback={genSSHKey} mr="8px" />
+                                        <Page.TextButton pText="Cancel" pWidth="80px" pType="DELETE" pCallback={() => setAddSSHKeyState(false)} mr="0px" />
                                         {/* AddState */}
                                         {sAddState && (
-                                            <ExtensionTab.ContentDesc>
-                                                <ExtensionTab.TextResErr pText={sAddState} />
-                                            </ExtensionTab.ContentDesc>
+                                            <Page.ContentDesc>
+                                                <Page.TextResErr pText={sAddState} />
+                                            </Page.ContentDesc>
                                         )}
-                                    </ExtensionTab.ContentBlock>
+                                    </Page.ContentBlock>
                                 </>
                             )}
 
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentTitle>{INFO_SSH_KEY.info_title}</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>{INFO_SSH_KEY.info_content}</ExtensionTab.ContentDesc>
-                                <ExtensionTab.Space pHeight="12px" />
+                            <Page.ContentBlock>
+                                <Page.ContentTitle>{INFO_SSH_KEY.info_title}</Page.ContentTitle>
+                                <Page.ContentDesc>{INFO_SSH_KEY.info_content}</Page.ContentDesc>
+                                <Page.Space pHeight="12px" />
                                 {/* DelState */}
                                 {sDeleteState && (
-                                    <ExtensionTab.ContentDesc>
-                                        <ExtensionTab.TextResErr pText={sDeleteState} />
-                                    </ExtensionTab.ContentDesc>
+                                    <Page.ContentDesc>
+                                        <Page.TextResErr pText={sDeleteState} />
+                                    </Page.ContentDesc>
                                 )}
                                 <div style={{ border: 'solid 1px #f1f1f125', borderRadius: '3px' }}>
                                     {sSSHKeyList &&
                                         sSSHKeyList.map((aSSHKey, aIdx) => {
                                             return (
                                                 <div key={aIdx}>
-                                                    <ExtensionTab.HoverBg>
+                                                    <Page.HoverBg>
                                                         <div
                                                             style={{
                                                                 display: 'flex',
@@ -156,115 +155,111 @@ export const SSHKey = () => {
                                                                 padding: '4px 16px',
                                                             }}
                                                         >
-                                                            <ExtensionTab.DpRow>
+                                                            <Page.DpRow>
                                                                 <div style={{ marginRight: '16px' }}>
                                                                     <VscKey style={{ width: '30px', height: '30px' }} />
                                                                 </div>
                                                                 <div>
-                                                                    <ExtensionTab.ContentText pContent={aSSHKey.comment}></ExtensionTab.ContentText>
-                                                                    <ExtensionTab.ContentDesc>{aSSHKey.keyType}</ExtensionTab.ContentDesc>
-                                                                    <ExtensionTab.ContentDesc>{aSSHKey.fingerprint}</ExtensionTab.ContentDesc>
+                                                                    <Page.ContentText pContent={aSSHKey.comment}></Page.ContentText>
+                                                                    <Page.ContentDesc>{aSSHKey.keyType}</Page.ContentDesc>
+                                                                    <Page.ContentDesc>{aSSHKey.fingerprint}</Page.ContentDesc>
                                                                 </div>
-                                                            </ExtensionTab.DpRow>
-                                                            <ExtensionTab.TextButton
-                                                                pText="Delete"
-                                                                pWidth="60px"
-                                                                pType="DELETE"
-                                                                pCallback={(e) => handleDelete(e, aSSHKey)}
-                                                                mr="0px"
-                                                            />
+                                                            </Page.DpRow>
+                                                            <Page.TextButton pText="Delete" pWidth="60px" pType="DELETE" pCallback={(e) => handleDelete(e, aSSHKey)} mr="0px" />
                                                         </div>
-                                                    </ExtensionTab.HoverBg>
-                                                    <ExtensionTab.Hr />
+                                                    </Page.HoverBg>
+                                                    <Page.Hr />
                                                 </div>
                                             );
                                         })}
                                 </div>
-                            </ExtensionTab.ContentBlock>
-                        </ExtensionTab.Body>
+                            </Page.ContentBlock>
+                        </Page.Body>
                     </Pane>
                     <Pane minSize={400}>
-                        <ExtensionTab.Header>
+                        <Page.Header>
                             <div />
-                            <div style={{ display: 'flex' }}>
-                                <IconButton
-                                    pIsToopTip
-                                    pToolTipContent="Vertical"
-                                    pToolTipId="ssh-key-tab-hori"
-                                    pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
-                                    pIsActive={isVertical}
+                            <Button.Group>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    isToolTip
+                                    toolTipContent="Vertical"
+                                    icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
+                                    active={isVertical}
                                     onClick={() => setIsVertical(true)}
                                 />
-                                <IconButton
-                                    pIsToopTip
-                                    pToolTipContent="Horizontal"
-                                    pToolTipId="ssh-key-tab-ver"
-                                    pIcon={<LuFlipVertical />}
-                                    pIsActive={!isVertical}
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    isToolTip
+                                    toolTipContent="Horizontal"
+                                    icon={<LuFlipVertical size={16} />}
+                                    active={!isVertical}
                                     onClick={() => setIsVertical(false)}
                                 />
-                            </div>
-                        </ExtensionTab.Header>
-                        <ExtensionTab.Body>
+                            </Button.Group>
+                        </Page.Header>
+                        <Page.Body>
                             {/* GEN */}
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentTitle>{GEN_SSH_KEY.title}</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>{GEN_SSH_KEY.desc}</ExtensionTab.ContentDesc>
+                            <Page.ContentBlock pHoverNone>
+                                <Page.ContentTitle>{GEN_SSH_KEY.title}</Page.ContentTitle>
+                                <Page.ContentDesc>{GEN_SSH_KEY.desc}</Page.ContentDesc>
                                 {/* GEN step 1 */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentDesc>{GEN_SSH_KEY.no1_title}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentDesc>{GEN_SSH_KEY.no1_title}</Page.ContentDesc>
+                                </Page.ContentBlock>
                                 {/* GEN step 2 */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentDesc>{GEN_SSH_KEY.no2_title}</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.Space pHeight="12px" />
-                                    <ExtensionTab.ContentDesc>{GEN_SSH_KEY.no2_desc_2}</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.CopyBlock pContent={GEN_SSH_KEY.no2_content_2} />
-                                    <ExtensionTab.Space pHeight="12px" />
-                                    <ExtensionTab.ContentDesc>{GEN_SSH_KEY.no2_desc_1}</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.CopyBlock pContent={GEN_SSH_KEY.no2_content_1} />
-                                </ExtensionTab.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentDesc>{GEN_SSH_KEY.no2_title}</Page.ContentDesc>
+                                    <Page.Space pHeight="12px" />
+                                    <Page.ContentDesc>{GEN_SSH_KEY.no2_desc_2}</Page.ContentDesc>
+                                    <Page.CopyBlock pContent={GEN_SSH_KEY.no2_content_2} />
+                                    <Page.Space pHeight="12px" />
+                                    <Page.ContentDesc>{GEN_SSH_KEY.no2_desc_1}</Page.ContentDesc>
+                                    <Page.CopyBlock pContent={GEN_SSH_KEY.no2_content_1} />
+                                </Page.ContentBlock>
                                 {/* GEN step 3 */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentDesc>{GEN_SSH_KEY.no3_title}</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.Space pHeight="12px" />
-                                    <ExtensionTab.CopyBlock pContent={GEN_SSH_KEY.no3_content} />
-                                </ExtensionTab.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentDesc>{GEN_SSH_KEY.no3_title}</Page.ContentDesc>
+                                    <Page.Space pHeight="12px" />
+                                    <Page.CopyBlock pContent={GEN_SSH_KEY.no3_content} />
+                                </Page.ContentBlock>
                                 {/* GEN step 4 */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentDesc>{GEN_SSH_KEY.no4_title}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentDesc>{GEN_SSH_KEY.no4_title}</Page.ContentDesc>
+                                </Page.ContentBlock>
                                 {/* GEN step 5 */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentDesc>{GEN_SSH_KEY.no5_title}</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.CopyBlock pContent={GEN_SSH_KEY.no5_content} />
-                                </ExtensionTab.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentDesc>{GEN_SSH_KEY.no5_title}</Page.ContentDesc>
+                                    <Page.CopyBlock pContent={GEN_SSH_KEY.no5_content} />
+                                </Page.ContentBlock>
                                 {/* GEN step 6 */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentDesc>{GEN_SSH_KEY.no6_title}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                            </ExtensionTab.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentDesc>{GEN_SSH_KEY.no6_title}</Page.ContentDesc>
+                                </Page.ContentBlock>
+                            </Page.ContentBlock>
                             {/* Use */}
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentTitle>{USE_SSH_KEY.title}</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>{USE_SSH_KEY.desc}</ExtensionTab.ContentDesc>
-                            </ExtensionTab.ContentBlock>
+                            <Page.ContentBlock>
+                                <Page.ContentTitle>{USE_SSH_KEY.title}</Page.ContentTitle>
+                                <Page.ContentDesc>{USE_SSH_KEY.desc}</Page.ContentDesc>
+                            </Page.ContentBlock>
                             {/* Execute */}
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentTitle>{EXEC_SSH_KEY.title}</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>{EXEC_SSH_KEY.desc}</ExtensionTab.ContentDesc>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.CopyBlock pContent={EXEC_SSH_KEY.content} />
-                                    <ExtensionTab.Space pHeight="8px" />
-                                    <ExtensionTab.Hr />
-                                    <ExtensionTab.Space pHeight="12px" />
-                                    <ExtensionTab.Table pList={{ columns: EXEC_SSH_KEY.table.columns, rows: EXEC_SSH_KEY.table.rows }} />
-                                </ExtensionTab.ContentBlock>
-                            </ExtensionTab.ContentBlock>
-                        </ExtensionTab.Body>
+                            <Page.ContentBlock>
+                                <Page.ContentTitle>{EXEC_SSH_KEY.title}</Page.ContentTitle>
+                                <Page.ContentDesc>{EXEC_SSH_KEY.desc}</Page.ContentDesc>
+                                <Page.ContentBlock pHoverNone>
+                                    <Page.CopyBlock pContent={EXEC_SSH_KEY.content} />
+                                    <Page.Space pHeight="8px" />
+                                    <Page.Hr />
+                                    <Page.Space pHeight="12px" />
+                                    <Page.Table pList={{ columns: EXEC_SSH_KEY.table.columns, rows: EXEC_SSH_KEY.table.rows }} />
+                                </Page.ContentBlock>
+                            </Page.ContentBlock>
+                        </Page.Body>
                     </Pane>
                 </SplitPane>
-            </ExtensionTab>
+            </Page>
             {sIsDeleteModal && (
                 <ConfirmModal
                     pIsDarkMode

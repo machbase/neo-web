@@ -1,8 +1,5 @@
-import './CreatePanel.scss';
 import { Calendar, IoArrowBackOutline, VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
-import { IconButton } from '@/components/buttons/IconButton';
-import { TextButton } from '@/components/buttons/TextButton';
-import { SplitPane, Pane } from '@/design-system/components';
+import { SplitPane, Pane, Page, Button } from '@/design-system/components';
 import { useEffect, useState } from 'react';
 import CreatePanelBody from './CreatePanelBody';
 import CreatePanelFooter from './CreatePanelFooter';
@@ -10,15 +7,16 @@ import CreatePanelRight from './CreatePanelRight';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType, PanelIdParser } from '@/utils/dashboardUtil';
-import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
+import { TableTypeOrderList } from '@/components/Side/DBExplorer/utils';
 import { getTableList, postFileList } from '@/api/repository/api';
 import { decodeJwt, generateUUID, isValidJSON, parseDashboardTables } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
 import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import moment from 'moment';
+import { formatTimeValue } from '@/utils/dashboardUtil';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
-import { Error } from '@/components/toast/Toast';
+import { Toast } from '@/design-system/components';
 import { getDefaultVersionForExtension } from '@/utils/version/utils';
 import { E_VERSIONED_EXTENSION } from '@/utils/version/constants';
 
@@ -79,16 +77,16 @@ const CreatePanel = ({
             } else {
                 sStart = moment(sPanelOption.timeRange.start).unix() * 1000;
                 if (sStart < 0 || isNaN(sStart)) {
-                    Error('Please check the entered time.');
+                    Toast.error('Please check the entered time.');
                     return;
                 }
             }
-            if (typeof sPanelOption.timeRange.end === 'string' && (sPanelOption.timeRange.end.includes('now') || sPanelOption.timeRange.start.includes('last'))) {
+            if (typeof sPanelOption.timeRange.end === 'string' && (sPanelOption.timeRange.end.includes('now') || sPanelOption.timeRange.end.includes('last'))) {
                 sEnd = sPanelOption.timeRange.end;
             } else {
                 sEnd = moment(sPanelOption.timeRange.end).unix() * 1000;
                 if (sEnd < 0 || isNaN(sEnd)) {
-                    Error('Please check the entered time.');
+                    Toast.error('Please check the entered time.');
                     return;
                 }
             }
@@ -211,7 +209,7 @@ const CreatePanel = ({
         if (aPanelInfo?.transformBlockList && aPanelInfo.transformBlockList.length > 0) {
             for (const transformBlock of aPanelInfo.transformBlockList) {
                 if (!transformBlock.alias || transformBlock.alias.trim() === '') {
-                    Error('Transform alias cannot be empty. Please enter an alias for all transform blocks.');
+                    Toast.error('Transform alias cannot be empty. Please enter an alias for all transform blocks.');
                     return false;
                 }
             }
@@ -237,7 +235,7 @@ const CreatePanel = ({
                 } else {
                     sStart = moment(sTmpPanelOption.timeRange.start).unix() * 1000;
                     if (sStart < 0 || isNaN(sStart)) {
-                        Error('Please check the entered time.');
+                        Toast.error('Please check the entered time.');
                         return;
                     }
                 }
@@ -246,7 +244,7 @@ const CreatePanel = ({
                 } else {
                     sEnd = moment(sTmpPanelOption.timeRange.end).unix() * 1000;
                     if (sEnd < 0 || isNaN(sEnd)) {
-                        Error('Please check the entered time.');
+                        Toast.error('Please check the entered time.');
                         return;
                     }
                 }
@@ -269,7 +267,7 @@ const CreatePanel = ({
                 } else {
                     sStart = moment(sTmpPanelOption.timeRange.start).unix() * 1000;
                     if (sStart < 0 || isNaN(sStart)) {
-                        Error('Please check the entered time.');
+                        Toast.error('Please check the entered time.');
                         return;
                     }
                 }
@@ -278,7 +276,7 @@ const CreatePanel = ({
                 } else {
                     sEnd = moment(sTmpPanelOption.timeRange.end).unix() * 1000;
                     if (sEnd < 0 || isNaN(sEnd)) {
-                        Error('Please check the entered time.');
+                        Toast.error('Please check the entered time.');
                         return;
                     }
                 }
@@ -418,74 +416,39 @@ const CreatePanel = ({
     }, [pBoardInfo?.dashboard?.timeRange]);
 
     return (
-        <div className="create-panel-form">
-            <div className="header">
-                <div className="left">
-                    <IconButton pWidth={20} pHeight={32} pIcon={<IoArrowBackOutline />} onClick={handleDiscard} />
-                    <span>Create panel</span>
-                </div>
-
-                <div className="right">
-                    <div className="move-timerange-wrapper">
-                        <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => pMoveTimeRange('l')} />
-                        <button onClick={handleTimeRange} className="set-global-option-btn">
-                            <Calendar />
-                            {pBoardInfo && pBoardInfo.dashboard.timeRange.start ? (
-                                <span>
-                                    {(typeof pBoardInfo.dashboard.timeRange.start === 'string' &&
-                                    (pBoardInfo.dashboard.timeRange.start.includes('now') || pBoardInfo.dashboard.timeRange.start.includes('last'))
-                                        ? pBoardInfo.dashboard.timeRange.start
-                                        : moment(pBoardInfo.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
-                                        '~' +
-                                        (typeof pBoardInfo.dashboard.timeRange.end === 'string' &&
-                                        (pBoardInfo.dashboard.timeRange.end.includes('now') || pBoardInfo.dashboard.timeRange.end.includes('last'))
-                                            ? pBoardInfo.dashboard.timeRange.end
-                                            : moment(pBoardInfo.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
-                                </span>
+        <Page style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 9999 }}>
+            <Page.Header>
+                <Page.DpRow>
+                    <Button variant="ghost" size="icon" icon={<IoArrowBackOutline size={16} />} onClick={handleDiscard} />
+                    Create panel
+                </Page.DpRow>
+                <Page.DpRow>
+                    <Button.Group>
+                        <Button size="icon" variant="ghost" icon={<VscChevronLeft size={14} />} onClick={() => pMoveTimeRange('l')} />
+                        <Button size="sm" variant="ghost" onClick={handleTimeRange}>
+                            <Calendar style={{ paddingRight: '8px' }} />
+                            {pBoardInfo?.dashboard?.timeRange?.start ? (
+                                <>
+                                    {formatTimeValue(pBoardInfo.dashboard.timeRange.start) + '~' + formatTimeValue(pBoardInfo.dashboard.timeRange.end)}
+                                </>
                             ) : (
                                 <span>Time range not set</span>
                             )}
                             , Refresh : {pBoardInfo.dashboard.timeRange.refresh}
-                        </button>
-                        <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight />} onClick={() => pMoveTimeRange('r')} />
-                    </div>
-                    <TextButton
-                        pHeight={28}
-                        pWidth={75}
-                        pIsDisabled={false}
-                        onClick={handleDiscard}
-                        pFontColor="rgb(231 65 131)"
-                        pText="Discard"
-                        pBorderColor="rgb(231 65 131)"
-                        pBorderRadius={2}
-                        pBackgroundColor="transparent"
-                    />
-                    <TextButton
-                        pBorderColor="#4199ff"
-                        pHeight={28}
-                        pWidth={65}
-                        pFontColor="#4199ff"
-                        pBorderRadius={2}
-                        onClick={() => applyPanel()}
-                        pText={handlePreviewText()}
-                        pBackgroundColor="transparent"
-                    />
-                    <TextButton
-                        pBorderColor="#4199ff"
-                        pHeight={28}
-                        pWidth={65}
-                        pBorderRadius={2}
-                        pIsDisabled={false}
-                        onClick={pType === 'create' ? () => addPanel() : () => editPanel()}
-                        pText="Save"
-                        pBackgroundColor="#4199ff"
-                    />
-                </div>
-            </div>
-            <div className="body">
+                        </Button>
+                        <Button size="icon" variant="ghost" isToolTip toolTipContent="Move range" icon={<VscChevronRight size={14} />} onClick={() => pMoveTimeRange('r')} />
+                    </Button.Group>
+                    <Page.Divi direction={'vertical'} />
+                    <Page.DpRow>
+                        <Page.TextButton pText="Discard" pType="DELETE" pCallback={handleDiscard} pWidth="75px" mb="0px" mr="4px" />
+                        <Page.TextButton pText={handlePreviewText()} pType="STATUS" pCallback={() => applyPanel()} pWidth="75px" mb="0px" mr="4px" />
+                        <Page.TextButton pText="Save" pType="CREATE" pCallback={pType === 'create' ? () => addPanel() : () => editPanel()} pWidth="65px" mb="0px" mr="4px" />
+                    </Page.DpRow>
+                </Page.DpRow>
+            </Page.Header>
+            <Page.Body>
                 <SplitPane
                     className="split-side"
-                    sashRender={() => <></>}
                     split="vertical"
                     onDragEnd={() => setInsetDraging(false)}
                     onDragStart={() => setInsetDraging(true)}
@@ -497,7 +460,6 @@ const CreatePanel = ({
                             onDragEnd={() => setInsetDraging(false)}
                             onDragStart={() => setInsetDraging(true)}
                             className="split-bottom"
-                            sashRender={() => <></>}
                             split="horizontal"
                             sizes={sBottomSizes}
                             onChange={setBottomSizes}
@@ -532,8 +494,8 @@ const CreatePanel = ({
                     </Pane>
                     <Pane>{sPanelOption.id && <CreatePanelRight pType={pType} pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} />}</Pane>
                 </SplitPane>
-            </div>
-        </div>
+            </Page.Body>
+        </Page>
     );
 };
 export default CreatePanel;

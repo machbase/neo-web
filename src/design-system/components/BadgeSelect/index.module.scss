@@ -1,0 +1,198 @@
+@use '@/design-system/tokens' as t;
+
+.badgeSelectContainer {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-8;
+
+    &--full-width {
+        width: 100%;
+    }
+
+    &--label-left {
+        .fieldWrapper {
+            flex-direction: row;
+            align-items: center;
+            gap: t.$spacing-12;
+
+            .label {
+                margin-bottom: 0;
+                white-space: nowrap;
+                min-width: 120px;
+                flex-shrink: 0;
+            }
+
+            .badgeSelect {
+                flex: 1;
+            }
+        }
+    }
+}
+
+.fieldWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-8;
+}
+
+.label {
+    font-size: t.$font-size-base;
+    font-weight: 500;
+    color: t.$text-secondary;
+    user-select: none;
+}
+
+.badgeSelect {
+    display: flex;
+    flex-grow: 1;
+    position: relative;
+}
+
+.selectedBox {
+    cursor: pointer;
+    padding: 8px 4px 8px 8px;
+    display: flex;
+    flex-grow: 1;
+    @include t.interactive-field-base;
+    color: t.$text-primary;
+    min-height: 25px;
+    flex-direction: row;
+    overflow: hidden;
+
+    &:hover:not(.disabled):not(&--open) {
+        border-color: #5a5a5a;
+    }
+
+    &--open:not(.disabled) {
+        @include t.interactive-field-active;
+    }
+
+    &.disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+        background-color: #1e1e1e;
+    }
+}
+
+.selectedItems {
+    display: flex;
+    flex-wrap: wrap;
+    flex-grow: 1;
+    width: 100%;
+    gap: 4px;
+    overflow: hidden;
+    min-height: 27.5px;
+    align-items: center;
+}
+
+.arrowIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    transition: transform 0.2s ease;
+
+    svg {
+        width: 13px;
+        height: 26px;
+        fill: t.$text-secondary;
+    }
+
+    .open & {
+        transform: rotate(180deg);
+    }
+}
+
+.placeholder {
+    color: t.$text-muted;
+    padding: 4px 8px;
+    font-size: 13px;
+}
+
+.dropdown {
+    content-visibility: auto;
+    z-index: t.$z-index-modal-dropdown;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    display: flex;
+    width: 100%;
+    max-height: 200px;
+    overflow: hidden;
+}
+
+.dropdownBox {
+    overflow: auto;
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+    background-color: t.$dropdown-bg;
+    border: 1px solid t.$dropdown-border;
+    border-radius: t.$border-radius-base;
+    box-shadow: t.$dropdown-shadow;
+    padding: 4px;
+    gap: 2px;
+    @include t.scrollbar-dark;
+
+    button {
+        padding: 0;
+        padding-left: 4px;
+    }
+}
+
+.dropdownItem {
+    background-color: transparent;
+    border-radius: 2px 4px 4px 2px;
+    font-size: 12px;
+    text-align: start;
+    text-overflow: ellipsis;
+    display: flex;
+    width: 100%;
+    padding: 4px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+        background-color: t.$dropdown-option-hover-bg !important;
+    }
+
+    &.activeItem {
+        background-color: #575757;
+    }
+}
+
+.dropdownItemText {
+    padding: 4px 8px;
+    color: t.$text-primary;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-wrap: nowrap;
+}
+
+.badgeItem {
+    padding-left: 4px;
+    background-color: #575757;
+    border-radius: 2px;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    font-size: 12px;
+
+    span {
+        overflow: hidden;
+        padding: 4px 8px;
+        text-overflow: ellipsis;
+        text-wrap: nowrap;
+        color: t.$text-primary;
+    }
+}
+
+.badgeLabel {
+    display: flex;
+    align-items: center;
+    width: 12px;
+    justify-self: center;
+    font-weight: 1000;
+    font-family: monospace;
+}

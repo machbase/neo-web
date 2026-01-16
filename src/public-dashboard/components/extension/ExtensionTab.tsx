@@ -565,12 +565,8 @@ const Table = ({
                     )}
                     components={{
                         Table: ({ style, ...props }) => <table {...props} className="extension-tab-table" style={{ ...style, width: '100%' }} />,
-                        TableHead: React.forwardRef(({ style, ...props }, ref) => (
-                            <thead {...props} ref={ref} className="extension-tab-table-header" style={style} />
-                        )),
-                        TableBody: React.forwardRef(({ style, ...props }, ref) => (
-                            <tbody {...props} ref={ref} className="extension-tab-table-body" style={style} />
-                        )),
+                        TableHead: React.forwardRef(({ style, ...props }, ref) => <thead {...props} ref={ref} className="extension-tab-table-header" style={style} />),
+                        TableBody: React.forwardRef(({ style, ...props }, ref) => <tbody {...props} ref={ref} className="extension-tab-table-body" style={style} />),
                         TableRow: ({ item, ...props }) => {
                             const aRowList = item as any;
                             const aIdx = pList.rows.indexOf(aRowList);
@@ -697,7 +693,7 @@ const ScrollTable = React.memo(
             }
         };
         const handleUpdateModInfo = (e: React.FormEvent<HTMLInputElement>, aRowIdx: number) => {
-            let sUpdateValue = JSON.parse(JSON.stringify(sModInfo?.modAfterInfo?.row));
+            const sUpdateValue = JSON.parse(JSON.stringify(sModInfo?.modAfterInfo?.row));
             sUpdateValue[aRowIdx] = (e.target as HTMLInputElement).value;
             setModInfo((prev) => {
                 return {
@@ -929,21 +925,6 @@ const Collapse = ({ pInitOpen = false, pTrigger, pChildren }: { pInitOpen?: bool
     );
 };
 
-const CopyBlock = ({ pContent }: { pContent: string }) => {
-    return (
-        <div className="extension-tab-copy-block-wrapper">
-            <div className="extension-tab-copy-block">
-                <div className="extension-tab-copy-block-text">
-                    <ContentText pContent={pContent} />
-                </div>
-                <div className="extension-tab-copy-block-btn">
-                    <CopyButton pContent={pContent} />
-                </div>
-            </div>
-        </div>
-    );
-};
-
 const CopyButton = ({ pContent }: { pContent: string }) => {
     const [sTooltipTxt, setTooltipTxt] = useState<string>('Copy');
 
@@ -997,7 +978,6 @@ ExtensionTab.StatusCircle = StatusCircle;
 ExtensionTab.Collapse = Collapse;
 ExtensionTab.TextResSuccess = TextResSuccess;
 ExtensionTab.CopyButton = CopyButton;
-ExtensionTab.CopyBlock = CopyBlock;
 ExtensionTab.Space = Space;
 ExtensionTab.HoverBg = HoverBg;
 ExtensionTab.DpRowBetween = DpRowBetween;

@@ -1,8 +1,7 @@
-import './Display.scss';
 import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
-import { Input } from '@/components/inputs/Input';
+import { Input, Checkbox, Page } from '@/design-system/components';
 
 const Display = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const changeChartType = (aValue: string) => {
@@ -24,46 +23,62 @@ const Display = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     };
 
     return (
-        <div className="display">
-            <div className="first-row">
-                <div className="chart-type">
-                    <div className="chart-type-title">Chart Type</div>
-                    <div className="type-img">
+        <Page.ContentBlock style={{ padding: 0, margin: 0 }} pHoverNone>
+            <Page.DpRow style={{ gap: '20px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <Page.ContentText pContent="Chart Type" />
+                    <div style={{ display: 'flex', gap: '8px' }}>
                         <img
                             onClick={() => changeChartType('Zone')}
-                            style={pPanelInfo.chart_type === 'Zone' ? { boxShadow: 'inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5)', border: 'solid 0.5px #4199ff' } : {}}
+                            style={{
+                                width: '80px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                border: pPanelInfo.chart_type === 'Zone' ? 'solid 0.5px #4199ff' : 'solid 0.5px transparent',
+                                boxShadow: pPanelInfo.chart_type === 'Zone' ? 'inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5)' : 'none',
+                            }}
                             src={InnerLine}
+                            alt="Zone Chart"
                         />
                         <img
                             onClick={() => changeChartType('Dot')}
-                            style={pPanelInfo.chart_type === 'Dot' ? { boxShadow: 'inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5)', border: 'solid 0.5px #4199ff' } : {}}
+                            style={{
+                                width: '80px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                border: pPanelInfo.chart_type === 'Dot' ? 'solid 0.5px #4199ff' : 'solid 0.5px transparent',
+                                boxShadow: pPanelInfo.chart_type === 'Dot' ? 'inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5)' : 'none',
+                            }}
                             src={Scatter}
+                            alt="Dot Chart"
                         />
                         <img
                             onClick={() => changeChartType('Line')}
-                            style={pPanelInfo.chart_type === 'Line' ? { boxShadow: 'inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5)', border: 'solid 0.5px #4199ff' } : {}}
+                            style={{
+                                width: '80px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                border: pPanelInfo.chart_type === 'Line' ? 'solid 0.5px #4199ff' : 'solid 0.5px transparent',
+                                boxShadow: pPanelInfo.chart_type === 'Line' ? 'inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5)' : 'none',
+                            }}
                             src={Line}
+                            alt="Line Chart"
                         />
                     </div>
+                    <Checkbox
+                        checked={pPanelInfo.show_point === 'Y'}
+                        onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_point')}
+                        label="Display data points in the line chart"
+                        size="sm"
+                    />
+                    <Checkbox checked={pPanelInfo.show_legend === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_legend')} label="Display legend" size="sm" />
                 </div>
-                <div className="display-pointer">
-                    <input checked={pPanelInfo.show_point === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_point')} type="checkbox" />
-                    <span>Display data points in the line chart</span>
-                </div>
-                <div className="display-legend">
-                    <input defaultChecked={pPanelInfo.show_legend === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_legend')} type="checkbox" />
-                    <span>Display legend</span>
-                </div>
-            </div>
-            <div className="second-row">
-                <div>
-                    <span>Point Radius</span>
+                <Page.DpRow style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '16px', marginTop: '8px' }}>
                     <Input
-                        pWidth={150}
-                        pHeight={28}
-                        pValue={pPanelInfo.point_radius}
-                        pSetValue={() => null}
-                        pType="number"
+                        label="Point Radius"
+                        labelPosition="left"
+                        type="number"
+                        value={pPanelInfo.point_radius}
                         onChange={(aEvent: any) => {
                             const sValue = aEvent.target.value;
                             pSetCopyPanelInfo({
@@ -71,32 +86,30 @@ const Display = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                                 point_radius: sValue !== '' ? Number(sValue) : sValue,
                             });
                         }}
+                        size="md"
+                        style={{ width: '150px', height: '30px' }}
                     />
-                </div>
-                <div>
-                    <span>Opacity Of Fill Area</span>
                     <Input
-                        pWidth={150}
-                        pHeight={28}
-                        pValue={pPanelInfo.fill}
-                        pSetValue={() => null}
-                        pType="number"
+                        label="Opacity Of Fill Area"
+                        labelPosition="left"
+                        type="number"
+                        value={pPanelInfo.fill}
                         onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, fill: aEvent.target.value })}
+                        size="md"
+                        style={{ width: '150px', height: '30px' }}
                     />
-                </div>
-                <div>
-                    <span>Line Thickness</span>
                     <Input
-                        pWidth={150}
-                        pHeight={28}
-                        pValue={pPanelInfo.stroke}
-                        pSetValue={() => null}
-                        pType="number"
+                        label="Line Thickness"
+                        labelPosition="left"
+                        type="number"
+                        value={pPanelInfo.stroke}
                         onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, stroke: aEvent.target.value })}
+                        size="md"
+                        style={{ width: '150px', height: '30px' }}
                     />
-                </div>
-            </div>
-        </div>
+                </Page.DpRow>
+            </Page.DpRow>
+        </Page.ContentBlock>
     );
 };
 

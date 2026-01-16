@@ -71,7 +71,7 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
             inherit: true,
             rules: [],
             colors: {
-                'editor.background': '#1F2127',
+                'editor.background': '#252525',
                 'scrollbarSlider.background': scrollbar.thumb,
                 'scrollbarSlider.hoverBackground': scrollbar.thumbHover,
                 'scrollbarSlider.activeBackground': scrollbar.thumbHover,

@@ -1,27 +1,14 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Close, FolderOpen, Home, TreeFolder } from '@/assets/icons/Icon';
-import { TextButton } from './TextButton';
+import { ArrowLeft, ArrowRight, FolderOpen, Home, TreeFolder, Play } from '@/assets/icons/Icon';
 import { elapsedSize, elapsedTime } from '@/utils';
 import { getFileList } from '@/api/repository/api';
 import { useRecoilState } from 'recoil';
 import { gRecentModalPath } from '@/recoil/fileTree';
-import Modal from '../modal/Modal';
 import icons from '@/utils/icons';
+import { Button, Modal, FileListHeader } from '@/design-system/components';
 import './SelectFileBtn.scss';
 
-export const SelectFileBtn = ({
-    btnTxt,
-    btnWidth,
-    btnHeight,
-    pType,
-    pCallback,
-}: {
-    pType: string;
-    btnTxt?: string;
-    btnWidth?: string | number;
-    btnHeight?: string | number;
-    pCallback: (aTqlPath: string) => void;
-}) => {
+export const SelectFileBtn = ({ btnTxt, pType, pCallback }: { pType: string; btnTxt?: string; pCallback: (aTqlPath: string) => void }) => {
     const [sOpen, setOpen] = useState<boolean>(false);
     const [sSelectedDir, setSelectedDir] = useState<string[]>([]);
     const [sSelectedFile, setSelectedFile] = useState<any>();
@@ -115,110 +102,101 @@ export const SelectFileBtn = ({
     }, [sSelectedDir]);
 
     return (
-        <div
-            className="select-input"
-            style={{
-                width: Number(btnWidth) ? btnWidth + 'px' : String(btnWidth) ? btnWidth : '200px',
-                height: Number(btnHeight) ? btnHeight + 'px' : String(btnHeight) ? btnHeight : '100px',
-            }}
-        >
-            <button className="select-input-button" onClick={() => setOpen(true)} style={{ marginLeft: '8px', marginRight: '8px' }}>
+        <>
+            <Button size="md" variant="secondary" onClick={() => setOpen(true)}>
                 {btnTxt ?? 'Select file'}
-            </button>
+            </Button>
 
             {sOpen && (
-                <div className="select-input-modal">
-                    <Modal pIsDarkMode onOutSideClose={() => setOpen(false)}>
-                        <Modal.Header>
-                            <div className="select-input-modal-title">
-                                <div className="select-input-modal-title-content">
-                                    <FolderOpen />
-                                    <span>{'Open'}</span>
-                                </div>
-                                <Close onClick={() => setOpen(false)} />
+                <Modal.Root isOpen={true} onClose={() => setOpen(false)} size="md">
+                    <Modal.Header>
+                        <Modal.Title>
+                            <FolderOpen />
+                            <span>Open</span>
+                        </Modal.Title>
+                        <Modal.Close />
+                    </Modal.Header>
+
+                    {/* Navigation Bar */}
+                    <div className="select-file-btn__nav">
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            active={sSelectedDir.length > 0}
+                            isToolTip
+                            toolTipContent="Backward"
+                            icon={<ArrowLeft size={16} />}
+                            onClick={() => handleBackPath()}
+                        />
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            active={sDeletePath.length > 0}
+                            isToolTip
+                            toolTipContent="Forward"
+                            icon={<ArrowRight size={16} />}
+                            onClick={() => handleForwardPath()}
+                        />
+                        <div className="select-file-btn__breadcrumb">
+                            <div className="select-file-btn__breadcrumb-item" onClick={() => handleDirectPath('')}>
+                                <Home size={14} />
                             </div>
-                            <div className="select-input-modal-tool-bar">
-                                <div
-                                    className={`select-input-modal-tool-bar-content ${sSelectedDir.length > 0 ? 'select-input-modal-tool-bar-content-active' : ''}`}
-                                    onClick={() => handleBackPath()}
-                                >
-                                    <ArrowLeft />
-                                </div>
-                                <div
-                                    className={`select-input-modal-tool-bar-content ${sDeletePath.length > 0 ? 'select-input-modal-tool-bar-content-active' : ''}`}
-                                    onClick={() => handleForwardPath()}
-                                >
-                                    <ArrowRight />
-                                </div>
-                                <div className={`select-input-modal-input-wrapper`}>
-                                    <div className="select-input-modal-input-item-wrapper" onClick={() => handleDirectPath('')}>
-                                        <div className="select-input-modal-input-item">
-                                            <Home />
+                            {sSelectedDir.map((aDir: string) => {
+                                return (
+                                    <div key={aDir} className="select-file-btn__breadcrumb-wrapper">
+                                        <Play size={14} className="select-file-btn__breadcrumb-separator" />
+                                        <div className="select-file-btn__breadcrumb-item" onClick={() => handleDirectPath(aDir)}>
+                                            {aDir}
                                         </div>
                                     </div>
-                                    {sSelectedDir.map((aDir: string) => {
-                                        return (
-                                            <div className="select-input-modal-input-item-wrapper" key={aDir} onClick={() => handleDirectPath(aDir)}>
-                                                <div className="select-input-modal-input-item">{aDir}</div>
-                                                <span className="select-input-modal-input-item-split">/</span>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <FileListHeader />
+
+                    {/* File List */}
+                    <Modal.Body style={{ padding: 0 }}>
+                        <div className="select-file-btn__file-list">
+                            {sFileList &&
+                                sFileList.map((aItem, aIdx) => {
+                                    const isSelected = sSelectedFile && sSelectedFile === aItem.name;
+                                    return (
+                                        <div
+                                            key={aItem.name + aIdx}
+                                            className={`select-file-btn__file-row ${isSelected ? 'select-file-btn__file-row--selected' : ''}`}
+                                            onClick={(aEvent) => handleSelectFile(aEvent, aItem)}
+                                        >
+                                            <div className="select-file-btn__file-name">
+                                                {aItem.type === 'dir' ? (
+                                                    aItem.gitClone ? (
+                                                        <Button forceOpacity disabled size="sm" variant="none" icon={icons('gitClosedDirectory')} />
+                                                    ) : (
+                                                        <Button forceOpacity disabled size="sm" variant="none" icon={<TreeFolder />} />
+                                                    )
+                                                ) : (
+                                                    <Button forceOpacity disabled size="sm" variant="none" icon={icons(aItem.type.replace('.', ''))} />
+                                                )}
+                                                <span>{aItem.name}</span>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </Modal.Header>
-                        <Modal.Body>
-                            <div className="select-input-modal-file-broswer">
-                                <div className="select-input-modal-file-broswer-header">
-                                    <span style={{ width: '48%', paddingLeft: '1.5rem' }}>Name</span>
-                                    <span style={{ width: '32%' }}>Last modified</span>
-                                    <span style={{ width: '20%' }}>Size</span>
-                                </div>
-                                <div className="select-input-modal-file-broswer-content">
-                                    {sFileList &&
-                                        sFileList.map((aItem, aIdx) => {
-                                            return (
-                                                <div
-                                                    key={aItem.name + aIdx}
-                                                    className={`row ${sSelectedFile && sSelectedFile === aItem.name ? 'selected' : ''}`}
-                                                    onClick={(aEvent) => handleSelectFile(aEvent, aItem)}
-                                                >
-                                                    <div className="pl list-wrapper">
-                                                        <div className="pl-icon">
-                                                            {aItem.type === 'dir' ? (
-                                                                aItem.gitClone ? (
-                                                                    icons('gitClosedDirectory')
-                                                                ) : (
-                                                                    <TreeFolder height={100} />
-                                                                )
-                                                            ) : (
-                                                                icons(aItem.type.replace('.', ''))
-                                                            )}
-                                                        </div>
-                                                        <span>{aItem.name}</span>
-                                                    </div>
-                                                    <span className="pl" style={{ width: '32%' }}>
-                                                        {elapsedTime(aItem.lastModifiedUnixMillis)}
-                                                    </span>
-                                                    <span className="pl" style={{ width: '20%' }}>
-                                                        {elapsedSize(aItem.size)}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })}
-                                </div>
-                            </div>
-                        </Modal.Body>
-                        <Modal.Footer>
-                            <div className="select-input-modal-button-group">
-                                <TextButton pText="OK" pBackgroundColor="#4199ff" onClick={handleSave} />
-                                <div style={{ width: '10px' }}></div>
-                                <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={() => setOpen(false)} />
-                            </div>
-                        </Modal.Footer>
-                    </Modal>
-                </div>
+                                            <span className="select-file-btn__file-modified">{elapsedTime(aItem.lastModifiedUnixMillis)}</span>
+                                            <span className="select-file-btn__file-size">{elapsedSize(aItem.size)}</span>
+                                        </div>
+                                    );
+                                })}
+                        </div>
+                    </Modal.Body>
+
+                    {/* Footer */}
+                    <Modal.Footer>
+                        <Button.Group>
+                            <Modal.Confirm onClick={handleSave}>OK</Modal.Confirm>
+                            <Modal.Cancel>Cancel</Modal.Cancel>
+                        </Button.Group>
+                    </Modal.Footer>
+                </Modal.Root>
             )}
-        </div>
+        </>
     );
 };

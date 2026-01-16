@@ -31,22 +31,15 @@ const List = React.forwardRef<HTMLDivElement, ListProps>(({ items, onItemClick, 
             {isLoading ? (
                 <div className={styles['list__empty']}>Loading...</div>
             ) : items.length > 0 ? (
-                <div className={`${styles['list__items']} scrollbar-dark-border`}>
+                <div className={`${styles['list__items']} scrollbar-dark`}>
                     {items.map((item) => {
                         const tooltipId = `list-tooltip-${item.id}`;
                         return (
                             <React.Fragment key={item.id}>
-                                <button
-                                    onClick={() => onItemClick(item.id)}
-                                    className={styles['list__item']}
-                                    data-tooltip-id={tooltipId}
-                                    data-tooltip-content={item.tooltip}
-                                >
+                                <button onClick={() => onItemClick(item.id)} className={styles['list__item']} data-tooltip-id={tooltipId} data-tooltip-content={item.tooltip}>
                                     <div className={styles['list__item-label']}>{item.label}</div>
                                 </button>
-                                {item.tooltip && (
-                                    <Tooltip id={tooltipId} place="top" delayShow={700} />
-                                )}
+                                {item.tooltip && <Tooltip id={tooltipId} place="top" delayShow={700} />}
                             </React.Fragment>
                         );
                     })}

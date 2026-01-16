@@ -1,8 +1,6 @@
 import { backupStatus, getBackupDBList, getTableList } from '@/api/repository/api';
 import { MdRefresh } from '@/assets/icons/Icon';
-import { IconButton } from '@/components/buttons/IconButton';
 import { useEffect, useState } from 'react';
-import { VscChevronDown, VscChevronRight } from '@/assets/icons/Icon';
 import { BackupTableInfo, TableInfo } from './TableInfo';
 import { generateUUID, isCurUserEqualAdmin } from '@/utils';
 import { TbDatabasePlus } from 'react-icons/tb';
@@ -14,10 +12,11 @@ import { DB_EXPLORER_CONTEXT_MENU_TYPE, DBExplorerContextMenu, E_DB_DDL, TABLE_C
 import { CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE } from './utils';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { fetchQuery } from '@/api/repository/database';
-import { Error } from '@/components/toast/Toast';
+import { Toast } from '@/design-system/components';
 import { useExperiment } from '@/hooks/useExperiment';
+import { Button, Side, Checkbox } from '@/design-system/components';
 
-export const DBExplorer = ({ pServer }: any) => {
+export const DBExplorer = () => {
     const { getExperiment } = useExperiment();
     const [sDBList, setDBList] = useState<any>([]);
     const [sCollapseTree, setCollapseTree] = useState(true);
@@ -31,7 +30,7 @@ export const DBExplorer = ({ pServer }: any) => {
     const [sIsDropModal, setIsDropModal] = useState<boolean>(false);
     const [sDropTableInfo, setDropTableInfo] = useState<{ label: string; table: (string | number)[]; cascade: boolean }>({ label: '', table: [], cascade: false });
     const [sIsDrop, setIsDrop] = useState<boolean>(false);
-
+    const [sSideSizes, setSideSizes] = useState<any>(['85%', '15%']);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
 
     /** Converte table type */
@@ -193,7 +192,7 @@ export const DBExplorer = ({ pServer }: any) => {
         const sQuery = `DROP TABLE ${sDropTableInfo?.table?.[E_TABLE_INFO.USER_NM]}.${sDropTableInfo?.table?.[E_TABLE_INFO.TB_NM]}${sCasCade ? ' CASCADE' : ''}`;
         const { svrState, svrReason } = await fetchQuery(sQuery);
         if (svrState) init();
-        else Error(svrReason);
+        else Toast.error(svrReason);
         /** Initial */
         setDropTableInfo({ label: '', table: [], cascade: false });
         setIsDrop(false);
@@ -227,66 +226,66 @@ export const DBExplorer = ({ pServer }: any) => {
     }, []);
 
     return (
-        <div className="side-form">
-            <div className="side-title">
-                <span>machbase-neo {pServer && pServer.version}</span>
-            </div>
-            <div className="side-sub-title editors-title" onClick={() => setCollapseTree(!sCollapseTree)}>
-                <div className="collapse-icon">{sCollapseTree ? <VscChevronDown /> : <VscChevronRight />}</div>
-                <div className="files-open-option">
-                    <span className="title-text">DB EXPLORER</span>
-                    <span className="sub-title-navi">
-                        {isCurUserEqualAdmin() && (
-                            <>
-                                <IconButton
-                                    pPlace="bottom-end"
-                                    pIsToopTip
-                                    pToolTipContent={`Database backup`}
-                                    pToolTipId="db-explorer-backup"
-                                    pWidth={20}
-                                    pHeight={20}
-                                    pIcon={<LuDatabaseBackup size={12} />}
-                                    onClick={handleBackupPage}
-                                />
-                                <IconButton
-                                    pPlace="bottom-end"
-                                    pIsToopTip
-                                    pToolTipContent={`Database mount`}
-                                    pToolTipId="db-explorer-mount"
-                                    pWidth={20}
-                                    pHeight={20}
-                                    pIcon={<TbDatabasePlus size={13} />}
-                                    onClick={mountDBModal}
-                                />
-                            </>
-                        )}
-                        <IconButton
-                            pIsToopTip
-                            pToolTipContent="Refresh"
-                            pToolTipId="db-explorer-refresh"
-                            pWidth={20}
-                            pHeight={20}
-                            pIcon={<MdRefresh size={15} />}
-                            onClick={(aEvent: any) => init(aEvent)}
-                        />
-                    </span>
-                </div>
-            </div>
-            <div className="scrollbar-dark" style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
-                {/* DB LIST */}
-                {sCollapseTree &&
-                    sDBList &&
-                    sDBList.length !== 0 &&
-                    sDBList.map((aDB: any, aIdx: number) => {
-                        return <TableInfo pShowHiddenObj={true} key={aIdx} pValue={aDB} pRefresh={sRefresh} pUpdate={init} pContextMenu={handleContextMenu} />;
-                    })}
-                {/* BACKUP DB LIST */}
-                {isCurUserEqualAdmin() && sBackupList && sBackupList.length !== 0 && (
-                    <BackupTableInfo pValue={sBackupList} pRefresh={init} pBackupRefresh={getBackupDatabaseList} />
-                )}
-                {/* Context menu */}
-                {sIsContextMenu.open && <DBExplorerContextMenu pContextInfo={sIsContextMenu} pCallback={handleDropTableModal} />}
-            </div>
+        <>
+            <Side.Container splitSizes={sSideSizes} onSplitChange={setSideSizes}>
+                <Side.Section>
+                    <Side.Collapse pCallback={() => setCollapseTree(!sCollapseTree)} pCollapseState={sCollapseTree}>
+                        <span>DB EXPLORER</span>
+                        <Button.Group>
+                            {isCurUserEqualAdmin() && (
+                                <>
+                                    <Button
+                                        size="side"
+                                        variant="ghost"
+                                        icon={<LuDatabaseBackup size={12} style={{ padding: 4 }} />}
+                                        isToolTip
+                                        toolTipContent="Database backup"
+                                        toolTipPlace="bottom-end"
+                                        onClick={handleBackupPage}
+                                        aria-label="Database backup"
+                                    />
+                                    <Button
+                                        size="side"
+                                        variant="ghost"
+                                        icon={<TbDatabasePlus size={14} style={{ padding: 4 }} />}
+                                        isToolTip
+                                        toolTipContent="Database mount"
+                                        toolTipPlace="bottom-end"
+                                        onClick={mountDBModal}
+                                        aria-label="Database mount"
+                                    />
+                                </>
+                            )}
+                            <Button
+                                size="side"
+                                variant="ghost"
+                                icon={<MdRefresh size={16} />}
+                                isToolTip
+                                toolTipContent="Refresh"
+                                onClick={(aEvent: any) => init(aEvent)}
+                                aria-label="Refresh"
+                            />
+                        </Button.Group>
+                    </Side.Collapse>
+                    <Side.List>
+                        {/* DB LIST */}
+                        {sDBList &&
+                            sDBList.length !== 0 &&
+                            sCollapseTree &&
+                            sDBList.map((aDB: any, aIdx: number) => {
+                                return <TableInfo pShowHiddenObj={true} key={aIdx} pValue={aDB} pRefresh={sRefresh} pUpdate={init} pContextMenu={handleContextMenu} />;
+                            })}
+                    </Side.List>
+                </Side.Section>
+                <Side.Section>
+                    {/* BACKUP DB LIST */}
+                    {isCurUserEqualAdmin() && sBackupList && sBackupList.length !== 0 && (
+                        <BackupTableInfo pValue={sBackupList} pRefresh={init} pBackupRefresh={getBackupDatabaseList} />
+                    )}
+                </Side.Section>
+            </Side.Container>
+            {/* Context menu */}
+            <DBExplorerContextMenu pContextInfo={sIsContextMenu} pCallback={handleDropTableModal} />
             {mountModalOpen && <DBMountModal setIsOpen={setMountModalOpen} pRefresh={init} />}
             {sIsDropModal && (
                 <ConfirmModal
@@ -300,26 +299,22 @@ export const DBExplorer = ({ pServer }: any) => {
                             {CheckTableFlag(sDropTableInfo?.table?.[E_TABLE_INFO.TB_TYPE] as any) === E_TABLE_TYPE.TAG ? (
                                 <>
                                     <div style={{ height: '10px' }} />
-                                    <div className="body-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: '4px' }}>
-                                        <input
-                                            id="fileCheck"
-                                            type="checkbox"
-                                            onChange={() => {
-                                                setDropTableInfo((prev) => {
-                                                    return { ...prev, cascade: !prev.cascade };
-                                                });
-                                            }}
-                                        />
-                                        <label className="label" htmlFor="fileCheck">
-                                            Cascade delete table
-                                        </label>
-                                    </div>
+                                    <Checkbox
+                                        size="sm"
+                                        label="Cascade delete table"
+                                        checked={sDropTableInfo.cascade}
+                                        onChange={(e) => {
+                                            setDropTableInfo((prev) => {
+                                                return { ...prev, cascade: e.target.checked };
+                                            });
+                                        }}
+                                    />
                                 </>
                             ) : null}
                         </div>
                     }
                 />
             )}
-        </div>
+        </>
     );
 };

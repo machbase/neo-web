@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { postMd } from '@/api/repository/api';
-import '@/assets/md/md.css';
-import '@/components/worksheet/Markdown.scss';
-import '@/assets/md/mdDark.css';
 import setMermaid from '@/plugin/mermaid';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { generateUUID, parseCodeBlocks } from '@/utils';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
-import { Success } from '@/components/toast/Toast';
+import { Page, Toast } from '@/design-system/components';
 import { ShadowContent } from './ShadowContent';
+import mdCss from '@/assets/md/md.css?inline';
+// import mdDarkCss from '@/assets/md/mdDark.css?inline';
+// import markdownScss from '@/components/worksheet/Markdown.scss?inline';
 
 interface MarkdownProps {
     pContents?: any;
@@ -82,7 +82,7 @@ export const Markdown = (props: MarkdownProps) => {
     };
     const handleCopy = (aText: string) => {
         ClipboardCopy(aText);
-        Success('copied content');
+        Toast.success('copied content');
     };
 
     const fetchMrk = async (aContents: string, aReperer: string) => {
@@ -115,12 +115,15 @@ export const Markdown = (props: MarkdownProps) => {
     };
 
     return (
-        <ShadowContent
-            html={sMdxText}
-            className={`mrk-form markdown-body mrk${sMarkdownId}`}
-            onShadowRootCreated={(shadowRoot) => {
-                sBodyRef.current = shadowRoot.host;
-            }}
-        />
+        <Page.ContentBlock style={{ padding: 0, margin: 0, whiteSpace: 'normal' }} pHoverNone>
+            <ShadowContent
+                html={sMdxText}
+                styles={`${mdCss}`}
+                className={`mrk-form markdown-body markdown-body-dark mrk${sMarkdownId}`}
+                onShadowRootCreated={(shadowRoot) => {
+                    sBodyRef.current = shadowRoot.host;
+                }}
+            />
+        </Page.ContentBlock>
     );
 };

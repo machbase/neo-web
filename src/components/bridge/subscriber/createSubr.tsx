@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { SplitPane, Pane } from '@/design-system/components';
+import { SplitPane, Pane, Alert, Button } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import {
     gBoardList,
@@ -8,10 +8,8 @@ import {
     setBridgeTree,
     // gBridgeNameList
 } from '@/recoil/recoil';
-import { VscWarning } from 'react-icons/vsc';
 import { LuFlipVertical } from 'react-icons/lu';
-import { ExtensionTab } from '@/components/extension/ExtensionTab';
-import { IconButton } from '@/components/buttons/IconButton';
+import { Page } from '@/design-system/components';
 import { SelectFileBtn } from '@/components/buttons/SelectFileBtn';
 import { OpenFileBtn } from '@/components/buttons/OpenFileBtn';
 import { genSubr, getBridge, getSubr } from '@/api/repository/bridge';
@@ -127,72 +125,75 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
     }, [pInit]);
 
     return (
-        <ExtensionTab pRef={sBodyRef}>
+        <Page pRef={sBodyRef}>
             <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                 <Pane minSize={400}>
-                    <ExtensionTab.Header />
-                    <ExtensionTab.Body>
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.SubTitle>Subscriber</ExtensionTab.SubTitle>
-                            <ExtensionTab.Hr />
-                        </ExtensionTab.ContentBlock>
+                    <Page.Header />
+                    <Page.Body>
+                        <Page.ContentBlock>
+                            <Page.SubTitle>Subscriber</Page.SubTitle>
+                            <Page.Hr />
+                        </Page.ContentBlock>
                         {/* Subr name */}
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentTitle>name</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>
+                        <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>name</Page.ContentTitle>
+                                <Page.ContentDesc>
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                </ExtensionTab.ContentDesc>
-                            </ExtensionTab.DpRow>
-                            <ExtensionTab.ContentDesc>{`The name of the subscriber.`}</ExtensionTab.ContentDesc>
-                            <ExtensionTab.Input pValue={sCreatePayload.name} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} pMaxLen={40} />
-                        </ExtensionTab.ContentBlock>
+                                </Page.ContentDesc>
+                            </Page.DpRow>
+                            <Page.ContentDesc>{`The name of the subscriber.`}</Page.ContentDesc>
+                            <Page.Input pValue={sCreatePayload.name} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} pMaxLen={40} />
+                        </Page.ContentBlock>
                         {/* Auto start */}
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.ContentTitle>Auto start</ExtensionTab.ContentTitle>
-                            <ExtensionTab.DpRow>
-                                <ExtensionTab.Checkbox pValue={sCreatePayload.autoStart} pCallback={(value: boolean) => handlePayload('autoStart', { target: { value } } as any)} />
-                                <ExtensionTab.ContentDesc>{`Makes the task to start automatically when machbase-neo starts`}</ExtensionTab.ContentDesc>
-                            </ExtensionTab.DpRow>
-                        </ExtensionTab.ContentBlock>
+                        <Page.ContentBlock>
+                            <Page.ContentTitle>Auto start</Page.ContentTitle>
+                            <Page.DpRow>
+                                <Page.Checkbox
+                                    label="Makes the task to start automatically when machbase-neo starts"
+                                    pValue={sCreatePayload.autoStart}
+                                    pCallback={(value: boolean) => handlePayload('autoStart', { target: { value } } as any)}
+                                />
+                            </Page.DpRow>
+                        </Page.ContentBlock>
                         {/* Bridge name */}
-                        {/* <ExtensionTab.ContentBlock>
-                            <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentTitle>bridge</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>
+                        {/* <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>bridge</Page.ContentTitle>
+                                <Page.ContentDesc>
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                </ExtensionTab.ContentDesc>
-                            </ExtensionTab.DpRow>
-                            <ExtensionTab.ContentDesc>{`The name of the subscriber.`}</ExtensionTab.ContentDesc>
-                            <ExtensionTab.Selector
+                                </Page.ContentDesc>
+                            </Page.DpRow>
+                            <Page.ContentDesc>{`The name of the subscriber.`}</Page.ContentDesc>
+                            <Page.Selector
                                 pList={sBridgeNameList}
                                 pSelectedItem={sCreatePayload.bridge}
                                 pCallback={(aSelectedItem: string) => {
                                     handlePayload('bridge', { target: { value: aSelectedItem } } as any);
                                 }}
                             />
-                        </ExtensionTab.ContentBlock> */}
+                        </Page.ContentBlock> */}
                         {/* Topic | Subject*/}
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentTitle>{sCreatePayload.bridge_type === 'mqtt' ? 'Topic' : 'Subject'}</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>
+                        <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>{sCreatePayload.bridge_type === 'mqtt' ? 'Topic' : 'Subject'}</Page.ContentTitle>
+                                <Page.ContentDesc>
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                </ExtensionTab.ContentDesc>
-                            </ExtensionTab.DpRow>
-                            <ExtensionTab.ContentDesc>
+                                </Page.ContentDesc>
+                            </Page.DpRow>
+                            <Page.ContentDesc>
                                 {sCreatePayload.bridge_type === 'mqtt'
                                     ? 'Topic name to subscribe. it supports standard MQTT topic syntax includes # and +.'
                                     : 'Subject name to subscribe. it should be in NATS subject syntax.'}
-                            </ExtensionTab.ContentDesc>
-                            <ExtensionTab.Input pValue={sCreatePayload.topic} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('topic', event)} />
-                        </ExtensionTab.ContentBlock>
+                            </Page.ContentDesc>
+                            <Page.Input pValue={sCreatePayload.topic} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('topic', event)} />
+                        </Page.ContentBlock>
                         {/* QoS - MQTT */}
                         {sCreatePayload.bridge_type === 'mqtt' && (
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentTitle>QoS</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>{'Subscribe to the topic QoS 1, MQTT bridges support QoS 0 and 1.'}</ExtensionTab.ContentDesc>
-                                <ExtensionTab.Selector
+                            <Page.ContentBlock>
+                                <Page.ContentTitle>QoS</Page.ContentTitle>
+                                <Page.ContentDesc>{'Subscribe to the topic QoS 1, MQTT bridges support QoS 0 and 1.'}</Page.ContentDesc>
+                                <Page.Selector
                                     pList={[
                                         { name: '0', data: '0' },
                                         { name: '1', data: '1' },
@@ -202,29 +203,29 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                         handlePayload('QoS', { target: { value: aSelectedItem } } as any);
                                     }}
                                 />
-                            </ExtensionTab.ContentBlock>
+                            </Page.ContentBlock>
                         )}
                         {/* Queue - NATS */}
                         {sCreatePayload.bridge_type === 'nats' && (
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentTitle>Queue</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>{'If the bridge is NATS type, it specifies the Queue Group.'}</ExtensionTab.ContentDesc>
-                                <ExtensionTab.Input pValue={sCreatePayload.Queue} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('Queue', event)} />
-                            </ExtensionTab.ContentBlock>
+                            <Page.ContentBlock>
+                                <Page.ContentTitle>Queue</Page.ContentTitle>
+                                <Page.ContentDesc>{'If the bridge is NATS type, it specifies the Queue Group.'}</Page.ContentDesc>
+                                <Page.Input pValue={sCreatePayload.Queue} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('Queue', event)} />
+                            </Page.ContentBlock>
                         )}
                         {/* Task (writing descriptor vs tql path) */}
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentTitle>Destination</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>
+                        <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>Destination</Page.ContentTitle>
+                                <Page.ContentDesc>
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                </ExtensionTab.ContentDesc>
-                            </ExtensionTab.DpRow>
-                            <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentDesc>{'The path of tql script or writing path descriptor.'}</ExtensionTab.ContentDesc>
+                                </Page.ContentDesc>
+                            </Page.DpRow>
+                            <Page.DpRow>
+                                <Page.ContentDesc>{'The path of tql script or writing path descriptor.'}</Page.ContentDesc>
                                 <span style={{ marginLeft: '8px', color: 'dodgerblue', fontSize: '12px' }}>Check the example on the right</span>
-                            </ExtensionTab.DpRow>
-                            <ExtensionTab.Selector
+                            </Page.DpRow>
+                            <Page.Selector
                                 pList={[
                                     { name: 'Writing Descriptor', data: 'Writing Descriptor' },
                                     { name: 'TQL Script', data: 'TQL Script' },
@@ -234,31 +235,26 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                     setTaskSelect(aSelectedItem);
                                 }}
                             />
-                            <ExtensionTab.Space pHeight="16px" />
+                            <Page.Space pHeight="16px" />
                             {/* TQL Script */}
                             {sTaskSelect === 'TQL Script' && (
                                 <>
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.DpRow>
-                                            <ExtensionTab.ContentTitle>Tql path</ExtensionTab.ContentTitle>
-                                            <ExtensionTab.ContentDesc>
+                                    <Page.ContentBlock>
+                                        <Page.DpRow>
+                                            <Page.ContentTitle>Tql path</Page.ContentTitle>
+                                            <Page.ContentDesc>
                                                 <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                            </ExtensionTab.ContentDesc>
-                                        </ExtensionTab.DpRow>
-                                        <ExtensionTab.ContentDesc>The tql script as a task</ExtensionTab.ContentDesc>
-                                        <ExtensionTab.DpRow>
-                                            <ExtensionTab.Input
+                                            </Page.ContentDesc>
+                                        </Page.DpRow>
+                                        <Page.ContentDesc>The tql script as a task</Page.ContentDesc>
+                                        <Page.DpRow>
+                                            <Page.Input
                                                 pValue={sCreatePayload.task}
                                                 pWidth={'400px'}
                                                 pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('task', event)}
                                             />
                                             <div style={{ marginLeft: '4px' }}>
-                                                <SelectFileBtn
-                                                    pType="tql"
-                                                    pCallback={(aKey: string) => handlePayload('task', { target: { value: aKey } } as any)}
-                                                    btnWidth={'100px'}
-                                                    btnHeight="26px"
-                                                />
+                                                <SelectFileBtn pType="tql" pCallback={(aKey: string) => handlePayload('task', { target: { value: aKey } } as any)} />
                                             </div>
                                             <div style={{ marginLeft: '4px' }}>
                                                 <OpenFileBtn
@@ -269,23 +265,23 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                                     pErrorCallback={setResOpenFile}
                                                 />
                                             </div>
-                                        </ExtensionTab.DpRow>
-                                        {sResOpenFile && <ExtensionTab.TextResErr pText={sResOpenFile} />}
-                                    </ExtensionTab.ContentBlock>
+                                        </Page.DpRow>
+                                        {sResOpenFile && <Page.TextResErr pText={sResOpenFile} />}
+                                    </Page.ContentBlock>
                                 </>
                             )}
                             {/* Writing Descriptor */}
                             {sTaskSelect === 'Writing Descriptor' && (
                                 <>
                                     {/* DESTINATION - method */}
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.DpRow>
-                                            <ExtensionTab.ContentTitle>Method</ExtensionTab.ContentTitle>
-                                            <ExtensionTab.ContentDesc>
+                                    <Page.ContentBlock>
+                                        <Page.DpRow>
+                                            <Page.ContentTitle>Method</Page.ContentTitle>
+                                            <Page.ContentDesc>
                                                 <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                            </ExtensionTab.ContentDesc>
-                                        </ExtensionTab.DpRow>
-                                        <ExtensionTab.Selector
+                                            </Page.ContentDesc>
+                                        </Page.DpRow>
+                                        <Page.Selector
                                             pWidth={'364px'}
                                             pList={[
                                                 { name: 'append', data: 'append' },
@@ -296,30 +292,30 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                                 handlePayload('method', { target: { value: aSelectedItem } } as any);
                                             }}
                                         />
-                                    </ExtensionTab.ContentBlock>
+                                    </Page.ContentBlock>
                                     {/* DESTINATION - table_name */}
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.DpRow>
-                                            <ExtensionTab.ContentTitle>Table name</ExtensionTab.ContentTitle>
-                                            <ExtensionTab.ContentDesc>
+                                    <Page.ContentBlock>
+                                        <Page.DpRow>
+                                            <Page.ContentTitle>Table name</Page.ContentTitle>
+                                            <Page.ContentDesc>
                                                 <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                            </ExtensionTab.ContentDesc>
-                                        </ExtensionTab.DpRow>
-                                        <ExtensionTab.Input
+                                            </Page.ContentDesc>
+                                        </Page.DpRow>
+                                        <Page.Input
                                             pWidth={'364px'}
                                             pValue={sCreatePayload.table_name}
                                             pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('table_name', event)}
                                         />
-                                    </ExtensionTab.ContentBlock>
+                                    </Page.ContentBlock>
                                     {/* DESTINATION - format */}
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.DpRow>
-                                            <ExtensionTab.ContentTitle>Format</ExtensionTab.ContentTitle>
-                                            <ExtensionTab.ContentDesc>
+                                    <Page.ContentBlock>
+                                        <Page.DpRow>
+                                            <Page.ContentTitle>Format</Page.ContentTitle>
+                                            <Page.ContentDesc>
                                                 <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                            </ExtensionTab.ContentDesc>
-                                        </ExtensionTab.DpRow>
-                                        <ExtensionTab.Selector
+                                            </Page.ContentDesc>
+                                        </Page.DpRow>
+                                        <Page.Selector
                                             pWidth={'364px'}
                                             pList={[
                                                 { name: 'json', data: 'json' },
@@ -330,11 +326,11 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                                 handlePayload('format', { target: { value: aSelectedItem } } as any);
                                             }}
                                         />
-                                    </ExtensionTab.ContentBlock>
+                                    </Page.ContentBlock>
                                     {/* DESTINATION - compress */}
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Compress</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.Selector
+                                    <Page.ContentBlock>
+                                        <Page.ContentTitle>Compress</Page.ContentTitle>
+                                        <Page.Selector
                                             pWidth={'364px'}
                                             pList={[
                                                 { name: 'no compress', data: 'no compress' },
@@ -346,115 +342,114 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                             }}
                                         />
 
-                                        {/* <ExtensionTab.DpRow>
-                                            <ExtensionTab.Checkbox
+                                        {/* <Page.DpRow>
+                                            <Page.Checkbox
                                                 pValue={sCreatePayload.compress}
                                                 pCallback={(value: boolean) => handlePayload('compress', { target: { value } } as any)}
                                             />
-                                            <ExtensionTab.ContentDesc>{`use gzip`}</ExtensionTab.ContentDesc>
-                                        </ExtensionTab.DpRow> */}
-                                    </ExtensionTab.ContentBlock>
+                                            <Page.ContentDesc>{`use gzip`}</Page.ContentDesc>
+                                        </Page.DpRow> */}
+                                    </Page.ContentBlock>
                                     {/* DESTINATION - options */}
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Options</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.Input
+                                    <Page.ContentBlock>
+                                        <Page.ContentTitle>Options</Page.ContentTitle>
+                                        <Page.Input
                                             pWidth={'364px'}
                                             pValue={sCreatePayload.options}
                                             pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('options', event)}
                                         />
-                                    </ExtensionTab.ContentBlock>
+                                    </Page.ContentBlock>
                                 </>
                             )}
-                        </ExtensionTab.ContentBlock>
+                        </Page.ContentBlock>
                         {/* Create btn */}
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.TextButton pText="Create" pType="CREATE" pCallback={createItem} />
-                            {sResErrMessage && (
-                                <ExtensionTab.DpRow>
-                                    <VscWarning style={{ fill: '#ff5353' }} />
-                                    <span style={{ margin: '8px', color: '#ff5353' }}>{sResErrMessage}</span>
-                                </ExtensionTab.DpRow>
-                            )}
-                        </ExtensionTab.ContentBlock>
-                    </ExtensionTab.Body>
+                        <Page.ContentBlock>
+                            <Page.TextButton pText="Create" pType="CREATE" pCallback={createItem} />
+                        </Page.ContentBlock>
+                        {sResErrMessage && (
+                            <Page.ContentBlock>
+                                <Alert variant="error" message={sResErrMessage} />
+                            </Page.ContentBlock>
+                        )}
+                    </Page.Body>
                 </Pane>
                 <Pane>
-                    <ExtensionTab.Header>
+                    <Page.Header>
                         <div />
-                        <div style={{ display: 'flex' }}>
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Vertical"
-                                pToolTipId="sub-tab-hori"
-                                pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
-                                pIsActive={isVertical}
+                        <Button.Group>
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                isToolTip
+                                toolTipContent="Vertical"
+                                icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
+                                active={isVertical}
                                 onClick={() => setIsVertical(true)}
                             />
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Horizontal"
-                                pToolTipId="sub-tab-ver"
-                                pIcon={<LuFlipVertical />}
-                                pIsActive={!isVertical}
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                isToolTip
+                                toolTipContent="Horizontal"
+                                icon={<LuFlipVertical size={16} />}
+                                active={!isVertical}
                                 onClick={() => setIsVertical(false)}
                             />
-                        </div>
-                    </ExtensionTab.Header>
-                    <ExtensionTab.Body>
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.SubTitle>Destination</ExtensionTab.SubTitle>
-                        </ExtensionTab.ContentBlock>
+                        </Button.Group>
+                    </Page.Header>
+                    <Page.Body>
+                        <Page.ContentBlock>
+                            <Page.SubTitle>Destination</Page.SubTitle>
+                        </Page.ContentBlock>
                         {/* Writing Descriptor */}
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.ContentTitle>Writing Descriptor</ExtensionTab.ContentTitle>
-                            <ExtensionTab.ContentDesc>Parses the message and write it in the specified table.</ExtensionTab.ContentDesc>
-                            <ExtensionTab.ContentDesc>The syntax of writing descriptor is …</ExtensionTab.ContentDesc>
-                            <ExtensionTab.CopyBlock pContent={'db/{method}/{table_name}:{format}:{compress}?{options}'} />
-                            <ExtensionTab.ContentBlock>
+                        <Page.ContentBlock>
+                            <Page.ContentTitle>Writing Descriptor</Page.ContentTitle>
+                            <Page.ContentDesc>Parses the message and write it in the specified table.</Page.ContentDesc>
+                            <Page.ContentDesc>The syntax of writing descriptor is …</Page.ContentDesc>
+                            <Page.CopyBlock pContent={'db/{method}/{table_name}:{format}:{compress}?{options}'} />
+                            <Page.ContentBlock pHoverNone>
                                 {/* method */}
-                                <ExtensionTab.ContentDesc>Method</ExtensionTab.ContentDesc>
-                                <ExtensionTab.ContentText pContent={`There are two methods append and write.`} />
+                                <Page.ContentDesc>Method</Page.ContentDesc>
+                                <Page.ContentText pContent={`There are two methods append and write.`} />
                                 <div style={{ width: 'auto', maxWidth: '400px' }}>
-                                    <ExtensionTab.Table pList={SUBR_METHOD_TABLE} dotted />
+                                    <Page.Table pList={SUBR_METHOD_TABLE} dotted />
                                 </div>
                                 {/* table_name */}
-                                <ExtensionTab.Space pHeight="16px" />
-                                <ExtensionTab.ContentDesc>Table name</ExtensionTab.ContentDesc>
-                                <ExtensionTab.ContentText pContent={`Specify the destination table name, case insensitive.`} />
+                                <Page.Space pHeight="16px" />
+                                <Page.ContentDesc>Table name</Page.ContentDesc>
+                                <Page.ContentText pContent={`Specify the destination table name, case insensitive.`} />
                                 {/* format */}
-                                <ExtensionTab.Space pHeight="16px" />
-                                <ExtensionTab.ContentDesc>Format</ExtensionTab.ContentDesc>
+                                <Page.Space pHeight="16px" />
+                                <Page.ContentDesc>Format</Page.ContentDesc>
                                 <div style={{ width: 'auto', maxWidth: '150px' }}>
-                                    <ExtensionTab.Table pList={SUBR_FORMAT_TABLE} dotted />
+                                    <Page.Table pList={SUBR_FORMAT_TABLE} dotted />
                                 </div>
                                 {/* compress */}
-                                <ExtensionTab.Space pHeight="16px" />
-                                <ExtensionTab.ContentDesc>Compress</ExtensionTab.ContentDesc>
-                                <ExtensionTab.ContentText pContent={`Currently gzip is supported, If :{compress} part is omitted, it means the data is not compressed.`} />
+                                <Page.Space pHeight="16px" />
+                                <Page.ContentDesc>Compress</Page.ContentDesc>
+                                <Page.ContentText pContent={`Currently gzip is supported, If :{compress} part is omitted, it means the data is not compressed.`} />
                                 {/* Options */}
-                                <ExtensionTab.Space pHeight="16px" />
-                                <ExtensionTab.ContentDesc>Options</ExtensionTab.ContentDesc>
-                                <ExtensionTab.ContentText pContent="The writing description can contain an optional question-mark-separated URL-encoded parameters." />
-                                <ExtensionTab.Space pHeight="16px" />
-                                <ExtensionTab.Hr />
-                                <ExtensionTab.Space pHeight="12px" />
-                                <ExtensionTab.Table pList={SUBR_OPTIONS_TABLE} />
-                            </ExtensionTab.ContentBlock>
-                        </ExtensionTab.ContentBlock>
+                                <Page.Space pHeight="16px" />
+                                <Page.ContentDesc>Options</Page.ContentDesc>
+                                <Page.ContentText pContent="The writing description can contain an optional question-mark-separated URL-encoded parameters." />
+                                <Page.Space pHeight="16px" />
+                                <Page.Hr />
+                                <Page.Space pHeight="12px" />
+                                <Page.Table pList={SUBR_OPTIONS_TABLE} />
+                            </Page.ContentBlock>
+                        </Page.ContentBlock>
                         {/* TQL SCRIPT */}
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.ContentTitle>TQL script</ExtensionTab.ContentTitle>
-                            <ExtensionTab.ContentDesc>{'The place of writing descriptor can be replaced with a file path of TQL script.'}</ExtensionTab.ContentDesc>
-                            <ExtensionTab.ContentDesc>{'Pass the message to payload() in the TQL script.'}</ExtensionTab.ContentDesc>
-                            <ExtensionTab.Space pHeight="16px" />
-                            <ExtensionTab.ContentDesc>Data writing TQL script example)</ExtensionTab.ContentDesc>
-                            <ExtensionTab.CopyBlock
-                                pContent={'CSV(payload())\nMAPVALUE(1, parseTime(value(1), "ns"))\nMAPVALUE(2, parseFloat(value(2)))\nAPPEND( table("example") )'}
-                            />
-                        </ExtensionTab.ContentBlock>
-                    </ExtensionTab.Body>
+                        <Page.ContentBlock>
+                            <Page.ContentTitle>TQL script</Page.ContentTitle>
+                            <Page.ContentDesc>{'The place of writing descriptor can be replaced with a file path of TQL script.'}</Page.ContentDesc>
+                            <Page.ContentDesc>{'Pass the message to payload() in the TQL script.'}</Page.ContentDesc>
+                            <Page.Space pHeight="16px" />
+                            <Page.ContentDesc>Data writing TQL script example)</Page.ContentDesc>
+                            <Page.CopyBlock pContent={'CSV(payload())\nMAPVALUE(1, parseTime(value(1), "ns"))\nMAPVALUE(2, parseFloat(value(2)))\nAPPEND( table("example") )'} />
+                        </Page.ContentBlock>
+                    </Page.Body>
                 </Pane>
             </SplitPane>
-        </ExtensionTab>
+        </Page>
     );
 };

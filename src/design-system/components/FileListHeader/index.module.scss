@@ -1,0 +1,15 @@
+@use '@/design-system/tokens' as t;
+
+.file-list-header {
+    display: flex;
+    flex-direction: row;
+    padding: t.$spacing-2 t.$spacing-20;
+    font-size: t.$font-size-sm;
+    color: t.$text-secondary;
+    background-color: #1e1e1e;
+    border-bottom: 1px solid #3e3e3e;
+
+    &__column {
+        flex: 1;
+    }
+}

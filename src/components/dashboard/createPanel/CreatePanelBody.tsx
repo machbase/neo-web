@@ -1,8 +1,9 @@
+import { Page } from '@/design-system/components';
 import Panel from '../panels/Panel';
-import './CreatePanelBody.scss';
+
 const CreatePanelBody = ({ pLoopMode, pType, pPanelInfo, pBoardInfo, pInsetDraging, pModifyState, pSetModifyState, pBoardTimeMinMax }: any) => {
     return (
-        <div className="chart-body">
+        <Page style={{ padding: '8px 8px 8px 16px' }}>
             {pPanelInfo && (
                 <Panel
                     pLoopMode={pLoopMode}
@@ -16,7 +17,7 @@ const CreatePanelBody = ({ pLoopMode, pType, pPanelInfo, pBoardInfo, pInsetDragi
                     pIsHeader={false}
                 />
             )}
-        </div>
+        </Page>
     );
 };
 export default CreatePanelBody;

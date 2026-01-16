@@ -1,24 +1,30 @@
-import { ArrowDown, VscWarning } from '@/assets/icons/Icon';
-import CheckBox from '@/components/inputs/CheckBox';
-import { Input } from '@/components/inputs/Input';
+import { VscWarning } from '@/assets/icons/Icon';
+import { Input, Checkbox, Dropdown, Page } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
-import './Axes.scss';
 
 const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const getCheckboxValue = (aEvent: any, aType: string) => {
         if (aEvent.target.checked === true) {
             pSetCopyPanelInfo({ ...pPanelInfo, [aType]: 'Y' });
         } else {
-            if (aType === 'use_right_y2') pSetCopyPanelInfo({ ...pPanelInfo, [aType]: 'N', tag_set: pPanelInfo.tag_set.map((tag: any) => { return {...tag, use_y2: 'N'}}) });
+            if (aType === 'use_right_y2')
+                pSetCopyPanelInfo({
+                    ...pPanelInfo,
+                    [aType]: 'N',
+                    tag_set: pPanelInfo.tag_set.map((tag: any) => {
+                        return { ...tag, use_y2: 'N' };
+                    }),
+                });
             else pSetCopyPanelInfo({ ...pPanelInfo, [aType]: 'N' });
         }
     };
 
-    const setY2TagList = (aEvent: any) => {
+    const setY2TagList = (aValue: string) => {
+        if (aValue === 'none') return;
         pSetCopyPanelInfo({
             ...pPanelInfo,
             tag_set: pPanelInfo.tag_set.map((aItem: any) => {
-                return aEvent.target.value === aItem.key ? { ...aItem, use_y2: 'Y' } : aItem;
+                return aValue === aItem.key ? { ...aItem, use_y2: 'Y' } : aItem;
             }),
         });
     };
@@ -31,289 +37,301 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
         });
     };
 
-    return (
-        <div className="axes-form scrollbar-dark-border">
-            <div className="x-axis">
-                <div className="x-axis-title">X-Axis</div>
-                <div className="x-axis-tick-line pt-12">
-                    <input defaultChecked={pPanelInfo.show_x_tickline === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_x_tickline')} type="checkbox" />
-                    <span>Displays the X-Axis tick line</span>
-                </div>
-                <div className="x-axis-pixels pt-12">
-                    <span>Pixels between tick marks </span>
-                    <div className="x-axis-pixels-body">
-                        <div>
-                            Raw
-                            <Input
-                                pWidth={150}
-                                pHeight={24}
-                                pType="number"
-                                pValue={pPanelInfo.pixels_per_tick_raw}
-                                pSetValue={() => null}
-                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, pixels_per_tick_raw: aEvent.target.value })}
-                            />
-                        </div>
-                        <div>
-                            Calculation
-                            <Input
-                                pWidth={150}
-                                pHeight={24}
-                                pType="number"
-                                pValue={pPanelInfo.pixels_per_tick}
-                                pSetValue={() => null}
-                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, pixels_per_tick: aEvent.target.value })}
-                            />
-                        </div>
-                    </div>
-                </div>
-                <div className="x-axis-pixels pt-12 sampling-body">
-                    <span className={`warning-tooltip`}>
-                        <VscWarning color="#FDB532"></VscWarning>
-                        use Sampling
-                    </span>
-                    <div className="use-sampling">
-                        <CheckBox
-                            pDefaultChecked={pPanelInfo.use_sampling}
-                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, use_sampling: aEvent.target.checked })}
-                        ></CheckBox>
-                        <Input
-                            pWidth={150}
-                            pHeight={24}
-                            pType="number"
-                            pIsDisabled={!pPanelInfo.use_sampling}
-                            pValue={pPanelInfo.sampling_value}
-                            pSetValue={() => null}
-                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, sampling_value: aEvent.target.value })}
-                        />
-                    </div>
-                    <Tooltip anchorSelect={`.warning-tooltip`} content={'Resource usage can be overloaded.'} />
-                </div>
-            </div>
-            <div className="y-axis">
-                <div className="y-axis-title">Y-Axis</div>
-                <div className="y-axis-scale-zero pt-12">
-                    <input defaultChecked={pPanelInfo.zero_base === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'zero_base')} type="checkbox" />
-                    <span>The scale of the Y-axis start at zero</span>
-                </div>
-                <div className="y-axis-tick-line pt-12">
-                    <input defaultChecked={pPanelInfo.show_y_tickline === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_y_tickline')} type="checkbox" />
-                    <span>Displays the Y-Axis tick line</span>
-                </div>
-                <div className="y-axis-custom-scale pt-12">
-                    <span>Custom scale</span>
-                    <span>
-                        <Input
-                            pWidth={48}
-                            pHeight={30}
-                            pType="number"
-                            pValue={pPanelInfo.custom_min}
-                            pSetValue={() => null}
-                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_min: aEvent.target.value })}
-                        />
-                        <span style={{ margin: '0 5px' }}>~</span>
-                        <Input
-                            pWidth={48}
-                            pHeight={30}
-                            pType="number"
-                            pValue={pPanelInfo.custom_max}
-                            pSetValue={() => null}
-                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_max: aEvent.target.value })}
-                        />
-                    </span>
-                </div>
-                <div className="y-axis-raw-custom-scale pt-12">
-                    <span>Custom scale for raw data chart</span>
-                    <span>
-                        <Input
-                            pWidth={48}
-                            pHeight={30}
-                            pType="number"
-                            pValue={pPanelInfo.custom_drilldown_min}
-                            pSetValue={() => null}
-                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_drilldown_min: aEvent.target.value })}
-                        />
-                        <span style={{ margin: '0 5px' }}>~</span>
-                        <Input
-                            pWidth={48}
-                            pHeight={30}
-                            pType="number"
-                            pValue={pPanelInfo.custom_drilldown_max}
-                            pSetValue={() => null}
-                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_drilldown_max: aEvent.target.value })}
-                        />
-                    </span>
-                </div>
-                <div className="y-axis-scale-zero pt-12 ucl-wrap">
-                    <div className="ucl-inner">
-                        <div className="ucl-form">
-                            <input defaultChecked={pPanelInfo.use_ucl === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_ucl')} type="checkbox" />
-                            <span>use UCL</span>
-                        </div>
-                        <Input
-                            pWidth={80}
-                            pHeight={24}
-                            pType="number"
-                            pValue={pPanelInfo.ucl_value}
-                            pIsDisabled={pPanelInfo.use_ucl === 'N'}
-                            pSetValue={() => null}
-                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, ucl_value: aEvent.target.value })}
-                        />
-                    </div>
-                    <div className="ucl-inner">
-                        <div className="ucl-form">
-                            <input defaultChecked={pPanelInfo.use_lcl === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_lcl')} type="checkbox" />
-                            <span>use LCL</span>
-                        </div>
-                        <Input
-                            pWidth={80}
-                            pHeight={24}
-                            pType="number"
-                            pValue={pPanelInfo.lcl_value}
-                            pIsDisabled={pPanelInfo.use_lcl === 'N'}
-                            pSetValue={() => null}
-                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, lcl_value: aEvent.target.value })}
-                        />
-                    </div>
-                </div>
-            </div>
-            <div className="additional-y-axis">
-                <div className="additional-y-axis-form">
-                    <div className="aditional-box-form pt-12">
-                        <input defaultChecked={pPanelInfo.use_right_y2 === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_right_y2')} type="checkbox" />
-                        <span>Set additional Y-axis</span>
-                    </div>
-                    <div className="scale-box-form pt-12">
-                        <input
-                            defaultChecked={pPanelInfo.zero_base2  === 'Y'}
-                            onChange={(aEvent: any) => getCheckboxValue(aEvent, 'zero_base2')}
-                            disabled={pPanelInfo.use_right_y2 !== 'Y'}
-                            type="checkbox"
-                        />
-                        <span>The scale of the Y-axis start at zero</span>
-                    </div>
-                    <div className="scale-tick-line-form pt-12">
-                        <input
-                            defaultChecked={pPanelInfo.show_y_tickline2  === 'Y'}
-                            disabled={pPanelInfo.use_right_y2 !== 'Y'}
-                            onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_y_tickline2')}
-                            type="checkbox"
-                        />
-                        <span>Displays the Y-Axis tick line</span>
-                    </div>
-                    <div className="aditional-custom pt-12">
-                        <span>Custom scale</span>
-                        <span>
-                            <Input
-                                pWidth={48}
-                                pHeight={30}
-                                pType="number"
-                                pValue={pPanelInfo.custom_min2}
-                                pSetValue={() => null}
-                                pIsDisabled={pPanelInfo.use_right_y2 !== 'Y'}
-                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_min2: aEvent.target.value })}
-                            />
-                            <span style={{ margin: '0 5px' }}>~</span>
-                            <Input
-                                pWidth={48}
-                                pHeight={30}
-                                pType="number"
-                                pValue={pPanelInfo.custom_max2}
-                                pSetValue={() => null}
-                                pIsDisabled={pPanelInfo.use_right_y2 !== 'Y'}
-                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_max2: aEvent.target.value })}
-                            />
-                        </span>
-                    </div>
-                    <div className="aditional-custom pt-12">
-                        <span>Custom scale for raw data chart</span>
-                        <span>
-                            <Input
-                                pWidth={48}
-                                pHeight={30}
-                                pType="number"
-                                pValue={pPanelInfo.custom_drilldown_min2}
-                                pSetValue={() => null}
-                                pIsDisabled={pPanelInfo.use_right_y2 !== 'Y'}
-                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_drilldown_min2: aEvent.target.value })}
-                            />
-                            <span style={{ margin: '0 5px' }}>~</span>
-                            <Input
-                                pWidth={48}
-                                pHeight={30}
-                                pType="number"
-                                pValue={pPanelInfo.custom_drilldown_max2}
-                                pSetValue={() => null}
-                                pIsDisabled={pPanelInfo.use_right_y2 !== 'Y'}
-                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_drilldown_max2: aEvent.target.value })}
-                            />
-                        </span>
-                    </div>
-                    <div className="y-axis-scale-zero pt-12 ucl-wrap">
-                        <div className="ucl-inner">
-                            <div className="ucl-form">
-                                <input defaultChecked={pPanelInfo.use_ucl2 === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_ucl2')} type="checkbox" />
-                                <span>use UCL</span>
-                            </div>
-                            <Input
-                                pWidth={80}
-                                pHeight={24}
-                                pType="number"
-                                pValue={pPanelInfo.ucl2_value}
-                                pIsDisabled={pPanelInfo.use_ucl2 === 'N'}
-                                pSetValue={() => null}
-                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, ucl2_value: aEvent.target.value })}
-                            />
-                        </div>
-                        <div className="ucl-inner">
-                            <div className="ucl-form">
-                                <input defaultChecked={pPanelInfo.use_lcl2 === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_lcl2')} type="checkbox" />
-                                <span>use LCL</span>
-                            </div>
-                            <Input
-                                pWidth={80}
-                                pHeight={24}
-                                pType="number"
-                                pValue={pPanelInfo.lcl2_value}
-                                pIsDisabled={pPanelInfo.use_lcl2 === 'N'}
-                                pSetValue={() => null}
-                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, lcl2_value: aEvent.target.value })}
-                            />
-                        </div>
-                    </div>
-                </div>
+    const y2TagOptions = [
+        // { value: 'none', label: 'Select a tag for the additional Y-axis.' },
+        ...pPanelInfo.tag_set
+            .filter((aItem: any) => aItem.use_y2 === 'N')
+            .map((bItem: any) => ({
+                value: bItem.key,
+                label: bItem?.alias && bItem?.alias !== '' ? bItem?.alias : `${bItem?.tagName}(${bItem?.calculationMode})`,
+            })),
+    ];
 
-                <div className="addition-input-form">
-                    <div style={pPanelInfo.use_right_y2 !== 'Y' ? { opacity: '0.6' } : {}} className="addition-select-box">
-                        <select style={pPanelInfo.use_right_y2 !== 'Y' ? { opacity: '0.6' } : {}} onChange={setY2TagList} disabled={pPanelInfo.use_right_y2 !== 'Y'}>
-                            <option value="none">Select a tag for the additional Y-axis.</option>
-                            {pPanelInfo.tag_set.filter((aItem: any) => aItem.use_y2 === 'N').length > 0 &&
+    return (
+        <>
+            <Page.DpRow style={{ flexWrap: 'wrap', justifyContent: 'start', alignItems: 'start' }}>
+                <Page.ContentBlock pHoverNone style={{ margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'start', justifyContent: 'start' }}>
+                    {/* X-Axis Section */}
+                    <Page.ContentText pContent="X-Axis" />
+                    <Checkbox
+                        checked={pPanelInfo.show_x_tickline === 'Y'}
+                        onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_x_tickline')}
+                        label="Displays the X-Axis tick line"
+                        size="sm"
+                    />
+
+                    <Page.ContentDesc>Pixels between tick marks</Page.ContentDesc>
+                    <Page.DpRow style={{ padding: 0 }}>
+                        <Input
+                            label="Raw"
+                            labelPosition="left"
+                            type="number"
+                            value={pPanelInfo.pixels_per_tick_raw}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, pixels_per_tick_raw: aEvent.target.value })}
+                            size="md"
+                            style={{ width: '150px', height: '30px' }}
+                        />
+                    </Page.DpRow>
+                    <Page.DpRow style={{ padding: 0 }}>
+                        <Input
+                            label="Calculation"
+                            labelPosition="left"
+                            type="number"
+                            value={pPanelInfo.pixels_per_tick}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, pixels_per_tick: aEvent.target.value })}
+                            size="md"
+                            style={{ width: '150px', height: '30px' }}
+                        />
+                    </Page.DpRow>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="warning-tooltip" style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                            <VscWarning color="#FDB532" />
+                            use Sampling
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Checkbox
+                                checked={pPanelInfo.use_sampling}
+                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, use_sampling: aEvent.target.checked })}
+                                size="sm"
+                            />
+                            <Input
+                                type="number"
+                                disabled={!pPanelInfo.use_sampling}
+                                value={pPanelInfo.sampling_value}
+                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, sampling_value: aEvent.target.value })}
+                                size="sm"
+                                style={{ width: '150px' }}
+                            />
+                        </div>
+                        <Tooltip anchorSelect={`.warning-tooltip`} content={'Resource usage can be overloaded.'} />
+                    </div>
+                </Page.ContentBlock>
+                <Page.ContentBlock pHoverNone style={{ margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'start', justifyContent: 'start' }}>
+                    {/* Y-Axis Section */}
+                    <Page.ContentText pContent="Y-Axis" />
+                    <Checkbox
+                        checked={pPanelInfo.zero_base === 'Y'}
+                        onChange={(aEvent: any) => getCheckboxValue(aEvent, 'zero_base')}
+                        label="The scale of the Y-axis start at zero"
+                        size="sm"
+                    />
+
+                    <Checkbox
+                        checked={pPanelInfo.show_y_tickline === 'Y'}
+                        onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_y_tickline')}
+                        label="Displays the Y-Axis tick line"
+                        size="sm"
+                    />
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Page.ContentText pContent="Custom scale" />
+                        <Input
+                            type="number"
+                            value={pPanelInfo.custom_min}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_min: aEvent.target.value })}
+                            size="sm"
+                            style={{ width: '48px' }}
+                        />
+                        <span style={{ margin: '0 5px' }}>~</span>
+                        <Input
+                            type="number"
+                            value={pPanelInfo.custom_max}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_max: aEvent.target.value })}
+                            size="sm"
+                            style={{ width: '48px' }}
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Page.ContentText pContent="Custom scale for raw data chart" />
+                        <Input
+                            type="number"
+                            value={pPanelInfo.custom_drilldown_min}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_drilldown_min: aEvent.target.value })}
+                            size="sm"
+                            style={{ width: '48px' }}
+                        />
+                        <span style={{ margin: '0 5px' }}>~</span>
+                        <Input
+                            type="number"
+                            value={pPanelInfo.custom_drilldown_max}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_drilldown_max: aEvent.target.value })}
+                            size="sm"
+                            style={{ width: '48px' }}
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Checkbox checked={pPanelInfo.use_ucl === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_ucl')} label="use UCL" size="sm" />
+                            <Input
+                                type="number"
+                                value={pPanelInfo.ucl_value}
+                                disabled={pPanelInfo.use_ucl === 'N'}
+                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, ucl_value: aEvent.target.value })}
+                                size="sm"
+                                style={{ width: '80px' }}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Checkbox checked={pPanelInfo.use_lcl === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_lcl')} label="use LCL" size="sm" />
+                            <Input
+                                type="number"
+                                value={pPanelInfo.lcl_value}
+                                disabled={pPanelInfo.use_lcl === 'N'}
+                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, lcl_value: aEvent.target.value })}
+                                size="sm"
+                                style={{ width: '80px' }}
+                            />
+                        </div>
+                    </div>
+                </Page.ContentBlock>
+                <Page.ContentBlock
+                    pHoverNone
+                    style={{ flexWrap: 'wrap', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'start', justifyContent: 'start' }}
+                >
+                    {/* Additional Y-Axis Section */}
+                    <Page.ContentText pContent="Additional Y-Axis" />
+
+                    <Checkbox
+                        checked={pPanelInfo.use_right_y2 === 'Y'}
+                        onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_right_y2')}
+                        label="Set additional Y-axis"
+                        size="sm"
+                    />
+
+                    <Checkbox
+                        checked={pPanelInfo.zero_base2 === 'Y'}
+                        onChange={(aEvent: any) => getCheckboxValue(aEvent, 'zero_base2')}
+                        disabled={pPanelInfo.use_right_y2 !== 'Y'}
+                        label="The scale of the Y-axis start at zero"
+                        size="sm"
+                    />
+
+                    <Checkbox
+                        checked={pPanelInfo.show_y_tickline2 === 'Y'}
+                        onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_y_tickline2')}
+                        disabled={pPanelInfo.use_right_y2 !== 'Y'}
+                        label="Displays the Y-Axis tick line"
+                        size="sm"
+                    />
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: pPanelInfo.use_right_y2 !== 'Y' ? 0.6 : 1 }}>
+                        <Page.ContentText pContent="Custom scale" />
+                        <Input
+                            type="number"
+                            value={pPanelInfo.custom_min2}
+                            disabled={pPanelInfo.use_right_y2 !== 'Y'}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_min2: aEvent.target.value })}
+                            size="sm"
+                            style={{ width: '48px' }}
+                        />
+                        <span style={{ margin: '0 5px' }}>~</span>
+                        <Input
+                            type="number"
+                            value={pPanelInfo.custom_max2}
+                            disabled={pPanelInfo.use_right_y2 !== 'Y'}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_max2: aEvent.target.value })}
+                            size="sm"
+                            style={{ width: '48px' }}
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: pPanelInfo.use_right_y2 !== 'Y' ? 0.6 : 1 }}>
+                        <span style={{ minWidth: '100px', color: 'rgba(255, 255, 255, 0.5)', fontSize: '11px' }}>Custom scale for raw data chart</span>
+                        <Input
+                            type="number"
+                            value={pPanelInfo.custom_drilldown_min2}
+                            disabled={pPanelInfo.use_right_y2 !== 'Y'}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_drilldown_min2: aEvent.target.value })}
+                            size="sm"
+                            style={{ width: '48px' }}
+                        />
+                        <span style={{ margin: '0 5px' }}>~</span>
+                        <Input
+                            type="number"
+                            value={pPanelInfo.custom_drilldown_max2}
+                            disabled={pPanelInfo.use_right_y2 !== 'Y'}
+                            onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, custom_drilldown_max2: aEvent.target.value })}
+                            size="sm"
+                            style={{ width: '48px' }}
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Checkbox
+                                disabled={pPanelInfo.use_right_y2 !== 'Y'}
+                                checked={pPanelInfo.use_ucl2 === 'Y'}
+                                onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_ucl2')}
+                                label="use UCL"
+                                size="sm"
+                            />
+                            <Input
+                                type="number"
+                                value={pPanelInfo.ucl2_value}
+                                disabled={pPanelInfo.use_ucl2 === 'N' || pPanelInfo.use_right_y2 !== 'Y'}
+                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, ucl2_value: aEvent.target.value })}
+                                size="sm"
+                                style={{ width: '80px' }}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Checkbox
+                                disabled={pPanelInfo.use_right_y2 !== 'Y'}
+                                checked={pPanelInfo.use_lcl2 === 'Y'}
+                                onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_lcl2')}
+                                label="use LCL"
+                                size="sm"
+                            />
+                            <Input
+                                type="number"
+                                value={pPanelInfo.lcl2_value}
+                                disabled={pPanelInfo.use_lcl2 === 'N' || pPanelInfo.use_right_y2 !== 'Y'}
+                                onChange={(aEvent: any) => pSetCopyPanelInfo({ ...pPanelInfo, lcl2_value: aEvent.target.value })}
+                                size="sm"
+                                style={{ width: '80px' }}
+                            />
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px', opacity: pPanelInfo.use_right_y2 !== 'Y' ? 0.6 : 1 }}>
+                        <Dropdown.Root options={y2TagOptions} value="none" onChange={setY2TagList} disabled={pPanelInfo.use_right_y2 !== 'Y'}>
+                            <Dropdown.Trigger style={{ width: '200px' }} />
+                            <Dropdown.Menu>
+                                <Dropdown.List />
+                            </Dropdown.Menu>
+                        </Dropdown.Root>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {pPanelInfo.tag_set.filter((aItem: any) => aItem.use_y2 === 'Y').length > 0 &&
                                 pPanelInfo.tag_set
-                                    .filter((aItem: any) => aItem.use_y2 === 'N')
+                                    .filter((aItem: any) => aItem.use_y2 === 'Y')
                                     .map((bItem: any) => {
                                         return (
-                                            <option key={bItem.key} value={bItem.key}  >
-                                                {bItem?.alias && bItem?.alias !== '' ? bItem?.alias : `${bItem?.tagName}(${bItem?.calculationMode})`}
-                                            </option>
+                                            <div
+                                                onClick={() => setRemoveY2TagList(bItem.key)}
+                                                key={bItem.key}
+                                                style={{
+                                                    padding: '4px 8px',
+                                                    gap: '4px',
+                                                    cursor: 'pointer',
+                                                    borderRadius: '4px',
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                                    borderLeft: `solid 2px ${bItem.color}`,
+                                                }}
+                                            >
+                                                <span style={{ paddingLeft: '8px' }}>
+                                                    {bItem?.alias && bItem?.alias !== '' ? bItem?.alias : `${bItem?.tagName}(${bItem?.calculationMode})`}
+                                                </span>
+                                            </div>
                                         );
                                     })}
-                        </select>
-                        <ArrowDown />
+                        </div>
                     </div>
-                    <div style={pPanelInfo.use_right_y2 !== 'Y' ? { opacity: '0.6' } : {}} className="selected-tag-list">
-                        {pPanelInfo.tag_set.filter((aItem: any) => aItem.use_y2 === 'Y').length > 0 &&
-                            pPanelInfo.tag_set
-                                .filter((aItem: any) => aItem.use_y2 === 'Y')
-                                .map((bItem: any) => {
-                                    return (
-                                        <div onClick={() => setRemoveY2TagList(bItem.key)} key={bItem.key} style={{padding: '2px', gap: '4px'}}>
-                                            <span style={{borderLeft: `solid 2px ${bItem.color}`, paddingLeft: '8px'}}>{bItem?.alias && bItem?.alias !== '' ? bItem?.alias : `${bItem?.tagName}(${bItem?.calculationMode})`}</span>
-                                        </div>
-                                    );
-                                })}
-                    </div>
-                </div>
-            </div>
-        </div>
+                </Page.ContentBlock>
+            </Page.DpRow>
+        </>
     );
 };
 

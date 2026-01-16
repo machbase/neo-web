@@ -1,5 +1,5 @@
 import { KeyItemType, delKey, getKeyList } from '@/api/repository/key';
-import { ExtensionTab } from '@/components/extension/ExtensionTab';
+import { Page } from '@/design-system/components';
 import { CreateKey } from '@/components/securityKey/createKey';
 import { useRecoilState } from 'recoil';
 import { gActiveKey, gBoardList, gKeyList } from '@/recoil/recoil';
@@ -77,33 +77,33 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
         <>
             {/* Show info */}
             {sActiveKeyName && sActiveKeyName !== '' && (
-                <ExtensionTab>
+                <Page>
                     <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={['50', '50']} onChange={() => {}}>
                         <Pane minSize={400}>
-                            <ExtensionTab.Header />
-                            <ExtensionTab.Body>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Client id</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{pCode.id}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Valid After</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{getTime(pCode.notBefore)}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Valid Before</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{getTime(pCode.notAfter)}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
-                                </ExtensionTab.ContentBlock>
-                            </ExtensionTab.Body>
+                            <Page.Header />
+                            <Page.Body>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Client id</Page.ContentTitle>
+                                    <Page.ContentDesc>{pCode.id}</Page.ContentDesc>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Valid After</Page.ContentTitle>
+                                    <Page.ContentDesc>{getTime(pCode.notBefore)}</Page.ContentDesc>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Valid Before</Page.ContentTitle>
+                                    <Page.ContentDesc>{getTime(pCode.notAfter)}</Page.ContentDesc>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
+                                </Page.ContentBlock>
+                            </Page.Body>
                         </Pane>
                         <Pane minSize={400}>
-                            <ExtensionTab.Header />
+                            <Page.Header />
                         </Pane>
                     </SplitPane>
-                </ExtensionTab>
+                </Page>
             )}
             {/* Show create */}
             {!sActiveKeyName && <CreateKey />}

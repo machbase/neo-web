@@ -1,17 +1,10 @@
-import { IconButton } from '@/components/buttons/IconButton';
-import { Collapse } from '@/components/collapse/Collapse';
-import { Input } from '@/components/inputs/Input';
-import { Select } from '@/components/inputs/Select';
-import useOutsideClick from '@/hooks/useOutsideClick';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import CompactPicker from 'react-color/lib/components/compact/Compact';
+import { InputSelect, Dropdown, Input, Page, Button, ColorPicker, BadgeSelect, type BadgeSelectItem, HierarchicalCombobox } from '@/design-system/components';
+import { useEffect, useMemo } from 'react';
 import { MultiColorPkr } from './MultiColorPkr';
 import { PlusCircle } from '@/assets/icons/Icon';
-import { BadgeSelect, BadgeSelectorItemType } from '@/components/inputs/BadgeSelector';
 import { getChartSeriesName } from '@/utils/dashboardUtil';
 import { E_BLOCK_TYPE } from '@/utils/Chart/TransformDataParser';
 import { ChartThemeTextColor } from '@/utils/constants';
-import { HierarchicalCombobox } from '@/design-system/components';
 import { findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 
 interface ChartOptionProps {
@@ -21,13 +14,17 @@ interface ChartOptionProps {
 
 export const TextOptions = (props: ChartOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
-    const sChartColorPickerRef = useRef<any>(null);
-    const sColorPickerRef = useRef<any>(null);
-    const [sIsChartColorPicker, setIsChartColorPicker] = useState<boolean>(false);
-    const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
 
-    useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
-    useOutsideClick(sChartColorPickerRef, () => setIsChartColorPicker(false));
+    // Flatten UNITS for InputSelect
+    const unitOptions = useMemo(() => {
+        return UNITS.flatMap(
+            (category) =>
+                category.items?.map((item) => ({
+                    label: item.label,
+                    value: item.id,
+                })) || []
+        );
+    }, []);
 
     // Apply theme color to text option and chart option when theme changes or panel type changes to text
     useEffect(() => {
@@ -69,7 +66,7 @@ export const TextOptions = (props: ChartOptionProps) => {
 
         const sTrxBlockResult = sTmpTrxBlockList?.map((trxB: any, idx: number) => {
             return {
-                name: !!trxB?.alias ? trxB?.alias : `TRANSFORM_VALUE(${idx})`,
+                name: trxB?.alias ? trxB?.alias : `TRANSFORM_VALUE(${idx})`,
                 color: trxB?.color,
                 idx: idx + 100,
                 type: E_BLOCK_TYPE.TRX,
@@ -79,7 +76,7 @@ export const TextOptions = (props: ChartOptionProps) => {
         return sBlockResult?.concat(sTrxBlockResult ?? []);
     }, [pPanelOption?.blockList, pPanelOption?.transformBlockList]);
 
-    const handleSeriesOption = (aKey: string, aItem: BadgeSelectorItemType) => {
+    const handleSeriesOption = (aKey: string, aItem: BadgeSelectItem) => {
         let sTargetItem: undefined | number = aItem.idx;
 
         if (sTargetItem === pPanelOption?.chartOptions?.[aKey]?.[0]) sTargetItem = undefined;
@@ -149,93 +146,39 @@ export const TextOptions = (props: ChartOptionProps) => {
     };
 
     return (
-        <div className="text-options-wrap">
-            <Collapse title="Text option" isOpen>
-                <div className="menu-style" style={{ display: 'flex', flex: 1, width: '100%', paddingRight: '10px' }}>
-                    <span>Unit</span>
-                    <HierarchicalCombobox.Root value={pPanelOption?.chartOptions?.unit?.id ?? ''} categories={UNITS} onChange={(value) => HandleOption(value, 'unit')}>
+        <>
+            <Page.Collapse title="Text option">
+                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    <HierarchicalCombobox.Root label="Unit" value={pPanelOption?.chartOptions?.unit?.id ?? ''} categories={UNITS} onChange={(value) => HandleOption(value, 'unit')}>
                         <HierarchicalCombobox.Input />
                         <HierarchicalCombobox.Menu>
                             <HierarchicalCombobox.List emptyMessage="No units available" />
                         </HierarchicalCombobox.Menu>
                     </HierarchicalCombobox.Root>
-                </div>
-                <div className="menu-style">
-                    <span>Decimals</span>
+                    <Input label="Decimals" type="number" fullWidth value={pPanelOption.chartOptions?.digit ?? 0} onChange={(aEvent: any) => HandleOption(aEvent, 'digit')} />
                     <Input
-                        pType="number"
-                        pWidth={'100%'}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pValue={pPanelOption.chartOptions?.digit ?? 0}
-                        pSetValue={() => null}
-                        onChange={(aEvent: any) => HandleOption(aEvent, 'digit')}
-                    />
-                </div>
-                <div className="menu-style">
-                    <span>Font size</span>
-                    <Input
-                        pType="number"
-                        pWidth={'100%'}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pValue={pPanelOption.chartOptions?.fontSize ?? 50}
-                        pSetValue={() => null}
+                        label="Font size"
+                        type="number"
+                        fullWidth
+                        value={pPanelOption.chartOptions?.fontSize ?? 50}
                         onChange={(aEvent: any) => HandleOption(aEvent, 'fontSize')}
                     />
-                </div>
-                <div className="divider" />
-                <Collapse title="Color">
-                    <>
-                        {pPanelOption.chartOptions?.color.map((aAxisColor: any, aIdx: number) => {
-                            if (aIdx === 0)
-                                return (
-                                    <div key={aIdx} ref={sColorPickerRef} style={{ display: 'flex', flex: 1, alignContent: 'center' }}>
-                                        <div
-                                            className="menu-style"
-                                            style={{ position: 'relative', flexDirection: 'row', justifyContent: 'start', gap: '18px', alignItems: 'cetner' }}
-                                        >
-                                            <span>Default</span>
-                                            <IconButton
-                                                pWidth={20}
-                                                pHeight={20}
-                                                pIcon={
-                                                    <div
-                                                        style={{
-                                                            width: '14px',
-                                                            cursor: 'pointer',
-                                                            height: '14px',
-                                                            marginRight: '4px',
-                                                            borderRadius: '50%',
-                                                            backgroundColor: pPanelOption.chartOptions?.color[0][1] as string,
-                                                        }}
-                                                    ></div>
-                                                }
-                                                onClick={() => setIsColorPicker(!sIsColorPicker)}
-                                            />
-                                        </div>
-                                        <>
-                                            {sIsColorPicker && (
-                                                <div className="color-picker">
-                                                    <CompactPicker
-                                                        color={pPanelOption.chartOptions?.color[0][1] as string}
-                                                        onChangeComplete={(aInfo: any) => {
-                                                            HandleItemColor('r', aInfo.hex, 0);
-                                                        }}
-                                                    />
-                                                </div>
-                                            )}
+                    <Page.Divi />
+                    <Page.Collapse title="Color" size="sm">
+                        <Page.ContentBlock style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }} pHoverNone>
+                            {pPanelOption.chartOptions?.color.map((aAxisColor: any, aIdx: number) => {
+                                if (aIdx === 0)
+                                    return (
+                                        <Page.DpRow key={aIdx} style={{ gap: '8px' }}>
+                                            <Page.ContentDesc>Default</Page.ContentDesc>
+                                            <ColorPicker color={pPanelOption.chartOptions?.color[0][1] as string} onChange={(color: string) => HandleItemColor('r', color, 0)} />
                                             {pPanelOption.chartOptions?.color.length === 1 && (
-                                                <div className="menu-style" style={{ justifyContent: 'end', flexGrow: 1, alignContent: 'center' }}>
-                                                    <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={() => HandleItem('add', 1)} />
-                                                </div>
+                                                <Button size="side" variant="ghost" icon={<PlusCircle size={16} />} onClick={() => HandleItem('add', 1)} />
                                             )}
-                                        </>
-                                    </div>
-                                );
+                                        </Page.DpRow>
+                                    );
 
-                            return (
-                                <div key={aIdx}>
+                                return (
                                     <MultiColorPkr
                                         alwayRmBtn
                                         prefix="Over"
@@ -245,99 +188,67 @@ export const TextOptions = (props: ChartOptionProps) => {
                                         HandleItem={HandleItem}
                                         itemLen={pPanelOption.chartOptions?.color.length}
                                     />
-                                </div>
-                            );
-                        })}
-                    </>
-                </Collapse>
-                <>
-                    <div className="divider" />
-                    <span>Series</span>
-                    <div style={{ padding: '8px 10px 0 0' }}>
-                        <BadgeSelect pSelectedList={pPanelOption?.chartOptions?.textSeries} pList={getBlockList} pCallback={(item) => handleSeriesOption('textSeries', item)} />
-                    </div>
-                </>
-            </Collapse>
-            <div className="divider" />
-            <Collapse title="Chart option" isOpen>
-                <div className="menu-style">
-                    <span>Type</span>
-                    <Select
-                        pWidth={'100%'}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pFontSize={12}
-                        pInitValue={pPanelOption.chartOptions?.chartType}
-                        onChange={(aEvent: any) => HandleOption(aEvent, 'chartType')}
-                        pOptions={['line', 'bar', 'scatter']}
+                                );
+                            })}
+                        </Page.ContentBlock>
+                    </Page.Collapse>
+                    <Page.Divi />
+                    <BadgeSelect
+                        label="Series"
+                        selectedList={pPanelOption?.chartOptions?.textSeries}
+                        list={getBlockList}
+                        onChange={(item) => handleSeriesOption('textSeries', item)}
                     />
-                </div>
-                {pPanelOption.chartOptions?.chartType === 'line' && (
-                    <div className="menu-style">
-                        <span>Opacity (0 ~ 1)</span>
+                </Page.ContentBlock>
+            </Page.Collapse>
+            <Page.Divi />
+            <Page.Collapse title="Chart option">
+                <Page.ContentBlock pHoverNone style={{ padding: 0, gap: '8px', display: 'flex', flexDirection: 'column' }}>
+                    <Dropdown.Root
+                        label="Type"
+                        options={['line', 'bar', 'scatter'].map((option) => ({ label: option, value: option }))}
+                        value={pPanelOption.chartOptions?.chartType}
+                        onChange={(value: string) => HandleOption({ target: { value } }, 'chartType')}
+                        fullWidth
+                    >
+                        <Dropdown.Trigger />
+                        <Dropdown.Menu>
+                            <Dropdown.List />
+                        </Dropdown.Menu>
+                    </Dropdown.Root>
+                    {pPanelOption.chartOptions?.chartType === 'line' && (
                         <Input
-                            pType="number"
-                            pWidth={'100%'}
-                            pHeight={25}
-                            pMin={0}
-                            pMax={1}
-                            pBorderRadius={4}
-                            pValue={pPanelOption.chartOptions?.fillOpacity}
+                            label="Opacity (0 ~ 1)"
+                            type="number"
+                            fullWidth
+                            min={0}
+                            max={1}
+                            value={pPanelOption.chartOptions?.fillOpacity}
                             onChange={(aEvent: any) => HandleOption(aEvent, 'fillOpacity')}
                         />
-                    </div>
-                )}
-                {pPanelOption.chartOptions?.chartType !== 'bar' && (
-                    <div className="menu-style">
-                        <div>Symbol size</div>
+                    )}
+                    {pPanelOption.chartOptions?.chartType !== 'bar' && (
                         <Input
-                            pType="number"
-                            pHeight={25}
-                            pWidth={'100%'}
-                            pBorderRadius={4}
-                            pValue={pPanelOption.chartOptions?.symbolSize}
+                            label="Symbol size"
+                            type="number"
+                            fullWidth
+                            value={pPanelOption.chartOptions?.symbolSize}
                             onChange={(aEvent: any) => HandleOption(aEvent, 'symbolSize')}
                         />
-                    </div>
-                )}
-                <div className="menu-style" ref={sChartColorPickerRef} style={{ position: 'relative' }}>
-                    <span>Color</span>
-                    <IconButton
-                        pWidth={20}
-                        pHeight={20}
-                        pIcon={
-                            <div
-                                style={{
-                                    width: '14px',
-                                    cursor: 'inherit',
-                                    height: '14px',
-                                    marginRight: '4px',
-                                    borderRadius: '50%',
-                                    backgroundColor: pPanelOption.chartOptions?.chartColor as string,
-                                }}
-                            ></div>
-                        }
-                        onClick={() => setIsChartColorPicker(!sIsChartColorPicker)}
-                    />
-                    {sIsChartColorPicker && (
-                        <div className="color-picker">
-                            <CompactPicker
-                                color={pPanelOption.chartOptions?.chartColor as string}
-                                onChangeComplete={(aInfo: any) => {
-                                    HandleOption({ target: { value: aInfo.hex } }, 'chartColor');
-                                }}
-                            />
-                        </div>
                     )}
-                </div>
-                <>
-                    <div className="divider" />
-                    <span>Series</span>
-                    <div style={{ padding: '8px 10px 0 0' }}>
-                        <BadgeSelect pSelectedList={pPanelOption?.chartOptions?.chartSeries} pList={getBlockList} pCallback={(item) => handleSeriesOption('chartSeries', item)} />
-                    </div>
-                </>
-            </Collapse>
-        </div>
+                    <Page.DpRow style={{ gap: '8px' }}>
+                        <Page.ContentDesc>Color</Page.ContentDesc>
+                        <ColorPicker color={pPanelOption.chartOptions?.chartColor} onChange={(color: string) => HandleOption({ target: { value: color } }, 'chartColor')} />
+                    </Page.DpRow>
+                    <Page.Divi />
+                    <BadgeSelect
+                        label="Series"
+                        selectedList={pPanelOption?.chartOptions?.chartSeries}
+                        list={getBlockList}
+                        onChange={(item) => handleSeriesOption('chartSeries', item)}
+                    />
+                </Page.ContentBlock>
+            </Page.Collapse>
+        </>
     );
 };

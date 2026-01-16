@@ -1,0 +1,115 @@
+@use '@/design-system/tokens' as t;
+
+.date-picker {
+    position: relative;
+    display: inline-block;
+
+    &__input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: t.$spacing-4;
+    }
+
+    &__input {
+        flex: 1;
+        padding: t.$spacing-8 t.$spacing-12;
+        background-color: t.$bg-secondary;
+        border: 0.5px solid t.$border-color-default;
+        border-radius: t.$border-radius-base;
+        color: t.$text-primary;
+        font-size: t.$font-size-base;
+        line-height: t.$line-height-normal;
+        outline: none;
+        transition: border-color t.$transition-duration-fast;
+
+        &:focus {
+            border-color: t.$border-color-focus;
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        &::placeholder {
+            color: t.$text-tertiary;
+        }
+    }
+
+    &__icon-button {
+        flex-shrink: 0;
+        padding: t.$spacing-4;
+    }
+
+    &__modal {
+        position: fixed;
+        z-index: t.$z-index-modal + 1;
+    }
+
+    &__content {
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh - 32px);
+        background-color: t.$bg-elevated;
+        border: 1px solid t.$border-color-default;
+        border-radius: t.$border-radius-md;
+        box-shadow: t.$shadow-lg;
+        overflow: hidden;
+    }
+
+    &__form {
+        display: flex;
+        gap: t.$spacing-16;
+        padding: t.$spacing-16;
+        overflow-y: auto;
+        max-height: calc(100vh - 32px - 60px); // Subtract actions height
+    }
+
+    &__calendar {
+        flex-shrink: 0;
+
+        // Override MUI DateCalendar styles
+        :global(.MuiTypography-root) {
+            color: t.$text-secondary;
+        }
+
+        :global(.MuiButtonBase-root) {
+            color: t.$text-secondary;
+
+            &:hover {
+                background-color: t.$bg-hover;
+            }
+
+            &:global(.Mui-selected) {
+                background-color: t.$btn-create;
+                color: t.$text-primary;
+
+                &:hover {
+                    background-color: t.$primary-hover;
+                }
+            }
+        }
+
+        :global(.MuiPickersCalendarHeader-label) {
+            color: t.$text-primary;
+        }
+
+        :global(.MuiDayCalendar-weekDayLabel) {
+            color: t.$text-tertiary;
+        }
+    }
+
+    &__time {
+        display: flex;
+        align-items: center;
+    }
+
+    &__actions {
+        display: flex;
+        width: 100%;
+        justify-content: end;
+        align-items: center;
+        gap: t.$spacing-8;
+        padding: 0 t.$spacing-16 t.$spacing-16 t.$spacing-16;
+    }
+}

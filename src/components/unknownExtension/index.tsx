@@ -1,6 +1,7 @@
-import './index.scss';
+// import './index.scss';
 import { useState, useEffect } from 'react';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
+import { Page } from '@/design-system/components';
 
 export const UnknownExtension = ({ pIsActiveTab, pCode }: { pIsActiveTab: boolean; pCode: unknown }) => {
     const [sText, setText] = useState<any>('');
@@ -11,11 +12,11 @@ export const UnknownExtension = ({ pIsActiveTab, pCode }: { pIsActiveTab: boolea
     }, []);
 
     return (
-        <div className="unknown-extension-editor">
-            <div className="unknown-extension-editor-header" />
-            <div className={`unknown-extension-editor-content${pIsActiveTab ? ' disabled-interaction' : ''}`}>
+        <Page>
+            <Page.Header />
+            <Page.Body>
                 <MonacoEditor pIsReadOnly={true} pIsActiveTab={pIsActiveTab} pText={sText} pLang="go" onSelectLine={() => null} onChange={() => null} onRunCode={() => null} />
-            </div>
-        </div>
+            </Page.Body>
+        </Page>
     );
 };

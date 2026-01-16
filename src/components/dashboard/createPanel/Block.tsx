@@ -1,9 +1,8 @@
 import { getTableInfo, getVirtualTableInfo } from '@/api/repository/api';
 import { getRollupTableList, getTqlChart } from '@/api/repository/machiot';
 import { BsArrowsCollapse, BsArrowsExpand, Close, GoPencil, Refresh, TbMath, TbMathOff } from '@/assets/icons/Icon';
-import { TagSearchSelect } from '@/components/inputs/TagSearchSelect';
-import { IconButton } from '@/components/buttons/IconButton';
 import { generateUUID } from '@/utils';
+import { Button, Page, InputSelect, Input as DSInput, Textarea, ColorPicker } from '@/design-system/components';
 import {
     SEPARATE_DIFF,
     createDefaultTagTableOption,
@@ -15,25 +14,20 @@ import {
     nameValueVirtualAggList,
     tagAggregatorList,
 } from '@/utils/dashboardUtil';
-import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
+import { TableTypeOrderList } from '@/components/Side/DBExplorer/utils';
 import { DIFF_LIST, isCountAllAggregator } from '@/utils/aggregatorConstants';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Filter from './Filter';
-import './Block.scss';
 import Value from './Value';
 import { useSetRecoilState } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
-import { CompactPicker } from 'react-color';
-import useOutsideClick from '@/hooks/useOutsideClick';
-import { useRef } from 'react';
-import { Input } from '@/components/inputs/Input';
 import { CombineTableUser, SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser';
-import { Error } from '@/components/toast/Toast';
+import { Toast } from '@/design-system/components';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import TagSelectDialog from '@/components/inputs/TagSelectDialog';
 import { Duration } from './Duration';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
-import { InputSelector } from '@/components/inputs/InputSelector';
 import { FULL_TYPING_QUERY_PLACEHOLDER } from '@/utils/constants';
 import { FullQueryHelper } from './Block/FullQueryHelper';
 import { E_CHART_TYPE } from '@/type/eChart';
@@ -42,6 +36,8 @@ import { VscEye, VscEyeClosed } from 'react-icons/vsc';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { BadgeStatus } from '@/components/badge';
 import useDebounce from '@/hooks/useDebounce';
+import { MdOutlineOpenInNew } from 'react-icons/md';
+import useOutsideClick from '@/hooks/useOutsideClick';
 
 export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
@@ -50,8 +46,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     const setRollupTabls = useSetRecoilState(gRollupTableList);
     const [sIsLoadingRollup, setIsLoadingRollup] = useState<boolean>(false);
     const [sColumnList, setColumnList] = useState<any>([]);
-    const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
     const [sIsMath, setIsMath] = useState<boolean>(false);
+    const [sMathPosition, setMathPosition] = useState({ top: 0, left: 0 });
     const [sFormulaSelection, setFormulaSelection] = useState<boolean>(false);
     const [sIsTagDialogOpen, setIsTagDialogOpen] = useState<boolean>(false);
     const [sFilterTagDialogInfo, setFilterTagDialogInfo] = useState<{ isOpen: boolean; filterId: string | null; initialValue: string }>({
@@ -59,7 +55,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         filterId: null,
         initialValue: '',
     });
-    const sColorPickerRef = useRef<any>(null);
     const sMathRef = useRef<any>(null);
     const sCustomQueryRef = useRef<any>(null);
     const [sIsValidCustomQuery, setIsValidCustomQuery] = useState<boolean>(false);
@@ -189,7 +184,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                 if (bItem.useTyping) return bItem.typingValue;
                 else {
                     // Check varchar type
-                    const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)[1] === 5;
+                    const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)?.[1] === 5;
                     const sValue = sUseQuote ? `'${bItem.value.includes(',') ? bItem.value.split(',').join("','") : bItem.value}'` : bItem.value;
                     const sTypingValue =
                         bItem.column === 'NAME' && bItem.operator === 'in' ? `${bItem.column} ${bItem.operator} (${sValue})` : `${bItem.column} ${bItem.operator} ${sValue}`;
@@ -238,7 +233,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         if (aKey === 'use' && aData?.target?.value === true) {
             const checkDiff = allowFullTyping();
             if (!checkDiff) {
-                Error('Full typing is not available when using Diff aggregator.');
+                Toast.error('Full typing is not available when using Diff aggregator.');
                 return;
             }
         }
@@ -546,8 +541,19 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         else return true;
     };
     const handleFormulaIconBtn = () => {
-        if (sIsMath) handleExitFormulaField();
-        else setIsMath(() => true);
+        if (sIsMath) {
+            handleExitFormulaField();
+        } else {
+            // Calculate position for math input portal
+            if (sMathRef.current) {
+                const rect = sMathRef.current.getBoundingClientRect();
+                setMathPosition({
+                    top: rect.bottom + 4,
+                    left: rect.left - 200,
+                });
+            }
+            setIsMath(() => true);
+        }
     };
     const handleExitFormulaField = async (aIsOutside?: boolean) => {
         if (aIsOutside && sFormulaSelection) return setFormulaSelection(() => false);
@@ -559,7 +565,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
             setOption('isValidMath', true);
         } else {
             setOption('isValidMath', false);
-            Error('Please check the entered formula.');
+            Toast.error('Please check the entered formula.');
             setIsMath(false);
         }
     };
@@ -611,7 +617,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         return [];
     }, [pPanelOption.type]);
     /** return table list + virtual table list */
-    const getTableList = useMemo((): string[] => {
+    // Check and fix invalid aggregator
+    useEffect(() => {
         const sUseCustom = pBlockInfo.useCustom;
         const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type));
         let sAggList: string[] = [];
@@ -619,8 +626,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         if (sChartDataType === 'NAME_VALUE') sAggList = nameValueAggregatorList;
         if (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER) sAggList = sAggList.filter((agg) => agg !== 'value');
 
-        const sIsValidAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0].aggregator : pBlockInfo.aggregator);
-        // Set vaild agg
+        const sIsValidAgg = sAggList.includes(sUseCustom ? pBlockInfo.values[0]?.aggregator : pBlockInfo.aggregator);
+        // Set valid agg
         if (!sIsValidAgg && pPanelOption.type !== 'Geomap') {
             const sTempBlockInfo = JSON.parse(JSON.stringify(pBlockInfo));
             sTempBlockInfo.aggregator = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? 'avg' : 'count';
@@ -635,7 +642,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                 };
             });
         }
+    }, [pPanelOption.type, pBlockInfo.aggregator, pBlockInfo.values, pBlockInfo.useCustom]);
 
+    const getTableList = useMemo((): string[] => {
         const sSortedTableList = [...pTableList].sort((aTable: any, bTable: any) => {
             const aType = getTableType(aTable[4]);
             const bType = getTableType(bTable[4]);
@@ -714,356 +723,326 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         if (sQuery === '') return setIsValidCustomQuery(true);
         const sResult: any = await getTqlChart(`SQL("${sQuery}")\nJSON()`, 'dsh');
         if (!sResult?.data?.success) {
-            Error('Please check the entered formula.');
+            Toast.error('Please check the entered formula.');
             setIsValidCustomQuery(false);
             return;
         }
         setIsValidCustomQuery(true);
     };
 
-    useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
     useOutsideClick(sMathRef, () => handleExitFormulaField(true));
-    // useOutsideClick(sCustomQueryRef, () => handleExitCustomField());
     useDebounce([pBlockInfo?.customFullTyping.text], handleExitCustomField, 1000);
 
     return (
         <>
-            <div className="series" id={Date()}>
-                <div className="row">
-                    {/* TABLE */}
-                    <div className="row-header">
-                        {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && (
-                            <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="row-header-left">
-                                {/* TABLE */}
-                                <div className="series-table">
-                                    <span className="series-title">
-                                        Table
-                                        <IconButton pDisabled={sIsLoadingRollup} pWidth={25} pHeight={26} pIcon={<Refresh />} onClick={HandleTable} />
-                                    </span>
-                                    <InputSelector
-                                        pFontSize={12}
-                                        pWidth={175}
-                                        pBorderRadius={4}
-                                        pInitValue={pBlockInfo.table}
-                                        pHeight={26}
-                                        onChange={(aEvent: any) => changedOption('table', aEvent)}
-                                        pOptions={getTableList}
-                                    />
-                                </div>
-                                {sSelectedTableType !== 'vir_tag' && (
-                                    <div className="details">
-                                        <div className="series-table">
-                                            <span className="series-title">Time field</span>
-                                            <InputSelector
-                                                pIsDisabled={!sTimeList[0]}
-                                                pFontSize={12}
-                                                pWidth={175}
-                                                pBorderRadius={4}
-                                                pInitValue={pBlockInfo.time}
-                                                pHeight={26}
-                                                onChange={(aEvent: any) => changedOption('time', aEvent)}
-                                                pOptions={sTimeList.map((aItem: any) => {
-                                                    return aItem[0];
-                                                })}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        {pBlockInfo.customFullTyping.use && (
-                            <div ref={sCustomQueryRef} className="row-header-left row-header-left-textarea" style={{ position: 'relative' }}>
-                                <textarea
-                                    placeholder={FULL_TYPING_QUERY_PLACEHOLDER}
-                                    defaultValue={pBlockInfo.customFullTyping.text}
-                                    onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => changedOptionFullTyping('text', event)}
-                                    style={{ height: 100 + 'px', width: '100%', padding: '4px 8px' }}
-                                    onFocus={(e) => e.target.setSelectionRange(0, pBlockInfo?.customFullTyping?.text?.length)}
-                                    autoFocus
-                                />
-                                {!sIsValidCustomQuery && (
-                                    <div style={{ display: 'flex', justifyContent: 'end', position: 'absolute', top: '-4px', right: '0px' }}>
-                                        <BadgeStatus />
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        {!pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && (
-                            <div className="row-header-left">
-                                <div className="series-table">
-                                    <span className="series-title">
-                                        Table <IconButton pDisabled={sIsLoadingRollup} pWidth={25} pHeight={26} pIcon={<Refresh />} onClick={HandleTable} />
-                                    </span>
-                                    <InputSelector
-                                        pFontSize={12}
-                                        pWidth={175}
-                                        pBorderRadius={4}
-                                        pInitValue={pBlockInfo.table}
-                                        pHeight={26}
-                                        onChange={(aEvent: any) => changedOption('table', aEvent)}
-                                        pOptions={getTableList}
-                                    />
-                                </div>
-                                <div className="series-table">
-                                    <span className="series-title"> Tag </span>
-                                    {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
-                                        <div className="tag-search-select-wrapper-custom">
-                                            <Input
-                                                pWidth={150}
-                                                pHeight={26}
-                                                pBorderRadius={4}
-                                                pType="text"
-                                                pValue={pBlockInfo.tag}
-                                                onChange={(aEvent: any) => changedOption('tag', aEvent)}
-                                            />
-                                            <TagSearchSelect pTable={pBlockInfo.table} pCallback={() => setIsTagDialogOpen(true)} pBlockOption={pBlockInfo} pUseDialog={true} />
-                                        </div>
-                                    ) : (
-                                        <div className="tag-search-select-wrapper-custom">
-                                            <InputSelector
-                                                pBorderRadius={4}
-                                                pWidth={175}
-                                                pHeight={26}
-                                                pInitValue={pBlockInfo.tag}
-                                                onChange={(aEvent: any) => changedOption('tag', aEvent)}
-                                                pOptions={[]}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="series-table">
-                                    <span className="series-title"> Aggregator </span>
-                                    <InputSelector
-                                        pFontSize={12}
-                                        pAutoChanged={false}
-                                        pWidth={175}
-                                        pBorderRadius={4}
-                                        pInitValue={pBlockInfo.aggregator}
-                                        pHeight={26}
-                                        onChange={(aEvent: any) => changedOption('aggregator', aEvent)}
-                                        pOptions={getAggregatorList}
-                                    />
-                                    {SEPARATE_DIFF && (
-                                        <div className="series-table">
-                                            <span className="series-title"> Diff </span>
-                                            <InputSelector
-                                                pFontSize={12}
-                                                pAutoChanged={true}
-                                                pWidth={175}
-                                                pBorderRadius={4}
-                                                pInitValue={pBlockInfo?.diff || 'none'}
-                                                pHeight={26}
-                                                onChange={(aEvent: any) => changedOption('diff', aEvent)}
-                                                pOptions={['none'].concat(DIFF_LIST)}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="series-table">
-                                    <span className="series-title"> Alias </span>
-                                    <Input
-                                        pBorderRadius={4}
-                                        pWidth={175}
-                                        pHeight={26}
-                                        pType="text"
-                                        pValue={pBlockInfo.alias}
-                                        pSetValue={() => null}
-                                        onChange={(aEvent: any) => changedOption('alias', aEvent)}
-                                    />
-                                </div>
-                            </div>
-                        )}
-                        <div className="row-header-right">
+            <Page style={{ borderRadius: '4px', border: '1px solid #b8c8da41', gap: '6px', height: 'auto', display: 'table' }}>
+                {/* TABLE */}
+                <Page.ContentBlock style={{ padding: '4px' }} pHoverNone>
+                    <Page.DpRow style={{ width: '100%', justifyContent: 'end', paddingBottom: '8px' }}>
+                        <Button.Group>
                             <FullQueryHelper pIsShow={pBlockInfo.customFullTyping.use} />
-                            <IconButton
-                                pWidth={20}
-                                pHeight={20}
-                                pIsActive={pBlockInfo.customFullTyping.use}
-                                pDisabled={!(pPanelOption.type === 'Line' || pPanelOption.type === 'Bar') || pBlockInfo.customFullTyping?.text?.trim() !== ''}
-                                pIsToopTip
-                                pToolTipId={pBlockInfo.id + '-block-change-full-query-mode'}
-                                pToolTipContent={pBlockInfo.customFullTyping.use ? 'Selecting' : 'Typing'}
-                                pIcon={<GoPencil />}
+                            <Button
+                                size="side"
+                                variant="ghost"
+                                active={pBlockInfo.customFullTyping.use}
+                                disabled={!(pPanelOption.type === 'Line' || pPanelOption.type === 'Bar') || pBlockInfo.customFullTyping?.text?.trim() !== ''}
+                                icon={<GoPencil size={14} />}
                                 onClick={() => changedOptionFullTyping('use', { target: { value: !pBlockInfo.customFullTyping.use } })}
+                                data-tooltip-id={pBlockInfo.id + '-block-change-full-query-mode'}
+                                data-tooltip-content={pBlockInfo.customFullTyping.use ? 'Selecting' : 'Typing'}
                             />
-                            <div ref={sMathRef} style={{ position: 'relative', marginRight: '4px' }}>
-                                <IconButton
-                                    pWidth={20}
-                                    pHeight={20}
-                                    pIsToopTip
-                                    pDisabled={chartTypeConverter(pPanelOption.type) === 'geomap' || pBlockInfo.customFullTyping.use}
-                                    pIsActive={pBlockInfo?.math && pBlockInfo?.math !== ''}
-                                    pToolTipContent={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'Enter formula' : pBlockInfo?.math}
-                                    pToolTipId={pBlockInfo.id + '-block-math'}
-                                    pIcon={
+                            <div ref={sMathRef} style={{ position: 'relative', display: 'flex', alignContent: 'center' }}>
+                                <Button
+                                    size="side"
+                                    variant="ghost"
+                                    active={pBlockInfo?.math && pBlockInfo?.math !== ''}
+                                    disabled={chartTypeConverter(pPanelOption.type) === 'geomap' || pBlockInfo.customFullTyping.use}
+                                    icon={
                                         <div style={{ width: '16px', height: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                             {pBlockInfo?.isValidMath ? (
                                                 pBlockInfo?.math && pBlockInfo?.math !== '' ? (
-                                                    <TbMath />
+                                                    <TbMath size={14} />
                                                 ) : (
-                                                    <TbMathOff />
+                                                    <TbMathOff size={14} />
                                                 )
                                             ) : (
                                                 <div style={{ width: '16px', height: '16px', display: 'flex' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'end', position: 'absolute', top: '-6px', right: '-3px' }}>
                                                         <BadgeStatus />
                                                     </div>
-                                                    {pBlockInfo?.math && pBlockInfo?.math !== '' ? <TbMath /> : <TbMathOff />}
+                                                    {pBlockInfo?.math && pBlockInfo?.math !== '' ? <TbMath size={16} /> : <TbMathOff size={16} />}
                                                 </div>
                                             )}
                                         </div>
                                     }
                                     onClick={handleFormulaIconBtn}
+                                    data-tooltip-id={pBlockInfo.id + '-block-math'}
+                                    data-tooltip-content={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'Enter formula' : pBlockInfo?.math}
                                 />
-                                {sIsMath && (
-                                    <div
-                                        className="math-typing-wrap"
-                                        style={{
-                                            width: '200px',
-                                            height: '26px',
-                                            position: 'absolute',
-                                            top: '20px',
-                                            left: '-200px',
-                                            backgroundColor: '#FFFFFF',
-                                            borderRadius: '5px',
-                                        }}
-                                        onKeyDown={handleEnterKey}
-                                        onMouseDown={() => setFormulaSelection(() => true)}
-                                        onMouseUp={() => setFormulaSelection(() => false)}
-                                    >
-                                        <Input
-                                            pBorderRadius={4}
-                                            pWidth={200}
-                                            pHeight={26}
-                                            pType="text"
-                                            pAutoFocus
-                                            pValue={pBlockInfo?.math}
-                                            pPlaceHolder={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'value * 1.0' : ''}
-                                            pSetValue={() => null}
-                                            onChange={(aEvent: any) => changedOption('math', aEvent)}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                            <IconButton
-                                pWidth={20}
-                                pHeight={20}
-                                pIsToopTip
-                                pDisabled={pBlockCount.addable ? false : pBlockInfo?.isVisible ? false : true}
-                                pToolTipContent={pBlockInfo?.isVisible ? 'Visible' : 'Invisible'}
-                                pToolTipId={pBlockInfo.id + '-block-visible'}
-                                pIcon={pBlockInfo?.isVisible ? <VscEye /> : <VscEyeClosed />}
-                                onClick={() => setOption('isVisible', !pBlockInfo?.isVisible)}
-                            />
-                            <div ref={sColorPickerRef} style={{ position: 'relative' }}>
-                                <IconButton
-                                    pDisabled={
-                                        chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ||
-                                        (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && pPanelOption.xAxisOptions[0].useBlockList[0] === pBlockOrder)
-                                    }
-                                    pWidth={20}
-                                    pHeight={20}
-                                    pIsToopTip
-                                    pToolTipContent={'Color'}
-                                    pToolTipId={pBlockInfo.id + '-block-color'}
-                                    pIcon={
+                                {sIsMath &&
+                                    createPortal(
                                         <div
-                                            style={{ width: '14px', cursor: 'pointer', height: '14px', marginRight: '4px', borderRadius: '50%', backgroundColor: pBlockInfo.color }}
-                                        />
+                                            className="math-typing-wrap"
+                                            style={{
+                                                width: '200px',
+                                                height: '26px',
+                                                position: 'fixed',
+                                                top: `${sMathPosition.top}px`,
+                                                left: `${sMathPosition.left}px`,
+                                                backgroundColor: '#2d2d2d',
+                                                border: '1px solid rgba(255, 255, 255, 0.13)',
+                                                borderRadius: '4px',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                zIndex: 9999,
+                                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                                            }}
+                                            onKeyDown={handleEnterKey}
+                                            onMouseDown={() => setFormulaSelection(() => true)}
+                                            onMouseUp={() => setFormulaSelection(() => false)}
+                                        >
+                                            <DSInput
+                                                type="text"
+                                                autoFocus
+                                                value={pBlockInfo?.math}
+                                                placeholder={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'value * 1.0' : ''}
+                                                onChange={(e) => changedOption('math', e)}
+                                                size="sm"
+                                                style={{ width: '200px', height: '26px' }}
+                                            />
+                                        </div>,
+                                        document.body
+                                    )}
+                            </div>
+                            <Button
+                                size="side"
+                                variant="ghost"
+                                disabled={pBlockCount.addable ? false : pBlockInfo?.isVisible ? false : true}
+                                icon={pBlockInfo?.isVisible ? <VscEye size={16} /> : <VscEyeClosed size={16} />}
+                                onClick={() => setOption('isVisible', !pBlockInfo?.isVisible)}
+                                data-tooltip-id={pBlockInfo.id + '-block-visible'}
+                                data-tooltip-content={pBlockInfo?.isVisible ? 'Visible' : 'Invisible'}
+                            />
+                            <ColorPicker
+                                color={pBlockInfo.color}
+                                onChange={(color: string) => setOption('color', color)}
+                                disabled={
+                                    chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ||
+                                    (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && pPanelOption.xAxisOptions[0].useBlockList[0] === pBlockOrder)
+                                }
+                                tooltipId={pBlockInfo.id + '-block-color'}
+                                tooltipContent="Color"
+                            />
+                            <Button
+                                size="side"
+                                variant="ghost"
+                                disabled={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' || pPanelOption.type === 'Geomap' || pBlockInfo.customFullTyping.use}
+                                icon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={14} /> : <BsArrowsExpand size={14} />}
+                                onClick={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
+                                data-tooltip-id={pBlockInfo.id + '-block-expand'}
+                                data-tooltip-content={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
+                            />
+                            <Button
+                                size="side"
+                                variant="ghost"
+                                disabled={pPanelOption.blockList.length === 1 || checkTransformDataUsage()}
+                                icon={<Close size={16} />}
+                                onClick={pPanelOption.blockList.length !== 1 ? () => deleteSeries() : () => {}}
+                                data-tooltip-id={pBlockInfo.id + '-block-delete'}
+                                data-tooltip-content="Delete"
+                            />
+                        </Button.Group>
+                    </Page.DpRow>
+                    {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && (
+                        <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="row-header-left">
+                            {/* TABLE */}
+                            <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
+                                <InputSelect
+                                    label={
+                                        <>
+                                            Table
+                                            <Button size="side" variant="ghost" icon={<Refresh size={12} />} onClick={HandleTable} disabled={sIsLoadingRollup} />
+                                        </>
                                     }
-                                    onClick={() => setIsColorPicker(!sIsColorPicker)}
+                                    labelPosition="left"
+                                    type="text"
+                                    options={getTableList.map((opt: string) => ({ label: opt, value: opt }))}
+                                    value={pBlockInfo.table}
+                                    onChange={(aEvent: any) => changedOption('table', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                    selectValue={pBlockInfo.table}
+                                    onSelectChange={(value: string) => changedOption('table', { target: { value, name: 'customSelect' } })}
+                                    size="md"
+                                    style={{ width: '160px' }}
+                                />
+                                {sSelectedTableType !== 'vir_tag' && (
+                                    <InputSelect
+                                        label="Time field"
+                                        labelPosition="left"
+                                        type="text"
+                                        options={sTimeList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
+                                        value={pBlockInfo.time}
+                                        onChange={(aEvent: any) => changedOption('time', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                        selectValue={pBlockInfo.time}
+                                        onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
+                                        disabled={!sTimeList[0]}
+                                        size="md"
+                                        style={{ width: '160px' }}
+                                    />
+                                )}
+                            </Page.DpRow>
+                        </div>
+                    )}
+                    {pBlockInfo.customFullTyping.use && (
+                        <div ref={sCustomQueryRef} style={{ position: 'relative' }}>
+                            <Textarea
+                                placeholder={FULL_TYPING_QUERY_PLACEHOLDER}
+                                defaultValue={pBlockInfo.customFullTyping.text}
+                                onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => changedOptionFullTyping('text', event)}
+                                onFocus={(e) => e.target.setSelectionRange(0, pBlockInfo?.customFullTyping?.text?.length)}
+                                autoFocus
+                                fullWidth
+                                size="md"
+                                resize="vertical"
+                            />
+                            {!sIsValidCustomQuery && (
+                                <div style={{ display: 'flex', justifyContent: 'end', position: 'absolute', top: '-4px', right: '0px' }}>
+                                    <BadgeStatus />
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {!pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use ? (
+                        <div style={{ gap: '4px', display: 'flex', flexDirection: 'column' }}>
+                            <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
+                                <InputSelect
+                                    label={
+                                        <>
+                                            Table <Button size="side" variant="ghost" icon={<Refresh size={12} />} onClick={HandleTable} disabled={sIsLoadingRollup} />
+                                        </>
+                                    }
+                                    labelPosition="left"
+                                    type="text"
+                                    options={getTableList.map((opt: string) => ({ label: opt, value: opt }))}
+                                    value={pBlockInfo.table}
+                                    onChange={(aEvent: any) => changedOption('table', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                    selectValue={pBlockInfo.table}
+                                    onSelectChange={(value: string) => changedOption('table', { target: { value, name: 'customSelect' } })}
+                                    size="md"
+                                    style={{ width: '160px' }}
                                 />
 
-                                {sIsColorPicker && (
-                                    <div className="color-picker">
-                                        <CompactPicker
-                                            color={pBlockInfo.color}
-                                            onChangeComplete={(aInfo: any) => {
-                                                setOption('color', aInfo.hex);
-                                            }}
-                                        />
-                                    </div>
+                                {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
+                                    <DSInput
+                                        label="Tag"
+                                        labelPosition="left"
+                                        type="text"
+                                        value={pBlockInfo.tag}
+                                        onChange={(e) => changedOption('tag', e)}
+                                        size="md"
+                                        style={{ maxWidth: '160px' }}
+                                        rightIcon={<Button size="icon" variant="ghost" onClick={() => setIsTagDialogOpen(true)} icon={<MdOutlineOpenInNew />} />}
+                                    />
+                                ) : (
+                                    <DSInput
+                                        style={{ width: '160px' }}
+                                        size="md"
+                                        label="Tag"
+                                        labelPosition="left"
+                                        type="text"
+                                        value={pBlockInfo.tag}
+                                        onChange={(aEvent: any) => changedOption('tag', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                    />
                                 )}
-                            </div>
-                            <IconButton
-                                pWidth={20}
-                                pHeight={20}
-                                pIsToopTip
-                                pToolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
-                                pToolTipId={pBlockInfo.id + '-block-expand'}
-                                pDisabled={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' || pPanelOption.type === 'Geomap' || pBlockInfo.customFullTyping.use}
-                                pIcon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={16} /> : <BsArrowsExpand size={16} />}
-                                onClick={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
+                            </Page.DpRow>
+                            <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
+                                <InputSelect
+                                    label="Aggregator"
+                                    labelPosition="left"
+                                    type="text"
+                                    options={getAggregatorList.map((opt: string) => ({ label: opt, value: opt }))}
+                                    value={pBlockInfo.aggregator}
+                                    onChange={(aEvent: any) => changedOption('aggregator', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                    selectValue={pBlockInfo.aggregator}
+                                    onSelectChange={(value: string) => changedOption('aggregator', { target: { value, name: 'customSelect' } })}
+                                    size="md"
+                                    style={{ width: '160px' }}
+                                />
+                                {SEPARATE_DIFF && (
+                                    <InputSelect
+                                        label="Diff"
+                                        labelPosition="left"
+                                        type="text"
+                                        options={['none'].concat(DIFF_LIST).map((opt: string) => ({ label: opt, value: opt }))}
+                                        value={pBlockInfo?.diff || 'none'}
+                                        onChange={(aEvent: any) => changedOption('diff', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                        selectValue={pBlockInfo?.diff || 'none'}
+                                        onSelectChange={(value: string) => changedOption('diff', { target: { value, name: 'customSelect' } })}
+                                        size="sm"
+                                    />
+                                )}
+                                <DSInput
+                                    label="Alias"
+                                    labelPosition="left"
+                                    type="text"
+                                    value={pBlockInfo.alias}
+                                    onChange={(e) => changedOption('alias', e)}
+                                    size="md"
+                                    style={{ width: '160px' }}
+                                />
+                            </Page.DpRow>
+                        </div>
+                    ) : (
+                        <></>
+                    )}
+                </Page.ContentBlock>
+                {/* VALUE */}
+                {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom ? (
+                    pBlockInfo.values.map((aItem: any, aIdx: number) => {
+                        return (
+                            <Value
+                                key={aItem.id}
+                                pChangeValueOption={changeValueOption}
+                                pAddValue={addValue}
+                                pRemoveValue={removeValue}
+                                pBlockInfo={pBlockInfo}
+                                pValue={aItem}
+                                pIdx={aIdx}
+                                pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
+                                pPanelOption={pPanelOption}
+                                pAggList={getAggregatorList}
                             />
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent={'Delete'}
-                                pToolTipId={pBlockInfo.id + '-block-delete'}
-                                pDisabled={pPanelOption.blockList.length === 1 || checkTransformDataUsage()}
-                                pWidth={20}
-                                pHeight={20}
-                                pIcon={<Close />}
-                                onClick={pPanelOption.blockList.length !== 1 ? () => deleteSeries() : () => {}}
-                            />
-                        </div>
-                    </div>
-                    {/* VALUE */}
-                    {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }} />}
-                    {!pBlockInfo.customFullTyping.use && (
-                        <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
-                            <div style={{ width: '100%' }}>
-                                {pBlockInfo.values.map((aItem: any, aIdx: number) => {
-                                    return (
-                                        <Value
-                                            key={aItem.id}
-                                            pChangeValueOption={changeValueOption}
-                                            pAddValue={addValue}
-                                            pRemoveValue={removeValue}
-                                            pBlockInfo={pBlockInfo}
-                                            pValue={aItem}
-                                            pIdx={aIdx}
-                                            pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
-                                            pPanelOption={pPanelOption}
-                                            pAggList={getAggregatorList}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* FILTER */}
-                    {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom && <div className="divider" style={{ margin: '6px 4px' }}></div>}
-                    {!pBlockInfo.customFullTyping.use && (
-                        <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="details">
-                            <div>
-                                {pBlockInfo.filter.map((aItem: any, aIdx: number) => {
-                                    return (
-                                        <Filter
-                                            key={aItem.id}
-                                            pColumnList={sColumnList}
-                                            pBlockInfo={pBlockInfo}
-                                            pFilterInfo={aItem}
-                                            pChangeValueOption={changeValueOption}
-                                            pIdx={aIdx}
-                                            pAddFilter={addFilter}
-                                            pRemoveFilter={removeFilter}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* DURATION */}
-                    {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && getUseDuration() && (
-                        <>
-                            <div className="divider" style={{ margin: '6px 4px' }}></div>
-                            <Duration pBlockInfo={pBlockInfo} pSetPanelOption={pSetPanelOption} />
-                        </>
-                    )}
-                </div>
-            </div>
+                        );
+                    })
+                ) : (
+                    <></>
+                )}
+                {/* FILTER */}
+                {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom ? (
+                    <>
+                        <Page.Divi />
+                        <Page.ContentBlock style={{ padding: '4px', gap: '4px', display: 'flex', flexWrap: 'wrap' }} pHoverNone>
+                            {pBlockInfo.filter.map((aItem: any, aIdx: number) => {
+                                return (
+                                    <Filter
+                                        key={aItem.id}
+                                        pColumnList={sColumnList}
+                                        pBlockInfo={pBlockInfo}
+                                        pFilterInfo={aItem}
+                                        pChangeValueOption={changeValueOption}
+                                        pIdx={aIdx}
+                                        pAddFilter={addFilter}
+                                        pRemoveFilter={removeFilter}
+                                    />
+                                );
+                            })}
+                        </Page.ContentBlock>
+                    </>
+                ) : (
+                    <></>
+                )}
+                {/* DURATION */}
+                {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && getUseDuration() ? <Duration pBlockInfo={pBlockInfo} pSetPanelOption={pSetPanelOption} /> : <></>}
+            </Page>
             {sIsTagDialogOpen && (
                 <TagSelectDialog
                     pTable={pBlockInfo.table}

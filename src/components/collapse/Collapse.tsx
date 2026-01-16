@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './Collapse.scss';
-import { VscChevronDown, VscChevronRight } from '@/assets/icons/Icon';
+import { VscChevronRight } from '@/assets/icons/Icon';
 
 interface CollapseProps {
     title: string;
@@ -19,7 +19,9 @@ export const Collapse = (props: CollapseProps) => {
     return (
         <div className={`collapse${isDisable ? ' collapse-disable' : ''}`}>
             <div className="collapse-header" onClick={handleOpen}>
-                <div className="collapse-icon">{sIsOpen ? <VscChevronDown /> : <VscChevronRight />}</div>
+                <div className={`collapse-icon ${sIsOpen ? 'collapse-icon--open' : ''}`}>
+                    <VscChevronRight />
+                </div>
                 {title}
             </div>
             <div className="collapse-body" style={{ display: sIsOpen ? '' : 'none' }}>

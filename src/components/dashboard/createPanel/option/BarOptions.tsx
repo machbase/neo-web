@@ -1,6 +1,4 @@
-import CheckBox from '@/components/inputs/CheckBox';
-import { Input } from '@/components/inputs/Input';
-import { Select } from '@/components/inputs/Select';
+import { Dropdown, Input, Checkbox, Page } from '@/design-system/components';
 import { ChartXAxisTypeList } from '@/utils/constants';
 
 interface BarOptionProps {
@@ -26,72 +24,59 @@ export const BarOptions = (props: BarOptionProps) => {
 
     return (
         <div>
-            <CheckBox pText="Stack mode" pDefaultChecked={pPanelOption.chartOptions?.isStack ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isStack', true)} />
+            <Checkbox size="sm" label="Stack mode" defaultChecked={pPanelOption.chartOptions?.isStack ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isStack', true)} />
             <div style={{ height: '10px' }} />
-            <CheckBox pText="Large data mode" pDefaultChecked={pPanelOption.chartOptions?.isLarge ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isLarge', true)} />
-            <div className="divider" />
-            <CheckBox pText="Polar mode" pDefaultChecked={pPanelOption.chartOptions?.isPolar ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isPolar', true)} />
+            <Checkbox size="sm" label="Large data mode" defaultChecked={pPanelOption.chartOptions?.isLarge ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isLarge', true)} />
+            <Page.Divi />
+            <Checkbox size="sm" label="Polar mode" defaultChecked={pPanelOption.chartOptions?.isPolar ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isPolar', true)} />
             <div style={{ height: '10px' }} />
-            <div className="menu-style">
-                <span>Max</span>
+            <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                 <Input
-                    pType="number"
-                    pWidth={'100%'}
-                    pHeight={30}
-                    pBorderRadius={4}
-                    pIsDisabled={!pPanelOption.chartOptions?.isPolar}
-                    pValue={pPanelOption.chartOptions?.maxValue}
+                    label="Max"
+                    type="number"
+                    fullWidth
+                    disabled={!pPanelOption.chartOptions?.isPolar}
+                    value={pPanelOption.chartOptions?.maxValue}
                     onChange={(aEvent: any) => handleBarOption(aEvent, 'maxValue', false)}
                 />
-            </div>
-            <div className="menu-style">
-                <span>Start angle</span>
                 <Input
-                    pType="number"
-                    pWidth={'100%'}
-                    pHeight={30}
-                    pBorderRadius={4}
-                    pIsDisabled={!pPanelOption.chartOptions?.isPolar}
-                    pValue={pPanelOption.chartOptions?.startAngle}
+                    label="Start angle"
+                    type="number"
+                    fullWidth
+                    disabled={!pPanelOption.chartOptions?.isPolar}
+                    value={pPanelOption.chartOptions?.startAngle}
                     onChange={(aEvent: any) => handleBarOption(aEvent, 'startAngle', false)}
                 />
-            </div>
-            <div className="menu-style">
-                <span>Radius</span>
                 <Input
-                    pType="number"
-                    pWidth={'100%'}
-                    pHeight={30}
-                    pBorderRadius={4}
-                    pIsDisabled={!pPanelOption.chartOptions?.isPolar}
-                    pValue={pPanelOption.chartOptions?.polarRadius}
+                    label="Radius"
+                    type="number"
+                    fullWidth
+                    disabled={!pPanelOption.chartOptions?.isPolar}
+                    value={pPanelOption.chartOptions?.polarRadius}
                     onChange={(aEvent: any) => handleBarOption(aEvent, 'polarRadius', false)}
                 />
-            </div>
-            <div className="menu-style">
-                <span>Polar size</span>
                 <Input
-                    pType="number"
-                    pWidth={'100%'}
-                    pHeight={30}
-                    pBorderRadius={4}
-                    pIsDisabled={!pPanelOption.chartOptions?.isPolar}
-                    pValue={pPanelOption.chartOptions?.polarSize}
+                    label="Polar size"
+                    type="number"
+                    fullWidth
+                    disabled={!pPanelOption.chartOptions?.isPolar}
+                    value={pPanelOption.chartOptions?.polarSize}
                     onChange={(aEvent: any) => handleBarOption(aEvent, 'polarSize', false)}
                 />
-            </div>
-            <div className="menu-style">
-                <span>Polar axis</span>
-                <Select
-                    pWidth={'100%'}
-                    pHeight={30}
-                    pBorderRadius={4}
-                    pIsDisabled={!pPanelOption.chartOptions?.isPolar}
-                    pInitValue={pPanelOption.chartOptions?.polarAxis}
-                    onChange={(aEvent: any) => handleBarOption(aEvent, 'polarAxis', false)}
-                    pOptions={ChartXAxisTypeList}
-                />
-            </div>
+                <Dropdown.Root
+                    label="Polar axis"
+                    options={ChartXAxisTypeList.map((option) => ({ label: option, value: option }))}
+                    value={pPanelOption.chartOptions?.polarAxis}
+                    onChange={(value: string) => handleBarOption({ target: { value } }, 'polarAxis', false)}
+                    fullWidth
+                    disabled={!pPanelOption.chartOptions?.isPolar}
+                >
+                    <Dropdown.Trigger />
+                    <Dropdown.Menu>
+                        <Dropdown.List />
+                    </Dropdown.Menu>
+                </Dropdown.Root>
+            </Page.ContentBlock>
         </div>
     );
 };

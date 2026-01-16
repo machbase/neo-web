@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import './ShowVisualization.scss';
 import { useEffect, useRef, useState } from 'react';
 import { ExistCommonScript, loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
@@ -45,7 +44,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
         Element.style.width = sSize.w;
         Element.style.height = sSize.h;
         Element.style.margin = pIsCenter ? 'auto' : 'initial';
-        Element.style.backgroundColor = sTheme === 'dark' ? '' : '#FFF';
+        Element.style.backgroundColor = sTheme === 'dark' ? '#252525' : '#FFF';
 
         GetIsTqlType() && Element.setAttribute('name', PanelIdParser(pPanelId) ?? pData[GetVisualID()]);
 

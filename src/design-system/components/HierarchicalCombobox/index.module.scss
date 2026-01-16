@@ -1,293 +1,5 @@
 @use '@/design-system/tokens' as t;
 
-// .hierarchical-combobox-container {
-//     display: flex;
-//     flex-direction: column;
-//     gap: t.$spacing-8;
-//     width: 100%;
-
-//     &--full-width {
-//         width: 100%;
-//     }
-
-//     &--label-left {
-//         .hierarchical-combobox-field-wrapper {
-//             flex-direction: row;
-//             align-items: center;
-//             gap: t.$spacing-12;
-
-//             .hierarchical-combobox-label {
-//                 margin-bottom: 0;
-//                 white-space: nowrap;
-//                 min-width: 120px;
-//                 flex-shrink: 0;
-//             }
-
-//             .hierarchical-combobox {
-//                 flex: 1;
-//             }
-//         }
-//     }
-
-//     &--label-top {
-//         .hierarchical-combobox-field-wrapper {
-//             flex-direction: column;
-//         }
-//     }
-// }
-
-// .hierarchical-combobox-field-wrapper {
-//     display: flex;
-//     flex-direction: column;
-//     gap: t.$spacing-8;
-// }
-
-// .hierarchical-combobox-label {
-//     font-size: t.$font-size-base;
-//     font-weight: 500;
-//     color: t.$text-secondary;
-//     user-select: none;
-// }
-
-// .hierarchical-combobox {
-//     position: relative;
-//     width: 100%;
-
-//     // Input wrapper - contains input and trigger button
-//     &__input-wrapper {
-//         position: relative;
-//         @include t.flex-row(0);
-//         align-items: center;
-//         cursor: pointer;
-//     }
-
-//     // Input field (Combobox-style search)
-//     &__input {
-//         @include t.input-base;
-//         font-size: t.$font-size-sm;
-//         flex: 1;
-//         min-width: 0;
-//         height: t.$input-height;
-//         padding: 0 t.$spacing-32 0 t.$spacing-12;
-//         background-color: #2b2b2b;
-//         border: 1px solid #3a3a3a;
-//         border-radius: t.$border-radius-base;
-//         cursor: pointer;
-//         box-sizing: border-box;
-//         transition: border-color 0.15s ease;
-
-//         &:hover:not(:disabled) {
-//             border-color: #5a5a5a;
-//         }
-
-//         &:focus {
-//             cursor: text;
-//             border-color: t.$border-color-focus;
-//         }
-
-//         &:disabled {
-//             @include t.disabled-state;
-//             cursor: not-allowed;
-//         }
-//     }
-
-//     // Clear button (styled by Button component)
-//     &__clear {
-//         position: absolute;
-//         right: t.$spacing-32;
-//         top: 50%;
-//         transform: translateY(-50%) !important;
-//         width: t.$input-action-button-width;
-//         height: t.$input-action-button-height;
-//         padding: 0 !important;
-//         min-width: unset !important;
-//         display: flex;
-//         align-items: center;
-//         justify-content: center;
-//     }
-
-//     // Trigger button (styled by Button component)
-//     &__trigger {
-//         position: absolute;
-//         right: t.$spacing-4;
-//         top: 50%;
-//         transform: translateY(-50%) !important;
-//         width: t.$input-action-button-width;
-//         height: t.$input-action-button-height;
-//         padding: 0 !important;
-//         min-width: unset !important;
-//         display: flex;
-//         align-items: center;
-//         justify-content: center;
-
-//         :global([class*='icon']) {
-//             transition: transform 0.2s ease;
-//         }
-
-//         &--open :global([class*='icon']) {
-//             transform: rotate(180deg);
-//         }
-//     }
-
-//     // Menu container
-//     &__menu {
-//         position: absolute;
-//         background-color: t.$dropdown-bg;
-//         border: 1px solid t.$dropdown-border;
-//         border-radius: t.$border-radius-base;
-//         box-shadow: t.$dropdown-shadow;
-//         z-index: t.$z-index-modal-dropdown;
-//         max-height: t.$dropdown-max-height;
-//         overflow: hidden;
-//         min-width: 100px;
-//         width: max-content;
-//         display: flex;
-//         @include t.fade-in(0.15s);
-//         animation: slideDown 0.15s ease-out;
-//     }
-
-//     // Container for two-column layout
-//     &__container {
-//         display: flex;
-//         width: 100%;
-//         min-height: 0;
-//         flex: 1;
-//     }
-
-//     // Left column - Categories list
-//     &__categories {
-//         padding: t.$spacing-4;
-//         margin: 0;
-//         list-style: none;
-//         box-sizing: border-box;
-//         display: flex;
-//         flex-direction: column;
-//         gap: t.$spacing-2;
-//         flex: 1;
-//         min-width: 150px;
-//         overflow-y: auto;
-//         overflow-x: hidden;
-//         border-right: 1px solid rgba(255, 255, 255, 0.1);
-//         @include t.scrollbar;
-//     }
-
-//     // Category button
-//     &__category {
-//         @include t.hierarchical-combobox-category;
-
-//         &--selected {
-//             @include t.hierarchical-combobox-category-selected;
-//         }
-//     }
-
-//     // Category label
-//     &__category-label {
-//         flex: 1;
-//         @include t.text-ellipsis;
-//     }
-
-//     // Category chevron
-//     &__category-chevron {
-//         flex-shrink: 0;
-//         opacity: 0.6;
-//         transition: transform 0.2s ease;
-
-//         .hierarchical-combobox__category--selected & {
-//             transform: rotate(90deg);
-//         }
-//     }
-
-//     // Right column - Items list
-//     &__items {
-//         padding: t.$spacing-4;
-//         margin: 0;
-//         list-style: none;
-//         box-sizing: border-box;
-//         display: flex;
-//         flex-direction: column;
-//         gap: t.$spacing-2;
-//         flex: 1;
-//         min-width: 150px;
-//         overflow-y: auto;
-//         overflow-x: hidden;
-//         @include t.scrollbar;
-//     }
-
-//     // Item button
-//     &__item {
-//         display: flex;
-//         align-items: center;
-//         gap: t.$spacing-10;
-//         padding: t.$spacing-6 t.$spacing-8;
-//         border-radius: t.$border-radius-sm;
-//         border: none;
-//         outline: none;
-//         cursor: pointer;
-//         transition: background-color 0.15s ease, color 0.15s ease;
-//         color: t.$text-secondary;
-//         font-size: t.$font-size-sm;
-//         background: none;
-//         width: 100%;
-//         text-align: left;
-
-//         &:hover:not(&--selected) {
-//             background-color: t.$dropdown-option-hover-bg;
-//             color: t.$color-white;
-//         }
-
-//         &--selected {
-//             background-color: t.$dropdown-option-selected-bg;
-//             color: t.$color-white;
-//             border-radius: 0;
-
-//             &:hover {
-//                 background-color: t.$dropdown-option-selected-bg;
-//             }
-//         }
-//     }
-
-//     // Item label
-//     &__item-label {
-//         flex: 1;
-//         @include t.text-ellipsis;
-//     }
-
-//     // Item checkmark
-//     &__item-check {
-//         flex-shrink: 0;
-//         color: t.$text-primary;
-//     }
-
-//     // List container (for empty state)
-//     &__list {
-//         display: flex;
-//         align-items: center;
-//         justify-content: center;
-//         width: 100%;
-//         min-height: 150px;
-//     }
-
-//     // Empty message
-//     &__empty {
-//         padding: t.$spacing-12;
-//         text-align: center;
-//         color: t.$text-tertiary;
-//         font-size: t.$font-size-sm;
-//     }
-// }
-
-// // Slide-down animation
-// @keyframes slideDown {
-//     from {
-//         opacity: 0;
-//         transform: translateY(-4px);
-//     }
-//     to {
-//         opacity: 1;
-//         transform: translateY(0);
-//     }
-// }
-
 .hierarchical-combobox-container {
     display: flex;
     flex-direction: column;
@@ -351,22 +63,32 @@
 
     // Input field (Combobox-style search)
     &__input {
+        @include t.input-base;
         font-size: t.$font-size-sm;
         flex: 1;
         min-width: 0;
         height: t.$input-height;
         padding: 0 t.$spacing-32 0 t.$spacing-12;
+        background-color: #2b2b2b;
+        border: 1px solid #3a3a3a;
+        border-radius: t.$border-radius-base;
         cursor: pointer;
         box-sizing: border-box;
+        transition: border-color 0.15s ease;
 
-        align-items: center;
-        justify-content: center;
-        padding: 0.3rem 0.5rem;
-        background-color: #323644;
-        border: solid 0.5px rgba(255, 255, 255, 0.5);
-        border-radius: 4px;
-        position: relative;
-        max-height: 25px;
+        &:hover:not(:disabled) {
+            border-color: #5a5a5a;
+        }
+
+        &:focus {
+            cursor: text;
+            border-color: t.$border-color-focus;
+        }
+
+        &:disabled {
+            @include t.disabled-state;
+            cursor: not-allowed;
+        }
     }
 
     // Clear button (styled by Button component)
@@ -375,36 +97,42 @@
         right: t.$spacing-32;
         top: 50%;
         transform: translateY(-50%) !important;
-        max-width: 20px;
-        max-height: 20px;
+        width: t.$input-action-button-width;
+        height: t.$input-action-button-height;
         padding: 0 !important;
         min-width: unset !important;
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: rgba(255, 255, 255, 0) !important;
     }
 
     // Trigger button (styled by Button component)
     &__trigger {
         position: absolute;
-        right: t.$spacing-8;
+        right: t.$spacing-4;
         top: 50%;
         transform: translateY(-50%) !important;
-        max-width: 20px;
-        max-height: 20px;
-        padding: 4px !important;
+        width: t.$input-action-button-width;
+        height: t.$input-action-button-height;
+        padding: 0 !important;
         min-width: unset !important;
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: rgba(255, 255, 255, 0) !important;
+
+        :global([class*='icon']) {
+            transition: transform 0.2s ease;
+        }
+
+        &--open :global([class*='icon']) {
+            transform: rotate(180deg);
+        }
     }
 
     // Menu container
     &__menu {
         position: absolute;
-        background-color: #323644;
+        background-color: t.$dropdown-bg;
         border: 1px solid t.$dropdown-border;
         border-radius: t.$border-radius-base;
         box-shadow: t.$dropdown-shadow;
@@ -414,7 +142,8 @@
         min-width: 100px;
         width: max-content;
         display: flex;
-        border: solid 0.5px rgba(255, 255, 255, 0.5);
+        @include t.fade-in(0.15s);
+        animation: slideDown 0.15s ease-out;
     }
 
     // Container for two-column layout
@@ -435,10 +164,11 @@
         flex-direction: column;
         gap: t.$spacing-2;
         flex: 1;
-        // min-width: 150px;
+        min-width: 150px;
         overflow-y: auto;
         overflow-x: hidden;
         border-right: 1px solid rgba(255, 255, 255, 0.1);
+        @include t.scrollbar-dark;
     }
 
     // Category button
@@ -480,6 +210,7 @@
         min-width: 150px;
         overflow-y: auto;
         overflow-x: hidden;
+        @include t.scrollbar-dark;
     }
 
     // Item button
@@ -492,6 +223,7 @@
         border: none;
         outline: none;
         cursor: pointer;
+        transition: background-color 0.15s ease, color 0.15s ease;
         color: t.$text-secondary;
         font-size: t.$font-size-sm;
         background: none;
@@ -499,15 +231,18 @@
         text-align: left;
 
         &:hover:not(&--selected) {
+            background-color: t.$dropdown-option-hover-bg;
             color: t.$color-white;
         }
-
-        @include t.hierarchical-combobox-category;
 
         &--selected {
             background-color: t.$dropdown-option-selected-bg;
             color: t.$color-white;
             border-radius: 0;
+
+            &:hover {
+                background-color: t.$dropdown-option-selected-bg;
+            }
         }
     }
 
@@ -538,5 +273,17 @@
         text-align: center;
         color: t.$text-tertiary;
         font-size: t.$font-size-sm;
+    }
+}
+
+// Slide-down animation
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }

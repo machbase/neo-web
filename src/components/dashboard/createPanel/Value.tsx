@@ -1,84 +1,83 @@
 import { Close, PlusCircle } from '@/assets/icons/Icon';
-import { IconButton } from '@/components/buttons/IconButton';
-import { Input } from '@/components/inputs/Input';
-import { InputSelector } from '@/components/inputs/InputSelector';
-import { Select } from '@/components/inputs/Select';
 import { SEPARATE_DIFF } from '@/utils/dashboardUtil';
 import { DIFF_LIST } from '@/utils/aggregatorConstants';
+import { Page, Button, InputSelect, Input as DSInput } from '@/design-system/components';
 
 const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pIdx, pBlockInfo, pPanelOption, pAddValue, pRemoveValue }: any) => {
     return (
-        <div className="values" style={{ flexWrap: 'wrap' }}>
-            <div className="series-table">
-                <span className="series-title">
-                    Value
-                    {pPanelOption.type === 'Geomap' ? (
-                        pIdx === pBlockInfo.values.length - 1 ? (
+        <>
+            <Page.Divi direction="horizontal" />
+            <Page.ContentBlock style={{ padding: '4px' }} pHoverNone>
+                <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
+                    <InputSelect
+                        label={
                             <>
-                                {pIdx !== 0 && <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => pRemoveValue(pValue.id)} />}
-                                <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={pAddValue} />
+                                Value
+                                {pPanelOption.type === 'Geomap' ? (
+                                    pIdx === pBlockInfo.values.length - 1 ? (
+                                        <>
+                                            {pIdx !== 0 && <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveValue(pValue.id)} />}
+                                            <Button size="icon" variant="ghost" icon={<PlusCircle />} onClick={pAddValue} />
+                                        </>
+                                    ) : (
+                                        <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveValue(pValue.id)} />
+                                    )
+                                ) : (
+                                    <></>
+                                )}
                             </>
-                        ) : (
-                            <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => pRemoveValue(pValue.id)} />
-                        )
-                    ) : (
-                        <></>
-                    )}
-                </span>
-                <InputSelector
-                    pFontSize={12}
-                    pWidth={175}
-                    pBorderRadius={4}
-                    pInitValue={pValue.value}
-                    pHeight={26}
-                    pAutoChanged={false}
-                    pIsDisabled={!pColumnList[0]}
-                    onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
-                    pOptions={pColumnList.map((aItem: any) => aItem[0])}
-                />
-            </div>
-
-            <div className="series-table">
-                <span className="series-title"> Aggregator </span>
-                <InputSelector
-                    pFontSize={12}
-                    pWidth={175}
-                    pBorderRadius={4}
-                    pInitValue={pValue.aggregator ?? 'avg'}
-                    pHeight={26}
-                    pIsDisabled={pPanelOption.type === 'Geomap' && pIdx > 0}
-                    onChange={(aEvent: any) => pChangeValueOption('aggregator', aEvent, pValue.id, 'values')}
-                    pOptions={pAggList}
-                />
-            </div>
-            {SEPARATE_DIFF && (
-                <div className="series-table">
-                    <span className="series-title"> Diff </span>
-                    <Select
-                        pFontSize={12}
-                        pAutoChanged={true}
-                        pWidth={175}
-                        pBorderRadius={4}
-                        pInitValue={pValue?.diff ?? 'none'}
-                        pHeight={26}
-                        onChange={(aEvent: any) => pChangeValueOption('diff', aEvent, pValue.id, 'values')}
-                        pOptions={['none'].concat(DIFF_LIST)}
+                        }
+                        labelPosition="left"
+                        type="text"
+                        options={pColumnList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
+                        value={pValue.value}
+                        onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
+                        selectValue={pValue.value}
+                        onSelectChange={(value: string) => pChangeValueOption('value', { target: { value } }, pValue.id, 'values')}
+                        disabled={!pColumnList[0]}
+                        size="md"
+                        style={{ width: '160px' }}
                     />
-                </div>
-            )}
-            <div className="series-table">
-                <span className="series-title"> Alias </span>
-                <Input
-                    pBorderRadius={4}
-                    pWidth={175}
-                    pHeight={26}
-                    pType="text"
-                    pValue={pValue.alias}
-                    pSetValue={() => null}
-                    onChange={(aEvent: any) => pChangeValueOption('alias', aEvent, pValue.id, 'values')}
-                />
-            </div>
-        </div>
+
+                    <InputSelect
+                        label="Aggregator"
+                        labelPosition="left"
+                        type="text"
+                        options={pAggList.map((opt: string) => ({ label: opt, value: opt }))}
+                        value={pValue.aggregator ?? 'avg'}
+                        onChange={(aEvent: any) => pChangeValueOption('aggregator', aEvent, pValue.id, 'values')}
+                        selectValue={pValue.aggregator ?? 'avg'}
+                        onSelectChange={(value: string) => pChangeValueOption('aggregator', { target: { value } }, pValue.id, 'values')}
+                        disabled={pPanelOption.type === 'Geomap' && pIdx > 0}
+                        size="md"
+                        style={{ width: '160px' }}
+                    />
+                    {SEPARATE_DIFF && (
+                        <InputSelect
+                            label="Diff"
+                            labelPosition="left"
+                            type="text"
+                            options={['none'].concat(DIFF_LIST).map((opt: string) => ({ label: opt, value: opt }))}
+                            value={pValue?.diff ?? 'none'}
+                            onChange={(aEvent: any) => pChangeValueOption('diff', aEvent, pValue.id, 'values')}
+                            selectValue={pValue?.diff ?? 'none'}
+                            onSelectChange={(value: string) => pChangeValueOption('diff', { target: { value } }, pValue.id, 'values')}
+                            size="md"
+                            style={{ width: '160px' }}
+                        />
+                    )}
+                    <DSInput
+                        label="Alias"
+                        labelPosition="left"
+                        type="text"
+                        value={pValue.alias}
+                        onChange={(aEvent: any) => pChangeValueOption('alias', aEvent, pValue.id, 'values')}
+                        size="md"
+                        style={{ width: '160px' }}
+                    />
+                </Page.DpRow>
+            </Page.ContentBlock>
+        </>
     );
 };
 export default Value;

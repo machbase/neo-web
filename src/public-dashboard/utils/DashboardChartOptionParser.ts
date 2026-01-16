@@ -323,6 +323,12 @@ const ReplaceCommonOpt = (aOpt: any, aPanelType: string) => {
         sResult.tooltip = { show: false };
         sResult.grid = { bottom: '0', left: '0', right: '0', top: '50' };
     }
+
+    // Set background color based on theme
+    if (aOpt.theme === 'dark') {
+        sResult.backgroundColor = '#252525';
+    }
+
     return sResult;
 };
 

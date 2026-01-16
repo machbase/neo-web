@@ -1,28 +1,29 @@
-import './savedToLocal.scss';
-import Modal from './Modal';
 import { useState, useEffect } from 'react';
-import { Save, Close } from '@/assets/icons/Icon';
-import { TextButton } from '../buttons/TextButton';
+import { Save } from '@/assets/icons/Icon';
 import { FileNameValidator } from '@/utils/FileExtansion';
 import { SavedToCSV } from '@/utils/SaveLocal';
+import { Modal } from '@/design-system/components/Modal';
+import { Input } from '@/design-system/components/Input';
 
 export interface SaveDashboardModalProps {
-    setIsOpen: any;
+    setIsOpen: (isOpen: boolean) => void;
     pIsDarkMode?: boolean;
     pPanelInfo: any;
     pChartRef: any;
 }
 
 export const SavedToLocalModal = (props: SaveDashboardModalProps) => {
-    const { setIsOpen, pIsDarkMode, pPanelInfo, pChartRef } = props;
+    const { setIsOpen, pPanelInfo, pChartRef } = props;
     const [sSaveFileName, setSaveFileName] = useState<string>('');
 
     const handleClose = () => {
         setIsOpen(false);
     };
+
     const changeSaveFileName = (aEvent: React.ChangeEvent<HTMLInputElement>) => {
         setSaveFileName(aEvent.target.value);
     };
+
     const getVisibleArr = () => {
         const sSeries = pChartRef && pChartRef?.current?.chart?.options?.series;
         const sVisibleList =
@@ -32,6 +33,7 @@ export const SavedToLocalModal = (props: SaveDashboardModalProps) => {
             });
         return sVisibleList;
     };
+
     const saveFile = async () => {
         SavedToCSV(sSaveFileName, pPanelInfo, getVisibleArr(), handleClose);
     };
@@ -41,40 +43,23 @@ export const SavedToLocalModal = (props: SaveDashboardModalProps) => {
     }, []);
 
     return (
-        <div className="saved-to-local-modal">
-            <Modal pIsDarkMode={pIsDarkMode} onOutSideClose={handleClose}>
-                <Modal.Header>
-                    <div className="title">
-                        <div className="title-content">
-                            <Save />
-                            <span style={{ color: 'white' }}>Save to csv</span>
-                        </div>
-                        <div className="title-close">
-                            <Close onClick={handleClose} />
-                        </div>
-                    </div>
-                </Modal.Header>
-                <Modal.Body>
-                    <div className="save-option">
-                        <div className="save-file-name">
-                            <span>File Name</span>
-                            <input autoFocus onChange={changeSaveFileName} value={sSaveFileName}></input>
-                        </div>
-                    </div>
-                </Modal.Body>
-                <Modal.Footer>
-                    <div className="button-group">
-                        <TextButton
-                            pText="OK"
-                            pBackgroundColor="#4199ff"
-                            pIsDisabled={!FileNameValidator(sSaveFileName) || sSaveFileName === ''}
-                            onClick={FileNameValidator(sSaveFileName) ? saveFile : () => null}
-                        />
-                        <div style={{ width: '10px' }}></div>
-                        <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />
-                    </div>
-                </Modal.Footer>
-            </Modal>
-        </div>
+        <Modal.Root isOpen={true} onClose={handleClose} style={{ height: 'auto' }}>
+            <Modal.Header>
+                <Modal.Title>
+                    <Save size={16} />
+                    <span>Save to csv</span>
+                </Modal.Title>
+                <Modal.Close />
+            </Modal.Header>
+            <Modal.Body>
+                <Input label="File Name" labelPosition="left" autoFocus onChange={changeSaveFileName} value={sSaveFileName} fullWidth placeholder="Enter file name" />
+            </Modal.Body>
+            <Modal.Footer>
+                <Modal.Confirm onClick={saveFile} disabled={!FileNameValidator(sSaveFileName) || sSaveFileName === ''}>
+                    OK
+                </Modal.Confirm>
+                <Modal.Cancel>Cancel</Modal.Cancel>
+            </Modal.Footer>
+        </Modal.Root>
     );
 };

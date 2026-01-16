@@ -1,7 +1,4 @@
-import { Collapse } from '@/components/collapse/Collapse';
-import CheckBox from '@/components/inputs/CheckBox';
-import { Input } from '@/components/inputs/Input';
-import { Select } from '@/components/inputs/Select';
+import { Dropdown, Input, Checkbox, Page } from '@/design-system/components';
 import { useEffect, useState } from 'react';
 
 interface LiquidfillOptionProps {
@@ -11,7 +8,7 @@ interface LiquidfillOptionProps {
 
 export const GeomapOptions = (props: LiquidfillOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
-    const [sValueList, setValueList] = useState(undefined);
+    const [sValueList, setValueList] = useState<any>(undefined);
     const sIntervalTypeList = ['none', 'sec', 'min', 'hour'];
     const sMarkerShapeList = ['marker', 'circleMarker', 'circle'];
 
@@ -57,125 +54,128 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
 
     return (
         <div className="text-options-wrap">
-            <Collapse title="Tooltip" isOpen>
-                <div className="menu-style">
-                    <CheckBox pText="Time" pDefaultChecked={pPanelOption.chartOptions?.tooltipTime ?? false} onChange={(aEvent: any) => HandleOption(aEvent, 'tooltipTime')} />
-                </div>
-                <div className="menu-style">
-                    <CheckBox
-                        pText="Latitude, Longitude"
-                        pDefaultChecked={pPanelOption.chartOptions?.tooltipCoor ?? false}
+            <Page.Collapse title="Tooltip">
+                <Page.ContentBlock pHoverNone style={{ padding: 0, gap: '8px', display: 'flex', flexDirection: 'column' }}>
+                    <Checkbox
+                        size="sm"
+                        label="Time"
+                        defaultChecked={pPanelOption.chartOptions?.tooltipTime ?? false}
+                        onChange={(aEvent: any) => HandleOption(aEvent, 'tooltipTime')}
+                    />
+                    <Checkbox
+                        size="sm"
+                        label="Latitude, Longitude"
+                        defaultChecked={pPanelOption.chartOptions?.tooltipCoor ?? false}
                         onChange={(aEvent: any) => HandleOption(aEvent, 'tooltipCoor')}
                     />
-                </div>
-            </Collapse>
-            <div className="divider" />
-            <Collapse title="Interval" isOpen>
-                <div className="menu-style">
-                    <span>Type</span>
-                    <Select
-                        pWidth={'100%'}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pNoneValue="none"
-                        pInitValue={pPanelOption.chartOptions.intervalType ?? ''}
-                        onChange={(aEvent) => HandleOption(aEvent, 'intervalType')}
-                        pOptions={sIntervalTypeList}
-                    />
-                </div>
-                <div className="menu-style">
-                    <span>Value</span>
+                </Page.ContentBlock>
+            </Page.Collapse>
+            <Page.Divi />
+            <Page.Collapse title="Interval">
+                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    <Dropdown.Root
+                        label="Type"
+                        options={sIntervalTypeList.map((option) => ({ label: option, value: option }))}
+                        value={pPanelOption.chartOptions.intervalType || 'none'}
+                        onChange={(value: string) => HandleOption({ target: { value } }, 'intervalType')}
+                        fullWidth
+                    >
+                        <Dropdown.Trigger />
+                        <Dropdown.Menu>
+                            <Dropdown.List />
+                        </Dropdown.Menu>
+                    </Dropdown.Root>
                     <Input
-                        pType="number"
-                        pWidth={'100%'}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pPlaceHolder={'auto'}
-                        pValue={pPanelOption.chartOptions.intervalValue ?? ''}
+                        label="Value"
+                        type="number"
+                        fullWidth
+                        placeholder="auto"
+                        value={pPanelOption.chartOptions.intervalValue ?? ''}
                         onChange={(aEvent) => HandleOption(aEvent, 'intervalValue')}
                     />
-                </div>
-            </Collapse>
-            <div className="divider" />
-            <Collapse title="Map option" isOpen>
-                <div style={{ height: '10px' }} />
-                <div className="menu-style">
-                    <CheckBox
-                        pText="Use zoom control"
-                        pDefaultChecked={pPanelOption.chartOptions?.useZoomControl ?? false}
+                </Page.ContentBlock>
+            </Page.Collapse>
+            <Page.Divi />
+            <Page.Collapse title="Map option">
+                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    <Checkbox
+                        size="sm"
+                        label="Use zoom control"
+                        defaultChecked={pPanelOption.chartOptions?.useZoomControl ?? false}
                         onChange={(aEvent: any) => HandleOption(aEvent, 'useZoomControl')}
                     />
-                </div>
-                {/* <div className="menu-style">
-                    <CheckBox
-                        pText="Use auto refresh"
-                        pDefaultChecked={pPanelOption.chartOptions?.useAutoRefresh ?? false}
-                        onChange={(aEvent: any) => HandleOption(aEvent, 'useAutoRefresh')}
-                    />
-                </div> */}
-                <div className="divider" />
-                <span>Series</span>
-                {pPanelOption.blockList.map((block: any, idx: number) => {
-                    return (
-                        <div key={block.id + 'opt-coor'} className="opt-coor-wrap">
-                            <div style={{ border: 'solid 1px #777777', borderRadius: '5px', padding: '8px 0 3px 8px' }}>
-                                <div className="menu-style">
-                                    <span>Latitude</span>
-                                    <Select
-                                        pIsToolTip
-                                        pWidth={'100%'}
-                                        pHeight={25}
-                                        pBorderRadius={4}
-                                        pInitValue={pPanelOption.chartOptions?.coorLat?.[idx] >= 0 ? sValueList?.[idx]?.[pPanelOption.chartOptions?.coorLat?.[idx]] : ''}
-                                        onChange={(aEvent) => HandleOption(aEvent, 'coorLat', idx)}
-                                        pOptions={sValueList?.[idx] ?? []}
-                                    />
-                                </div>
-                                <div className="menu-style">
-                                    <span>Longitude</span>
-                                    <Select
-                                        pIsToolTip
-                                        pWidth={'100%'}
-                                        pHeight={25}
-                                        pBorderRadius={4}
-                                        pInitValue={pPanelOption.chartOptions?.coorLon?.[idx] >= 0 ? sValueList?.[idx]?.[pPanelOption.chartOptions?.coorLon?.[idx]] : ''}
-                                        onChange={(aEvent) => HandleOption(aEvent, 'coorLon', idx)}
-                                        pOptions={sValueList?.[idx] ?? []}
-                                    />
-                                </div>
-                                <div className="menu-style">
-                                    <span>
-                                        Marker shape{pPanelOption.chartOptions.marker?.[idx]?.shape === 'circleMarker' && ' (pixel)'}
-                                        {pPanelOption.chartOptions.marker?.[idx]?.shape === 'circle' && ' (meter)'}
-                                    </span>
-                                    <Select
-                                        pWidth={'100%'}
-                                        pHeight={25}
-                                        pBorderRadius={4}
-                                        pInitValue={pPanelOption.chartOptions.marker?.[idx]?.shape ?? 'circle'}
-                                        onChange={(aEvent) => HandleOption(aEvent, 'marker', idx)}
-                                        pOptions={sMarkerShapeList}
-                                    />
-                                </div>
-                                {pPanelOption.chartOptions.marker?.[idx]?.shape !== 'marker' && (
-                                    <div className="menu-style">
-                                        <span>Marker radius</span>
-                                        <Input
-                                            pType="number"
-                                            pWidth={'100%'}
-                                            pHeight={25}
-                                            pBorderRadius={4}
-                                            pValue={pPanelOption.chartOptions.marker?.[idx]?.radius ?? 30}
-                                            onChange={(aEvent) => HandleOption(aEvent, 'marker', idx)}
-                                        />
+                    <Page.Divi />
+                    <Page.Collapse pTrigger="Series">
+                        <Page.ContentBlock pHoverNone style={{ display: 'flex', padding: 0, gap: '4px', flexFlow: 'wrap' }}>
+                            {pPanelOption.blockList.map((block: any, idx: number) => {
+                                return (
+                                    <div key={block.id + 'opt-coor'} style={{ border: 'solid 1px #777777', borderRadius: '5px', width: '100%' }}>
+                                        <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                                            <Dropdown.Root
+                                                label="Latitude"
+                                                options={(sValueList?.[idx] ?? []).map((option: string) => ({ label: option, value: option }))}
+                                                value={pPanelOption.chartOptions?.coorLat?.[idx] >= 0 ? sValueList?.[idx]?.[pPanelOption.chartOptions?.coorLat?.[idx]] : ''}
+                                                onChange={(value: string) => {
+                                                    const targetIdx = sValueList?.[idx]?.indexOf(value);
+                                                    HandleOption({ target: { idx: targetIdx } }, 'coorLat', idx);
+                                                }}
+                                                fullWidth
+                                            >
+                                                <Dropdown.Trigger />
+                                                <Dropdown.Menu>
+                                                    <Dropdown.List />
+                                                </Dropdown.Menu>
+                                            </Dropdown.Root>
+                                            <Dropdown.Root
+                                                label="Longitude"
+                                                options={(sValueList?.[idx] ?? []).map((option: string) => ({ label: option, value: option }))}
+                                                value={pPanelOption.chartOptions?.coorLon?.[idx] >= 0 ? sValueList?.[idx]?.[pPanelOption.chartOptions?.coorLon?.[idx]] : ''}
+                                                onChange={(value: string) => {
+                                                    const targetIdx = sValueList?.[idx]?.indexOf(value);
+                                                    HandleOption({ target: { idx: targetIdx } }, 'coorLon', idx);
+                                                }}
+                                                fullWidth
+                                            >
+                                                <Dropdown.Trigger />
+                                                <Dropdown.Menu>
+                                                    <Dropdown.List />
+                                                </Dropdown.Menu>
+                                            </Dropdown.Root>
+                                            <Dropdown.Root
+                                                label={`Marker shape${
+                                                    pPanelOption.chartOptions.marker?.[idx]?.shape === 'circleMarker'
+                                                        ? ' (pixel)'
+                                                        : pPanelOption.chartOptions.marker?.[idx]?.shape === 'circle'
+                                                        ? ' (meter)'
+                                                        : ''
+                                                }`}
+                                                options={sMarkerShapeList.map((option) => ({ label: option, value: option }))}
+                                                value={pPanelOption.chartOptions.marker?.[idx]?.shape ?? 'circle'}
+                                                onChange={(value: string) => HandleOption({ target: { value, name: 'customSelect' } }, 'marker', idx)}
+                                                fullWidth
+                                            >
+                                                <Dropdown.Trigger />
+                                                <Dropdown.Menu>
+                                                    <Dropdown.List />
+                                                </Dropdown.Menu>
+                                            </Dropdown.Root>
+                                            {pPanelOption.chartOptions.marker?.[idx]?.shape !== 'marker' && (
+                                                <Input
+                                                    label="Marker radius"
+                                                    type="number"
+                                                    fullWidth
+                                                    value={pPanelOption.chartOptions.marker?.[idx]?.radius ?? 30}
+                                                    onChange={(aEvent) => HandleOption(aEvent, 'marker', idx)}
+                                                />
+                                            )}
+                                        </Page.ContentBlock>
                                     </div>
-                                )}
-                            </div>
-                            <div style={{ height: '10px' }} />
-                        </div>
-                    );
-                })}
-            </Collapse>
+                                );
+                            })}
+                        </Page.ContentBlock>
+                    </Page.Collapse>
+                </Page.ContentBlock>
+            </Page.Collapse>
         </div>
     );
 };

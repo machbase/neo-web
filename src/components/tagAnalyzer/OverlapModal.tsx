@@ -1,5 +1,4 @@
-import { MdOutlineStackedLineChart, Close, Refresh } from '@/assets/icons/Icon';
-import './OverlapModal.scss';
+import { MdOutlineStackedLineChart, Refresh } from '@/assets/icons/Icon';
 import { useEffect, useState, useRef } from 'react';
 import OverlapChart from './OverlapChart';
 import { isRollup } from '@/utils';
@@ -8,8 +7,8 @@ import { gRollupTableList } from '@/recoil/recoil';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import OverlapButtonList from './panel/edit/OverlapButtonList';
 import HighchartsReact from 'highcharts-react-official';
-import { IconButton } from '@/components/buttons/IconButton';
-import { Tooltip } from 'react-tooltip';
+import { Modal } from '@/design-system/components/Modal';
+import { Button, Page } from '@/design-system/components';
 
 const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
     const [sChartData, setChartData] = useState<any>([]);
@@ -255,40 +254,46 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
     };
 
     return (
-        <>
-            <div onClick={() => pSetIsModal(false)} className="Overlap-cover"></div>
-
-            <div className="Overlap-modal">
-                <div className="Overlap-header">
-                    <div className="Overlap-title">
-                        <MdOutlineStackedLineChart />
-                        Overlap Chart
+        <Modal.Root isOpen={true} onClose={() => pSetIsModal(false)} size="lg" style={{ height: 'auto', maxHeight: '80vh' }}>
+            <Modal.Header>
+                <Modal.Title>
+                    <MdOutlineStackedLineChart size={16} />
+                    <span>Overlap Chart</span>
+                </Modal.Title>
+                <Modal.Close />
+            </Modal.Header>
+            <Modal.Body>
+                <Page.ContentBlock pHoverNone>
+                    <Button
+                        variant="secondary"
+                        size="xsm"
+                        icon={<Refresh size={12} />}
+                        onClick={() => handleRefresh()}
+                        isToolTip
+                        toolTipContent="Refresh data"
+                        aria-label="Refresh data"
+                    />
+                    <div ref={sAreaChart}>
+                        {sPanelsInfo[0] && sChartData[sPanelsInfo.length - 1] && (
+                            <OverlapChart
+                                pStartTimeList={sStartTimeList}
+                                pAreaChart={sAreaChart}
+                                pChartData={sChartData}
+                                pAllInfo={sPanelsInfo}
+                                pPanelInfo={sPanelsInfo[0].board}
+                                pChartRef={sChartRef}
+                            />
+                        )}
+                        {sPanelsInfo.map((aItem: any, aIdx: number) => {
+                            return <OverlapButtonList pIdx={aIdx} key={aItem.board.index_key} pPanelsInfo={sPanelsInfo} pSetTime={setTime} pPanelInfo={aItem} />;
+                        })}
                     </div>
-                    <div style={{ display: 'flex' }}>
-                        <div className="zoom-tooltip">
-                            <Tooltip anchorSelect=".zoom-tooltip" content="Refresh data" />
-                            <IconButton pIcon={<Refresh size={13} />} onClick={() => handleRefresh()} />
-                        </div>
-                        <IconButton pIcon={<Close size={17} />} onClick={() => pSetIsModal(false)} />
-                    </div>
-                </div>
-                <div className="Overlap-body" ref={sAreaChart}>
-                    {sPanelsInfo[0] && sChartData[sPanelsInfo.length - 1] && (
-                        <OverlapChart
-                            pStartTimeList={sStartTimeList}
-                            pAreaChart={sAreaChart}
-                            pChartData={sChartData}
-                            pAllInfo={sPanelsInfo}
-                            pPanelInfo={sPanelsInfo[0].board}
-                            pChartRef={sChartRef}
-                        />
-                    )}
-                    {sPanelsInfo.map((aItem: any, aIdx: number) => {
-                        return <OverlapButtonList pIdx={aIdx} key={aItem.board.index_key} pPanelsInfo={sPanelsInfo} pSetTime={setTime} pPanelInfo={aItem} />;
-                    })}
-                </div>
-            </div>
-        </>
+                </Page.ContentBlock>
+            </Modal.Body>
+            <Modal.Footer>
+                <Modal.Cancel />
+            </Modal.Footer>
+        </Modal.Root>
     );
 };
 export default OverlapModal;

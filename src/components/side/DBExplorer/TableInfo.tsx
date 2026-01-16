@@ -1,13 +1,12 @@
 import './TableInfo.scss';
 import { getTableInfo, getColumnIndexInfo, getRecordCount, unMountDB, mountDB, backupStatus } from '@/api/repository/api';
 import React, { useEffect, useRef, useState } from 'react';
-import { FaDatabase, TfiLayoutColumn3Alt, VscChevronRight, FaUser, VscWarning, VscChevronDown, Copy } from '@/assets/icons/Icon';
+import { FaDatabase, TfiLayoutColumn3Alt, FaUser } from '@/assets/icons/Icon';
 import { generateUUID, getUserName, isCurUserEqualAdmin } from '@/utils';
-import { IconButton } from '@/components/buttons/IconButton';
 import { TbDatabaseMinus, TbDatabasePlus, TbFileDatabase } from 'react-icons/tb';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Loader } from '@/components/loader';
-import { Error } from '@/components/toast/Toast';
+import { Toast } from '@/design-system/components';
 import { IsKeyword, MountNameRegEx } from '@/utils/database';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
@@ -15,9 +14,9 @@ import { useRecoilState, useSetRecoilState } from 'recoil';
 import { TableTypeOrderList } from './utils';
 import { getColumnType } from '@/utils/dashboardUtil';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
-import { FaCheck } from 'react-icons/fa';
 import { Tooltip } from 'react-tooltip';
 import { Virtuoso } from 'react-virtuoso';
+import { Alert, Button, Input, Page, Side } from '@/design-system/components';
 
 const TAB_TYPE = 'DBTable';
 
@@ -101,40 +100,24 @@ export const BackupTableInfo = ({ pValue, pRefresh, pBackupRefresh }: any) => {
     };
 
     return (
-        <div className="backup-database-wrapper">
-            <div className="bk-wrap db-exp-comm" onClick={() => setBkCollapseTree(!sBkCollapseTree)}>
-                <div className="backup-db-header">
-                    <div className="bk-folder-wrap">
-                        <div className="bk-folder-wrap-icon">
-                            <VscChevronRight className={`${sBkCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow'}`} />
-                        </div>
-                        <span className="bk-folder-wrap-name">BACKUPS</span>
-                    </div>
-                    <div className="backup-db-icon">
-                        <IconButton
-                            pIsToopTip
-                            pToolTipContent="Database backup"
-                            pToolTipId="db-backup"
-                            pWidth={18}
-                            pHeight={20}
-                            pIcon={<LuDatabaseBackup size={12} />}
-                            onClick={handleBackup}
-                        />
-                    </div>
-                </div>
-            </div>
-            {sBkCollapseTree && (
-                <div className="backup-wrap db-exp-comm">
-                    {pValue.map((aBackup: any, aIdx: number) => {
+        <>
+            <Side.Collapse pCallback={() => setBkCollapseTree(!sBkCollapseTree)} pCollapseState={sBkCollapseTree}>
+                <span>BACKUPS</span>
+                <Button.Group>
+                    <Button size="side" variant="ghost" isToolTip toolTipContent="Database backup" icon={<LuDatabaseBackup size={12} />} onClick={handleBackup} />
+                </Button.Group>
+            </Side.Collapse>
+            <Side.List>
+                {sBkCollapseTree &&
+                    pValue.map((aBackup: any, aIdx: number) => {
                         return (
-                            <div key={aBackup.path + '-backup' + aIdx}>
+                            <Side.Item key={aBackup.path + '-backup' + aIdx}>
                                 <BACKUP_DB_DIV backupInfo={aBackup} pUpdate={pRefresh} />
-                            </div>
+                            </Side.Item>
                         );
                     })}
-                </div>
-            )}
-        </div>
+            </Side.List>
+        </>
     );
 };
 const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; isMount: boolean; mountName: string }; pUpdate: any }) => {
@@ -150,13 +133,13 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
         setMountState('LOADING');
         const sResMount: any = await mountDB(sMountAlias, backupInfo.path);
         if (sResMount && sResMount?.success) pUpdate();
-        else Error(sResMount?.data?.reason ?? sResMount.statusText);
+        else Toast.error(sResMount?.data?.reason ?? sResMount.statusText);
         setMountState('');
     };
     const unmountDB = async () => {
         const sResUnmount: any = await unMountDB(backupInfo.mountName);
         if (sResUnmount && sResUnmount?.success) pUpdate();
-        else Error(sResUnmount?.data?.reason ?? sResUnmount.statusText);
+        else Toast.error(sResUnmount?.data?.reason ?? sResUnmount.statusText);
         setIsUnmount(false);
     };
     const handleUnmountModal = (e: React.MouseEvent) => {
@@ -178,31 +161,28 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
 
     return (
         <>
-            <div className="backup-item">
-                <div className="backup-item-l">
+            <Side.ItemContent>
+                <Side.ItemIcon>
                     <TbFileDatabase className="size-16" color={backupInfo.isMount ? 'rgb(196,196,196)' : '#939498'} />
-                    <span className="backup-item-path" style={{ color: backupInfo.isMount ? 'rgb(196,196,196)' : '#939498' }}>
-                        {backupInfo?.path}
-                    </span>
-                </div>
-                <div className="backup-item-r">
-                    {sMountState !== 'LOADING' ? (
-                        <IconButton
-                            pIsToopTip
-                            pToolTipContent={backupInfo.isMount ? 'Database unmount' : 'Database mount'}
-                            pToolTipId={'db-mount-unmount' + backupInfo.path}
-                            pWidth={20}
-                            pHeight={20}
-                            pIcon={backupInfo.isMount ? <TbDatabaseMinus size={13} /> : <TbDatabasePlus size={13} />}
-                            onClick={backupInfo.isMount ? handleUnmountModal : handleMountModal}
-                        />
-                    ) : (
-                        <div style={{ marginRight: '4px' }}>
-                            <Loader width="12px" height="12px" borderRadius="90%" />
-                        </div>
-                    )}
-                </div>
-            </div>
+                </Side.ItemIcon>
+                <Side.ItemText>{backupInfo?.path}</Side.ItemText>
+            </Side.ItemContent>
+            <Side.ItemAction>
+                {sMountState !== 'LOADING' ? (
+                    <Button
+                        size="side"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent={backupInfo.isMount ? 'Database unmount' : 'Database mount'}
+                        icon={backupInfo.isMount ? <TbDatabaseMinus size={13} /> : <TbDatabasePlus size={13} />}
+                        onClick={backupInfo.isMount ? handleUnmountModal : handleMountModal}
+                    />
+                ) : (
+                    <div style={{ marginRight: '4px' }}>
+                        <Loader width="12px" height="12px" borderRadius="90%" />
+                    </div>
+                )}
+            </Side.ItemAction>
             {/* DELETE CONFIRM MODAL */}
             {isUnmount && (
                 <ConfirmModal
@@ -210,9 +190,9 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
                     setIsOpen={setIsUnmount}
                     pCallback={unmountDB}
                     pContents={
-                        <div className="body-content">
+                        <Page.ContentBlock>
                             <span>{`Do you want to unmount this database (${backupInfo.path} = ${backupInfo.mountName ?? ''})?`}</span>
-                        </div>
+                        </Page.ContentBlock>
                     }
                 />
             )}
@@ -223,42 +203,19 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
                     setIsOpen={setIsMount}
                     pCallback={mountBackupDB}
                     pContents={
-                        <div className="body-content">
-                            <span>{`Do you want to mount this database?`}</span>
-                            <div className="comfirm-input-wrap">
-                                <label htmlFor="mount-db-name">Name</label>
-                                <input
-                                    ref={sMountAliasRef}
-                                    value={sMountAliasRef?.current?.value ?? sMountAlias}
-                                    onChange={handleMountName}
-                                    autoComplete="off"
-                                    id="mount-db-name"
-                                    autoFocus
-                                    type="text"
-                                />
-                            </div>
-                            {IsKeyword(sMountAliasRef?.current?.value) && (
-                                <div className="mount-res-err" style={{ display: 'flex', marginTop: '8px' }}>
-                                    <VscWarning color="rgb(255, 83, 83)" />
-                                    <span style={{ color: 'rgb(255, 83, 83)', fontSize: '14px', marginLeft: '4px' }}>Mount name cannot be a keyword.</span>
-                                </div>
-                            )}
-                        </div>
+                        <Page.ContentBlock>
+                            <span>Do you want to mount this database?</span>
+                            <Page.Space />
+                            <Input ref={sMountAliasRef} type="text" autoFocus label="Name" value={sMountAliasRef?.current?.value ?? sMountAlias} onChange={handleMountName} />
+                            {IsKeyword(sMountAliasRef?.current?.value) && <Alert variant="error" message={'Mount name cannot be a keyword.'} />}
+                        </Page.ContentBlock>
                     }
                 />
             )}
         </>
     );
 };
-const DBDiv = (aIcon: React.ReactElement, aName: string, aClassName: string): JSX.Element => {
-    return (
-        <div className="db-folder-wrap">
-            <VscChevronRight className={`${aClassName}`} />
-            <span className="icons">{aIcon}</span>
-            <span className="db-folder-wrap-name">{aName}</span>
-        </div>
-    );
-};
+
 export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextMenu }: any) => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -317,22 +274,20 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextM
         <>
             {/* DB */}
             {pValue && pValue.dbName && (
-                <div className="db-wrap db-exp-comm" onClick={() => setCollapseTree(!sCollapseTree)}>
-                    {DBDiv(<FaDatabase />, pValue.dbName, sCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow')}
-                    {isCurUserEqualAdmin() && pValue.dbName !== 'MACHBASEDB' && (
-                        <div className="table-unmount">
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Database unmount"
-                                pToolTipId="db-unmount"
-                                pWidth={20}
-                                pHeight={20}
-                                pIcon={<TbDatabaseMinus size={13} />}
-                                onClick={handleUnmountModal}
-                            />
-                        </div>
-                    )}
-                </div>
+                <Side.Item onClick={() => setCollapseTree(!sCollapseTree)}>
+                    <Side.ItemContent>
+                        <Side.ItemArrow isOpen={sCollapseTree} />
+                        <Side.ItemIcon>
+                            <FaDatabase size={13} />
+                        </Side.ItemIcon>
+                        <Side.ItemText>{pValue.dbName}</Side.ItemText>
+                    </Side.ItemContent>
+                    <Side.ItemAction>
+                        {isCurUserEqualAdmin() && pValue.dbName !== 'MACHBASEDB' && (
+                            <Button size="side" variant="ghost" isToolTip toolTipContent="Database unmount" icon={<TbDatabaseMinus size={13} />} onClick={handleUnmountModal} />
+                        )}
+                    </Side.ItemAction>
+                </Side.Item>
             )}
             {/* DELETE CONFIRM MODAL */}
             {isUnmount && (
@@ -348,23 +303,21 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextM
                 />
             )}
             {/* USER */}
-            {pValue && sCollapseTree && (
-                <div className="user-wrap db-exp-comm">
-                    {pValue.userList.map((aUser: { userName: string; total: number; tableList: any }) => {
-                        return (
-                            <UserDiv
-                                key={aUser.userName + '-user'}
-                                pShowUserIcon={pValue.userList.length > 1}
-                                pUserData={aUser}
-                                pShowHiddenObj={pShowHiddenObj}
-                                pRefresh={pRefresh}
-                                pHandleDBTablePage={handleDBTablePage}
-                                pContextMenu={pContextMenu}
-                            />
-                        );
-                    })}
-                </div>
-            )}
+            {pValue &&
+                sCollapseTree &&
+                pValue.userList.map((aUser: { userName: string; total: number; tableList: any }) => {
+                    return (
+                        <UserDiv
+                            key={aUser.userName + '-user'}
+                            pShowUserIcon={pValue.userList.length > 1}
+                            pUserData={aUser}
+                            pShowHiddenObj={pShowHiddenObj}
+                            pRefresh={pRefresh}
+                            pHandleDBTablePage={handleDBTablePage}
+                            pContextMenu={pContextMenu}
+                        />
+                    );
+                })}
         </>
     );
 };
@@ -388,17 +341,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
         if (!props.pShowHiddenObj) return true;
         return false;
     };
-    const UserColumn = (aIcon: React.ReactElement, aName: string, aClassName: string): JSX.Element => {
-        return (
-            <div className="user-folder-wrap">
-                <VscChevronRight className={`${aClassName}`} />
-                <span className="icons" style={{ color: '#c4c4c4' }}>
-                    {aIcon}
-                </span>
-                <span className="user-folder-wrap-name">{aName}</span>
-            </div>
-        );
-    };
+
     const getColor = (aTableType: string) => {
         switch (aTableType) {
             case 'tag':
@@ -418,9 +361,15 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
     return (
         <>
             {props.pUserData && props.pShowUserIcon && props.pUserData.total > 0 && (
-                <div className="user-column " style={{ alignItems: 'baseline' }} onClick={() => setCollapseTree(!sCollapseTree)}>
-                    {UserColumn(<FaUser />, props.pUserData.userName, sCollapseTree ? 'db-exp-arrow db-exp-arrow-bottom' : 'db-exp-arrow')}
-                </div>
+                <Side.Item paddingLeft={28} onClick={() => setCollapseTree(!sCollapseTree)}>
+                    <Side.ItemContent>
+                        <Side.ItemArrow isOpen={sCollapseTree} />
+                        <Side.ItemIcon>
+                            <FaUser size={13} />
+                        </Side.ItemIcon>
+                        <Side.ItemText>{props.pUserData.userName}</Side.ItemText>
+                    </Side.ItemContent>
+                </Side.Item>
             )}
             {props.pUserData && props.pUserData.tableList && props.pUserData.total > 0 && sCollapseTree && (
                 <div className="table-wrap db-exp-comm">
@@ -496,32 +445,18 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
 
     return (
         <>
-            <div className="table-column-wrap" onClick={handleTableDetail} onContextMenu={handleContextMenu}>
-                <div className="table-column-l">
-                    <VscChevronDown className={`table-arrow ${sIsOpen ? 'table-arrow-open' : ''}`} />
-                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        <IconButton
-                            pWidth={'100%'}
-                            pHeight={20}
-                            pIsToopTip
-                            pToolTipContent={props.pTableType + ' table ' + sPriv}
-                            pToolTipId={props.pTableType + props.pUserName + '-block-math-' + props.pId}
-                            pIcon={
-                                <>
-                                    <span className="icons">{props.pTableIcon}</span>
-                                    <span className="table-name">
-                                        {props.pTable[0] === 'MACHBASEDB' && props.pTable[1] === props.pUserName ? props.pTable[3] : `${props.pTable[1]}.${props.pTable[3]}`}
-                                    </span>
-                                </>
-                            }
-                            onClick={() => {}}
-                        />
-                    </div>
-                </div>
+            <Side.Item tooltip={props.pTableType + ' table ' + sPriv} tooltipPlace="top" paddingLeft={40} onClick={handleTableDetail} onContextMenu={handleContextMenu}>
+                <Side.ItemContent>
+                    <Side.ItemArrow isOpen={sIsOpen} />
+                    <Side.ItemIcon>{props.pTableIcon}</Side.ItemIcon>
+                    <Side.ItemText>
+                        {props.pTable[0] === 'MACHBASEDB' && props.pTable[1] === props.pUserName ? props.pTable[3] : `${props.pTable[1]}.${props.pTable[3]}`}
+                    </Side.ItemText>
+                </Side.ItemContent>
                 <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', justifyContent: 'end' }}>
                     <span className="r-txt">{sRecordCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
                 </div>
-            </div>
+            </Side.Item>
             {sIsOpen && (
                 <ColumnDiv pKey={props.pTable[0] as string} pShowHiddenObj={props.pShowHiddenObj} pDatabaseId={props.pTable[6].toString()} pTableId={props.pTable[2].toString()} />
             )}
@@ -539,8 +474,7 @@ const ColumnNameCopy = ({ columnName }: { columnName: string }) => {
     const [copied, setCopied] = useState(false);
     const tooltipId = `column-name-${columnName.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
-    const handleCopy = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleCopy = () => {
         if (copied) return;
         setCopied(true);
         ClipboardCopy(columnName);
@@ -549,13 +483,10 @@ const ColumnNameCopy = ({ columnName }: { columnName: string }) => {
         }, 600);
     };
     return (
-        <div className="column-name-copy-wrapper">
-            <span className={`column-name-text tooltip-${tooltipId}`}>{columnName}</span>
+        <Side.ItemText copyable onCopy={handleCopy} showCopyAlways={false}>
+            <div className={`column-name-text tooltip-${tooltipId}`}>{columnName}</div>
             <Tooltip place="top" positionStrategy="fixed" anchorSelect={`.tooltip-${tooltipId}`} content={columnName} delayShow={700} style={{ zIndex: 9999 }} />
-            <div className="column-name-copy-icon" onClick={handleCopy}>
-                {copied ? <FaCheck /> : <Copy />}
-            </div>
-        </div>
+        </Side.ItemText>
     );
 };
 
@@ -563,13 +494,15 @@ const ColumnSkeleton = ({ count = 5 }: { count?: number }) => {
     return (
         <div className="column-skeleton-wrapper">
             {Array.from({ length: count }).map((_, index) => (
-                <div className="table-column-content" key={`skeleton-${index}`}>
-                    <span style={{ marginRight: '4px', opacity: '0.5' }}>{index >= count - 1 ? '└─' : '├─'}</span>
-                    <div className="table-column-content-row">
-                        <div className="skeleton skeleton-text" style={{ width: '60%' }}></div>
-                        <div className="skeleton skeleton-text" style={{ width: '25%', marginRight: '16px' }}></div>
-                    </div>
-                </div>
+                <Side.Item paddingLeft={72} className="table-column-content" key={`skeleton-${index}`}>
+                    <Side.ItemContent>
+                        <span style={{ marginRight: '4px', opacity: '0.5' }}>{index >= count - 1 ? '└' : '├'}</span>
+                        <div className="table-column-content-row">
+                            <div className="skeleton skeleton-text" style={{ width: '60%' }}></div>
+                            <div className="skeleton skeleton-text" style={{ width: '25%', marginRight: '16px' }}></div>
+                        </div>
+                    </Side.ItemContent>
+                </Side.Item>
             ))}
         </div>
     );
@@ -577,12 +510,12 @@ const ColumnSkeleton = ({ count = 5 }: { count?: number }) => {
 
 const LabelSkeleton = () => {
     return (
-        <div className="col-label-wrap">
-            <div className="table-wrap-label-content" style={{ height: '21px' }}>
+        <Side.Item paddingLeft={52}>
+            <div className="table-rap-label-content" style={{ height: '21px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div className="skeleton skeleton-text" style={{ width: '12px', height: '12px', minWidth: '12px', marginRight: '4px' }}></div>
                 <div className="skeleton skeleton-text" style={{ width: '70px', height: '14px' }}></div>
             </div>
-        </div>
+        </Side.Item>
     );
 };
 
@@ -680,17 +613,16 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
     const visibleIndexes = sIndexList.filter(() => checkDisplay('index'));
 
     return (
-        <div className="col-div-wrap">
+        <>
             {sIndexLoading ? (
-                <>
-                    <LabelSkeleton />
-                </>
+                <LabelSkeleton />
             ) : (
                 <>
                     {/* Columns Section */}
-                    <div className="col-label-wrap" onClick={handleColumnsToggle}>
-                        <LabelDiv pTxt="columns" pIsOpen={sColOpen} />
-                    </div>
+                    <Side.Item paddingLeft={52} onClick={handleColumnsToggle}>
+                        <Side.ItemArrow isOpen={sColOpen} />
+                        <Side.ItemText>columns</Side.ItemText>
+                    </Side.Item>
                     {sColOpen && (
                         <>
                             {sColumnsLoading ? (
@@ -698,43 +630,39 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                             ) : visibleColumns.length > 50 ? (
                                 <Virtuoso
                                     className="scrollbar-dark"
-                                    style={{ height: '40vh' }}
+                                    style={{ height: '40vh', backgroundColor: '#2d2d2d' }}
                                     data={visibleColumns}
                                     itemContent={(index, bColumn) => {
                                         const isLast = index === visibleColumns.length - 1;
                                         return (
-                                            <div className="table-column-content">
-                                                <span style={{ marginRight: '4px', opacity: '0.5' }}>{isLast ? '└─' : '├─'}</span>
-                                                <div className="table-column-content-row">
-                                                    <div className="l-txt">
-                                                        <ColumnNameCopy columnName={bColumn[0].toString()} />
-                                                    </div>
-                                                    <div className="r-txt">
-                                                        {getColumnType(bColumn[1] as number) + ' '}
-                                                        {bColumn[1] === 5 && `(${bColumn[2]})`}
-                                                    </div>
+                                            <Side.Item paddingLeft={71}>
+                                                <Side.ItemContent>
+                                                    <Side.ItemIcon>{isLast ? '└' : '├'}</Side.ItemIcon>
+                                                    <ColumnNameCopy columnName={bColumn[0].toString()} />
+                                                </Side.ItemContent>
+                                                <div className="r-txt">
+                                                    {getColumnType(bColumn[1] as number) + ' '}
+                                                    {bColumn[1] === 5 && `(${bColumn[2]})`}
                                                 </div>
-                                            </div>
+                                            </Side.Item>
                                         );
                                     }}
                                 />
                             ) : (
-                                <div className="col-list-wrapper">
+                                <div style={{ backgroundColor: '#2d2d2d' }}>
                                     {visibleColumns.map((bColumn, index) => {
                                         const isLast = index === visibleColumns.length - 1;
                                         return (
-                                            <div className="table-column-content" key={`${props.pKey}-col-${index}`}>
-                                                <span style={{ marginRight: '4px', opacity: '0.5' }}>{isLast ? '└─' : '├─'}</span>
-                                                <div className="table-column-content-row">
-                                                    <div className="l-txt">
-                                                        <ColumnNameCopy columnName={bColumn[0].toString()} />
-                                                    </div>
-                                                    <div className="r-txt">
-                                                        {getColumnType(bColumn[1] as number) + ' '}
-                                                        {bColumn[1] === 5 && `(${bColumn[2]})`}
-                                                    </div>
+                                            <Side.Item paddingLeft={71} key={`${props.pKey}-col-${index}`}>
+                                                <Side.ItemContent>
+                                                    <Side.ItemIcon>{isLast ? '└' : '├'}</Side.ItemIcon>
+                                                    <ColumnNameCopy columnName={bColumn[0].toString()} />
+                                                </Side.ItemContent>
+                                                <div className="r-txt">
+                                                    {getColumnType(bColumn[1] as number) + ' '}
+                                                    {bColumn[1] === 5 && `(${bColumn[2]})`}
                                                 </div>
-                                            </div>
+                                            </Side.Item>
                                         );
                                     })}
                                 </div>
@@ -745,51 +673,48 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                     {/* Index Section */}
                     {sIndexFetched && visibleIndexes.length > 0 && (
                         <>
-                            <div className="col-label-wrap" onClick={handleIndexToggle}>
-                                <LabelDiv pTxt="index" pIsOpen={sIndexOpen} />
-                            </div>
+                            <Side.Item paddingLeft={52} onClick={handleIndexToggle}>
+                                <Side.ItemArrow isOpen={sIndexOpen} />
+                                <Side.ItemText>index</Side.ItemText>
+                            </Side.Item>
                             {sIndexOpen && (
                                 <>
                                     {visibleIndexes.length > 50 ? (
                                         <Virtuoso
                                             className="scrollbar-dark"
-                                            style={{ height: '40vh' }}
+                                            style={{ height: '40vh', backgroundColor: '#2d2d2d' }}
                                             data={visibleIndexes}
                                             itemContent={(index, aIndex) => {
                                                 const isLast = index === visibleIndexes.length - 1;
                                                 return (
-                                                    <div className="table-column-content">
-                                                        <span style={{ marginRight: '4px', opacity: '0.5' }}>{isLast ? '└─' : '├─'}</span>
-                                                        <div className="table-column-content-row">
-                                                            <div className="l-txt">
-                                                                <ColumnNameCopy columnName={aIndex[1].toString()} />
-                                                            </div>
-                                                            <div className="r-txt">
-                                                                <span>{getIndexType(aIndex[2] as number)}</span>
-                                                                <span style={{ marginLeft: '3px' }}>({aIndex[0]})</span>
-                                                            </div>
+                                                    <Side.Item paddingLeft={71}>
+                                                        <Side.ItemContent>
+                                                            <Side.ItemIcon>{isLast ? '└' : '├'}</Side.ItemIcon>
+                                                            <ColumnNameCopy columnName={aIndex[1].toString()} />
+                                                        </Side.ItemContent>
+                                                        <div className="r-txt">
+                                                            <span>{getIndexType(aIndex[2] as number)}</span>
+                                                            <span style={{ marginLeft: '3px' }}>({aIndex[0]})</span>
                                                         </div>
-                                                    </div>
+                                                    </Side.Item>
                                                 );
                                             }}
                                         />
                                     ) : (
-                                        <div className="col-list-wrapper">
+                                        <div style={{ backgroundColor: '#2d2d2d' }}>
                                             {visibleIndexes.map((aIndex, index) => {
                                                 const isLast = index === visibleIndexes.length - 1;
                                                 return (
-                                                    <div className="table-column-content" key={`${props.pKey}-idx-${index}`}>
-                                                        <span style={{ marginRight: '4px', opacity: '0.5' }}>{isLast ? '└─' : '├─'}</span>
-                                                        <div className="table-column-content-row">
-                                                            <div className="l-txt">
-                                                                <ColumnNameCopy columnName={aIndex[1].toString()} />
-                                                            </div>
-                                                            <div className="r-txt">
-                                                                <span>{getIndexType(aIndex[2] as number)}</span>
-                                                                <span style={{ marginLeft: '3px' }}>({aIndex[0]})</span>
-                                                            </div>
+                                                    <Side.Item paddingLeft={71} key={`${props.pKey}-idx-${index}`}>
+                                                        <Side.ItemContent>
+                                                            <Side.ItemIcon>{isLast ? '└' : '├'}</Side.ItemIcon>
+                                                            <ColumnNameCopy columnName={aIndex[1].toString()} />
+                                                        </Side.ItemContent>
+                                                        <div className="r-txt">
+                                                            <span>{getIndexType(aIndex[2] as number)}</span>
+                                                            <span style={{ marginLeft: '3px' }}>({aIndex[0]})</span>
                                                         </div>
-                                                    </div>
+                                                    </Side.Item>
                                                 );
                                             })}
                                         </div>
@@ -800,18 +725,6 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                     )}
                 </>
             )}
-        </div>
-    );
-};
-interface LabelDivPropsType {
-    pTxt: string;
-    pIsOpen?: boolean;
-}
-const LabelDiv = (props: LabelDivPropsType): JSX.Element => {
-    return (
-        <div className="table-wrap-label-content">
-            {props.pIsOpen !== undefined && <VscChevronDown className={`label-arrow ${props.pIsOpen ? 'label-arrow-open' : ''}`} />}
-            <span>{props.pTxt}</span>
-        </div>
+        </>
     );
 };

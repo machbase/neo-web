@@ -1,14 +1,14 @@
+@use '@/design-system/tokens' as t;
 @import '/src/assets/scss/theme.scss';
 
 .panel-wrap {
-    border: 1px solid #b8c8da41;
-    background-color: #141518;
-    border-radius: 4px;
+    border: t.$border-default;
+    border-radius: t.$border-radius-base;
     width: 100%;
     height: 100%;
     padding: 4px;
-
     position: relative;
+    box-shadow: t.$shadow-sm;
 
     .draggable-panel-header {
         display: flex;
@@ -30,6 +30,6 @@
     }
     .draggable-panel-header-menu-icon:hover {
         background-color: #b8c8da41;
-        border-radius: 4px;
+        border-radius: t.$border-radius-base;
     }
 }

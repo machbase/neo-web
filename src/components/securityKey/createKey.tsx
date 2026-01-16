@@ -1,15 +1,13 @@
-import { Copy, LuFlipVertical, VscWarning } from '@/assets/icons/Icon';
+import { Copy, LuFlipVertical } from '@/assets/icons/Icon';
 import { useEffect, useRef, useState } from 'react';
 import { IconButton } from '@/components/buttons/IconButton';
 import { CreatePayloadType, GenKeyResType, KeyItemType, genKey, getKeyList } from '@/api/repository/key';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
-import { ExtensionTab } from '../extension/ExtensionTab';
 import { gBoardList, gKeyList } from '@/recoil/recoil';
 import { useSetRecoilState } from 'recoil';
-import { SplitPane, Pane } from '@/design-system/components';
+import { SplitPane, Pane, Page, Button, Alert } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import moment from 'moment';
-import './createKey.scss';
 
 export const CreateKey = () => {
     const DOWNLOAD_LIST: string[] = ['certificate', 'privateKey', 'token', 'serverKey'];
@@ -22,7 +20,7 @@ export const CreateKey = () => {
     const [sEndTime, sSetEndTime] = useState<any>('');
     const [sTooltipTxt, setTooltipTxt] = useState<string>('Copy');
     const sBodyRef: any = useRef(null);
-    const [sGroupWidth, setGroupWidth] = useState<number[]>([0, 0]);
+    const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sCreatePayload, setCreatePayload] = useState<CreatePayloadType>({
         name: '',
@@ -122,100 +120,91 @@ export const CreateKey = () => {
     };
 
     useEffect(() => {
-        if (sBodyRef && sBodyRef.current) {
-            setGroupWidth([sBodyRef.current.offsetWidth / 2, sBodyRef.current.offsetWidth / 2]);
-        }
-    }, [sBodyRef]);
-    useEffect(() => {
         init();
     }, []);
 
     return (
-        <ExtensionTab pRef={sBodyRef}>
+        <Page pRef={sBodyRef}>
             <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                 <Pane minSize={400}>
-                    <ExtensionTab.Header />
-                    <ExtensionTab.Body>
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentTitle>Client id</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>
+                    <Page.Header />
+                    <Page.Body>
+                        <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>Client id</Page.ContentTitle>
+                                <Page.ContentDesc>
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                </ExtensionTab.ContentDesc>
-                            </ExtensionTab.DpRow>
-                            <ExtensionTab.ContentDesc>Used to generate keys</ExtensionTab.ContentDesc>
-                            <ExtensionTab.Input pAutoFocus pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
-                        </ExtensionTab.ContentBlock>
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentTitle>Valid After</ExtensionTab.ContentTitle>
-                            </ExtensionTab.DpRow>
-                            <ExtensionTab.DatePicker pTime={sStartTime} pSetApply={(e: any) => handleTime('startTime', e)} />
-                        </ExtensionTab.ContentBlock>
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentTitle>Valid Before</ExtensionTab.ContentTitle>
-                            </ExtensionTab.DpRow>
-                            <ExtensionTab.DatePicker pTime={sEndTime} pSetApply={(e: any) => handleTime('endTime', e)} />
-                        </ExtensionTab.ContentBlock>
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.TextButton pText="Generate" pType="CREATE" pCallback={createKey} />
-                        </ExtensionTab.ContentBlock>
+                                </Page.ContentDesc>
+                            </Page.DpRow>
+                            <Page.ContentDesc>Used to generate keys</Page.ContentDesc>
+                            <Page.Input pAutoFocus pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
+                        </Page.ContentBlock>
+                        <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>Valid After</Page.ContentTitle>
+                            </Page.DpRow>
+                            <Page.DatePicker pTime={sStartTime} pSetApply={(e: any) => handleTime('startTime', e)} />
+                        </Page.ContentBlock>
+                        <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>Valid Before</Page.ContentTitle>
+                            </Page.DpRow>
+                            <Page.DatePicker pTime={sEndTime} pSetApply={(e: any) => handleTime('endTime', e)} />
+                        </Page.ContentBlock>
+                        <Page.ContentBlock>
+                            <Page.TextButton pText="Generate" pType="CREATE" pCallback={createKey} />
+                        </Page.ContentBlock>
                         {!sGenKeyInfo && sResErrMessage && (
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.DpRow>
-                                    <VscWarning style={{ fill: '#ff5353' }} />
-                                    <span style={{ margin: '8px', color: '#ff5353' }}>{sResErrMessage}</span>
-                                </ExtensionTab.DpRow>
-                            </ExtensionTab.ContentBlock>
+                            <Page.ContentBlock>
+                                <Alert variant="error" message={sResErrMessage} />
+                            </Page.ContentBlock>
                         )}
-                    </ExtensionTab.Body>
+                    </Page.Body>
                 </Pane>
                 <Pane>
-                    <ExtensionTab.Header>
+                    <Page.Header>
                         <div />
-                        <div style={{ display: 'flex' }}>
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Vertical"
-                                pToolTipId="se-key-tab-hori"
-                                pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
-                                pIsActive={isVertical}
+                        <Button.Group>
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                active={isVertical}
+                                isToolTip
+                                toolTipContent="Vertical"
+                                icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
                                 onClick={() => setIsVertical(true)}
                             />
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Horizontal"
-                                pToolTipId="se-key-tab-ver"
-                                pIcon={<LuFlipVertical />}
-                                pIsActive={!isVertical}
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                active={!isVertical}
+                                isToolTip
+                                toolTipContent="Horizontal"
+                                icon={<LuFlipVertical size={16} />}
                                 onClick={() => setIsVertical(false)}
                             />
-                        </div>
-                    </ExtensionTab.Header>
+                        </Button.Group>
+                    </Page.Header>
                     {sGenKeyInfo && sGenKeyInfo.success && (
-                        <ExtensionTab.Body>
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.SubTitle>Response</ExtensionTab.SubTitle>
-                                <ExtensionTab.ContentDesc>
-                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                        <VscWarning style={{ fill: 'rgb(223 217 82)' }} />
-                                        <span style={{ margin: '8px', color: 'rgb(223 217 82)' }}>{RES_CAUTION}</span>
-                                    </div>
-                                </ExtensionTab.ContentDesc>
-                            </ExtensionTab.ContentBlock>
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.DpRow>
+                        <Page.Body>
+                            <Page.ContentBlock>
+                                <Page.SubTitle>Response</Page.SubTitle>
+                                <Page.ContentDesc>
+                                    <Alert variant="warning" message={RES_CAUTION} />
+                                </Page.ContentDesc>
+                            </Page.ContentBlock>
+                            <Page.ContentBlock>
+                                <Page.DpRow>
                                     <div style={{ marginRight: '4px' }}>
-                                        <ExtensionTab.TextButton pWidth="120px" pText={`Download *.zip`} pType="CREATE" pCallback={handleDownloadFile} />
+                                        <Page.TextButton pWidth="120px" pText={`Download *.zip`} pType="CREATE" pCallback={handleDownloadFile} />
                                     </div>
-                                </ExtensionTab.DpRow>
-                            </ExtensionTab.ContentBlock>
+                                </Page.DpRow>
+                            </Page.ContentBlock>
                             {DOWNLOAD_LIST.map((aTxt: string) => {
                                 return (
-                                    <ExtensionTab.ContentBlock key={aTxt}>
-                                        <ExtensionTab.DpRow>
-                                            <ExtensionTab.ContentTitle>{aTxt}</ExtensionTab.ContentTitle>
+                                    <Page.ContentBlock key={aTxt}>
+                                        <Page.DpRow>
+                                            <Page.ContentTitle>{aTxt}</Page.ContentTitle>
                                             <IconButton
                                                 pIsToopTip
                                                 pToolTipContent={sTooltipTxt}
@@ -225,15 +214,15 @@ export const CreateKey = () => {
                                                 pIcon={<Copy />}
                                                 onClick={() => handleCopy(aTxt)}
                                             />
-                                        </ExtensionTab.DpRow>
-                                        <ExtensionTab.ContentText pContent={sGenKeyInfo[aTxt] as string} />
-                                    </ExtensionTab.ContentBlock>
+                                        </Page.DpRow>
+                                        <Page.ContentText pContent={sGenKeyInfo[aTxt] as string} />
+                                    </Page.ContentBlock>
                                 );
                             })}
-                        </ExtensionTab.Body>
+                        </Page.Body>
                     )}
                 </Pane>
             </SplitPane>
-        </ExtensionTab>
+        </Page>
     );
 };

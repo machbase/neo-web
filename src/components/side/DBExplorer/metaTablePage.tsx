@@ -1,11 +1,10 @@
-import { ExtensionTab } from '@/components/extension/ExtensionTab';
+import { Page, Toast } from '@/design-system/components';
 import { CheckTableFlag, DATA_NUMBER_TYPE, E_TABLE_INFO, E_TABLE_TYPE, FetchCommonType, GenTazDefault, STR_NUM_ARR_TYPE } from './utils';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchQuery, fetchTqlQuery } from '@/api/repository/database';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { useSetRecoilState } from 'recoil';
 import useDebounce from '@/hooks/useDebounce';
-import { Success as ToastSuccess } from '@/components/toast/Toast';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { BiInfoCircle } from 'react-icons/bi';
 import { StatzTableModal } from './statzTableModal';
@@ -193,7 +192,7 @@ export const MetaTablePage = ({
                 });
 
             if (aCommand === 'INSERT' || aCommand === 'DELETE') {
-                ToastSuccess(svrReason);
+                Toast.success(svrReason);
                 FetchMetaTableCnt(sFilter);
             }
         } else {
@@ -318,79 +317,79 @@ export const MetaTablePage = ({
         >
             {CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG ? (
                 <>
-                    <ExtensionTab.Body fixed>
-                        <ExtensionTab.ContentBlock pHoverNone>
-                            <ExtensionTab.SubTitle>Meta table</ExtensionTab.SubTitle>
-                        </ExtensionTab.ContentBlock>
+                    <Page.Body fixed>
+                        <Page.ContentBlock pHoverNone>
+                            <Page.SubTitle>Meta table</Page.SubTitle>
+                        </Page.ContentBlock>
                         {sModUpdateInfo.isOpen ? (
                             <>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Input of tag meta</ExtensionTab.ContentTitle>
-                                </ExtensionTab.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Input of tag meta</Page.ContentTitle>
+                                </Page.ContentBlock>
                                 {mMetaColumnListWithoutID?.map((column: string, colIdx: number) => {
                                     return (
-                                        <ExtensionTab.ContentBlock key={`meta-table-col-${colIdx?.toString()}`}>
-                                            <ExtensionTab.DpRow>
-                                                <ExtensionTab.ContentTitle>{column}</ExtensionTab.ContentTitle>
-                                                <ExtensionTab.ContentDesc>
+                                        <Page.ContentBlock key={`meta-table-col-${colIdx?.toString()}`}>
+                                            <Page.DpRow>
+                                                <Page.ContentTitle>{column}</Page.ContentTitle>
+                                                <Page.ContentDesc>
                                                     <span style={{ marginLeft: '4px', color: '#009688' }}>
                                                         ({sMetaTableInfo?.types?.[sMetaTableInfo?.columns?.indexOf(column)]})
                                                     </span>
-                                                </ExtensionTab.ContentDesc>
+                                                </Page.ContentDesc>
                                                 {REQUIRE_COL_LIST.includes(column?.toString()?.toUpperCase()) ? (
-                                                    <ExtensionTab.ContentDesc>
+                                                    <Page.ContentDesc>
                                                         <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                                    </ExtensionTab.ContentDesc>
+                                                    </Page.ContentDesc>
                                                 ) : null}
-                                            </ExtensionTab.DpRow>
-                                            <ExtensionTab.Input
+                                            </Page.DpRow>
+                                            <Page.Input
                                                 pValue={sModUpdateInfo?.values?.[colIdx] ?? ''}
                                                 pWidth={'400px'}
                                                 pCallback={(event: React.FormEvent<HTMLInputElement>) => handleMetaPayload(colIdx, event)}
                                             />
-                                        </ExtensionTab.ContentBlock>
+                                        </Page.ContentBlock>
                                     );
                                 })}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.DpRow>
-                                        <ExtensionTab.TextButton pIsDisable={!sModUpdateInfo?.values?.[0]} pText="SAVE" pType="CREATE" pCallback={handleInsertMeta} />
-                                        <ExtensionTab.TextButton pText="CANCEL" pType="DELETE" pCallback={() => setModUpdateInfo({ isOpen: false, values: [], msg: undefined })} />
-                                    </ExtensionTab.DpRow>
-                                    {sModUpdateInfo?.msg ? <ExtensionTab.TextResErr pText={sModUpdateInfo?.msg} /> : null}
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.Hr />
+                                <Page.ContentBlock>
+                                    <Page.DpRow>
+                                        <Page.TextButton pIsDisable={!sModUpdateInfo?.values?.[0]} pText="SAVE" pType="CREATE" pCallback={handleInsertMeta} />
+                                        <Page.TextButton pText="CANCEL" pType="DELETE" pCallback={() => setModUpdateInfo({ isOpen: false, values: [], msg: undefined })} />
+                                    </Page.DpRow>
+                                    {sModUpdateInfo?.msg ? <Page.TextResErr pText={sModUpdateInfo?.msg} /> : null}
+                                </Page.ContentBlock>
+                                <Page.Hr />
                             </>
                         ) : null}
-                        <ExtensionTab.ContentBlock pHoverNone>
-                            <ExtensionTab.DpRowBetween>
-                                <ExtensionTab.ContentDesc>count: {sMetaTableCnt?.toLocaleString() ?? 0}</ExtensionTab.ContentDesc>
+                        <Page.ContentBlock pHoverNone>
+                            <Page.DpRowBetween>
+                                <Page.ContentDesc>count: {sMetaTableCnt?.toLocaleString() ?? 0}</Page.ContentDesc>
                                 {sModUpdateInfo.isOpen ? (
                                     <div />
                                 ) : allowedV$() ? (
-                                    <ExtensionTab.DpRow>
-                                        <ExtensionTab.TextButton
+                                    <Page.DpRow>
+                                        <Page.TextButton
                                             pText="Info"
                                             mr="8px"
                                             pType="STATUS"
                                             pIcon={<BiInfoCircle style={{ marginRight: '4px' }} />}
                                             pCallback={() => handleVirtualModal(sFilter, true)}
                                         />
-                                        <ExtensionTab.TextButton pText="+ Insert" mr="0" pType="CREATE" pCallback={handleInsertBlock} />
-                                    </ExtensionTab.DpRow>
+                                        <Page.TextButton pText="+ Insert" mr="0" pType="CREATE" pCallback={handleInsertBlock} />
+                                    </Page.DpRow>
                                 ) : null}
-                            </ExtensionTab.DpRowBetween>
-                            <ExtensionTab.Input
+                            </Page.DpRowBetween>
+                            <Page.Input
                                 pPlaceholder={'Search'}
                                 pValue={sFilter}
                                 pWidth={'100%'}
                                 pCallback={(event: React.FormEvent<HTMLInputElement>) => handleSearchTxt(event)}
                                 pEnter={handleFilterIIFESearch}
                             />
-                            {!sModUpdateInfo.isOpen && sModUpdateInfo?.msg ? <ExtensionTab.TextResErr pText={sModUpdateInfo?.msg} /> : null}
-                        </ExtensionTab.ContentBlock>
-                    </ExtensionTab.Body>
+                            {!sModUpdateInfo.isOpen && sModUpdateInfo?.msg ? <Page.TextResErr pText={sModUpdateInfo?.msg} /> : null}
+                        </Page.ContentBlock>
+                    </Page.Body>
                     {sMetaTableInfo && sMetaTableInfo?.rows && sMetaTableInfo?.rows?.length > 0 ? (
-                        <ExtensionTab.ScrollTable
+                        <Page.ScrollTable
                             pList={mMetaTableInfo}
                             pReadOnly={!allowedV$()}
                             actionCallback={handleMoveTaz}

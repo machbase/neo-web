@@ -1,14 +1,13 @@
 import './info.scss';
 import { IconButton } from '@/components/buttons/IconButton';
 import { LuFlipVertical, LuScale } from 'react-icons/lu';
-import { ExtensionTab } from '@/components/extension/ExtensionTab';
-import { SplitPane, Pane } from '@/design-system/components';
+import { Page, SplitPane, Pane, Button } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { SlStar } from 'react-icons/sl';
 import { VscExtensions, VscHome, VscPackage, VscRepoForked } from 'react-icons/vsc';
 import moment from 'moment';
 import { getCommandPkgs, getPkgAction, getPkgMarkdown, getSearchPkgs, INSTALL, PKG_ACTION, SEARCH_RES, UNINSTALL } from '@/api/repository/appStore';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { gSearchPkgName, gSearchPkgs } from '@/recoil/appStore';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
@@ -32,8 +31,6 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     // Scoped
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sGroupWidth, setGroupWidth] = useState<any[]>(['75%', '25%']);
-    const fixBlockRef = useRef(null);
-    const [sBracketHeight, setBracketHeight] = useState<string>('0px');
     const [sReadme, setReadme] = useState<string | undefined>(undefined);
     const [sCommandResLog, setCommandResLog] = useState<string | undefined>(undefined);
     const sIsAdmin = isCurUserEqualAdmin();
@@ -124,10 +121,10 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         const sInstallTxt = pCode?.app?.installed_version !== '' && pCode?.app?.installed_version !== pCode?.app?.latest_version ? 'Upgrade' : 'Install';
         const sShowInstallBtn = sInstallTxt === 'Install' && pCode?.app?.installed_version && pCode?.app?.installed_version !== '' ? false : true;
         return (
-            <ExtensionTab.DpRow>
+            <Page.DpRow>
                 {/* INSTALL || UPDATE */}
                 {sShowInstallBtn && sIsAdmin && (
-                    <ExtensionTab.TextButton
+                    <Page.TextButton
                         pIcon={
                             <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                 <MdDownload />
@@ -147,7 +144,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                     <>
                         {/* UNINSTALL */}
                         {sIsAdmin && (
-                            <ExtensionTab.TextButton
+                            <Page.TextButton
                                 pIcon={
                                     <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                         <MdDelete />
@@ -165,7 +162,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                         {/* OPEN BROWSER */}
                         {/* FE indicator */}
                         {pCode?.app?.installed_frontend && (
-                            <ExtensionTab.TextButton
+                            <Page.TextButton
                                 pIcon={
                                     <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                         <Play />
@@ -183,7 +180,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                         )}
                         {/* BE indicator */}
                         {sIsAdmin && pCode?.app?.installed_backend && (
-                            <ExtensionTab.TextButton
+                            <Page.TextButton
                                 pIcon={
                                     <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                         {sPkgBEStatus === PKG_RUNNING ? <BiPause /> : <Play />}
@@ -212,7 +209,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                         )}
                     </>
                 )}
-            </ExtensionTab.DpRow>
+            </Page.DpRow>
         );
     };
     const handlePkgSvrAction = async (aStatus: PKG_ACTION) => {
@@ -267,9 +264,6 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     };
 
     useEffect(() => {
-        if (fixBlockRef && fixBlockRef?.current && (fixBlockRef?.current as any)?.clientHeight > 0) setBracketHeight((fixBlockRef?.current as any)?.clientHeight + 'px');
-    }, [(fixBlockRef?.current as any)?.clientHeight]);
-    useEffect(() => {
         setIsBtnLoad(!!pCode?.work_in_progress);
         getReadme();
         setCommandResLog(undefined);
@@ -278,174 +272,179 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
 
     return (
         <>
-            <ExtensionTab>
+            <Page>
                 <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
-                    {
-                        <Pane minSize={400}>
-                            <ExtensionTab.Header />
-                            <div ref={fixBlockRef}>
-                                <ExtensionTab.Body fixed>
-                                    <ExtensionTab.ContentBlock pHoverNone>
-                                        <ExtensionTab.DpRow>
-                                            <div className="app-store-item-info">
-                                                <div className="app-store-item-info-thumb">
-                                                    {pCode?.app?.github?.owner?.avatar_url && pCode?.app?.github?.owner?.avatar_url !== '' ? (
-                                                        <img src={pCode?.app?.github?.owner?.avatar_url} />
-                                                    ) : (
-                                                        <VscExtensions />
-                                                    )}
+                    <Pane minSize={400}>
+                        <Page.Header />
+                        <Page.Body>
+                            <Page.ContentBlock pHoverNone pSticky>
+                                <Page.DpRow>
+                                    <div className="app-store-item-info">
+                                        <div className="app-store-item-info-thumb">
+                                            {pCode?.app?.github?.owner?.avatar_url && pCode?.app?.github?.owner?.avatar_url !== '' ? (
+                                                <img src={pCode?.app?.github?.owner?.avatar_url} />
+                                            ) : (
+                                                <VscExtensions />
+                                            )}
+                                        </div>
+                                        <div className="app-store-item-info-contents">
+                                            {/* TITLE & VERSION */}
+                                            <Page.DpRow>
+                                                <Page.ContentTitle>{pCode?.app?.name ?? ''}</Page.ContentTitle>
+                                                <div className="app-store-item-info-contents-top-version">
+                                                    <span>v{pCode?.app?.latest_version ?? ''}</span>
                                                 </div>
-                                                <div className="app-store-item-info-contents">
-                                                    {/* TITLE & VERSION */}
-                                                    <ExtensionTab.DpRow>
-                                                        <ExtensionTab.ContentTitle>{pCode?.app?.name ?? ''}</ExtensionTab.ContentTitle>
-                                                        <div className="app-store-item-info-contents-top-version">
-                                                            <span>v{pCode?.app?.latest_version ?? ''}</span>
-                                                        </div>
-                                                    </ExtensionTab.DpRow>
-                                                    {/* DESC */}
-                                                    <ExtensionTab.ContentDesc>{pCode?.app?.github.description ?? ''}</ExtensionTab.ContentDesc>
-                                                    {/* ORGANIZ & PUBS TIME */}
-                                                    <div style={{ display: 'flex', alignItems: 'center', marginRight: '8px' }}>
-                                                        <ExtensionTab.ContentDesc>
-                                                            <div className="pkg-published-time-tooltip">
-                                                                Published {pCode?.app?.published_at ? tzTimeConverter(pCode?.app?.published_at) : ''}
-                                                            </div>
-                                                            <Tooltip anchorSelect={`.pkg-published-time-tooltip`} content={tzTimeFormatter(pCode?.app?.published_at)} />
-                                                        </ExtensionTab.ContentDesc>
+                                            </Page.DpRow>
+                                            {/* DESC */}
+                                            <Page.ContentDesc>{pCode?.app?.github.description ?? ''}</Page.ContentDesc>
+                                            {/* ORGANIZ & PUBS TIME */}
+                                            <div style={{ display: 'flex', alignItems: 'center', marginRight: '8px' }}>
+                                                <Page.ContentDesc>
+                                                    <div className="pkg-published-time-tooltip">
+                                                        Published {pCode?.app?.published_at ? tzTimeConverter(pCode?.app?.published_at) : ''}
                                                     </div>
-                                                    {STATUS_ICON()}
-                                                </div>
+                                                    <Tooltip anchorSelect={`.pkg-published-time-tooltip`} content={tzTimeFormatter(pCode?.app?.published_at)} />
+                                                </Page.ContentDesc>
                                             </div>
-                                        </ExtensionTab.DpRow>
-                                        <div style={{ display: 'flex', flexDirection: 'row', marginTop: '8px', width: '100%' }}>
-                                            {/* PUBLISHED BY */}
-                                            {pCode?.app?.github?.homepage && pCode?.app?.github?.homepage !== '' && (
-                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden' }}>
-                                                    <ExtensionTab.ContentText pContent={`Published by ${pCode?.app?.github?.organization}`} pWrap />
-                                                </div>
-                                            )}
-                                            {/* HOMEPAGE */}
-                                            {pCode?.app?.github?.homepage && pCode?.app?.github?.homepage !== '' && (
-                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden' }}>
-                                                    <VscHome style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
-                                                    <a
-                                                        onClick={() => window.open(pCode?.app?.github?.homepage, '_blank')}
-                                                        style={{
-                                                            fontSize: '13px',
-                                                            marginTop: '4px',
-                                                            overflow: 'hidden',
-                                                            whiteSpace: 'nowrap',
-                                                            textOverflow: 'ellipsis',
-                                                            cursor: 'pointer',
-                                                        }}
-                                                    >
-                                                        {pCode?.app?.github?.homepage}
-                                                    </a>
-                                                </div>
-                                            )}
+                                            {STATUS_ICON()}
                                         </div>
-                                        <div style={{ display: 'flex', flexDirection: 'row', marginTop: '8px', width: '100%', flexWrap: 'wrap' }}>
-                                            {/* GIT PAGE */}
-                                            {pCode?.app?.github?.full_name && pCode?.app?.github?.full_name !== '' && (
-                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden' }}>
-                                                    <BiLink style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
-                                                    <a
-                                                        onClick={() => window.open('https://github.com/' + pCode?.app?.github?.full_name, '_blank')}
-                                                        style={{
-                                                            fontSize: '13px',
-                                                            marginTop: '4px',
-                                                            overflow: 'hidden',
-                                                            whiteSpace: 'nowrap',
-                                                            textOverflow: 'ellipsis',
-                                                            cursor: 'pointer',
-                                                        }}
-                                                    >
-                                                        {'https://github.com/' + pCode?.app?.github?.full_name}
-                                                    </a>
-                                                </div>
-                                            )}
-                                            {/* LICENSE */}
-                                            {pCode?.app?.github?.license?.name && pCode?.app?.github?.license?.name !== '' && (
-                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden' }}>
-                                                    <LuScale style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
-                                                    <a
-                                                        onClick={() => window.open(pCode?.app?.github?.license?.url, '_blank')}
-                                                        style={{
-                                                            fontSize: '13px',
-                                                            marginTop: '4px',
-                                                            overflow: 'hidden',
-                                                            whiteSpace: 'nowrap',
-                                                            textOverflow: 'ellipsis',
-                                                            cursor: 'pointer',
-                                                        }}
-                                                    >
-                                                        {pCode?.app?.github?.license?.name}
-                                                    </a>
-                                                </div>
-                                            )}
-                                            {/* STAR */}
-                                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
-                                                <SlStar style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
-                                                <ExtensionTab.ContentText pContent={pCode?.app?.github?.stargazers_count ?? '0'} />
-                                            </div>
-                                            {/* FORKS COUNT */}
-                                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
-                                                <VscRepoForked style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
-                                                <ExtensionTab.ContentText pContent={pCode?.app?.github?.forks_count + ' forks'} />
-                                            </div>
-                                            {/* SIZE */}
-                                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px' }}>
-                                                <VscPackage style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
-                                                <ExtensionTab.ContentText pContent={byteConverter(pCode?.app?.latest_release_size)?.toString()} />
-                                            </div>
+                                    </div>
+                                </Page.DpRow>
+                                <div style={{ display: 'flex', flexDirection: 'row', marginTop: '8px', width: '100%', overflow: 'hidden' }}>
+                                    {/* PUBLISHED BY */}
+                                    {pCode?.app?.github?.homepage && pCode?.app?.github?.homepage !== '' && (
+                                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden', minWidth: 0 }}>
+                                            <Page.ContentText pContent={`Published by ${pCode?.app?.github?.organization}`} pWrap />
                                         </div>
-                                    </ExtensionTab.ContentBlock>
-                                    <ExtensionTab.Hr />
-                                </ExtensionTab.Body>
-                            </div>
-                            <ExtensionTab.Body>
-                                <ExtensionTab.ContentBlock pHoverNone>
-                                    <Markdown pIdx={1} pContents={sReadme ?? ''} pType="mrk" />
-                                </ExtensionTab.ContentBlock>
-                                <div style={{ height: sBracketHeight }} />
-                            </ExtensionTab.Body>
-                        </Pane>
-                    }
+                                    )}
+                                    {/* HOMEPAGE */}
+                                    {pCode?.app?.github?.homepage && pCode?.app?.github?.homepage !== '' && (
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                marginRight: '8px',
+                                                overflow: 'hidden',
+                                                minWidth: 0,
+                                                flex: 1,
+                                            }}
+                                        >
+                                            <VscHome style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px', flexShrink: 0 }} />
+                                            <a
+                                                onClick={() => window.open(pCode?.app?.github?.homepage, '_blank')}
+                                                style={{
+                                                    fontSize: '13px',
+                                                    marginTop: '4px',
+                                                    overflow: 'hidden',
+                                                    whiteSpace: 'nowrap',
+                                                    textOverflow: 'ellipsis',
+                                                    cursor: 'pointer',
+                                                    minWidth: 0,
+                                                }}
+                                            >
+                                                {pCode?.app?.github?.homepage}
+                                            </a>
+                                        </div>
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'row', marginTop: '8px', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
+                                    {/* GIT PAGE */}
+                                    {pCode?.app?.github?.full_name && pCode?.app?.github?.full_name !== '' && (
+                                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', minWidth: 0 }}>
+                                            <BiLink style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px', flexShrink: 0 }} />
+                                            <a
+                                                onClick={() => window.open('https://github.com/' + pCode?.app?.github?.full_name, '_blank')}
+                                                style={{
+                                                    fontSize: '13px',
+                                                    marginTop: '4px',
+                                                    overflow: 'hidden',
+                                                    whiteSpace: 'nowrap',
+                                                    textOverflow: 'ellipsis',
+                                                    cursor: 'pointer',
+                                                }}
+                                            >
+                                                {'https://github.com/' + pCode?.app?.github?.full_name}
+                                            </a>
+                                        </div>
+                                    )}
+                                    {/* LICENSE */}
+                                    {pCode?.app?.github?.license?.name && pCode?.app?.github?.license?.name !== '' && (
+                                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', minWidth: 0 }}>
+                                            <LuScale style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px', flexShrink: 0 }} />
+                                            <a
+                                                onClick={() => window.open(pCode?.app?.github?.license?.url, '_blank')}
+                                                style={{
+                                                    fontSize: '13px',
+                                                    marginTop: '4px',
+                                                    overflow: 'hidden',
+                                                    whiteSpace: 'nowrap',
+                                                    textOverflow: 'ellipsis',
+                                                    cursor: 'pointer',
+                                                }}
+                                            >
+                                                {pCode?.app?.github?.license?.name}
+                                            </a>
+                                        </div>
+                                    )}
+                                    {/* STAR */}
+                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
+                                        <SlStar style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
+                                        <Page.ContentText pContent={pCode?.app?.github?.stargazers_count ?? '0'} />
+                                    </div>
+                                    {/* FORKS COUNT */}
+                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
+                                        <VscRepoForked style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
+                                        <Page.ContentText pContent={pCode?.app?.github?.forks_count + ' forks'} />
+                                    </div>
+                                    {/* SIZE */}
+                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
+                                        <VscPackage style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px' }} />
+                                        <Page.ContentText pContent={byteConverter(pCode?.app?.latest_release_size)?.toString()} />
+                                    </div>
+                                </div>
+                                <Page.Space />
+                                <Page.Hr />
+                            </Page.ContentBlock>
+                            <Markdown pIdx={1} pContents={sReadme ?? ''} pType="mrk" />
+                        </Page.Body>
+                    </Pane>
                     <Pane>
-                        <ExtensionTab.Header>
+                        <Page.Header>
                             <div />
-                            <div style={{ display: 'flex' }}>
-                                <IconButton
-                                    pIsToopTip
-                                    pToolTipContent="Vertical"
-                                    pToolTipId="app-store-tab-hori"
-                                    pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
-                                    pIsActive={isVertical}
+                            <Button.Group>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    active={isVertical}
+                                    isToolTip
+                                    toolTipContent="Vertical"
+                                    icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
                                     onClick={() => setIsVertical(true)}
                                 />
-                                <IconButton
-                                    pIsToopTip
-                                    pToolTipContent="Horizontal"
-                                    pToolTipId="app-store-tab-ver"
-                                    pIcon={<LuFlipVertical />}
-                                    pIsActive={!isVertical}
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    active={!isVertical}
+                                    isToolTip
+                                    toolTipContent="Horizontal"
+                                    icon={<LuFlipVertical size={16} />}
                                     onClick={() => setIsVertical(false)}
                                 />
-                            </div>
-                        </ExtensionTab.Header>
-                        <ExtensionTab.Body>
+                            </Button.Group>
+                        </Page.Header>
+                        <Page.Body>
                             {sCommandResLog && (
-                                <ExtensionTab.ContentBlock>
+                                <Page.ContentBlock>
                                     <div style={{ display: 'flex' }}>
                                         <pre style={{ width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sCommandResLog}</pre>
                                     </div>
-                                </ExtensionTab.ContentBlock>
+                                </Page.ContentBlock>
                             )}
-                        </ExtensionTab.Body>
+                        </Page.Body>
                     </Pane>
                 </SplitPane>
-            </ExtensionTab>
+            </Page>
         </>
     );
 };

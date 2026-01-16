@@ -21,17 +21,21 @@ const useModalContext = () => {
 interface ModalRootProps extends UseModalProps {
     children: React.ReactNode;
     className?: string;
+    style?: React.CSSProperties;
+    size?: 'sm' | 'md' | 'lg' | 'xl' | 'fit';
 }
 
-const ModalRoot = ({ children, className, ...modalProps }: ModalRootProps) => {
+const ModalRoot = ({ children, className, style, size = 'fit', ...modalProps }: ModalRootProps) => {
     const modal = useModal(modalProps);
 
     if (!modal.isOpen) return null;
 
+    const sizeClass = styles[`modal--${size}`];
+
     return createPortal(
         <ModalContext.Provider value={modal}>
             <div {...modal.getOverlayProps()} className={styles['modal__overlay']}>
-                <div {...modal.getContentProps()} className={`${styles.modal} ${className ?? ''}`}>
+                <div {...modal.getContentProps()} className={`${styles.modal} ${sizeClass} ${className ?? ''}`} style={style}>
                     {children}
                 </div>
             </div>
@@ -117,7 +121,7 @@ const ModalBodyContent = ({ children, className, style }: ModalBodyContentProps)
 
 // Footer Component
 interface ModalFooterProps {
-    children: React.ReactNode;
+    children?: React.ReactNode;
     className?: string;
     style?: React.CSSProperties;
 }
@@ -159,11 +163,12 @@ interface ModalConfirmProps {
     onClick?: () => void;
     disabled?: boolean;
     loading?: boolean;
+    autoFocus?: boolean;
 }
 
-const ModalConfirm = ({ children, className, style, onClick, disabled, loading }: ModalConfirmProps) => {
+const ModalConfirm = ({ children, className, style, onClick, disabled, loading, autoFocus }: ModalConfirmProps) => {
     return (
-        <Button variant="primary" className={className} style={style} onClick={onClick} disabled={disabled} loading={loading}>
+        <Button variant="primary" className={className} style={style} onClick={onClick} disabled={disabled} loading={loading} autoFocus={autoFocus}>
             {children ?? 'Confirm'}
         </Button>
     );
@@ -175,9 +180,10 @@ interface ModalCancelProps {
     className?: string;
     style?: React.CSSProperties;
     onClick?: () => void;
+    autoFocus?: boolean;
 }
 
-const ModalCancel = ({ children, className, style, onClick }: ModalCancelProps) => {
+const ModalCancel = ({ children, className, style, onClick, autoFocus }: ModalCancelProps) => {
     const modal = useModalContext();
 
     const handleClick = () => {
@@ -189,7 +195,7 @@ const ModalCancel = ({ children, className, style, onClick }: ModalCancelProps) 
     };
 
     return (
-        <Button variant="secondary" className={className} style={style} onClick={handleClick}>
+        <Button variant="secondary" className={className} style={style} onClick={handleClick} autoFocus={autoFocus}>
             {children ?? 'Cancel'}
         </Button>
     );

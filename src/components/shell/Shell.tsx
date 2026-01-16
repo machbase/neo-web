@@ -1,3 +1,4 @@
+import './Shell.scss';
 import { useEffect, useRef, useState } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
@@ -7,7 +8,7 @@ import { WebglAddon } from 'xterm-addon-webgl';
 import { postTerminalSize } from '../../api/repository/machiot';
 import { getLogin } from '@/api/repository/login';
 import Theme from '@/assets/ts/xtermTheme';
-import './Shell.scss';
+import { Page } from '@/design-system/components';
 
 interface ShellProps {
     pId: string;
@@ -141,14 +142,16 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
     }, [sTermView, pSelectedTab]);
 
     return (
-        <div style={{ height: '100%', width: '100%', overflow: 'auto' }}>
-            <div style={pType ? {} : pInfo?.shell?.theme ? { boxShadow: '0px 1px 6px #181818', height: '40px' } : { height: '40px' }} />
-            <div
-                ref={term_view}
-                id={'term_view' + pId}
-                style={pType ? { height: 'calc(100% - 1px)', width: '100%', paddingTop: '4px' } : { height: 'calc(100% - 41px)', width: '100%', paddingTop: '4px' }}
-            />
-        </div>
+        <Page>
+            {pType === 'bottom' ? (
+                <div ref={term_view} id={'term_view' + pId} />
+            ) : (
+                <>
+                    <Page.Header />
+                    <div ref={term_view} id={'term_view' + pId} />
+                </>
+            )}
+        </Page>
     );
 };
 

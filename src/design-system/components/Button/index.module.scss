@@ -9,10 +9,11 @@
     font-weight: 500;
     border: none;
     border-radius: t.$border-radius-base;
-    cursor: pointer;
+    cursor: pointer !important;
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
     white-space: nowrap;
     user-select: none;
+    font-size: t.$font-size-base;
 
     &:focus-visible {
         outline: 2px solid t.$border-color-focus;
@@ -28,6 +29,29 @@
         cursor: not-allowed;
     }
 
+    // SVG hover effect
+    &:hover:not(:disabled) {
+        svg {
+            opacity: 1;
+
+            path[fill]:not([fill='none']) {
+                fill: currentColor;
+            }
+
+            path[stroke] {
+                stroke: currentColor;
+            }
+        }
+    }
+
+    svg {
+        transition: opacity 0.2s ease;
+
+        path {
+            transition: fill 0.2s ease, stroke 0.2s ease;
+        }
+    }
+
     // Variants
     &--primary {
         background-color: rgb(0, 108, 210);
@@ -38,26 +62,50 @@
             background-color: rgb(0, 90, 180);
             border-color: rgb(0, 90, 180);
         }
+
+        &:focus,
+        &:focus-visible {
+            box-shadow: 0 0 0 3px rgba(0, 108, 210, 0.5) !important;
+            outline: none;
+        }
     }
 
     &--secondary {
         background-color: transparent;
-        color: t.$text-primary;
-        border: 1px solid #3e3e3e;
+        color: t.$text-disabled;
+        border: 1px solid t.$border-color-default;
 
         &:hover:not(:disabled) {
             background-color: t.$bg-hover;
-            border-color: #5a5a5a;
+            color: t.$text-primary;
+
+            svg {
+                color: t.$text-primary;
+            }
+        }
+
+        &:focus,
+        &:focus-visible {
+            background-color: t.$bg-hover !important;
+            color: t.$text-primary !important;
+            border-color: t.$border-color-focus !important;
+            box-shadow: 0 0 0 3px rgba(0, 108, 210, 0.4) !important;
+            outline: none;
         }
     }
 
     &--ghost {
         background-color: transparent;
-        color: t.$text-primary;
+        color: t.$text-disabled;
         border: 1px solid transparent;
 
         &:hover:not(:disabled) {
             background-color: t.$bg-hover;
+            color: t.$text-primary;
+
+            svg {
+                color: t.$text-primary;
+            }
         }
     }
 
@@ -74,12 +122,19 @@
 
     &--none {
         background-color: transparent;
-        color: t.$text-primary;
+        color: t.$text-disabled;
         border: 1px solid transparent;
-        opacity: 0.5;
+
+        svg {
+            color: t.$text-disabled;
+        }
 
         &:hover:not(:disabled) {
-            opacity: 1;
+            color: t.$text-primary;
+
+            svg {
+                color: t.$text-primary;
+            }
         }
     }
 
@@ -90,22 +145,40 @@
         min-height: 28px;
         min-width: 28px;
     }
-    &--sm {
-        padding: t.$spacing-4 t.$spacing-12;
-        font-size: t.$font-size-sm;
+    &--fit {
+        padding: t.$spacing-2;
         min-height: 28px;
+        max-height: 28px;
+    }
+    &--sm {
+        padding: t.$spacing-6;
+        font-size: t.$font-size-sm;
+        min-height: 26px;
     }
 
     &--md {
-        padding: t.$spacing-6 t.$spacing-16;
+        padding: t.$spacing-8;
         font-size: t.$font-size-base;
         min-height: 36px;
     }
 
     &--lg {
-        padding: t.$spacing-8 t.$spacing-20;
+        padding: t.$spacing-10;
         font-size: t.$font-size-base;
-        min-height: 44px;
+        min-height: 50px;
+    }
+
+    &--side,
+    &--xsm {
+        padding: t.$spacing-2;
+        min-width: 18px;
+        max-width: 18px;
+        min-height: 18px;
+        max-height: 18px;
+
+        &:hover:not(:disabled) {
+            background-color: t.$bg-hover-block;
+        }
     }
 
     // States
@@ -113,8 +186,34 @@
         pointer-events: none;
     }
 
+    &--active {
+        background-color: t.$bg-hover !important;
+        color: t.$text-primary !important;
+
+        svg {
+            opacity: 1;
+            color: t.$text-primary !important;
+        }
+    }
+
     &--full-width {
         width: 100%;
+    }
+
+    &--force-opacity {
+        opacity: 1 !important;
+
+        svg {
+            opacity: 1 !important;
+        }
+    }
+
+    &--shadow {
+        box-shadow: t.$shadow-md;
+
+        &:hover:not(:disabled) {
+            box-shadow: t.$shadow-lg;
+        }
     }
 
     // Elements
@@ -123,11 +222,59 @@
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
+
+        svg {
+            display: block;
+        }
+    }
+
+    // Icon sizes per button size
+    &--sm &__icon,
+    &--icon {
+        width: 16px;
+        height: 16px;
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+    }
+
+    &--md &__icon {
+        width: 18px;
+        height: 18px;
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+    }
+
+    // &--lg &__icon {
+    //     width: 20px;
+    //     height: 20px;
+
+    //     svg {
+    //         width: 100%;
+    //         height: 100%;
+    //     }
+    // }
+
+    // fit size keeps natural icon size
+    &--fit &__icon {
+        svg {
+            width: auto;
+            height: auto;
+        }
     }
 
     &__text {
         display: inline-flex;
         align-items: center;
+        cursor: pointer !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     &__spinner {
@@ -144,6 +291,64 @@
     .button__text {
         display: none;
     }
+}
+
+// Button Group
+.button-group {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    align-items: center;
+
+    &--full-width {
+        width: 100%;
+
+        .button {
+            flex: 1;
+        }
+    }
+}
+
+// Button Group Container (with label)
+.button-group-container {
+    display: flex;
+
+    &--label-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: t.$spacing-8;
+    }
+
+    &--label-left {
+        flex-direction: row;
+        align-items: center;
+        gap: t.$spacing-12;
+
+        .button-group-label {
+            flex: 1;
+            min-width: 60px;
+            max-width: 120px;
+        }
+
+        .button-group {
+            flex: 2;
+        }
+    }
+
+    &--full-width {
+        width: 100%;
+
+        .button-group {
+            flex: 1;
+        }
+    }
+}
+
+.button-group-label {
+    font-size: t.$font-size-base;
+    font-weight: 500;
+    color: t.$text-secondary;
+    user-select: none;
 }
 
 // Spinner animation

@@ -1,0 +1,171 @@
+@use '@/design-system/tokens' as t;
+
+// Container
+.checkbox-container {
+    display: inline-flex;
+    flex-direction: column;
+    gap: t.$spacing-4;
+}
+
+// Wrapper (label element)
+.checkbox-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-8;
+    cursor: pointer;
+    user-select: none;
+
+    &--disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+
+    // Size variants
+    &--sm {
+        gap: t.$spacing-6;
+    }
+
+    &--md {
+        gap: t.$spacing-8;
+    }
+
+    &--lg {
+        gap: t.$spacing-10;
+    }
+}
+
+// Hidden native checkbox input
+.checkbox {
+    position: absolute;
+    opacity: 0;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    cursor: pointer;
+
+    // Checked state - background changes to match design system primary button
+    &:checked + .checkbox-checkmark {
+        background-color: rgb(0, 108, 210);
+        border-color: rgb(0, 108, 210);
+
+        svg {
+            opacity: 1;
+        }
+    }
+
+    // Hover state
+    &:not(:disabled):hover + .checkbox-checkmark {
+        border-color: rgb(0, 108, 210);
+    }
+
+    &:checked:not(:disabled):hover + .checkbox-checkmark {
+        background-color: rgb(0, 90, 180);
+        border-color: rgb(0, 90, 180);
+    }
+
+    // Focus state
+    &:focus-visible + .checkbox-checkmark {
+        outline: 2px solid t.$border-color-focus;
+        outline-offset: 2px;
+    }
+
+    // Indeterminate state
+    &:indeterminate + .checkbox-checkmark {
+        background-color: rgb(0, 108, 210);
+        border-color: rgb(0, 108, 210);
+
+        svg {
+            opacity: 1;
+        }
+    }
+
+    // Disabled state
+    &:disabled + .checkbox-checkmark {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+
+    // Error state
+    &--error + .checkbox-checkmark {
+        border-color: t.$error-main;
+    }
+}
+
+// Custom checkmark box
+.checkbox-checkmark {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    background-color: t.$bg-input;
+    border: 1px solid t.$border-color-default;
+    border-radius: t.$border-radius-sm;
+    transition: t.$transition-default;
+
+    svg {
+        opacity: 0;
+        color: t.$text-primary;
+        transition: opacity t.$transition-duration-fast t.$transition-easing-default;
+    }
+
+    // Size variants
+    .checkbox--sm + & {
+        width: 12px;
+        height: 12px;
+
+        svg {
+            width: 10px;
+            height: 10px;
+        }
+    }
+
+    .checkbox--md + & {
+        width: 16px;
+        height: 16px;
+
+        svg {
+            width: 12px;
+            height: 12px;
+        }
+    }
+
+    .checkbox--lg + & {
+        width: 18px;
+        height: 18px;
+
+        svg {
+            width: 14px;
+            height: 14px;
+        }
+    }
+}
+
+// Label text
+.checkbox-label {
+    color: t.$text-primary;
+    font-size: t.$font-size-base;
+    line-height: 1.5;
+    cursor: pointer;
+
+    .checkbox-wrapper--sm & {
+        font-size: t.$font-size-sm;
+    }
+
+    .checkbox-wrapper--disabled & {
+        cursor: not-allowed;
+    }
+}
+
+// Helper text
+.checkbox-helper-text {
+    font-size: t.$font-size-sm;
+    color: t.$text-secondary;
+    margin-left: 24px; // Align with checkbox label
+
+    &--error {
+        color: t.$error-main;
+    }
+}

@@ -1,4 +1,4 @@
-/* eslint-disable no-useless-escape */
+ 
 import { checkPwdPolicy, parsePwd } from './utils';
 
 test.each([

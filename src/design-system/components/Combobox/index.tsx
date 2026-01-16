@@ -20,15 +20,19 @@ const useComboboxContext = () => {
 };
 
 // Root Component
+export type ComboboxSize = 'sm' | 'md' | 'lg';
+
 interface ComboboxRootProps extends UseComboboxProps {
     children: ReactNode;
     className?: string;
-    label?: string;
+    label?: string | ReactNode;
     labelPosition?: 'top' | 'left';
     fullWidth?: boolean;
+    size?: ComboboxSize;
+    style?: React.CSSProperties;
 }
 
-const ComboboxRoot = ({ children, className, label, labelPosition = 'top', fullWidth = false, ...props }: ComboboxRootProps) => {
+const ComboboxRoot = ({ children, className, label, labelPosition = 'top', fullWidth = false, size, style, ...props }: ComboboxRootProps) => {
     const combobox = useCombobox(props);
 
     // Close dropdown when clicking outside
@@ -42,10 +46,17 @@ const ComboboxRoot = ({ children, className, label, labelPosition = 'top', fullW
 
     const comboboxId = `combobox-${Math.random().toString(36).substring(2, 9)}`;
 
+    // Check if children contains Trigger component
+    const hasTrigger = React.Children.toArray(children).some((child) => {
+        return React.isValidElement(child) && (child.type as any) === ComboboxTrigger;
+    });
+
     const containerClasses = [
         styles['combobox-container'],
         styles[`combobox-container--label-${labelPosition}`],
         fullWidth && styles['combobox-container--full-width'],
+        !hasTrigger && styles['combobox-container--no-trigger'],
+        size && styles[`combobox-container--${size}`],
         className,
     ]
         .filter(Boolean)
@@ -59,7 +70,7 @@ const ComboboxRoot = ({ children, className, label, labelPosition = 'top', fullW
 
     return (
         <ComboboxContext.Provider value={combobox}>
-            <div className={containerClasses}>
+            <div className={containerClasses} style={style}>
                 {labelPosition === 'top' && labelElement}
                 <div className={styles['combobox-field-wrapper']}>
                     {labelPosition === 'left' && labelElement}
@@ -76,15 +87,16 @@ const ComboboxRoot = ({ children, className, label, labelPosition = 'top', fullW
 interface ComboboxInputProps {
     className?: string;
     icon?: React.ReactNode;
+    style?: React.CSSProperties;
 }
 
-const ComboboxInput = ({ className, icon }: ComboboxInputProps) => {
+const ComboboxInput = ({ className, icon, style }: ComboboxInputProps) => {
     const combobox = useComboboxContext();
 
     return (
         <div className={styles['combobox__input-wrapper']}>
             {icon && <span className={styles['combobox__input-icon']}>{icon}</span>}
-            <input {...combobox.getInputProps()} className={`${styles['combobox__input']} ${className ?? ''}`} />
+            <input {...combobox.getInputProps()} className={`${styles['combobox__input']} ${className ?? ''}`} style={style} />
         </div>
     );
 };
@@ -103,7 +115,7 @@ const ComboboxTrigger = ({ className, children, icon }: ComboboxTriggerProps) =>
     return (
         <Button
             type="button"
-            variant="ghost"
+            variant="none"
             size="sm"
             icon={children ?? icon}
             onClick={triggerProps.onClick}
@@ -129,12 +141,7 @@ const ComboboxClear = ({ className }: ComboboxClearProps) => {
     }
 
     return (
-        <button
-            onClick={combobox.handleClear}
-            className={`${styles['combobox__clear']} ${className ?? ''}`}
-            type="button"
-            aria-label="Clear selection"
-        >
+        <button onClick={combobox.handleClear} className={`${styles['combobox__clear']} ${className ?? ''}`} type="button" aria-label="Clear selection">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <path d="M2 2L10 10M2 10L10 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
@@ -156,8 +163,21 @@ const ComboboxDropdown = ({ children, className }: ComboboxDropdownProps) => {
     useEffect(() => {
         if (combobox.isOpen && combobox.containerRef.current) {
             const rect = combobox.containerRef.current.getBoundingClientRect();
+
+            // Calculate available space below and above
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+
+            // Get dropdown height (use actual height if available, otherwise estimate)
+            const dropdownHeight = dropdownRef.current?.offsetHeight || 300;
+
+            // Render above if insufficient space below and more space available above
+            const shouldRenderAbove = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+
             setPosition({
-                top: rect.bottom + window.scrollY + 4,
+                top: shouldRenderAbove
+                    ? rect.top + window.scrollY - dropdownHeight - 4
+                    : rect.bottom + window.scrollY + 4,
                 left: rect.left + window.scrollX,
                 width: rect.width,
             });
@@ -221,9 +241,7 @@ const ComboboxList = ({ children, className, emptyMessage = 'No results found' }
                 <>
                     {children
                         ? combobox.filteredOptions.map((option, index) => children(option, index))
-                        : combobox.filteredOptions.map((option, index) => (
-                              <ComboboxOption key={option.value} option={option} index={index} />
-                          ))}
+                        : combobox.filteredOptions.map((option, index) => <ComboboxOption key={option.value} option={option} index={index} />)}
                 </>
             )}
         </ul>

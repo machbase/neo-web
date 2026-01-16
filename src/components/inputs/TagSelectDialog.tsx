@@ -3,7 +3,7 @@ import { useRecoilState } from 'recoil';
 import { gTables } from '@/recoil/recoil';
 import { fetchTableName, getTagPagination, getTagTotal } from '@/api/repository/machiot';
 import { BiSolidChart, Search } from '@/assets/icons/Icon';
-import { Error } from '@/components/toast/Toast';
+import { Toast } from '@/design-system/components';
 import { Modal } from '@/design-system/components/Modal';
 import { Button } from '@/design-system/components/Button';
 import { Input } from '@/design-system/components/Input';
@@ -45,7 +45,7 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
             setColumns(() => {
                 return { name: '', time: '', value: '' };
             });
-            return Error(sFetchTableInfo.message ?? '');
+            return Toast.error(sFetchTableInfo.message ?? '');
         }
     };
 

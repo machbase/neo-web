@@ -1,16 +1,13 @@
-import './DashboardView.scss';
 import Panel from '../panels/Panel';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
 import { useParams } from 'react-router-dom';
 import moment from 'moment';
 import { Calendar, VscChevronLeft, VscChevronRight, VscSync } from '../../assets/icons/Icon';
-import { IconButton } from '../../components/buttons/IconButton';
-import { ShareButton } from '../../components/buttons/ShareButton';
 import { calcRefreshTime, setUnitTime } from '../../utils/dashboardUtil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '../../utils/constants';
 import { getId, isMobile } from '../../utils';
-import ViewTimeRangeModal from '../../components/modal/ViewTimeRangeModal';
+import TimeRangeModal from '../../components/modal/TimeRangeModal';
 import { timeMinMaxConverter } from '../../utils/bgnEndTimeRange';
 import { executeQuery, fetchMountTimeMinMax, fetchTimeMinMax } from '../../api/repository/machiot';
 import { CheckDataCompatibility } from '../../utils/CheckDataCompatibility';
@@ -18,12 +15,16 @@ import { VariableHeader } from '../variable/VariableHeader';
 import { VARIABLE_TYPE } from '../variable';
 import { IoMdOptions } from 'react-icons/io';
 import { VariablePreview } from '../variable/VariablePreview';
-import { IoClose } from 'react-icons/io5';
 import Footer from '../Footer/Footer';
+import { Button } from '../../../design-system/components/Button';
+import { Page } from '../../../design-system/components/Page';
+import { Drawer } from '../../../design-system/components/Drawer';
+import { Share } from '../../assets/icons/Icon';
+import ShareModal from '../../components/modal/ShareModal';
 
 const DashboardView = () => {
     const sParams = useParams();
-    const sLayoutRef = useRef<HTMLDivElement>(null);
+    const sBodyRef = useRef<HTMLDivElement>(null);
     const [sBoardInformation, setBoardInformation] = useState<{ dashboard: any; name: string; id: string; panelHeader: boolean }>();
     const [sNotfound, setNotFound] = useState<boolean>(false);
     const [sIsTimeRangeModal, setIsTimeRangeModal] = useState<boolean>(false);
@@ -34,12 +35,8 @@ const DashboardView = () => {
     const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
     const [sChartVariableId, setChartVariableId] = useState<string>('');
     const variableRef = useRef<HTMLDivElement>(null);
-    const [sLayoutWidth, setLayoutWidth] = useState<number>(0);
     const [sShouldShowFooter, setShouldShowFooter] = useState<boolean>(false);
-    const refreshTimeoutRef = useRef<NodeJS.Timeout>();
-    const lastRefreshTimeRef = useRef<number>(0);
-    const pendingRefreshRef = useRef<boolean>(false);
-    const resizeEndTimeoutRef = useRef<NodeJS.Timeout>();
+    const [sIsShareModal, setIsShareModal] = useState<boolean>(false);
 
     const getDshFile = async (aFileName: string | undefined) => {
         if (!aFileName) return;
@@ -60,6 +57,8 @@ const DashboardView = () => {
             setNotFound(true);
         }
     };
+
+    const variableButtonRef = useRef<HTMLDivElement>(null);
     const handleUpdateVariable = (updateVarList: VARIABLE_TYPE[]) => {
         const updateBoardInfo = {
             ...sBoardInformation,
@@ -137,40 +136,16 @@ const DashboardView = () => {
 
         handleDashboardTimeRange(sStartTime, sEndTime);
     };
-    const handleRefresh = useCallback(async () => {
-        if (!sBoardInformation?.dashboard?.timeRange) {
-            return;
-        }
-
-        const sTimeRange = sBoardInformation.dashboard.timeRange;
+    const handleRefresh = async () => {
+        const sTimeRange = sBoardInformation?.dashboard.timeRange;
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax(sBoardInformation);
         const sTimeMinMax = timeMinMaxConverter(sTimeRange.start, sTimeRange.end, sSvrRes);
-
         setBoardTimeMinMax(() => {
             return { min: sTimeMinMax.min, max: sTimeMinMax.max, refresh: true };
         });
         GenChartVariableId();
         return;
-    }, [sBoardInformation]);
-
-    const forceRefresh = useCallback(async () => {
-        const now = Date.now();
-        const timeSinceLastRefresh = now - lastRefreshTimeRef.current;
-
-        if (timeSinceLastRefresh < 1000 && pendingRefreshRef.current) {
-            return;
-        }
-
-        pendingRefreshRef.current = true;
-        lastRefreshTimeRef.current = now;
-
-        try {
-            await handleRefresh();
-        } catch (error) {
-        } finally {
-            pendingRefreshRef.current = false;
-        }
-    }, [handleRefresh, sBoardInformation]);
+    };
     const setIntervalTime = (aTimeRange: any): number => {
         return calcRefreshTime(aTimeRange.refresh);
     };
@@ -189,36 +164,6 @@ const DashboardView = () => {
         setChartVariableId(getId());
     };
 
-    const updateLayoutWidth = useCallback(() => {
-        if (sLayoutRef.current) {
-            const newWidth = sLayoutRef.current.clientWidth;
-            const widthDifference = Math.abs(newWidth - sLayoutWidth);
-
-
-            if (newWidth !== sLayoutWidth) {
-                setLayoutWidth(newWidth);
-
-                const significantChange = widthDifference > 20 || widthDifference > sLayoutWidth * 0.02;
-
-                if (significantChange) {
-
-                    if (resizeEndTimeoutRef.current) {
-                        clearTimeout(resizeEndTimeoutRef.current);
-                    }
-
-                    const timeoutId = setTimeout(() => {
-                        requestAnimationFrame(() => {
-                            requestAnimationFrame(() => {
-                                forceRefresh();
-                            });
-                        });
-                    }, 300);
-
-                    resizeEndTimeoutRef.current = timeoutId;
-                }
-            }
-        }
-    }, [sLayoutWidth, forceRefresh]);
     useEffect(() => {
         if (sBoardInformation && sBoardInformation.dashboard.timeRange && sBoardInformation.dashboard.timeRange.refresh !== 'Off')
             ctrBoardInterval(sBoardInformation.dashboard.timeRange);
@@ -232,11 +177,16 @@ const DashboardView = () => {
             if (!target) return;
             // Ignore clicks inside variable header area
             if (variableRef.current && variableRef.current.contains(target)) return;
+            // Ignore clicks on variable button
+            if (variableButtonRef.current && variableButtonRef.current.contains(target)) return;
             // Ignore clicks on variable related buttons
-            const variableButton = target.closest('[data-tooltip-id="variables-show-btn"]');
             const variablePreview = target.closest('.board-header-variable-collapse');
             const variablePreviewArea = target.closest('[class*="variable-preview"]');
-            if (variableButton || variablePreview || variablePreviewArea) return;
+            if (variablePreview || variablePreviewArea) return;
+            // Ignore clicks on dropdown menu (portal rendered)
+            const dropdownMenu = target.closest('[role="listbox"]');
+            const dropdownTrigger = target.closest('[aria-haspopup="listbox"]');
+            if (dropdownMenu || dropdownTrigger) return;
             // Close variable panel for all other cases
             setVariableCollapse(false);
         };
@@ -307,93 +257,54 @@ const DashboardView = () => {
         GenChartVariableId();
     }, []);
 
-    // Optimized resize handler with throttling
-    const throttledUpdateLayoutWidth = useMemo(() => {
-        let timeoutId: NodeJS.Timeout;
-        return () => {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(updateLayoutWidth, 16); // ~60fps throttle
-        };
-    }, [updateLayoutWidth]);
-
-    useEffect(() => {
-        updateLayoutWidth();
-
-        window.addEventListener('resize', throttledUpdateLayoutWidth);
-
-        return () => {
-            window.removeEventListener('resize', throttledUpdateLayoutWidth);
-            clearTimeout(refreshTimeoutRef.current);
-            // DON'T clear resizeEndTimeoutRef here - it breaks pending timeouts!
-            // clearTimeout(resizeEndTimeoutRef.current);
-        };
-    }, [updateLayoutWidth, throttledUpdateLayoutWidth]);
-
-    // Separate cleanup for component unmount only
-    useEffect(() => {
-        return () => {
-            clearTimeout(resizeEndTimeoutRef.current);
-        };
-    }, []);
-
     return sNotfound ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'fixed', inset: '16px' }}>
             <span>404 not found file name</span>
         </div>
     ) : (
         <>
-            <div className="dashboard-view-wrap" ref={sLayoutRef} style={{ width: '100vw', height: '100vh' }}>
-                <div className="dashboard-view-header">
-                    <div className="dashboard-view-header-l">
-                        <span className="title">{sBoardInformation?.dashboard?.title || ''}</span>
+            <Page style={{ width: '100vw', height: '100vh' }}>
+                <Page.Header>
+                    <Button.Group>
+                        <Page.DpRow style={{ width: '200px', overflow: 'hidden' }}>
+                            <Page.ContentTitle>{sBoardInformation?.dashboard?.title || ''}</Page.ContentTitle>
+                        </Page.DpRow>
                         {sBoardInformation && sBoardInformation?.dashboard && sBoardInformation?.dashboard?.variables && sBoardInformation?.dashboard?.variables?.length > 0 && (
                             <>
-                                <div className="board-header-variable-collapse">
-                                    <IconButton
-                                        pIsToopTip
-                                        pToolTipContent="Variables"
-                                        pToolTipId="variables-show-btn"
-                                        pWidth={20}
-                                        pHeight={20}
-                                        pIcon={<IoMdOptions />}
-                                        onClick={() => handleSplitPaneSize()}
-                                    />
+                                <div ref={variableButtonRef}>
+                                    <Button size="sm" variant="ghost" isToolTip toolTipContent="Variables" icon={<IoMdOptions size={16} />} onClick={() => handleSplitPaneSize()} />
                                 </div>
                                 {!sIsMobile && <VariablePreview pBoardInfo={sBoardInformation} callback={(selectVarId) => handleSplitPaneSize(selectVarId)} />}
                             </>
                         )}
+                    </Button.Group>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <Button variant="ghost" size="icon" icon={<Share size={16} />} onClick={() => setIsShareModal(true)} isToolTip toolTipContent="Share" />
+                        <Button variant="ghost" size="icon" icon={<VscSync size={16} />} onClick={handleRefresh} isToolTip toolTipContent="Refresh" />
+                        <Button variant="ghost" size="icon" icon={<VscChevronLeft size={16} />} onClick={() => moveTimeRange('l')} />
+                        <Button size="sm" variant="ghost" onClick={() => setIsTimeRangeModal(true)}>
+                            <Calendar style={{ paddingRight: '8px' }} />
+                            {sBoardInformation && sBoardInformation.dashboard.timeRange.start ? (
+                                <>
+                                    {(typeof sBoardInformation.dashboard.timeRange.start === 'string' &&
+                                    (sBoardInformation.dashboard.timeRange.start.includes('now') || sBoardInformation.dashboard.timeRange.start.includes('last'))
+                                        ? sBoardInformation.dashboard.timeRange.start
+                                        : moment(sBoardInformation.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
+                                        '~' +
+                                        (typeof sBoardInformation.dashboard.timeRange.end === 'string' &&
+                                        (sBoardInformation.dashboard.timeRange.end.includes('now') || sBoardInformation.dashboard.timeRange.end.includes('last'))
+                                            ? sBoardInformation.dashboard.timeRange.end
+                                            : moment(sBoardInformation.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
+                                </>
+                            ) : (
+                                <span>Time range not set</span>
+                            )}
+                            , Refresh : {sBoardInformation?.dashboard.timeRange.refresh}
+                        </Button>
+                        <Button variant="ghost" size="icon" icon={<VscChevronRight size={16} />} onClick={() => moveTimeRange('r')} />
                     </div>
-                    <div className="header-menu">
-                        <div className="list-menu">
-                            <ShareButton />
-                            <IconButton pIsToopTip pToolTipContent="Refresh" pToolTipId="refresh-btn" pWidth={20} pHeight={20} pIcon={<VscSync />} onClick={handleRefresh} />
-                        </div>
-                        <div className="calendar-group">
-                            <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronLeft />} onClick={() => moveTimeRange('l')} />
-                            <button onClick={() => setIsTimeRangeModal(true)} className="calendar" style={{ height: 'auto' }}>
-                                <Calendar />
-                                {sBoardInformation && sBoardInformation.dashboard.timeRange.start ? (
-                                    <span>
-                                        {(typeof sBoardInformation.dashboard.timeRange.start === 'string' &&
-                                        (sBoardInformation.dashboard.timeRange.start.includes('now') || sBoardInformation.dashboard.timeRange.start.includes('last'))
-                                            ? sBoardInformation.dashboard.timeRange.start
-                                            : moment(sBoardInformation.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
-                                            '~' +
-                                            (typeof sBoardInformation.dashboard.timeRange.end === 'string' &&
-                                            (sBoardInformation.dashboard.timeRange.end.includes('now') || sBoardInformation.dashboard.timeRange.end.includes('last'))
-                                                ? sBoardInformation.dashboard.timeRange.end
-                                                : moment(sBoardInformation.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
-                                    </span>
-                                ) : (
-                                    <span>Time range not set</span>
-                                )}
-                                , Refresh : {sBoardInformation?.dashboard.timeRange.refresh}
-                            </button>
-                            <IconButton pWidth={24} pHeight={24} pIcon={<VscChevronRight />} onClick={() => moveTimeRange('r')} />
-                        </div>
-                    </div>
-                </div>
-                <div className="board-body scrollbar-dark">
+                </Page.Header>
+                <Page.Body ref={sBodyRef} footer>
                     <GridLayout
                         className="layout"
                         useCSSTransforms={false}
@@ -401,7 +312,7 @@ const DashboardView = () => {
                         cols={GRID_LAYOUT_COLS}
                         autoSize={true}
                         rowHeight={GRID_LAYOUT_ROW_HEIGHT}
-                        width={sLayoutWidth}
+                        width={sBodyRef.current?.clientWidth}
                         isResizable={false}
                         isDraggable={false}
                     >
@@ -415,14 +326,14 @@ const DashboardView = () => {
                                         data-grid={{
                                             x: sIsMobile ? 0 : aItem.x,
                                             y: aItem.y,
-                                            w: sIsMobile ? sLayoutRef.current?.clientWidth : aItem.w,
+                                            w: sIsMobile ? sBodyRef.current?.clientWidth : aItem.w,
                                             h: aItem.h,
                                         }}
                                     >
                                         <Panel
                                             pBoardInfo={sBoardInformation}
                                             pPanelInfo={aItem}
-                                            pParentWidth={!sIsMobile && sLayoutWidth ? sLayoutWidth : aItem.w}
+                                            pParentWidth={!sIsMobile && sBodyRef?.current?.clientWidth ? sBodyRef.current.clientWidth : aItem.w}
                                             pChartVariableId={sChartVariableId}
                                             pIsHeader={false}
                                             pLoopMode={sBoardInformation?.dashboard.timeRange.refresh !== 'Off' || aItem?.timeRange?.refresh !== 'Off' ? true : false}
@@ -433,36 +344,39 @@ const DashboardView = () => {
                                 );
                             })}
                     </GridLayout>
-                </div>
-                {sVariableCollapse && (
-                    <div ref={variableRef} className="variable-header-warp">
-                        <div className="variable-header-close">
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Close"
-                                pToolTipId="variables-close-btn"
-                                pWidth={20}
-                                pHeight={20}
-                                pIcon={<IoClose />}
-                                onClick={() => setVariableCollapse(false)}
-                            />
-                        </div>
-                        <VariableHeader pBoardInfo={sBoardInformation} callback={handleUpdateVariable} pSelectVariable={sSelectVariable} />
-                    </div>
-                )}
-            </div>
+
+                    <Drawer.Root isOpen={sVariableCollapse} onClose={() => setVariableCollapse(false)} position="left" width={300} overlay={false} usePortal={false}>
+                        <Drawer.Header>
+                            <span style={{ fontSize: '14px', fontWeight: 600 }}>Variables</span>
+                            <Drawer.Close onClick={() => setVariableCollapse(false)} />
+                        </Drawer.Header>
+                        <Drawer.Body>
+                            <div ref={variableRef}>
+                                <VariableHeader pBoardInfo={sBoardInformation} callback={handleUpdateVariable} pSelectVariable={sSelectVariable} />
+                            </div>
+                        </Drawer.Body>
+                    </Drawer.Root>
+                </Page.Body>
+                {sShouldShowFooter ? (
+                    <Page.Footer>
+                        <Footer />
+                    </Page.Footer>
+                ) : null}
+            </Page>
 
             {sIsTimeRangeModal && (
-                <ViewTimeRangeModal
+                <TimeRangeModal
                     pSetTimeRangeModal={setIsTimeRangeModal}
                     pStartTime={sBoardInformation?.dashboard.timeRange.start}
                     pEndTime={sBoardInformation?.dashboard.timeRange.end}
                     pSetTime={setBoardInformation}
                     pRefresh={sBoardInformation?.dashboard.timeRange.refresh}
+                    pShowRefresh={true}
                     pSaveCallback={handleDashboardTimeRange}
                 />
             )}
-            {sShouldShowFooter && <Footer />}
+
+            {sIsShareModal && <ShareModal isOpen={sIsShareModal} onClose={() => setIsShareModal(false)} />}
         </>
     );
 };

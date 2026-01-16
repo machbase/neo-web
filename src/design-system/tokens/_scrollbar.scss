@@ -1,0 +1,92 @@
+/**
+ * Scrollbar Mixins
+ * Consistent scrollbar styling across the application
+ */
+
+@use './colors' as c;
+@use './sizes' as sz;
+@use './border-radius' as br;
+
+/**
+ * Base scrollbar styling
+ * Common styles for all scrollbar variants
+ */
+@mixin scrollbar-base {
+    @supports not selector(::-webkit-scrollbar) {
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+
+    &::-webkit-scrollbar {
+        -webkit-appearance: none;
+        width: sz.$scrollbar-width;
+        height: sz.$scrollbar-height;
+        background-color: var(--scrollbar-track);
+    }
+
+    &::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-track {
+        background-color: var(--scrollbar-track);
+        border-radius: br.$border-radius-sm;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: var(--scrollbar-thumb);
+        border-radius: br.$border-radius-sm;
+        background-clip: padding-box;
+        border: var(--scrollbar-thumb-border, none);
+
+        &:hover {
+            background-color: var(--scrollbar-thumb-hover);
+        }
+    }
+}
+
+/**
+ * Dark scrollbar variant (most common)
+ * Transparent track, visible dark thumb
+ */
+@mixin scrollbar-dark {
+    @include scrollbar-base;
+    --scrollbar-thumb: #{c.$scrollbar-thumb};
+    --scrollbar-thumb-hover: #{c.$scrollbar-thumb-hover};
+    --scrollbar-track: transparent;
+}
+
+/**
+ * Dark scrollbar with border
+ * Visible track background with border
+ */
+@mixin scrollbar-dark-border {
+    @include scrollbar-base;
+    --scrollbar-thumb: #{c.$scrollbar-thumb};
+    --scrollbar-thumb-hover: #{c.$scrollbar-thumb-hover};
+    --scrollbar-track: #{c.$scrollbar-track-bg};
+    --scrollbar-thumb-border: 2px solid #{c.$scrollbar-border};
+}
+
+/**
+ * Light scrollbar variant
+ * For light-themed areas
+ */
+@mixin scrollbar-light {
+    @include scrollbar-base;
+    --scrollbar-thumb: #{c.$scrollbar-thumb-light};
+    --scrollbar-thumb-hover: #{c.$scrollbar-thumb-light-hover};
+    --scrollbar-track: transparent;
+}
+
+/**
+ * Light scrollbar with border
+ * For light-themed areas with visible track
+ */
+@mixin scrollbar-light-border {
+    @include scrollbar-base;
+    --scrollbar-thumb: #{c.$scrollbar-thumb-light};
+    --scrollbar-thumb-hover: #{c.$scrollbar-thumb-light-hover};
+    --scrollbar-track: #{c.$scrollbar-track-light-bg};
+    --scrollbar-thumb-border: 2px solid #{c.$scrollbar-border-light};
+}

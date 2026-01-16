@@ -3,6 +3,7 @@ import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { extractionExtension, getId } from '@/utils';
 import { getFiles } from '@/api/repository/fileTree';
 import './OpenFileBtn.scss';
+import { Button } from '@/design-system/components';
 
 export const OpenFileBtn = ({
     pType,
@@ -64,9 +65,9 @@ export const OpenFileBtn = ({
                 height: Number(btnHeight) ? btnHeight + 'px' : String(btnHeight) ? btnHeight : '100px',
             }}
         >
-            <button className="open-input-button" onClick={handleOpen}>
+            <Button size="md" variant="secondary" onClick={handleOpen}>
                 {btnTxt ?? 'Open file'}
-            </button>
+            </Button>
         </div>
     );
 };

@@ -1,13 +1,4 @@
-// import { TextButton } from '@/components/buttons/TextButton';
-// import CheckBox from '@/components/inputs/CheckBox';
-// import { DefaultXAxisOption } from '@/utils/eChartHelper';
-// import { ChartXAxisTypeList } from '@/utils/constants';
-import { Collapse } from '@/components/collapse/Collapse';
-import { BadgeSelect, BadgeSelectorItemType } from '@/components/inputs/BadgeSelector';
-import CheckBox from '@/components/inputs/CheckBox';
-import { Input } from '@/components/inputs/Input';
-import { Select } from '@/components/inputs/Select';
-import { HierarchicalCombobox } from '@/design-system/components';
+import { HierarchicalCombobox, Dropdown, Input, Checkbox, Page, BadgeSelect, type BadgeSelectItem } from '@/design-system/components';
 import { E_CHART_TYPE } from '@/type/eChart';
 import { ChartAxisUnits, findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 import { getChartSeriesName } from '@/utils/dashboardUtil';
@@ -32,17 +23,11 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                     IntervalValue: aValue,
                 },
             };
-            // if (sResult.axisInterval.IntervalType !== '' && sResult.axisInterval.IntervalValue !== '') sResult.isAxisInterval = true;
-            // else {
-            //     sResult.axisInterval.IntervalType = '';
-            //     sResult.axisInterval.IntervalValue = '';
-            //     sResult.isAxisInterval = false;
-            // }
             return sResult;
         });
     };
 
-    const handleSeries = (aItem: BadgeSelectorItemType) => {
+    const handleSeries = (aItem: BadgeSelectItem) => {
         const sTmpUseSecondXAxis = JSON.parse(JSON.stringify(pPanelOption.xAxisOptions[0]));
         if (sTmpUseSecondXAxis.useBlockList.includes(aItem.idx)) return;
         else sTmpUseSecondXAxis.useBlockList = [aItem.idx];
@@ -84,16 +69,7 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
             };
         });
     };
-    // const handleXAxisOption = (aKey: string, aEvent: any) => {
-    //     const sCurrentXAxis = JSON.parse(JSON.stringify(pPanelOption.xAxisOptions));
-    //     sCurrentXAxis[0][aKey] = !aEvent.target.checked;
-    //     pSetPanelOption((aPrev: any) => {
-    //         return {
-    //             ...aPrev,
-    //             xAxisOptions: sCurrentXAxis,
-    //         };
-    //     });
-    // };
+
     const handleXAxisOption = (aKey: string, aEvent: any) => {
         const sCurrentXAxis = JSON.parse(JSON.stringify(pPanelOption.xAxisOptions));
         if (aKey === 'unit') {
@@ -113,158 +89,89 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
         });
     };
 
-    // const changeAxisInterval = (aValue: boolean) => {
-    //     pSetPanelOption((aPrev: any) => {
-    //         return {
-    //             ...aPrev,
-    //             isAxisInterval: aValue,
-    //         };
-    //     });
-    // };
-
-    // const addRemoveXAixs = () => {
-    //     const sCurrentXAxis = JSON.parse(JSON.stringify(pXAxis));
-    //     if (sCurrentXAxis.length < 2) {
-    //         sCurrentXAxis.push(DefaultXAxisOption);
-    //     } else {
-    //         sCurrentXAxis.pop();
-    //     }
-    //     pSetPanelOption((aPrev: any) => {
-    //         return {
-    //             ...aPrev,
-    //             xAxisOptions: sCurrentXAxis,
-    //         };
-    //     });
-    // };
-
     return (
         <>
-            <div className="divider" />
-            <Collapse title="xAxis">
-                {/* {pXAxis.map((aItem: any, aIndex: number) => (
-                <div key={aItem.type + aIndex}>
-                    <div className="menu-style">
-                        <div>Type</div>
-                        <Select
-                            pWidth={100}
-                            pHeight={25}
-                            pBorderRadius={4}
-                            pInitValue={aItem.type}
-                            onChange={(aEvent) => handleXAxisOption(aEvent, aIndex)}
-                            pOptions={ChartXAxisTypeList}
-                        />
-                    </div>
-                </div>
-            ))} */}
-                <div className="menu-style">
-                    <span>Interval type</span>
-                    <Select
-                        pWidth={'100%'}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pNoneValue="none"
-                        pInitValue={pPanelOption.axisInterval.IntervalType}
-                        onChange={(aEvent) => handleAxisInterval(aEvent.target.value, pPanelOption.axisInterval.IntervalValue)}
-                        pOptions={sIntervalTypeList}
-                    />
-                </div>
-                <div className="menu-style">
-                    <span>Interval value</span>
+            <Page.Divi />
+            <Page.Collapse title="xAxis">
+                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    <Dropdown.Root
+                        label="Interval type"
+                        options={sIntervalTypeList.map((option) => ({ label: option, value: option }))}
+                        value={pPanelOption.axisInterval.IntervalType || 'none'}
+                        onChange={(value: string) => handleAxisInterval(value, pPanelOption.axisInterval.IntervalValue)}
+                        fullWidth
+                    >
+                        <Dropdown.Trigger />
+                        <Dropdown.Menu>
+                            <Dropdown.List />
+                        </Dropdown.Menu>
+                    </Dropdown.Root>
                     <Input
-                        pType="number"
-                        pWidth={'100%'}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pPlaceHolder={'auto'}
-                        pValue={pPanelOption.axisInterval.IntervalValue.toString() ?? ''}
+                        label="Interval value"
+                        type="number"
+                        fullWidth
+                        placeholder="auto"
+                        value={pPanelOption.axisInterval.IntervalValue.toString() ?? ''}
                         onChange={(aEvent) => handleAxisInterval(pPanelOption.axisInterval.IntervalType, aEvent.target.value)}
                     />
-                </div>
-                {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && (
-                    <Collapse title="Options">
-                        <div className="menu-style" style={{ display: 'flex', flex: 1, width: '100%', paddingRight: '10px' }}>
-                            <span>Unit</span>
-                            <HierarchicalCombobox.Root
-                                value={pPanelOption?.xAxisOptions[0]?.unit?.id ?? ''}
-                                categories={UNITS}
-                                onChange={(value) => handleXAxisOption('unit', value)}
-                            >
-                                <HierarchicalCombobox.Input />
-                                <HierarchicalCombobox.Menu>
-                                    <HierarchicalCombobox.List emptyMessage="No units available" />
-                                </HierarchicalCombobox.Menu>
-                            </HierarchicalCombobox.Root>
-                        </div>
-                        <div className="menu-style">
-                            <div>Decimals</div>
-                            <Input
-                                pType="number"
-                                pWidth={'100%'}
-                                pHeight={25}
-                                pPlaceHolder="auto"
-                                pBorderRadius={4}
-                                pValue={pPanelOption?.xAxisOptions[0]?.label?.decimals ?? ''}
-                                onChange={(aEvent) => handleXAxisOption('decimals', aEvent)}
-                            />
-                        </div>
-
-                        <div className="menu-style">
-                            <div>Min</div>
-                            <Input
-                                pType="number"
-                                pWidth={'100%'}
-                                pHeight={25}
-                                pBorderRadius={4}
-                                pPlaceHolder={'auto'}
-                                pValue={pPanelOption?.xAxisOptions[0]?.min ?? ''}
-                                onChange={(aEvent: any) => HandleMinMax('min', aEvent.target.value)}
-                            />
-                        </div>
-                        <div className="menu-style">
-                            <div>Max</div>
-                            <Input
-                                pType="number"
-                                pWidth={'100%'}
-                                pHeight={25}
-                                pBorderRadius={4}
-                                pPlaceHolder={'auto'}
-                                pValue={pPanelOption?.xAxisOptions[0]?.max ?? ''}
-                                onChange={(aEvent: any) => HandleMinMax('max', aEvent.target.value)}
-                            />
-                        </div>
-                        <div className="menu-style">
-                            <CheckBox
-                                pText="Start at zero"
-                                pDefaultChecked={!pPanelOption?.xAxisOptions[0]?.scale}
-                                onChange={(aEvent: any) => handleXAxisOption('scale', aEvent)}
-                            />
-                        </div>
-                    </Collapse>
-                )}
-                {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && (
-                    <>
-                        <div style={{ paddingRight: '8px' }}>
-                            <div className="divider" />
-                        </div>
-                        <span>Series</span>
-                        <div style={{ padding: '8px 10px 0 0' }}>
-                            <BadgeSelect pSelectedList={pPanelOption?.xAxisOptions[0]?.useBlockList || [0]} pList={getBlockList} pCallback={handleSeries} />
-                        </div>
-                    </>
-                )}
-
-                {/* <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-                <TextButton
-                    pText={pXAxis.length < 2 ? 'add' : 'remove'}
-                    pWidth={70}
-                    pHeight={25}
-                    pBorderRadius={4}
-                    pBorderColor="#989BA1"
-                    pBackgroundColor="#323644"
-                    onClick={addRemoveXAixs}
-                />
-            </div> */}
-            </Collapse>
+                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && (
+                        <>
+                            <Page.Divi />
+                            <Page.Collapse title="Options">
+                                <Page.ContentBlock pHoverNone style={{ padding: 0, gap: '8px', display: 'flex', flexDirection: 'column' }}>
+                                    <HierarchicalCombobox.Root
+                                        label="Unit"
+                                        value={pPanelOption?.xAxisOptions[0]?.unit?.id ?? ''}
+                                        categories={UNITS}
+                                        onChange={(value) => handleXAxisOption('unit', value)}
+                                    >
+                                        <HierarchicalCombobox.Input />
+                                        <HierarchicalCombobox.Menu>
+                                            <HierarchicalCombobox.List emptyMessage="No units available" />
+                                        </HierarchicalCombobox.Menu>
+                                    </HierarchicalCombobox.Root>
+                                    <Input
+                                        label="Decimals"
+                                        type="number"
+                                        fullWidth
+                                        placeholder="auto"
+                                        value={pPanelOption?.xAxisOptions[0]?.label?.decimals ?? ''}
+                                        onChange={(aEvent) => handleXAxisOption('decimals', aEvent)}
+                                    />
+                                    <Input
+                                        label="Min"
+                                        type="number"
+                                        fullWidth
+                                        placeholder="auto"
+                                        value={pPanelOption?.xAxisOptions[0]?.min ?? ''}
+                                        onChange={(aEvent: any) => HandleMinMax('min', aEvent.target.value)}
+                                    />
+                                    <Input
+                                        label="Max"
+                                        type="number"
+                                        fullWidth
+                                        placeholder="auto"
+                                        value={pPanelOption?.xAxisOptions[0]?.max ?? ''}
+                                        onChange={(aEvent: any) => HandleMinMax('max', aEvent.target.value)}
+                                    />
+                                    <Checkbox
+                                        size="sm"
+                                        label="Start at zero"
+                                        defaultChecked={!pPanelOption?.xAxisOptions[0]?.scale}
+                                        onChange={(aEvent: any) => handleXAxisOption('scale', aEvent)}
+                                    />
+                                </Page.ContentBlock>
+                            </Page.Collapse>
+                        </>
+                    )}
+                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && (
+                        <>
+                            <Page.Divi />
+                            <BadgeSelect label="Series" selectedList={pPanelOption?.xAxisOptions[0]?.useBlockList || [0]} list={getBlockList} onChange={handleSeries} />
+                        </>
+                    )}
+                </Page.ContentBlock>
+            </Page.Collapse>
         </>
     );
 };

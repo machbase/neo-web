@@ -1,4 +1,3 @@
-import './WorkSheet.scss';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { WorkSheetEditor } from './WorkSheetEditor';
 import { useRecoilState, useSetRecoilState } from 'recoil';
@@ -6,9 +5,8 @@ import { gBoardList } from '@/recoil/recoil';
 import { getId, isEmpty } from '@/utils';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { Save, SaveAs, IoPlayForwardSharp } from '@/assets/icons/Icon';
-import { IconButton } from '../buttons/IconButton';
 import { FaStop } from 'react-icons/fa';
-import { Button } from '@/design-system/components';
+import { Button, Page } from '@/design-system/components';
 import { RiTimeZoneLine } from 'react-icons/ri';
 import { TimeZoneModal } from '../modal/TimeZoneModal';
 
@@ -49,20 +47,41 @@ export const WorkSheet = (props: WorkSheetProps) => {
     const [sStopState, setStopState] = useState<boolean[]>(Array.from({ length: sWorkSheets?.length ?? 1 }, () => false));
     const [sCurrentScrollTop, setCurrentScrollTop] = useState<number>(0);
     const worksheetBodyRef = useRef<HTMLDivElement>(null);
+    const userScrollingRef = useRef(false);
+    const scrollTimeoutRef = useRef<NodeJS.Timeout>();
     const SCROLL_GAP = 10;
     const LAST_CHILD_DELAY = 1000; // 1s
+    const USER_SCROLL_DELAY = 1000; // 1s
 
     const checkSectionState = useCallback(() => {
         return sStopState?.some((state) => state) ?? false;
     }, [sStopState]);
 
     const handleScrollToElement = useCallback(
-        (targetScrollTop: number, isLastChild: boolean = false) => {
-            if (!worksheetBodyRef?.current || targetScrollTop <= sCurrentScrollTop) return;
+        (targetScrollTop: number, isLastChild: boolean = false, forceScroll: boolean = false) => {
+            if (!worksheetBodyRef?.current) return;
+            // Skip auto-scroll if user is manually scrolling
+            if (userScrollingRef.current) return;
+            // Skip scroll if target is above current position, unless forceScroll is true
+            if (!forceScroll && targetScrollTop <= sCurrentScrollTop) return;
+
             const executeScroll = () => {
                 if (worksheetBodyRef.current) {
-                    if (isLastChild) setTimeout(() => ((worksheetBodyRef?.current as any).scrollTop = targetScrollTop * 2), LAST_CHILD_DELAY);
-                    else worksheetBodyRef.current.scrollTop = targetScrollTop - SCROLL_GAP;
+                    const newScrollTop = isLastChild ? targetScrollTop * 2 : targetScrollTop - SCROLL_GAP;
+
+                    if (isLastChild) {
+                        setTimeout(() => {
+                            worksheetBodyRef?.current?.scrollTo({
+                                top: newScrollTop,
+                                behavior: 'smooth',
+                            });
+                        }, LAST_CHILD_DELAY);
+                    } else {
+                        worksheetBodyRef.current.scrollTo({
+                            top: newScrollTop,
+                            behavior: 'smooth',
+                        });
+                    }
                     setCurrentScrollTop(targetScrollTop);
                 }
             };
@@ -82,6 +101,54 @@ export const WorkSheet = (props: WorkSheetProps) => {
 
         element.addEventListener('scroll', handleScroll);
         return () => element.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Detect user manual scroll and pause auto-scroll
+    useEffect(() => {
+        const element = worksheetBodyRef.current;
+        if (!element) return;
+
+        // Reset user scrolling state when all run code ends
+        if (!sAllRunCodeStatus) {
+            userScrollingRef.current = false;
+            if (scrollTimeoutRef.current) {
+                clearTimeout(scrollTimeoutRef.current);
+                scrollTimeoutRef.current = undefined;
+            }
+            return;
+        }
+
+        const handleUserInput = () => {
+            userScrollingRef.current = true;
+
+            if (scrollTimeoutRef.current) {
+                clearTimeout(scrollTimeoutRef.current);
+            }
+
+            scrollTimeoutRef.current = setTimeout(() => {
+                userScrollingRef.current = false;
+            }, USER_SCROLL_DELAY);
+        };
+
+        element.addEventListener('wheel', handleUserInput, { passive: true });
+        element.addEventListener('touchmove', handleUserInput, { passive: true });
+
+        return () => {
+            element.removeEventListener('wheel', handleUserInput);
+            element.removeEventListener('touchmove', handleUserInput);
+        };
+    }, [sAllRunCodeStatus]);
+
+    // Disable browser scroll restoration to prevent auto-scroll on initial load
+    useEffect(() => {
+        if ('scrollRestoration' in window.history) {
+            const originalScrollRestoration = window.history.scrollRestoration;
+            window.history.scrollRestoration = 'manual';
+
+            return () => {
+                window.history.scrollRestoration = originalScrollRestoration;
+            };
+        }
     }, []);
 
     const handleCallback = (aData: { id: string; event: CallbackEventType }) => {
@@ -153,6 +220,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
         const element = worksheetBodyRef.current;
         if (element) {
             element.scrollTop = 0;
+            setCurrentScrollTop(0);
         }
 
         setAllRunCodeStatus(!sAllRunCodeStatus);
@@ -179,67 +247,62 @@ export const WorkSheet = (props: WorkSheetProps) => {
     }, []);
 
     return (
-        <div className="worksheet-wrapper">
-            <div className="worksheet-header">
-                <IconButton
-                    pPlace="bottom-start"
-                    pIsToopTip
-                    pToolTipId="wrk-tab-run-code"
-                    onClick={checkSectionState() ? handleInterrupt : handleAllRun}
-                    pToolTipContent={checkSectionState() ? 'Stop code' : 'Run code'}
-                    pIcon={checkSectionState() ? <FaStop /> : <IoPlayForwardSharp />}
-                />
-                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+        <>
+            <Page>
+                <Page.Header>
                     <Button
-                        size="icon"
-                        variant="none"
+                        size="sm"
+                        variant="ghost"
                         isToolTip
-                        toolTipContent="Time format / Time zone"
-                        icon={<RiTimeZoneLine size={18} />}
-                        onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
+                        toolTipContent={checkSectionState() ? 'Stop code' : 'Run code'}
+                        icon={checkSectionState() ? <FaStop /> : <IoPlayForwardSharp />}
+                        onClick={checkSectionState() ? handleInterrupt : handleAllRun}
                     />
-                    <div className="divider" />
-                    <IconButton pPlace="bottom-start" pIsToopTip pToolTipContent="Save" pToolTipId="wrk-tab-save" pIcon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
-                    <IconButton
-                        pPlace="bottom-start"
-                        pIsToopTip
-                        pToolTipContent="Save as"
-                        pToolTipId="wrk-tab-save-as"
-                        pIcon={<SaveAs size={18} />}
-                        onClick={() => setIsSaveModal(true)}
-                    />
-                </div>
-            </div>
-            <div ref={worksheetBodyRef} className="worksheet-body scrollbar-dark-border">
-                <div className="worksheet">
-                    {sWorkSheets &&
-                        sWorkSheets.length !== 0 &&
-                        sWorkSheets.map((aSheetItem: any, aIdx: number) => {
-                            return (
-                                <WorkSheetEditor
-                                    pTimeRange={sTimeRange}
-                                    pTimeZone={sTimeZone}
-                                    pIsActiveTab={pIsActiveTab}
-                                    key={'sheet-' + aSheetItem.id}
-                                    pData={aSheetItem}
-                                    pWrkId={pId}
-                                    pIdx={aIdx}
-                                    pAllRunCodeTargetIdx={sRunCodeTarget}
-                                    pAllRunCodeStatus={sAllRunCodeStatus}
-                                    pAllRunCodeList={sAllRunCodeList}
-                                    pAllRunCodeCallback={(aStatus: boolean) => handleAllRunCode(aStatus, aIdx)}
-                                    pStopState={sStopState}
-                                    pSetStopState={setStopState}
-                                    pWorkSheets={sWorkSheets}
-                                    setSheet={handleUpdateSheet}
-                                    pCallback={handleCallback}
-                                    pScrollToElement={handleScrollToElement}
-                                />
-                            );
-                        })}
-                </div>
-            </div>
+                    <Button.Group>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            isToolTip
+                            toolTipContent="Time format / Time zone"
+                            icon={<RiTimeZoneLine size={18} />}
+                            onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
+                        />
+                        <Button size="sm" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
+                        <Button size="sm" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={18} />} onClick={() => setIsSaveModal(true)} />
+                    </Button.Group>
+                </Page.Header>
+                <Page.Body ref={worksheetBodyRef} scrollButtons style={{ padding: '12px 24px 12px 16px' }}>
+                    <Page.ContentBlock pHoverNone>
+                        {sWorkSheets &&
+                            sWorkSheets.length !== 0 &&
+                            sWorkSheets.map((aSheetItem: any, aIdx: number) => {
+                                return (
+                                    <WorkSheetEditor
+                                        pTimeRange={sTimeRange}
+                                        pTimeZone={sTimeZone}
+                                        pIsActiveTab={pIsActiveTab}
+                                        key={'sheet-' + aSheetItem.id}
+                                        pData={aSheetItem}
+                                        pWrkId={pId}
+                                        pIdx={aIdx}
+                                        pAllRunCodeTargetIdx={sRunCodeTarget}
+                                        pAllRunCodeStatus={sAllRunCodeStatus}
+                                        pAllRunCodeList={sAllRunCodeList}
+                                        pAllRunCodeCallback={(aStatus: boolean) => handleAllRunCode(aStatus, aIdx)}
+                                        pStopState={sStopState}
+                                        pSetStopState={setStopState}
+                                        pWorkSheets={sWorkSheets}
+                                        setSheet={handleUpdateSheet}
+                                        pCallback={handleCallback}
+                                        pScrollToElement={handleScrollToElement}
+                                        pScrollContainerRef={worksheetBodyRef}
+                                    />
+                                );
+                            })}
+                    </Page.ContentBlock>
+                </Page.Body>
+            </Page>
             <TimeZoneModal isOpen={sIsTimeZoneModal} formatInitValue={sTimeRange} zoneInitValue={sTimeZone} onClose={handleTimeZone} />
-        </div>
+        </>
     );
 };

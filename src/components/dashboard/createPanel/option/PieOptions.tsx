@@ -1,5 +1,4 @@
-import CheckBox from '@/components/inputs/CheckBox';
-import { Input } from '@/components/inputs/Input';
+import { Input, Checkbox, Page } from '@/design-system/components';
 
 interface PieOptionProps {
     pPanelOption: any;
@@ -22,24 +21,20 @@ export const PieOptions = (props: PieOptionProps) => {
     };
 
     return (
-        <div>
-            <div className="menu-style">
-                <span>Doughnut ratio</span>
-                <Input
-                    pType="number"
-                    pWidth={'100%'}
-                    pHeight={25}
-                    pBorderRadius={4}
-                    pValue={pPanelOption.chartOptions?.doughnutRatio ?? 0}
-                    pSetValue={() => null}
-                    onChange={(aEvent: any) => handlePieOption(aEvent, 'doughnutRatio', false)}
-                />
-            </div>
-            <CheckBox
-                pText="Nightingale mode"
-                pDefaultChecked={pPanelOption.chartOptions?.roseType ?? false}
+        <Page.DpRow style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '8px' }}>
+            <Input
+                label="Doughnut ratio"
+                type="number"
+                fullWidth
+                value={pPanelOption.chartOptions?.doughnutRatio ?? 0}
+                onChange={(aEvent: any) => handlePieOption(aEvent, 'doughnutRatio', false)}
+            />
+            <Checkbox
+                size="sm"
+                label="Nightingale mode"
+                defaultChecked={pPanelOption.chartOptions?.roseType ?? false}
                 onChange={(aEvent: any) => handlePieOption(aEvent, 'roseType', true)}
             />
-        </div>
+        </Page.DpRow>
     );
 };

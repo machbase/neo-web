@@ -3,7 +3,6 @@
 .input-container {
     display: flex;
     flex-direction: column;
-    gap: t.$spacing-8;
 
     &--full-width {
         width: 100%;
@@ -31,6 +30,7 @@
     &--label-top {
         .input-field-wrapper {
             flex-direction: column;
+            gap: t.$spacing-8;
         }
     }
 }
@@ -38,7 +38,6 @@
 .input-field-wrapper {
     display: flex;
     flex-direction: column;
-    gap: t.$spacing-8;
 }
 
 .input-label {
@@ -65,7 +64,7 @@
     // Sizes
     &--sm {
         padding: t.$spacing-4 t.$spacing-8;
-        max-height: 32px;
+        // max-height: 32px;
 
         .input {
             font-size: t.$font-size-sm;
@@ -75,7 +74,7 @@
     &--md {
         padding: 0 t.$spacing-12;
         height: t.$input-height;
-        min-height: t.$input-height;
+        // min-height: t.$input-height;
 
         .input {
             font-size: t.$font-size-base;
@@ -84,7 +83,7 @@
 
     &--lg {
         padding: t.$spacing-10 t.$spacing-16;
-        min-height: 44px;
+        // min-height: 44px;
 
         .input {
             font-size: t.$font-size-base;

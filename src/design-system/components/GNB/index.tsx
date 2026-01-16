@@ -1,5 +1,6 @@
 import { createContext, useContext, ReactNode } from 'react';
 import { useGNB, type GNBItem } from '@/design-system/hooks/useGNB';
+import { Button } from '@/design-system/components/Button';
 import styles from './index.module.scss';
 
 // Context for sharing GNB state
@@ -60,10 +61,9 @@ interface GNBItemProps {
     onClick?: (item: GNBItem) => void;
     className?: string;
     badge?: ReactNode;
-    asChild?: boolean;
 }
 
-const GNBItem = ({ id, label, icon, onClick, className, badge, asChild = false }: GNBItemProps) => {
+const GNBItem = ({ id, label, icon, onClick, className, badge }: GNBItemProps) => {
     const { isItemSelected, handleItemClick } = useGNBContext();
     const isSelected = isItemSelected(id);
 
@@ -75,24 +75,12 @@ const GNBItem = ({ id, label, icon, onClick, className, badge, asChild = false }
 
     const wrapperClasses = [styles.gnb__item__wrapper, isSelected && styles['gnb__item__wrapper--selected'], className].filter(Boolean).join(' ');
 
-    // If asChild is true, render only the visual wrapper without button
-    if (asChild) {
-        return (
-            <div className={wrapperClasses} onClick={handleClick}>
-                <div className={styles.gnb__item}>
-                    <span className={styles.gnb__item__icon}>{icon}</span>
-                    {badge && <span className={styles.gnb__item__badge}>{badge}</span>}
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className={wrapperClasses}>
-            <button type="button" className={styles.gnb__item} onClick={handleClick} aria-label={label} aria-current={isSelected ? 'page' : undefined}>
+            <Button variant="ghost" size="icon" className={styles.gnb__item} onClick={handleClick} aria-label={label} aria-current={isSelected ? 'page' : undefined}>
                 <span className={styles.gnb__item__icon}>{icon}</span>
                 {badge && <span className={styles.gnb__item__badge}>{badge}</span>}
-            </button>
+            </Button>
         </div>
     );
 };

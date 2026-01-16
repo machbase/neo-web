@@ -1,0 +1,48 @@
+@use '@/design-system/tokens' as t;
+
+.statusIndicator {
+    display: inline-block;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    // Size variants
+    &--sm {
+        width: 6px;
+        height: 6px;
+    }
+
+    &--md {
+        width: 8px;
+        height: 8px;
+    }
+
+    &--lg {
+        width: 10px;
+        height: 10px;
+    }
+
+    // Color variants - based on Alert component colors
+    &--success {
+        background-color: #198754;
+    }
+
+    &--error {
+        background-color: #dc3545;
+    }
+
+    &--warning {
+        background-color: #ffc107;
+    }
+
+    &--info {
+        background-color: #0d6efd;
+    }
+
+    &--running {
+        background-color: #5ca3dc;
+    }
+
+    &--neutral {
+        background-color: rgb(117, 117, 120);
+    }
+}

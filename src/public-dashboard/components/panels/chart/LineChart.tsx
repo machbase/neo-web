@@ -39,10 +39,17 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
     const calculateTimeRange = () => {
         let sStartTimeBeforeStart = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.start : pBoardTimeMinMax.min;
         let sStartTimeBeforeEnd = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.end : pBoardTimeMinMax.max;
-        if (String(sStartTimeBeforeStart).includes('now') && String(sStartTimeBeforeEnd).includes('now')) {
+
+        // Convert if either start or end contains 'now' or 'last'
+        const sStartStr = String(sStartTimeBeforeStart);
+        const sEndStr = String(sStartTimeBeforeEnd);
+
+        if (sStartStr.includes('now') || sStartStr.includes('last') ||
+            sEndStr.includes('now') || sEndStr.includes('last')) {
             sStartTimeBeforeStart = setUnitTime(sStartTimeBeforeStart);
             sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
         }
+
         return { start: sStartTimeBeforeStart, end: sStartTimeBeforeEnd };
     };
 
@@ -135,8 +142,8 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
                     },
                     PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)
                 );
-                let sTmpParsedQuery = [];
-                let sTmpAliasList = [];
+                const sTmpParsedQuery = [];
+                const sTmpAliasList = [];
 
                 // TEXT
                 const sTxtIdx = pPanelInfo.chartOptions.textSeries;

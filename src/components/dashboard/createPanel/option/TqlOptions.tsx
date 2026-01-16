@@ -1,5 +1,4 @@
-import { Collapse } from '@/components/collapse/Collapse';
-import { Select } from '@/components/inputs/Select';
+import { Dropdown, Page } from '@/design-system/components';
 import { generateUUID } from '@/utils';
 import { ChartThemeList } from '@/utils/constants';
 
@@ -23,79 +22,73 @@ export const TqlOptions = (props: GaugeOptionProps) => {
 
     return (
         <div>
-            <Collapse title="Panel option" isOpen>
-                <div className="menu-style">
-                    <span>Theme</span>
-                    <Select
-                        pWidth={'100%'}
-                        pHeight={25}
-                        pFontSize={14}
-                        pBorderRadius={4}
-                        pInitValue={pPanelOption.theme}
-                        onChange={(aEvent: any) => handleCustomOption(aEvent.target.value, 'theme')}
-                        pOptions={ChartThemeList}
-                    />
-                </div>
-            </Collapse>
-            <div className="divider" />
-            <Collapse title="Parameter variables" isOpen>
-                <div style={{ display: 'flex', flexDirection: 'column', cursor: 'default' }}>
-                    <span>Time range</span>
+            <Page.Collapse title="Panel option">
+                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    <Dropdown.Root
+                        label="Theme"
+                        options={ChartThemeList.map((option) => ({ label: option, value: option }))}
+                        value={pPanelOption.theme}
+                        onChange={(value: string) => handleCustomOption(value, 'theme')}
+                        fullWidth
+                    >
+                        <Dropdown.Trigger />
+                        <Dropdown.Menu>
+                            <Dropdown.List />
+                        </Dropdown.Menu>
+                    </Dropdown.Root>
+                </Page.ContentBlock>
+            </Page.Collapse>
+            <Page.Divi />
+            <Page.Collapse title="Parameter variables">
+                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    <Page.ContentText pContent="Time range" />
+                    <Page.Space />
+                    <Page.ContentText pContent="From" />
+                    <Page.ContentDesc>{`{{from_str}}: date string (YYYY-MM-DD HH:MI:SS)`}</Page.ContentDesc>
+                    <Page.ContentDesc>{`{{from_s}}: unix timestamp`}</Page.ContentDesc>
+                    <Page.ContentDesc>{`{{from_ms}}: unix timestamp (milliseconds)`}</Page.ContentDesc>
+                    <Page.ContentDesc>{`{{from_us}}: unix timestamp (microseconds)`}</Page.ContentDesc>
+                    <Page.ContentDesc>{`{{from_ns}}: unix timestamp (nanoseconds)`}</Page.ContentDesc>
+                    <Page.Space />
+                    <Page.ContentText pContent="To" />
+                    <Page.ContentDesc>{`{{to_str}}: date string (YYYY-MM-DD HH:MI:SS)`}</Page.ContentDesc>
+                    <Page.ContentDesc>{`{{to_s}}: unix timestamp`}</Page.ContentDesc>
+                    <Page.ContentDesc>{`{{to_ms}}: unix timestamp (milliseconds)`}</Page.ContentDesc>
+                    <Page.ContentDesc>{`{{to_us}}: unix timestamp (microseconds)`}</Page.ContentDesc>
+                    <Page.ContentDesc>{`{{to_ns}}: unix timestamp (nanoseconds)`}</Page.ContentDesc>
+                    <Page.Space />
+                    <Page.ContentText pContent="Period" />
+                    <Page.ContentDesc>{`{{period}}: duration expression (ex: 10s)`}</Page.ContentDesc>
+                    <Page.ContentDesc>{`{{period_value}}: period value (ex: 10)`}</Page.ContentDesc>
+                    <Page.ContentDesc>{`{{period_unit}}: period unit (ex: sec)`}</Page.ContentDesc>
+                </Page.ContentBlock>
+            </Page.Collapse>
+            <Page.Divi />
+            <Page.Collapse title="Plugins">
+                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    <Page.ContentDesc>For charts that use plugin, need to add the plugin to tql file.</Page.ContentDesc>
+                    <Page.Space />
                     <div style={{ display: 'flex', flexDirection: 'column', color: '#b6b6b6' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
-                            <span style={{ color: 'white' }}>From</span>
-                            <span>{`{{from_str}}: date string (YYYY-MM-DD HH:MI:SS)`}</span>
-                            <span>{`{{from_s}}: unix timestamp`}</span>
-                            <span>{`{{from_ms}}: unix timestamp (milliseconds)`}</span>
-                            <span>{`{{from_us}}: unix timestamp (microseconds)`}</span>
-                            <span>{`{{from_ns}}: unix timestamp (nanoseconds)`}</span>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
-                            <span style={{ color: 'white' }}>To</span>
-                            <span>{`{{to_str}}: date string (YYYY-MM-DD HH:MI:SS)`}</span>
-                            <span>{`{{to_s}}: unix timestamp`}</span>
-                            <span>{`{{to_ms}}: unix timestamp (milliseconds)`}</span>
-                            <span>{`{{to_us}}: unix timestamp (microseconds)`}</span>
-                            <span>{`{{to_ns}}: unix timestamp (nanoseconds)`}</span>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
-                            <span style={{ color: 'white' }}>Period</span>
-                            <span>{`{{period}}: duration expression (ex: 10s)`}</span>
-                            <span>{`{{period_value}}: period value (ex: 10)`}</span>
-                            <span>{`{{period_unit}}: period unit (ex: sec)`}</span>
-                        </div>
+                        <Page.ContentText pContent="3D charts" />
+                        <Page.ContentText pContent="CHART(" />
+                        <Page.ContentText pContent='plugins("gl"),' style={{ color: '#179fff', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }} />
+                        <Page.ContentText pContent="chartOption({" style={{ margin: '0 0 0 16px' }} />
+                        <Page.ContentText pContent="..." />
+                        <Page.Space />
+                        <Page.ContentText pContent="Liquid fill" />
+                        <Page.ContentText pContent="CHART(" />
+                        <Page.ContentText pContent='plugins("liquidfill"),' style={{ color: '#179fff', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }} />
+                        <Page.ContentText pContent="chartOption({" style={{ margin: '0 0 0 16px' }} />
+                        <Page.ContentText pContent="..." />
+                        <Page.Space />
+                        <Page.ContentText pContent="Word cloud" />
+                        <Page.ContentText pContent="CHART(" />
+                        <Page.ContentText pContent='plugins("wordcloud"),' style={{ color: '#179fff', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }} />
+                        <Page.ContentText pContent="chartOption({" style={{ margin: '0 0 0 16px' }} />
+                        <Page.ContentText pContent="..." />
                     </div>
-                </div>
-            </Collapse>
-            <div className="divider" />
-            <Collapse title="Plugins" isOpen>
-                <div style={{ display: 'flex', flexDirection: 'column', cursor: 'default' }}>
-                    <span>For charts that use plugin, need to add the plugin to tql file.</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', color: '#b6b6b6' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
-                            <span style={{ color: 'white' }}>3D charts</span>
-                            <span>{`CHART(`}</span>
-                            <span style={{ color: '#179fff', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }}>plugins("gl"),</span>
-                            <span style={{ margin: '0 0 0 16px' }}>{`chartOption({`}</span>
-                            <span>{`...`}</span>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
-                            <span style={{ color: 'white' }}>Liquid fill</span>
-                            <span>{`CHART(`}</span>
-                            <span style={{ color: '#179fff', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }}>plugins("liquidfill"),</span>
-                            <span style={{ margin: '0 0 0 16px' }}>{`chartOption({`}</span>
-                            <span>{`...`}</span>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', margin: '8px' }}>
-                            <span style={{ color: 'white' }}>Word cloud</span>
-                            <span>{`CHART(`}</span>
-                            <span style={{ color: '#179fff', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }}>plugins("wordcloud"),</span>
-                            <span style={{ margin: '0 0 0 16px' }}>{`chartOption({`}</span>
-                            <span>{`...`}</span>
-                        </div>
-                    </div>
-                </div>
-            </Collapse>
+                </Page.ContentBlock>
+            </Page.Collapse>
         </div>
     );
 };

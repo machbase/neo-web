@@ -7,6 +7,9 @@ $z-index-hide: -1;
 $z-index-base: 0;
 $z-index-overlay: 1;        // Chat input overlay (::before)
 $z-index-dropdown: 10;      // Dropdown (outside modal)
+$z-index-floating-button: 50; // Floating scroll buttons
 $z-index-modal: 100;        // Modal overlay
 $z-index-modal-dropdown: 110; // Dropdown inside modal (must be higher than modal)
+$z-index-drawer: 200;       // Drawer overlay
+$z-index-drawer-dropdown: 210; // Dropdown inside drawer (must be higher than drawer)
 $z-index-tooltip: 1000;

@@ -13,12 +13,12 @@ export type SplitPaneProps = Omit<SplitPaneLibProps, 'sashRender'> & {
     sashRender?: SplitPaneLibProps['sashRender'];
 };
 
-export const SplitPane = ({ sashRender, ...restProps }: SplitPaneProps) => {
+export const SplitPane = ({ sashRender, split = 'vertical', ...restProps }: SplitPaneProps) => {
     // Default sashRender with custom styling
     const defaultSashRender = () => {
         return (
             <div className="custom-split-sash">
-                <div className="custom-split-sash-line" />
+                <div className={`custom-split-sash-line custom-split-sash-line--${split}`} />
             </div>
         );
     };
@@ -29,11 +29,11 @@ export const SplitPane = ({ sashRender, ...restProps }: SplitPaneProps) => {
               const customContent = sashRender(...args);
               return (
                   <div className="custom-split-sash">
-                      <div className="custom-split-sash-line">{customContent}</div>
+                      <div className={`custom-split-sash-line custom-split-sash-line--${split}`}>{customContent}</div>
                   </div>
               );
           }
         : defaultSashRender;
 
-    return <SplitPaneLib {...restProps} sashRender={wrappedSashRender} />;
+    return <SplitPaneLib {...restProps} split={split} sashRender={wrappedSashRender} />;
 };

@@ -1,14 +1,13 @@
 import './PanelHeader.scss';
 import { useEffect, useState } from 'react';
 import { changeUtcToText } from '@/utils/helpers/date';
-import EditPanel from './edit/EditPanel';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { Refresh, GearFill, Delete, MdRawOn, MdFlagCircle, PiSelectionPlusBold, LineChart, LuTimerReset, Download, TbTimezone } from '@/assets/icons/Icon';
-import { IconButton } from '@/components/buttons/IconButton';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import { useExperiment } from '@/hooks/useExperiment';
+import { Button, Page } from '@/design-system/components';
 
 const PanelHeader = ({
     pResetData,
@@ -33,11 +32,11 @@ const PanelHeader = ({
     pChartData,
     pChartRef,
     pSetGlobalTimeRange,
+    pOnEditRequest,
 }: any) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sPanelRange, setPanelRage] = useState<any>({ startTime: 0, endTime: 0 });
-    const [sEditPanel, setEditPanel] = useState<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sIsSavedToLocalModal, setIsSavedToLocalModal] = useState<boolean>(false);
     const { getExperiment } = useExperiment();
@@ -76,16 +75,17 @@ const PanelHeader = ({
 
     return (
         <div className="panel-header">
-            <IconButton
-                pWidth={'auto'}
-                pHeight={25}
-                pIsToopTip={!pIsEdit}
-                pToolTipContent={pSelectedChart ? 'Disable overlap mode' : 'Enable overlap mode'}
-                pToolTipId={'overlap-data-range-taz-panel-' + JSON.stringify(pIsEdit)}
-                // pIsActive={pIsUpdate}
-                pIcon={
+            <Button
+                size="xsm"
+                variant="ghost"
+                style={{ minWidth: '80px', maxWidth: '100px' }}
+                isToolTip={!pIsEdit}
+                toolTipContent={pSelectedChart ? 'Disable overlap mode' : 'Enable overlap mode'}
+                icon={
                     <div className="title">
-                        {pPanelsInfo && pPanelsInfo.length > 0 && pPanelsInfo[0].board.index_key === pPanelInfo.index_key && <MdFlagCircle style={{ color: '#fdb532' }} />}
+                        {pPanelsInfo && pPanelsInfo.length > 0 && pPanelsInfo[0].board.index_key === pPanelInfo.index_key && (
+                            <MdFlagCircle size={16} style={{ color: '#fdb532' }} />
+                        )}
                         {pPanelInfo.chart_title}
                     </div>
                 }
@@ -95,116 +95,60 @@ const PanelHeader = ({
                 {sPanelRange.startTime} ~ {sPanelRange.endTime}
                 <span> {!pIsRaw && ` ( interval : ${pRangeOption.IntervalValue}${pRangeOption.IntervalType} )`}</span>
             </div>
-            <div className="options">
-                <div className="raw" style={{ display: 'flex' }}>
-                    <IconButton
-                        pWidth={32}
-                        pHeight={25}
-                        pIsToopTip
-                        pToolTipContent={!pIsRaw ? 'Enable raw data mode' : 'Disable raw data mode'}
-                        pToolTipId={'raw-data-taz-panel' + JSON.stringify(pIsEdit)}
-                        pIcon={
-                            <div style={{ height: '15px', display: 'flex' }}>
-                                <MdRawOn style={{ color: pIsRaw ? '#fdb532 ' : '', height: '32px', width: '32px', marginTop: '-7px' }} />
-                            </div>
-                        }
-                        onClick={pSetIsRaw}
-                    />
-                </div>
+            <Button.Group>
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent={!pIsRaw ? 'Enable raw data mode' : 'Disable raw data mode'}
+                    icon={<MdRawOn size={16} style={{ color: pIsRaw ? '#fdb532 ' : '', height: '32px', width: '32px' }} />}
+                    onClick={pSetIsRaw}
+                    style={{ minWidth: '36px' }}
+                />
                 {!pIsEdit ? (
                     <>
-                        <div className="divider" />
-                        <IconButton
-                            pWidth={25}
-                            pHeight={25}
-                            pIsToopTip
-                            pToolTipContent={'Drag data range'}
-                            pToolTipId={'drag-data-range-taz-panel-' + JSON.stringify(pIsEdit)}
-                            pIsActive={pIsUpdate}
-                            pIcon={<PiSelectionPlusBold style={{ color: pIsUpdate ? '#f8f8f8' : '' }} />}
+                        <Page.Divi />
+                        <Button
+                            size="xsm"
+                            variant="ghost"
+                            isToolTip
+                            toolTipContent={'Drag data range'}
+                            active={pIsUpdate}
+                            icon={<PiSelectionPlusBold size={16} style={{ color: pIsUpdate ? '#f8f8f8' : '' }} />}
                             onClick={pCtrMinMaxPopupModal}
                         />
-                        <div style={{ display: pIsMinMaxMenuOpen && pIsUpdate ? 'initial' : 'none' }}>
-                            <IconButton
-                                pWidth={25}
-                                pHeight={25}
-                                pIsToopTip
-                                pToolTipContent={'FFT chart'}
-                                pToolTipId={'fft-taz-panel-' + JSON.stringify(pIsEdit)}
-                                pIcon={<LineChart />}
-                                onClick={() => pSetIsFFTModal(true)}
-                            />
-                        </div>
+
+                        {pIsMinMaxMenuOpen && pIsUpdate ? (
+                            <Button size="xsm" variant="ghost" isToolTip toolTipContent={'FFT chart'} icon={<LineChart size={16} />} onClick={() => pSetIsFFTModal(true)} />
+                        ) : null}
                     </>
                 ) : null}
-                <div className="divider" />
-                {!pIsEdit && (
-                    <IconButton
-                        pWidth={25}
-                        pHeight={25}
-                        pIsToopTip
-                        pToolTipContent={'Set global time'}
-                        pToolTipId={'refresh-taz-panel-global-time' + JSON.stringify(pIsEdit)}
-                        pIcon={<TbTimezone />}
-                        onClick={pSetGlobalTimeRange}
-                    />
-                )}
-                <IconButton
-                    pWidth={25}
-                    pHeight={25}
-                    pIsToopTip
-                    pToolTipContent={'Refresh data'}
-                    pToolTipId={'refresh-taz-panel-data-' + JSON.stringify(pIsEdit)}
-                    pIcon={<Refresh />}
-                    onClick={() => pFetchPanelData(pPanelRange)}
-                />
-                <IconButton
-                    pWidth={25}
-                    pHeight={25}
-                    pIsToopTip
-                    pToolTipContent={'Refresh time'}
-                    pToolTipId={'refresh-taz-panel-time-' + JSON.stringify(pIsEdit)}
-                    pIcon={<LuTimerReset />}
+                {!pIsEdit ? <Button size="xsm" variant="ghost" isToolTip toolTipContent={'Set global time'} icon={<TbTimezone size={15} />} onClick={pSetGlobalTimeRange} /> : null}
+                <Button size="xsm" variant="ghost" isToolTip toolTipContent={'Refresh data'} icon={<Refresh size={14} />} onClick={() => pFetchPanelData(pPanelRange)} />
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent={'Refresh time'}
+                    icon={<LuTimerReset size={16} style={{ marginTop: '-1px' }} />}
                     onClick={handleRefreshTime}
                 />
-                {!pIsEdit && (
-                    <IconButton
-                        pWidth={25}
-                        pHeight={25}
-                        pIsToopTip
-                        pToolTipContent={'Edit'}
-                        pToolTipId={'edit-taz-panel-' + JSON.stringify(pIsEdit)}
-                        pIcon={<GearFill />}
-                        onClick={() => setEditPanel(true)}
+                {!pIsEdit ? (
+                    <Button
+                        size="xsm"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent={'Edit'}
+                        icon={<GearFill size={14} />}
+                        onClick={() => pOnEditRequest?.({ pPanelInfo, pBoardInfo, pNavigatorRange, pSetSaveEditedInfo })}
                     />
-                )}
+                ) : null}
                 {/* Saved to local */}
-                {!pIsEdit && getExperiment() && (
-                    <IconButton
-                        pWidth={25}
-                        pHeight={25}
-                        pIsToopTip
-                        pToolTipContent={'Saved to local'}
-                        pToolTipId={'saved-to-local-taz-panel-' + JSON.stringify(pIsEdit)}
-                        pIcon={<Download size={18} />}
-                        onClick={handleSavedToLocal}
-                    />
-                )}
-                {!pIsEdit && (
-                    <IconButton
-                        pWidth={25}
-                        pHeight={25}
-                        pIsToopTip
-                        pToolTipContent={'Delete'}
-                        pToolTipId={'delete-taz-panel-' + JSON.stringify(pIsEdit)}
-                        pIcon={<Delete size={18} />}
-                        onClick={handleDelete}
-                    />
-                )}
-            </div>
-            {sEditPanel && (
-                <EditPanel pBoardInfo={pBoardInfo} pPanelInfo={pPanelInfo} pSetEditPanel={setEditPanel} pNavigatorRange={pNavigatorRange} pSetSaveEditedInfo={pSetSaveEditedInfo} />
-            )}
+                {!pIsEdit && getExperiment() ? (
+                    <Button size="xsm" variant="ghost" isToolTip toolTipContent={'Saved to local'} icon={<Download size={16} />} onClick={handleSavedToLocal} />
+                ) : null}
+                {!pIsEdit && <Button size="xsm" variant="ghost" isToolTip toolTipContent={'Delete'} icon={<Delete size={16} />} onClick={handleDelete} />}
+            </Button.Group>
             {sIsDeleteModal && (
                 <ConfirmModal
                     pIsDarkMode
