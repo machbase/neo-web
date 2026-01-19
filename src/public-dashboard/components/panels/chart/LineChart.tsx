@@ -44,8 +44,7 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
         const sStartStr = String(sStartTimeBeforeStart);
         const sEndStr = String(sStartTimeBeforeEnd);
 
-        if (sStartStr.includes('now') || sStartStr.includes('last') ||
-            sEndStr.includes('now') || sEndStr.includes('last')) {
+        if (sStartStr.includes('now') || sStartStr.includes('last') || sEndStr.includes('now') || sEndStr.includes('last')) {
             sStartTimeBeforeStart = setUnitTime(sStartTimeBeforeStart);
             sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
         }
@@ -78,8 +77,8 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
                 sEndTime = sTimeMinMax.max;
             }
         } else {
-            sStartTime = pBoardTimeMinMax?.min;
-            sEndTime = pBoardTimeMinMax?.max;
+            sStartTime = setUnitTime(pBoardTimeMinMax?.min);
+            sEndTime = setUnitTime(pBoardTimeMinMax?.max);
         }
 
         let sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);

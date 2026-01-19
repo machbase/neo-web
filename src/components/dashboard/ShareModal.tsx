@@ -64,7 +64,7 @@ export const ShareModal = ({ isOpen, onClose, boardInfo }: ShareModalProps) => {
     };
 
     return (
-        <Modal.Root isOpen={isOpen} onClose={onClose} closeOnEscape closeOnOutsideClick size="md">
+        <Modal.Root isOpen={isOpen} onClose={onClose} closeOnEscape closeOnOutsideClick style={{ minWidth: '450px', width: '40vw' }}>
             <Modal.Header>
                 <Modal.Title>
                     <Share className="share-modal-icon" />

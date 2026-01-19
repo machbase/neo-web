@@ -28,7 +28,7 @@ export const ShareModal = ({ isOpen, onClose }: ShareModalProps) => {
             const messages = {
                 link: 'Link copied to clipboard',
                 iframe: 'iFrame code copied to clipboard',
-                embed: 'Embed code copied to clipboard'
+                embed: 'Embed code copied to clipboard',
             };
             Toast.success(messages[type]);
         } catch (error) {
@@ -52,7 +52,7 @@ export const ShareModal = ({ isOpen, onClose }: ShareModalProps) => {
             const messages = {
                 link: 'Link copied to clipboard',
                 iframe: 'iFrame code copied to clipboard',
-                embed: 'Embed code copied to clipboard'
+                embed: 'Embed code copied to clipboard',
             };
             Toast.success(messages[type]);
         } catch (error) {
@@ -63,7 +63,7 @@ export const ShareModal = ({ isOpen, onClose }: ShareModalProps) => {
     };
 
     return (
-        <Modal.Root isOpen={isOpen} onClose={onClose} closeOnEscape closeOnOutsideClick size="md">
+        <Modal.Root isOpen={isOpen} onClose={onClose} closeOnEscape closeOnOutsideClick style={{ minWidth: '450px', width: '40vw' }}>
             <Modal.Header>
                 <Modal.Title>
                     <Share className="share-modal-icon" />

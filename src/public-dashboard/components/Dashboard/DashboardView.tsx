@@ -266,8 +266,8 @@ const DashboardView = () => {
             <Page style={{ width: '100vw', height: '100vh' }}>
                 <Page.Header>
                     <Button.Group>
-                        <Page.DpRow style={{ width: '200px', overflow: 'hidden' }}>
-                            <Page.ContentTitle>{sBoardInformation?.dashboard?.title || ''}</Page.ContentTitle>
+                        <Page.DpRow style={{ display: 'flex', flex: 1, textWrap: 'nowrap' }}>
+                            <span style={{ maxWidth: '200px', overflow: 'hidden', textWrap: 'nowrap', textOverflow: 'ellipsis' }}>{sBoardInformation?.dashboard?.title || ''}</span>
                         </Page.DpRow>
                         {sBoardInformation && sBoardInformation?.dashboard && sBoardInformation?.dashboard?.variables && sBoardInformation?.dashboard?.variables?.length > 0 && (
                             <>
