@@ -1,93 +1,92 @@
 import { Close, GoPencil, PlusCircle } from '@/assets/icons/Icon';
-import { IconButton } from '@/components/buttons/IconButton';
-import { Input } from '@/components/inputs/Input';
-import { InputSelector } from '@/components/inputs/InputSelector';
+import { Page, Button, InputSelect, Input as DSInput } from '@/design-system/components';
 
 const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pBlockInfo, pColumnList }: any) => {
     const sFliterList = ['=', '<>', '>', '>=', '<', '<=', 'in', 'like'];
-    const sToggleIcon = <GoPencil />;
 
     return (
-        <div className="values filter">
-            <div className="series-table">
-                <span className="series-title">
-                    Filter
-                    {pIdx === pBlockInfo.filter.length - 1 ? (
-                        <>
-                            {pIdx !== 0 && <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} />}
-                            <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={() => pAddFilter()} />
-                        </>
-                    ) : (
-                        <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} />
-                    )}
-                </span>
-            </div>
+        <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
             {pFilterInfo.useTyping ? (
-                <div className="series-table">
-                    <Input
-                        pBorderRadius={4}
-                        pWidth={456}
-                        pHeight={26}
-                        pType="text"
-                        pValue={pFilterInfo.typingValue}
-                        pSetValue={() => null}
+                <div style={{ flex: 1, minWidth: '160px', maxWidth: '456px' }}>
+                    <DSInput
+                        label={
+                            <>
+                                Filter
+                                {pIdx === pBlockInfo.filter.length - 1 ? (
+                                    <>
+                                        {pIdx !== 0 && <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} />}
+                                        <Button size="icon" variant="ghost" icon={<PlusCircle />} onClick={() => pAddFilter()} />
+                                    </>
+                                ) : (
+                                    <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} />
+                                )}
+                            </>
+                        }
+                        labelPosition="left"
+                        type="text"
+                        value={pFilterInfo.typingValue}
                         onChange={(aEvent: any) => pChangeValueOption('typingValue', aEvent, pFilterInfo.id, 'filter')}
+                        size="md"
+                        fullWidth
                     />
                 </div>
             ) : (
                 <>
-                    <div className="series-table">
-                        <InputSelector
-                            pFontSize={12}
-                            pWidth={175}
-                            pBorderRadius={4}
-                            pHeight={26}
-                            pIsDisabled={!pColumnList[0]}
-                            pInitValue={pFilterInfo.column}
-                            onChange={(aEvent: any) => pChangeValueOption('column', aEvent, pFilterInfo.id, 'filter')}
-                            pOptions={pColumnList.map((aItem: any) => {
-                                return aItem[0];
-                            })}
-                        />
-                    </div>
-                    <div style={{ display: 'flex' }}>
-                        <div className="series-table operator">
-                            <InputSelector
-                                pFontSize={12}
-                                pWidth={70}
-                                pBorderRadius={4}
-                                pInitValue={pFilterInfo.operator ?? sFliterList[0]}
-                                pHeight={26}
-                                onChange={(aEvent: any) => pChangeValueOption('operator', aEvent, pFilterInfo.id, 'filter')}
-                                pOptions={sFliterList}
-                            />
-                        </div>
-                        <div className="series-table">
-                            <Input
-                                pBorderRadius={4}
-                                pWidth={175}
-                                pHeight={26}
-                                pType="text"
-                                pValue={pFilterInfo.value}
-                                onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
-                            />
-                        </div>
-                    </div>
+                    <InputSelect
+                        label={
+                            <>
+                                Filter
+                                {pIdx === pBlockInfo.filter.length - 1 ? (
+                                    <>
+                                        {pIdx !== 0 && <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} />}
+                                        <Button size="icon" variant="ghost" icon={<PlusCircle />} onClick={() => pAddFilter()} />
+                                    </>
+                                ) : (
+                                    <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} />
+                                )}
+                            </>
+                        }
+                        labelPosition="left"
+                        type="text"
+                        options={pColumnList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
+                        value={pFilterInfo.column}
+                        onChange={(aEvent: any) => pChangeValueOption('column', aEvent, pFilterInfo.id, 'filter')}
+                        selectValue={pFilterInfo.column}
+                        onSelectChange={(value: string) => pChangeValueOption('column', { target: { value } }, pFilterInfo.id, 'filter')}
+                        disabled={!pColumnList[0]}
+                        size="md"
+                        style={{ width: '160px' }}
+                    />
+
+                    <InputSelect
+                        type="text"
+                        options={sFliterList.map((opt: string) => ({ label: opt, value: opt }))}
+                        value={pFilterInfo.operator ?? sFliterList[0]}
+                        onChange={(aEvent: any) => pChangeValueOption('operator', aEvent, pFilterInfo.id, 'filter')}
+                        selectValue={pFilterInfo.operator ?? sFliterList[0]}
+                        onSelectChange={(value: string) => pChangeValueOption('operator', { target: { value } }, pFilterInfo.id, 'filter')}
+                        size="md"
+                        style={{ width: '128px' }}
+                    />
+
+                    <DSInput
+                        type="text"
+                        value={pFilterInfo.value}
+                        onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
+                        size="md"
+                        style={{ width: '160px' }}
+                    />
                 </>
             )}
-            <div className="series-table padding-4">
-                <IconButton
-                    pWidth={20}
-                    pHeight={20}
-                    pIsActive={pFilterInfo.useTyping}
-                    pIsToopTip
-                    pToolTipContent={pFilterInfo.useTyping ? 'Selecting' : 'Typing'}
-                    pToolTipId={pBlockInfo.id + '-block-filter-pencil' + pIdx}
-                    pIcon={sToggleIcon}
-                    onClick={() => pChangeValueOption('useTyping', { target: { value: !pFilterInfo.useTyping } }, pFilterInfo.id, 'filter')}
-                />
-            </div>
-        </div>
+            <Button
+                size="icon"
+                variant={pFilterInfo.useTyping ? 'primary' : 'ghost'}
+                icon={<GoPencil size={14} />}
+                onClick={() => pChangeValueOption('useTyping', { target: { value: !pFilterInfo.useTyping } }, pFilterInfo.id, 'filter')}
+                data-tooltip-id={pBlockInfo.id + '-block-filter-pencil' + pIdx}
+                data-tooltip-content={pFilterInfo.useTyping ? 'Selecting' : 'Typing'}
+            />
+        </Page.DpRow>
     );
 };
 

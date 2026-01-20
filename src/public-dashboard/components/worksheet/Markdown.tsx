@@ -8,7 +8,7 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import { gBoardList, gSelectedTab } from '../../recoil/recoil';
 import { generateUUID, parseCodeBlocks } from '../../utils';
 import { ClipboardCopy } from '../../utils/ClipboardCopy';
-import { Success } from '../toast/Toast';
+import { Toast } from '@/design-system/components';
 
 interface MarkdownProps {
     pContents?: any;
@@ -81,7 +81,7 @@ export const Markdown = (props: MarkdownProps) => {
     };
     const handleCopy = (aText: string) => {
         ClipboardCopy(aText);
-        Success('copied content');
+        Toast.success('copied content');
     };
 
     const fetchMrk = async (aContents: string, aReperer: string) => {

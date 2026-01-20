@@ -1,12 +1,12 @@
-import { ExtensionTab } from '@/components/extension/ExtensionTab';
+import { Page } from '@/design-system/components';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { getLogin as getShellList } from '@/api/repository/login';
 import { gActiveShellManage, gBoardList, gSelectedTab, gShellList, gShowShellList } from '@/recoil/recoil';
-import { Pane, SashContent } from 'split-pane-react';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { useEffect, useState } from 'react';
 import { copyShell, postShell, removeShell } from '@/api/repository/api';
 import icons from '@/utils/icons';
-import SplitPane from 'split-pane-react/esm/SplitPane';
 import { ConfirmModal } from '../modal/ConfirmModal';
 
 interface ShellAttrType {
@@ -194,46 +194,46 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
     return (
         <>
             {sPayload && sActiveShellName !== '' && (
-                <ExtensionTab>
+                <Page>
                     <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={['50', '50']} onChange={() => {}}>
                         <Pane minSize={400}>
-                            <ExtensionTab.Header />
-                            <ExtensionTab.Body>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>name</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>Display name</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.Input
+                            <Page.Header />
+                            <Page.Body>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>name</Page.ContentTitle>
+                                    <Page.ContentDesc>Display name</Page.ContentDesc>
+                                    <Page.Input
                                         pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('label', event)}
                                         pValue={sPayload.label}
                                         pAutoFocus
                                     />
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>command</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>Any executable command in full path with arguments</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.Input
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>command</Page.ContentTitle>
+                                    <Page.ContentDesc>Any executable command in full path with arguments</Page.ContentDesc>
+                                    <Page.Input
                                         pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('command', event)}
                                         pValue={sPayload.command}
                                         pWidth={'400px'}
                                     />
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>theme</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>Terminal color theme</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.Selector
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>theme</Page.ContentTitle>
+                                    <Page.ContentDesc>Terminal color theme</Page.ContentDesc>
+                                    <Page.Selector
                                         pList={sThemeList.map((theme) => {
                                             return { name: theme, data: theme };
                                         })}
                                         pSelectedItem={sPayload.theme || 'default'}
                                         pCallback={(eTarget: string) => handlePayload('theme', { target: { value: eTarget } } as any)}
                                     />
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>icon</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.DpRow>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>icon</Page.ContentTitle>
+                                    <Page.DpRow>
                                         {sIconList.map((aItem: any, aIdx: number) => {
                                             return (
-                                                <ExtensionTab.IconBtn
+                                                <Page.IconBtn
                                                     key={aIdx}
                                                     pActive={sPayload.icon === aItem}
                                                     pCallback={() => {
@@ -241,28 +241,28 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                                     }}
                                                 >
                                                     {icons(aItem)}
-                                                </ExtensionTab.IconBtn>
+                                                </Page.IconBtn>
                                             );
                                         })}
-                                    </ExtensionTab.DpRow>
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
+                                    </Page.DpRow>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <ExtensionTab.DpRow>
-                                            <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
-                                            <ExtensionTab.TextButton pText="Save" pType="CREATE" pCallback={editShell} />
-                                            {sResMessage && <ExtensionTab.TextResErr pText={sResMessage} />}
-                                        </ExtensionTab.DpRow>
-                                        <ExtensionTab.TextButton pText="Make a copy" pType="COPY" pCallback={handleCreateShell} pWidth={'120px'} />
+                                        <Page.DpRow>
+                                            <Page.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
+                                            <Page.TextButton pText="Save" pType="CREATE" pCallback={editShell} />
+                                            {sResMessage && <Page.TextResErr pText={sResMessage} />}
+                                        </Page.DpRow>
+                                        <Page.TextButton pText="Make a copy" pType="COPY" pCallback={handleCreateShell} pWidth={'120px'} />
                                     </div>
-                                </ExtensionTab.ContentBlock>
-                            </ExtensionTab.Body>
+                                </Page.ContentBlock>
+                            </Page.Body>
                         </Pane>
                         <Pane minSize={0}>
-                            <ExtensionTab.Header />
+                            <Page.Header />
                         </Pane>
                     </SplitPane>
-                </ExtensionTab>
+                </Page>
             )}
             {sIsDeleteModal && (
                 <ConfirmModal

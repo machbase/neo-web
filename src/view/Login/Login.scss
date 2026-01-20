@@ -1,4 +1,5 @@
 @import '../../assets/scss/theme.scss';
+@import '../../design-system/tokens/index';
 
 .login-form {
     height: 100vh;
@@ -19,177 +20,25 @@
         position: absolute;
     }
 }
-.input-form {
-    align-items: center;
-    display: flex;
-    justify-content: center;
-    flex-direction: column;
-    width: 100%;
-    background-color: #fff;
-    padding: 30px 0 0 0;
 
-    input {
-        padding-left: 60px;
-        width: 266px !important;
-        height: 30px;
-        margin-bottom: 12px;
-        text-indent: 32px;
-        background-color: #fcfcfc;
-        border: solid 0.5px rgba(0, 0, 0, 0.2) !important;
-        border-radius: 8px;
-    }
-    input::placeholder {
-        color: #999999;
-        font-family: 'Pretendard';
-        font-size: 14px;
-        font-weight: 400;
-    }
-    .input-id {
-        color: #121212;
-        background-image: url(../../assets/image/login_id.png);
-        background-repeat: no-repeat;
-        background-position: 8px 6px;
-    }
-    .input-password {
-        color: #121212;
-        background-image: url(../../assets/image/login_password.png);
-        background-repeat: no-repeat;
-        background-position: 8px 6px;
-    }
-
-    &-response-wrapper {
-        display: flex;
-        width: 100%;
-        justify-content: center;
-        padding: 0 0 16px 0;
-
-        .input-form-response {
-            width: 280px;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-
-            svg {
-                width: 15px;
-                height: 15px;
-                fill: rgb(255, 83, 83);
-            }
-
-            pre {
-                margin-left: 4px;
-                font-family: 'Pretendard';
-                font-size: 14px;
-                color: rgb(255, 83, 83);
-            }
-        }
-    }
-}
 .login-card {
     z-index: $login-card-form-idx;
     width: 420px;
-    background-color: #fff;
+    padding: 40px 0;
+    background-color: $bg-elevated;
     flex-direction: column;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     border-width: 1px;
     border-style: solid;
+    border-color: $border-color-default;
     border-radius: 8px;
     font-family: 'Open Sans', Helvetica, Arial, sans-serif;
-    @include theme() {
-        background-color: theme-get('bg-color-button') !important;
-        border-color: theme-get('border-color') !important;
-    }
+
     img {
         margin: 0 auto;
-        margin-top: 60px;
-    }
-
-    .input-cehck-wrapper {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-
-        .input-checkboxwrap {
-            width: 280px;
-            justify-content: left;
-            display: flex;
-            align-items: center;
-
-            div {
-                margin: 3px 4px;
-                width: 16px;
-                height: 16px;
-                border: 0.5px solid #a7a7a7;
-                border-radius: 2px;
-                box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.18);
-            }
-            input {
-                accent-color: #286ade;
-            }
-            .checkbox {
-                margin-right: 4px;
-                width: 16px;
-                height: 16px;
-                border: 0;
-                box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.18);
-            }
-            .input-checkbox-p {
-                font-family: 'Pretendard';
-                font-size: 12px;
-                color: #a7a7a7;
-            }
-        }
-    }
-    .button-form {
-        width: 100%;
-        padding: 30px 0 0 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 52px;
-        .login-button {
-            @include theme() {
-                border: 1px solid theme-get('border-color-input') !important;
-                color: theme-get('border-color-input') !important;
-            }
-            border-radius: 8px;
-            width: 280px;
-            height: 40px;
-            padding: 4px 6px;
-            border: 0;
-            color: #fff;
-            box-shadow: 0 3px 6px 0 rgba(0, 0, 0, 0.16);
-            background-image: linear-gradient(97deg, #3da8d9 0%, #1a3ee2 52%, #3da8d9 101%);
-        }
-        .login-button:hover {
-            @include theme() {
-                background-color: theme-get('border-color') !important;
-                border-color: theme-get('login-btn') !important;
-            }
-        }
-        .no-input {
-            @include theme() {
-                border: 1px solid theme-get('border-color-input') !important;
-                background-color: theme-get('border-color') !important;
-                color: theme-get('login-btn') !important;
-                border-color: theme-get('login-btn') !important;
-            }
-            border-radius: 4px;
-            width: 80%;
-            padding: 4px 6px;
-        }
-    }
-
-    .input {
-        border-radius: 4px;
-        padding: 4px 6px;
-        width: 100%;
-    }
-    .normal-text {
-        @include theme() {
-            color: theme-get('text-color') !important;
-        }
+        filter: brightness(1.5) saturate(1.2);
     }
 }
 .sns {

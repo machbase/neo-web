@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, forwardRef } from 'react';
 import { Input, InputProps } from '../Input';
 import { Button } from '../Button';
 import { VscEye, VscEyeClosed } from 'react-icons/vsc';
@@ -9,12 +9,7 @@ export interface PasswordInputProps extends Omit<InputProps, 'type' | 'rightIcon
     onVisibilityChange?: (visible: boolean) => void;
 }
 
-export const PasswordInput = ({
-    defaultVisible = false,
-    onVisibilityChange,
-    className,
-    ...inputProps
-}: PasswordInputProps) => {
+export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(({ defaultVisible = false, onVisibilityChange, className, ...inputProps }, ref) => {
     const [isVisible, setIsVisible] = useState(defaultVisible);
 
     const handleToggle = () => {
@@ -26,6 +21,7 @@ export const PasswordInput = ({
     return (
         <Input
             {...inputProps}
+            ref={ref}
             type={isVisible ? 'text' : 'password'}
             className={className}
             rightIcon={
@@ -42,6 +38,6 @@ export const PasswordInput = ({
             }
         />
     );
-};
+});
 
 PasswordInput.displayName = 'PasswordInput';

@@ -1,0 +1,80 @@
+@import '../../tokens/index';
+
+.colorPicker {
+    position: relative;
+    width: 18px;
+    height: 18px;
+    align-items: center;
+    display: flex;
+}
+
+.colorSwatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.colorPickerPortal {
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+
+    // Override react-color CompactPicker styles to match dark theme
+    :global {
+        .compact-picker {
+            background: #2d2d2d !important;
+            border: 1px solid rgba(255, 255, 255, 0.13) !important;
+            box-shadow: none !important;
+            padding: 4px;
+
+            // Color swatches container
+            > div:first-child {
+                // Color grid area
+                > div {
+                    > span > div {
+                        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3) !important;
+
+                        &:hover {
+                            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5) !important;
+                        }
+                    }
+                }
+            }
+
+            .flexbox-fix {
+                padding: 0 !important;
+
+                > div {
+                    padding: 3px;
+                    display: flex;
+                }
+            }
+
+            // Input field area at bottom
+            .flexbox-fix:last-child {
+                background: #2d2d2d !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.13) !important;
+
+                input {
+                    background: transparent !important;
+                    color: #f1f1f1 !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                    font-size: 12px !important;
+
+                    &::placeholder {
+                        color: #a3a3a3 !important;
+                    }
+                }
+
+                // Hash symbol
+                > div:first-child {
+                    color: #c4c4c4 !important;
+                }
+            }
+        }
+    }
+}

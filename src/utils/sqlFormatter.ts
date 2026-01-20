@@ -62,6 +62,7 @@ export const sqlBasicChartFormatter = (aSql: string, aAxis?: { x: string; y: str
         `CHART(
             theme("dark"),
             chartOption({
+                backgroundColor: "#252525",
                 ${Animation},
                 ${DataZoom},
                 ${Color},

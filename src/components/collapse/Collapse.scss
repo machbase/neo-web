@@ -5,17 +5,26 @@
         align-items: center;
         cursor: pointer;
         font-size: 14px;
+        padding: 4px;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
 
         &:hover {
-            background-color: rgba(43, 45, 51, 0.8);
+            background-color: rgba(30, 32, 36, 0.6);
         }
         .collapse-icon {
             display: flex;
             align-items: center;
             margin-right: 4px;
+            transition: transform 0.2s ease;
+
             svg {
                 width: 14px;
                 height: 14px;
+            }
+
+            &--open {
+                transform: rotate(90deg);
             }
         }
     }

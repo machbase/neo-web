@@ -1,12 +1,7 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { PlusCircle, Close } from '@/assets/icons/Icon';
-import { Input } from '@/components/inputs/Input';
+import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/components';
 import AddTag from './AddTag';
-import './Data.scss';
-import { Select } from '@/components/inputs/Select';
-import { CompactPicker } from 'react-color';
-import useOutsideClick from '@/hooks/useOutsideClick';
-import { IconButton } from '@/components/buttons/IconButton';
 import { Tooltip } from 'react-tooltip';
 import { avgMode } from '../../constants';
 
@@ -33,88 +28,64 @@ const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     };
 
     return (
-        <div className="data-form scrollbar-dark-border">
-            <div>Tags</div>
+        <>
             {pPanelInfo.index_key &&
                 pPanelInfo.tag_set.map((aItem: any) => {
                     return (
-                        <div key={aItem.key} className="tag-list">
-                            <div className="set-mode">
-                                <div className="calc-mode">
-                                    <span className="calc-mode-title">Calc Mode</span>
-                                    <Select
-                                        pInitValue={aItem.calculationMode ?? 'avg'}
-                                        pWidth={120}
-                                        pHeight={25}
-                                        onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'calculationMode')}
-                                        pOptions={avgMode.map((aItem) => aItem.value)}
-                                    />
-                                </div>
-                                <div className="tag-names">
-                                    <span className={`tag-names-title taz-table-name-tooltip-${aItem.table}`}>
-                                        Tag Names
-                                        <span style={{ width: '100%', display: 'flex', margin: '0px 4px', alignItems: 'center' }}>
-                                            (<span style={{ fontSize: '10px', width: 'auto' }}>{aItem.table}</span>)
-                                        </span>
-                                        <Tooltip anchorSelect={`.taz-table-name-tooltip-${aItem.table}`} content={aItem.table} />
-                                    </span>
+                        <Page key={aItem.key} style={{ borderRadius: '4px', border: '1px solid #b8c8da41', gap: '6px', height: 'auto', display: 'table' }}>
+                            <Page.ContentBlock style={{ padding: '4px', flexWrap: 'wrap' }} pHoverNone>
+                                <Page.DpRow style={{ width: '100%', paddingBottom: '8px', gap: '8px', flexWrap: 'wrap' }}>
+                                    <Dropdown.Root
+                                        options={avgMode.map((aItem) => ({ label: aItem.value, value: aItem.value }))}
+                                        value={aItem.calculationMode ?? 'avg'}
+                                        onChange={(value: string) => changedTagInfo({ target: { value } } as any, aItem.key, 'calculationMode')}
+                                        label="Calc Mode"
+                                        labelPosition="left"
+                                    >
+                                        <Dropdown.Trigger style={{ width: '120px' }} />
+                                        <Dropdown.Menu>
+                                            <Dropdown.List />
+                                        </Dropdown.Menu>
+                                    </Dropdown.Root>
                                     <Input
-                                        pWidth={240}
-                                        pHeight={24}
-                                        pValue={aItem.tagName}
-                                        pSetValue={() => null}
+                                        label={
+                                            <span className={`taz-table-name-tooltip-${aItem.table}`} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                Tag Names
+                                                <span style={{ fontSize: '10px' }}>({aItem.table})</span>
+                                                <Tooltip anchorSelect={`.taz-table-name-tooltip-${aItem.table}`} content={aItem.table} />
+                                            </span>
+                                        }
+                                        labelPosition="left"
+                                        value={aItem.tagName}
                                         onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'tagName')}
+                                        size="md"
+                                        style={{ width: '120px', height: '30px' }}
                                     />
-                                </div>
-                                <div className="alias">
-                                    <span className="alias-title">Alias</span>
                                     <Input
-                                        pWidth={120}
-                                        pHeight={24}
-                                        pValue={aItem.alias}
-                                        pSetValue={() => null}
+                                        label="Alias"
+                                        labelPosition="left"
+                                        value={aItem.alias}
                                         onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'alias')}
+                                        size="sm"
+                                        style={{ width: '120px', height: '30px' }}
                                     />
-                                </div>
-                                <ColorBlock pItem={aItem} pCallback={(aColor: string) => changedTagInfo({ target: { value: aColor } } as any, aItem.key, 'color')} />
-                            </div>
-                            <div className="close">{pPanelInfo.tag_set.length !== 1 && <Close onClick={() => removeTag(aItem.key)} color="#f8f8f8"></Close>}</div>
-                        </div>
+                                    <ColorPicker
+                                        color={aItem.color}
+                                        onChange={(aColor: string) => changedTagInfo({ target: { value: aColor } } as any, aItem.key, 'color')}
+                                        tooltipId={aItem.id + '-block-color'}
+                                        tooltipContent="Color"
+                                    />
+                                    {pPanelInfo.tag_set.length !== 1 && (
+                                        <Button size="xsm" variant="ghost" icon={<Close size={16} color="#f8f8f8" />} onClick={() => removeTag(aItem.key)} />
+                                    )}
+                                </Page.DpRow>
+                            </Page.ContentBlock>
+                        </Page>
                     );
                 })}
-            <div className="add-tag tag-list" onClick={openModal}>
-                <PlusCircle size="23px" color="#FDB532"></PlusCircle>
-            </div>
-            {isModal && <div className="backdrop" onClick={closeModal}></div>}
             {isModal && <AddTag pCloseModal={closeModal} pPanelInfo={pPanelInfo} pSetCopyPanelInfo={pSetCopyPanelInfo} />}
-        </div>
-    );
-};
-
-const ColorBlock = ({ pItem, pCallback }: { pItem: any; pCallback: (aColor: string) => void }) => {
-    const sColorPickerRef = useRef<any>(null);
-    const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
-
-    useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
-
-    return (
-        <div ref={sColorPickerRef} style={{ position: 'relative' }}>
-            <IconButton
-                pWidth={20}
-                pHeight={20}
-                pIsToopTip
-                pToolTipContent={'Color'}
-                pToolTipId={pItem.id + '-block-color'}
-                pIcon={<div style={{ width: '14px', cursor: 'pointer', height: '14px', marginRight: '4px', borderRadius: '50%', backgroundColor: pItem.color }}></div>}
-                onClick={() => setIsColorPicker(!sIsColorPicker)}
-            />
-
-            {sIsColorPicker && (
-                <div className="color-picker">
-                    <CompactPicker color={pItem.color} onChangeComplete={(aInfo: any) => pCallback(aInfo.hex)} />
-                </div>
-            )}
-        </div>
+            <Button variant="secondary" fullWidth shadow autoFocus={false} icon={<PlusCircle size={16} />} onClick={openModal} style={{ height: '60px' }} />
+        </>
     );
 };
 

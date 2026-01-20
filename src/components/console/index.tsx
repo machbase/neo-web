@@ -5,30 +5,23 @@ import { gShellList } from '@/recoil/recoil';
 import { VscAdd, VscChevronDown, VscTrash, VscChevronUp } from '@/assets/icons/Icon';
 import { getId, isEmpty } from '@/utils';
 import Shell from '../shell/Shell';
-import Menu from '../contextMenu/Menu';
-import useOutsideClick from '@/hooks/useOutsideClick';
 import ConsoleTab from './ConsoleTab';
 import icons from '@/utils/icons';
 import { stringParseNewDate } from '@/utils/helpers/date';
 import moment from 'moment';
-import { IconButton } from '../buttons/IconButton';
+import { Button } from '@/design-system/components/Button';
+import { Menu } from '@/design-system/components/Menu';
 import { gWsLog } from '@/recoil/websocket';
+import { Page } from '@/design-system/components';
 
 const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => {
     const [sConsoleTab, setConsoleTab] = useState<any>([]);
     const [sSelectedTab, setSelectedTab] = useState('Console');
-    const [sIsContextMenu, setIsContextMenu] = useState(false);
     const [sConsoleList, setConsoleList] = useRecoilState<any>(gWsLog);
     const [sSelectTask, setSelectTask] = useState('none');
-    const MenuRef = useRef<HTMLDivElement>(null);
-    const sFiledRef = useRef<HTMLDivElement>(null);
     const consoleRef = useRef<any>(null);
     const [sShellList] = useRecoilState<any>(gShellList);
     const [sNewLog, setNewLog] = useState(false);
-    const onContextMenu = (e: React.MouseEvent) => {
-        e.preventDefault();
-        setIsContextMenu(true);
-    };
 
     const setColor = (aItem: string) => {
         switch (aItem) {
@@ -72,8 +65,11 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
         setSelectedTab(defaultTabId);
     }, []);
 
-    const addConsoleTab = (aEvent: any, aItem: any) => {
-        aEvent.stopPropagation();
+    const handleSelectedTab = (aValue: string) => {
+        setSelectedTab(aValue);
+    };
+
+    const handleAddShell = (aItem: any) => {
         const sId = getId();
         setConsoleTab([
             ...sConsoleTab,
@@ -85,11 +81,6 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
             },
         ]);
         setSelectedTab(sId);
-        setIsContextMenu(false);
-    };
-
-    const handleSelectedTab = (aValue: string) => {
-        setSelectedTab(aValue);
     };
 
     const deleteConsoleTab = (aEvent: any, aValue: any) => {
@@ -123,136 +114,132 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
         return sExtensionListWithoutTerm.concat(sShellList ?? []);
     }, [sShellList]);
 
-    useOutsideClick(MenuRef, () => setIsContextMenu(false));
-    useOutsideClick(sFiledRef, () => setSelectTask('none'));
-
     return (
-        <div className="console-form">
-            <div className="console-header">
-                <div className="console-form-tab">
-                    {sConsoleTab.map((aItem: any, aIdx: number) => {
-                        return (
-                            <ConsoleTab
-                                pDeleteConsoleTab={deleteConsoleTab}
-                                pSelectedTab={sSelectedTab}
-                                key={aIdx}
-                                pNewLog={sNewLog}
-                                pConsoleList={sConsoleList}
-                                pHandleSelectedTab={() => handleSelectedTab(aItem.id)}
-                                pTab={aItem}
-                            />
-                        );
-                    })}
-                </div>
-                <div className="console-header-right">
-                    <div ref={MenuRef} onClick={(aEvent: any) => onContextMenu(aEvent)} className="add-terminal">
-                        <IconButton
-                            pIsToopTip
-                            pPlace="bottom-end"
-                            pToolTipContent="Open shell"
-                            pToolTipId="console-open-shell"
-                            pIcon={
-                                <>
-                                    <VscAdd />
-                                    <VscChevronDown />
-                                </>
-                            }
-                            onClick={() => null}
-                        />
-                        <div className="extension-menu">
-                            <Menu isOpen={sIsContextMenu}>
+        <Page>
+            <div className="console-form">
+                <div className="console-header">
+                    <div className="console-form-tab">
+                        {sConsoleTab.map((aItem: any, aIdx: number) => {
+                            return (
+                                <ConsoleTab
+                                    pDeleteConsoleTab={deleteConsoleTab}
+                                    pSelectedTab={sSelectedTab}
+                                    key={aIdx}
+                                    pNewLog={sNewLog}
+                                    pConsoleList={sConsoleList}
+                                    pHandleSelectedTab={() => handleSelectedTab(aItem.id)}
+                                    pTab={aItem}
+                                />
+                            );
+                        })}
+                    </div>
+                    <Button.Group>
+                        <Menu.Root>
+                            <Menu.Trigger>
+                                <Button
+                                    icon={
+                                        <>
+                                            <VscAdd size={14} />
+                                            <VscChevronDown size={16} />
+                                        </>
+                                    }
+                                    aria-label="Open shell"
+                                    variant="ghost"
+                                    size="fit"
+                                    isToolTip
+                                    toolTipContent="Open shell"
+                                    toolTipPlace="bottom-end"
+                                />
+                            </Menu.Trigger>
+                            <Menu.Content>
                                 {getShellList.map((aItem: any) => {
                                     return (
-                                        <Menu.Item onClick={(aEvent: any) => addConsoleTab(aEvent, aItem)} key={aItem.id}>
-                                            {icons(aItem?.icon) ?? ''}
+                                        <Menu.Item key={aItem.id} onClick={() => handleAddShell(aItem)} icon={icons(aItem?.icon) ?? ''}>
                                             {aItem?.label ?? ''}
                                         </Menu.Item>
                                     );
                                 })}
-                            </Menu>
-                        </div>
-                    </div>
-                    {sConsoleTab && sSelectedTab === sConsoleTab[0]?.id && (
-                        <IconButton pIsToopTip pPlace="bottom-end" pToolTipContent="Clear" pToolTipId="console-clear" pIcon={<VscTrash />} onClick={() => setConsoleList([])} />
-                    )}
+                            </Menu.Content>
+                        </Menu.Root>
+                        {sConsoleTab && sSelectedTab === sConsoleTab[0]?.id && (
+                            <Button
+                                icon={<VscTrash size={16} />}
+                                aria-label="Clear"
+                                variant="ghost"
+                                size="icon"
+                                isToolTip
+                                toolTipContent="Clear"
+                                toolTipPlace="bottom-end"
+                                onClick={() => setConsoleList([])}
+                            />
+                        )}
+                        <Button
+                            icon={pTerminalSizes[1] === 40 ? <VscChevronUp size={16} /> : <VscChevronDown size={16} />}
+                            variant="ghost"
+                            size="icon"
+                            // isToolTip
+                            // toolTipContent={pTerminalSizes[1] === 40 ? 'Expand' : 'Collapse'}
+                            // toolTipPlace="top"
+                            onClick={pTerminalSizes[1] === 40 ? () => pSetTerminalSizes(['72%', '28%']) : () => pSetTerminalSizes(['', 40])}
+                        />
+                    </Button.Group>
+                </div>
+                <div ref={consoleRef} className="console-body scrollbar-dark-border">
+                    {sConsoleTab.map((aItem: any) => {
+                        return (
+                            <div key={aItem.id} className={`${aItem.id === sSelectedTab ? 'active-console' : 'display-none'}`}>
+                                <div className={aItem.type === 'console' ? 'is-console' : 'display-none'}>
+                                    {!isEmpty(sConsoleList) &&
+                                        sConsoleList.map((bItem: any, aIdx: number) => {
+                                            return (
+                                                <div
+                                                    key={aIdx}
+                                                    onClick={() => setSelectTask(bItem.task)}
+                                                    className="task"
+                                                    style={{
+                                                        color: sSelectTask === bItem.task ? '#f4f4f4' : '#d1d1d1',
+                                                        background: sSelectTask === bItem.task ? 'rgba(12, 12, 12, 0.6)' : '',
+                                                    }}
+                                                >
+                                                    <span className="nowrap">
+                                                        {changeUtcToText(bItem.timestamp < 10000000000000 ? Math.floor(bItem.timestamp) : Math.floor(bItem.timestamp / 1000000))}
+                                                    </span>
+                                                    {bItem.level && <span style={{ color: setColor(bItem.level), whiteSpace: 'nowrap', minWidth: '35px' }}>{bItem.level}</span>}
+                                                    {bItem.task && <span className="nowrap">{bItem.task}</span>}
+                                                    {bItem.repeat && (
+                                                        <div
+                                                            className="repeat"
+                                                            style={{
+                                                                background: setColor(bItem.level),
+                                                            }}
+                                                        >
+                                                            {bItem.repeat}
+                                                        </div>
+                                                    )}
+                                                    <span>{bItem.message}</span>
+                                                </div>
+                                            );
+                                        })}
+                                </div>
 
-                    {pTerminalSizes[1] === 40 && (
-                        <IconButton
-                            pIsToopTip
-                            pPlace="bottom-end"
-                            pToolTipContent="Expand"
-                            pToolTipId="console-expand"
-                            pIcon={<VscChevronUp />}
-                            onClick={() => pSetTerminalSizes(['72%', '28%'])}
-                        />
-                    )}
-                    {pTerminalSizes[1] !== 40 && (
-                        <IconButton
-                            pIsToopTip
-                            pPlace="bottom-end"
-                            pToolTipContent="Collapse"
-                            pToolTipId="console-collapse"
-                            pIcon={<VscChevronDown />}
-                            onClick={() => pSetTerminalSizes(['', 40])}
-                        />
-                    )}
+                                <div
+                                    className="shell"
+                                    style={
+                                        aItem.type !== 'console'
+                                            ? aItem && aItem?.shell?.theme === 'indigo'
+                                                ? { height: 'calc(100%)', paddingTop: '4px', overflow: 'auto' }
+                                                : { height: '100%' }
+                                            : { display: 'none', overflow: 'auto' }
+                                    }
+                                >
+                                    {aItem.type === 'shell' && <Shell pSelectedTab={sSelectedTab} pType="bottom" pInfo={aItem} pId={aItem.id} />}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
-            <div ref={consoleRef} className="console-body scrollbar-dark-border">
-                {sConsoleTab.map((aItem: any) => {
-                    return (
-                        <div key={aItem.id} className={`${aItem.id === sSelectedTab ? 'active-console' : 'display-none'}`}>
-                            <div className={aItem.type === 'console' ? 'is-console' : 'display-none'}>
-                                {!isEmpty(sConsoleList) &&
-                                    sConsoleList.map((bItem: any, aIdx: number) => {
-                                        return (
-                                            <div
-                                                key={aIdx}
-                                                onClick={() => setSelectTask(bItem.task)}
-                                                className="task"
-                                                style={{
-                                                    color: sSelectTask === bItem.task ? '#f4f4f4' : '#d1d1d1',
-                                                    background: sSelectTask === bItem.task ? 'rgba(12, 12, 12, 0.6)' : '',
-                                                }}
-                                            >
-                                                <span className="nowrap">
-                                                    {changeUtcToText(bItem.timestamp < 10000000000000 ? Math.floor(bItem.timestamp) : Math.floor(bItem.timestamp / 1000000))}
-                                                </span>
-                                                {bItem.level && <span style={{ color: setColor(bItem.level), whiteSpace: 'nowrap', minWidth: '35px' }}>{bItem.level}</span>}
-                                                {bItem.task && <span className="nowrap">{bItem.task}</span>}
-                                                {bItem.repeat && (
-                                                    <div
-                                                        className="repeat"
-                                                        style={{
-                                                            background: setColor(bItem.level),
-                                                        }}
-                                                    >
-                                                        {bItem.repeat}
-                                                    </div>
-                                                )}
-                                                <span>{bItem.message}</span>
-                                            </div>
-                                        );
-                                    })}
-                            </div>
-
-                            <div
-                                className="shell"
-                                style={
-                                    aItem.type !== 'console'
-                                        ? aItem && aItem?.shell?.theme === 'indigo'
-                                            ? { height: 'calc(100%)', paddingTop: '4px', overflow: 'auto' }
-                                            : { height: '100%' }
-                                        : { display: 'none', overflow: 'auto' }
-                                }
-                            >
-                                {aItem.type === 'shell' && <Shell pSelectedTab={sSelectedTab} pType="bottom" pInfo={aItem} pId={aItem.id} />}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
+        </Page>
     );
 };
 

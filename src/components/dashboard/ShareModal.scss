@@ -1,322 +1,117 @@
-.share-modal {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: #404457;
-    width: 650px;
-    z-index: 1001;
-    border-radius: 8px;
-    border: solid 0.5px rgba(255, 255, 255, 0.5);
-    font-size: 14px;
-    padding: 16px 4px 0 4px;
+// Modal header title styles
+.share-modal-title-wrapper {
     display: flex;
-    flex-direction: column;
-    color: white;
+    align-items: center;
+    gap: 4px;
 
-    .share-modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0 16px;
-        margin-bottom: 16px;
-
-        .share-modal-title-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-
-            .share-modal-icon {
-                width: 18px;
-                height: 18px;
-                color: white;
-            }
-
-            .share-modal-title {
-                margin: 0;
-                font-size: 16px;
-                font-weight: normal;
-                color: white;
-            }
-        }
-
-        .close-button {
-            cursor: pointer;
-            width: 18px;
-            height: 18px;
-            color: #f8f8f8;
-        }
+    .share-modal-icon {
+        width: 18px;
+        height: 18px;
     }
+}
 
-    .share-modal-body {
-        flex-grow: 1;
+// Content styles
+.social-share-buttons {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    justify-content: center;
+
+    .social-share-btn {
         display: flex;
-        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: transform 0.2s ease, opacity 0.2s ease;
 
-        .share-tabs {
-            display: flex;
-            border-bottom: 0.5px solid rgba(255, 255, 255, 0.5);
-
-            .share-tab {
-                flex: 1;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 4px;
-                padding: 12px 16px;
-                border: none;
-                background: none;
-                cursor: pointer;
-                font-size: 14px;
-                font-weight: normal;
-                color: rgba(255, 255, 255, 0.5);
-                transition: color 0.2s ease;
-
-                .tab-icon {
-                    width: 16px;
-                    height: 16px;
-                }
-
-                &:hover {
-                    color: #f8f8f8;
-                }
-
-                &.active {
-                    color: #4199ff;
-                }
-            }
+        &:hover {
+            transform: scale(1.1);
+            opacity: 0.8;
         }
 
-        .share-content {
-            padding: 16px;
-            flex-grow: 1;
+        &.twitter {
+            background: #000000;
+            color: white;
+        }
 
-            .share-section {
-                .social-share-buttons {
-                    display: flex;
-                    gap: 12px;
-                    margin-bottom: 24px;
-                    justify-content: center;
+        &.facebook {
+            background: #1877f2;
+            color: white;
+        }
 
-                    .social-share-btn {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        width: 48px;
-                        height: 48px;
-                        border: none;
-                        border-radius: 50%;
-                        cursor: pointer;
-                        transition: transform 0.2s ease, opacity 0.2s ease;
+        &.email {
+            background: #ea4335;
+            color: white;
+        }
 
-                        &:hover {
-                            transform: scale(1.1);
-                            opacity: 0.8;
-                        }
+        &.whatsapp {
+            background: #25d366;
+            color: white;
+        }
 
-                        &.twitter {
-                            background: #000000;
-                            color: white;
-                        }
-
-                        &.facebook {
-                            background: #1877f2;
-                            color: white;
-                        }
-
-                        &.email {
-                            background: #ea4335;
-                            color: white;
-                        }
-
-                        &.whatsapp {
-                            background: #25d366;
-                            color: white;
-                        }
-
-                        svg {
-                            width: 24px;
-                            height: 24px;
-                        }
-                    }
-                }
-
-                .share-input-wrapper {
-                    display: flex;
-                    gap: 8px;
-                    align-items: center;
-
-                    .share-input {
-                        flex: 1;
-                        padding: 8px 12px;
-                        border: 0.5px solid rgba(255, 255, 255, 0.5);
-                        border-radius: 4px;
-                        font-size: 12px;
-                        font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-                        background-color: #323644;
-                        color: #f8f8f8;
-                        outline: none;
-                        height: auto;
-                        line-height: 1.3;
-                        white-space: nowrap;
-                        overflow-x: auto;
-                        resize: none;
-
-                        &:focus {
-                            border-color: rgba(255, 255, 255, 0.8);
-                        }
-                    }
-
-                    .copy-button {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        padding: 8px;
-                        border: none;
-                        border-radius: 4px;
-                        background: #4199ff;
-                        color: white;
-                        cursor: pointer;
-                        width: 32px;
-                        height: 32px;
-                        flex-shrink: 0;
-
-                        svg {
-                            width: 12px;
-                            height: 12px;
-                        }
-
-                        &:hover {
-                            opacity: 0.8;
-                        }
-                    }
-                }
-
-                .embed-section {
-                    margin-top: 20px;
-
-                    .embed-tabs {
-                        display: flex;
-                        justify-content: flex-start;
-                        margin-bottom: 4px;
-
-                        .embed-tab {
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            padding: 12px 16px;
-                            border: none;
-                            background: none;
-                            cursor: pointer;
-                            font-size: 14px;
-                            font-weight: normal;
-                            color: rgba(255, 255, 255, 0.5);
-                            transition: color 0.2s ease;
-
-                            &:hover {
-                                color: #f8f8f8;
-                            }
-
-                            &.active {
-                                color: #4199ff;
-                            }
-                        }
-                    }
-
-                    .embed-input-wrapper {
-                        display: flex;
-                        gap: 8px;
-                        align-items: flex-start;
-
-                        .embed-input {
-                            flex: 1;
-                            padding: 8px 12px;
-                            border: 0.5px solid rgba(255, 255, 255, 0.5);
-                            border-radius: 4px;
-                            font-size: 12px;
-                            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-                            background-color: #323644;
-                            color: #f8f8f8;
-                            outline: none;
-                            line-height: 1.3;
-                            resize: none;
-                            height: auto;
-                            min-height: 2.6em;
-
-                            &:focus {
-                                border-color: rgba(255, 255, 255, 0.8);
-                            }
-                        }
-
-                        .copy-button {
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            padding: 8px;
-                            border: none;
-                            border-radius: 4px;
-                            background: #4199ff;
-                            color: white;
-                            cursor: pointer;
-                            width: 32px;
-                            height: 32px;
-                            flex-shrink: 0;
-
-                            svg {
-                                width: 12px;
-                                height: 12px;
-                            }
-
-                            &:hover {
-                                opacity: 0.8;
-                            }
-                        }
-                    }
-                }
-            }
+        svg {
+            width: 24px;
+            height: 24px;
         }
     }
 }
 
-.share-modal-cover {
-    width: 100vw;
-    height: 100vh;
-    z-index: 999;
-    background-color: rgba(0, 0, 0, 0.5);
-    position: fixed;
-    top: 0;
-    left: 0;
+.share-input-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.embed-section {
+    margin-top: 20px;
+
+    .embed-tabs {
+        display: flex;
+        justify-content: flex-start;
+        margin-bottom: 4px;
+
+        .embed-tab {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 16px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: normal;
+            color: rgba(255, 255, 255, 0.5);
+            transition: color 0.2s ease;
+
+            &:hover {
+                color: #f8f8f8;
+            }
+
+            &.active {
+                color: #4199ff;
+            }
+        }
+    }
+
+    .embed-input-wrapper {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+    }
 }
 
 // Mobile responsive
 @media (max-width: 768px) {
-    .share-modal {
-        width: 90%;
-        max-width: 90%;
-
-        .share-content {
-            padding: 16px;
-
-            .share-input-wrapper {
+    .share-content {
+        .share-section {
+            .share-input-wrapper,
+            .embed-section .embed-input-wrapper {
                 flex-direction: column;
                 gap: 8px;
-
-                .copy-button {
-                    align-self: stretch;
-                    justify-content: center;
-                }
-            }
-
-            .embed-section {
-                .embed-input-wrapper {
-                    flex-direction: column;
-                    gap: 8px;
-
-                    .copy-button {
-                        align-self: stretch;
-                        justify-content: center;
-                    }
-                }
             }
         }
     }

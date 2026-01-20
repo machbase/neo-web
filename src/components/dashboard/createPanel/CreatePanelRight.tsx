@@ -1,9 +1,7 @@
-import './CreatePanelRight.scss';
 import { ChangeEvent, useMemo } from 'react';
 import { ChartTypeList } from '@/utils/constants';
 import { ChartCommonOptions } from './option/ChartCommonOptions';
 import { CheckCustomChartType, CheckPlgChart, DefaultCommonOption, chartTypeConverter, getDefaultSeriesOption } from '@/utils/eChartHelper';
-import { Collapse } from '@/components/collapse/Collapse';
 import { PieOptions } from './option/PieOptions';
 import { LineOptions } from './option/LineOptions';
 import { XAxisOptions } from './option/XAxisOptions';
@@ -22,6 +20,7 @@ import { AdvancedScatterOptions } from './option/AdvanceScatter';
 import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/BlockHelper';
 import { TrxParsedBlockType } from '@/utils/Chart/TransformDataParser';
 import { ConfirmableSelect } from '@/components/inputs/ConfirmableSelect';
+import { Page } from '@/design-system/components';
 
 interface CreatePanelRightProps {
     pPanelOption: any;
@@ -115,8 +114,8 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
     }, [pPanelOption?.transformBlockList]);
 
     return (
-        <div className="chart-set-wrap">
-            <div className="body">
+        <Page style={{ padding: '8px 16px 8px 8px' }}>
+            <Page.Body fullHeight style={{ padding: '8px', borderRadius: '4px', border: '1px solid #b8c8da41' }}>
                 <ConfirmableSelect
                     pConfirmTrigger="Geomap"
                     pConfirmMessage={`Changing to geomap type will remove transform data.`}
@@ -129,26 +128,26 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
                     pOptions={ChartTypeList.map((aType: { key: string; value: string }) => aType.key) as string[]}
                 />
-                <div className="content scrollbar-dark-border" style={{ height: '100%' }}>
-                    {chartTypeConverter(pPanelOption.type) !== E_CHART_TYPE.TQL && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
-                    {useXAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.xAxisOptions && (
-                        <XAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
-                    )}
-                    {useYAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.yAxisOptions && (
-                        <YAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
-                    )}
-                    <div className="divider" />
-                    {CheckCustomChartType(pPanelOption.type) ? (
-                        <>
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GEOMAP ? <GeomapOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TQL ? <TqlOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? (
-                                <AdvancedScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
-                            ) : null}
-                        </>
-                    ) : (
-                        <Collapse title="Chart option" isOpen>
+                {chartTypeConverter(pPanelOption.type) !== E_CHART_TYPE.TQL && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
+                {useXAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.xAxisOptions && (
+                    <XAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                )}
+                {useYAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.yAxisOptions && (
+                    <YAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                )}
+                <Page.Divi />
+                {CheckCustomChartType(pPanelOption.type) ? (
+                    <>
+                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GEOMAP ? <GeomapOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TQL ? <TqlOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? (
+                            <AdvancedScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                        ) : null}
+                    </>
+                ) : (
+                    <Page.Collapse pTrigger="Chart option">
+                        <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                             {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.LINE ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                             {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.BAR ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                             {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.SCATTER ? (
@@ -159,12 +158,13 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                             {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.LIQUID_FILL ? (
                                 <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
                             ) : null}
-                        </Collapse>
-                    )}
-                    <div className="divider" />
-                </div>
-            </div>
-        </div>
+                        </Page.ContentBlock>
+                    </Page.Collapse>
+                )}
+                <div className="divider" />
+                {/* </div> */}
+            </Page.Body>
+        </Page>
     );
 };
 export default CreatePanelRight;

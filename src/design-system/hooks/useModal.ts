@@ -1,4 +1,7 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useId } from 'react';
+
+// Global modal stack to track open modals
+const modalStack: string[] = [];
 
 export interface UseModalProps {
     isOpen: boolean;
@@ -30,20 +33,41 @@ export interface UseModalReturn {
 export const useModal = ({ isOpen, onClose, closeOnEscape = true, closeOnOutsideClick = true }: UseModalProps): UseModalReturn => {
     const contentRef = useRef<HTMLDivElement>(null);
     const mouseDownInsideRef = useRef(false);
+    const modalId = useId();
 
-    // Handle escape key
+    // Track modal in stack
+    useEffect(() => {
+        if (!isOpen) return;
+
+        // Add modal to stack when opened
+        modalStack.push(modalId);
+
+        return () => {
+            // Remove modal from stack when closed
+            const index = modalStack.indexOf(modalId);
+            if (index > -1) {
+                modalStack.splice(index, 1);
+            }
+        };
+    }, [isOpen, modalId]);
+
+    // Handle escape key - only close if this is the topmost modal
     useEffect(() => {
         if (!isOpen || !closeOnEscape) return;
 
         const handleEscape = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
-                onClose();
+                // Only close if this is the topmost modal in the stack
+                const topModalId = modalStack[modalStack.length - 1];
+                if (topModalId === modalId) {
+                    onClose();
+                }
             }
         };
 
         document.addEventListener('keydown', handleEscape);
         return () => document.removeEventListener('keydown', handleEscape);
-    }, [isOpen, closeOnEscape, onClose]);
+    }, [isOpen, closeOnEscape, onClose, modalId]);
 
     // Lock body scroll when modal is open
     useEffect(() => {

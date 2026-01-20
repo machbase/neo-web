@@ -1,0 +1,17 @@
+@import '@/design-system/tokens/index';
+
+.db-mount-modal {
+    max-width: 500px;
+}
+
+.modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}

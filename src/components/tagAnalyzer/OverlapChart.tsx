@@ -67,8 +67,9 @@ const OverlapChart = ({ pChartData, pStartTimeList, pPanelInfo, pAreaChart, pCha
                     colors: ['#EB5757', '#6FCF97', '#9C8FFF', '#F5AA64', '#BB6BD9', '#B4B4B4', '#FFD95F', '#2D9CDB', '#C3A080', '#B4B4B4', '#6B6B6B'],
                     chart: {
                         spacing: [50, 10, 15, 10],
-                        height: pAreaChart.current.clientHeight - 10 - pChartData.length * 43,
-                        backgroundColor: '#262831',
+                        // height: pAreaChart.current.clientHeight - 10 - pChartData.length * 43,
+                        height: 300,
+                        backgroundColor: '#2a2a2a',
                         type: 'line',
                         zoomType: 'x',
                         lineWidth: 1,

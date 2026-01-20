@@ -68,6 +68,12 @@ export const checkValueBracket = (value: string) => {
 
 export const setUnitTime = (aTime: any) => {
     const sMomentValid = ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY-MM-DD HH', 'YYYY-MM-DD', 'YYYY-MM', 'YYYY'];
+
+    // Convert 'last' to 'now' for backward compatibility
+    if (typeof aTime === 'string' && aTime.toLowerCase().includes('last')) {
+        aTime = aTime.toLowerCase().replace('last', 'now');
+    }
+
     if (aTime === 'now') return new Date().getTime();
     else if (!isNaN(Number(aTime))) return Number(aTime);
     else if (moment(aTime, sMomentValid, true).isValid()) return moment(aTime).unix() * 1000;

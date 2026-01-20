@@ -1,13 +1,7 @@
-import './CreatePanelFooter.scss';
 import { Block } from './Block';
 import { useEffect, useMemo, useState } from 'react';
-import { PlusCircle, VscTrash } from '@/assets/icons/Icon';
-import { refreshTimeList } from '@/utils/dashboardUtil';
-import DatePicker from '@/components/datePicker/DatePicker';
-import { SelectTimeRanges } from '@/components/tagAnalyzer/SelectTimeRanges';
-import { Select } from '@/components/inputs/Select';
+import { PlusCircle } from '@/assets/icons/Icon';
 import { generateUUID } from '@/utils';
-import { IconButton } from '@/components/buttons/IconButton';
 import { TqlBlock } from './TqlBlock';
 import { getTagColor, getUseColorList } from '@/utils/helpers/tags';
 import { Transform } from './Transform';
@@ -15,38 +9,14 @@ import { chartTypeConverter } from '@/utils/eChartHelper';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import { ALLOWED_TRX_CHART_TYPE, CheckAllowedTransformChartType, E_ALLOW_CHART_TYPE } from '@/utils/Chart/TransformDataParser';
 import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/BlockHelper';
+import { Button, Page } from '@/design-system/components';
+import { TimeRangeBlock } from './TimeRangeBlock';
 
 type FOOTER_MENU_TYPE = 'Series' | 'Transform' | 'Time';
 
 const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
     const [sTab, setTab] = useState<FOOTER_MENU_TYPE>('Series');
 
-    const setUseTimePicker = (aKey: string, aValue: any) => {
-        pSetPanelOption((aPrev: any) => {
-            return { ...aPrev, timeRange: { ...aPrev.timeRange, [aKey]: aValue } };
-        });
-    };
-    const handleTime = (aKey: string, aEvent: any) => {
-        let sUseCustomTime: boolean = false;
-        let sTimeRange: any = null;
-        if (aKey === 'start') {
-            sUseCustomTime = aEvent !== '' && pPanelOption.timeRange.end !== '';
-            sTimeRange = { ...pPanelOption.timeRange, [aKey]: aEvent };
-        } else if (aKey === 'end') {
-            sUseCustomTime = aEvent !== '' && pPanelOption.timeRange.start !== '';
-            sTimeRange = { ...pPanelOption.timeRange, [aKey]: aEvent };
-        } else {
-            sTimeRange = { ...pPanelOption.timeRange, start: '', end: '' };
-        }
-        pSetPanelOption((aPrev: any) => {
-            return { ...aPrev, useCustomTime: sUseCustomTime, timeRange: sTimeRange };
-        });
-    };
-    const handleQuickTime = (aValue: any) => {
-        pSetPanelOption((aPrev: any) => {
-            return { ...aPrev, useCustomTime: true, timeRange: { ...aPrev.timeRange, start: aValue.value[0], end: aValue.value[1] } };
-        });
-    };
     const HandleAddBlock = () => {
         pSetPanelOption((aPrev: any) => {
             const sTmpPanelOpt = JSON.parse(
@@ -95,141 +65,89 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
     }, [pPanelOption.type]);
 
     return (
-        <div className="chart-footer-form">
+        <Page style={{ padding: '8px 8px 8px 16px' }}>
             {pPanelOption.type !== 'Tql chart' && (
                 <>
-                    <div className="chart-footer-tab">
-                        <div>
-                            <div className={sTab === 'Series' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Series')}>
+                    <Page.TabContainer>
+                        <Page.TabList>
+                            <Page.TabItem active={sTab === 'Series'} onClick={() => setTab('Series')} badge={getBlockCount.query}>
                                 Series
-                                <span className="series-count">{`${getBlockCount.query}`}</span>
-                            </div>
+                            </Page.TabItem>
                             {CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType) && (
-                                <div className={sTab === 'Transform' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Transform')}>
+                                <Page.TabItem active={sTab === 'Transform'} onClick={() => setTab('Transform')} badge={getBlockCount.trx}>
                                     Transform
-                                    <span className="series-count">{`${getBlockCount.trx}`}</span>
-                                </div>
+                                </Page.TabItem>
                             )}
                             {pTableList.length !== 0 && (
-                                <div className={sTab === 'Time' ? 'active-footer-tab' : 'inactive-footer-tab'} onClick={() => setTab('Time')}>
+                                <Page.TabItem active={sTab === 'Time'} onClick={() => setTab('Time')}>
                                     Time
-                                </div>
+                                </Page.TabItem>
                             )}
-                        </div>
-                        <div className="chart-footer-tab-r">
+                        </Page.TabList>
+                        <Page.TabInfo>
                             <span>Total</span>
-                            <span className="series-count w-30">{`${getBlockCount.total} / ${getBlockCount.limit}`}</span>
-                        </div>
-                    </div>
-                    <div className="chart-footer">
-                        <div style={sTab === 'Series' ? {} : { display: 'none' }} className="body scrollbar-dark-border">
-                            {/* SET Block */}
-                            {pTableList.length !== 0 &&
-                                pPanelOption.blockList.map((aItem: any, aIdx: number) => {
-                                    return (
-                                        <Block
-                                            key={aItem.id}
-                                            pBlockOrder={aIdx}
-                                            pVariables={pVariables}
-                                            pType={pType}
-                                            pPanelOption={pPanelOption}
-                                            pTableList={pTableList}
-                                            pGetTables={pGetTables}
-                                            pBlockInfo={aItem}
-                                            pSetPanelOption={pSetPanelOption}
-                                            pBlockCount={getBlockCount}
-                                        />
-                                    );
-                                })}
-                            {/* ADD Block */}
-                            {pTableList.length !== 0 && (
-                                <div onClick={HandleAddBlock} className="plus-wrap" style={getBlockCount.addable ? {} : { opacity: 0.7, pointerEvents: 'none' }}>
-                                    <PlusCircle color="#FDB532" />
-                                </div>
-                            )}
-                            {pTableList.length === 0 && (
-                                <div
-                                    style={{
-                                        height: '100%',
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                    }}
-                                >
-                                    Please create a table.
-                                </div>
-                            )}
-                        </div>
-                        {sTab === 'Transform' && (
-                            <div className="body scrollbar-dark-border">
-                                <Transform pPanelOption={pPanelOption} pVariables={pVariables} pSetPanelOption={pSetPanelOption} pBlockCount={getBlockCount} />
-                            </div>
-                        )}
-                        <div style={sTab === 'Time' ? {} : { display: 'none' }} className="body time-wrap scrollbar-dark-border">
-                            <div className="time-form">
-                                <div className="time-header">Custom time range</div>
-                                <div className="time-set-form">
-                                    <div className="date-picker">
-                                        <div>
-                                            From
-                                            <DatePicker
-                                                pAutoFocus
-                                                pTopPixel={55}
-                                                pTimeValue={pPanelOption.timeRange.start ?? ''}
-                                                onChange={(date: any) => handleTime('start', date.target.value)}
-                                                pSetApply={(date: any) => handleTime('start', date)}
+                            <span className="page-tab-badge" style={{ width: '36px' }}>{`${getBlockCount.total} / ${getBlockCount.limit}`}</span>
+                        </Page.TabInfo>
+                    </Page.TabContainer>
+                    <Page.Body style={{ display: 'flex', flexDirection: 'column', borderRadius: '4px', border: '1px solid #b8c8da41', padding: '6px', gap: '8px' }}>
+                        {sTab === 'Series' ? (
+                            <>
+                                {pTableList.length !== 0 &&
+                                    pPanelOption.blockList.map((aItem: any, aIdx: number) => {
+                                        return (
+                                            <Block
+                                                key={aItem.id}
+                                                pBlockOrder={aIdx}
+                                                pVariables={pVariables}
+                                                pType={pType}
+                                                pPanelOption={pPanelOption}
+                                                pTableList={pTableList}
+                                                pGetTables={pGetTables}
+                                                pBlockInfo={aItem}
+                                                pSetPanelOption={pSetPanelOption}
+                                                pBlockCount={getBlockCount}
                                             />
-                                        </div>
-                                        <div>
-                                            To
-                                            <DatePicker
-                                                pTopPixel={55}
-                                                pTimeValue={pPanelOption.timeRange.end ?? ''}
-                                                onChange={(date: any) => handleTime('end', date.target.value)}
-                                                pSetApply={(date: any) => handleTime('end', date)}
-                                            />
-                                        </div>
-                                        <div className="icon-btn-wrapper" style={{ marginTop: '24px', display: 'flex', justifyContent: 'start' }}>
-                                            <IconButton
-                                                pWidth={50}
-                                                pHeight={20}
-                                                pIcon={
-                                                    <>
-                                                        <VscTrash size="70px" />
-                                                        <span style={{ cursor: 'pointer' }}>Clear</span>
-                                                    </>
-                                                }
-                                                onClick={() => handleTime('', '')}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="select-time-range">
-                                        <SelectTimeRanges onClick={handleQuickTime} />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="time-divider" />
-                            <div className="refresh-form">
-                                <div className="time-header">Refresh</div>
-
-                                <div className="refresh-set-form">
-                                    <Select
-                                        pInitValue={pPanelOption.timeRange.refresh}
-                                        pFontSize={12}
-                                        pWidth={200}
-                                        pBorderRadius={4}
-                                        pHeight={30}
-                                        onChange={(aEvent: any) => setUseTimePicker('refresh', aEvent.target.value)}
-                                        pOptions={refreshTimeList}
+                                        );
+                                    })}
+                                {/* ADD Block */}
+                                {pTableList?.length !== 0 ? (
+                                    <Button
+                                        variant="secondary"
+                                        fullWidth
+                                        shadow
+                                        autoFocus={false}
+                                        disabled={!getBlockCount.addable}
+                                        icon={<PlusCircle size={16} />}
+                                        onClick={HandleAddBlock}
+                                        style={{ height: '60px' }}
                                     />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                                ) : (
+                                    <div
+                                        style={{
+                                            height: '100%',
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                        }}
+                                    >
+                                        Please create a table.
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <></>
+                        )}
+                        {sTab === 'Transform' ? (
+                            <Transform pPanelOption={pPanelOption} pVariables={pVariables} pSetPanelOption={pSetPanelOption} pBlockCount={getBlockCount} />
+                        ) : (
+                            <></>
+                        )}
+                        {sTab === 'Time' ? <TimeRangeBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} /> : <></>}
+                    </Page.Body>
                 </>
             )}
             {pPanelOption.type === 'Tql chart' && <TqlBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
-        </div>
+        </Page>
     );
 };
 export default CreatePanelFooter;

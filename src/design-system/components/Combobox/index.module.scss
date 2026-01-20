@@ -33,6 +33,50 @@
             flex-direction: column;
         }
     }
+
+    &--no-trigger {
+        .combobox__input {
+            padding-right: t.$spacing-12;
+        }
+    }
+
+    &--sm {
+        .combobox__input-wrapper {
+            height: 24px;
+        }
+
+        .combobox__input {
+            height: 24px;
+            font-size: 12px;
+        }
+
+        .combobox__trigger {
+            width: 20px;
+            height: 20px;
+        }
+    }
+
+    &--md {
+        .combobox__input-wrapper {
+            height: t.$input-height;
+        }
+
+        .combobox__input {
+            height: t.$input-height;
+            font-size: t.$font-size-sm;
+        }
+    }
+
+    &--lg {
+        .combobox__input-wrapper {
+            height: 40px;
+        }
+
+        .combobox__input {
+            height: 40px;
+            font-size: t.$font-size-base;
+        }
+    }
 }
 
 .combobox-field-wrapper {
@@ -74,7 +118,7 @@
 
     // Input field
     &__input {
-        @include t.input-base;
+        // @include t.input-base;
         font-size: t.$font-size-sm;
         flex: 1;
         height: t.$input-height;
@@ -159,8 +203,6 @@
         border-radius: t.$border-radius-base;
         box-shadow: t.$dropdown-shadow;
         z-index: t.$z-index-modal-dropdown; // Use higher z-index to work inside modals
-        max-height: t.$dropdown-max-height;
-        overflow: hidden;
         @include t.fade-in(0.15s);
 
         // Animation for dropdown appearance
@@ -169,7 +211,7 @@
 
     // List container
     &__list {
-        max-height: t.$dropdown-max-height;
+        max-height: 40vh;
         overflow-y: auto;
         overflow-x: hidden;
         padding: t.$spacing-4;
@@ -179,6 +221,7 @@
         display: flex;
         flex-direction: column;
         gap: t.$spacing-2;
+        @include t.custom-scrollbar;
     }
 
     // Individual option

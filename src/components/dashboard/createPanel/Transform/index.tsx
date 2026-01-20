@@ -1,29 +1,24 @@
 import './index.scss';
-import { BadgeSelect, BadgeSelectorItemType } from '@/components/inputs/BadgeSelector';
 import { Close, PlusCircle } from '@/assets/icons/Icon';
-import Modal from '@/components/modal/Modal';
-import { useMemo, useRef, useState } from 'react';
-import { Input } from '@/components/inputs/Input';
-import { IconButton } from '@/components/buttons/IconButton';
-import useOutsideClick from '@/hooks/useOutsideClick';
-import CompactPicker from 'react-color/lib/components/compact/Compact';
+import { useMemo, useState } from 'react';
 import { generateUUID } from '@/utils';
 import { TransformBlockKeyType, TransformBlockType } from './type';
 import TQL from '@/utils/TqlGenerator';
 import { getTqlChart } from '@/api/repository/machiot';
-import { Error } from '@/components/toast/Toast';
+import { Toast } from '@/design-system/components';
 import { BadgeStatus } from '@/components/badge';
 import { RxQuestionMark } from 'react-icons/rx';
 import { TRX_REPLACE_LIST } from '@/utils/Chart/TransformDataParser';
 import { getChartSeriesName } from '@/utils/dashboardUtil';
 import { TRX_FORMULA_EX } from './constants';
-import { CopyBlock } from '@/components/copyBlock';
 import { Tooltip } from 'react-tooltip';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { VscEye, VscEyeClosed } from 'react-icons/vsc';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
+import { Button, Page, Input as DSInput, Textarea, BadgeSelect, Modal, ColorPicker } from '@/design-system/components';
+import type { BadgeSelectItem } from '@/design-system/components';
 
 const colorList = [
     '#607D8B', // Blue Grey
@@ -52,7 +47,7 @@ export const Transform = ({
 }) => {
     const [isModal, setIsModal] = useState<boolean>(false);
 
-    function handleTransformBlockItem(aKey: TransformBlockKeyType, aValue: boolean | string | BadgeSelectorItemType, aIdx: number) {
+    function handleTransformBlockItem(aKey: TransformBlockKeyType, aValue: boolean | string | BadgeSelectItem, aIdx: number) {
         const tmpTransformBlockList: TransformBlockType[] = JSON.parse(JSON.stringify(pPanelOption.transformBlockList));
         if (typeof aValue === 'string' || typeof aValue === 'boolean') tmpTransformBlockList[aIdx][aKey] = aValue;
         else {
@@ -90,7 +85,7 @@ export const Transform = ({
         }
         pSetPanelOption({ ...sTmpPanelOpt, transformBlockList: tmpTransformBlockList });
     };
-    const getBlockList: BadgeSelectorItemType[] = useMemo((): any[] => {
+    const getBlockList: BadgeSelectItem[] = useMemo((): BadgeSelectItem[] => {
         return (
             pPanelOption?.blockList?.map((block: any, idx: number) => ({
                 label: TRX_REPLACE_LIST[idx],
@@ -109,7 +104,7 @@ export const Transform = ({
     }, [pPanelOption?.blockList]);
 
     return (
-        <div className="transform-data-wrap">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {(pPanelOption.transformBlockList as TransformBlockType[])?.map((item, index) => {
                 return (
                     <TransformBlock
@@ -142,16 +137,13 @@ const TransformBlock = ({
 }: {
     pTransformItem: TransformBlockType;
     pVariables: any;
-    pQueryBlockList: BadgeSelectorItemType[];
+    pQueryBlockList: BadgeSelectItem[];
     pChartType: ChartType;
     pBlockCount: any;
     handleBlock: () => void;
-    handleItem: (aKey: TransformBlockKeyType, aValue: boolean | string | BadgeSelectorItemType) => void;
+    handleItem: (aKey: TransformBlockKeyType, aValue: boolean | string | BadgeSelectItem) => void;
     handleModal: () => void;
 }) => {
-    const [sIsColorPicker, setIsColorPicker] = useState<boolean>(false);
-    const sColorPickerRef = useRef<any>(null);
-
     const handleFormula = async () => {
         if (pTransformItem?.selectedBlockIdxList.length > 0) {
             let sMapValue = pTransformItem.value;
@@ -161,7 +153,7 @@ const TransformBlock = ({
                 end: '',
             });
             if (sParsedVasParsedFormula.match(VARIABLE_REGEX)) {
-                Error('Please check the entered formula.');
+                Toast.error('Please check the entered formula.');
                 return handleItem('valid', false);
             }
             sMapValue = sParsedVasParsedFormula;
@@ -174,136 +166,119 @@ const TransformBlock = ({
             const sink = TQL.SINK._JSON();
             const sResult: any = await getTqlChart(`${src}\n${map}\n${sink}`);
             if (!sResult?.data?.success || !sResult?.data?.data?.rows?.length) {
-                Error('Please check the entered formula.');
+                Toast.error('Please check the entered formula.');
                 handleItem('valid', false);
             } else handleItem('valid', true);
         } else handleItem('valid', false);
     };
 
-    useOutsideClick(sColorPickerRef, () => setIsColorPicker(false));
     return (
-        <div className="transform-block-wrap">
-            <div className="transform-block-alias">
-                <div className="transform-block">
-                    <span className="transform-block-title"> Alias </span>
-                    <Input
-                        pBorderRadius={4}
-                        pWidth={175}
-                        pHeight={26}
-                        pType="text"
-                        pValue={pTransformItem.alias}
-                        pSetValue={() => null}
-                        onChange={(aEvent) => handleItem('alias', aEvent.target.value)}
+        <Page style={{ borderRadius: '4px', border: '1px solid #b8c8da41', gap: '6px', height: 'auto', display: 'table' }}>
+            <Page.ContentBlock style={{ padding: '4px' }} pHoverNone>
+                <Page.DpRow style={{ gap: '4px', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <DSInput
+                        label="Alias"
+                        labelPosition="left"
+                        type="text"
+                        value={pTransformItem.alias}
+                        onChange={(e) => handleItem('alias', e.target.value)}
+                        size="md"
+                        style={{ width: '175px', height: '26px' }}
                     />
-                </div>
-                <div className="transform-block">
-                    <IconButton pWidth={20} pHeight={20} pIcon={<RxQuestionMark />} onClick={handleModal} />
-                    <IconButton
-                        pWidth={20}
-                        pHeight={20}
-                        pIsToopTip
-                        pDisabled={pBlockCount.addable ? false : pTransformItem?.isVisible ? false : true}
-                        pToolTipContent={pTransformItem?.isVisible ? 'Visible' : 'Invisible'}
-                        pToolTipId={pTransformItem.id + '-block-visible'}
-                        pIcon={pTransformItem?.isVisible ? <VscEye /> : <VscEyeClosed />}
-                        onClick={() => handleItem('isVisible', !pTransformItem?.isVisible)}
-                    />
-                    <div ref={sColorPickerRef} style={{ position: 'relative' }}>
-                        <IconButton
-                            pWidth={20}
-                            pHeight={20}
-                            pIsToopTip
-                            pToolTipContent={'Color'}
-                            pDisabled={chartTypeConverter(pChartType) === E_CHART_TYPE.TEXT}
-                            pIcon={
-                                <div
-                                    style={{
-                                        width: '14px',
-                                        cursor: 'pointer',
-                                        height: '14px',
-                                        marginRight: '4px',
-                                        borderRadius: '50%',
-                                        border: 'solid 0.5px rgb(255 255 255 / 50%)',
-                                        backgroundColor: pTransformItem.color,
-                                    }}
-                                />
-                            }
-                            onClick={() => setIsColorPicker(!sIsColorPicker)}
+                    <Button.Group>
+                        <Button size="side" variant="ghost" icon={<RxQuestionMark />} onClick={handleModal} />
+                        <Button
+                            size="side"
+                            variant="ghost"
+                            disabled={pBlockCount.addable ? false : pTransformItem?.isVisible ? false : true}
+                            icon={pTransformItem?.isVisible ? <VscEye size={16} /> : <VscEyeClosed size={16} />}
+                            onClick={() => handleItem('isVisible', !pTransformItem?.isVisible)}
+                            data-tooltip-id={pTransformItem.id + '-block-visible'}
+                            data-tooltip-content={pTransformItem?.isVisible ? 'Visible' : 'Invisible'}
                         />
-
-                        {sIsColorPicker && (
-                            <div className="color-picker" style={{ right: 0, position: 'absolute', zIndex: 10 }}>
-                                <CompactPicker color={pTransformItem.color} onChangeComplete={(aInfo: any) => handleItem('color', aInfo.hex)} />
-                            </div>
-                        )}
-                    </div>
-                    <IconButton pWidth={20} pHeight={20} pIcon={<Close />} onClick={handleBlock} />
-                </div>
-            </div>
-            <div className="divider" />
-            <div className="transform-block">
-                <span className="transform-block-title"> Series </span>
-                <BadgeSelect pSelectedList={pTransformItem.selectedBlockIdxList ?? []} pList={pQueryBlockList} pCallback={(aItem) => handleItem('selectBlockIdx', aItem)} />
-            </div>
-            <div className="divider" />
-            <div className="transform-block">
-                <span className="transform-block-title" style={{ display: 'flex', gap: '4px', alignItems: 'start' }}>
-                    Formula
-                    {pTransformItem.valid !== undefined && !pTransformItem.valid && (
-                        <div style={{ marginTop: '3px' }} className={`tooltip-transform-block`}>
-                            <BadgeStatus />
-                            <Tooltip
-                                className="tooltip-transform"
-                                positionStrategy="absolute"
-                                anchorSelect={`.tooltip-transform-block`}
-                                content={'Please check the entered formula. (Variables are not supported)'}
-                                delayShow={700}
-                            />
-                        </div>
-                    )}
-                </span>
-                <textarea
-                    placeholder={''}
+                        <ColorPicker
+                            color={pTransformItem.color}
+                            onChange={(color: string) => handleItem('color', color)}
+                            disabled={chartTypeConverter(pChartType) === E_CHART_TYPE.TEXT}
+                            tooltipId={pTransformItem.id + '-block-color'}
+                            tooltipContent="Color"
+                        />
+                        <Button size="side" variant="ghost" icon={<Close size={16} />} onClick={handleBlock} />
+                    </Button.Group>
+                </Page.DpRow>
+            </Page.ContentBlock>
+            <Page.ContentBlock style={{ padding: '4px' }} pHoverNone>
+                <BadgeSelect
+                    label="Series"
+                    labelPosition="left"
+                    selectedList={pTransformItem.selectedBlockIdxList ?? []}
+                    list={pQueryBlockList}
+                    onChange={(aItem) => handleItem('selectBlockIdx', aItem)}
+                />
+            </Page.ContentBlock>
+            <Page.ContentBlock style={{ padding: '4px' }} pHoverNone>
+                <Textarea
+                    label={
+                        <>
+                            <span style={{ fontSize: '13px', width: '40px', paddingTop: '8px', display: 'flex', gap: '4px', alignItems: 'start' }}>
+                                Formula
+                                {pTransformItem.valid !== undefined && !pTransformItem.valid && (
+                                    <div style={{ marginTop: '3px' }}>
+                                        <BadgeStatus />
+                                        <Tooltip
+                                            className="tooltip-transform"
+                                            positionStrategy="absolute"
+                                            anchorSelect={`.tooltip-transform-block`}
+                                            content={'Please check the entered formula. (Variables are not supported)'}
+                                            delayShow={700}
+                                        />
+                                    </div>
+                                )}
+                            </span>
+                        </>
+                    }
+                    labelPosition="left"
+                    placeholder=""
                     defaultValue={pTransformItem.value}
                     onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => handleItem('value', event.target.value)}
                     onBlur={handleFormula}
+                    fullWidth
+                    size="sm"
+                    resize="vertical"
+                    style={{ minHeight: '32px' }}
                 />
-            </div>
-        </div>
+            </Page.ContentBlock>
+        </Page>
     );
 };
 const TransformAddBlock = ({ isDisable, callback }: { isDisable: boolean; callback: () => void }) => {
-    return (
-        <div className="plus-wrap" style={isDisable ? { opacity: 0.7, pointerEvents: 'none' } : {}} onClick={callback}>
-            <PlusCircle color="#FDB532" />
-        </div>
-    );
+    return <Button variant="secondary" fullWidth shadow autoFocus={false} disabled={isDisable} icon={<PlusCircle />} onClick={callback} style={{ height: '40px' }} />;
 };
 const TrxHelpModal = ({ callback }: { callback: () => void }) => {
     const handleLink = () => {
         window.open('https://docs.machbase.com/neo/tql/utilities/#math', '_blank');
     };
     return (
-        <div className="dsh-trx-modal">
-            <Modal pIsDarkMode className="trx-modal" onOutSideClose={callback}>
-                <Modal.Header>
-                    <div className="trx-modal-header">
-                        <span>Formula</span>
-                        <Close style={{ cursor: 'pointer' }} onClick={callback} />
-                    </div>
-                </Modal.Header>
-                <Modal.Body>
-                    <div className="trx-modal-body">
-                        <span className="trx-modal-body-desc">
-                            The formula field in Transform supports arithmetic operations and <a onClick={handleLink}>mathematical functions</a>.
-                        </span>
-                        <span className="trx-modal-body-desc-ex">examples)</span>
-                        <CopyBlock content={TRX_FORMULA_EX.EX_1} />
-                        <CopyBlock content={TRX_FORMULA_EX.EX_2} />
-                        <CopyBlock content={TRX_FORMULA_EX.EX_3} />
-                    </div>
-                </Modal.Body>
-            </Modal>
-        </div>
+        <Modal.Root isOpen={true} onClose={callback} size="md">
+            <Modal.Header>
+                <Modal.Title>Formula</Modal.Title>
+                <Modal.Close />
+            </Modal.Header>
+            <Modal.Body>
+                <Modal.Content style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <span style={{ fontSize: '13px', color: '#b8b8b8' }}>
+                        The formula field in Transform supports arithmetic operations and{' '}
+                        <a onClick={handleLink} style={{ color: '#4a9eff', cursor: 'pointer', textDecoration: 'underline' }}>
+                            mathematical functions
+                        </a>
+                        .
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>examples)</span>
+                    <Page.CopyBlock pContent={TRX_FORMULA_EX.EX_1} pHover />
+                    <Page.CopyBlock pContent={TRX_FORMULA_EX.EX_2} pHover />
+                    <Page.CopyBlock pContent={TRX_FORMULA_EX.EX_3} pHover />
+                </Modal.Content>
+            </Modal.Body>
+        </Modal.Root>
     );
 };

@@ -9,6 +9,8 @@
     border-radius: t.$border-radius-sm;
     max-height: 80vh;
     height: t.$list-default-height;
+    width: 100%;
+    max-width: 100%;
 
     &__items {
         display: flex;
@@ -36,8 +38,9 @@
         height: t.$menu-item-height;
         min-height: t.$menu-item-height;
         flex-shrink: 0;
-        white-space: nowrap;
         outline: none;
+        width: 100%;
+        min-width: 0;
 
         &:hover {
             background-color: t.$menu-item-hover-bg;

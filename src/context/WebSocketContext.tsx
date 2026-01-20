@@ -66,7 +66,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         socketRef.current.onmessage = (event: MessageEvent) => {
             if (messageHandlerRef.current) {
                 const sMsg: any = messageHandlerRef.current(event.data);
-                if (!!sMsg) {
+                if (sMsg) {
                     // Add message to batch buffer
                     msgBufferRef.current.push(sMsg);
                     // Use requestAnimationFrame for next frame update (~16ms)

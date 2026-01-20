@@ -4,6 +4,7 @@ import { sqlBasicChartFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
 import { Play } from '@/assets/icons/Icon';
 import './index.scss';
 import { ExistCommonScript, loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
+import { Button, Dropdown } from '@/design-system/components';
 
 const CHART = ({
     pQueryList,
@@ -58,12 +59,12 @@ const CHART = ({
         }
     }, [pChartAixsList]);
 
-    const handleAxis = (e: any, aControl: string) => {
+    const handleAxis = (value: string, aControl: string) => {
         switch (aControl) {
             case 'X Axis':
-                return setSelectedXAxis(e.target.value);
+                return setSelectedXAxis(value);
             case 'Y Axis':
-                return setSelectedYAxis(e.target.value);
+                return setSelectedYAxis(value);
         }
     };
 
@@ -71,34 +72,34 @@ const CHART = ({
         <div ref={chartRef} className="chart-wrapper">
             {pChartAixsList.length > 0 && pQueryList.length > 0 && sResult ? (
                 <>
-                    <div className="chart-control" style={{ height: `${sControlPanelHeight}px` }}>
-                        {sControlList.map((aControl: string) => {
-                            return (
-                                <div className="chart-control-drop-wrapper" key={aControl}>
-                                    <span>{aControl}</span>
-                                    <div className="chart-control-drop">
-                                        <div className="chart-control-select-wrapper">
-                                            <select defaultValue={aControl === 'X Axis' ? sSelectedXAxis : sSelectedYAxis} onChange={(e) => handleAxis(e, aControl)}>
-                                                {pChartAixsList.length > 0 ? (
-                                                    pChartAixsList.map((aItem: string) => {
-                                                        return (
-                                                            <option value={aItem} key={aItem}>
-                                                                {aItem}
-                                                            </option>
-                                                        );
-                                                    })
-                                                ) : (
-                                                    <option>...</option>
-                                                )}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                        <div className="chart-control-play-btn">
-                            <Play className="chart-control-play-btn-item" size="20px" color="#939498" onClick={getChartData} />
-                        </div>
+                    <div className="chart-control" style={{ height: `${sControlPanelHeight}px`, alignItems: 'center' }}>
+                        <Button.Group>
+                            {sControlList.map((aControl: string) => {
+                                const currentValue = aControl === 'X Axis' ? sSelectedXAxis : sSelectedYAxis;
+                                const options = pChartAixsList.map((aItem: string) => ({
+                                    value: aItem,
+                                    label: aItem,
+                                }));
+
+                                return (
+                                    <Dropdown.Root
+                                        key={aControl}
+                                        label={aControl}
+                                        labelPosition="left"
+                                        options={options}
+                                        value={currentValue}
+                                        onChange={(value: string) => handleAxis(value, aControl)}
+                                        placeholder="..."
+                                    >
+                                        <Dropdown.Trigger style={{ height: '28px' }} />
+                                        <Dropdown.Menu>
+                                            <Dropdown.List />
+                                        </Dropdown.Menu>
+                                    </Dropdown.Root>
+                                );
+                            })}
+                            <Button size="icon" variant="secondary" onClick={getChartData} icon={<Play size={16} />} />
+                        </Button.Group>
                     </div>
                     <div className="chart_container">
                         <div className="chart_item" id={sResult.chartID} style={{ width: sStyle.width + 'px', height: sStyle.height + 'px' }} />

@@ -1,0 +1,66 @@
+@use '@/design-system/tokens' as t;
+
+.time-picker {
+    display: flex;
+    gap: t.$spacing-8;
+    padding: t.$spacing-8;
+    background-color: t.$bg-elevated;
+    border-radius: t.$border-radius-base;
+}
+
+.time-column {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 60px;
+
+    &__label {
+        font-size: t.$font-size-xs;
+        font-weight: 500;
+        color: t.$text-tertiary;
+        text-align: center;
+        padding: t.$spacing-4 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    &__list {
+        height: 160px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        border: 1px solid t.$border-color-default;
+        border-radius: t.$border-radius-sm;
+        background-color: t.$bg-primary;
+        padding: 2px 4px;
+        @include t.scrollbar-dark;
+    }
+
+    &__item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 32px;
+        border-radius: t.$border-radius-base;
+        padding: t.$spacing-6 t.$spacing-8;
+        cursor: pointer;
+        font-size: t.$font-size-sm;
+        color: t.$text-secondary;
+        transition: all 0.15s ease;
+        user-select: none;
+
+        &:hover {
+            background-color: t.$bg-hover;
+            color: t.$text-primary;
+        }
+
+        &--selected {
+            background-color: t.$btn-create;
+            color: t.$text-primary;
+            font-weight: 600;
+
+            &:hover {
+                background-color: t.$primary-hover;
+            }
+        }
+    }
+}

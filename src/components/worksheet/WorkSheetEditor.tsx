@@ -3,12 +3,11 @@ import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import { getTqlChart } from '@/api/repository/machiot';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { getId, isValidJSON, getMonacoLines } from '@/utils';
-import useOutsideClick from '@/hooks/useOutsideClick';
 import { sqlSheetFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
 import TABLE from '@/components/table';
 import './WorkSheetEditor.scss';
 import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff, IoPlayForwardSharp } from '@/assets/icons/Icon';
-import { IconButton } from '../buttons/IconButton';
+import { Button, DragHandle, Menu, Page } from '@/design-system/components';
 import { useSetRecoilState } from 'recoil';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { ConfirmModal } from '../modal/ConfirmModal';
@@ -48,7 +47,8 @@ interface WorkSheetEditorProps {
     pAllRunCodeCallback: (aStatus: boolean) => void;
     setSheet: React.Dispatch<React.SetStateAction<any>>;
     pCallback: (aData: { id: string; event: CallbackEventType }) => void;
-    pScrollToElement: (targetScrollTop: number, isLastChild?: boolean) => void;
+    pScrollToElement: (targetScrollTop: number, isLastChild?: boolean, forceScroll?: boolean) => void;
+    pScrollContainerRef: React.RefObject<HTMLDivElement>;
 }
 
 const defaultSqlLocation = {
@@ -83,6 +83,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setSheet,
         pWorkSheets,
         pScrollToElement,
+        pScrollContainerRef,
     } = props;
     const sInitHeight = 200;
     const resizeRef = useRef<HTMLDivElement | null>(null);
@@ -91,7 +92,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [initialPos, setInitialPos] = useState<number>(0);
     const [initialSize, setInitialSize] = useState<number>(pData.height ?? sInitHeight);
     const [sSelectedLang, setSelectedLang] = useState<Lang | undefined>(undefined);
-    const [sShowLang, setShowLang] = useState<boolean>(false);
     const [sTqlResultType, setTqlResultType] = useState<'html' | TqlResType>(pData.tqlType ?? 'text');
     const [sTqlTextResult, setTqlTextResult] = useState<string>('');
     const [sShellResult, setShellTextResult] = useState<string[] | undefined>(undefined);
@@ -106,14 +106,12 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sResultContentType, setResultContentType] = useState<ShowResultType>(pData.brief ? 'brief' : pData.brief === undefined ? 'brief' : 'all');
     const [sSqlLocation, setSqlLocation] = useState<LocationType>(defaultSqlLocation);
     const [sSqlReason, setSqlReason] = useState<string>('');
-    const dropDownRef = useRef(null);
-    const ResultContentTypeRef = useRef(null);
-    const [sShowResultContentType, setShowResultContentType] = useState<boolean>(false);
     const [sMonacoLineHeight, setMonacoLineHeight] = useState<number>(pData.lineHeight ?? 19);
     const setConsoleList = useSetRecoilState<any>(gWsLog);
     const wrkEditorRef = useRef<HTMLDivElement>(null);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sProcessing, setProcessing] = useState<boolean>(false);
+    const [sIsInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const chatLogic = useChat(pWrkId, pIdx, { model: pData?.chat?.model ?? '', provider: pData?.chat?.provider, name: pData?.chat?.name }, pData?.chat?.response);
     const { getExperiment } = useExperiment();
 
@@ -191,6 +189,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             langConverter(pData.type);
         }
 
+        // Mark initial load as complete after mount
+        setIsInitialLoad(false);
+
         return () => {
             if (chatLogic && chatLogic?.processingAnswerRef?.current) {
                 chatLogic.handleInterruptMessage();
@@ -225,19 +226,19 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 return;
         }
     };
-    const initValue = (aEvent: React.DragEvent<HTMLDivElement>) => {
+    const initValue = (aEvent: React.MouseEvent<HTMLDivElement>) => {
         if (resizeRef.current) {
             setInitialPos(aEvent.clientY);
             setInitialSize(resizeRef.current.offsetHeight);
         }
     };
-    const resize = (aEvent: React.MouseEvent<HTMLDivElement>) => {
+    const resize = (aEvent: MouseEvent) => {
         if (aEvent.clientY && resizeRef.current) {
             const sHeight = initialSize + (aEvent.clientY - initialPos);
             resizeRef.current.style.height = `${sHeight}px`;
         }
     };
-    const setHeight = (aEvent: React.DragEvent<HTMLDivElement>) => {
+    const setHeight = (aEvent: MouseEvent) => {
         if (aEvent.clientY && resizeRef.current) {
             const sHeight = Number(resizeRef.current.style.height.replace(/[^0-9.]/g, ''));
             setInitialSize(sHeight);
@@ -259,12 +260,11 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             getTqlData(aText);
         }
         if (sSelectedLang === 'Markdown') {
-            if (pAllRunCodeStatus) {
-                pAllRunCodeCallback(true);
-                pScrollToElement(getScrollTopToElement(sScrollSpyRef?.current), isLastChild());
-            }
             setMarkdown(aText);
             handleStopState(false);
+            if (pAllRunCodeStatus) {
+                pAllRunCodeCallback(true);
+            }
         }
         if (sSelectedLang === 'SQL') getSqlData(aText, { aLocation });
         if (sSelectedLang === 'Shell') {
@@ -440,9 +440,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
 
         setProcessing(false);
     };
-    const VerticalDivision = () => {
-        return <div className="worksheet-ctr-verti-divi" />;
-    };
+    const VerticalDivision = () => <Page.Divi direction="vertical" spacing="0" style={{ marginTop: '5px', height: '20px', alignItems: 'center', justifyContent: 'center' }} />;
     const Result = () => {
         if (sSelectedLang === 'Chat') return <div className="result scrollbar-dark">{ChatResult()}</div>;
 
@@ -456,11 +454,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         );
     };
     const ChatResult = () => {
-        return (
-            <div className="chat-result-wrapper">
-                <ChatMessageList messages={chatLogic.messages} pWrkId={pWrkId} pIdx={pIdx} isProcessingAnswer={chatLogic.isProcessingAnswer} />
-            </div>
-        );
+        return <ChatMessageList messages={chatLogic.messages} pWrkId={pWrkId} pIdx={pIdx} isProcessingAnswer={chatLogic.isProcessingAnswer} />;
     };
     const ShellResult = () => {
         if (!sShellResult) return;
@@ -551,44 +545,42 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     };
     const DropDown = () => {
         return (
-            <div ref={dropDownRef} className="worksheet-ctr-lang" onClick={() => setShowLang(!sShowLang)}>
-                <div className="dropdown">
-                    <div className="worksheet-ctr-lang-selected">{sSelectedLang}</div>
-                    <ArrowDown style={{ transform: sShowLang ? 'rotate(180deg)' : '' }} />
-                    {sShowLang && (
-                        <div className="worksheet-ctr-lang-content-list">
-                            {LANG.map((aLang: string[]) => {
-                                return (
-                                    <div key={aLang[0]} className="worksheet-ctr-lang-content" onClick={() => changeLanguage(aLang[0] as ServerLang)}>
-                                        {aLang[1]}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-            </div>
+            <Menu.Root>
+                <Menu.Trigger>
+                    <Button size="sm" variant="ghost" style={{ width: '100%', height: '22px', minHeight: '22px' }}>
+                        <p>{sSelectedLang}</p>
+                        <ArrowDown size={16} />
+                    </Button>
+                </Menu.Trigger>
+                <Menu.Content>
+                    {LANG.map((aLang: string[]) => (
+                        <Menu.Item key={aLang[0]} className={sSelectedLang === aLang[1] ? 'selected' : ''} onClick={() => changeLanguage(aLang[0] as ServerLang)}>
+                            {aLang[1]}
+                        </Menu.Item>
+                    ))}
+                </Menu.Content>
+            </Menu.Root>
         );
     };
     const ResultContentType = () => {
         return sMonacoLanguage === 'sql' ? (
             <>
-                <div ref={ResultContentTypeRef} className="worksheet-ctr-lang" style={{ minWidth: '50px' }} onClick={() => setShowResultContentType(!sShowResultContentType)}>
-                    <div className="dropdown" style={{ width: '100%', justifyContent: 'space-between', marginLeft: '4px', marginRight: '4px' }}>
-                        <div className="worksheet-ctr-lang-selected">{sResultContentType}</div>
-                        <ArrowDown style={{ transform: sShowResultContentType ? 'rotate(180deg)' : '' }} />
-                        {sShowResultContentType && (
-                            <div className="worksheet-ctr-lang-content-list">
-                                <div className="worksheet-ctr-lang-content" onClick={() => setResultContentType('all')}>
-                                    Show result all
-                                </div>
-                                <div className="worksheet-ctr-lang-content" onClick={() => setResultContentType('brief')}>
-                                    Show result brief
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                <Menu.Root>
+                    <Menu.Trigger>
+                        <Button size="sm" variant="ghost" style={{ width: '100%', height: '22px', minHeight: '22px' }}>
+                            <p>{sResultContentType}</p>
+                            <ArrowDown size={16} />
+                        </Button>
+                    </Menu.Trigger>
+                    <Menu.Content>
+                        <Menu.Item className={sResultContentType === 'all' ? 'selected' : ''} onClick={() => setResultContentType('all')}>
+                            Show result all
+                        </Menu.Item>
+                        <Menu.Item className={sResultContentType === 'brief' ? 'selected' : ''} onClick={() => setResultContentType('brief')}>
+                            Show result brief
+                        </Menu.Item>
+                    </Menu.Content>
+                </Menu.Root>
                 {VerticalDivision()}
             </>
         ) : (
@@ -607,8 +599,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         chatLogic.setMessages([]);
     };
     const handleStopState = (aState: boolean) => {
-        if (isLastChild() && pAllRunCodeStatus) pScrollToElement(getScrollTopToElement(sScrollSpyRef?.current), true);
-
         pSetStopState((prev: boolean[]) => {
             const sTmp = JSON.parse(JSON.stringify(prev));
             sTmp[pIdx] = aState;
@@ -634,15 +624,23 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
 
     // Notify parent to scroll after result is rendered
     useEffect(() => {
-        if (pAllRunCodeStatus && !sProcessing && sScrollSpyRef?.current) {
-            pScrollToElement(getScrollTopToElement(sScrollSpyRef.current), isLastChild());
+        // Skip auto-scroll on initial load, only scroll after actual code execution
+        if (!sIsInitialLoad && pAllRunCodeStatus && !sProcessing && sScrollSpyRef?.current) {
+            // Use requestAnimationFrame to ensure DOM is fully updated before calculating scroll position
+            requestAnimationFrame(() => {
+                if (sScrollSpyRef?.current) {
+                    const scrollTop = getScrollTopToElement(sScrollSpyRef.current);
+                    // Pass forceScroll=true in all-run mode to ensure scroll even if position hasn't changed much
+                    pScrollToElement(scrollTop, isLastChild(), true);
+                }
+            });
         }
     }, [sProcessing, sSql, sTqlTextResult, sTqlVisualData, sTqlCsv, sMarkdown, sShellResult, chatLogic.messages]);
 
     // Calculate scroll position to element relative to parent container
     const getScrollTopToElement = (element: HTMLElement | null): number => {
         if (!element) return 0;
-        const parentContainer = element.closest('.worksheet-body') as HTMLElement;
+        const parentContainer = pScrollContainerRef.current;
         if (!parentContainer) return 0;
         const elementRect = element.getBoundingClientRect();
         const containerRect = parentContainer.getBoundingClientRect();
@@ -654,92 +652,99 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         return pIdx + 1 === pWorkSheets?.length;
     };
 
-    useOutsideClick(dropDownRef, () => setShowLang(false));
-    useOutsideClick(ResultContentTypeRef, () => setShowResultContentType(false));
-
     return (
         <div className="worksheet-editor-wrapper">
             <div ref={wrkEditorRef} className="worksheet-editor">
                 <div style={{ display: 'flex', width: '100%', justifyContent: 'end' }}>
                     <div className={`worksheet-content ${sSelectedLang === 'Chat' ? ' chat' : null}`} style={{ display: !sCollapse ? 'block' : 'none' }}>
                         <div className="worksheet-ctr">
-                            {DropDown()}
-                            {VerticalDivision()}
-                            {ResultContentType()}
-                            {sSelectedLang === 'Chat' && (
-                                <div style={{ display: 'flex' }}>
-                                    <ModelDropDown
-                                        pList={chatLogic.modelList}
-                                        pSelectedItem={chatLogic.selectedModel}
-                                        onSelect={chatLogic.setSelectedModel}
-                                        onFetch={chatLogic.getListModels}
-                                    />
-                                    {VerticalDivision()}
-                                </div>
-                            )}
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent={sProcessing ? 'Stop code' : 'Run code'}
-                                pToolTipId="wrk-tab-panel-run"
-                                pIcon={sProcessing ? <FaStop /> : <Play />}
-                                pIsActiveHover
-                                onClick={sProcessing ? () => handleInterrupt() : () => handleRunCode(sText)}
-                            />
-                            {sSelectedLang === 'SQL' && !sProcessing ? (
-                                <IconButton
-                                    pIsToopTip
-                                    pToolTipContent="Run all code"
-                                    pToolTipId="wrk-tab-panel-run-all"
-                                    pIcon={<IoPlayForwardSharp />}
-                                    pIsActiveHover
-                                    onClick={() => handleRunCodeAll(sText)}
+                            <Button.Group style={{ padding: '0 8px' }}>
+                                {DropDown()}
+                                {VerticalDivision()}
+                                {ResultContentType()}
+                                {sSelectedLang === 'Chat' && (
+                                    <>
+                                        <ModelDropDown
+                                            pList={chatLogic.modelList}
+                                            pSelectedItem={chatLogic.selectedModel}
+                                            onSelect={chatLogic.setSelectedModel}
+                                            onFetch={chatLogic.getListModels}
+                                            style={{ width: '100%', height: '22px', minHeight: '22px' }}
+                                        />
+                                        {VerticalDivision()}
+                                    </>
+                                )}
+                                <Button
+                                    size="xsm"
+                                    variant="ghost"
+                                    isToolTip
+                                    toolTipContent={sProcessing ? 'Stop code' : 'Run code'}
+                                    icon={sProcessing ? <FaStop size={14} /> : <Play size={14} />}
+                                    onClick={sProcessing ? () => handleInterrupt() : () => handleRunCode(sText)}
+                                    style={{ padding: '10px' }}
                                 />
-                            ) : null}
-                            {VerticalDivision()}
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Move to upper"
-                                pToolTipId="wrk-tab-panel-move-up"
-                                pIcon={<ArrowUpDouble />}
-                                pIsActiveHover
-                                onClick={() => pCallback({ id: pData.id, event: 'LocUp' })}
-                            />
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Move to down"
-                                pToolTipId="wrk-tab-panel-move-down"
-                                pIcon={<ArrowUpDouble style={{ transform: 'rotate(180deg)' }} />}
-                                pIsActiveHover
-                                onClick={() => pCallback({ id: pData.id, event: 'LocDown' })}
-                            />
-                            {VerticalDivision()}
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Add to upper"
-                                pToolTipId="wrk-tab-panel-add-up"
-                                pIcon={<InsertRowTop />}
-                                pIsActiveHover
-                                onClick={() => pCallback({ id: pData.id, event: 'AddTop' })}
-                            />
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Add to down"
-                                pToolTipId="wrk-tab-panel-add-down"
-                                pIcon={<InsertRowTop style={{ transform: 'rotate(180deg)' }} />}
-                                pIsActiveHover
-                                onClick={() => pCallback({ id: pData.id, event: 'AddBottom' })}
-                            />
-                            {VerticalDivision()}
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Delete"
-                                pToolTipId="wrk-tab-panel-delete"
-                                pIcon={<Delete />}
-                                pDisabled={!(pWorkSheets.length > 1)}
-                                pIsActiveHover
-                                // onClick={pWorkSheets.length > 1 ? () => pCallback({ id: pData.id, event: 'Delete' }) : () => null}
-                                onClick={pWorkSheets.length > 1 ? handleDelete : () => null}
-                            />
+                                {sSelectedLang === 'SQL' && !sProcessing ? (
+                                    <Button
+                                        size="xsm"
+                                        variant="ghost"
+                                        isToolTip
+                                        toolTipContent="Run all code"
+                                        icon={<IoPlayForwardSharp size={16} />}
+                                        onClick={() => handleRunCodeAll(sText)}
+                                        style={{ padding: '10px' }}
+                                    />
+                                ) : null}
+                                {VerticalDivision()}
+                                <Button
+                                    size="xsm"
+                                    variant="ghost"
+                                    isToolTip
+                                    toolTipContent="Move to upper"
+                                    icon={<ArrowUpDouble size={16} />}
+                                    onClick={() => pCallback({ id: pData.id, event: 'LocUp' })}
+                                    style={{ padding: '10px' }}
+                                />
+                                <Button
+                                    size="xsm"
+                                    variant="ghost"
+                                    isToolTip
+                                    toolTipContent="Move to down"
+                                    icon={<ArrowUpDouble size={16} style={{ transform: 'rotate(180deg)' }} />}
+                                    onClick={() => pCallback({ id: pData.id, event: 'LocDown' })}
+                                    style={{ padding: '10px' }}
+                                />
+                                {VerticalDivision()}
+                                <Button
+                                    size="xsm"
+                                    variant="ghost"
+                                    isToolTip
+                                    toolTipContent="Add to upper"
+                                    icon={<InsertRowTop size={16} />}
+                                    onClick={() => pCallback({ id: pData.id, event: 'AddTop' })}
+                                    style={{ padding: '10px' }}
+                                />
+                                <Button
+                                    size="xsm"
+                                    variant="ghost"
+                                    isToolTip
+                                    toolTipContent="Add to down"
+                                    icon={<InsertRowTop size={16} style={{ transform: 'rotate(180deg)' }} />}
+                                    onClick={() => pCallback({ id: pData.id, event: 'AddBottom' })}
+                                    style={{ padding: '10px' }}
+                                />
+
+                                {VerticalDivision()}
+                                <Button
+                                    size="xsm"
+                                    variant="ghost"
+                                    isToolTip
+                                    toolTipContent="Delete"
+                                    icon={<Delete size={16} />}
+                                    disabled={!(pWorkSheets.length > 1)}
+                                    onClick={pWorkSheets.length > 1 ? handleDelete : () => null}
+                                    style={{ padding: '10px' }}
+                                />
+                            </Button.Group>
                         </div>
                         <div ref={resizeRef} className="editor">
                             <MonacoEditor
@@ -751,35 +756,25 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                                 onSelectLine={sMonacoLanguage === 'sql' ? setSqlLocation : () => {}}
                                 setLineHeight={setMonacoLineHeight}
                             />
-                            <div className="drag-stick" draggable onDragStart={initValue} onDrag={resize} onDragEnd={setHeight}></div>
                         </div>
                     </div>
-                    <div style={{ marginLeft: '5px', justifyContent: 'end' }}>
-                        <IconButton
-                            pIsToopTip
-                            pToolTipContent={`${!sCollapse ? 'Collapse' : 'Expand'}`}
-                            pToolTipId="wrk-tab-panel-collapse"
-                            pWidth={40}
-                            pHeight={40}
-                            pIcon={!sCollapse ? <HideOn size={18} /> : <HideOff size={18} style={{ transform: 'rotate(90deg)' }} />}
-                            pIsActiveHover
+                    <div style={{ marginLeft: '24px', justifyContent: 'end' }}>
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            isToolTip
+                            toolTipContent={`${!sCollapse ? 'Collapse' : 'Expand'}`}
+                            active={sCollapse}
+                            icon={!sCollapse ? <HideOn size={18} /> : <HideOff size={18} style={{ transform: 'rotate(90deg)' }} />}
                             onClick={() => setCollapse(!sCollapse)}
                         />
                     </div>
                 </div>
+                <DragHandle onMouseDown={initValue} onMouseMove={resize} onMouseUp={setHeight} style={{ visibility: sCollapse ? 'hidden' : 'visible' }} />
                 <div style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
                     {Result()}
-                    <div style={{ margin: '1rem 0' }}>
-                        <IconButton
-                            pIsToopTip
-                            pToolTipContent="Clear"
-                            pToolTipId="wrk-tab-panel-clear"
-                            pWidth={40}
-                            pHeight={40}
-                            pIcon={<GrClearOption size={18} />}
-                            pIsActiveHover
-                            onClick={handleResultClear}
-                        />
+                    <div style={{ margin: '1rem 0 1rem 24px' }}>
+                        <Button size="sm" variant="secondary" isToolTip toolTipContent="Clear" icon={<GrClearOption size={16} />} onClick={handleResultClear} />
                     </div>
                     {sProcessing && sSelectedLang !== 'Chat' && (
                         <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>

@@ -4,6 +4,7 @@
 */
 
 @use '@/design-system/tokens' as t;
+@use '@/design-system/tokens/scrollbar' as sb;
 
 html,
 body,
@@ -128,9 +129,44 @@ table {
     border-spacing: 0;
 }
 html {
+    @include sb.scrollbar-dark;
     height: 100vh;
     overflow-y: auto;
     overflow-x: hidden;
+}
+
+// Apply default scrollbar to all scrollable elements
+* {
+    @supports not selector(::-webkit-scrollbar) {
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-thumb, #{t.$scrollbar-thumb}) var(--scrollbar-track, transparent);
+    }
+
+    &::-webkit-scrollbar {
+        -webkit-appearance: none;
+        width: t.$scrollbar-width;
+        height: t.$scrollbar-height;
+        background-color: var(--scrollbar-track, transparent);
+    }
+
+    &::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-track {
+        background-color: var(--scrollbar-track, transparent);
+        border-radius: t.$border-radius-sm;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: var(--scrollbar-thumb, #{t.$scrollbar-thumb});
+        border-radius: t.$border-radius-sm;
+        background-clip: padding-box;
+
+        &:hover {
+            background-color: var(--scrollbar-thumb-hover, #{t.$scrollbar-thumb-hover});
+        }
+    }
 }
 #app {
     height: 100vh;
@@ -156,71 +192,21 @@ input[type='number'] {
     -moz-appearance: textfield;
 }
 
-.scrollbar-light,
-.scrollbar-light-border,
-.scrollbar-dark,
-.scrollbar-dark-border {
-    @supports not selector(::-webkit-scrollbar) {
-        scrollbar-width: thin;
-        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-    }
-
-    &::-webkit-scrollbar {
-        -webkit-appearance: none;
-        width: t.$scrollbar-width;
-        height: t.$scrollbar-height;
-        background-color: var(--scrollbar-track);
-    }
-
-    &::-webkit-scrollbar-corner {
-        background: transparent;
-    }
-
-    &::-webkit-scrollbar-track {
-        background-color: var(--scrollbar-track);
-        border-radius: t.$border-radius-sm;
-    }
-
-    &::-webkit-scrollbar-thumb {
-        background-color: var(--scrollbar-thumb);
-        border-radius: t.$border-radius-sm;
-        background-clip: padding-box;
-        border: var(--scrollbar-thumb-border, none);
-
-        &:hover {
-            background-color: var(--scrollbar-thumb-hover);
-        }
-    }
-}
-
-
+// Scrollbar global classes (using design system mixins)
 .scrollbar-light {
-    --scrollbar-thumb: #{t.$scrollbar-thumb-light};
-    --scrollbar-thumb-hover: #{t.$scrollbar-thumb-light-hover};
-    --scrollbar-track: transparent;
+    @include sb.scrollbar-light;
 }
-
 
 .scrollbar-light-border {
-    --scrollbar-thumb: #{t.$scrollbar-thumb-light};
-    --scrollbar-thumb-hover: #{t.$scrollbar-thumb-light-hover};
-    --scrollbar-track: #{t.$scrollbar-track-light-bg};
-    --scrollbar-thumb-border: 2px solid #{t.$scrollbar-border-light};
+    @include sb.scrollbar-light-border;
 }
-
 
 .scrollbar-dark {
-    --scrollbar-thumb: #{t.$scrollbar-thumb};
-    --scrollbar-thumb-hover: #{t.$scrollbar-thumb-hover};
-    --scrollbar-track: transparent;
+    @include sb.scrollbar-dark;
 }
 
-
 .scrollbar-dark-border {
-    --scrollbar-thumb: #{t.$scrollbar-thumb};
-    --scrollbar-thumb-hover: #{t.$scrollbar-thumb-hover};
-    --scrollbar-track: #{t.$scrollbar-track-bg};
-    --scrollbar-thumb-border: 2px solid #{t.$scrollbar-border};
+    // @include sb.scrollbar-dark-border;
 }
 
 .xterm .xterm-viewport {

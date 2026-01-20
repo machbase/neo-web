@@ -1,0 +1,27 @@
+@use '@/design-system/tokens' as t;
+@use '@/design-system/tokens/mixins' as m;
+
+.drag-handle {
+    width: 100%;
+    height: 4px;
+    margin-top: -4px;
+    cursor: row-resize;
+    background-color: transparent;
+    user-select: none;
+
+    @include m.drag-handle-hover-effect;
+
+    // Horizontal variant
+    &--horizontal {
+        cursor: col-resize;
+    }
+
+    // Active state during drag
+    &--dragging {
+        cursor: row-resize;
+    }
+
+    &--horizontal#{&}--dragging {
+        cursor: col-resize;
+    }
+}

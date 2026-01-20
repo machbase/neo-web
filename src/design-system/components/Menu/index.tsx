@@ -7,7 +7,7 @@ import styles from './index.module.scss';
 interface MenuContextValue {
     isOpen: boolean;
     setIsOpen: (open: boolean) => void;
-    triggerRef: React.RefObject<HTMLButtonElement>;
+    triggerRef: React.RefObject<HTMLDivElement>;
     containerRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -29,7 +29,7 @@ interface MenuRootProps {
 
 const MenuRoot = ({ children, className }: MenuRootProps) => {
     const [isOpen, setIsOpen] = useState(false);
-    const triggerRef = useRef<HTMLButtonElement>(null);
+    const triggerRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Close menu when clicking outside
@@ -76,9 +76,9 @@ const MenuTrigger = ({ children, className }: MenuTriggerProps) => {
     };
 
     return (
-        <button ref={triggerRef} onClick={handleClick} className={`${styles['menu__trigger']} ${className ?? ''}`} type="button">
+        <div ref={triggerRef} onClick={handleClick} className={`${styles['menu__trigger']} ${className ?? ''}`} tabIndex={-1}>
             {children}
-        </button>
+        </div>
     );
 };
 

@@ -1,6 +1,5 @@
 import PanelFooter from './PanelFooter';
 import PanelHeader from './PanelHeader';
-
 import './Panel.scss';
 import Chart from './Chart';
 import { useEffect, useRef, useState } from 'react';
@@ -11,12 +10,11 @@ import { useRecoilValue } from 'recoil';
 import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { isEmpty, isRollup } from '@/utils';
 import { FFTModal } from '@/components/modal/FFTModal';
-import { Error } from '@/components/toast/Toast';
-import Menu from '@/components/contextMenu/Menu';
+import { Popover } from '@/design-system/components/Popover';
 import moment from 'moment';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
-import { IconButton } from '@/components/buttons/IconButton';
 import { ADMIN_ID } from '@/utils/constants';
+import { Button, Page, Toast } from '@/design-system/components';
 
 const Panel = ({
     pPanelInfo,
@@ -30,11 +28,11 @@ const Panel = ({
     pBgnEndTimeRange,
     pGlobalTimeRange,
     pSetGlobalTimeRange,
+    pOnEditRequest,
 }: // pGetBgnEndTime
 any) => {
     const sAreaChart = useRef<any>();
     const sChartRef = useRef<any>();
-    const sMenuRef = useRef<any>();
     const [sChartData, setChartData] = useState<any>();
     const [sNavigatorData, setNavigatorData] = useState<any>();
     const [sPanelRange, setPanelRange] = useState<any>({});
@@ -51,6 +49,7 @@ any) => {
     const [sFFTMinTime, setFFTMinTime] = useState<number>(0);
     const [sFFTMaxTime, setFFTMaxTime] = useState<number>(0);
     const [sIsMinMaxMenu, setIsMinMaxMenu] = useState<boolean>(false);
+    const [sMenuPosition, setMenuPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
     const [sSaveEditedInfo, setSaveEditedInfo] = useState<boolean>(false);
     const sDataFetchHandler = useRef<boolean>(false);
     const tazPanelFormRef = useRef<any>(null);
@@ -134,8 +133,19 @@ any) => {
                 setMinMaxList(calcList);
                 setFFTMinTime(Math.floor(x.min));
                 setFFTMaxTime(Math.ceil(x.max));
+                // Position popover at top-left of chart area
+                if (sChartRef.current && sChartRef.current.container && sChartRef.current.container.current) {
+                    const chartRect = sChartRef.current.container.current.getBoundingClientRect();
+                    setMenuPosition({
+                        x: chartRect.left - 90,
+                        y: chartRect.top - 35,
+                    });
+                } else {
+                    // Fallback position
+                    setMenuPosition({ x: 10, y: 10 });
+                }
             } else {
-                Error('There is no data in the selected area.');
+                Toast.error('There is no data in the selected area.');
                 x.axis.removePlotBand('selection-plot-band');
             }
         }
@@ -720,7 +730,7 @@ any) => {
     }, [sActiveTabId]);
 
     return (
-        <div ref={tazPanelFormRef} className="panel-form" style={sSelectedChart ? { border: '1px solid #FDB532' } : { border: '1px solid transparent' }}>
+        <div ref={tazPanelFormRef} className="panel-form" style={sSelectedChart ? { border: '0.5px solid #FDB532' } : { border: '0.5px solid #454545' }}>
             <PanelHeader
                 pSetSelectedChart={setSelectedChart}
                 pGetChartInfo={pGetChartInfo}
@@ -746,25 +756,10 @@ any) => {
                 pIsMinMaxMenuOpen={sIsMinMaxMenu}
                 pChartData={sChartData?.datasets}
                 pChartRef={sChartRef}
+                pOnEditRequest={pOnEditRequest}
             />
             <div className="chart">
-                <div style={{ height: '100px', display: 'flex' }}>
-                    <div className="left">
-                        <IconButton
-                            pWidth={20}
-                            pHeight={20}
-                            pIsToopTip
-                            pToolTipContent={'Move range'}
-                            pToolTipId={'move-time-panel-left' + pPanelInfo.index_key + JSON.stringify(pIsEdit)}
-                            pIcon={
-                                <div style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <ArrowLeft style={{ width: '16px', height: '16px' }} />
-                                </div>
-                            }
-                            onClick={() => moveTimRange('l')}
-                        />
-                    </div>
-                </div>
+                <Button size="md" variant="secondary" isToolTip toolTipContent="Move range" icon={<ArrowLeft size={16} />} onClick={() => moveTimRange('l')} />
                 <div className="chart-body" ref={sAreaChart}>
                     <Chart
                         pAreaChart={sAreaChart}
@@ -782,23 +777,7 @@ any) => {
                         pMinMaxList={sMinMaxList}
                     />
                 </div>
-                <div style={{ height: '100px', display: 'flex' }}>
-                    <div className="right">
-                        <IconButton
-                            pWidth={20}
-                            pHeight={20}
-                            pIsToopTip
-                            pToolTipContent={'Move range'}
-                            pToolTipId={'move-time-panel-right' + pPanelInfo.index_key + JSON.stringify(pIsEdit)}
-                            pIcon={
-                                <div style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <ArrowRight style={{ width: '16px', height: '16px' }} />
-                                </div>
-                            }
-                            onClick={() => moveTimRange('r')}
-                        />
-                    </div>
-                </div>
+                <Button size="md" variant="secondary" isToolTip toolTipContent="Move range" icon={<ArrowRight size={16} />} onClick={() => moveTimRange('r')} />
             </div>
             <PanelFooter
                 pNavigatorRange={pFooterRange ?? sNavigatorRange}
@@ -807,43 +786,37 @@ any) => {
                 pMoveNavigatorTimRange={moveNavigatorTimRange}
             />
             {sIsFFTModal ? <FFTModal pInfo={sMinMaxList} setIsOpen={setIsFFTModal} pStartTime={sFFTMinTime} pEndTime={sFFTMaxTime} pTagColInfo={pPanelInfo.tag_set} /> : null}
-            <div ref={sMenuRef} className="menu-position">
-                <Menu isOpen={sIsMinMaxMenu}>
-                    <div className="time">
-                        <div className="time-start-end">
-                            {moment(sFFTMinTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~ {moment(sFFTMaxTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
-                        </div>
-                        <div className="menu-position-duration">{'( ' + getDuration(sFFTMinTime, sFFTMaxTime) + ' )'}</div>
-                    </div>
-                    <table className="table-style">
-                        <thead>
-                            <tr>
-                                <th>name</th>
-                                <th>min</th>
-                                <th>max</th>
-                                <th>avg</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sMinMaxList.map((aItem: any, aIndex: number) => {
-                                return (
-                                    <tr key={aItem.name + aIndex}>
-                                        <td>{aItem.name}</td>
-                                        <td>{aItem.min}</td>
-                                        <td>{aItem.max}</td>
-                                        <td>{aItem.avg}</td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                    <Menu.Item onClick={ctrMinMaxPopupModal}>
-                        <div className="close">
-                            <Close />
-                        </div>
-                    </Menu.Item>
-                </Menu>
-            </div>
+            <Popover isOpen={sIsMinMaxMenu} position={sMenuPosition} onClose={ctrMinMaxPopupModal}>
+                <Page style={{ backgroundColor: 'inherit', padding: 0 }}>
+                    <Page.DpRow style={{ justifyContent: 'end' }}>
+                        <Button size="sm" variant="ghost" onClick={ctrMinMaxPopupModal} icon={<Close size={16} />} />
+                    </Page.DpRow>
+                    <Page.ContentDesc>
+                        {moment(sFFTMinTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~ {moment(sFFTMaxTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
+                    </Page.ContentDesc>
+                    <Page.DpRow style={{ justifyContent: 'center' }}>
+                        <Page.ContentDesc>{'( ' + getDuration(sFFTMinTime, sFFTMaxTime) + ' )'}</Page.ContentDesc>
+                    </Page.DpRow>
+                    <Page.Space />
+                    <Page.DpRow>
+                        <Page.DpRow style={{ flex: 1 }}>name</Page.DpRow>
+                        <Page.DpRow style={{ flex: 1 }}>min</Page.DpRow>
+                        <Page.DpRow style={{ flex: 1 }}>max</Page.DpRow>
+                        <Page.DpRow style={{ flex: 1 }}>avg</Page.DpRow>
+                    </Page.DpRow>
+
+                    {sMinMaxList.map((aItem: any, aIndex: number) => {
+                        return (
+                            <Page.DpRow key={aItem.name + aIndex}>
+                                <Page.ContentText pContent={aItem?.name ?? ''} style={{ flex: 1 }} />
+                                <Page.ContentText pContent={aItem?.min ?? ''} style={{ flex: 1 }} />
+                                <Page.ContentText pContent={aItem?.max ?? ''} style={{ flex: 1 }} />
+                                <Page.ContentText pContent={aItem?.avg ?? ''} style={{ flex: 1 }} />
+                            </Page.DpRow>
+                        );
+                    })}
+                </Page>
+            </Popover>
         </div>
     );
 };

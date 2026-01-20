@@ -1,9 +1,8 @@
 import moment from 'moment';
-import SplitPane from 'split-pane-react/esm/SplitPane';
-import { IconButton } from '@/components/buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
-import { ExtensionTab } from '@/components/extension/ExtensionTab';
-import { Pane, SashContent } from 'split-pane-react';
+import { Button, Page } from '@/design-system/components';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
 import { getColumnType as GetColumnType } from '@/utils/dashboardUtil';
@@ -17,7 +16,16 @@ import { getUserName } from '@/utils';
 
 const BadgeSelectorItem = ({ item }: { item: { name: string; color: string } }) => {
     return (
-        <div className="badge-selector-item" style={{ boxShadow: `inset 4px 0 0 0  ${item.color}` }}>
+        <div
+            style={{
+                boxShadow: `inset 2px 0 0 0  ${item.color}`,
+                width: 'auto',
+                padding: '0 8px',
+                backgroundColor: '#454545',
+                borderTopRightRadius: '4px',
+                borderBottomRightRadius: '4px',
+            }}
+        >
             <span style={{ fontSize: '12px' }}>{item.name}</span>
         </div>
     );
@@ -435,8 +443,8 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         const enabledValue = originalRow[originalColumns?.indexOf('ENABLED') as number];
         const sReadOnly = mTableInfo[E_TABLE_INFO.DB_ID] !== -1 || mTableInfo[E_TABLE_INFO.USER_NM]?.toUpperCase() !== getUserName()?.toUpperCase();
 
-        if (enabledValue === 1) return <ExtensionTab.Switch pReadOnly={sReadOnly} pState={true} pCallback={(e) => handleRollupState(e, item)} />;
-        else return <ExtensionTab.Switch pReadOnly={sReadOnly} pState={false} pCallback={(e) => handleRollupState(e, item)} />;
+        if (enabledValue === 1) return <Page.Switch pReadOnly={sReadOnly} pState={true} pCallback={(e) => handleRollupState(e, item)} />;
+        else return <Page.Switch pReadOnly={sReadOnly} pState={false} pCallback={(e) => handleRollupState(e, item)} />;
     };
 
     useEffect(() => {
@@ -478,103 +486,102 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
     }, []);
 
     return (
-        <ExtensionTab pRef={sBodyRef}>
+        <Page pRef={sBodyRef}>
             <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                 <Pane minSize={500} style={{ display: 'flex', flexDirection: 'column' }}>
-                    <ExtensionTab.Header />
-                    <ExtensionTab.Body fixed>
-                        <ExtensionTab.ContentBlock pHoverNone>
-                            <ExtensionTab.DpRowBetween style={{ flexWrap: 'wrap' }}>
-                                <div style={{ gap: '8px', display: 'flex', flexDirection: 'row', alignItems: 'center', textWrap: 'nowrap' }}>
-                                    <ExtensionTab.SubTitle>Table</ExtensionTab.SubTitle>
+                    <Page.Header />
+                    <Page.Body fixed>
+                        <Page.ContentBlock pHoverNone>
+                            <Page.DpRowBetween style={{ flexWrap: 'wrap' }}>
+                                <Page.DpRow style={{ gap: '8px', display: 'flex', flexDirection: 'row', alignItems: 'center', textWrap: 'nowrap' }}>
+                                    <Page.SubTitle>Table</Page.SubTitle>
                                     <BadgeSelectorItem
                                         item={{
                                             name: CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]),
                                             color: E_TABLE_TYPE_COLOR[CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) as keyof typeof E_TABLE_TYPE_COLOR],
                                         }}
                                     />
-                                    <ExtensionTab.ContentTitle>{`${mTableInfo[E_TABLE_INFO.TB_NM]}`}</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{`(${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]})`}</ExtensionTab.ContentDesc>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end', justifyContent: 'end', flex: 1 }}>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <ExtensionTab.ContentDesc>Record: {sRecordInfo?.cnt?.toLocaleString() ?? '0'}</ExtensionTab.ContentDesc>
-                                        <IconButton
-                                            pWidth={20}
-                                            pHeight={20}
-                                            pIsToopTip
-                                            pToolTipId="db-exp-table-refresh-time"
-                                            pToolTipContent={`last fetch: ${sLastFetchTime}`}
-                                            pIcon={<Refresh size={13} />}
+                                    <Page.ContentTitle>{`${mTableInfo[E_TABLE_INFO.TB_NM]}`}</Page.ContentTitle>
+                                    <Page.ContentDesc>{`(${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]})`}</Page.ContentDesc>
+                                </Page.DpRow>
+                                <Page.DpRow style={{ display: 'flex', flexDirection: 'column', alignItems: 'end', justifyContent: 'end', flex: 1 }}>
+                                    <Page.DpRow style={{ gap: '4px' }}>
+                                        <Page.ContentDesc>Record: {sRecordInfo?.cnt?.toLocaleString() ?? '0'}</Page.ContentDesc>
+                                        <Button
+                                            size="xsm"
+                                            variant="ghost"
+                                            isToolTip
+                                            toolTipContent={`last fetch: ${sLastFetchTime}`}
+                                            icon={<Refresh size={14} />}
                                             onClick={() => setRefreshCnt(sRefreshCnt + 1)}
                                         />
-                                    </div>
+                                    </Page.DpRow>
                                     {CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG ||
                                     CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.LOG ? (
-                                        <ExtensionTab.DpRowBetween>
-                                            <div />
+                                        <Page.DpRowBetween>
+                                            <Page.Space />
                                             <div style={{ textWrap: 'nowrap' }}>
-                                                <ExtensionTab.ContentDesc>
+                                                <Page.ContentDesc>
                                                     {sRecordInfo?.min > 0 ? moment((sRecordInfo?.min as number) / 1000000).format('YYYY-MM-DD HH:mm:ss') : 'N/A'}
                                                     {' ~ '}
                                                     {sRecordInfo?.max > 0 ? moment((sRecordInfo?.max as number) / 1000000).format('YYYY-MM-DD HH:mm:ss') : 'N/A'}
-                                                </ExtensionTab.ContentDesc>
+                                                </Page.ContentDesc>
                                             </div>
-                                        </ExtensionTab.DpRowBetween>
+                                        </Page.DpRowBetween>
                                     ) : null}
-                                </div>
-                            </ExtensionTab.DpRowBetween>
-                        </ExtensionTab.ContentBlock>
-                        <ExtensionTab.Hr />
-                    </ExtensionTab.Body>
+                                </Page.DpRow>
+                            </Page.DpRowBetween>
+                        </Page.ContentBlock>
+                        <Page.Hr />
+                    </Page.Body>
                     <div className="scrollbar-dark-border" style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flex: 1, height: 'calc(100% - 130px)' }}>
                         {/* COLUMN */}
                         {mColList?.rows && mColList?.rows?.length > 0 && (
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.DpRowBetween>
-                                    <ExtensionTab.ContentTitle>Column</ExtensionTab.ContentTitle>
-                                    <IconButton
-                                        pWidth={20}
-                                        pHeight={20}
-                                        pIcon={sIsHiddenCol ? <TbEyeMinus size={15} /> : <TbEyeOff size={15} />}
+                            <Page.ContentBlock>
+                                <Page.DpRowBetween>
+                                    <Page.ContentTitle>Column</Page.ContentTitle>
+                                    <Button
+                                        size="xsm"
+                                        variant="ghost"
+                                        icon={sIsHiddenCol ? <TbEyeMinus size={16} /> : <TbEyeOff size={16} />}
                                         onClick={() => {
                                             setIsHiddenCol(!sIsHiddenCol);
                                         }}
                                     />
-                                </ExtensionTab.DpRowBetween>
-                                <ExtensionTab.Table cellWidthFix pList={{ columns: mColList?.columns, rows: mColList.rows }} />
-                            </ExtensionTab.ContentBlock>
+                                </Page.DpRowBetween>
+                                <Page.Table cellWidthFix pList={{ columns: mColList?.columns, rows: mColList.rows }} />
+                            </Page.ContentBlock>
                         )}
                         {/* COLUMN (META) */}
                         {mMetaColList?.rows && mMetaColList?.rows?.length > 0 && (
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.DpRow>
-                                    <ExtensionTab.ContentTitle>Meta Column</ExtensionTab.ContentTitle>
-                                </ExtensionTab.DpRow>
-                                <ExtensionTab.Table cellWidthFix pList={{ columns: mMetaColList?.columns, rows: mMetaColList.rows }} />
-                            </ExtensionTab.ContentBlock>
+                            <Page.ContentBlock>
+                                <Page.DpRow>
+                                    <Page.ContentTitle>Meta Column</Page.ContentTitle>
+                                </Page.DpRow>
+                                <Page.Table cellWidthFix pList={{ columns: mMetaColList?.columns, rows: mMetaColList.rows }} />
+                            </Page.ContentBlock>
                         )}
                         {/* Tag index gap */}
                         {sTagIndexGap?.rows && sTagIndexGap?.rows?.length > 0 && (
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.DpRow>
-                                    <ExtensionTab.ContentTitle>tag index gap</ExtensionTab.ContentTitle>
-                                </ExtensionTab.DpRow>
-                                <ExtensionTab.Table cellWidthFix pList={{ columns: sTagIndexGap?.columns, rows: sTagIndexGap.rows }} />
-                            </ExtensionTab.ContentBlock>
+                            <Page.ContentBlock>
+                                <Page.DpRow>
+                                    <Page.ContentTitle>tag index gap</Page.ContentTitle>
+                                </Page.DpRow>
+                                <Page.Table cellWidthFix pList={{ columns: sTagIndexGap?.columns, rows: sTagIndexGap.rows }} />
+                            </Page.ContentBlock>
                         )}
                         {/* INDEX */}
                         {sIndexInfo?.rows && sIndexInfo?.rows?.length > 0 && (
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentTitle>indexes</ExtensionTab.ContentTitle>
-                                <ExtensionTab.Table cellWidthFix pList={{ columns: sIndexInfo?.columns, rows: sIndexInfo.rows }} />
-                            </ExtensionTab.ContentBlock>
+                            <Page.ContentBlock>
+                                <Page.ContentTitle>indexes</Page.ContentTitle>
+                                <Page.Table cellWidthFix pList={{ columns: sIndexInfo?.columns, rows: sIndexInfo.rows }} />
+                            </Page.ContentBlock>
                         )}
                         {/* ROLLUP */}
                         {sRollupInfo?.rows && sRollupInfo?.rows?.length > 0 && (
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentTitle>Rollup</ExtensionTab.ContentTitle>
-                                <ExtensionTab.Table
+                            <Page.ContentBlock>
+                                <Page.ContentTitle>Rollup</Page.ContentTitle>
+                                <Page.Table
                                     cellWidthFix
                                     pList={{
                                         columns: sRollupInfo.columns.filter((col: string) => col !== 'SRC').map((col: string) => (col === 'PREDICATE' ? '' : col)),
@@ -604,45 +611,47 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                         },
                                     ]}
                                 />
-                                {sErrMsg?.key === 'ROLLUP' ? <ExtensionTab.TextResErr pText={sErrMsg?.value ?? ''} /> : null}
-                            </ExtensionTab.ContentBlock>
+                                {sErrMsg?.key === 'ROLLUP' ? <Page.TextResErr pText={sErrMsg?.value ?? ''} /> : null}
+                            </Page.ContentBlock>
                         )}
                         {/* RETENTION */}
                         {sRetentionInfo?.rows && sRetentionInfo?.rows?.length > 0 && (
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentTitle>Retention</ExtensionTab.ContentTitle>
-                                <ExtensionTab.Table cellWidthFix pList={{ columns: sRetentionInfo?.columns, rows: sRetentionInfo.rows }} />
-                            </ExtensionTab.ContentBlock>
+                            <Page.ContentBlock>
+                                <Page.ContentTitle>Retention</Page.ContentTitle>
+                                <Page.Table cellWidthFix pList={{ columns: sRetentionInfo?.columns, rows: sRetentionInfo.rows }} />
+                            </Page.ContentBlock>
                         )}
                     </div>
                 </Pane>
                 <Pane minSize={500}>
-                    <ExtensionTab.Header>
-                        <div />
-                        <ExtensionTab.DpRow>
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Vertical"
-                                pToolTipId="app-store-tab-hori"
-                                pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
-                                pIsActive={isVertical}
+                    <Page.Header>
+                        <Page.Space />
+                        <Button.Group>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                isToolTip
+                                toolTipContent="Vertical"
+                                active={isVertical}
+                                icon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
                                 onClick={() => setIsVertical(true)}
                             />
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Horizontal"
-                                pToolTipId="app-store-tab-ver"
-                                pIcon={<LuFlipVertical />}
-                                pIsActive={!isVertical}
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                isToolTip
+                                toolTipContent="Horizontal"
+                                icon={<LuFlipVertical />}
+                                active={!isVertical}
                                 onClick={() => setIsVertical(false)}
                             />
-                        </ExtensionTab.DpRow>
-                    </ExtensionTab.Header>
+                        </Button.Group>
+                    </Page.Header>
                     {mColList ? (
                         <MetaTablePage pIsActiveTab={pIsActiveTab} pMTableInfo={mTableInfo} pMColInfo={mColList} pRefresh={{ state: sRefreshCnt, set: setRefreshCnt }} />
                     ) : null}
                 </Pane>
             </SplitPane>
-        </ExtensionTab>
+        </Page>
     );
 };

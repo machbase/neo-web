@@ -36,7 +36,7 @@ export const useChat = (pWrkId: string, pIdx: number, pInitialModel?: Model, pIn
     const [sInterruptId, setInterruptId] = useState<number>(-1);
     const [sSelectedModel, setSelectedModel] = useState<Model>(pInitialModel ?? { name: '', provider: '', model: '' });
     const [sModelList, setModelList] = useState<{ label: string; items: Model[]; exist: boolean }[]>([]);
-    let callbackRef = useRef<any>(undefined);
+    const callbackRef = useRef<any>(undefined);
 
     const isComposingRef = useRef<boolean>(false);
     const processingAnswerRef = useRef<boolean>(false);

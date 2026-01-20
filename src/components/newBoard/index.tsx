@@ -6,6 +6,7 @@ import ShellMenu from './ShellMenu';
 import { TbParachute } from '@/assets/icons/Icon';
 import { extractionExtension } from '@/utils';
 import { useMemo, useState } from 'react';
+import { Page } from '@/design-system/components';
 
 interface NewBoardProps {
     pExtentionList: any;
@@ -180,28 +181,30 @@ const NewBoard = (props: NewBoardProps) => {
     }, [sShellList, pGetInfo]);
 
     return (
-        <div className="inner scrollbar-dark">
-            <div className="title">
-                <p className="main_title">New...</p>
-            </div>
-            <div className="btn_wrap">
-                {getShellList &&
-                    getShellList.map((aItem: any) => {
-                        return <ShellMenu key={aItem.id} pInfo={aItem} pChangeTabOption={changeTabOption} pSetIcon={setIcon} />;
-                    })}
-                {/* Drop & Open */}
-                <label
-                    onDragEnter={() => setFileUploadStyle(true)}
-                    onDragOver={(aEvent) => handleDragOver(aEvent)}
-                    onDragLeave={() => setFileUploadStyle(false)}
-                    onDrop={(aEvent: any) => updateFile(aEvent, 'drag')}
-                    style={{ position: 'relative' }}
-                >
-                    <input onChange={(aEvent: any) => updateFile(aEvent, 'click')} accept=".wrk,.sql,.tql,.taz,.dsh" className="uploader" type="file" />
-                    {defaultMenuStyleDiv(<TbParachute />, sFileUploadStyle ? 'Drop here' : 'Drop & Open')}
-                </label>
-            </div>
-        </div>
+        <Page>
+            <Page.Header>New...</Page.Header>
+            <Page.Body>
+                <Page.ContentBlock pHoverNone>
+                    <div className="btn_wrap">
+                        {getShellList &&
+                            getShellList.map((aItem: any) => {
+                                return <ShellMenu key={aItem.id} pInfo={aItem} pChangeTabOption={changeTabOption} pSetIcon={setIcon} />;
+                            })}
+                        {/* Drop & Open */}
+                        <label
+                            onDragEnter={() => setFileUploadStyle(true)}
+                            onDragOver={(aEvent) => handleDragOver(aEvent)}
+                            onDragLeave={() => setFileUploadStyle(false)}
+                            onDrop={(aEvent: any) => updateFile(aEvent, 'drag')}
+                            style={{ position: 'relative' }}
+                        >
+                            <input onChange={(aEvent: any) => updateFile(aEvent, 'click')} accept=".wrk,.sql,.tql,.taz,.dsh" className="uploader" type="file" />
+                            {defaultMenuStyleDiv(<TbParachute />, sFileUploadStyle ? 'Drop here' : 'Drop & Open')}
+                        </label>
+                    </div>
+                </Page.ContentBlock>
+            </Page.Body>
+        </Page>
     );
 };
 export default NewBoard;

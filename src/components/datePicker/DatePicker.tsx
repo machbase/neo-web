@@ -8,7 +8,7 @@ import { IconButton } from '../buttons/IconButton';
 import { Calendar } from '@/assets/icons/Icon';
 import { useState, useRef } from 'react';
 import useOutsideClick from '@/hooks/useOutsideClick';
-import { Error } from '@/components/toast/Toast';
+import { Toast } from '@/design-system/components';
 import moment from 'moment';
 
 const DatePicker = ({ pTimeValue, pSetApply, onChange, pTopPixel, pAutoFocus }: any) => {
@@ -23,7 +23,7 @@ const DatePicker = ({ pTimeValue, pSetApply, onChange, pTopPixel, pAutoFocus }: 
 
     const apply = () => {
         if (!sDate) {
-            Error('Please select date.');
+            Toast.error('Please select date.');
             return;
         }
 

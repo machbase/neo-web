@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { getFileList, postFileList } from '@/api/repository/api';
-import Modal from './Modal';
 import { gFileTree } from '@/recoil/fileTree';
 import './SaveDashboardModal.scss';
 import { gBoardList, gRollupTableList } from '@/recoil/recoil';
@@ -10,30 +9,27 @@ import { FileType, FileTreeType, fileTreeParser } from '@/utils/fileTreeParser';
 import { getFiles as getFilesTree, deleteFile as deleteContextFile } from '@/api/repository/fileTree';
 import { Menu } from '@/components/contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
-import { Error } from '@/components/toast/Toast';
-import { Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLeft, ArrowRight, NewFolder } from '@/assets/icons/Icon';
+import { Toast } from '@/design-system/components';
+import { Home, TreeFolder, Delete, Download, Play, Search, Save, ArrowLeft, ArrowRight, NewFolder } from '@/assets/icons/Icon';
 import icons from '@/utils/icons';
-import { TextButton } from '../buttons/TextButton';
 import { calcInterval, CheckObjectKey, decodeFormatterFunction, setUnitTime } from '@/utils/dashboardUtil';
 import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
 import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
 import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
-import { Select } from '@/components/inputs/Select';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
-import { IconButton } from '../buttons/IconButton';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
+import { Button, Modal, Input, FileListHeader, Dropdown } from '@/design-system/components';
 
 export interface SaveDashboardModalProps {
     setIsOpen: any;
-    pIsDarkMode?: boolean;
     pPanelInfo: any;
     pDashboardTime: any;
 }
 
 export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
-    const { setIsOpen, pIsDarkMode, pPanelInfo, pDashboardTime } = props;
+    const { setIsOpen, pPanelInfo, pDashboardTime } = props;
     const [sSelectedDir, setSelectedDir] = useState<string[]>([]);
     const [sDeletePath, setDeletePath] = useState<string[]>([]);
     const [sSelectedFile, setSelectedFile] = useState<any>();
@@ -327,7 +323,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                 const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
                 updateFileTree(sPath);
             } else {
-                Error('delete fail');
+                Toast.error('delete fail');
             }
         }
         closeContextMenu();
@@ -361,141 +357,170 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
 
     return (
-        <div className="tql">
-            <Modal pIsDarkMode={pIsDarkMode} onOutSideClose={handleClose}>
+        <>
+            <Modal.Root isOpen={true} onClose={handleClose} size="md" style={{ height: '55vh' }}>
                 <Modal.Header>
-                    <div className="title">
-                        <div className="title-content">
-                            <Save />
-                            <span>Save</span>
-                        </div>
-                        <Close onClick={handleClose} />
-                    </div>
-                    <div className="tool-bar">
-                        <div className={`tool-bar-content ${pIsDarkMode ? 'dark dark-border' : ''} ${sSelectedDir.length > 0 ? 'active' : ''}`} onClick={() => handleBackPath()}>
-                            <IconButton pIsToopTip pToolTipContent="Backward" pToolTipId="save-modal-backward" pIcon={<ArrowLeft />} onClick={() => null} />
-                        </div>
-                        <div
-                            className={`tool-bar-content ${pIsDarkMode ? 'dark dark-border' : ''} ${sDeletePath.length > 0 ? 'active' : ''}`}
-                            style={{ marginLeft: '8px' }}
-                            onClick={() => handleForwardPath(sDeletePath[sDeletePath.length - 1])}
-                        >
-                            <IconButton pIsToopTip pToolTipContent="Forward" pToolTipId="save-modal-forward" pIcon={<ArrowRight />} onClick={() => null} />
-                        </div>
-                        <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark dark' : ''}`} style={{ marginLeft: '1rem' }}>
-                            {sIsSearchMode ? (
-                                <Search style={{ cursor: 'default' }} />
-                            ) : (
-                                <>
-                                    <Home style={{ cursor: 'default' }} />
-                                    <Play style={{ cursor: 'default' }} />
-                                </>
-                            )}
-                            {sIsSearchMode ? (
-                                <input onChange={changeSearchText} value={sSearchText} />
-                            ) : (
-                                <input readOnly value={sSelectedDir.join(' / ')} style={{ cursor: 'default' }} />
-                            )}
-                        </div>
-                        <div className={`file-button ${pIsDarkMode ? 'dark' : ''}`} onClick={() => setIsSearchMode(!sIsSearchMode)}>
-                            <IconButton pIsToopTip pToolTipContent="Search" pToolTipId="save-modal-search" pIcon={<Search size={20} />} onClick={() => null} />
-                        </div>
-                        <div className={`file-button ${pIsDarkMode ? 'dark' : ''}`} onClick={makeFolder}>
-                            <IconButton pIsToopTip pToolTipContent="New folder" pToolTipId="save-modal-new-folder" pIcon={<NewFolder size={28} />} onClick={() => null} />
-                        </div>
-                    </div>
+                    <Modal.Title>
+                        <Save />
+                        <span>Save</span>
+                    </Modal.Title>
+                    <Modal.Close />
                 </Modal.Header>
-                <Modal.Body>
-                    <div className={`${pIsDarkMode ? 'file-broswer-dark' : 'file-broswer'}`}>
-                        <div className={`${pIsDarkMode ? 'file-broswer-dark-header' : 'file-broswer-header'}`}>
-                            <span style={{ width: '48%', paddingLeft: '1.5rem' }}>Name</span>
-                            <span style={{ width: '32%' }}>Last modified</span>
-                            <span style={{ width: '20%' }}>Size</span>
-                        </div>
-                        <div className={`${pIsDarkMode ? 'file-broswer-dark-content' : 'file-broswer-content'} scrollbar-dark-border`}>
-                            {sFilterFileList &&
-                                sFilterFileList.map((aItem, aIdx) => {
-                                    return (
-                                        <div
-                                            key={aItem.name + aIdx}
-                                            onContextMenu={(aEvent) => onContextMenu(aEvent, aItem)}
-                                            className={`row ${sSelectedFile && sSelectedFile.name === aItem.name ? 'selected' : ''}`}
-                                            onClick={(aEvent) => handleSelectFile(aEvent, aItem)}
-                                        >
-                                            <div className="pl list-wrapper">
-                                                <div className="pl-icon">
-                                                    {aItem.type === 'dir' ? (
-                                                        aItem.gitClone ? (
-                                                            icons('gitClosedDirectory')
-                                                        ) : (
-                                                            <TreeFolder height={100} />
-                                                        )
-                                                    ) : (
-                                                        icons(aItem.type.replace('.', ''))
-                                                    )}
-                                                </div>
-                                                <span>{aItem.name}</span>
-                                            </div>
-                                            <span className="pl" style={{ width: '32%' }}>
-                                                {elapsedTime(aItem.lastModifiedUnixMillis)}
-                                            </span>
-                                            <span className="pl" style={{ width: '20%' }}>
-                                                {elapsedSize(aItem.size)}
-                                            </span>
+
+                {/* Navigation Bar */}
+                <div className="save-dashboard-modal__nav">
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        active={sSelectedDir.length > 0}
+                        isToolTip
+                        toolTipContent="Backward"
+                        icon={<ArrowLeft size={16} />}
+                        onClick={() => handleBackPath()}
+                    />
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        active={sDeletePath.length > 0}
+                        isToolTip
+                        toolTipContent="Forward"
+                        icon={<ArrowRight size={16} />}
+                        onClick={() => handleForwardPath(sDeletePath[sDeletePath.length - 1])}
+                    />
+                    <div style={{ display: 'flex', flex: 1 }}>
+                        {sIsSearchMode ? (
+                            <Input
+                                leftIcon={<Search size={14} />}
+                                value={sSearchText}
+                                fullWidth
+                                onChange={changeSearchText}
+                                rightIcon={
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        isToolTip
+                                        toolTipContent="Cancel"
+                                        icon={<Search size={14} />}
+                                        onClick={() => setIsSearchMode(!sIsSearchMode)}
+                                    />
+                                }
+                            />
+                        ) : (
+                            <Input
+                                leftIcon={
+                                    <>
+                                        <Home size={14} />
+                                        <Play size={14} />
+                                    </>
+                                }
+                                fullWidth
+                                value={sSelectedDir.join(' / ')}
+                                readOnly
+                                rightIcon={
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        isToolTip
+                                        toolTipContent="Search"
+                                        icon={<Search size={14} />}
+                                        onClick={() => setIsSearchMode(!sIsSearchMode)}
+                                    />
+                                }
+                            />
+                        )}
+                    </div>
+                    <Button size="sm" variant="ghost" isToolTip toolTipContent="New folder" icon={<NewFolder size={16} />} onClick={makeFolder} />
+                </div>
+
+                <FileListHeader />
+
+                {/* File List */}
+                <Modal.Body style={{ padding: 0 }}>
+                    <div className="save-dashboard-modal__file-list">
+                        {sFilterFileList &&
+                            sFilterFileList.map((aItem, aIdx) => {
+                                const isSelected = sSelectedFile?.name === aItem.name;
+                                return (
+                                    <div
+                                        key={aItem.name + aIdx}
+                                        className={`save-dashboard-modal__file-row ${isSelected ? 'save-dashboard-modal__file-row--selected' : ''}`}
+                                        onContextMenu={(aEvent) => onContextMenu(aEvent, aItem)}
+                                        onClick={(aEvent) => handleSelectFile(aEvent, aItem)}
+                                    >
+                                        <div className="save-dashboard-modal__file-name">
+                                            {aItem.type === 'dir' ? (
+                                                aItem.gitClone ? (
+                                                    <Button forceOpacity disabled size="sm" variant="none" icon={icons('gitClosedDirectory')} />
+                                                ) : (
+                                                    <Button forceOpacity disabled size="sm" variant="none" icon={<TreeFolder />} />
+                                                )
+                                            ) : (
+                                                <Button forceOpacity disabled size="sm" variant="none" icon={icons(aItem.type.replace('.', ''))} />
+                                            )}
+                                            <span>{aItem.name}</span>
                                         </div>
-                                    );
-                                })}
-                        </div>
+                                        <span className="save-dashboard-modal__file-modified">{elapsedTime(aItem.lastModifiedUnixMillis)}</span>
+                                        <span className="save-dashboard-modal__file-size">{elapsedSize(aItem.size)}</span>
+                                    </div>
+                                );
+                            })}
                     </div>
                 </Modal.Body>
-                <Modal.Footer>
-                    <div className="save-option">
-                        <div className="save-file-name">
-                            <span>File Name</span>
-                            <div className={`input-wrapper ${pIsDarkMode ? 'input-wrapper-dark' : ''}`}>
-                                <input autoFocus onChange={changeSaveFileName} value={sSaveFileName}></input>
-                            </div>
+
+                {/* Footer */}
+                <Modal.Footer style={{ flexDirection: 'column', gap: '16px' }}>
+                    <div className="save-dashboard-modal__options">
+                        <div className="save-dashboard-modal__option-group">
+                            <Input label="File Name" labelPosition="top" value={sSaveFileName} onChange={changeSaveFileName} autoFocus />
                         </div>
-                        <div className="save-file-data">
-                            <span>Output</span>
-                            <Select
-                                pFontSize={12}
-                                pAutoChanged={true}
-                                pWidth={175}
-                                pBorderRadius={8}
-                                pInitValue={sOutput}
-                                pHeight={33}
-                                onChange={(aEvent: any) => HandleOutput(aEvent.target.value)}
-                                pOptions={['DATA(JSON)', 'DATA(CSV)', 'CHART']}
-                            />
+                        <div className="save-dashboard-modal__option-group">
+                            <Dropdown.Root
+                                label="Output"
+                                labelPosition="top"
+                                options={[
+                                    { label: 'DATA(JSON)', value: 'DATA(JSON)' },
+                                    { label: 'DATA(CSV)', value: 'DATA(CSV)' },
+                                    { label: 'CHART', value: 'CHART' },
+                                ]}
+                                value={sOutput}
+                                fullWidth
+                                onChange={(value) => HandleOutput(value as 'CHART' | 'DATA(JSON)' | 'DATA(CSV)')}
+                            >
+                                <Dropdown.Trigger />
+                                <Dropdown.Menu>
+                                    <Dropdown.List />
+                                </Dropdown.Menu>
+                            </Dropdown.Root>
                         </div>
-                        <div className="save-file-block" style={sOutput === 'CHART' ? { opacity: 0.5, pointerEvents: 'none' } : {}}>
-                            <span>Block</span>
-                            <Select
-                                pFontSize={12}
-                                pAutoChanged={true}
-                                pWidth={175}
-                                pBorderRadius={8}
-                                pInitValue={sSelectedBlock.value}
-                                pHeight={33}
-                                onChange={(aEvent: any) => setSelectedBlock(aEvent.target)}
-                                pOptions={sBlockList.map((aAlias: any) => aAlias.name)}
-                            />
+                        <div className="save-dashboard-modal__option-group" style={sOutput === 'CHART' ? { opacity: 0.5, pointerEvents: 'none' } : {}}>
+                            <Dropdown.Root
+                                label="Block"
+                                options={sBlockList.map((aAlias: any) => ({ label: aAlias.name, value: aAlias.name }))}
+                                value={sSelectedBlock.value}
+                                fullWidth
+                                onChange={(value) => setSelectedBlock({ ...sSelectedBlock, value })}
+                            >
+                                <Dropdown.Trigger />
+                                <Dropdown.Menu>
+                                    <Dropdown.List />
+                                </Dropdown.Menu>
+                            </Dropdown.Root>
                         </div>
                     </div>
-                    <div className="button-group">
-                        <TextButton
-                            pText="OK"
-                            pBackgroundColor="#4199ff"
-                            pIsDisabled={!(FileNameAndExtensionValidator(sSaveFileName) && sSaveFileName.endsWith(`.${sFileType}`))}
+                    <Button.Group style={{ display: 'flex', width: '100%', justifyContent: 'end' }}>
+                        <Modal.Confirm
+                            disabled={!(FileNameAndExtensionValidator(sSaveFileName) && sSaveFileName.endsWith(`.${sFileType}`))}
                             onClick={FileNameAndExtensionValidator(sSaveFileName) && extractionExtension(sSaveFileName) === sFileType ? saveFile : () => null}
-                        />
-                        <div style={{ width: '10px' }}></div>
-                        <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />
-                    </div>
+                        >
+                            OK
+                        </Modal.Confirm>
+                        <Modal.Cancel>Cancel</Modal.Cancel>
+                    </Button.Group>
                 </Modal.Footer>
-            </Modal>
-            <div ref={MenuRef} className="save-dashboard-context-menu" style={{ top: sMenuY, left: sMenuX }}>
+            </Modal.Root>
+
+            {/* Context Menu */}
+            <div ref={MenuRef} className="save-dashboard-modal__context-menu" style={{ top: sMenuY, left: sMenuX }}>
                 <Menu isOpen={sIsContextMenu}>
                     <Menu.Item onClick={deleteFile}>
                         <Delete />
@@ -507,6 +532,6 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                     </Menu.Item>
                 </Menu>
             </div>
-        </div>
+        </>
     );
 };

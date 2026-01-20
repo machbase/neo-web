@@ -1,9 +1,7 @@
-import './Select.scss';
-import { useState, useRef } from 'react';
-import { ArrowDown } from '@/assets/icons/Icon';
-import useOutsideClick from '@/hooks/useOutsideClick';
-import { Tooltip } from 'react-tooltip';
+import { useState } from 'react';
+import { Dropdown, type DropdownOption } from '@/design-system/components';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { Tooltip } from 'react-tooltip';
 
 export interface ConfirmableSelectProps {
     pOptions: string[];
@@ -25,15 +23,10 @@ export interface ConfirmableSelectProps {
 
 export const ConfirmableSelect = (props: ConfirmableSelectProps) => {
     const {
-        pWidth = 120,
         pNoneValue,
         pIsDisabled = false,
-        pFontSize = 13,
-        pHeight = 40,
         pOptions,
         pIsFullWidth = false,
-        pBorderRadius = 8,
-        pIsReadonly = true,
         pValue = '',
         onChange,
         pIsToolTip = false,
@@ -42,22 +35,26 @@ export const ConfirmableSelect = (props: ConfirmableSelectProps) => {
         pUseConfirmRule,
     } = props;
 
-    const [isOpen, setIsOpen] = useState<boolean>(false);
-
     const [pendingValue, setPendingValue] = useState<string>('');
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
     const [pendingIdx, setPendingIdx] = useState<number>(-1);
-    const optionRef = useRef<HTMLDivElement>(null);
 
-    const handleSelect = (aValue: string, idx: number) => {
-        setIsOpen(false);
-        if (pUseConfirmRule && pConfirmTrigger === aValue) {
-            setPendingValue(aValue);
+    // Convert string options to DropdownOption format
+    const dropdownOptions: DropdownOption[] = pOptions.map((option) => ({
+        label: option,
+        value: option,
+    }));
+
+    const handleSelect = (value: string) => {
+        const idx = pOptions.indexOf(value);
+
+        if (pUseConfirmRule && pConfirmTrigger === value) {
+            setPendingValue(value);
             setPendingIdx(idx);
             setIsConfirmModalOpen(true);
             return;
         }
-        executeChange(aValue, idx);
+        executeChange(value, idx);
     };
 
     const executeChange = (aValue: string, idx: number) => {
@@ -80,54 +77,34 @@ export const ConfirmableSelect = (props: ConfirmableSelectProps) => {
         setPendingIdx(-1);
     };
 
-    const handleClick = (aEvent: React.MouseEvent<HTMLDivElement>) => {
-        if (pIsDisabled) return;
-        aEvent.stopPropagation();
-        setIsOpen(!isOpen);
-    };
-
-    useOutsideClick(optionRef, () => setIsOpen(false));
-
     return (
         <>
-            <div
-                className="custom-select-wrapper"
-                style={{
-                    borderRadius: pBorderRadius + 'px',
-                    width: pIsFullWidth ? '100%' : typeof pWidth === 'string' ? pWidth : pWidth + 'px',
-                    minWidth: pIsFullWidth ? '100%' : pWidth + 'px',
-                    height: pHeight + 'px',
-                    opacity: pIsDisabled ? 0.6 : 1,
-                    cursor: pIsDisabled ? 'default' : 'pointer',
-                }}
+            <Dropdown.Root
+                options={dropdownOptions}
+                value={pValue}
+                onChange={handleSelect}
+                placeholder="Select..."
+                disabled={pIsDisabled}
+                fullWidth={pIsFullWidth}
             >
-                <div className="select-input" onClick={handleClick}>
-                    <input disabled={pIsDisabled} readOnly={pIsReadonly} value={pValue} style={{ fontSize: pFontSize, cursor: 'inherit' }} placeholder="Select..." />
-                    <ArrowDown />
-                </div>
-                <div
-                    ref={optionRef}
-                    className="select-options"
-                    style={{ display: isOpen ? 'block' : 'none', maxHeight: pHeight * 5 + 'px', borderRadius: pBorderRadius + 'px' }}
-                    onClick={(aEvent) => aEvent.stopPropagation()}
-                >
-                    <div className="select-options-item-wrapper scrollbar-dark" style={{ maxHeight: pHeight * 4 + 'px' }}>
-                        {!pIsToolTip &&
-                            pOptions.map((aOption: string, aIdx) => (
-                                <div key={aOption + aIdx} className="options-item" onClick={() => handleSelect(aOption, aIdx)} style={{ fontSize: pFontSize }}>
-                                    {aOption}
-                                </div>
-                            ))}
-                        {pIsToolTip &&
-                            pOptions.map((aOption: string, aIdx) => (
-                                <button key={aIdx} className={`select-tooltip-${aIdx} options-item`} onClick={() => handleSelect(aOption, aIdx)} style={{ fontSize: pFontSize }}>
-                                    <Tooltip anchorSelect={`.select-tooltip-${aIdx}`} content={aOption} />
-                                    <div className="select-text">{aOption}</div>
-                                </button>
-                            ))}
-                    </div>
-                </div>
-            </div>
+                <Dropdown.Trigger />
+                <Dropdown.Menu>
+                    <Dropdown.List>
+                        {(option, index) =>
+                            pIsToolTip ? (
+                                <Dropdown.Option key={option.value} option={option} index={index}>
+                                    <span className={`select-tooltip-${index}`} style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        <Tooltip anchorSelect={`.select-tooltip-${index}`} content={option.label} />
+                                        {option.label}
+                                    </span>
+                                </Dropdown.Option>
+                            ) : (
+                                <Dropdown.Option key={option.value} option={option} index={index} />
+                            )
+                        }
+                    </Dropdown.List>
+                </Dropdown.Menu>
+            </Dropdown.Root>
 
             {/* Confirm Modal */}
             {isConfirmModalOpen && (

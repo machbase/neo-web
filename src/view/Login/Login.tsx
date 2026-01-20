@@ -5,8 +5,10 @@ import './Login.scss';
 import { postLogin } from '../../api/repository/login';
 import { useNavigate } from 'react-router-dom';
 import LOGIN_BG_IMG from '@/assets/image/neow_img_login_bg.webp';
-import { VscWarning } from 'react-icons/vsc';
 import { useExperiment } from '@/hooks/useExperiment';
+import { Input } from '@/design-system/components/Input';
+import { Alert } from '@/design-system/components/Alert';
+import { Button, Page, PasswordInput, Checkbox } from '@/design-system/components';
 
 const Login = () => {
     const sNavigate = useNavigate();
@@ -87,44 +89,50 @@ const Login = () => {
     return (
         <div className="login-form">
             <img className="login-bg-img" src={`${LOGIN_BG_IMG}`} />
-            <div className="login-card">
-                <img alt="" src={LoginLogo} />
-                <div className="input-form">
-                    <input ref={sIdRef} className="input-id input normal-text" placeholder="User" type="text" onKeyDown={keyDownLogin} value={sLoginId} onInput={handleLoginId} />
-                    <input
-                        ref={sPasswordRef}
-                        className="input-password input normal-text"
-                        value={sPassword}
-                        onInput={handlePassword}
-                        onKeyDown={keyDownLogin}
-                        placeholder="Password"
-                        type="password"
-                    />
+            <Page style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <div className="login-card">
+                    <Page.Body fullHeight>
+                        <Page.ContentBlock pHoverNone style={{ padding: '20px 12px' }}>
+                            <Page.DpRow>
+                                <img alt="" src={LoginLogo} />
+                            </Page.DpRow>
+                            <Page.Space pHeight="30px" />
+                            <Input
+                                ref={sIdRef}
+                                className="input-id"
+                                placeholder="User"
+                                type="text"
+                                onKeyDown={keyDownLogin}
+                                value={sLoginId}
+                                onInput={handleLoginId}
+                                size="lg"
+                                fullWidth
+                            />
+                            <Page.Space />
+                            <PasswordInput
+                                ref={sPasswordRef}
+                                className="input-password"
+                                value={sPassword}
+                                onInput={handlePassword}
+                                onKeyDown={keyDownLogin}
+                                placeholder="Password"
+                                size="lg"
+                                fullWidth
+                                style={{ height: '39px' }}
+                            />
+                            <Page.Space />
+                            <Checkbox checked={sRememberId} onChange={handleRememberId} label="Remember User ID" size="sm" />
+                            <Page.Space />
+                            <Page.Space />
+                            {sIsLogin ? <Alert variant="error" message={sIsLogin} /> : null}
+                            <Page.Space />
+                            <Button size="lg" fullWidth variant="primary" type="submit" onKeyDown={keyDownLogin} onClick={login}>
+                                SIGN IN
+                            </Button>
+                        </Page.ContentBlock>
+                    </Page.Body>
                 </div>
-                {sIsLogin && (
-                    <div className="input-form-response-wrapper">
-                        <div className="input-form-response">
-                            <VscWarning />
-                            <pre>{sIsLogin}</pre>
-                        </div>
-                    </div>
-                )}
-                <div className="input-cehck-wrapper">
-                    <div className="input-checkboxwrap">
-                        {sRememberId ? (
-                            <input checked={sRememberId} onChange={handleRememberId} className="checkbox" type="checkbox" />
-                        ) : (
-                            <div onClick={() => setRememberId(true)}></div>
-                        )}
-                        <p className="input-checkbox-p">Remember User ID</p>
-                    </div>
-                </div>
-                <div className="button-form">
-                    <button className="login-button" type="submit" onKeyDown={keyDownLogin} onClick={login}>
-                        SIGN IN
-                    </button>
-                </div>
-            </div>
+            </Page>
         </div>
     );
 };

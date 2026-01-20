@@ -1,6 +1,4 @@
-import CheckBox from '@/components/inputs/CheckBox';
-import { Input } from '@/components/inputs/Input';
-import { Select } from '@/components/inputs/Select';
+import { Dropdown, Input, Checkbox, Page } from '@/design-system/components';
 import { ChartSymbolList } from '@/utils/constants';
 
 interface ScatterOptionProps {
@@ -24,37 +22,29 @@ export const ScatterOptions = (props: ScatterOptionProps) => {
     };
 
     return (
-        <div>
-            <CheckBox
-                pText="Large data mode"
-                pDefaultChecked={pPanelOption.chartOptions?.isLarge ?? false}
+        <>
+            <Checkbox
+                size="sm"
+                label="Large data mode"
+                defaultChecked={pPanelOption.chartOptions?.isLarge ?? false}
                 onChange={(aEvent: any) => handleScatterOption(aEvent, 'isLarge', true)}
             />
-            <div className="divider" />
-            <span>Symbol</span>
-            <div style={{ height: '10px' }} />
-            <div className="menu-style">
-                <span>Type</span>
-                <Select
-                    pWidth={'100%'}
-                    pHeight={25}
-                    pBorderRadius={4}
-                    pFontSize={12}
-                    pInitValue={pPanelOption.chartOptions?.symbol}
-                    onChange={(aEvent: any) => handleScatterOption(aEvent, 'symbol', false)}
-                    pOptions={ChartSymbolList}
-                />
-            </div>
-            <div className="menu-style">
-                <span>Size</span>
-                <Input
-                    pWidth={'100%'}
-                    pHeight={25}
-                    pBorderRadius={4}
-                    pValue={pPanelOption.chartOptions?.symbolSize}
-                    onChange={(aEvent: any) => handleScatterOption(aEvent, 'symbolSize', false)}
-                />
-            </div>
-        </div>
+            <Page.Divi />
+            <Page.ContentDesc>Symbol</Page.ContentDesc>
+            <Page.Space />
+            <Dropdown.Root
+                label="Type"
+                options={ChartSymbolList.map((option) => ({ label: option, value: option }))}
+                value={pPanelOption.chartOptions?.symbol}
+                onChange={(value: string) => handleScatterOption({ target: { value } }, 'symbol', false)}
+                fullWidth
+            >
+                <Dropdown.Trigger />
+                <Dropdown.Menu>
+                    <Dropdown.List />
+                </Dropdown.Menu>
+            </Dropdown.Root>
+            <Input label="Size" type="text" fullWidth value={pPanelOption.chartOptions?.symbolSize} onChange={(aEvent: any) => handleScatterOption(aEvent, 'symbolSize', false)} />
+        </>
     );
 };

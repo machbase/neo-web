@@ -1,5 +1,5 @@
 import request from '../core';
-import { Error } from '../../components/toast/Toast';
+import { Toast } from '@/design-system/components';
 import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt, convertToNewRollupSyntax } from '../../utils';
 import { ADMIN_ID } from '../../utils/constants';
 import { getInterval } from '../../utils/DashboardQueryParser';
@@ -341,9 +341,9 @@ const fetchCalculationData = async (params: any) => {
     let sConvertData;
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
-            Error(sData.data.reason);
+            Toast.error(sData.data.reason);
         } else {
-            Error(sData.data);
+            Toast.error(sData.data);
         }
     } else {
         if (typeof sData.data === 'string') {
@@ -434,9 +434,9 @@ const fetchRawData = async (params: any) => {
     let sConvertData;
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
-            Error(sData.data.reason);
+            Toast.error(sData.data.reason);
         } else {
-            Error(sData.data);
+            Toast.error(sData.data);
         }
     } else {
         if (typeof sData.data === 'string') {
@@ -461,9 +461,9 @@ const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
-            Error(sData.data.reason);
+            Toast.error(sData.data.reason);
         } else {
-            Error(sData.data);
+            Toast.error(sData.data);
         }
     }
     return sData;
@@ -486,9 +486,9 @@ export const fetchVirtualStatTable = async (aTable: string, aTagList: string[], 
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
-            Error(sData.data.reason);
+            Toast.error(sData.data.reason);
         } else {
-            Error(sData.data);
+            Toast.error(sData.data);
         }
     }
     return sData.data.rows;
@@ -506,9 +506,9 @@ const fetchRollupData = async (params: any) => {
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
-            Error(sData.data.reason);
+            Toast.error(sData.data.reason);
         } else {
-            Error(sData.data);
+            Toast.error(sData.data);
         }
     }
     return sData;
@@ -521,9 +521,9 @@ const fetchTablesData = async () => {
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
-            Error(sData.data.reason);
+            Toast.error(sData.data.reason);
         } else {
-            Error(sData.data);
+            Toast.error(sData.data);
         }
     }
 
@@ -537,9 +537,9 @@ const fetchTags = async (table: string) => {
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
-            Error(sData.data.reason);
+            Toast.error(sData.data.reason);
         } else {
-            Error(sData.data);
+            Toast.error(sData.data);
         }
     }
     return sData;
@@ -551,9 +551,9 @@ const fetchRollUp = async (table: string) => {
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
-            Error(sData.data.reason);
+            Toast.error(sData.data.reason);
         } else {
-            Error(sData.data);
+            Toast.error(sData.data);
         }
     }
     return sData;
@@ -565,9 +565,9 @@ const fetchOnRollupTable = async (table: string) => {
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
-            Error(sData.data.reason);
+            Toast.error(sData.data.reason);
         } else {
-            Error(sData.data);
+            Toast.error(sData.data);
         }
     }
     return sData;
@@ -639,9 +639,9 @@ export const getTagPagination = async (aTable: string, aFilter: string, aPage: n
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
-            Error(sData.data.reason);
+            Toast.error(sData.data.reason);
         } else {
-            Error(sData.data);
+            Toast.error(sData.data);
         }
     }
     return sData;
@@ -664,9 +664,9 @@ export const getTagTotal = async (aTable: string, aFilter: string, aColName: str
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
-            Error(sData.data.reason);
+            Toast.error(sData.data.reason);
         } else {
-            Error(sData.data);
+            Toast.error(sData.data);
         }
     }
     return sData;

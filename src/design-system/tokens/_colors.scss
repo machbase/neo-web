@@ -5,16 +5,19 @@
 // ============================================
 // Background Colors
 // ============================================
-$bg-primary: #1c1c21;
-$bg-secondary: #1b1c21;
-$bg-header: #262831;
+$bg-primary: #1e1e1e; //#1c1c21
+$bg-secondary: #252525;
+$bg-header: $bg-primary;
 $bg-elevated: #2c2c2c;
-$bg-panel: #404457;
+$bg-panel: #252525;
+$bg-tab-active: #252525;
+$bg-sub-tab-active: #2e2e2e;
+$bg-tab-hover: rgba(255, 255, 255, 0.08);
 $bg-input: rgba(255, 255, 255, 0.13);
 $bg-input-dark: #353535;
-$bg-hover: rgb(64, 64, 64);
+$bg-hover: rgba(255, 255, 255, 0.08);
 $bg-hover-light: rgb(75, 75, 75);
-$bg-hover-block: #262831;
+$bg-hover-block: rgba(255, 255, 255, 0.13);
 $bg-active: rgb(0, 83, 160);
 $bg-active-hover: rgb(0, 108, 210);
 $bg-user-message: rgb(65, 65, 66);
@@ -143,7 +146,7 @@ $mui-text: #c4c4c4;
 // Dropdown/Menu Colors
 // ============================================
 $dropdown-bg: #2d2d2d;
-$dropdown-border: #3e3e3e;
+$dropdown-border: $border-color-default;
 $dropdown-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 $dropdown-option-hover-bg: #3d3d3d;
 $dropdown-option-selected-bg: transparent;
@@ -158,3 +161,15 @@ $menu-border: $dropdown-border;
 $menu-item-text: #e8e8e8;
 $menu-item-hover-bg: $dropdown-option-hover-bg;
 $menu-item-icon: #b0b0b0;
+
+// ============================================
+// Modal Colors
+// ============================================
+$modal-border: $border-color-default;
+
+// Table color
+$tag-table: $info-main;
+$log-table: $btn-delete;
+$kv-table: $btn-status;
+$vol-table: $warning-main;
+$etc-table: #ffdc72;

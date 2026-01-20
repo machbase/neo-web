@@ -1,9 +1,9 @@
 import { Modal, Combobox } from '@/design-system/components';
 import { useState } from 'react';
 import { RiTimeZoneLine } from 'react-icons/ri';
-import { MdOutlineKeyboardArrowDown } from 'react-icons/md';
 import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 import { IANA_TIMEZONES } from '@/assets/ts/timezones';
+import { VscChevronDown } from 'react-icons/vsc';
 
 export interface TimeZoneModalProps {
     isOpen: boolean;
@@ -35,14 +35,14 @@ export const TimeZoneModal = ({ isOpen, onClose, formatInitValue = '2006-01-02 1
             <Modal.Body>
                 <Combobox.Root label="Time format" labelPosition="left" options={TIME_FORMAT_LIST} value={sTimeFormat} onChange={setTimeFormat} placeholder="Select time format">
                     <Combobox.Input />
-                    <Combobox.Trigger icon={<MdOutlineKeyboardArrowDown size={14} />} />
+                    <Combobox.Trigger icon={<VscChevronDown size={14} />} />
                     <Combobox.Dropdown>
                         <Combobox.List />
                     </Combobox.Dropdown>
                 </Combobox.Root>
                 <Combobox.Root label="Time zone" labelPosition="left" options={IANA_TIMEZONES} value={sTimeZone} onChange={setTimeZone} placeholder="Select time zone">
                     <Combobox.Input />
-                    <Combobox.Trigger icon={<MdOutlineKeyboardArrowDown size={14} />} />
+                    <Combobox.Trigger icon={<VscChevronDown size={14} />} />
                     <Combobox.Dropdown>
                         <Combobox.List />
                     </Combobox.Dropdown>

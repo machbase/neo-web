@@ -1,11 +1,12 @@
 import './item.scss';
 import { APP_INFO, PKG_STATUS } from '@/api/repository/appStore';
 import { useState } from 'react';
-import { VscChevronDown, VscChevronRight, VscExtensions } from 'react-icons/vsc';
+import { VscExtensions } from 'react-icons/vsc';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { generateUUID } from '@/utils';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { Loader } from '@/components/loader';
+import { Side } from '@/design-system/components';
 
 export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     const STATUS_ICON = () => {
@@ -98,28 +99,23 @@ export const AppList = ({ pList, pTitle, pStatus }: { pList: APP_INFO[] | string
         setCollapseState(() => !sCollapseState);
     };
 
-    return (
+    return pList && pList.length > 0 ? (
         <>
-            {pList && pList.length > 0 && (
-                <div className="app-store-list-wrap">
-                    <div className="app-store" onClick={handleCollapse}>
-                        <div className="app-store-collapse-icon">{sCollapseState ? <VscChevronDown /> : <VscChevronRight />}</div>
-                        <div className="app-store-list-title">
-                            <span>{pTitle ?? ''}</span>
-                        </div>
-                    </div>
-                    <div className="app-store-list">
-                        {sCollapseState &&
-                            pList.map((aItem: any, aIdx: number) => {
-                                return (
-                                    <div key={'pStatus-' + aIdx} onClick={() => handleSelectApp(aItem)}>
-                                        <AppItem pItem={aItem} />
-                                    </div>
-                                );
-                            })}
-                    </div>
-                </div>
+            <Side.Collapse pCollapseState={sCollapseState} pCallback={handleCollapse}>
+                <span>{pTitle ?? ''}</span>
+            </Side.Collapse>
+
+            {sCollapseState && (
+                <Side.List>
+                    {pList.map((aItem: any, aIdx: number) => {
+                        return (
+                            <div key={'pStatus-' + aIdx} onClick={() => handleSelectApp(aItem)}>
+                                <AppItem pItem={aItem} />
+                            </div>
+                        );
+                    })}
+                </Side.List>
             )}
         </>
-    );
+    ) : null;
 };

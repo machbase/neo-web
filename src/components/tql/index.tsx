@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef } from 'react';
-import SplitPane, { Pane, SashContent } from 'split-pane-react';
+import { useEffect, useState } from 'react';
+import { SplitPane, Pane, Page, Tabs, Button } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { getTqlChart } from '@/api/repository/machiot';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
@@ -22,7 +23,6 @@ import {
     SaveAs,
     MdLink,
 } from '@/assets/icons/Icon';
-import { IconButton } from '../buttons/IconButton';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { Loader } from '../loader';
@@ -56,7 +56,6 @@ const Tql = (props: TqlProps) => {
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
     const setConsoleList = useSetRecoilState<any>(gWsLog);
-    const tqlResultBodyRef = useRef(null);
     const [sLoadState, setLoadState] = useState<boolean>(false);
 
     useEffect(() => {
@@ -92,6 +91,7 @@ const Tql = (props: TqlProps) => {
     };
 
     const getTqlData = async (aText: string) => {
+        setIsPrettier(false);
         setLoadState(true);
         HandleResutTypeAndTxt('Processing...', false);
         const sResult: any = await getTqlChart(aText);
@@ -116,7 +116,10 @@ const Tql = (props: TqlProps) => {
             setCsvHeader(sParsedCsvHeader);
         } else if (parsedType === TqlResType.NDJSON) {
             setTextField(parsedData);
-        } else HandleResutTypeAndTxt(parsedData, false);
+        } else {
+            setIsPrettier(true);
+            HandleResutTypeAndTxt(parsedData, false);
+        }
 
         setLoadState(false);
     };
@@ -155,7 +158,7 @@ const Tql = (props: TqlProps) => {
     };
 
     return (
-        <div style={{ width: '100%', height: '100%' }}>
+        <Page>
             <SplitPane
                 sashRender={() => Resizer()}
                 split={isVertical ? 'vertical' : 'horizontal'}
@@ -165,100 +168,123 @@ const Tql = (props: TqlProps) => {
                 onChange={setSizes}
             >
                 <Pane minSize={50}>
-                    <div className="tql-editor-header">
-                        <IconButton pIsToopTip pToolTipContent="Run code" pToolTipId="tql-tab-explorer-run-code" pIcon={<Play />} onClick={() => getTqlData(sText)} />
-                        <div style={{ display: 'flex' }}>
-                            <IconButton pIsToopTip pToolTipContent="Save" pToolTipId="tql-tab-explorer-save" pIcon={<Save />} onClick={pHandleSaveModalOpen} />
-                            <IconButton pIsToopTip pToolTipContent="Save as" pToolTipId="tql-tab-explorer-save-as" pIcon={<SaveAs />} onClick={() => setIsSaveModal(true)} />
-                            {pIsSave && <IconButton pIsToopTip pToolTipContent="Copy link" pToolTipId="tql-tab-explorer-copy-link" pIcon={<MdLink />} onClick={handleCopyLink} />}
-                        </div>
-                    </div>
-                    <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
+                    <Page.Header>
+                        <Button variant="ghost" size="icon" isToolTip toolTipContent="Run code" icon={<Play size={16} />} onClick={() => getTqlData(sText)} aria-label="Run code" />
+                        <Button.Group>
+                            <Button variant="ghost" size="icon" isToolTip toolTipContent="Save" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} aria-label="Save" />
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                isToolTip
+                                toolTipContent="Save as"
+                                icon={<SaveAs size={16} />}
+                                onClick={() => setIsSaveModal(true)}
+                                aria-label="Save as"
+                            />
+                            {pIsSave && (
+                                <Button
+                                    icon={<MdLink size={16} />}
+                                    variant="ghost"
+                                    size="icon"
+                                    isToolTip
+                                    toolTipContent="Copy link"
+                                    onClick={handleCopyLink}
+                                    aria-label="Copy link"
+                                />
+                            )}
+                        </Button.Group>
+                    </Page.Header>
+                    <Page.Body>
                         <MonacoEditor pIsActiveTab={pIsActiveTab} pText={sText} pLang={sCurrentLang} onSelectLine={() => null} onChange={handleChangeText} onRunCode={getTqlData} />
-                    </div>
+                    </Page.Body>
                 </Pane>
-                <Pane style={{ overflow: 'initial' }}>
-                    <div className="tql-result-wrapper">
-                        <div className="tql-result-header">
-                            <div className="tql-result-tab result-icon">
-                                <div className="round_right_wrap">
-                                    <div className="round_right" />
-                                </div>
-                                {sResultType === 'text' || sResultType === 'ndjson' ? <AiOutlineFileDone color="#fdb532" /> : null}
-                                {sResultType === 'mrk' ? <AiOutlineFileMarkdown color="#fdb532" /> : null}
-                                {sResultType === 'csv' ? <PiFileCsvThin color="#fdb532" /> : null}
-                                {sResultType === 'html' ? <BarChart color="#fdb532" /> : null}
-                                RESULT
-                                <div className="round_left_wrap">
-                                    <div className="round_left" />
-                                </div>
-                            </div>
-                            <div className="tql-result-btn-group">
-                                {sResultType === 'text' && sTextField !== '' ? (
-                                    <IconButton
-                                        pIsToopTip
-                                        pToolTipContent="JSON format"
-                                        pToolTipId="tql-tab-divider-explorer-json-format"
-                                        pIcon={<VscJson />}
-                                        pIsActive={sIsPrettier}
-                                        onClick={() => setIsPrettier(!sIsPrettier)}
-                                    />
-                                ) : null}
-                                {sResultType === 'csv' ? (
-                                    <IconButton
-                                        pIsToopTip
-                                        pToolTipContent={`${sIsHeader ? 'Hide' : 'Show'} header`}
-                                        pToolTipId="tql-tab-divider-explorer-csv-format"
-                                        pIcon={sIsHeader ? <TableHeader /> : <TableNotHeader />}
-                                        pIsActive={sIsHeader}
-                                        onClick={() => handleChangeHeader(sCsv)}
-                                    />
-                                ) : null}
-                                <div className="divider" />
-                                <IconButton
-                                    pIsToopTip
-                                    pToolTipContent="Vertical"
-                                    pToolTipId="tql-tab-divider-explorer-hori"
-                                    pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
-                                    pIsActive={isVertical}
-                                    onClick={handleSplitVertical}
+                <Pane style={{ overflow: 'initial' }} minSize={50}>
+                    <Page.Header>
+                        <Tabs.Root selectedTab="RESULT" onTabSelect={() => {}}>
+                            <Tabs.Header variant="sub">
+                                <Tabs.List>
+                                    <Tabs.Item value="RESULT" variant="sub">
+                                        {sResultType === 'text' || sResultType === 'ndjson' ? <AiOutlineFileDone size={12} /> : null}
+                                        {sResultType === 'mrk' ? <AiOutlineFileMarkdown size={12} /> : null}
+                                        {sResultType === 'csv' ? <PiFileCsvThin size={12} /> : null}
+                                        {sResultType === 'html' ? <BarChart size={12} /> : null}
+                                        <span>RESULT</span>
+                                    </Tabs.Item>
+                                </Tabs.List>
+                            </Tabs.Header>
+                        </Tabs.Root>
+                        <Button.Group>
+                            {sResultType === 'text' && sTextField !== '' && !sLoadState ? (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    isToolTip
+                                    toolTipContent="JSON format"
+                                    icon={<VscJson size={16} />}
+                                    active={sIsPrettier}
+                                    onClick={() => setIsPrettier(!sIsPrettier)}
+                                    aria-label="JSON format"
                                 />
-                                <IconButton
-                                    pIsToopTip
-                                    pToolTipContent="Horizontal"
-                                    pToolTipId="tql-tab-divider-explorer-ver"
-                                    pIcon={<LuFlipVertical />}
-                                    pIsActive={!isVertical}
-                                    onClick={handleSplitHorizontal}
-                                />
-                            </div>
-                        </div>
-                        <div ref={tqlResultBodyRef} className="tql-result-body scrollbar-dark" style={{ backgroundColor: '#1B1C21' }}>
-                            {sResultType === 'csv' ? <Table headers={sCsvHeader} items={sIsHeader ? sCsv : sCsv.filter((_, aIdx) => aIdx !== 0)} /> : null}
-                            {sResultType === 'text' && sTextField ? (
-                                sIsPrettier && isValidJSON(sTextField) ? (
-                                    <pre>{JSON.stringify(JSON.parse(sTextField), null, 4)}</pre>
-                                ) : (
-                                    <div style={!sLoadState ? { padding: '0 1rem' } : { padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
-                                        <pre>{sTextField}</pre>
-                                        {sLoadState && (
-                                            <div style={{ marginLeft: '4px' }}>
-                                                <Loader width="12px" height="12px" borderRadius="90%" />
-                                            </div>
-                                        )}
-                                    </div>
-                                )
                             ) : null}
-                            {sResultType === 'ndjson' && <pre>{sTextField}</pre>}
-                            {/* Map & Chart */}
-                            {sResultType === 'visual' ? <ShowVisualization pData={sVisualData} pLoopMode={false} /> : null}
-                            {sResultType === 'mrk' ? <Markdown pIdx={1} pContents={sMarkdown} pType="mrk" /> : null}
-                            {sResultType === 'xhtml' ? <Markdown pIdx={1} pContents={sMarkdown} /> : null}
-                        </div>
-                    </div>
+                            {sResultType === 'csv' ? (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    isToolTip
+                                    toolTipContent={`${sIsHeader ? 'Hide' : 'Show'} header`}
+                                    icon={sIsHeader ? <TableHeader size={16} /> : <TableNotHeader size={16} />}
+                                    active={sIsHeader}
+                                    onClick={() => handleChangeHeader(sCsv)}
+                                    aria-label={`${sIsHeader ? 'Hide' : 'Show'} header`}
+                                />
+                            ) : null}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                isToolTip
+                                toolTipContent="Vertical"
+                                icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
+                                active={isVertical}
+                                onClick={handleSplitVertical}
+                                aria-label="Vertical"
+                            />
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                isToolTip
+                                toolTipContent="Horizontal"
+                                icon={<LuFlipVertical size={16} />}
+                                active={!isVertical}
+                                onClick={handleSplitHorizontal}
+                                aria-label="Horizontal"
+                            />
+                        </Button.Group>
+                    </Page.Header>
+                    <Page.Body style={{ padding: '2px 4px' }}>
+                        {sResultType === 'csv' ? <Table headers={sCsvHeader} items={sIsHeader ? sCsv : sCsv.filter((_, aIdx) => aIdx !== 0)} /> : null}
+                        {sResultType === 'text' && sTextField ? (
+                            sIsPrettier && isValidJSON(sTextField) ? (
+                                <pre>{JSON.stringify(JSON.parse(sTextField), null, 4)}</pre>
+                            ) : (
+                                <div style={!sLoadState ? {} : { display: 'flex', alignItems: 'center' }}>
+                                    <pre>{sTextField}</pre>
+                                    {sLoadState && (
+                                        <div style={{ marginLeft: '4px' }}>
+                                            <Loader width="12px" height="12px" borderRadius="90%" />
+                                        </div>
+                                    )}
+                                </div>
+                            )
+                        ) : null}
+                        {sResultType === 'ndjson' && <pre>{sTextField}</pre>}
+                        {/* Map & Chart */}
+                        {sResultType === 'visual' ? <ShowVisualization pData={sVisualData} pLoopMode={false} /> : null}
+                        {sResultType === 'mrk' ? <Markdown pIdx={1} pContents={sMarkdown} pType="mrk" /> : null}
+                        {sResultType === 'xhtml' ? <Markdown pIdx={1} pContents={sMarkdown} /> : null}
+                    </Page.Body>
                 </Pane>
             </SplitPane>
-        </div>
+        </Page>
     );
 };
 

@@ -15,6 +15,7 @@ import { moveFile } from '@/api/repository/fileTree';
 import { FileNameValidator } from '@/utils/FileExtansion';
 import { Tooltip } from 'react-tooltip';
 import { EXTENSION_SET } from '@/utils/constants';
+import { Input } from '@/design-system/components';
 
 interface FileTreeProps {
     rootDir: FileTreeType;
@@ -354,13 +355,7 @@ export const FileTree = (props: FileTreeProps) => {
     }, [sIsDnd]);
 
     return (
-        <div
-            tabIndex={-1}
-            onBlur={() => setKeyItem('')}
-            onKeyDown={handleKeyDown}
-            onClick={HandleRootClick}
-            style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}
-        >
+        <div tabIndex={-1} onBlur={() => setKeyItem('')} onKeyDown={handleKeyDown} onClick={HandleRootClick}>
             <div ref={sTreeRef}>
                 <SubTree
                     directory={props.rootDir}
@@ -760,31 +755,15 @@ const FileDiv = ({
                 >
                     <FileIcon name={icon} extension={extractionExtension(file.name) || ''} />
                     {sIsRename ? (
-                        <div
-                            onKeyDown={handleKeyDown}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                                backgroundColor: 'rgba(38, 40, 49, 0.5)',
-                                border: 'solid 0.5px rgba(255, 255, 255, 0.5)',
-                                borderRadius: '8px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            <input
+                        <div onKeyDown={handleKeyDown} onClick={(e) => e.stopPropagation()}>
+                            <Input
+                                autoFocus
                                 type="text"
+                                size="sm"
                                 value={sName}
                                 onChange={(e) => (FileNameValidator(e.target.value) ? setName(e.target.value) : null)}
-                                autoFocus
                                 onFocus={(e) => e.target.setSelectionRange(0, sName.length)}
                                 onBlur={handleBlur}
-                                style={{
-                                    color: '#f8f8f8',
-                                    outline: 'none',
-                                    border: 'none',
-                                    backgroundColor: 'transparent',
-                                }}
                             />
                         </div>
                     ) : (
@@ -809,11 +788,12 @@ const Div = styled.div<{
     display: flex;
     justify-content: space-between;
     padding-left: ${(props) => props.depth * 16}px;
-    background-color: ${(props) => (props.isDropzone ? '#3e3e3e' : props.isDndItem ? '#3e3e3e' : props.isDndSection ? '#3e3e3e' : props.isSelected ? '#242424' : 'transparent')};
+    background-color: ${(props) =>
+        props.isDropzone ? '#3e3e3e' : props.isDndItem ? '#3e3e3e' : props.isDndSection ? '#3e3e3e' : props.isSelected ? 'rgba(255, 255, 255, 0.13)' : 'transparent'};
     word-break: break-all;
     :hover {
         cursor: pointer;
-        background-color: ${(props) => (props.isDropzone ? '#3e3e3e' : props.isDndItem ? '#3e3e3e' : props.isDndSection ? '#3e3e3e' : '#242424')};
+        background-color: ${(props) => (props.isDropzone ? '#3e3e3e' : props.isDndItem ? '#3e3e3e' : props.isDndSection ? '#3e3e3e' : 'rgba(255, 255, 255, 0.13)')};
     }
     border: ${(props) => (props.isBorder ? 'solid 1px #c9d1d9' : 'solid 1px transparent')};
 `;

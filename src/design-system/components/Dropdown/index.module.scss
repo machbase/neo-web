@@ -3,7 +3,6 @@
 .dropdown-container {
     display: flex;
     flex-direction: column;
-    gap: t.$spacing-8;
 
     &--full-width {
         width: 100%;
@@ -18,12 +17,14 @@
             .dropdown-label {
                 margin-bottom: 0;
                 white-space: nowrap;
-                min-width: 120px;
-                flex-shrink: 0;
+                flex: 1;
+                min-width: 60px;
+                max-width: 120px;
             }
 
             .dropdown {
-                flex: 1;
+                flex: 2;
+                min-width: 0;
             }
         }
     }
@@ -31,6 +32,7 @@
     &--label-top {
         .dropdown-field-wrapper {
             flex-direction: column;
+            gap: t.$spacing-8;
         }
     }
 }
@@ -38,7 +40,6 @@
 .dropdown-field-wrapper {
     display: flex;
     flex-direction: column;
-    gap: t.$spacing-8;
 }
 
 .dropdown-label {
@@ -59,11 +60,13 @@
         align-items: center;
         justify-content: space-between;
         width: 100%;
+        max-width: 100%;
         height: t.$input-height;
         padding: 0 t.$spacing-12;
         cursor: pointer;
         outline: none;
         box-sizing: border-box;
+        overflow: hidden;
 
         &:hover:not(:disabled):not(&--open) {
             border-color: #5a5a5a;
@@ -99,9 +102,17 @@
         }
     }
 
+    // Small size variant for compact layouts (e.g., inside list items)
+    :global(.dropdown-trigger-sm) {
+        height: 24px !important;
+        padding: 0 t.$spacing-8 !important;
+        font-size: t.$font-size-xs !important;
+    }
+
     // Trigger text
     &__trigger-text {
         flex: 1;
+        min-width: 0;
         text-align: left;
         @include t.text-ellipsis;
         font-size: t.$font-size-sm;
@@ -128,7 +139,7 @@
         border: 1px solid t.$dropdown-border;
         border-radius: t.$border-radius-base;
         box-shadow: t.$dropdown-shadow;
-        z-index: t.$z-index-modal-dropdown; // Use higher z-index to work inside modals
+        z-index: t.$z-index-drawer-dropdown; // Use higher z-index to work inside modals and drawers
         max-height: t.$dropdown-max-height;
         overflow-y: auto;
         overflow-x: hidden;

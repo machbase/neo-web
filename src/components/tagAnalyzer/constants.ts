@@ -1,9 +1,9 @@
 export const avgMode = [
-    { key: 'Min', value: 'min' },
-    { key: 'Max', value: 'max' },
-    { key: 'Sum', value: 'sum' },
-    { key: 'Count', value: 'cnt' },
-    { key: 'Average', value: 'avg' },
-    { key: 'First', value: 'first' },
-    { key: 'Last', value: 'last' },
+    { key: 'min', value: 'min' },
+    { key: 'max', value: 'max' },
+    { key: 'sum', value: 'sum' },
+    { key: 'cnt', value: 'cnt' },
+    { key: 'avg', value: 'avg' },
+    { key: 'first', value: 'first' },
+    { key: 'last', value: 'last' },
 ];

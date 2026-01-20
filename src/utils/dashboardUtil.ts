@@ -24,6 +24,33 @@ import moment from 'moment';
 import { SqlResDataType } from './DashboardQueryParser';
 import { TAG_AGGREGATOR_LIST, LOG_AGGREGATOR_LIST, GEOMAP_AGGREGATOR_LIST, NAME_VALUE_AGGREGATOR_LIST, NAME_VALUE_VIRTUAL_AGG_LIST } from './aggregatorConstants';
 
+/**
+ * Safely check if a time value is a special time string (now or last)
+ * @param timeValue - The time value to check (can be string, number, or undefined)
+ * @returns true if the value is a string containing 'now' or 'last', false otherwise
+ */
+export const isSpecialTimeValue = (timeValue: string | number | undefined | null): boolean => {
+    return typeof timeValue === 'string' && (timeValue.includes('now') || timeValue.includes('last'));
+};
+
+/**
+ * Safely format a time value for display
+ * @param timeValue - The time value (string timestamp with 'now'/'last', or number timestamp)
+ * @param format - Moment format string (default: 'yyyy-MM-DD HH:mm:ss')
+ * @returns Formatted time string, or the original special value if it contains 'now'/'last'
+ */
+export const formatTimeValue = (timeValue: string | number | undefined | null, format: string = 'yyyy-MM-DD HH:mm:ss'): string => {
+    if (!timeValue && timeValue !== 0) return '';
+    if (isSpecialTimeValue(timeValue)) return timeValue as string;
+    if (typeof timeValue === 'number') return moment(timeValue).format(format);
+    // Try to parse as date string
+    try {
+        return moment(timeValue).format(format);
+    } catch (e) {
+        return String(timeValue);
+    }
+};
+
 export enum E_VISUAL_LOAD_ID {
     CHART = 'chartID',
     MAP = 'geomapID',
@@ -67,40 +94,60 @@ export const checkValueBracket = (value: string) => {
 };
 
 export const setUnitTime = (aTime: any) => {
+    // Handle undefined, null, or empty values
+    if (aTime === undefined || aTime === null || aTime === '') {
+        return new Date().getTime(); // Default to current time
+    }
+
     const sMomentValid = ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY-MM-DD HH', 'YYYY-MM-DD', 'YYYY-MM', 'YYYY'];
+
+    // Convert 'last' to 'now' for backward compatibility
+    if (typeof aTime === 'string' && aTime.toLowerCase().includes('last')) {
+        aTime = aTime.toLowerCase().replace('last', 'now');
+    }
+
     if (aTime === 'now') return new Date().getTime();
     else if (!isNaN(Number(aTime))) return Number(aTime);
     else if (moment(aTime, sMomentValid, true).isValid()) return moment(aTime).unix() * 1000;
-    else {
+    else if (typeof aTime === 'string') {
         let sAggrPlus = true;
 
         if (aTime.includes('-')) sAggrPlus = false;
 
         const sCalcTime = aTime.slice(0, -1).split(sAggrPlus ? '+' : '-')[1];
+        const sCalcTimeNum = parseFloat(sCalcTime);
+
+        // Add validation for invalid number
+        if (isNaN(sCalcTimeNum)) {
+            return new Date().getTime();
+        }
 
         let sSecTime = -1;
         switch (aTime.slice(-1)) {
             case 's':
-                sSecTime = sCalcTime * 1000;
+                sSecTime = sCalcTimeNum * 1000;
                 break;
             case 'm':
-                sSecTime = sCalcTime * 1000 * 60;
+                sSecTime = sCalcTimeNum * 1000 * 60;
                 break;
             case 'h':
-                sSecTime = sCalcTime * 1000 * 3600;
+                sSecTime = sCalcTimeNum * 1000 * 3600;
                 break;
             case 'd':
-                sSecTime = sCalcTime * 1000 * 24 * 3600;
+                sSecTime = sCalcTimeNum * 1000 * 24 * 3600;
                 break;
             case 'M':
-                sSecTime = sCalcTime * 1000 * 24 * 3600 * 30;
+                sSecTime = sCalcTimeNum * 1000 * 24 * 3600 * 30;
                 break;
             case 'y':
-                sSecTime = sCalcTime * 1000 * 24 * 3600 * 365;
+                sSecTime = sCalcTimeNum * 1000 * 24 * 3600 * 365;
                 break;
         }
 
         return new Date().getTime() - sSecTime;
+    } else {
+        // Fallback: return current time for unexpected types
+        return new Date().getTime();
     }
 };
 
@@ -321,6 +368,11 @@ export const nameValueAggregatorList = NAME_VALUE_AGGREGATOR_LIST;
 export const nameValueVirtualAggList = NAME_VALUE_VIRTUAL_AGG_LIST;
 
 export const refreshTimeList = ['Off', '3 seconds', '5 seconds', '10 seconds', '30 seconds', '1 minute', '5 minutes', '10 minutes', '1 hour'];
+
+export const refreshTimeOptions = refreshTimeList.map((item) => ({
+    value: item,
+    label: item,
+}));
 
 export const createDefaultTagTableOption = (aUser: string, aTable: any, aTableType: string, aTag: string, aChartType?: string) => {
     let sDefaultTableOpt = undefined;

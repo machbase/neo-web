@@ -1,12 +1,11 @@
-import { ExtensionTab } from '@/components/extension/ExtensionTab';
+import { Button, Page } from '@/design-system/components';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gActiveBridge, gActiveSubr, gBoardList, gBridgeList, gSelectedTab } from '@/recoil/recoil';
-import { Pane, SashContent } from 'split-pane-react';
-import SplitPane from 'split-pane-react/esm/SplitPane';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { BridgeItemType, commandBridge, delBridge } from '@/api/repository/bridge';
 import { CreateBridge } from './createBridge';
 import { useEffect, useRef, useState } from 'react';
-import { IconButton } from '../buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
 import { ConfirmModal } from '../modal/ConfirmModal';
 import { getCommandState } from '@/utils/bridgeCommandHelper';
@@ -181,102 +180,100 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
         <>
             {/* Show info */}
             {sPayload && sActiveName !== '' && (
-                <ExtensionTab pRef={sBodyRef}>
+                <Page pRef={sBodyRef}>
                     <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                         <Pane minSize={400}>
-                            <ExtensionTab.Header />
-                            <ExtensionTab.Body>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Bridge name</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{sPayload.name}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Type</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{bridgeTypeHelper(sPayload.type)}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Connection string</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{sPayload.path}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
+                            <Page.Header />
+                            <Page.Body>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Bridge name</Page.ContentTitle>
+                                    <Page.ContentDesc>{sPayload.name}</Page.ContentDesc>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Type</Page.ContentTitle>
+                                    <Page.ContentDesc>{bridgeTypeHelper(sPayload.type)}</Page.ContentDesc>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Connection string</Page.ContentTitle>
+                                    <Page.ContentDesc>{sPayload.path}</Page.ContentDesc>
+                                </Page.ContentBlock>
                                 {/* Test  */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>bridge connection</ExtensionTab.ContentTitle>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>bridge connection</Page.ContentTitle>
                                     <div style={{ marginTop: '8px' }}>
-                                        <ExtensionTab.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} pIsDisable={sPayload?.childs?.length > 0} />
-                                        <ExtensionTab.TextButton pText="Test" pType="CREATE" pCallback={() => handleCommand('test')} />
+                                        <Page.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} pIsDisable={sPayload?.childs?.length > 0} />
+                                        <Page.TextButton pText="Test" pType="CREATE" pCallback={() => handleCommand('test')} />
                                         {SUBSCRIBER_TYPE.includes(sPayload.type) && (
-                                            <ExtensionTab.TextButton pWidth="120px" pText="New subscriber" pType="CREATE" pCallback={handleNewSubr} />
+                                            <Page.TextButton pWidth="120px" pText="New subscriber" pType="CREATE" pCallback={handleNewSubr} />
                                         )}
                                     </div>
-                                    {sCommandRes.test?.data && sCommandRes.test?.data?.success && <ExtensionTab.TextResSuccess pText={'success'} />}
-                                    {sCommandRes.test.message !== '' && <ExtensionTab.TextResErr pText={sCommandRes.test.message} />}
-                                </ExtensionTab.ContentBlock>
+                                    {sCommandRes.test?.data && sCommandRes.test?.data?.success && <Page.TextResSuccess pText={'success'} />}
+                                    {sCommandRes.test.message !== '' && <Page.TextResErr pText={sCommandRes.test.message} />}
+                                </Page.ContentBlock>
 
                                 {!SUBSCRIBER_TYPE.includes(sPayload.type) && (
                                     <>
                                         {/* Command */}
-                                        <ExtensionTab.ContentBlock>
-                                            <ExtensionTab.Collapse
-                                                pTrigger={<ExtensionTab.ContentTitle>Command</ExtensionTab.ContentTitle>}
-                                                pChildren={
-                                                    <>
-                                                        <ExtensionTab.TextArea pContent={sPayload.exec} pHeight={100} pCallback={(event) => handlePayload(event)} />
-                                                        <ExtensionTab.TextButton pText="Send" pType="CREATE" pCallback={() => handleCommand('command')} />
-                                                        {sCommandRes.command.message === '' && sCommandRes.command?.data && <ExtensionTab.TextResSuccess pText={'success'} />}
-                                                        {sCommandRes.command.message !== '' && <ExtensionTab.TextResErr pText={sCommandRes.command.message} />}
-                                                    </>
-                                                }
-                                            />
-                                        </ExtensionTab.ContentBlock>
+                                        <Page.ContentBlock>
+                                            <Page.Collapse pTrigger={<Page.ContentTitle>Command</Page.ContentTitle>}>
+                                                <Page.TextArea pContent={sPayload.exec} pHeight={100} pCallback={(event) => handlePayload(event)} />
+                                                <Page.Space />
+                                                <Page.TextButton pText="Send" pType="CREATE" pCallback={() => handleCommand('command')} />
+                                                {sCommandRes.command.message === '' && sCommandRes.command?.data && <Page.TextResSuccess pText={'success'} />}
+                                                {sCommandRes.command.message !== '' && <Page.TextResErr pText={sCommandRes.command.message} />}
+                                            </Page.Collapse>
+                                        </Page.ContentBlock>
                                     </>
                                 )}
-                            </ExtensionTab.Body>
+                            </Page.Body>
                         </Pane>
                         <Pane>
-                            <ExtensionTab.Header>
+                            <Page.Header>
                                 <div />
-                                <div style={{ display: 'flex' }}>
-                                    <IconButton
-                                        pIsToopTip
-                                        pToolTipContent="Vertical"
-                                        pToolTipId="bridge-tab-hori"
-                                        pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
-                                        pIsActive={isVertical}
+                                <Button.Group>
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        isToolTip
+                                        toolTipContent="Vertical"
+                                        icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
+                                        active={isVertical}
                                         onClick={() => setIsVertical(true)}
                                     />
-                                    <IconButton
-                                        pIsToopTip
-                                        pToolTipContent="Horizontal"
-                                        pToolTipId="bridge-tab-ver"
-                                        pIcon={<LuFlipVertical />}
-                                        pIsActive={!isVertical}
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        isToolTip
+                                        toolTipContent="Horizontal"
+                                        icon={<LuFlipVertical size={16} />}
+                                        active={!isVertical}
                                         onClick={() => setIsVertical(false)}
                                     />
-                                </div>
-                            </ExtensionTab.Header>
-                            <ExtensionTab.Body>
+                                </Button.Group>
+                            </Page.Header>
+                            <Page.Body>
                                 {sCommandRes.test.data && (
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>{'test response'}</ExtensionTab.ContentTitle>
+                                    <Page.ContentBlock>
+                                        <Page.ContentTitle>{'test response'}</Page.ContentTitle>
                                         <pre style={{ overflow: 'auto', whiteSpace: 'pre-wrap' }}>{JSON.stringify(sCommandRes.test.data, null, 4)}</pre>
-                                    </ExtensionTab.ContentBlock>
+                                    </Page.ContentBlock>
                                 )}
                                 {sCommandRes.command.data && (
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>{'Command response'}</ExtensionTab.ContentTitle>
+                                    <Page.ContentBlock>
+                                        <Page.ContentTitle>{'Command response'}</Page.ContentTitle>
                                         {sCommandRes.command.data.column && sCommandRes.command.data.rows ? (
                                             <div style={{ margin: '10px 20px', padding: '12px 16px 12px 0' }}>
-                                                <ExtensionTab.Table pList={{ columns: sCommandRes.command.data.column, rows: sCommandRes.command.data.rows }} />
+                                                <Page.Table pList={{ columns: sCommandRes.command.data.column, rows: sCommandRes.command.data.rows }} />
                                             </div>
                                         ) : (
                                             <pre style={{ overflow: 'auto', whiteSpace: 'pre-wrap' }}>{JSON.stringify(sCommandRes.command.data, null, 4)}</pre>
                                         )}
-                                    </ExtensionTab.ContentBlock>
+                                    </Page.ContentBlock>
                                 )}
-                            </ExtensionTab.Body>
+                            </Page.Body>
                         </Pane>
                     </SplitPane>
-                </ExtensionTab>
+                </Page>
             )}
             {/* Show create */}
             {!sActiveName && <CreateBridge />}

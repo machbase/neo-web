@@ -1,11 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { ExtensionTab } from '../extension/ExtensionTab';
+import { useRef, useState } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { Pane, SashContent } from 'split-pane-react';
-import SplitPane from 'split-pane-react/esm/SplitPane';
+import { SplitPane, Pane, Page, Alert, Button } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { gBoardList, gBridgeList } from '@/recoil/recoil';
-import { VscWarning } from 'react-icons/vsc';
-import { IconButton } from '../buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
 import { BridgeItemType, CreatePayloadType, genBridge } from '@/api/repository/bridge';
 import { SELECTE_TYPE } from './content';
@@ -63,98 +60,87 @@ export const CreateBridge = () => {
         return <SashContent className={`security-key-sash-style`} />;
     };
 
-    useEffect(() => {
-        if (sBodyRef && sBodyRef.current) {
-            setGroupWidth([sBodyRef.current.offsetWidth / 2, sBodyRef.current.offsetWidth / 2]);
-        }
-    }, [sBodyRef]);
-
     return (
-        <ExtensionTab pRef={sBodyRef}>
+        <Page pRef={sBodyRef}>
             <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                 <Pane minSize={400}>
-                    <ExtensionTab.Header />
-                    <ExtensionTab.Body>
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentTitle>name</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>
+                    <Page.Header />
+                    <Page.Body>
+                        <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>name</Page.ContentTitle>
+                                <Page.ContentDesc>
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                </ExtensionTab.ContentDesc>
-                            </ExtensionTab.DpRow>
-                            <ExtensionTab.Input pValue={sCreatePayload.name} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
-                        </ExtensionTab.ContentBlock>
+                                </Page.ContentDesc>
+                            </Page.DpRow>
+                            <Page.Input pValue={sCreatePayload.name} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
+                        </Page.ContentBlock>
 
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentTitle>type</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>
+                        <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>type</Page.ContentTitle>
+                                <Page.ContentDesc>
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                </ExtensionTab.ContentDesc>
-                            </ExtensionTab.DpRow>
-                            <ExtensionTab.Selector
+                                </Page.ContentDesc>
+                            </Page.DpRow>
+                            <Page.Selector
                                 pList={SELECTE_TYPE.map((type) => {
                                     return { name: type, data: type };
                                 })}
                                 pSelectedItem={sCreatePayload.type}
                                 pCallback={(value: string) => handlePayload('type', { target: { value } } as any)}
                             />
-                        </ExtensionTab.ContentBlock>
+                        </Page.ContentBlock>
 
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.DpRow>
-                                <ExtensionTab.ContentTitle>Connection string</ExtensionTab.ContentTitle>
-                                <ExtensionTab.ContentDesc>
+                        <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>Connection string</Page.ContentTitle>
+                                <Page.ContentDesc>
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                </ExtensionTab.ContentDesc>
-                            </ExtensionTab.DpRow>
-                            <ExtensionTab.Input
-                                pValue={sCreatePayload.path}
-                                pWidth={'400px'}
-                                pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('path', event)}
-                            />
-                        </ExtensionTab.ContentBlock>
+                                </Page.ContentDesc>
+                            </Page.DpRow>
+                            <Page.Input pValue={sCreatePayload.path} pWidth={'400px'} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('path', event)} />
+                        </Page.ContentBlock>
+                        <Page.ContentBlock>
+                            <Page.TextButton pText="Create" pType="CREATE" pCallback={createItem} />
+                        </Page.ContentBlock>
 
-                        <ExtensionTab.ContentBlock>
-                            <ExtensionTab.TextButton pText="Create" pType="CREATE" pCallback={createItem} />
-                        </ExtensionTab.ContentBlock>
                         {sResErrMessage && (
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.DpRow>
-                                    <VscWarning style={{ fill: '#ff5353' }} />
-                                    <span style={{ margin: '8px', color: '#ff5353' }}>{sResErrMessage}</span>
-                                </ExtensionTab.DpRow>
-                            </ExtensionTab.ContentBlock>
+                            <Page.ContentBlock>
+                                <Alert variant="error" message={sResErrMessage} />
+                            </Page.ContentBlock>
                         )}
-                    </ExtensionTab.Body>
+                    </Page.Body>
                 </Pane>
                 <Pane>
-                    <ExtensionTab.Header>
+                    <Page.Header>
                         <div />
-                        <div style={{ display: 'flex' }}>
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Vertical"
-                                pToolTipId="bridge-tab-hori"
-                                pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
-                                pIsActive={isVertical}
+                        <Button.Group>
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                isToolTip
+                                toolTipContent="Vertical"
+                                icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
+                                active={isVertical}
                                 onClick={() => setIsVertical(true)}
                             />
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Horizontal"
-                                pToolTipId="bridge-tab-ver"
-                                pIcon={<LuFlipVertical />}
-                                pIsActive={!isVertical}
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                isToolTip
+                                toolTipContent="Horizontal"
+                                icon={<LuFlipVertical size={16} />}
+                                active={!isVertical}
                                 onClick={() => setIsVertical(false)}
                             />
-                        </div>
-                    </ExtensionTab.Header>
-                    <ExtensionTab.Body>
+                        </Button.Group>
+                    </Page.Header>
+                    <Page.Body>
                         <></>
-                    </ExtensionTab.Body>
+                    </Page.Body>
                 </Pane>
             </SplitPane>
-        </ExtensionTab>
+        </Page>
     );
 };

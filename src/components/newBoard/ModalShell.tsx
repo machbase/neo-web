@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import './ModalShell.scss';
 import icons from '@/utils/icons';
 import { Close } from '@/assets/icons/Icon';
-import { Success, Error } from '@/components/toast/Toast';
+import { Toast } from '@/design-system/components';
 import { TextButton } from '@/components/buttons/TextButton';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
@@ -50,11 +50,11 @@ const ModalShell = ({ pGetInfo, pSetIsModal, pInfo }: any) => {
         };
         const sResult: any = await postShell(sData);
         if (sResult.reason) {
-            Success('Success');
+            Toast.success('Success');
             pGetInfo();
             pSetIsModal(false);
         } else {
-            Error('Failed');
+            Toast.error('Failed');
         }
     };
 

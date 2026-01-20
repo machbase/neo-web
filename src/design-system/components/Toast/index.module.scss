@@ -1,0 +1,101 @@
+@use '@/design-system/tokens' as t;
+
+// Toast container (outer wrapper)
+.toast__container {
+    display: flex;
+    border-radius: t.$border-radius-md;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0.5px solid rgba(60, 60, 60, 0.5);
+    box-shadow: t.$shadow-xl;
+    background-color: t.$bg-elevated;
+    animation: toastSlideIn t.$transition-duration-normal ease-out;
+
+    div:nth-child(1) {
+        margin: 0;
+        padding: 0;
+    }
+}
+
+// Toast content
+.toast {
+    color: t.$color-white;
+    display: flex;
+    border-radius: t.$border-radius-md;
+    pointer-events: auto;
+    will-change: transform;
+    align-items: center;
+    padding: t.$spacing-12 !important;
+    line-height: t.$line-height-tight;
+    background-color: t.$bg-elevated;
+    gap: t.$spacing-12;
+}
+
+// Toast message
+.toast__message {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: inherit;
+    flex: 1 1 auto;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    font-size: t.$font-size-base;
+}
+
+// Toast icon base
+.toast__icon {
+    cursor: pointer;
+    width: t.$icon-size-lg;
+    height: t.$icon-size-lg;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: t.$border-radius-circle;
+    flex-shrink: 0;
+    transition: transform t.$transition-duration-fast t.$transition-easing-default;
+
+    svg {
+        width: t.$icon-size-sm;
+        height: t.$icon-size-sm;
+        stroke-width: 2px;
+        color: t.$color-white;
+    }
+
+    &:hover {
+        transform: scale(1.1);
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+}
+
+// Toast icon variants
+.toast__icon--success {
+    background-color: t.$success-main;
+}
+
+.toast__icon--error {
+    background-color: t.$error-main;
+}
+
+.toast__icon--info {
+    background-color: t.$info-main;
+}
+
+.toast__icon--warning {
+    background-color: t.$warning-main;
+}
+
+// Animations
+@keyframes toastSlideIn {
+    0% {
+        transform: translate3d(0, -100%, 0) scale(0.9);
+        opacity: 0;
+    }
+    100% {
+        transform: translate3d(0, 0, 0) scale(1);
+        opacity: 1;
+    }
+}

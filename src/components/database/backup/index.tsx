@@ -1,7 +1,7 @@
-import { ExtensionTab } from '@/components/extension/ExtensionTab';
-import { Pane, SashContent } from 'split-pane-react';
+import { Page } from '@/design-system/components';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { useEffect, useState } from 'react';
-import SplitPane from 'split-pane-react/esm/SplitPane';
 import { backupStatus, databaseBackup, getAllowBackupTable, getBackupDBList } from '@/api/repository/api';
 import { IconButton } from '@/components/buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
@@ -225,32 +225,32 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
 
     return (
         <>
-            <ExtensionTab>
+            <Page>
                 <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                     {
                         <Pane minSize={400}>
-                            <ExtensionTab.Header />
-                            <ExtensionTab.Body>
+                            <Page.Header />
+                            <Page.Body>
                                 {/* VIEW Backup in progress */}
                                 {sPageMode === 'VIEW' && (
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.DpRowBetween>
-                                            <ExtensionTab.SubTitle>Backup in progress...</ExtensionTab.SubTitle>
+                                    <Page.ContentBlock>
+                                        <Page.DpRowBetween>
+                                            <Page.SubTitle>Backup in progress...</Page.SubTitle>
                                             <div style={{ display: 'flex', marginTop: '12px', flexDirection: 'column', alignItems: 'end' }}>
-                                                <ExtensionTab.TextButton pText="Check" pType="CREATE" pCallback={handleStatusRefresh} />
+                                                <Page.TextButton pText="Check" pType="CREATE" pCallback={handleStatusRefresh} />
                                                 <div style={{ marginRight: '16px', marginTop: '-12px' }}>
                                                     <span style={{ fontSize: '10px', color: '#5d5d5d' }}>last checked at {sLastCheckTime}</span>
                                                 </div>
                                             </div>
-                                        </ExtensionTab.DpRowBetween>
-                                    </ExtensionTab.ContentBlock>
+                                        </Page.DpRowBetween>
+                                    </Page.ContentBlock>
                                 )}
                                 {/* Backup type */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>backup type</ExtensionTab.ContentTitle>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>backup type</Page.ContentTitle>
                                     {sPageMode === 'CREATE' && (
                                         <>
-                                            <ExtensionTab.Selector
+                                            <Page.Selector
                                                 pList={[
                                                     { name: 'database', data: 'database' },
                                                     { name: 'table', data: 'table' },
@@ -262,14 +262,14 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                             />
                                         </>
                                     )}
-                                    {sPageMode === 'VIEW' && <ExtensionTab.ContentDesc>{sPayload.type.toUpperCase()}</ExtensionTab.ContentDesc>}
+                                    {sPageMode === 'VIEW' && <Page.ContentDesc>{sPayload.type.toUpperCase()}</Page.ContentDesc>}
                                     {/* Table name & CREATE */}
                                     {sPayload?.type === 'table' && sPageMode === 'CREATE' && (
-                                        <ExtensionTab.ContentBlock>
-                                            <ExtensionTab.ContentText pContent="Table name" />
+                                        <Page.ContentBlock>
+                                            <Page.ContentText pContent="Table name" />
                                             {sPageMode === 'CREATE' && (
                                                 <div onClick={getTableNameList}>
-                                                    <ExtensionTab.Selector
+                                                    <Page.Selector
                                                         pWidth="365px"
                                                         pList={
                                                             sTableList.map((aItem: any) => {
@@ -283,21 +283,21 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                                     />
                                                 </div>
                                             )}
-                                        </ExtensionTab.ContentBlock>
+                                        </Page.ContentBlock>
                                     )}
-                                </ExtensionTab.ContentBlock>
+                                </Page.ContentBlock>
                                 {/* Table name & VIEW*/}
                                 {sPayload?.type === 'table' && sPageMode === 'VIEW' && (
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Table name</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>{sPayload.tableName.toUpperCase()}</ExtensionTab.ContentDesc>
-                                    </ExtensionTab.ContentBlock>
+                                    <Page.ContentBlock>
+                                        <Page.ContentTitle>Table name</Page.ContentTitle>
+                                        <Page.ContentDesc>{sPayload.tableName.toUpperCase()}</Page.ContentDesc>
+                                    </Page.ContentBlock>
                                 )}
                                 {/* Backup duration type  */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>time duration</ExtensionTab.ContentTitle>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>time duration</Page.ContentTitle>
                                     {sPageMode === 'CREATE' && (
-                                        <ExtensionTab.Selector
+                                        <Page.Selector
                                             pList={[
                                                 { name: 'full', data: 'full' },
                                                 { name: 'incremental', data: 'incremental' },
@@ -310,88 +310,84 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                         />
                                     )}
                                     {sPageMode === 'VIEW' && (
-                                        <ExtensionTab.ContentDesc>
-                                            {sPayload.duration.type === 'time' ? 'time range'.toUpperCase() : sPayload.duration.type}
-                                        </ExtensionTab.ContentDesc>
+                                        <Page.ContentDesc>{sPayload.duration.type === 'time' ? 'time range'.toUpperCase() : sPayload.duration.type}</Page.ContentDesc>
                                     )}
                                     {/* Incremental backup */}
                                     {sPayload?.duration?.type === 'incremental' && sPageMode === 'CREATE' && (
-                                        <ExtensionTab.ContentBlock>
-                                            <ExtensionTab.ContentText pContent="Previous backup directory"></ExtensionTab.ContentText>
-                                            <ExtensionTab.ContentDesc>Path of full or previous incremental backup.</ExtensionTab.ContentDesc>
-                                            <ExtensionTab.Input pAutoFocus pCallback={(event: React.FormEvent<HTMLInputElement>) => setDurationAfter(event)} pWidth="365px" />
-                                        </ExtensionTab.ContentBlock>
+                                        <>
+                                            <Page.Space />
+                                            <Page.ContentText pContent="Previous backup directory"></Page.ContentText>
+                                            <Page.ContentDesc>Path of full or previous incremental backup.</Page.ContentDesc>
+                                            <Page.Input pAutoFocus pCallback={(event: React.FormEvent<HTMLInputElement>) => setDurationAfter(event)} pWidth="365px" />
+                                        </>
                                     )}
                                     {/* Time Duration backup */}
                                     {sPayload?.duration?.type === 'time range' && sPageMode === 'CREATE' && (
-                                        <ExtensionTab.ContentBlock>
-                                            <ExtensionTab.ContentText pContent="From"></ExtensionTab.ContentText>
-                                            <ExtensionTab.DateTimePicker pTime={sPayload?.duration?.from} pSetApply={(e: any) => handleTime('from', e)} />
-                                            <ExtensionTab.ContentText pContent="to"></ExtensionTab.ContentText>
-                                            <ExtensionTab.DateTimePicker pTime={sPayload?.duration?.to} pSetApply={(e: any) => handleTime('to', e)} />
+                                        <>
+                                            <Page.Space />
+                                            <Page.ContentText pContent="From" />
+                                            <Page.DateTimePicker pTime={sPayload?.duration?.from} pSetApply={(e: any) => handleTime('from', e)} />
+                                            <Page.ContentText pContent="to" />
+                                            <Page.DateTimePicker pTime={sPayload?.duration?.to} pSetApply={(e: any) => handleTime('to', e)} />
+                                            <Page.Space />
                                             {((sTimestampErr?.from && String(sTimestampErr?.from)) || (sTimestampErr?.to && String(sTimestampErr?.to))) && (
-                                                <ExtensionTab.ContentDesc>
-                                                    <div style={{ marginTop: '-10px' }}>
-                                                        <ExtensionTab.TextResErr pText={sTimestampErr?.from ?? sTimestampErr?.to} />
-                                                    </div>
-                                                </ExtensionTab.ContentDesc>
+                                                <Page.ContentDesc>
+                                                    <Page.TextResErr pText={sTimestampErr?.from ?? sTimestampErr?.to} />
+                                                </Page.ContentDesc>
                                             )}
-                                        </ExtensionTab.ContentBlock>
+                                        </>
                                     )}
-                                </ExtensionTab.ContentBlock>
+                                </Page.ContentBlock>
                                 {/* Incremental bakcup VIEW */}
                                 {sPayload?.duration?.type === 'incremental' && sPageMode === 'VIEW' && (
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Previous backup directory</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>{sPayload.duration.after}</ExtensionTab.ContentDesc>
-                                    </ExtensionTab.ContentBlock>
+                                    <>
+                                        <Page.Space />
+                                        <Page.ContentTitle>Previous backup directory</Page.ContentTitle>
+                                        <Page.ContentDesc>{sPayload.duration.after}</Page.ContentDesc>
+                                    </>
                                 )}
                                 {/* Time Duration VIEW */}
                                 {sPayload?.duration?.type === 'time' && sPageMode === 'VIEW' && (
                                     <>
-                                        <ExtensionTab.ContentBlock>
-                                            <ExtensionTab.ContentTitle>From</ExtensionTab.ContentTitle>
-                                            <ExtensionTab.ContentDesc>
-                                                {sPayload.duration.from ? changeUtcToText(Number(sPayload.duration.from)) : sPayload.duration.from}
-                                            </ExtensionTab.ContentDesc>
-                                        </ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentBlock>
-                                            <ExtensionTab.ContentTitle>to</ExtensionTab.ContentTitle>
-                                            <ExtensionTab.ContentDesc>
-                                                {sPayload.duration.to ? changeUtcToText(Number(sPayload.duration.to)) : sPayload.duration.to}
-                                            </ExtensionTab.ContentDesc>
-                                        </ExtensionTab.ContentBlock>
+                                        <Page.ContentBlock>
+                                            <Page.ContentTitle>From</Page.ContentTitle>
+                                            <Page.ContentDesc>{sPayload.duration.from ? changeUtcToText(Number(sPayload.duration.from)) : sPayload.duration.from}</Page.ContentDesc>
+                                        </Page.ContentBlock>
+                                        <Page.ContentBlock>
+                                            <Page.ContentTitle>to</Page.ContentTitle>
+                                            <Page.ContentDesc>{sPayload.duration.to ? changeUtcToText(Number(sPayload.duration.to)) : sPayload.duration.to}</Page.ContentDesc>
+                                        </Page.ContentBlock>
                                     </>
                                 )}
                                 {/* Backup path */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>destination Path</ExtensionTab.ContentTitle>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>destination Path</Page.ContentTitle>
                                     {sPageMode === 'CREATE' && (
                                         <>
-                                            <ExtensionTab.ContentDesc>Absolute and relative path can be used for backup directory.</ExtensionTab.ContentDesc>
-                                            <ExtensionTab.Input pAutoFocus pValue={sPayload?.path ?? ''} pCallback={(event: React.FormEvent<HTMLInputElement>) => setPath(event)} />
+                                            <Page.ContentDesc>Absolute and relative path can be used for backup directory.</Page.ContentDesc>
+                                            <Page.Input pAutoFocus pValue={sPayload?.path ?? ''} pCallback={(event: React.FormEvent<HTMLInputElement>) => setPath(event)} />
                                         </>
                                     )}
-                                    {sPageMode === 'VIEW' && <ExtensionTab.ContentDesc>{sPayload.path}</ExtensionTab.ContentDesc>}
-                                </ExtensionTab.ContentBlock>
+                                    {sPageMode === 'VIEW' && <Page.ContentDesc>{sPayload.path}</Page.ContentDesc>}
+                                </Page.ContentBlock>
                                 {/* Create btn */}
                                 {sPageMode === 'CREATE' && (
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.TextButton pText="Backup" pType="CREATE" pCallback={createBackup} />
+                                    <Page.ContentBlock>
+                                        <Page.TextButton pText="Backup" pType="CREATE" pCallback={createBackup} />
                                         {sCreateRes && (
-                                            <ExtensionTab.ContentDesc>
+                                            <Page.ContentDesc>
                                                 <div style={{ marginTop: '-10px' }}>
-                                                    <ExtensionTab.TextResErr pText={sCreateRes} />
+                                                    <Page.TextResErr pText={sCreateRes} />
                                                 </div>
-                                            </ExtensionTab.ContentDesc>
+                                            </Page.ContentDesc>
                                         )}
-                                    </ExtensionTab.ContentBlock>
+                                    </Page.ContentBlock>
                                 )}
-                            </ExtensionTab.Body>
+                            </Page.Body>
                         </Pane>
                     }
                     <Pane>
-                        <ExtensionTab.Header>
+                        <Page.Header>
                             <div />
                             <div style={{ display: 'flex' }}>
                                 <IconButton
@@ -411,49 +407,49 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                     onClick={() => setIsVertical(false)}
                                 />
                             </div>
-                        </ExtensionTab.Header>
+                        </Page.Header>
                         {sPageMode === 'CREATE' && (
-                            <ExtensionTab.Body>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.SubTitle>Database Backup</ExtensionTab.SubTitle>
-                                    <ExtensionTab.ContentDesc>
+                            <Page.Body>
+                                <Page.ContentBlock>
+                                    <Page.SubTitle>Database Backup</Page.SubTitle>
+                                    <Page.ContentDesc>
                                         Machbase’s database backup is classified as follows, and either backup of the entire database or backup of the specific table is possible.
-                                    </ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
+                                    </Page.ContentDesc>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
                                     <div style={{ width: 'auto', maxWidth: '1000px' }}>
-                                        <ExtensionTab.Table pList={backupTable} dotted />
+                                        <Page.Table pList={backupTable} dotted />
                                     </div>
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentDesc>Syntax:</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.CopyBlock pContent={backupSyntax} />
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentDesc>{explainPathAndTime}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentDesc>Example:</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.CopyBlock pContent={exampleBackup} />
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>backup type</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{explainEtc1}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Time Duration</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{explainEtc2}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>destination Path</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{explainEtc3}</ExtensionTab.ContentDesc>
-                                    <ExtensionTab.ContentDesc>{explainEtc4}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                            </ExtensionTab.Body>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentDesc>Syntax:</Page.ContentDesc>
+                                    <Page.CopyBlock pContent={backupSyntax} />
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentDesc>{explainPathAndTime}</Page.ContentDesc>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentDesc>Example:</Page.ContentDesc>
+                                    <Page.CopyBlock pContent={exampleBackup} />
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>backup type</Page.ContentTitle>
+                                    <Page.ContentDesc>{explainEtc1}</Page.ContentDesc>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Time Duration</Page.ContentTitle>
+                                    <Page.ContentDesc>{explainEtc2}</Page.ContentDesc>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>destination Path</Page.ContentTitle>
+                                    <Page.ContentDesc>{explainEtc3}</Page.ContentDesc>
+                                    <Page.ContentDesc>{explainEtc4}</Page.ContentDesc>
+                                </Page.ContentBlock>
+                            </Page.Body>
                         )}
                     </Pane>
                 </SplitPane>
-            </ExtensionTab>
+            </Page>
         </>
     );
 };

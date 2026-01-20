@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, KeyboardEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, KeyboardEvent } from 'react';
 
 export interface DropdownOption {
     value: string;
@@ -77,6 +77,13 @@ export const useDropdown = (props: UseDropdownProps): UseDropdownReturn => {
     const containerRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
+
+    // Sync external value prop with internal state
+    useEffect(() => {
+        if (value !== undefined) {
+            setSelectedValue(value);
+        }
+    }, [value]);
 
     // Derived state
     const selectedOption = options.find((opt) => opt.value === selectedValue);

@@ -1,11 +1,5 @@
 import { Close, PlusCircle } from '@/assets/icons/Icon';
-import { IconButton } from '@/components/buttons/IconButton';
-import { Collapse } from '@/components/collapse/Collapse';
-import { BadgeSelect, BadgeSelectorItemType } from '@/components/inputs/BadgeSelector';
-import CheckBox from '@/components/inputs/CheckBox';
-import { Input } from '@/components/inputs/Input';
-import { Select } from '@/components/inputs/Select';
-import { HierarchicalCombobox } from '@/design-system/components';
+import { HierarchicalCombobox, Dropdown, Input, Checkbox, Page, Button, BadgeSelect, type BadgeSelectItem } from '@/design-system/components';
 import { E_CHART_TYPE } from '@/type/eChart';
 import { findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 import { E_BLOCK_TYPE } from '@/utils/Chart/TransformDataParser';
@@ -17,14 +11,14 @@ interface XAxisOptionProps {
     pPanelOption: any;
     pSetPanelOption: any;
 }
-// TODO according to tag count
+
 export const YAxisOptions = (props: XAxisOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
     const sPositionList = ['left', 'right'];
 
-    const handleYAxisPosition = (aEvent: any, aIndex: number) => {
+    const handleYAxisPosition = (value: string, aIndex: number) => {
         const sCurrentYAxis = JSON.parse(JSON.stringify(pPanelOption.yAxisOptions));
-        sCurrentYAxis[aIndex].position = aEvent.target.value;
+        sCurrentYAxis[aIndex].position = value;
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
@@ -50,7 +44,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
         });
     };
 
-    const handleUseSecondYAxis = (aItem: BadgeSelectorItemType) => {
+    const handleUseSecondYAxis = (aItem: BadgeSelectItem) => {
         const sTmpUseSecondYAxis = JSON.parse(JSON.stringify(pPanelOption.yAxisOptions[1]));
         if (sTmpUseSecondYAxis.useBlockList.includes(aItem.idx)) {
             sTmpUseSecondYAxis.useBlockList = sTmpUseSecondYAxis.useBlockList.filter((useNum: number) => useNum !== aItem.idx);
@@ -108,7 +102,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
 
         const sTrxBlockResult = sTmpTrxBlockList?.map((trxB: any, idx: number) => {
             return {
-                name: !!trxB?.alias ? trxB?.alias : `TRANSFORM_VALUE(${idx})`,
+                name: trxB?.alias ? trxB?.alias : `TRANSFORM_VALUE(${idx})`,
                 color: trxB?.color,
                 idx: idx + 100,
                 type: E_BLOCK_TYPE.TRX,
@@ -134,126 +128,94 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
 
     return (
         <>
-            <div className="divider" />
-            <Collapse title="yAxis">
+            <Page.Divi />
+            <Page.Collapse title="yAxis">
                 {pPanelOption.yAxisOptions.map((aItem: any, aIndex: number) => (
-                    <div key={aItem.type + aIndex}>
-                        <div style={{ border: 'solid 1px #777777', borderRadius: '5px', padding: '10px 0 10px 10px', marginRight: '8px' }}>
-                            {aIndex === 1 && (
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 10px 10px 0' }}>
-                                    <IconButton pWidth={15} pHeight={15} pIcon={<Close />} onClick={addRemoveYAixs} />
-                                </div>
-                            )}
-                            <div className="menu-style">
-                                <div>Name</div>
+                    <Page.ContentBlock pHoverNone key={aItem.type + aIndex} style={{ flex: 1, border: 'solid 1px #777777', borderRadius: '4px' }}>
+                        {aIndex === 1 && <Button size="icon" variant="ghost" icon={<Close />} onClick={addRemoveYAixs} />}
+                        <Input
+                            label="Name"
+                            type="text"
+                            fullWidth
+                            placeholder="none"
+                            value={aItem?.label?.title ?? ''}
+                            onChange={(aEvent) => handleYAxisOption('title', aEvent, aIndex)}
+                        />
+                        <Dropdown.Root
+                            label="Position"
+                            options={sPositionList.map((option) => ({ label: option, value: option }))}
+                            value={aItem.position}
+                            onChange={(value: string) => handleYAxisPosition(value, aIndex)}
+                            fullWidth
+                        >
+                            <Dropdown.Trigger />
+                            <Dropdown.Menu>
+                                <Dropdown.List />
+                            </Dropdown.Menu>
+                        </Dropdown.Root>
+                        <Input
+                            label="Offset"
+                            type="number"
+                            fullWidth
+                            placeholder="auto"
+                            value={aItem?.offset ?? ''}
+                            onChange={(aEvent) => handleYAxisOption('offset', aEvent, aIndex)}
+                        />
+                        <Page.Divi />
+                        {/* TICK  */}
+                        <Page.Collapse title="Tick options" size="sm">
+                            <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                                <HierarchicalCombobox.Root
+                                    label="Unit"
+                                    value={aItem?.unit?.id ?? ''}
+                                    categories={UNITS}
+                                    onChange={(value) => handleYAxisOption('unit', value, aIndex)}
+                                >
+                                    <HierarchicalCombobox.Input />
+                                    <HierarchicalCombobox.Menu>
+                                        <HierarchicalCombobox.List emptyMessage="No units available" />
+                                    </HierarchicalCombobox.Menu>
+                                </HierarchicalCombobox.Root>
                                 <Input
-                                    pType="text"
-                                    pWidth={'100%'}
-                                    pHeight={25}
-                                    pPlaceHolder="none"
-                                    pBorderRadius={4}
-                                    pValue={aItem?.label?.title ?? ''}
-                                    onChange={(aEvent) => handleYAxisOption('title', aEvent, aIndex)}
+                                    label="Decimals"
+                                    type="number"
+                                    fullWidth
+                                    placeholder="auto"
+                                    value={aItem?.label?.decimals ?? ''}
+                                    onChange={(aEvent) => handleYAxisOption('decimals', aEvent, aIndex)}
                                 />
-                            </div>
-                            <div className="menu-style">
-                                <div>Position</div>
-                                <Select
-                                    pWidth={'100%'}
-                                    pHeight={25}
-                                    pBorderRadius={4}
-                                    pInitValue={aItem.position}
-                                    onChange={(aEvent) => handleYAxisPosition(aEvent, aIndex)}
-                                    pOptions={sPositionList}
-                                />
-                            </div>
-                            <div className="menu-style">
-                                <div>Offset</div>
                                 <Input
-                                    pType="number"
-                                    pWidth={'100%'}
-                                    pHeight={25}
-                                    pPlaceHolder="auto"
-                                    pBorderRadius={4}
-                                    pValue={aItem?.offset ?? ''}
-                                    onChange={(aEvent) => handleYAxisOption('offset', aEvent, aIndex)}
+                                    label="Min"
+                                    type="number"
+                                    fullWidth
+                                    placeholder="auto"
+                                    value={aItem?.min ?? ''}
+                                    onChange={(aEvent: any) => HandleMinMax('min', aEvent.target.value, aIndex)}
                                 />
-                            </div>
-                            <div style={{ paddingRight: '8px' }}>
-                                <div className="divider" />
-                            </div>
-                            {/* TICK  */}
-                            <Collapse title="Tick options">
-                                <div className="menu-style" style={{ display: 'flex', flex: 1, width: '100%', paddingRight: '10px' }}>
-                                    <span>Unit</span>
-                                    <HierarchicalCombobox.Root value={aItem?.unit?.id ?? ''} categories={UNITS} onChange={(value) => handleYAxisOption('unit', value, aIndex)}>
-                                        <HierarchicalCombobox.Input />
-                                        <HierarchicalCombobox.Menu>
-                                            <HierarchicalCombobox.List emptyMessage="No units available" />
-                                        </HierarchicalCombobox.Menu>
-                                    </HierarchicalCombobox.Root>
-                                </div>
-
-                                <div className="menu-style">
-                                    <span>Decimals</span>
-                                    <Input
-                                        pType="number"
-                                        pWidth={'100%'}
-                                        pHeight={25}
-                                        pPlaceHolder="auto"
-                                        pBorderRadius={4}
-                                        pValue={aItem?.label?.decimals ?? ''}
-                                        onChange={(aEvent) => handleYAxisOption('decimals', aEvent, aIndex)}
-                                    />
-                                </div>
-
-                                <div className="menu-style">
-                                    <div>Min</div>
-                                    <Input
-                                        pType="number"
-                                        pWidth={'100%'}
-                                        pHeight={25}
-                                        pBorderRadius={4}
-                                        pPlaceHolder={'auto'}
-                                        pValue={aItem?.min ?? ''}
-                                        onChange={(aEvent: any) => HandleMinMax('min', aEvent.target.value, aIndex)}
-                                    />
-                                </div>
-                                <div className="menu-style">
-                                    <div>Max</div>
-                                    <Input
-                                        pType="number"
-                                        pWidth={'100%'}
-                                        pHeight={25}
-                                        pBorderRadius={4}
-                                        pPlaceHolder={'auto'}
-                                        pValue={aItem?.max ?? ''}
-                                        onChange={(aEvent: any) => HandleMinMax('max', aEvent.target.value, aIndex)}
-                                    />
-                                </div>
-
-                                <div className="menu-style">
-                                    <CheckBox pText="Start at zero" pDefaultChecked={!aItem?.scale} onChange={(aEvent: any) => handleYAxisOption('scale', aEvent, aIndex)} />
-                                </div>
-                            </Collapse>
-                            {aIndex === 1 && (
-                                <>
-                                    <div className="divider" />
-                                    <div>Series</div>
-                                    <div style={{ padding: '8px 10px 0 0' }}>
-                                        <BadgeSelect pSelectedList={pPanelOption.yAxisOptions[1]?.useBlockList || [0]} pList={getBlockList} pCallback={handleUseSecondYAxis} />
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                        <div style={{ height: '8px' }} />
-                    </div>
+                                <Input
+                                    label="Max"
+                                    type="number"
+                                    fullWidth
+                                    placeholder="auto"
+                                    value={aItem?.max ?? ''}
+                                    onChange={(aEvent: any) => HandleMinMax('max', aEvent.target.value, aIndex)}
+                                />
+                                <Checkbox size="sm" label="Start at zero" defaultChecked={!aItem?.scale} onChange={(aEvent: any) => handleYAxisOption('scale', aEvent, aIndex)} />
+                            </Page.ContentBlock>
+                        </Page.Collapse>
+                        {aIndex === 1 && (
+                            <>
+                                <Page.Divi />
+                                <BadgeSelect label="Series" selectedList={pPanelOption.yAxisOptions[1]?.useBlockList || [0]} list={getBlockList} onChange={handleUseSecondYAxis} />
+                            </>
+                        )}
+                        <Page.Space />
+                    </Page.ContentBlock>
                 ))}
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '10px' }}>
-                    {pPanelOption.yAxisOptions.length < 2 && <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={addRemoveYAixs} />}
-                </div>
-            </Collapse>
+                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    {pPanelOption.yAxisOptions.length < 2 && <Button size="icon" variant="ghost" icon={<PlusCircle size={16} />} onClick={addRemoveYAixs} />}
+                </Page.ContentBlock>
+            </Page.Collapse>
         </>
     );
 };

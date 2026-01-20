@@ -9,7 +9,7 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
     size?: InputSize;
     variant?: InputVariant;
     error?: string;
-    label?: string;
+    label?: string | React.ReactNode;
     labelPosition?: InputLabelPosition;
     helperText?: string;
     fullWidth?: boolean;
@@ -32,6 +32,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className,
             disabled,
             id,
+            style,
             ...props
         },
         ref
@@ -66,7 +67,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         );
 
         const inputElement = (
-            <div className={wrapperClasses}>
+            <div className={wrapperClasses} style={style}>
                 {leftIcon && <span className={styles['input-icon--left']}>{leftIcon}</span>}
                 <input ref={ref} id={inputId} className={styles.input} disabled={disabled} {...props} />
                 {rightIcon && <span className={styles['input-icon--right']}>{rightIcon}</span>}

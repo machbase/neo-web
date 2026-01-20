@@ -60,7 +60,7 @@
  * Used in ExtensionTab hover states
  */
 @mixin hover-bg($bg-color: c.$bg-hover) {
-    transition: tr.$transition-default;
+    // transition: tr.$transition-default;
 
     &:hover {
         background-color: $bg-color;
@@ -72,7 +72,7 @@
  * Used for interactive elements
  */
 @mixin hover-primary {
-    transition: tr.$transition-default;
+    // transition: tr.$transition-default;
     cursor: pointer;
 
     &:hover {
@@ -452,6 +452,51 @@
 // ============================================
 
 /**
+ * Custom scrollbar styling
+ * Consistent scrollbar appearance for dropdowns, menus, and scrollable content
+ */
+@mixin custom-scrollbar($width: 6px) {
+    &::-webkit-scrollbar {
+        width: $width;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    }
+}
+
+/**
+ * Chevron icon with rotation animation
+ * Used in dropdowns, collapsible sections, etc.
+ */
+@mixin chevron-icon {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+    min-width: 16px;
+    max-width: 16px;
+    min-height: 16px;
+    max-height: 16px;
+    padding: 2px;
+}
+
+/**
+ * Chevron icon open state (rotated 180 degrees)
+ * For dropdowns
+ */
+@mixin chevron-icon-open {
+    transform: rotate(90deg);
+}
+
+/**
  * Horizontal divider
  */
 @mixin divider {
@@ -619,5 +664,37 @@
 
     &:hover {
         background-color: c.$dropdown-option-selected-bg;
+    }
+}
+
+// ============================================
+// Drag Handle Mixins
+// ============================================
+
+/**
+ * Drag handle hover effect
+ * Radial gradient effect for drag handles and split panes
+ */
+@mixin drag-handle-hover-effect {
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        background: radial-gradient(closest-side, rgb(0, 108, 210) 0%, rgba(0, 95, 184, 0) 100%);
+        pointer-events: none;
+    }
+
+    &:hover::before,
+    &:active::before,
+    &--dragging::before,
+    &--active::before {
+        opacity: 1;
     }
 }

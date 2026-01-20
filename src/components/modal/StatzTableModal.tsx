@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Modal } from '@/design-system/components/Modal';
 import { TableHeader } from '@/assets/icons/Icon';
 import { getStatzConfig, setStatzConfig } from '@/api/repository/statz';
-import { Error } from '@/components/toast/Toast';
+import { Toast } from '@/design-system/components';
 import { Input } from '@/design-system/components';
 
 interface StatzTableModalProps {
@@ -22,10 +22,10 @@ export const StatzTableModal = ({ isOpen, onClose }: StatzTableModalProps) => {
             if (result && result.success) {
                 onClose();
             } else {
-                Error('Failed to set statz config');
+                Toast.error('Failed to set statz config');
             }
         } catch (error) {
-            Error('Error setting statz config');
+            Toast.error('Error setting statz config');
         } finally {
             setIsLoading(false);
         }
@@ -38,7 +38,7 @@ export const StatzTableModal = ({ isOpen, onClose }: StatzTableModalProps) => {
                 setTableName(result.data.out);
             }
         } catch (error) {
-            Error('Error loading statz config');
+            Toast.error('Error loading statz config');
         }
     };
 

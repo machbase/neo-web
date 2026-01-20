@@ -26,7 +26,7 @@ import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { FakeTextBlock } from '@/utils/helpers/Dashboard/BlockHelper';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 // import TQL from '@/utils/TqlGenerator';
-// import { Error } from '@/components/toast/Toast';
+// import { Toast } from '@/design-system/components';
 
 const LineChart = ({
     pIsActiveTab,
@@ -60,10 +60,16 @@ const LineChart = ({
     const calculateTimeRange = () => {
         let sStartTimeBeforeStart = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.start : pBoardTimeMinMax.min;
         let sStartTimeBeforeEnd = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.end : pBoardTimeMinMax.max;
-        if (String(sStartTimeBeforeStart).includes('now') && String(sStartTimeBeforeEnd).includes('now')) {
+
+        // Convert if either start or end contains 'now' or 'last'
+        const sStartStr = String(sStartTimeBeforeStart);
+        const sEndStr = String(sStartTimeBeforeEnd);
+
+        if (sStartStr.includes('now') || sStartStr.includes('last') || sEndStr.includes('now') || sEndStr.includes('last')) {
             sStartTimeBeforeStart = setUnitTime(sStartTimeBeforeStart);
             sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
         }
+
         return { start: sStartTimeBeforeStart, end: sStartTimeBeforeEnd };
     };
 
@@ -78,7 +84,7 @@ const LineChart = ({
     //     if (sHasState) {
     //         const sResult: any = await getTqlChart(`SQL("${sHasQuery}")\n${TQL.SINK._JSON()}`, 'dsh');
     //         if (sResult?.data?.data?.rows?.[0]?.[0] <= 0)
-    //             Error(`No data exists from ${moment(aTime.start).format('yyyy-MM-DD HH:mm:ss')} to ${moment(aTime.end).format('yyyy-MM-DD HH:mm:ss')}.`);
+    //             Toast.error(`No data exists from ${moment(aTime.start).format('yyyy-MM-DD HH:mm:ss')} to ${moment(aTime.end).format('yyyy-MM-DD HH:mm:ss')}.`);
     //     }
     // };
     const executeTqlChart = async (aWidth?: number) => {
@@ -96,6 +102,7 @@ const LineChart = ({
 
         let sStartTime = undefined;
         let sEndTime = undefined;
+
         if (pPanelInfo.useCustomTime) {
             const sTimeMinMax = await handlePanelTimeRange(pPanelInfo.timeRange.start, pPanelInfo.timeRange.end);
             if (!sTimeMinMax) {
@@ -106,8 +113,8 @@ const LineChart = ({
                 sEndTime = sTimeMinMax.max;
             }
         } else {
-            sStartTime = pBoardTimeMinMax?.min;
-            sEndTime = pBoardTimeMinMax?.max;
+            sStartTime = setUnitTime(pBoardTimeMinMax?.min);
+            sEndTime = setUnitTime(pBoardTimeMinMax?.max);
         }
 
         let sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
@@ -177,8 +184,8 @@ const LineChart = ({
                     },
                     PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)
                 );
-                let sTmpParsedQuery = [];
-                let sTmpAliasList = [];
+                const sTmpParsedQuery = [];
+                const sTmpAliasList = [];
 
                 // TEXT
                 const sTxtIdx = pPanelInfo.chartOptions.textSeries;

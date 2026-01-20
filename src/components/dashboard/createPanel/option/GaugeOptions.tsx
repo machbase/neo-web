@@ -1,9 +1,5 @@
-import './options.scss';
-import { Collapse } from '@/components/collapse/Collapse';
-import CheckBox from '@/components/inputs/CheckBox';
-import { Input } from '@/components/inputs/Input';
+import { HierarchicalCombobox, Input, Checkbox, Page } from '@/design-system/components';
 import { MultiColorPkr } from './MultiColorPkr';
-import { HierarchicalCombobox } from '@/design-system/components';
 import { findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 
 interface GaugeOptionProps {
@@ -67,145 +63,103 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
     };
 
     return (
-        <div>
-            <div className="menu-style" style={{ display: 'flex', flex: 1, width: '100%', paddingRight: '10px' }}>
-                <span>Unit</span>
-                <HierarchicalCombobox.Root value={pPanelOption?.chartOptions?.unit?.id ?? ''} categories={UNITS} onChange={(value) => handleGaugeOption(value, 'unit')}>
-                    <HierarchicalCombobox.Input />
-                    <HierarchicalCombobox.Menu>
-                        <HierarchicalCombobox.List emptyMessage="No units available" />
-                    </HierarchicalCombobox.Menu>
-                </HierarchicalCombobox.Root>
-            </div>
-            <div className="menu-style">
-                <div>Decimal</div>
-                <Input
-                    pType="number"
-                    pHeight={25}
-                    pWidth={'100%'}
-                    pBorderRadius={4}
-                    pValue={pPanelOption.chartOptions?.digit}
-                    onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'digit')}
-                />
-            </div>
-            <div className="menu-style">
-                <div>Min</div>
-                <Input
-                    pType="number"
-                    pWidth={'100%'}
-                    pHeight={25}
-                    pBorderRadius={4}
-                    pValue={pPanelOption.chartOptions?.min}
-                    onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'min')}
-                />
-            </div>
-            <div className="menu-style">
-                <div>Max</div>
-                <Input
-                    pType="number"
-                    pWidth={'100%'}
-                    pHeight={25}
-                    pBorderRadius={4}
-                    pValue={pPanelOption.chartOptions?.max}
-                    onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'max')}
-                />
-            </div>
-            <div className="divider" />
-            <Collapse title="Axis">
-                <div className="menu-style">
-                    <div>Label distance</div>
+        <>
+            <HierarchicalCombobox.Root label="Unit" value={pPanelOption?.chartOptions?.unit?.id ?? ''} categories={UNITS} onChange={(value) => handleGaugeOption(value, 'unit')}>
+                <HierarchicalCombobox.Input />
+                <HierarchicalCombobox.Menu>
+                    <HierarchicalCombobox.List emptyMessage="No units available" />
+                </HierarchicalCombobox.Menu>
+            </HierarchicalCombobox.Root>
+            <Input label="Decimal" type="number" fullWidth value={pPanelOption.chartOptions?.digit} onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'digit')} />
+            <Input label="Min" type="number" fullWidth value={pPanelOption.chartOptions?.min} onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'min')} />
+            <Input label="Max" type="number" fullWidth value={pPanelOption.chartOptions?.max} onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'max')} />
+            <Page.Divi />
+            <Page.Collapse title="Axis">
+                <Page.ContentBlock pHoverNone style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <Input
-                        pType="number"
-                        pWidth={'100%'}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pValue={pPanelOption.chartOptions?.axisLabelDistance}
+                        label="Label distance"
+                        type="number"
+                        fullWidth
+                        value={pPanelOption.chartOptions?.axisLabelDistance}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'axisLabelDistance')}
                     />
-                </div>
-                <CheckBox
-                    pText="Show axis tick"
-                    pDefaultChecked={pPanelOption.chartOptions?.isAxisTick ?? false}
-                    onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAxisTick')}
-                />
-                <div style={{ height: '10px' }} />
-                <CheckBox
-                    pText="Setting line colors (0 ~ 1)"
-                    pDefaultChecked={pPanelOption.chartOptions?.isAxisLineStyleColor ?? false}
-                    onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAxisLineStyleColor')}
-                />
-                {pPanelOption.chartOptions?.isAxisLineStyleColor && (
-                    <>
-                        <div style={{ height: '10px', marginRight: '0 !important' }} />
-                        {pPanelOption.chartOptions?.axisLineStyleColor.map((aAxisColor: any, aIdx: number) => {
-                            return (
-                                <MultiColorPkr
-                                    key={aIdx}
-                                    aIdx={aIdx}
-                                    aAxisColor={aAxisColor}
-                                    HandleItemColor={HandleItemColor}
-                                    HandleItem={HandleItem}
-                                    itemLen={pPanelOption.chartOptions?.axisLineStyleColor.length}
-                                    min={0}
-                                    max={1}
-                                />
-                            );
-                        })}
-                    </>
-                )}
-            </Collapse>
-            <div className="divider" />
-            <Collapse title="Anchor">
-                <CheckBox
-                    pText="Show anchor"
-                    pDefaultChecked={pPanelOption.chartOptions?.isAnchor ?? false}
-                    onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAnchor')}
-                />
-                <div style={{ height: '10px' }} />
-                <div className="menu-style">
-                    <div>Size</div>
+                    <Checkbox
+                        size="sm"
+                        label="Show axis tick"
+                        defaultChecked={pPanelOption.chartOptions?.isAxisTick ?? false}
+                        onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAxisTick')}
+                    />
+                    <Checkbox
+                        size="sm"
+                        label="Setting line colors (0 ~ 1)"
+                        defaultChecked={pPanelOption.chartOptions?.isAxisLineStyleColor ?? false}
+                        onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAxisLineStyleColor')}
+                    />
+                    {pPanelOption.chartOptions?.isAxisLineStyleColor && (
+                        <>
+                            <div style={{ height: '10px', marginRight: '0 !important' }} />
+                            {pPanelOption.chartOptions?.axisLineStyleColor.map((aAxisColor: any, aIdx: number) => {
+                                return (
+                                    <MultiColorPkr
+                                        key={aIdx}
+                                        aIdx={aIdx}
+                                        aAxisColor={aAxisColor}
+                                        HandleItemColor={HandleItemColor}
+                                        HandleItem={HandleItem}
+                                        itemLen={pPanelOption.chartOptions?.axisLineStyleColor.length}
+                                        min={0}
+                                        max={1}
+                                    />
+                                );
+                            })}
+                        </>
+                    )}
+                </Page.ContentBlock>
+            </Page.Collapse>
+            <Page.Divi />
+            <Page.Collapse title="Anchor">
+                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    <Checkbox
+                        size="sm"
+                        label="Show anchor"
+                        defaultChecked={pPanelOption.chartOptions?.isAnchor ?? false}
+                        onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAnchor')}
+                    />
                     <Input
-                        pType="number"
-                        pWidth={'100%'}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pIsDisabled={!pPanelOption.chartOptions?.isAnchor}
-                        pValue={pPanelOption.chartOptions?.anchorSize}
+                        label="Size"
+                        type="number"
+                        fullWidth
+                        disabled={!pPanelOption.chartOptions?.isAnchor}
+                        value={pPanelOption.chartOptions?.anchorSize}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'anchorSize')}
                     />
-                </div>
-            </Collapse>
-            <div className="divider" />
-            <Collapse title="Display value">
-                <div className="menu-style">
-                    <div>Font size</div>
+                </Page.ContentBlock>
+            </Page.Collapse>
+            <Page.Divi />
+            <Page.Collapse title="Display value">
+                <Page.ContentBlock pHoverNone style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <Input
-                        pType="number"
-                        pWidth={'100%'}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pValue={pPanelOption.chartOptions?.valueFontSize}
+                        label="Font size"
+                        type="number"
+                        fullWidth
+                        value={pPanelOption.chartOptions?.valueFontSize}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'valueFontSize')}
                     />
-                </div>
-                <div className="menu-style">
-                    <div>Offset form center</div>
                     <Input
-                        pType="number"
-                        pWidth={'100%'}
-                        pHeight={25}
-                        pBorderRadius={4}
-                        pValue={pPanelOption.chartOptions?.alignCenter}
+                        label="Offset form center"
+                        type="number"
+                        fullWidth
+                        value={pPanelOption.chartOptions?.alignCenter}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'alignCenter')}
                     />
-                </div>
-
-                <CheckBox
-                    pText="Active animation"
-                    pDefaultChecked={pPanelOption.chartOptions?.valueAnimation ?? false}
-                    onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'valueAnimation')}
-                />
-            </Collapse>
-        </div>
+                    <Checkbox
+                        size="sm"
+                        label="Active animation"
+                        defaultChecked={pPanelOption.chartOptions?.valueAnimation ?? false}
+                        onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'valueAnimation')}
+                    />
+                </Page.ContentBlock>
+            </Page.Collapse>
+        </>
     );
 };

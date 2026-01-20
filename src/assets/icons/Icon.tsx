@@ -63,6 +63,7 @@ export {
     MdOutlineCancel as Cancel,
     MdLink,
     MdDevicesFold,
+    MdCheck as Check,
 } from 'react-icons/md';
 
 export { RxUpdate as Update } from 'react-icons/rx';

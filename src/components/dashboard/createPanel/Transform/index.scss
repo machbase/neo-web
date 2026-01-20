@@ -1,5 +1,12 @@
 @import '/src/assets/scss/theme.scss';
 
+.color-picker {
+    position: absolute !important;
+    z-index: $color-dropdown-idx;
+    right: 0;
+    top: 20px;
+}
+
 .transform-block-wrap {
     display: flex;
     border: 1px solid #777777;

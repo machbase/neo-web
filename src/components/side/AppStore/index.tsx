@@ -1,17 +1,16 @@
 import './index.scss';
 import { MdRefresh } from 'react-icons/md';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
-import { SideTitle } from '../SideForm';
-import { IconButton } from '@/components/buttons/IconButton';
 import { APP_INFO, getPkgsSync, getSearchPkgs, SEARCH_RES } from '@/api/repository/appStore';
 import { gSearchPkgs, gExactPkgs, gPossiblePkgs, gBrokenPkgs, gSearchPkgName, gInstalledPkgs } from '@/recoil/appStore';
 import { AppList } from './item';
 import EnterCallback from '@/hooks/useEnter';
 import { isCurUserEqualAdmin } from '@/utils';
 import useDebounce from '@/hooks/useDebounce';
+import { Side, Input, Button } from '@/design-system/components';
 
-export const AppStore = ({ pServer }: any) => {
+export const AppStoreSide = () => {
     // RECOIL var
     const sInstalledPkgList = useRecoilValue(gInstalledPkgs);
     const sExactPkgList = useRecoilValue(gExactPkgs);
@@ -22,7 +21,6 @@ export const AppStore = ({ pServer }: any) => {
     // SCOPED var
     const [sSearchTxt, setSearchTxt] = useState<string>('');
     const [sEnter, setEnter] = useState<number>(0);
-    const searchRef = useRef(null);
     const sIsAdmin = isCurUserEqualAdmin();
 
     // pkgs update (ADMIN)
@@ -59,38 +57,27 @@ export const AppStore = ({ pServer }: any) => {
     useDebounce([sEnter, sSearchTxt], pkgsSearch, 500);
 
     return (
-        <div className="side-form">
-            <SideTitle pServer={pServer} />
-            <div className="app-sotre-sub-title">
-                <span className="title-text">PACKAGES</span>
-                <span className="sub-title-navi">
-                    {sIsAdmin && (
-                        <IconButton
-                            pIsToopTip
-                            pToolTipContent="Update"
-                            pToolTipId="app-store-update"
-                            pWidth={20}
-                            pHeight={20}
-                            pIcon={<MdRefresh size={15} />}
-                            onClick={pkgsUpdate}
-                        />
-                    )}
-                </span>
+        <Side.Container>
+            <Side.Title>
+                <span>PACKAGES</span>
+                {sIsAdmin ? (
+                    <Button.Group>
+                        <Button size="side" variant="none" isToolTip toolTipContent="Update" icon={<MdRefresh size={16} />} onClick={pkgsUpdate} />
+                    </Button.Group>
+                ) : null}
+            </Side.Title>
+            {/* SEARCH */}
+            <div className="app-search-warp">
+                <Input placeholder="Search" autoFocus onChange={handleSearchTxt} onKeyDown={(e) => EnterCallback(e, () => setEnter(sEnter + 1))} fullWidth size="sm" />
             </div>
-            <div className="app-store-wrap scrollbar-dark" style={{ overflow: 'auto', height: 'calc(100% - 62px)' }}>
-                {/* SEARCH */}
-                <div ref={searchRef} className="app-search-warp">
-                    <input placeholder="Search" autoFocus onChange={handleSearchTxt} className="app-search-input" onKeyDown={(e) => EnterCallback(e, () => setEnter(sEnter + 1))} />
-                </div>
-                {/* INSTALLED */}
-                <AppList pList={sInstalledPkgList} pTitle="INSTALLED" pStatus="POSSIBLE" />
-                {/* EXACT */}
-                <AppList pList={sExactPkgList} pTitle="FOUND" pStatus="EXACT" />
-                {/* POSSIBLE */}
-                <AppList pList={sPossiblePkgList} pTitle={sSearchTxt === '' ? 'FEATURED' : 'SEARCH'} pStatus="POSSIBLE" />
-                {/* BROKEN */}
-                <AppList pList={sBrokenPkgList} pTitle="BROKEN" pStatus="BROKEN" />
-            </div>
-        </div>
+            {/* INSTALLED */}
+            <AppList pList={sInstalledPkgList} pTitle="INSTALLED" pStatus="POSSIBLE" />
+            {/* EXACT */}
+            <AppList pList={sExactPkgList} pTitle="FOUND" pStatus="EXACT" />
+            {/* POSSIBLE */}
+            <AppList pList={sPossiblePkgList} pTitle={sSearchTxt === '' ? 'FEATURED' : 'SEARCH'} pStatus="POSSIBLE" />
+            {/* BROKEN */}
+            <AppList pList={sBrokenPkgList} pTitle="BROKEN" pStatus="BROKEN" />
+        </Side.Container>
     );
 };

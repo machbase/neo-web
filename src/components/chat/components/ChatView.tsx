@@ -108,7 +108,7 @@ export const ChatView = ({
                             <div className="divider" />
                             <div className="chat-controls">
                                 <div className="chat-controls-left">
-                                    <ModelDropDown pPosition="BOTTOM" pList={modelList} pSelectedItem={selectedModel} onSelect={setSelectedModel} onFetch={getListModels} />
+                                    <ModelDropDown pList={modelList} pSelectedItem={selectedModel} onSelect={setSelectedModel} onFetch={getListModels} />
                                 </div>
                                 <div className="chat-controls-right">
                                     {isProcessingAnswer ? (

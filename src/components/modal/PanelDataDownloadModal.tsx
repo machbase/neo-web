@@ -4,7 +4,7 @@ import Modal from './Modal';
 import './SaveDashboardModal.scss';
 import { gRollupTableList } from '@/recoil/recoil';
 import { useRecoilValue } from 'recoil';
-import { Error } from '@/components/toast/Toast';
+import { Toast } from '@/design-system/components';
 import { Download, Close } from '@/assets/icons/Icon';
 import { TextButton } from '../buttons/TextButton';
 import { calcInterval, CheckObjectKey, setUnitTime } from '@/utils/dashboardUtil';
@@ -170,7 +170,7 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                 try {
                     const blockInfo = sBlockList[blockIndex];
                     if (!blockInfo) {
-                        Error(`Block not found at index ${blockIndex}`);
+                        Toast.error(`Block not found at index ${blockIndex}`);
                         errorCount++;
                         continue;
                     }
@@ -209,14 +209,14 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                         await new Promise((resolve) => setTimeout(resolve, 200));
                     }
                 } catch (error) {
-                    Error(`Failed to download block ${blockIndex + 1}`);
+                    Toast.error(`Failed to download block ${blockIndex + 1}`);
                     errorCount++;
                 }
             }
 
             // Don't show toast messages
         } catch (error) {
-            Error('Download failed. Please try again.');
+            Toast.error('Download failed. Please try again.');
         } finally {
             setIsDownloading(false);
             if (successCount > 0 || (errorCount > 0 && successCount === 0)) {

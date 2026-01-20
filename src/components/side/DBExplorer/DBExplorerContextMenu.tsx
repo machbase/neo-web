@@ -1,8 +1,5 @@
-import './DBExplorerContextMenu.scss';
 import { Delete } from '@/assets/icons/Icon';
-import Menu from '@/components/contextMenu/Menu';
-import useOutsideClick from '@/hooks/useOutsideClick';
-import { useRef } from 'react';
+import { ContextMenu } from '@/design-system/components';
 
 export interface DB_EXPLORER_CONTEXT_MENU_TYPE {
     open: boolean;
@@ -34,25 +31,25 @@ export const DBExplorerContextMenu = ({
     pContextInfo: DB_EXPLORER_CONTEXT_MENU_TYPE;
     pCallback: (key: E_DB_DDL | '', options: typeof TABLE_CONTEXT_MENU_INITIAL_VALUE.options) => void;
 }) => {
-    const MenuRef = useRef<HTMLDivElement>(null);
+    try {
+        const dropTable = (e: React.MouseEvent<HTMLButtonElement>) => {
+            e.stopPropagation();
+            pCallback(E_DB_DDL.DELETE, pContextInfo.options);
+        };
+        const closeContextMenu = () => {
+            pCallback('', pContextInfo.options);
+        };
 
-    const dropTable = () => {
-        pCallback(E_DB_DDL.DELETE, pContextInfo.options);
-    };
-    const closeContextMenu = () => {
-        pCallback('', pContextInfo.options);
-    };
-
-    useOutsideClick(MenuRef, () => closeContextMenu());
-
-    return (
-        <div ref={MenuRef} className="db-explorer-context-menu" style={{ top: pContextInfo.y, left: pContextInfo.x }}>
-            <Menu isOpen={pContextInfo.open}>
-                <Menu.Item onClick={dropTable}>
+        return (
+            <ContextMenu isOpen={pContextInfo.open} position={{ x: pContextInfo.x, y: pContextInfo.y }} onClose={closeContextMenu}>
+                <ContextMenu.Item onClick={dropTable}>
                     <Delete />
                     <span>Drop table</span>
-                </Menu.Item>
-            </Menu>
-        </div>
-    );
+                </ContextMenu.Item>
+            </ContextMenu>
+        );
+    } catch (error) {
+        console.error('DBExplorerContextMenu render ERROR:', error);
+        return null;
+    }
 };

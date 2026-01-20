@@ -134,21 +134,13 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <RxLapTimer />;
         case 'bridge':
             // case 'bridge-sub':
-            return <GiTallBridge />;
+            return <GiTallBridge style={{ width: '16px', height: '16px' }} />;
         case 'bridge-mqtt':
-            return (
-                <div className="bridge-mqtt-icon-wrapper">
-                    <SiMqtt />
-                </div>
-            );
+            return <SiMqtt style={{ padding: '2px' }} />;
         case 'bridge-nats':
-            return (
-                <div className="bridge-nats-icon-wrapper">
-                    <SiNatsdotio />
-                </div>
-            );
+            return <SiNatsdotio style={{ padding: '2px' }} />;
         case 'bridge-db':
-            return <PiDatabaseLight />;
+            return <PiDatabaseLight style={{ width: '16px', height: '16px' }} />;
         case 'subscriber':
         case 'bridge-child':
             return <BsSignpost />;

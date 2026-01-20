@@ -1,7 +1,8 @@
 .sql-result-wrapper {
     width: 100%;
+    height: 100%;
     overflow: auto;
-    height: calc(100% - 40px);
+    // height: calc(100% - 40px);
 
     .scroll-wrapper {
         position: relative;

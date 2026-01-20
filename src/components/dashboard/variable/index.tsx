@@ -1,8 +1,6 @@
-import './index.scss';
-import { ExtensionTab } from '@/components/extension/ExtensionTab';
-import SplitPane, { Pane, SashContent } from 'split-pane-react';
+import { Button, Page } from '@/design-system/components';
+import { SplitPane, Pane } from '@/design-system/components';
 import { LuFlipVertical } from 'react-icons/lu';
-import { IconButton } from '@/components/buttons/IconButton';
 import { useEffect, useRef, useState } from 'react';
 import { IoArrowBackOutline } from 'react-icons/io5';
 import { generateUUID } from '@/utils';
@@ -310,38 +308,33 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
     const handleClose = () => {
         pSetModal(false);
     };
-    const Resizer = () => {
-        return <SashContent className={`security-key-sash-style`} />;
-    };
 
     useEffect(() => {
         if (sBodyRef && sBodyRef.current && sBodyRef.current.offsetWidth) {
             setGroupWidth([sBodyRef.current.offsetWidth / 2, sBodyRef.current.offsetWidth / 2]);
         }
     }, [sBodyRef]);
-
     return (
-        <div className="dashboard-variable-wrap">
-            <ExtensionTab pRef={sBodyRef}>
-                <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
-                    {/* VARIABLES */}
-                    <Pane minSize={400}>
-                        <ExtensionTab.Header>
-                            <IconButton pWidth={20} pHeight={32} pIcon={<IoArrowBackOutline />} onClick={handleClose} />
-                        </ExtensionTab.Header>
-                        <ExtensionTab.Body>
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.SubTitle>Variables</ExtensionTab.SubTitle>
-                                <ExtensionTab.ContentDesc>Variables can make your dashboard more dynamic.</ExtensionTab.ContentDesc>
-                            </ExtensionTab.ContentBlock>
-                            {/* <ExtensionTab.ContentBlock>
+        <Page pRef={sBodyRef} style={{ position: 'absolute', top: 0, left: 0, zIndex: 9999 }}>
+            <SplitPane split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
+                {/* VARIABLES */}
+                <Pane minSize={400}>
+                    <Page.Header>
+                        <Button size="icon" variant="ghost" icon={<IoArrowBackOutline size={16} />} onClick={handleClose} />
+                    </Page.Header>
+                    <Page.Body>
+                        <Page.ContentBlock>
+                            <Page.SubTitle>Variables</Page.SubTitle>
+                            <Page.ContentDesc>Variables can make your dashboard more dynamic.</Page.ContentDesc>
+                        </Page.ContentBlock>
+                        {/* <Page.ContentBlock>
                                 <div className="board-preview-variable">
                                     {pBoardInfo?.dashboard?.variables?.map((variable: VARIABLE_TYPE, idx: number) => {
                                         return (
                                             <div className="board-preview-variable-item" key={'board-variable-item-' + idx.toString()}>
                                                 <label className="board-preview-variable-item-label">{variable.label}</label>
                                                 <div className="board-preview-variable-item-key">{variable.key}</div>
-                                                <ExtensionTab.Selector
+                                                <Page.Selector
                                                     pList={variable.valueList.map((value) => {
                                                         return { name: value.value, data: value };
                                                     })}
@@ -352,41 +345,39 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                                         );
                                     })}
                                 </div>
-                            </ExtensionTab.ContentBlock> */}
-                            <ExtensionTab.ContentBlock>
-                                <ExtensionTab.DpRowBetween>
-                                    <div />
-                                    <ExtensionTab.DpRow>
-                                        <ExtensionTab.TextButton pText={'Export'} pType="COPY" pCallback={handleExport} pWidth="80px" />
-                                        <div className="variable-export-wrapper">
-                                            <button className="extension-tab-text-button" onClick={handleFileButtonWrapperClick}>
-                                                Import
-                                            </button>
-                                            <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImport} />
-                                        </div>
-                                    </ExtensionTab.DpRow>
-                                </ExtensionTab.DpRowBetween>
-                                <ExtensionTab.Table
-                                    activeRow
-                                    pList={{
-                                        columns: ['LABEL', 'VARIABLE NAME', 'VALUE'],
-                                        rows: tableFormatVariableList(),
-                                    }}
-                                    rowSelectCallback={handleVariableRowSelect}
-                                    rowDeleteCallback={handleVariableDelete}
-                                />
-                            </ExtensionTab.ContentBlock>
-                            {!sUpdateVariable.open && (
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.TextButton pText={'+ New variable'} pType={'CREATE'} pCallback={handleResetUpdateVariable} pWidth="120px" />
-                                </ExtensionTab.ContentBlock>
-                            )}
-                            {sUpdateVariable.open && (
-                                <>
-                                    {/* <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Type</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>Variable type</ExtensionTab.ContentDesc>
-                                        <ExtensionTab.Selector
+                            </Page.ContentBlock> */}
+                        <Page.ContentBlock>
+                            <Page.DpRowBetween>
+                                <div />
+                                <Page.DpRow>
+                                    <Page.TextButton pText={'Export'} pType="COPY" pCallback={handleExport} pWidth="80px" />
+                                    <div className="variable-export-wrapper">
+                                        <Page.TextButton pText={'Import'} pType="COPY" pCallback={handleFileButtonWrapperClick} pWidth="80px" />
+                                        <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImport} />
+                                    </div>
+                                </Page.DpRow>
+                            </Page.DpRowBetween>
+                            <Page.Table
+                                activeRow
+                                pList={{
+                                    columns: ['LABEL', 'VARIABLE NAME', 'VALUE'],
+                                    rows: tableFormatVariableList(),
+                                }}
+                                rowSelectCallback={handleVariableRowSelect}
+                                rowDeleteCallback={handleVariableDelete}
+                            />
+                        </Page.ContentBlock>
+                        {!sUpdateVariable.open && (
+                            <Page.ContentBlock>
+                                <Page.TextButton pText={'+ New variable'} pType={'CREATE'} pCallback={handleResetUpdateVariable} pWidth="120px" />
+                            </Page.ContentBlock>
+                        )}
+                        {sUpdateVariable.open && (
+                            <>
+                                {/* <Page.ContentBlock>
+                                        <Page.ContentTitle>Type</Page.ContentTitle>
+                                        <Page.ContentDesc>Variable type</Page.ContentDesc>
+                                        <Page.Selector
                                             disable
                                             pList={[
                                                 { name: 'SELECT', data: 'SELECT' },
@@ -395,77 +386,75 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                                             pSelectedItem={sUpdateVariable.data.type}
                                             pCallback={() => {}}
                                         />
-                                    </ExtensionTab.ContentBlock> */}
+                                    </Page.ContentBlock> */}
 
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Label</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>Label is a descriptive name that helps you identify the variable.</ExtensionTab.ContentDesc>
-                                        <ExtensionTab.Input pValue={sUpdateVariable.data.label} pCallback={(item) => handleVarOpt('label', item)} />
-                                    </ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Variable name</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>{`Variables in this system follow a specific syntax format to ensure consistency and ease of use.`}</ExtensionTab.ContentDesc>
-                                        <ExtensionTab.ContentDesc>{`The syntax for defining a variable is as follows:`}</ExtensionTab.ContentDesc>
-                                        <ExtensionTab.ContentDesc>{`ex) {{VARIABLE_NAME}}`}</ExtensionTab.ContentDesc>
-                                        <ExtensionTab.Input pValue={sUpdateVariable.data.key} pCallback={(item) => handleVarOpt('key', item)} />
-                                    </ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Value</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>
-                                            Each variable can have multiple options. These options can be used interchangeably within the system.
-                                        </ExtensionTab.ContentDesc>
-                                        <ExtensionTab.ContentDesc>The options are stored in a list and can be accessed or modified as needed.</ExtensionTab.ContentDesc>
-                                        {sUpdateVariable.data.valueList.map((valueDetail: VARIABLE_ITEM_TYPE, idx: number) => {
-                                            return (
-                                                <ExtensionTab.DpRow key={`variable-value-${idx.toString()}`}>
-                                                    <ExtensionTab.Input pValue={valueDetail.value} pCallback={(item) => handleVarOpt('value', item, idx)} />
-                                                    {sUpdateVariable.data.valueList.length > 1 && (
-                                                        <IconButton pWidth={25} pHeight={26} pIcon={<Close />} onClick={() => handleValue('DELETE', idx)} />
-                                                    )}
-                                                    {sUpdateVariable.data.valueList.length === idx + 1 && (
-                                                        <IconButton pWidth={25} pHeight={26} pIcon={<PlusCircle />} onClick={() => handleValue('CREATE', idx)} />
-                                                    )}
-                                                    <ExtensionTab.ContentBlock />
-                                                </ExtensionTab.DpRow>
-                                            );
-                                        })}
-                                    </ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.DpRow>
-                                            <ExtensionTab.TextButton pText={'Cancel'} pType="DELETE" pCallback={handleResetUpdateVariable} pWidth="80px" />
-                                            <ExtensionTab.TextButton pText={'Save'} pType="CREATE" pCallback={handleUpdateVarOrigin} pWidth="80px" />
-                                        </ExtensionTab.DpRow>
-                                    </ExtensionTab.ContentBlock>
-                                </>
-                            )}
-                        </ExtensionTab.Body>
-                    </Pane>
-                    {/* VALUES */}
-                    <Pane>
-                        <ExtensionTab.Header>
-                            <div />
-                            <div style={{ display: 'flex' }}>
-                                <IconButton
-                                    pIsToopTip
-                                    pToolTipContent="Vertical"
-                                    pToolTipId="bridge-tab-hori"
-                                    pIcon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} />}
-                                    pIsActive={isVertical}
-                                    onClick={() => setIsVertical(true)}
-                                />
-                                <IconButton
-                                    pIsToopTip
-                                    pToolTipContent="Horizontal"
-                                    pToolTipId="bridge-tab-ver"
-                                    pIcon={<LuFlipVertical />}
-                                    pIsActive={!isVertical}
-                                    onClick={() => setIsVertical(false)}
-                                />
-                            </div>
-                        </ExtensionTab.Header>
-                    </Pane>
-                </SplitPane>
-            </ExtensionTab>
-        </div>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Label</Page.ContentTitle>
+                                    <Page.ContentDesc>Label is a descriptive name that helps you identify the variable.</Page.ContentDesc>
+                                    <Page.Input pValue={sUpdateVariable.data.label} pCallback={(item) => handleVarOpt('label', item)} />
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Variable name</Page.ContentTitle>
+                                    <Page.ContentDesc>{`Variables in this system follow a specific syntax format to ensure consistency and ease of use.`}</Page.ContentDesc>
+                                    <Page.ContentDesc>{`The syntax for defining a variable is as follows:`}</Page.ContentDesc>
+                                    <Page.ContentDesc>{`ex) {{VARIABLE_NAME}}`}</Page.ContentDesc>
+                                    <Page.Input pValue={sUpdateVariable.data.key} pCallback={(item) => handleVarOpt('key', item)} />
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Value</Page.ContentTitle>
+                                    <Page.ContentDesc>Each variable can have multiple options. These options can be used interchangeably within the system.</Page.ContentDesc>
+                                    <Page.ContentDesc>The options are stored in a list and can be accessed or modified as needed.</Page.ContentDesc>
+                                    {sUpdateVariable.data.valueList.map((valueDetail: VARIABLE_ITEM_TYPE, idx: number) => {
+                                        return (
+                                            <Page.DpRow key={`variable-value-${idx.toString()}`} style={{ gap: '4px' }}>
+                                                <Page.Input pValue={valueDetail.value} pCallback={(item) => handleVarOpt('value', item, idx)} />
+                                                {sUpdateVariable.data.valueList.length > 1 ? (
+                                                    <Button size="sm" variant="ghost" icon={<Close size={16} />} onClick={() => handleValue('DELETE', idx)} />
+                                                ) : null}
+                                                {sUpdateVariable.data.valueList.length === idx + 1 ? (
+                                                    <Button size="sm" variant="ghost" icon={<PlusCircle size={16} />} onClick={() => handleValue('CREATE', idx)} />
+                                                ) : null}
+                                            </Page.DpRow>
+                                        );
+                                    })}
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.DpRow>
+                                        <Page.TextButton pText={'Cancel'} pType="DELETE" pCallback={handleResetUpdateVariable} pWidth="80px" />
+                                        <Page.TextButton pText={'Save'} pType="CREATE" pCallback={handleUpdateVarOrigin} pWidth="80px" />
+                                    </Page.DpRow>
+                                </Page.ContentBlock>
+                            </>
+                        )}
+                    </Page.Body>
+                </Pane>
+                {/* VALUES */}
+                <Pane>
+                    <Page.Header>
+                        <div />
+                        <Button.Group>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                isToolTip
+                                toolTipContent="Vertical"
+                                icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
+                                active={isVertical}
+                                onClick={() => setIsVertical(true)}
+                            />
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                isToolTip
+                                toolTipContent="Horizontal"
+                                icon={<LuFlipVertical size={16} />}
+                                active={!isVertical}
+                                onClick={() => setIsVertical(false)}
+                            />
+                        </Button.Group>
+                    </Page.Header>
+                </Pane>
+            </SplitPane>
+        </Page>
     );
 };

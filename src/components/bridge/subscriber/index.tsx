@@ -1,14 +1,13 @@
-import { ExtensionTab } from '@/components/extension/ExtensionTab';
+import { Alert, Page } from '@/design-system/components';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { gActiveSubr, gDelSubr, gStateSubr } from '@/recoil/recoil';
-import { Pane, SashContent } from 'split-pane-react';
+import { SplitPane, Pane } from '@/design-system/components';
+import { SashContent } from 'split-pane-react';
 import { commandSubr, delSubr, getSubrItem } from '@/api/repository/bridge';
 import { useEffect, useState } from 'react';
 import { ConfirmModal } from '../../modal/ConfirmModal';
 import { AUTO_START_DESC } from '../../timer/content';
 import { CreateSubr } from './createSubr';
-import { VscWarning } from 'react-icons/vsc';
-import SplitPane from 'split-pane-react/esm/SplitPane';
 
 export const Subscriber = ({ pCode }: { pCode: any }) => {
     const setDelSubr = useSetRecoilState(gDelSubr);
@@ -61,94 +60,92 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
         <>
             {/* Show info */}
             {sPayload.subr && sActiveSubr && (
-                <ExtensionTab>
+                <Page>
                     <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={['50', '50']} onChange={() => {}}>
                         <Pane minSize={400}>
-                            <ExtensionTab.Header />
-                            <ExtensionTab.Body>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.SubTitle>
+                            <Page.Header />
+                            <Page.Body>
+                                <Page.ContentBlock>
+                                    <Page.SubTitle>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', flexDirection: 'row', alignContent: 'center' }}>
                                             <div style={{ display: 'flex' }}> Subscriber</div>
                                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end', marginTop: '20px' }}>
                                                 {/* STATE */}
-                                                <ExtensionTab.Switch
+                                                <Page.Switch
                                                     pState={sState.includes('RUNNING') || sState.includes('STARTING')}
                                                     pCallback={handleCommand}
                                                     pBadge={sState}
                                                     pBadgeL={true}
                                                 />
                                                 {sCommandResMessage && (
-                                                    <ExtensionTab.ContentDesc>
+                                                    <Page.ContentDesc>
                                                         <div style={{ marginTop: '-10px' }}>
-                                                            <ExtensionTab.TextResErr pText={sCommandResMessage} />
+                                                            <Page.TextResErr pText={sCommandResMessage} />
                                                         </div>
-                                                    </ExtensionTab.ContentDesc>
+                                                    </Page.ContentDesc>
                                                 )}
                                             </div>
                                         </div>
-                                    </ExtensionTab.SubTitle>
-                                    <ExtensionTab.Hr />
-                                </ExtensionTab.ContentBlock>
+                                    </Page.SubTitle>
+                                    <Page.Hr />
+                                </Page.ContentBlock>
                                 {/* name */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>name</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{sPayload.subr.name}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>name</Page.ContentTitle>
+                                    <Page.ContentDesc>{sPayload.subr.name}</Page.ContentDesc>
+                                </Page.ContentBlock>
                                 {/* Auto start */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Auto start</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.DpRow>
-                                        <ExtensionTab.Checkbox pValue={sPayload.subr.autoStart} pDisable />
-                                        <ExtensionTab.ContentDesc>{AUTO_START_DESC}</ExtensionTab.ContentDesc>
-                                    </ExtensionTab.DpRow>
-                                </ExtensionTab.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Auto start</Page.ContentTitle>
+                                    <Page.DpRow>
+                                        <Page.Checkbox label={AUTO_START_DESC} pValue={sPayload.subr.autoStart} pDisable />
+                                    </Page.DpRow>
+                                </Page.ContentBlock>
                                 {/* bridge */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>bridge</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{sPayload.subr.bridge}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>bridge</Page.ContentTitle>
+                                    <Page.ContentDesc>{sPayload.subr.bridge}</Page.ContentDesc>
+                                </Page.ContentBlock>
                                 {/* topic */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>topic</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{sPayload.subr.topic}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>topic</Page.ContentTitle>
+                                    <Page.ContentDesc>{sPayload.subr.topic}</Page.ContentDesc>
+                                </Page.ContentBlock>
                                 {/* QoS */}
                                 {sPayload?.bridge?.type === 'mqtt' && (
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>QoS</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>{sPayload?.subr?.QoS ?? '0'}</ExtensionTab.ContentDesc>
-                                    </ExtensionTab.ContentBlock>
+                                    <Page.ContentBlock>
+                                        <Page.ContentTitle>QoS</Page.ContentTitle>
+                                        <Page.ContentDesc>{sPayload?.subr?.QoS ?? '0'}</Page.ContentDesc>
+                                    </Page.ContentBlock>
                                 )}
 
                                 {/* Queue */}
                                 {sPayload?.subr?.queue && (
-                                    <ExtensionTab.ContentBlock>
-                                        <ExtensionTab.ContentTitle>Queue</ExtensionTab.ContentTitle>
-                                        <ExtensionTab.ContentDesc>{sPayload.subr.queue}</ExtensionTab.ContentDesc>
-                                    </ExtensionTab.ContentBlock>
+                                    <Page.ContentBlock>
+                                        <Page.ContentTitle>Queue</Page.ContentTitle>
+                                        <Page.ContentDesc>{sPayload.subr.queue}</Page.ContentDesc>
+                                    </Page.ContentBlock>
                                 )}
                                 {/* TASK */}
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.ContentTitle>Destination</ExtensionTab.ContentTitle>
-                                    <ExtensionTab.ContentDesc>{sPayload.subr.task}</ExtensionTab.ContentDesc>
-                                </ExtensionTab.ContentBlock>
-                                <ExtensionTab.ContentBlock>
-                                    <ExtensionTab.TextButton pText="Delete" pWidth="80px" pType="DELETE" pCallback={handleDelete} mr="0px" />
-                                    {sResErrMessage && (
-                                        <ExtensionTab.DpRow>
-                                            <VscWarning style={{ fill: '#ff5353' }} />
-                                            <span style={{ margin: '8px', color: '#ff5353' }}>{sResErrMessage}</span>
-                                        </ExtensionTab.DpRow>
-                                    )}
-                                </ExtensionTab.ContentBlock>
-                            </ExtensionTab.Body>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Destination</Page.ContentTitle>
+                                    <Page.ContentDesc>{sPayload.subr.task}</Page.ContentDesc>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.TextButton pText="Delete" pWidth="80px" pType="DELETE" pCallback={handleDelete} mr="0px" />
+                                </Page.ContentBlock>
+                                {sResErrMessage && (
+                                    <Page.ContentBlock>
+                                        <Alert variant="error" message={sResErrMessage} />
+                                    </Page.ContentBlock>
+                                )}
+                            </Page.Body>
                         </Pane>
                         <Pane>
-                            <ExtensionTab.Header />
+                            <Page.Header />
                         </Pane>
                     </SplitPane>
-                </ExtensionTab>
+                </Page>
             )}
             {sIsDeleteModal && (
                 <ConfirmModal

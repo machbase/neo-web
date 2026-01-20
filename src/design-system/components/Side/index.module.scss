@@ -1,0 +1,320 @@
+@use '../../tokens/colors' as c;
+@use '../../tokens/mixins' as m;
+@use '../../tokens/scrollbar' as sb;
+
+.sideWrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: c.$bg-panel;
+    border-left: solid 0.5px c.$border-color-default;
+}
+
+.sideVersion {
+    max-height: 41px;
+    min-height: 41px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 11px 0 20px;
+    border-bottom: solid 0.5px c.$border-color-default;
+    background-color: c.$color-transparent;
+    font-size: 12px;
+
+    span {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        word-break: break-all;
+    }
+}
+
+.sideContainer {
+    height: 100%;
+    overflow: auto;
+
+    span {
+        user-select: none; /* standard syntax */
+        -webkit-user-select: none; /* webkit (safari, chrome) browsers */
+        -moz-user-select: none; /* mozilla browsers */
+        -khtml-user-select: none; /* webkit (konqueror) browsers */
+        -ms-user-select: none; /* IE10+ */
+    }
+}
+
+.sideBox {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+
+    > div {
+        cursor: pointer;
+
+        &:hover {
+            background-color: c.$bg-hover-block;
+        }
+
+        &.active {
+            background-color: c.$bg-hover-block;
+        }
+    }
+}
+
+// Base subtitle style shared by all sidebar section titles
+%sideSubTitleBase {
+    cursor: pointer;
+    height: 22px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    background-color: c.$bg-header;
+    border-bottom: 0.5px solid c.$border-color-default;
+    // border-top: 0.5px solid c.$border-color-default;
+    white-space: nowrap;
+}
+
+// Standard subtitle without collapse functionality
+.sideSubTitle {
+    @extend %sideSubTitleBase;
+    padding: 0 11px 0 20px;
+
+    .filesOpenOption {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        // svg {
+        //     color: c.$text-secondary;
+        // }
+
+        // svg:hover {
+        //     color: c.$text-primary;
+        // }
+    }
+}
+
+// Editor title with collapse icon (extends base styles)
+.editorsTitle {
+    @extend %sideSubTitleBase;
+    padding: 0 11px 0 4px;
+
+    // Remove top border when directly following another editorsTitle (collapsed sections)
+    .editorsTitle + & {
+        border-top: none;
+    }
+
+    // Default: first child in any context has no border-top
+    // Non-first-child has border-top
+    &:not(:first-child) {
+        border-top: 0.5px solid c.$border-color-default;
+    }
+
+    // For split pane sections: if parent div is not first child, show border-top even if this is first child
+    div:not(:first-child) > &:first-child {
+        // border-top: 0.5px solid c.$border-color-default;
+    }
+
+    .collapseIcon {
+        @include m.chevron-icon;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 13px;
+
+        svg {
+            width: 13px;
+            height: 13px;
+        }
+
+        &.open {
+            @include m.chevron-icon-open;
+        }
+    }
+
+    .filesOpenOption {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+// Side.Item styles
+.sideItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 16px;
+    height: 22px;
+    cursor: pointer;
+    min-width: 0;
+
+    &:hover {
+        background-color: c.$bg-hover-block;
+    }
+
+    &.active {
+        background-color: c.$bg-hover-block;
+    }
+
+    .itemContent {
+        display: flex;
+        align-items: center;
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        gap: 0;
+
+        // Handle nested buttons
+        > button {
+            flex: 1 1 auto;
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
+            display: flex !important;
+            align-items: center;
+            justify-content: flex-start !important;
+            width: auto !important;
+            gap: 0;
+
+            // Make sure icon and text inside button also respect flex
+            .itemIcon {
+                flex-shrink: 0;
+            }
+
+            .itemText {
+                flex: 1 1 auto;
+                min-width: 0;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
+            }
+
+            // Override button__text wrapper
+            > div {
+                flex: 1 1 auto;
+                min-width: 0;
+                overflow: hidden;
+
+                > .itemIcon {
+                    flex-shrink: 0;
+                }
+
+                > .itemText {
+                    flex: 1 1 auto;
+                    min-width: 0;
+                    overflow: hidden !important;
+                    text-overflow: ellipsis !important;
+                    white-space: nowrap !important;
+                }
+            }
+        }
+
+        // Handle sibling div (like record count)
+        + div {
+            flex: 0 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-left: 4px;
+        }
+    }
+
+    .itemIcon {
+        display: flex;
+        width: 13px;
+        height: 13px;
+        margin-right: 6px;
+        justify-content: center;
+        align-items: center;
+        flex-shrink: 0;
+
+        svg {
+            width: 13px;
+            height: 13px;
+        }
+    }
+
+    .itemText {
+        font-size: 13px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        flex: 1;
+        min-width: 0;
+        display: block;
+    }
+
+    .itemTextWrapper {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+        max-width: 100%;
+
+        .itemText {
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            min-width: 0;
+
+            // Handle nested divs from children
+            > div {
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                display: block;
+            }
+        }
+
+        .itemTextCopy {
+            display: inline-flex;
+            align-items: center;
+            flex-shrink: 0;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        &.showAlways .itemTextCopy {
+            opacity: 1;
+        }
+
+        &:not(.showAlways):hover .itemTextCopy {
+            opacity: 1;
+        }
+    }
+
+    &:hover .itemTextWrapper:not(.showAlways) .itemTextCopy {
+        opacity: 1;
+    }
+
+    .itemAction {
+        display: flex;
+        align-items: center;
+        padding-right: 11px;
+        flex-shrink: 0;
+        opacity: 1;
+    }
+}
+
+// Side.ItemArrow styles (same as collapseIcon)
+.itemArrow {
+    @include m.chevron-icon;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    margin-right: 2px;
+
+    svg {
+        width: 13px;
+        height: 13px;
+    }
+
+    &.open {
+        @include m.chevron-icon-open;
+    }
+}

@@ -460,7 +460,7 @@ export const ChartTypeList = [
 ];
 
 export const ChartThemeBackgroundColor: { [key in ChartTheme]: string } = {
-    dark: '#100B2A',
+    dark: '#252525',
     white: '#FFFFFF',
     vintage: '#FEF8F0',
     macarons: '#FFFFFF',

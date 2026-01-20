@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tooltip } from 'react-tooltip';
 import styles from './index.module.scss';
+import { Check, Copy } from '@/assets/icons/Icon';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'none';
-export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
+export type ButtonSize = 'xsm' | 'sm' | 'md' | 'lg' | 'icon' | 'fit' | 'side';
 export type TooltipPlace = 'top' | 'top-start' | 'top-end' | 'right' | 'right-start' | 'right-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'left' | 'left-start' | 'left-end';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: ButtonVariant;
     size?: ButtonSize;
     loading?: boolean;
+    active?: boolean;
     icon?: React.ReactNode;
     iconPosition?: 'left' | 'right';
     fullWidth?: boolean;
@@ -18,6 +20,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     toolTipContent?: React.ReactNode;
     toolTipPlace?: TooltipPlace;
     toolTipMaxWidth?: number;
+    forceOpacity?: boolean;
+    shadow?: boolean;
 }
 
 export const Button = ({
@@ -25,6 +29,7 @@ export const Button = ({
     size = 'md',
     loading = false,
     disabled = false,
+    active = false,
     icon,
     iconPosition = 'left',
     fullWidth = false,
@@ -34,6 +39,8 @@ export const Button = ({
     toolTipContent,
     toolTipPlace = 'top-end',
     toolTipMaxWidth,
+    forceOpacity = false,
+    shadow = false,
     ...props
 }: ButtonProps) => {
     const buttonClasses = [
@@ -41,7 +48,10 @@ export const Button = ({
         styles[`button--${variant}`],
         styles[`button--${size}`],
         loading && styles['button--loading'],
+        active && styles['button--active'],
         fullWidth && styles['button--full-width'],
+        forceOpacity && styles['button--force-opacity'],
+        shadow && styles['button--shadow'],
         className,
     ]
         .filter(Boolean)
@@ -62,13 +72,13 @@ export const Button = ({
                     <>
                         {isToolTip && icon ? (
                             <div className={`tooltip-${tooltipId} tooltip-icon`} style={{ display: 'flex' }}>
-                                <span className={styles['button__icon']}>{icon}</span>
+                                <div className={styles['button__icon']}>{icon}</div>
                             </div>
                         ) : (
                             <>
-                                {icon && iconPosition === 'left' && <span className={styles['button__icon']}>{icon}</span>}
-                                {children && <span className={styles['button__text']}>{children}</span>}
-                                {icon && iconPosition === 'right' && <span className={styles['button__icon']}>{icon}</span>}
+                                {icon && iconPosition === 'left' && <div className={styles['button__icon']}>{icon}</div>}
+                                {children && <div className={styles['button__text']}>{children}</div>}
+                                {icon && iconPosition === 'right' && <div className={styles['button__icon']}>{icon}</div>}
                             </>
                         )}
                     </>
@@ -100,12 +110,78 @@ export interface IconButtonProps extends Omit<ButtonProps, 'children' | 'icon' |
 export const IconButton = ({ icon, className, ...props }: IconButtonProps) => {
     const iconButtonClasses = [styles['icon-button'], className].filter(Boolean).join(' ');
 
+    return <Button {...props} icon={icon} className={iconButtonClasses} />;
+};
+
+// Button Group Component
+export interface ButtonGroupProps {
+    children: React.ReactNode;
+    className?: string;
+    style?: React.CSSProperties;
+    fullWidth?: boolean;
+    label?: string;
+    labelPosition?: 'top' | 'left';
+}
+
+export const ButtonGroup = ({ children, className, style, fullWidth = false, label, labelPosition = 'top' }: ButtonGroupProps) => {
+    const groupClasses = [styles['button-group'], fullWidth && styles['button-group--full-width'], className].filter(Boolean).join(' ');
+
+    const containerClasses = [
+        styles['button-group-container'],
+        label && styles[`button-group-container--label-${labelPosition}`],
+        fullWidth && styles['button-group-container--full-width'],
+    ]
+        .filter(Boolean)
+        .join(' ');
+
+    if (label) {
+        return (
+            <div className={containerClasses}>
+                {label && <label className={styles['button-group-label']}>{label}</label>}
+                <div className={groupClasses} style={style}>
+                    {children}
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <Button {...props} className={iconButtonClasses}>
-            {icon}
-        </Button>
+        <div className={groupClasses} style={style}>
+            {children}
+        </div>
     );
 };
 
+// Copy Button Component
+export interface CopyButtonProps extends Omit<ButtonProps, 'icon' | 'onClick'> {
+    onClick: () => void;
+    'aria-label'?: string;
+}
+
+export const CopyButton = ({ onClick, className, ...props }: CopyButtonProps) => {
+    const [isCopied, setIsCopied] = useState(false);
+
+    useEffect(() => {
+        if (isCopied) {
+            const timer = setTimeout(() => {
+                setIsCopied(false);
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [isCopied]);
+
+    const handleClick = () => {
+        onClick();
+        setIsCopied(true);
+    };
+
+    return <Button {...props} icon={isCopied ? <Check size={14} /> : <Copy size={12} />} onClick={handleClick} className={className} />;
+};
+
+// Attach components as static properties
+Button.Group = ButtonGroup;
+Button.Copy = CopyButton;
 Button.displayName = 'Button';
 IconButton.displayName = 'IconButton';
+ButtonGroup.displayName = 'ButtonGroup';
+CopyButton.displayName = 'CopyButton';

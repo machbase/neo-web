@@ -1,11 +1,7 @@
-import './statzTableModal.scss';
-import Modal from '@/components/modal/Modal';
 import { fetchQuery } from '@/api/repository/database';
-import { ArrowLeft, ArrowRight, Close } from '@/assets/icons/Icon';
 import { useEffect, useMemo, useState } from 'react';
 import { E_TABLE_INFO, FetchCommonType } from './utils';
-import { ExtensionTab } from '@/components/extension/ExtensionTab';
-import { MdKeyboardDoubleArrowLeft, MdOutlineKeyboardDoubleArrowRight } from 'react-icons/md';
+import { Modal, Page, Pagination } from '@/design-system/components';
 import { useSchedule } from '@/hooks/useSchedule';
 import moment from 'moment';
 
@@ -28,6 +24,7 @@ const ToCharValue = (aColumn: string) => `${aColumn}`;
 export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps) => {
     const [sStatzList, setStatzInfo] = useState<FetchCommonType>();
     const [sPage, setPage] = useState<number>(1);
+    const [sPageInput, setPageInput] = useState<string>('1');
     const [sLastUpdated, setLastUpdated] = useState<Date>(new Date());
 
     const FetchTable = async () => {
@@ -44,11 +41,18 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
         else setStatzInfo(undefined);
         setLastUpdated(new Date());
     };
+
     const handleClose = () => {
         pSetModalInfo({ state: false, filter: '', table: undefined, recordCnt: 1 });
     };
-    const handlePagination = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setPage(e?.target?.value as any);
+
+    const handlePageChange = (newPage: number) => {
+        setPage(newPage);
+        setPageInput(newPage.toString());
+    };
+
+    const handlePageInputChange = (value: string) => {
+        setPageInput(value);
     };
 
     const getMaxPageNum = useMemo(() => {
@@ -59,85 +63,44 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
         FetchTable();
     }, [sPage]);
 
+    useEffect(() => {
+        setPageInput(sPage.toString());
+    }, [sPage]);
+
     useSchedule(FetchTable, 1000 * 3); // 3s
 
     return pModalInfo.state ? (
-        <div className="statz-table-modal-wrap">
-            <Modal pIsDarkMode className="statz-table-modal" onOutSideClose={handleClose}>
-                <Modal.Header>
-                    <div className="statz-table-modal-header">
-                        <ExtensionTab.ContentBlock pHoverNone>
-                            <ExtensionTab.DpRowBetween>
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <ExtensionTab.SubTitle>
-                                            Real-Time Statistics of <span style={{ fontWeight: 'bold', color: 'yellow' }}>{pModalInfo?.table?.[E_TABLE_INFO.TB_NM]}</span> Table
-                                        </ExtensionTab.SubTitle>
-                                    </div>
-                                    {pModalInfo?.filter && <ExtensionTab.ContentDesc>Filtered by '{pModalInfo.filter}'</ExtensionTab.ContentDesc>}
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end' }}>
-                                    <Close style={{ cursor: 'pointer' }} onClick={handleClose} />
-                                </div>
-                            </ExtensionTab.DpRowBetween>
-                        </ExtensionTab.ContentBlock>
+        <Modal.Root isOpen={pModalInfo.state} onClose={handleClose} size="lg" style={{ width: '80vw' }}>
+            <Modal.Header>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', width: '100%' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <Modal.Title style={{ fontSize: '24px' }}>
+                            Real-Time Statistics of <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff9800' }}>{pModalInfo?.table?.[E_TABLE_INFO.TB_NM]}</p> Table
+                        </Modal.Title>
+                        {pModalInfo?.filter && <Modal.TitleSub>Filtered by '{pModalInfo.filter}'</Modal.TitleSub>}
                     </div>
-                </Modal.Header>
-                {sStatzList && sStatzList?.rows && sStatzList?.rows?.length > 0 ? (
-                    <ExtensionTab.Table pList={sStatzList} />
-                ) : (
-                    <ExtensionTab.ContentBlock>
-                        <ExtensionTab.ContentText pContent="N/A" />
-                    </ExtensionTab.ContentBlock>
-                )}
-                <Modal.Footer>
-                    <div style={{ padding: '20px 40px 0 20px', justifyItems: 'end' }}>
-                        <ExtensionTab.ContentDesc>Last updated: {moment(sLastUpdated)?.format('YYYY-MM-DD HH:mm:ss')}</ExtensionTab.ContentDesc>
-                    </div>
-                    <ExtensionTab.ContentBlock pHoverNone>
-                        <div className="statz-table-modal-pagination">
-                            <button disabled={sPage <= 1} style={sPage <= 1 ? { opacity: 0.4, cursor: 'not-allowed' } : {}} onClick={() => setPage(1)}>
-                                <MdKeyboardDoubleArrowLeft width={16} height={16} />
-                            </button>
-                            <button
-                                disabled={sPage <= 1 || !Number(sPage) ? true : false}
-                                style={sPage <= 1 || !Number(sPage) ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
-                                onClick={() => setPage(() => parseInt(sPage as any) - 1)}
-                            >
-                                <ArrowLeft />
-                            </button>
-                            <div className="statz-table-modal-input-wrapper">
-                                <input
-                                    value={sPage}
-                                    id="statz-custom-input"
-                                    name="statz-page-input"
-                                    type="number"
-                                    disabled={getMaxPageNum === 1 && pModalInfo.recordCnt === 1}
-                                    style={getMaxPageNum === 1 && pModalInfo.recordCnt === 1 ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
-                                    onChange={handlePagination}
-                                    // TODO
-                                    // + Debounce
-                                    // + Event onKeyDown={() => {}}
-                                />
-                            </div>
-                            <button
-                                disabled={sPage >= getMaxPageNum}
-                                style={sPage >= getMaxPageNum ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
-                                onClick={() => setPage(() => parseInt(sPage as any) + 1)}
-                            >
-                                <ArrowRight />
-                            </button>
-                            <button
-                                disabled={sPage >= getMaxPageNum}
-                                style={sPage >= getMaxPageNum ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
-                                onClick={() => setPage(getMaxPageNum)}
-                            >
-                                <MdOutlineKeyboardDoubleArrowRight />
-                            </button>
-                        </div>
-                    </ExtensionTab.ContentBlock>
-                </Modal.Footer>
-            </Modal>
-        </div>
+                    <Modal.Close />
+                </div>
+            </Modal.Header>
+            <Modal.Body>
+                <Page>
+                    {sStatzList && sStatzList?.rows && sStatzList?.rows?.length > 0 ? (
+                        <Page.Table pList={sStatzList} stickyHeader />
+                    ) : (
+                        <Page.ContentBlock>
+                            <Page.ContentText pContent="N/A" />
+                        </Page.ContentBlock>
+                    )}
+                </Page>
+            </Modal.Body>
+            <Modal.Footer style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <Page.ContentDesc>Last updated: {moment(sLastUpdated)?.format('YYYY-MM-DD HH:mm:ss')}</Page.ContentDesc>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <Pagination currentPage={sPage} totalPages={getMaxPageNum} onPageChange={handlePageChange} onPageInputChange={handlePageInputChange} inputValue={sPageInput} />
+                </div>
+            </Modal.Footer>
+        </Modal.Root>
     ) : null;
 };

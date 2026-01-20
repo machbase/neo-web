@@ -1,23 +1,13 @@
-import Extension from '@/components/extension/index';
-import Side from '@/components/side/Side';
 import './Home.scss';
-import SplitPane, { Pane } from 'split-pane-react';
 import Console from '@/components/console/index';
-import 'split-pane-react/esm/themes/default.css';
+import { SplitPane, Pane } from '@/design-system/components';
 import { useEffect, useState } from 'react';
 import { getLogin } from '@/api/repository/login';
-import Body from '@/components/editor/Body';
+import MainContent from '@/components/mainContent/MainContent';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gLicense, gSelectedExtension, gShellList } from '@/recoil/recoil';
-import ReferenceList from '@/components/side/ReferenceList';
-import { DBExplorer } from '@/components/side/DBExplorer/DBExplorer';
-import { SecurityKey } from '@/components/side/SecurityKey';
 import { UncaughtErrorObserver } from '@/utils/UncaughtErrorHelper';
-import { TimerSide } from '@/components/side/Timer';
-import { Shell } from '@/components/side/Shell';
 import { useToken } from '@/hooks/useToken';
-import { BridgeSide } from '@/components/side/Bridge';
-import { AppStore } from '@/components/side/AppStore';
 import { GlobalChecker } from '@/components/GlobalChecker';
 import { EulaModal } from '@/components/modal/EulaModal';
 import { fetchQuery } from '@/api/repository/database';
@@ -25,6 +15,8 @@ import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
 import { gWsLog } from '@/recoil/websocket';
 import { useNavigate } from 'react-router-dom';
 import { useExperiment } from '@/hooks/useExperiment';
+import GNBPanel from '@/components/extension/Extension';
+import { SidePanel } from '@/components/side';
 
 const HomeContent = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);
@@ -133,41 +125,20 @@ const HomeContent = () => {
 
     return (
         <div className={sDragStat ? 'check-draged home-form' : 'home-form'}>
-            <Extension pSetSideSizes={setSideSizes} pIsSidebar={sIsSidebar} pHandleSideBar={setIsSidebar} pSetEula={setOpenEula} />
+            <GNBPanel pSetSideSizes={setSideSizes} pIsSidebar={sIsSidebar} pHandleSideBar={setIsSidebar} pSetEula={setOpenEula} />
             <div className="body-form">
-                <SplitPane
-                    sashRender={() => <></>}
-                    split="vertical"
-                    allowResize={sIsSidebar}
-                    sizes={sSideSizes}
-                    onChange={setSideSizes}
-                    onDragEnd={changeDraged}
-                    onDragStart={setStatus}
-                >
+                <SplitPane split="vertical" allowResize={sIsSidebar} sizes={sSideSizes} onChange={setSideSizes} onDragEnd={changeDraged} onDragStart={setStatus}>
                     <Pane minSize={0} maxSize="50%">
-                        {sHome && (
-                            <div style={{ height: '100%' }}>
-                                <Side pServer={sServer} pGetInfo={getInfo} pSavedPath={sSavedPath} pDisplay={sSelectedExtension === 'EXPLORER'} />
-                                {sSelectedExtension === 'REFERENCE' && <ReferenceList pServer={sServer} />}
-                                {sSelectedExtension === 'DBEXPLORER' && <DBExplorer pServer={sServer} />}
-                                {sSelectedExtension === 'KEY' && <SecurityKey pServer={sServer} />}
-                                {sSelectedExtension === 'TIMER' && <TimerSide pServer={sServer} />}
-                                {sSelectedExtension === 'SHELL' && <Shell pServer={sServer} />}
-                                {sSelectedExtension === 'BRIDGE' && <BridgeSide pServer={sServer} />}
-                                {sSelectedExtension === 'APPSTORE' && <AppStore pServer={sServer} />}
-                            </div>
-                        )}
+                        {sHome ? <SidePanel pServer={sServer} pGetInfo={getInfo} pSavedPath={sSavedPath} pSelectedExtension={sSelectedExtension} /> : null}
                     </Pane>
                     <Pane>
                         <div
                             style={{
                                 ...layoutCSS,
-                                borderLeft: '1px solid #333333',
                                 background: '#ffffff',
                             }}
                         >
                             <SplitPane
-                                sashRender={() => <></>}
                                 split="horizontal"
                                 sizes={sTerminalSizes}
                                 onChange={setTerminalSizes}
@@ -179,7 +150,7 @@ const HomeContent = () => {
                                 }}
                             >
                                 <Pane minSize={50}>
-                                    <Body
+                                    <MainContent
                                         pDragStat={sDragStat}
                                         pSetDragStat={setDragStat}
                                         pExtentionList={sTabList}
@@ -191,19 +162,11 @@ const HomeContent = () => {
                                     />
                                 </Pane>
                                 <Pane minSize={40}>
-                                    <div
-                                        style={{
-                                            borderTop: '1px solid #3C4549',
-                                            width: '100%',
-                                            height: '100%',
-                                        }}
-                                    >
-                                        <Console
-                                            pExtentionList={sTabList && sTabList.filter((aItem: any) => aItem.type === 'term')}
-                                            pTerminalSizes={sTerminalSizes}
-                                            pSetTerminalSizes={setTerminalSizes}
-                                        />
-                                    </div>
+                                    <Console
+                                        pExtentionList={sTabList && sTabList.filter((aItem: any) => aItem.type === 'term')}
+                                        pTerminalSizes={sTerminalSizes}
+                                        pSetTerminalSizes={setTerminalSizes}
+                                    />
                                 </Pane>
                             </SplitPane>
                         </div>
