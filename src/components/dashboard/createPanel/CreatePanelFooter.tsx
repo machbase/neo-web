@@ -152,7 +152,6 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
                     Blackbox panel has no series configuration.
                 </div>
             )}
-        </div>
         </Page>
     );
 };

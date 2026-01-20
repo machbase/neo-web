@@ -50,6 +50,8 @@ export interface BlackboxState {
     startDisplay: string | null;
     end: Date | null;
     endDisplay: string | null;
+    minTime: Date | null;
+    maxTime: Date | null;
     currentTime: Date | null;
     currentDisplayTime: string | null;
     currentIndex: number;

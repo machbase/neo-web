@@ -6,6 +6,7 @@ import { useVideoPlayer } from './hooks/useVideoPlayer';
 import { useLiveMode } from './hooks/useLiveMode';
 import { BlackboxPanelProps } from './types/blackbox';
 import { formatTimeLabel } from './utils/timeUtils';
+import { TimeRangeSelector } from './modals/TimeRangeSelector';
 import './BlackboxPanel.scss';
 
 const BlackboxPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }: BlackboxPanelProps) => {
@@ -17,6 +18,7 @@ const BlackboxPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, 
     const [seekControlPos, setSeekControlPos] = useState<{ x: number; y: number } | null>(null);
     const [isSeekControlVisible, setIsSeekControlVisible] = useState(true);
     const [isDraggingSlider, setIsDraggingSlider] = useState(false);
+    const [isTimeRangeModalOpen, setIsTimeRangeModalOpen] = useState(false);
 
 
     const {
@@ -135,6 +137,15 @@ const BlackboxPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, 
         }
     }, [liveMode, videoPlayer, state.currentTime, state.start]);
 
+    const handleTimeRangeApply = useCallback(async (start: Date, end: Date) => {
+        setTimeRange(start, end);
+        // If current time is strictly outside the new range, reset it to start
+        if (state.currentTime && (state.currentTime < start || state.currentTime > end)) {
+            setStateCurrentTime(start);
+        }
+        await videoPlayer.loadChunk(start);
+    }, [setTimeRange, setStateCurrentTime, state.currentTime, videoPlayer]);
+
     const handleFullscreen = useCallback(() => {
         const target = containerRef.current;
         if (!target) return;
@@ -174,9 +185,6 @@ const BlackboxPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, 
                     )}
                     <button className="icon-btn" onClick={handleFullscreen}>
                         <span className="material-icons-round">fullscreen</span>
-                    </button>
-                    <button className="icon-btn">
-                        <span className="material-icons-round">more_vert</span>
                     </button>
                 </div>
             </header>
@@ -316,11 +324,26 @@ const BlackboxPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, 
                     >
                         <span className="material-icons-outlined">sensors</span>
                     </button>
-                    <button className="icon-btn" title="시간 범위">
+                    <button
+                        className="icon-btn"
+                        onClick={() => setIsTimeRangeModalOpen(true)}
+                        title="시간 범위"
+                    >
                         <span className="material-icons-outlined">calendar_month</span>
                     </button>
                 </div>
             </div>
+            {isTimeRangeModalOpen && (
+                <TimeRangeSelector
+                    isOpen={isTimeRangeModalOpen}
+                    onClose={() => setIsTimeRangeModalOpen(false)}
+                    onApply={handleTimeRangeApply}
+                    initialStartTime={state.start}
+                    initialEndTime={state.end}
+                    minTime={state.minTime}
+                    maxTime={state.maxTime}
+                />
+            )}
         </div>
     );
 };

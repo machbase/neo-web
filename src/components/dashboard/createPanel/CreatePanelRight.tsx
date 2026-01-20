@@ -128,50 +128,49 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
                     pOptions={ChartTypeList.map((aType: { key: string; value: string }) => aType.key) as string[]}
                 />
-                <div className="content scrollbar-dark-border" style={{ height: '100%' }}>
-                    {pPanelOption.type === 'Blackbox' ? (
-                        <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
-                            Blackbox panel has no additional options.
-                        </div>
-                    ) : (
-                        <>
-                {chartTypeConverter(pPanelOption.type) !== E_CHART_TYPE.TQL && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
-                {useXAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.xAxisOptions && (
-                    <XAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
-                )}
-                {useYAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.yAxisOptions && (
-                    <YAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
-                )}
-                <Page.Divi />
-                {CheckCustomChartType(pPanelOption.type) ? (
-                    <>
-                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GEOMAP ? <GeomapOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TQL ? <TqlOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? (
-                            <AdvancedScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
-                        ) : null}
-                    </>
+                {pPanelOption.type === 'Blackbox' ? (
+                    <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
+                        Blackbox panel has no additional options.
+                    </div>
                 ) : (
-                    <Page.Collapse pTrigger="Chart option">
-                        <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.LINE ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.BAR ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.SCATTER ? (
-                                <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
-                            ) : null}
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.PIE ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GAUGE ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.LIQUID_FILL ? (
-                                <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
-                            ) : null}
-                        </Page.ContentBlock>
-                    </Page.Collapse>
+                    <>
+                        {chartTypeConverter(pPanelOption.type) !== E_CHART_TYPE.TQL && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
+                        {useXAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.xAxisOptions && (
+                            <XAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                        )}
+                        {useYAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.yAxisOptions && (
+                            <YAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                        )}
+                        <Page.Divi />
+                        {CheckCustomChartType(pPanelOption.type) ? (
+                            <>
+                                {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GEOMAP ? <GeomapOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                                {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                                {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TQL ? <TqlOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                                {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? (
+                                    <AdvancedScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                                ) : null}
+                            </>
+                        ) : (
+                            <Page.Collapse pTrigger="Chart option">
+                                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.LINE ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.BAR ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.SCATTER ? (
+                                        <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                                    ) : null}
+                                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.PIE ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GAUGE ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.LIQUID_FILL ? (
+                                        <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                                    ) : null}
+                                </Page.ContentBlock>
+                            </Page.Collapse>
+                        )}
+                        <div className="divider" />
+                        {/* </div> */}
+                    </>
                 )}
-                <div className="divider" />
-                {/* </div> */}
-                        </>
-                    )}
             </Page.Body>
         </Page>
     );

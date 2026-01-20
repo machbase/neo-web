@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { BlackboxState, ChunkInfo, TimelineEntry, EventBucket, SensorSample } from '../types/blackbox';
-import { loadCameras, loadSensors } from '../utils/api';
+import { loadCameras, loadSensors, getTimeRange } from '../utils/api';
 
 const initialState: BlackboxState = {
     cameras: [],
@@ -14,6 +14,8 @@ const initialState: BlackboxState = {
     startDisplay: null,
     end: null,
     endDisplay: null,
+    minTime: null, // Available data range start
+    maxTime: null, // Available data range end
     currentTime: null,
     currentDisplayTime: null,
     currentIndex: 0,
@@ -41,16 +43,37 @@ export function useBlackboxState() {
     // Camera management
     const fetchCameras = useCallback(async () => {
         const cameras = await loadCameras();
+        const initialCamera = cameras.length > 0 ? cameras[0].id : null;
+
+        let minTime: Date | null = null;
+        let maxTime: Date | null = null;
+
+        if (initialCamera) {
+            const range = await getTimeRange(initialCamera);
+            if (range) {
+                minTime = new Date(range.start);
+                maxTime = new Date(range.end);
+            }
+        }
+
         setState(prev => ({
             ...prev,
             cameras,
-            camera: cameras.length > 0 ? cameras[0].id : null,
+            camera: initialCamera,
+            minTime,
+            maxTime,
         }));
         return cameras;
     }, []);
 
-    const setCamera = useCallback((cameraId: string) => {
-        setState(prev => ({ ...prev, camera: cameraId }));
+    const setCamera = useCallback(async (cameraId: string) => {
+        const range = await getTimeRange(cameraId);
+        setState(prev => ({
+            ...prev,
+            camera: cameraId,
+            minTime: range ? new Date(range.start) : null,
+            maxTime: range ? new Date(range.end) : null,
+        }));
     }, []);
 
     // Sensor management
