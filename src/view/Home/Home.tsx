@@ -16,7 +16,7 @@ import { gWsLog } from '@/recoil/websocket';
 import { useNavigate } from 'react-router-dom';
 import { useExperiment } from '@/hooks/useExperiment';
 import GNBPanel from '@/components/extension/Extension';
-import { SidePanel } from '@/components/Side';
+import { SidePanel } from '@/components/side';
 
 const HomeContent = () => {
     const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);

@@ -7,7 +7,7 @@ import CreatePanelRight from './CreatePanelRight';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType, PanelIdParser } from '@/utils/dashboardUtil';
-import { TableTypeOrderList } from '@/components/Side/DBExplorer/utils';
+import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 import { getTableList, postFileList } from '@/api/repository/api';
 import { decodeJwt, generateUUID, isValidJSON, parseDashboardTables } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';

@@ -14,7 +14,7 @@ import {
     nameValueVirtualAggList,
     tagAggregatorList,
 } from '@/utils/dashboardUtil';
-import { TableTypeOrderList } from '@/components/Side/DBExplorer/utils';
+import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 import { DIFF_LIST, isCountAllAggregator } from '@/utils/aggregatorConstants';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';

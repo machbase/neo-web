@@ -27,11 +27,11 @@ import { useNavigate } from 'react-router-dom';
 import { SSHKey } from '../sshkey';
 import { Subscriber } from '../bridge/subscriber';
 import { BackupDatabase } from '../database/backup';
-import { AppInfo } from '../Side/AppStore/info';
-import { DBTablePage } from '../Side/DBExplorer/tablePage';
+import { AppInfo } from '../side/AppStore/info';
+import { DBTablePage } from '../side/DBExplorer/tablePage';
 import { EXTENSION_SET, IMAGE_EXTENSION_LIST } from '@/utils/constants';
 import { UnknownExtension } from '../unknownExtension';
-import { SaveModal } from '../Side/FileExplorer/SaveModal';
+import { SaveModal } from '../side/FileExplorer/SaveModal';
 // import { Chat } from '../chat/Chat';
 
 const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
