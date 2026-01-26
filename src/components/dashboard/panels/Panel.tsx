@@ -1,5 +1,4 @@
 import LineChart from './chart/LineChart';
-import BlackboxPanel from './blackbox/BlackboxPanel';
 import VideoPanel from './chart/VideoPanel';
 import PanelHeader from './PanelHeader';
 import './Panel.scss';
