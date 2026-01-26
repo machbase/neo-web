@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import ReactDOM from 'react-dom';
+import { Modal, Dropdown, Button, Input } from '@/design-system/components';
 import './TimeRangeSelector.scss';
 
 interface TimeRangeSelectorProps {
@@ -42,7 +44,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
 
     // Presets state
     const [presetInput, setPresetInput] = useState('5m');
-    const [isPresetDropdownOpen, setIsPresetDropdownOpen] = useState(false);
+
 
     // Popup state
     const [activePopup, setActivePopup] = useState<'start' | 'end' | null>(null);
@@ -50,7 +52,6 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
     // Timeline Drag State
     const timelineRef = useRef<HTMLDivElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
-    const dropdownRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState<'selection' | 'left' | 'right' | null>(null);
     const dragStartX = useRef<number>(0);
     const dragStartDates = useRef<{ start: Date; end: Date } | null>(null);
@@ -91,17 +92,20 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
     // Click outside to close popup and dropdown
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (activePopup && popupRef.current && !popupRef.current.contains(e.target as Node)) {
+            // Check if click is inside the popup
+            const isInsidePopup = popupRef.current && popupRef.current.contains(e.target as Node);
+
+            // Check if click is inside the portal dropdown (which is physically outside the popup)
+            const isInsidePortal = (e.target as Element).closest('.preset-dropdown-menu-portal');
+
+            if (activePopup && !isInsidePopup && !isInsidePortal) {
                 setActivePopup(null);
-            }
-            if (isPresetDropdownOpen && dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setIsPresetDropdownOpen(false);
             }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [activePopup, isPresetDropdownOpen]);
+    }, [activePopup]);
 
     const updateAllFromDates = (start: Date, end: Date) => {
         setStartDateTime(new Date(start));
@@ -337,10 +341,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         }
     };
 
-    const handlePresetSelect = (presetString: string) => {
-        setPresetInput(presetString);
-        setIsPresetDropdownOpen(false);
-    };
+
 
     const handleApply = () => {
         if (!isNaN(startDateTime.getTime()) && !isNaN(endDateTime.getTime())) {
@@ -398,63 +399,75 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
 
                 <div className="date-inputs">
                     <div className="field">
-                        <input
+                        <Input
                             type="text"
                             value={year}
                             onChange={(e) => { setYear(e.target.value); }}
                             maxLength={4}
+                            fullWidth
+                            helperText="YYYY"
+                            className="aligned-input"
                         />
-                        <span className="label">YYYY</span>
                     </div>
                     <div className="field">
-                        <input
+                        <Input
                             type="text"
                             value={month}
                             onChange={(e) => { setMonth(e.target.value); }}
                             maxLength={2}
+                            fullWidth
+                            helperText="MM"
+                            className="aligned-input"
                         />
-                        <span className="label">MM</span>
                     </div>
                     <div className="field">
-                        <input
+                        <Input
                             type="text"
                             value={day}
                             onChange={(e) => { setDay(e.target.value); }}
                             maxLength={2}
+                            fullWidth
+                            helperText="DD"
+                            className="aligned-input"
                         />
-                        <span className="label">DD</span>
                     </div>
                 </div>
 
                 <div className="time-inputs">
                     <div className="field">
-                        <input
+                        <Input
                             type="text"
                             value={hour}
                             onChange={(e) => { setHour(e.target.value); }}
                             maxLength={2}
+                            fullWidth
+                            helperText="HH"
+                            className="aligned-input"
                         />
-                        <span className="label">HH</span>
                     </div>
                     <span className="separator">:</span>
                     <div className="field">
-                        <input
+                        <Input
                             type="text"
                             value={minute}
                             onChange={(e) => { setMinute(e.target.value); }}
                             maxLength={2}
+                            fullWidth
+                            helperText="MM"
+                            className="aligned-input"
                         />
-                        <span className="label">MM</span>
                     </div>
                     <span className="separator">:</span>
                     <div className="field">
-                        <input
+                        <Input
                             type="text"
                             value={second}
                             onChange={(e) => { setSecond(e.target.value); }}
                             maxLength={2}
+                            fullWidth
+                            helperText="SS"
+                            className="aligned-input"
                         />
-                        <span className="label">SS</span>
                     </div>
                 </div>
 
@@ -463,37 +476,22 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                         <span>PRESETS</span>
                     </div>
                     <div className="hybrid-preset-container">
-                        <div className="preset-input-wrapper" ref={dropdownRef}>
-                            <input
-                                type="text"
-                                className="preset-input"
+                        <div style={{ width: '200px' }}>
+                            <Dropdown.Root
+                                options={PRESET_OPTIONS}
                                 value={presetInput}
-                                onChange={(e) => setPresetInput(e.target.value)}
-                                placeholder="5m"
-                            />
-                            <button
-                                className="dropdown-toggle"
-                                onClick={() => setIsPresetDropdownOpen(!isPresetDropdownOpen)}
+                                onChange={(val) => setPresetInput(val as string)}
+                                placeholder="Select preset"
                             >
-                                <span className="material-icons-round">expand_more</span>
-                            </button>
-                            {isPresetDropdownOpen && (
-                                <div className="preset-dropdown-menu">
-                                    {PRESET_OPTIONS.map((opt) => (
-                                        <div
-                                            key={opt.value}
-                                            className="dropdown-item"
-                                            onClick={() => handlePresetSelect(opt.value)}
-                                        >
-                                            {opt.label}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                                <Dropdown.Trigger style={{ height: '36px' }} />
+                                <Dropdown.Menu className="preset-dropdown-menu-portal">
+                                    <Dropdown.List />
+                                </Dropdown.Menu>
+                            </Dropdown.Root>
                         </div>
-                        <button className="preset-apply-btn" onClick={() => handlePresetApply(type)}>
+                        <Button className="preset-apply-btn" onClick={() => handlePresetApply(type)} style={{ height: '36px' }}>
                             Apply
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -519,15 +517,6 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                 </div>
 
                 <div className={`master-timeline ${isDragging ? 'dragging' : ''}`} ref={timelineRef}>
-                    {/* Popup positioned above the timeline (inside relative container) */}
-                    {popupInfo && (
-                        <div
-                            className="handle-popup-wrapper"
-                            style={{ left: `${popupInfo.percent}%` }}
-                        >
-                            {renderPopup(popupInfo.type)}
-                        </div>
-                    )}
                     <div className="timeline-track" />
 
                     <div
@@ -549,16 +538,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                 </div>
 
                 {/* Bottom tooltip for the dragged handle */}
-                {(isDragging === 'right' || activePopup === 'end') && (
-                    <div className="handle-bottom-tooltip" style={{ left: `${endPercent}%` }}>
-                        {formatWindowRange(endDateTime)}
-                    </div>
-                )}
-                {(isDragging === 'left' || activePopup === 'start') && (
-                    <div className="handle-bottom-tooltip" style={{ left: `${startPercent}%` }}>
-                        {formatWindowRange(startDateTime)}
-                    </div>
-                )}
+
 
                 <div className="timeline-ticks">
                     {tickLabels.map((tick, i) => (
@@ -585,33 +565,58 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
 
     const popupInfo = getActivePopupPosition();
 
-    if (!isOpen) return null;
+    // Render popup using Portal
+    const renderPopupPortal = () => {
+        if (!popupInfo || !timelineRef.current) return null;
+
+        const { percent, type } = popupInfo;
+        const timelineRect = timelineRef.current.getBoundingClientRect();
+
+        // Calculate absolute position
+        const left = timelineRect.left + (timelineRect.width * percent / 100);
+        const top = timelineRect.top; // Position above the timeline
+
+        const style: React.CSSProperties = {
+            position: 'absolute',
+            left: `${left}px`,
+            top: `${top}px`,
+            zIndex: 9999, // High z-index to stay on top
+        };
+
+        return ReactDOM.createPortal(
+            <div className="handle-popup-wrapper-portal" style={style}>
+                {/* Wrapper to offset the popup to sit above the point */}
+                <div style={{ position: 'relative' }}>
+                    {renderPopup(type)}
+                </div>
+            </div>,
+            document.body
+        );
+    };
 
     return (
-        <div className="time-range-modal-overlay" onClick={onClose}>
-            <div className="time-range-modal-new" onClick={(e) => e.stopPropagation()}>
-                {/* Main panel */}
-                <div className="main-panel">
-                    <div className="modal-header">
-                        <h2>SELECT TIME RANGE</h2>
-                        <button className="close-btn" onClick={onClose}>
-                            <span className="material-icons-round">close</span>
-                        </button>
-                    </div>
+        <Modal.Root isOpen={isOpen} onClose={onClose} size="fit">
+            <Modal.Header>
+                <Modal.Title>
+                    <span className="material-icons-round" style={{ marginRight: '8px', fontSize: '20px', verticalAlign: 'bottom' }}>calendar_today</span>
+                    SELECT TIME RANGE
+                </Modal.Title>
+                <Modal.Close />
+            </Modal.Header>
 
-                    <div className="modal-body">
-                        {renderTimeline()}
-                    </div>
+            <Modal.Body>
+                <Modal.Content className="time-range-modal-body">
+                    {renderTimeline()}
+                    {renderPopupPortal()}
+                </Modal.Content>
+            </Modal.Body>
 
-                    <div className="modal-footer">
-                        <button className="cancel-btn" onClick={onClose}>Cancel</button>
-                        <button className="apply-btn" onClick={handleApply}>
-                            <span className="material-icons-round">check_circle</span>
-                            Apply Range
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+            <Modal.Footer>
+                <Modal.Cancel onClick={onClose}>Cancel</Modal.Cancel>
+                <Modal.Confirm onClick={handleApply}>
+                    Apply Range
+                </Modal.Confirm>
+            </Modal.Footer>
+        </Modal.Root>
     );
 };
