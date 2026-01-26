@@ -1,0 +1,39 @@
+@use '@/design-system/tokens' as t;
+
+.textHighlight {
+    display: inline;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    -webkit-text-stroke: 0.5px currentColor;
+
+    // Color variants - text color only (no background)
+    &--primary {
+        color: t.$primary-base;
+    }
+
+    &--success {
+        color: t.$success-main;
+    }
+
+    &--error {
+        color: t.$error-main;
+    }
+
+    &--warning {
+        color: t.$warning-main;
+    }
+
+    &--info {
+        color: t.$info-main;
+    }
+
+    &--neutral {
+        color: t.$text-secondary;
+    }
+
+    &--muted {
+        color: t.$text-disabled;
+    }
+}

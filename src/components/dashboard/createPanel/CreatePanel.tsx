@@ -492,7 +492,7 @@ const CreatePanel = ({
                             </Pane>
                         </SplitPane>
                     </Pane>
-                    <Pane>{sPanelOption.id && <CreatePanelRight pType={pType} pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} />}</Pane>
+                    <Pane>{sPanelOption.id && <CreatePanelRight pType={pType} pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} pBoardInfo={pBoardInfo} />}</Pane>
                 </SplitPane>
             </Page.Body>
         </Page>
