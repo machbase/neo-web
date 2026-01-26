@@ -1,15 +1,17 @@
+@use '@/design-system/tokens' as t;
+@import "@/assets/scss/variables.scss";
+
 // Video Panel Styles - New UI Design
 
 .video-panel {
     display: flex;
     flex-direction: column;
+    width: 100%;
     height: 100%;
-    background: #15161B;
-    border-radius: 12px;
-    border: 1px solid rgba(99, 102, 241, 0.3);
-    overflow: hidden;
-    font-family: 'Inter', sans-serif;
-    color: #e5e7eb;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
 
     // Header
     .panel-header {
@@ -17,8 +19,8 @@
         justify-content: space-between;
         align-items: center;
         padding: 12px 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        background: #1a1d24;
+        border-bottom: 1px solid $d-work-sheet-bar;
+        background: transparent;
         flex-shrink: 0;
 
         .header-left {
@@ -27,14 +29,14 @@
             gap: 12px;
 
             .panel-icon {
-                color: #3b82f6;
+                color: var(--panel-text-color);
                 font-size: 18px;
             }
 
             .panel-title {
-                font-size: 14px;
-                font-weight: 600;
-                color: #e5e7eb;
+                font-size: t.$font-size-base;
+                font-weight: t.$font-weight-semibold;
+                color: inherit;
             }
         }
 
@@ -63,8 +65,8 @@
                 }
 
                 span {
-                    font-size: 10px;
-                    font-weight: 700;
+                    font-size: t.$font-size-xs;
+                    font-weight: t.$font-weight-bold;
                     color: #22c55e;
                     letter-spacing: 0.05em;
                 }
@@ -73,7 +75,7 @@
             .icon-btn {
                 background: none;
                 border: none;
-                color: #9ca3af;
+                color: $text-b;
                 cursor: pointer;
                 padding: 4px;
                 display: flex;
@@ -82,7 +84,7 @@
                 transition: color 0.2s;
 
                 &:hover {
-                    color: white;
+                    color: $text-w;
                 }
 
                 .material-icons-round {
@@ -96,8 +98,8 @@
     .video-container {
         position: relative;
         flex: 1;
-        min-height: 0; // Important for flex shrink to work properly
-        background: #000;
+        min-height: 0;
+        background: t.$color-black;
         overflow: hidden;
 
         video {
@@ -113,23 +115,23 @@
             align-items: center;
             gap: 4px;
             padding: 6px 8px;
-            background: rgba(26, 29, 36, 0.95);
+            background: rgba($d-modal-bg, 0.95);
             backdrop-filter: blur(12px);
-            border: 1px solid #374151;
+            border: 1px solid $d-work-sheet-bar;
             border-radius: 8px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             z-index: 20;
 
             .drag-handle {
                 cursor: grab;
-                color: #6b7280;
+                color: $text-b;
                 display: flex;
                 align-items: center;
                 padding: 2px;
-                margin-right: 4px;
+
 
                 &:hover {
-                    color: #9ca3af;
+                    color: $text-w;
                 }
 
                 &:active {
@@ -141,30 +143,10 @@
                 }
             }
 
-            button {
-                background: none;
-                border: none;
-                color: #9ca3af;
-                cursor: pointer;
-                padding: 4px;
-                display: flex;
-                align-items: center;
-                transition: color 0.2s;
-
-                &:hover {
-                    color: white;
-                }
-
+            // Target IconButton icons within seek control to be smaller
+            .seek-btn {
                 .material-icons-round {
-                    font-size: 18px;
-                }
-            }
-
-            .close-btn {
-                margin-left: 4px;
-
-                .material-icons-round {
-                    font-size: 16px;
+                    font-size: 14px !important;
                 }
             }
 
@@ -172,17 +154,17 @@
                 width: 40px;
                 height: 24px;
                 padding: 0 6px;
-                background: #1f2937;
-                border: 1px solid #4b5563;
+                background: $d-btn-hover-bg;
+                border: 1px solid $d-work-sheet-bar;
                 border-radius: 4px;
-                font-size: 12px;
-                font-weight: 700;
-                color: white;
+                font-size: t.$font-size-sm;
+                font-weight: t.$font-weight-bold;
+                color: $text-w;
                 text-align: center;
                 outline: none;
 
                 &:focus {
-                    border-color: #3b82f6;
+                    border-color: $color-blue;
                 }
 
                 &::-webkit-outer-spin-button,
@@ -196,30 +178,33 @@
                 appearance: textfield;
             }
 
-            .seek-unit-select {
+            .seek-unit-dropdown {
                 height: 24px;
-                padding: 0 20px 0 6px;
-                background: #1a1d24 url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") right 2px center no-repeat;
-                background-size: 14px;
-                border: 1px solid #4b5563;
+                padding: 0 4px;
+                background: $d-btn-hover-bg;
+                border: 1px solid $d-work-sheet-bar;
                 border-radius: 4px;
-                font-size: 9px;
-                font-weight: 700;
-                color: #e5e7eb;
-                letter-spacing: 0.05em;
-                cursor: pointer;
-                outline: none;
-                -webkit-appearance: none;
-                -moz-appearance: none;
-                appearance: none;
+                min-width: 60px;
 
-                &:focus {
-                    border-color: #3b82f6;
+                // Override trigger specific styles for compact layout
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+
+                &:hover {
+                    border-color: $color-blue;
                 }
 
-                option {
-                    background: #1a1d24;
-                    color: #e5e7eb;
+                span {
+                    font-size: t.$font-size-xs;
+                    font-weight: t.$font-weight-bold;
+                    color: $text-w;
+                    letter-spacing: 0.05em;
+                }
+
+                svg {
+                    color: $text-w;
+                    font-size: 14px;
                 }
             }
         }
@@ -231,8 +216,8 @@
         align-items: center;
         gap: 16px;
         padding: 12px 16px;
-        background: #15161B;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        background: transparent;
+        border-top: none;
         flex-shrink: 0;
 
         .controls-left {
@@ -245,9 +230,9 @@
                 width: 36px;
                 height: 36px;
                 border-radius: 50%;
-                background: rgba(59, 130, 246, 0.15);
+                background: rgba(255, 255, 255, 0.1);
                 border: none;
-                color: #3b82f6;
+                color: var(--panel-text-color);
                 cursor: pointer;
                 display: flex;
                 align-items: center;
@@ -255,8 +240,8 @@
                 transition: all 0.2s;
 
                 &:hover {
-                    background: #3b82f6;
-                    color: white;
+                    background: rgba(255, 255, 255, 0.2);
+                    color: var(--panel-text-color);
                 }
 
                 .material-icons-round {
@@ -267,17 +252,24 @@
             .nav-btn {
                 background: none;
                 border: none;
-                color: #9ca3af;
+                color: $text-b;
                 cursor: pointer;
-                padding: 4px;
-                transition: color 0.2s;
+                width: 32px;
+                height: 32px;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+                transition: all 0.2s;
 
                 &:hover:not(:disabled) {
-                    color: white;
+                    background: rgba(255, 255, 255, 0.1);
+                    color: $text-w;
                 }
 
                 &:disabled {
-                    color: #4b5563;
+                    color: var(--panel-text-color);
                     cursor: not-allowed;
                     opacity: 0.5;
                 }
@@ -299,11 +291,11 @@
                 bottom: 20px;
                 transform: translateX(-50%);
                 padding: 3px 8px;
-                background: #3b82f6;
+                background: $color-blue;
                 border-radius: 4px;
                 font-size: 11px;
                 font-weight: 600;
-                color: white;
+                color: $text-w;
                 white-space: nowrap;
                 z-index: 10;
                 pointer-events: none;
@@ -312,7 +304,8 @@
             .timeline-track {
                 flex: 1;
                 height: 4px;
-                background: #374151;
+                background: var(--panel-text-color);
+                opacity: 0.3;
                 border-radius: 2px;
                 position: relative;
                 cursor: pointer;
@@ -322,7 +315,7 @@
                     left: 0;
                     top: 0;
                     height: 100%;
-                    background: #3b82f6;
+                    background: $color-blue;
                     border-radius: 2px;
                     pointer-events: none;
                 }
@@ -333,9 +326,9 @@
                     transform: translate(-50%, -50%);
                     width: 12px;
                     height: 12px;
-                    background: #3b82f6;
+                    background: $color-blue;
                     border-radius: 50%;
-                    border: 2px solid #15161B;
+                    border: 2px solid $d-work-sheet-bg;
                     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
                     transition: transform 0.15s;
                     pointer-events: none;
@@ -364,34 +357,13 @@
             gap: 8px;
             flex-shrink: 0;
 
-            .icon-btn {
-                width: 32px;
-                height: 32px;
-                border-radius: 6px;
-                background: #1e2128;
-                border: 1px solid #374151;
-                color: #9ca3af;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: all 0.2s;
-
-                &:hover {
-                    background: #252932;
-                    color: #d1d5db;
-                }
-
-                &.active {
-                    background: rgba(59, 130, 246, 0.2);
-                    border-color: rgba(59, 130, 246, 0.3);
-                    color: #3b82f6;
-                }
-
-                .material-icons-outlined {
-                    font-size: 18px;
-                }
+            button {
+                color: var(--panel-text-color) !important;
             }
+
+            flex-shrink: 0;
+
+
         }
     }
 }
@@ -411,3 +383,27 @@
 // Material Icons
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons+Round');
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
+
+// Portal dropdown menu styles (must be global or at root)
+.seek-unit-menu {
+
+    ul {
+
+        padding: 4px 0;
+
+        li {
+            font-size: t.$font-size-xs !important;
+            padding: 4px 8px !important;
+            min-height: 24px !important;
+
+            span {
+                font-size: t.$font-size-xs !important;
+            }
+
+            svg {
+                width: 10px;
+                height: 10px;
+            }
+        }
+    }
+}
