@@ -1,11 +1,6 @@
-// Blackbox Panel Types
+// Video Panel Types
 
 export interface Camera {
-    id: string;
-    label?: string;
-}
-
-export interface Sensor {
     id: string;
     label?: string;
 }
@@ -21,30 +16,12 @@ export interface ChunkInfo {
     cacheToken: string;
 }
 
-export interface TimelineEntry {
-    time: string;
-}
-
-export interface EventBucket {
-    start: Date;
-    end: Date;
-    value: number;
-    intensity: number;
-}
-
-export interface SensorSample {
-    time: Date;
-    values: Record<string, number>;
-}
-
-export interface BlackboxState {
+export interface VideoState {
     // Camera
     cameras: Camera[];
     camera: string | null;
 
     // Timeline
-    timeline: TimelineEntry[];
-    timelineFull: TimelineEntry[];
     chunkDuration: number;
     start: Date | null;
     startDisplay: string | null;
@@ -56,15 +33,6 @@ export interface BlackboxState {
     currentDisplayTime: string | null;
     currentIndex: number;
 
-    // Sensors
-    sensors: Sensor[];
-    selectedSensors: Set<string>;
-    sensorLabelMap: Record<string, string>;
-    sensorSamples: SensorSample[];
-    sensorWindowStart: Date | null;
-    sensorWindowEnd: Date | null;
-    sensorCursorTime: Date | null;
-
     // Playback
     isLoading: boolean;
     isPlaying: boolean;
@@ -75,10 +43,6 @@ export interface BlackboxState {
     currentChunkInfo: ChunkInfo | null;
     currentChunkBaseline: number;
     currentChunkActualDuration: number | null;
-
-    // Events
-    eventBuckets: EventBucket[];
-    rollupMinutes: number;
 }
 
 export interface BoardTimeMinMax {
@@ -87,7 +51,7 @@ export interface BoardTimeMinMax {
     refresh?: boolean;
 }
 
-export interface BlackboxPanelProps {
+export interface VideoPanelProps {
     pPanelInfo: any;
     pBoardInfo: any;
     pBoardTimeMinMax?: BoardTimeMinMax;

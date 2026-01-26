@@ -1,5 +1,5 @@
 import LineChart from './chart/LineChart';
-import VideoPanel from './chart/VideoPanel';
+import VideoPanel from './video/VideoPanel';
 import PanelHeader from './PanelHeader';
 import './Panel.scss';
 import { useState } from 'react';
