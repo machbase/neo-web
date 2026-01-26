@@ -9,7 +9,7 @@ export { Modal } from './Modal';
 export type { ModalRootProps, ModalHeaderProps, ModalTitleProps, ModalBodyProps, ModalFooterProps, ModalCloseProps, ModalConfirmProps, ModalCancelProps } from './Modal';
 
 export { Button, IconButton, CopyButton } from './Button';
-export type { ButtonProps, ButtonVariant, ButtonSize, IconButtonProps, CopyButtonProps } from './Button';
+export type { ButtonProps, ButtonVariant, ButtonSize, LabelPosition as ButtonLabelPosition, IconButtonProps, CopyButtonProps } from './Button';
 
 export { Input } from './Input';
 export type { InputProps, InputSize, InputVariant, InputLabelPosition } from './Input';
@@ -88,6 +88,12 @@ export type { DatePickerProps } from './DatePicker';
 
 export { TimePicker } from './TimePicker';
 export type { TimePickerProps } from './TimePicker';
+
+export { Badge } from './Badge';
+export type { BadgeProps, BadgeVariant, BadgeSize } from './Badge';
+
+export { TextHighlight } from './TextHighlight';
+export type { TextHighlightProps, TextHighlightVariant } from './TextHighlight';
 
 export { BadgeSelect } from './BadgeSelect';
 export type { BadgeSelectProps, BadgeSelectItem } from './BadgeSelect';

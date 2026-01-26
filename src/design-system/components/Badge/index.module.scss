@@ -1,0 +1,156 @@
+@use '@/design-system/tokens' as t;
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    padding: t.$spacing-4 t.$spacing-8;
+    border-radius: t.$border-radius-base;
+    border: 1px solid t.$border-color-default;
+    background-color: t.$bg-secondary;
+    font-family: t.$font-family-default;
+    font-weight: t.$font-weight-medium;
+    white-space: nowrap;
+    user-select: none;
+    width: fit-content;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+
+    // Size variants
+    &--sm {
+        padding: t.$spacing-2 t.$spacing-8;
+        gap: t.$spacing-4;
+        font-size: t.$font-size-xs;
+
+        .dot {
+            width: 6px;
+            height: 6px;
+        }
+    }
+
+    &--md {
+        padding: t.$spacing-4 t.$spacing-8;
+        gap: t.$spacing-6;
+        font-size: t.$font-size-sm;
+
+        .dot {
+            width: 8px;
+            height: 8px;
+        }
+    }
+
+    &--lg {
+        padding: t.$spacing-6 t.$spacing-12;
+        gap: t.$spacing-8;
+        font-size: t.$font-size-base;
+
+        .dot {
+            width: 10px;
+            height: 10px;
+        }
+    }
+
+    // Color variants
+    &--primary {
+        border-color: t.$primary-base;
+        background-color: rgba(0, 95, 184, 0.1);
+
+        .text {
+            color: t.$primary-base;
+            -webkit-text-stroke: 0.5px currentColor;
+        }
+
+        .dot {
+            background-color: t.$primary-base;
+        }
+    }
+
+    &--success {
+        border-color: rgba(113, 224, 113, 0.3);
+        background-color: rgba(113, 224, 113, 0.15);
+
+        .text {
+            color: t.$success-main;
+        }
+
+        .dot {
+            background-color: t.$success-main;
+        }
+    }
+
+    &--error {
+        border-color: rgba(255, 83, 83, 0.3);
+        background-color: rgba(255, 83, 83, 0.15);
+
+        .text {
+            color: t.$error-main;
+        }
+
+        .dot {
+            background-color: t.$error-main;
+        }
+    }
+
+    &--warning {
+        border-color: rgba(255, 152, 0, 0.3);
+        background-color: rgba(255, 152, 0, 0.15);
+
+        .text {
+            color: t.$warning-main;
+        }
+
+        .dot {
+            background-color: t.$warning-main;
+        }
+    }
+
+    &--info {
+        border-color: rgba(0, 95, 184, 0.3);
+        background-color: rgba(0, 95, 184, 0.15);
+
+        .text {
+            color: t.$info-main;
+        }
+
+        .dot {
+            background-color: t.$info-main;
+        }
+    }
+
+    &--neutral {
+        border-color: t.$border-color-default;
+        background-color: t.$bg-secondary;
+
+        .text {
+            color: t.$text-secondary;
+        }
+
+        .dot {
+            background-color: t.$text-secondary;
+        }
+    }
+
+    &--muted {
+        border-color: rgba(128, 128, 128, 0.2);
+        background-color: rgba(128, 128, 128, 0.1);
+
+        .text {
+            color: t.$text-disabled;
+        }
+
+        .dot {
+            background-color: t.$text-disabled;
+        }
+    }
+}
+
+.dot {
+    display: block;
+    border-radius: t.$border-radius-circle;
+    flex-shrink: 0;
+}
+
+.text {
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}

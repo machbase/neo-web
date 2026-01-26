@@ -351,6 +351,42 @@
     user-select: none;
 }
 
+// Button with Label
+.button-with-label {
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-8;
+
+    &--top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    &--left {
+        flex-direction: row;
+    }
+
+    &--right {
+        flex-direction: row-reverse;
+    }
+
+    &--full-width {
+        width: 100%;
+
+        .button {
+            flex: 1;
+        }
+    }
+}
+
+.button-label {
+    font-size: t.$font-size-base;
+    font-weight: 500;
+    color: t.$text-secondary;
+    user-select: none;
+    white-space: nowrap;
+}
+
 // Spinner animation
 @keyframes spin {
     from {

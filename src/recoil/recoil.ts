@@ -78,6 +78,11 @@ export const gExtensionList = atom<any>({
             label: 'APPSTORE',
         },
         {
+            id: 'CAMERA',
+            type: 'CAMERA',
+            label: 'CAMERA',
+        },
+        {
             id: 'REFERENCE',
             type: 'REFERENCE',
             label: 'REFERENCE',
@@ -288,4 +293,17 @@ export const gLicense = atom<any>({
         licenseStatus: BADGE_KEYWORD,
         eulaRequired: false,
     } as any,
+});
+
+// Media Server
+export interface MediaServerType {
+    ip: string;
+    port: string;
+}
+export const gMediaServer = atom<MediaServerType>({
+    key: 'gMediaServer',
+    default: {
+        ip: '',
+        port: '',
+    },
 });

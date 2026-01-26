@@ -6,6 +6,7 @@ import { Check, Copy } from '@/assets/icons/Icon';
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'none';
 export type ButtonSize = 'xsm' | 'sm' | 'md' | 'lg' | 'icon' | 'fit' | 'side';
 export type TooltipPlace = 'top' | 'top-start' | 'top-end' | 'right' | 'right-start' | 'right-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'left' | 'left-start' | 'left-end';
+export type LabelPosition = 'left' | 'right' | 'top';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: ButtonVariant;
@@ -22,6 +23,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     toolTipMaxWidth?: number;
     forceOpacity?: boolean;
     shadow?: boolean;
+    label?: React.ReactNode;
+    labelPosition?: LabelPosition;
 }
 
 export const Button = ({
@@ -41,6 +44,8 @@ export const Button = ({
     toolTipMaxWidth,
     forceOpacity = false,
     shadow = false,
+    label,
+    labelPosition = 'left',
     ...props
 }: ButtonProps) => {
     const buttonClasses = [
@@ -57,13 +62,15 @@ export const Button = ({
         .filter(Boolean)
         .join(' ');
 
-    // Generate unique tooltip ID
-    const tooltipId = `tooltip-${Math.random().toString(36).substring(2, 9)}`;
+    // Generate unique IDs (replace colons for CSS selector compatibility)
+    const uniqueId = React.useId().replace(/:/g, '');
+    const buttonId = props.id || (label ? `button-${uniqueId}` : undefined);
+    const tooltipId = `tooltip-${uniqueId}`;
     const tooltipStyle = toolTipMaxWidth && toolTipMaxWidth < 500 ? { width: `${toolTipMaxWidth}px` } : undefined;
 
-    return (
+    const buttonElement = (
         <>
-            <button className={buttonClasses} disabled={disabled || loading} {...props}>
+            <button id={buttonId} className={buttonClasses} disabled={disabled || loading} {...props}>
                 {loading ? (
                     <svg className={styles['button__spinner']} width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="10 20" />
@@ -99,6 +106,23 @@ export const Button = ({
             )}
         </>
     );
+
+    if (label) {
+        const wrapperClasses = [styles['button-with-label'], styles[`button-with-label--${labelPosition}`], fullWidth && styles['button-with-label--full-width']]
+            .filter(Boolean)
+            .join(' ');
+
+        return (
+            <div className={wrapperClasses}>
+                <label htmlFor={buttonId} className={styles['button-label']}>
+                    {label}
+                </label>
+                {buttonElement}
+            </div>
+        );
+    }
+
+    return buttonElement;
 };
 
 // Icon Button Component
