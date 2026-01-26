@@ -413,7 +413,7 @@ export const COLOR_SET = '5ca3f2,d06a5f,e2bb5c,86b66b,7070e0,6bcbc1,a673e8,e26da
 
 export const IMAGE_EXTENSION_LIST = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico'];
 export const FILE_EXTENSION_LIST = ['new', 'term', 'sql', 'tql', 'taz', 'dsh', 'wrk', 'json', 'csv', 'md', 'txt', 'html', 'css', 'js'];
-export const SIDE_EXTENSION_LIST = ['key', 'timer', 'shell-manage', 'bridge', 'ssh-key', 'subscriber', 'backupdb', 'appStore', 'DBTable'];
+export const SIDE_EXTENSION_LIST = ['key', 'timer', 'shell-manage', 'bridge', 'ssh-key', 'subscriber', 'backupdb', 'appStore', 'DBTable', 'camera'];
 export const EXTENSION_SET = new Set([...IMAGE_EXTENSION_LIST, ...FILE_EXTENSION_LIST, ...SIDE_EXTENSION_LIST]);
 
 export const ADMIN_ID = 'sys';
@@ -457,7 +457,7 @@ export const ChartTypeList = [
     { key: 'Text', value: 'text' },
     { key: 'Geomap', value: 'geomap' },
     { key: 'Tql chart', value: 'tql' },
-    { key: 'Blackbox', value: 'blackbox' },
+    { key: 'Video', value: 'video' },
 ];
 
 export const ChartThemeBackgroundColor: { [key in ChartTheme]: string } = {

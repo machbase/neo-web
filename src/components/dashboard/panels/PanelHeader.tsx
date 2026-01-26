@@ -1,10 +1,10 @@
-import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download } from '@/assets/icons/Icon';
+import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download, VscSync } from '@/assets/icons/Icon';
 import { gBoardList, GBoardListType, gSelectedTab, gRollupTableList } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import './PanelHeader.scss';
 import { Tooltip } from 'react-tooltip';
 import { generateRandomString, generateUUID, getId, isEmpty } from '@/utils';
-import { Menu } from '@/design-system/components';
+import { Menu, Page } from '@/design-system/components';
 import { useState } from 'react';
 import { convertChartDefault } from '@/utils/utils';
 import { ChartThemeTextColor, DEFAULT_CHART } from '@/utils/constants';
@@ -29,6 +29,7 @@ import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button } from '@/design-system/components';
+import { VscMultipleWindows } from 'react-icons/vsc';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
@@ -53,8 +54,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         }
 
         // If either contains 'now' or 'last', convert them
-        if ((typeof start === 'string' && (start.includes('now') || start.includes('last'))) ||
-            (typeof end === 'string' && (end.includes('now') || end.includes('last')))) {
+        if ((typeof start === 'string' && (start.includes('now') || start.includes('last'))) || (typeof end === 'string' && (end.includes('now') || end.includes('last')))) {
             return {
                 ...timeRange,
                 start: setUnitTime(start),
@@ -410,6 +410,28 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 <Menu.Item onClick={() => handleMoveEditOnMenu(pPanelInfo.id)} icon={<GearFill />}>
                                     Setting
                                 </Menu.Item>
+                                {pPanelInfo.type === 'Video' ? (
+                                    <>
+                                        <Menu.Item
+                                            onClick={() => {}}
+                                            icon={<VscSync />}
+                                            rightIcon={
+                                                <Page.Switch
+                                                    pState={true}
+                                                    pCallback={(e) => {
+                                                        e.stopPropagation();
+                                                        e.preventDefault();
+                                                    }}
+                                                />
+                                            }
+                                        >
+                                            Synchronization
+                                        </Menu.Item>
+                                        <Menu.Item onClick={() => {}} icon={<VscMultipleWindows />}>
+                                            Detail board
+                                        </Menu.Item>
+                                    </>
+                                ) : null}
                                 {pPanelInfo.type === 'Geomap' && (
                                     <Menu.Item onClick={handleGeomapZoom} icon={<TbZoomPan />} rightIcon={pPanelInfo.chartOptions.useZoomControl ? <IoMdCheckmark /> : undefined}>
                                         Use zoom control
@@ -418,12 +440,12 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)} icon={<HiMiniDocumentDuplicate />}>
                                     Duplicate
                                 </Menu.Item>
-                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && (
+                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
                                     <Menu.Item onClick={handleMoveTagz} icon={<MuiTagAnalyzerGray className="mui-svg-hover" width={13} />}>
                                         Show Taganalyzer
                                     </Menu.Item>
                                 )}
-                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && (
+                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
                                     <Menu.Item onClick={HandleDataDownload} icon={<Download />}>
                                         Download data
                                     </Menu.Item>
@@ -431,11 +453,15 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 <Menu.Item onClick={handleDelete} icon={<Delete />}>
                                     Delete
                                 </Menu.Item>
-                                {getExperiment() && pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && (
-                                    <Menu.Item onClick={HandleDownload} icon={<VscGraphScatter />}>
-                                        Save to tql
-                                    </Menu.Item>
-                                )}
+                                {getExperiment() &&
+                                    pPanelInfo.type !== 'Tql chart' &&
+                                    pPanelInfo.type !== 'Geomap' &&
+                                    pPanelInfo.type !== 'Text' &&
+                                    pPanelInfo.type !== 'Video' && (
+                                        <Menu.Item onClick={HandleDownload} icon={<VscGraphScatter />}>
+                                            Save to tql
+                                        </Menu.Item>
+                                    )}
                             </Menu.Content>
                         </Menu.Root>
                     </div>
@@ -473,13 +499,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                     )} */}
                 </div>
             </div>
-            {sDownloadModal && (
-                <SaveDashboardModal
-                    pDashboardTime={getConvertedTimeRange()}
-                    setIsOpen={setDownloadModal}
-                    pPanelInfo={pPanelInfo}
-                />
-            )}
+            {sDownloadModal && <SaveDashboardModal pDashboardTime={getConvertedTimeRange()} setIsOpen={setDownloadModal} pPanelInfo={pPanelInfo} />}
             {sIsDeleteModal && (
                 <ConfirmModal
                     pIsDarkMode

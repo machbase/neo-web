@@ -23,7 +23,7 @@ const useDropdownContext = () => {
 interface DropdownRootProps extends UseDropdownProps {
     children: ReactNode;
     className?: string;
-    label?: string;
+    label?: ReactNode;
     labelPosition?: 'top' | 'left';
     fullWidth?: boolean;
     style?: React.CSSProperties;

@@ -7,6 +7,7 @@ import { SecurityKeySide } from './SecurityKey';
 import { Side } from '@/design-system/components';
 import { TimerSide } from './Timer';
 import { ShellSide } from './Shell';
+import { CameraSide } from './Camera';
 
 export const SidePanel = ({ pServer, pGetInfo, pSavedPath, pSelectedExtension }: { pServer: any; pGetInfo: any; pSavedPath: any; pSelectedExtension: any }) => {
     return (
@@ -19,6 +20,7 @@ export const SidePanel = ({ pServer, pGetInfo, pSavedPath, pSelectedExtension }:
             {pSelectedExtension === 'KEY' && <SecurityKeySide />}
             {pSelectedExtension === 'APPSTORE' && <AppStoreSide />}
             {pSelectedExtension === 'REFERENCE' && <ReferenceSide />}
+            {pSelectedExtension === 'CAMERA' && <CameraSide />}
         </Side.Root>
     );
 };

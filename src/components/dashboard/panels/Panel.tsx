@@ -1,5 +1,6 @@
 import LineChart from './chart/LineChart';
 import BlackboxPanel from './blackbox/BlackboxPanel';
+import VideoPanel from './chart/VideoPanel';
 import PanelHeader from './PanelHeader';
 import './Panel.scss';
 import { useState } from 'react';
@@ -36,15 +37,9 @@ const Panel = ({
                 pIsView={pIsView}
                 pIsHeader={pIsHeader}
             />
-            {pPanelInfo && (
-                pPanelInfo.type === 'Blackbox' ? (
-                    <BlackboxPanel
-                        pPanelInfo={pPanelInfo}
-                        pBoardInfo={pBoardInfo}
-                        pBoardTimeMinMax={pBoardTimeMinMax}
-                        pParentWidth={pParentWidth}
-                        pIsHeader={pIsHeader}
-                    />
+            {pPanelInfo ? (
+                pPanelInfo?.type === 'Video' ? (
+                    <VideoPanel pPanelInfo={pPanelInfo} pBoardInfo={pBoardInfo} pBoardTimeMinMax={pBoardTimeMinMax} pParentWidth={pParentWidth} pIsHeader={pIsHeader} />
                 ) : (
                     <LineChart
                         pLoopMode={pLoopMode}
@@ -63,9 +58,8 @@ const Panel = ({
                         pIsActiveTab={pIsActiveTab}
                     />
                 )
-            )}
+            ) : null}
         </div>
     );
 };
 export default Panel;
-

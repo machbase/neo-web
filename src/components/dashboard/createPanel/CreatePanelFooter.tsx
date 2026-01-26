@@ -3,9 +3,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { generateUUID } from '@/utils';
 import { TqlBlock } from './TqlBlock';
+import { VideoBlock } from './VideoBlock';
 import { getTagColor, getUseColorList } from '@/utils/helpers/tags';
 import { Transform } from './Transform';
-import { chartTypeConverter } from '@/utils/eChartHelper';
+import { chartTypeConverter, CheckCustomChartType } from '@/utils/eChartHelper';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import { ALLOWED_TRX_CHART_TYPE, CheckAllowedTransformChartType, E_ALLOW_CHART_TYPE } from '@/utils/Chart/TransformDataParser';
 import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/BlockHelper';
@@ -16,6 +17,9 @@ type FOOTER_MENU_TYPE = 'Series' | 'Transform' | 'Time';
 
 const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
     const [sTab, setTab] = useState<FOOTER_MENU_TYPE>('Series');
+    const isTqlChart = pPanelOption.type === 'Tql chart';
+    const isVideo = pPanelOption.type === 'Video';
+    const isNormalType = !(isTqlChart || isVideo);
 
     const HandleAddBlock = () => {
         pSetPanelOption((aPrev: any) => {
@@ -66,7 +70,7 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
 
     return (
         <Page style={{ padding: '8px 8px 8px 16px' }}>
-            {pPanelOption.type !== 'Tql chart' && pPanelOption.type !== 'Blackbox' && (
+            {isNormalType ? (
                 <>
                     <Page.TabContainer>
                         <Page.TabList>
@@ -145,13 +149,9 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
                         {sTab === 'Time' ? <TimeRangeBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} /> : <></>}
                     </Page.Body>
                 </>
-            )}
-            {pPanelOption.type === 'Tql chart' && <TqlBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
-            {pPanelOption.type === 'Blackbox' && (
-                <div style={{ padding: '20px', textAlign: 'center', color: '#888', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    Blackbox panel has no series configuration.
-                </div>
-            )}
+            ) : null}
+            {isTqlChart ? <TqlBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} /> : null}
+            {isVideo ? <VideoBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pTableList={pTableList} /> : null}
         </Page>
     );
 };

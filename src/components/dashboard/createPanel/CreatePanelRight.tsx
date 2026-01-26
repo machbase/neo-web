@@ -13,6 +13,7 @@ import { GaugeOptions } from './option/GaugeOptions';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import { LiquidfillOptions } from './option/LiquidfillOptions';
 import { TqlOptions } from './option/TqlOptions';
+import { VideoOptions } from './option/VideoOptions';
 import { TextOptions } from './option/TextOptions';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { GeomapOptions } from './option/GeomapOptions';
@@ -26,11 +27,15 @@ interface CreatePanelRightProps {
     pPanelOption: any;
     pSetPanelOption: any;
     pType: undefined | 'create' | 'edit';
+    pBoardInfo?: any;
 }
 
 const CreatePanelRight = (props: CreatePanelRightProps) => {
-    const { pPanelOption, pSetPanelOption, pType } = props;
+    const { pPanelOption, pSetPanelOption, pType, pBoardInfo } = props;
     const sPieLegendValue = { legendTop: 'top', legendLeft: 'right', legendOrient: 'vertical' };
+    const sIsTql = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TQL;
+    const sIsVideo = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.VIDEO;
+    const sUseCommOpt = !(sIsTql || sIsVideo);
 
     const changeTypeOfSeriesOption = (aEvent: ChangeEvent<HTMLInputElement>) => {
         const sConvertedChartType = chartTypeConverter(aEvent.target.value);
@@ -128,10 +133,26 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
                     pOptions={ChartTypeList.map((aType: { key: string; value: string }) => aType.key) as string[]}
                 />
-                {pPanelOption.type === 'Blackbox' ? (
-                    <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
-                        Blackbox panel has no additional options.
-                    </div>
+                {sUseCommOpt ? <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} /> : null}
+                {useXAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.xAxisOptions && (
+                    <XAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                )}
+                {useYAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.yAxisOptions && (
+                    <YAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                )}
+                <Page.Divi />
+                {CheckCustomChartType(pPanelOption.type) ? (
+                    <>
+                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GEOMAP ? <GeomapOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TQL ? <TqlOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? (
+                            <AdvancedScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                        ) : null}
+                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.VIDEO ? (
+                            <VideoOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} pBoardInfo={pBoardInfo} />
+                        ) : null}
+                    </>
                 ) : (
                     <>
                         {chartTypeConverter(pPanelOption.type) !== E_CHART_TYPE.TQL && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
@@ -144,7 +165,9 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                         <Page.Divi />
                         {CheckCustomChartType(pPanelOption.type) ? (
                             <>
-                                {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GEOMAP ? <GeomapOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                                {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GEOMAP ? (
+                                    <GeomapOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                                ) : null}
                                 {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                                 {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TQL ? <TqlOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                                 {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? (
@@ -154,13 +177,21 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                         ) : (
                             <Page.Collapse pTrigger="Chart option">
                                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
-                                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.LINE ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.BAR ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.LINE ? (
+                                        <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                                    ) : null}
+                                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.BAR ? (
+                                        <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                                    ) : null}
                                     {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.SCATTER ? (
                                         <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
                                     ) : null}
-                                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.PIE ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GAUGE ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.PIE ? (
+                                        <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                                    ) : null}
+                                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GAUGE ? (
+                                        <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                                    ) : null}
                                     {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.LIQUID_FILL ? (
                                         <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
                                     ) : null}

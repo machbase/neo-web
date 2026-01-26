@@ -32,6 +32,8 @@ import { DBTablePage } from '../side/DBExplorer/tablePage';
 import { EXTENSION_SET, IMAGE_EXTENSION_LIST } from '@/utils/constants';
 import { UnknownExtension } from '../unknownExtension';
 import { SaveModal } from '../side/FileExplorer/SaveModal';
+import { CameraPage } from '../side/Camera/cameraPage';
+
 // import { Chat } from '../chat/Chat';
 
 const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
@@ -346,6 +348,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 {checkExtension(aItem.type, 'backupdb') && <BackupDatabase pCode={aItem} />}
                                 {checkExtension(aItem.type, 'appStore') && <AppInfo pCode={aItem.code} />}
                                 {checkExtension(aItem.type, 'DBTable') && <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />}
+                                {checkExtension(aItem.type, 'camera') && <CameraPage pCode={aItem.code} mode={aItem.mode} />}
                                 {checkExtension(aItem.type, 'unknown') && <UnknownExtension pIsActiveTab={aItem.id === sSelectedTab} pCode={aItem.code} />}
                             </Tabs.Panel>
                         );
