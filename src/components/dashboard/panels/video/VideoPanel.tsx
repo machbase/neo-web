@@ -7,6 +7,9 @@ import { useLiveMode } from './hooks/useLiveMode';
 import { VideoPanelProps } from './types/video';
 import { formatTimeLabel } from './utils/timeUtils';
 import { TimeRangeSelector } from './modals/TimeRangeSelector';
+import { IconButton, Dropdown } from '@/design-system/components';
+import { ChartTheme } from '@/type/eChart';
+import { ChartThemeTextColor } from '@/utils/constants';
 import './VideoPanel.scss';
 
 const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }: VideoPanelProps) => {
@@ -38,7 +41,7 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
 
     const liveMode = useLiveMode(videoRef);
 
-    // Calculate time range from dashboard (like LineChart.tsx)
+    // Calculate time range from dashboard
     const dashboardTimeRange = useMemo(() => {
         if (!pBoardTimeMinMax) return { start: null, end: null };
         const min = typeof pBoardTimeMinMax.min === 'number'
@@ -165,10 +168,18 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
         ? ((sliderValue - sliderMin) / (sliderMax - sliderMin)) * 100
         : 0;
 
+    // Theme color
+    const theme = (pPanelInfo.theme as ChartTheme) || 'dark';
+    const textColor = ChartThemeTextColor[theme];
+
     return (
         <div
             className="video-panel"
             ref={containerRef}
+            style={{
+                color: textColor,
+                '--panel-text-color': textColor,
+            } as React.CSSProperties}
         >
             {/* Header */}
             <header className="panel-header">
@@ -183,9 +194,13 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
                             <span>SYNC</span>
                         </div>
                     )}
-                    <button className="icon-btn" onClick={handleFullscreen}>
-                        <span className="material-icons-round">fullscreen</span>
-                    </button>
+                    <IconButton
+                        icon={<span className="material-icons-round">fullscreen</span>}
+                        onClick={handleFullscreen}
+                        isToolTip={false}
+                        aria-label="Fullscreen"
+                        variant="secondary"
+                    />
                 </div>
             </header>
 
@@ -248,9 +263,14 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
                         >
                             <span className="material-icons-round">drag_indicator</span>
                         </div>
-                        <button onClick={handlePrevChunk} title="이전">
-                            <span className="material-icons-round">keyboard_double_arrow_left</span>
-                        </button>
+                        <IconButton
+                            icon={<span className="material-icons-round">keyboard_double_arrow_left</span>}
+                            onClick={handlePrevChunk}
+                            aria-label="이전"
+                            variant="ghost"
+                            size="xsm"
+                            className="seek-btn"
+                        />
                         <input
                             type="number"
                             className="seek-input"
@@ -258,22 +278,37 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
                             onChange={(e) => setSeekStep(Math.max(1, parseInt(e.target.value, 10) || 1))}
                             min={1}
                         />
-                        <select
-                            className="seek-unit-select"
+                        <Dropdown.Root
+                            options={[
+                                { label: 'FRAME', value: 'frame' },
+                                { label: 'SEC', value: 'sec' },
+                                { label: 'MIN', value: 'min' },
+                                { label: 'HOUR', value: 'hour' },
+                            ]}
                             value={seekUnit}
-                            onChange={(e) => setSeekUnit(e.target.value as typeof seekUnit)}
+                            onChange={(val) => setSeekUnit(val as any)}
                         >
-                            <option value="frame">FRAME</option>
-                            <option value="sec">SEC</option>
-                            <option value="min">MIN</option>
-                            <option value="hour">HOUR</option>
-                        </select>
-                        <button onClick={handleNextChunk} title="다음">
-                            <span className="material-icons-round">keyboard_double_arrow_right</span>
-                        </button>
-                        <button className="close-btn" onClick={() => setIsSeekControlVisible(false)}>
-                            <span className="material-icons-round">close</span>
-                        </button>
+                            <Dropdown.Trigger className="seek-unit-dropdown" />
+                            <Dropdown.Menu className="seek-unit-menu">
+                                <Dropdown.List />
+                            </Dropdown.Menu>
+                        </Dropdown.Root>
+                        <IconButton
+                            icon={<span className="material-icons-round">keyboard_double_arrow_right</span>}
+                            onClick={handleNextChunk}
+                            aria-label="다음"
+                            variant="ghost"
+                            size="xsm"
+                            className="seek-btn"
+                        />
+                        <IconButton
+                            icon={<span className="material-icons-round">close</span>}
+                            onClick={() => setIsSeekControlVisible(false)}
+                            aria-label="닫기"
+                            variant="ghost"
+                            size="xsm"
+                            className="close-btn seek-btn"
+                        />
                     </div>
                 )}
             </div>
@@ -317,20 +352,23 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
                 </div>
 
                 <div className="controls-right">
-                    <button
-                        className={`icon-btn ${liveMode.isLive ? 'active' : ''}`}
+                    <IconButton
+                        icon={<span className="material-icons-outlined">sensors</span>}
                         onClick={handleLiveToggle}
-                        title="실시간"
-                    >
-                        <span className="material-icons-outlined">sensors</span>
-                    </button>
-                    <button
-                        className="icon-btn"
+                        active={liveMode.isLive}
+                        toolTipContent="실시간"
+                        isToolTip
+                        aria-label="Toggle Live Mode"
+                        variant="secondary"
+                    />
+                    <IconButton
+                        icon={<span className="material-icons-outlined">calendar_month</span>}
                         onClick={() => setIsTimeRangeModalOpen(true)}
-                        title="시간 범위"
-                    >
-                        <span className="material-icons-outlined">calendar_month</span>
-                    </button>
+                        toolTipContent="시간 범위"
+                        isToolTip
+                        aria-label="Select Time Range"
+                        variant="secondary"
+                    />
                 </div>
             </div>
             {isTimeRangeModalOpen && (
