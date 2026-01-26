@@ -1,15 +1,15 @@
-// Blackbox Panel - Main Component (New UI Design)
+// Video Panel - Main Component (New UI Design)
 
 import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
-import { useBlackboxState } from './hooks/useBlackboxState';
+import { useVideoState } from './hooks/useVideoState';
 import { useVideoPlayer } from './hooks/useVideoPlayer';
 import { useLiveMode } from './hooks/useLiveMode';
-import { BlackboxPanelProps } from './types/blackbox';
+import { VideoPanelProps } from './types/video';
 import { formatTimeLabel } from './utils/timeUtils';
 import { TimeRangeSelector } from './modals/TimeRangeSelector';
-import './BlackboxPanel.scss';
+import './VideoPanel.scss';
 
-const BlackboxPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }: BlackboxPanelProps) => {
+const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }: VideoPanelProps) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const seekControlRef = useRef<HTMLDivElement>(null);
@@ -28,7 +28,7 @@ const BlackboxPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, 
         setCurrentTime: setStateCurrentTime,
         setIsPlaying: setStateIsPlaying,
         setIsLoading: setStateIsLoading,
-    } = useBlackboxState();
+    } = useVideoState();
 
     const videoPlayer = useVideoPlayer(
         videoRef,
@@ -167,14 +167,14 @@ const BlackboxPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, 
 
     return (
         <div
-            className="blackbox-panel"
+            className="video-panel"
             ref={containerRef}
         >
             {/* Header */}
             <header className="panel-header">
                 <div className="header-left">
                     <span className="material-icons-round panel-icon">videocam</span>
-                    <span className="panel-title">{pPanelInfo.title || 'Blackbox 1'}</span>
+                    <span className="panel-title">{pPanelInfo.title || 'Video 1'}</span>
                 </div>
                 <div className="header-right">
                     {liveMode.isLive && (
@@ -348,4 +348,4 @@ const BlackboxPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, 
     );
 };
 
-export default BlackboxPanel;
+export default VideoPanel;
