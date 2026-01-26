@@ -2,7 +2,7 @@
 // Ported from viewer-v3.html logic
 
 import { useRef, useCallback, useEffect, useState } from 'react';
-import { ChunkInfo } from '../types/blackbox';
+import { ChunkInfo } from '../types/video';
 import { getChunkInfo, getChunkData, fetchBinary } from '../utils/api';
 import { parseTimestamp, formatIsoWithMs } from '../utils/timeUtils';
 

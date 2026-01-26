@@ -1,14 +1,13 @@
-// Blackbox State Management Hook
+// Video State Management Hook
 
 import { useState, useCallback } from 'react';
-import { BlackboxState, ChunkInfo, TimelineEntry, EventBucket, SensorSample } from '../types/blackbox';
-import { loadCameras, loadSensors, getTimeRange } from '../utils/api';
+import { VideoState, ChunkInfo } from '../types/video';
+import { loadCameras, getTimeRange } from '../utils/api';
 
-const initialState: BlackboxState = {
+const initialState: VideoState = {
     cameras: [],
     camera: null,
-    timeline: [],
-    timelineFull: [],
+
     chunkDuration: 5,
     start: null,
     startDisplay: null,
@@ -19,13 +18,6 @@ const initialState: BlackboxState = {
     currentTime: null,
     currentDisplayTime: null,
     currentIndex: 0,
-    sensors: [],
-    selectedSensors: new Set(),
-    sensorLabelMap: {},
-    sensorSamples: [],
-    sensorWindowStart: null,
-    sensorWindowEnd: null,
-    sensorCursorTime: null,
     isLoading: false,
     isPlaying: false,
     fps: null,
@@ -33,12 +25,10 @@ const initialState: BlackboxState = {
     currentChunkInfo: null,
     currentChunkBaseline: 0,
     currentChunkActualDuration: null,
-    eventBuckets: [],
-    rollupMinutes: 1,
 };
 
-export function useBlackboxState() {
-    const [state, setState] = useState<BlackboxState>(initialState);
+export function useVideoState() {
+    const [state, setState] = useState<VideoState>(initialState);
 
     // Camera management
     const fetchCameras = useCallback(async () => {
@@ -76,33 +66,7 @@ export function useBlackboxState() {
         }));
     }, []);
 
-    // Sensor management
-    const fetchSensors = useCallback(async (camera: string) => {
-        const sensors = await loadSensors(camera);
-        const labelMap: Record<string, string> = {};
-        sensors.forEach(s => {
-            labelMap[s.id] = s.label || s.id;
-        });
-        setState(prev => ({
-            ...prev,
-            sensors,
-            sensorLabelMap: labelMap,
-            selectedSensors: new Set(sensors.slice(0, 2).map(s => s.id)),
-        }));
-        return sensors;
-    }, []);
 
-    const toggleSensor = useCallback((sensorId: string) => {
-        setState(prev => {
-            const newSelected = new Set(prev.selectedSensors);
-            if (newSelected.has(sensorId)) {
-                newSelected.delete(sensorId);
-            } else {
-                newSelected.add(sensorId);
-            }
-            return { ...prev, selectedSensors: newSelected };
-        });
-    }, []);
 
     // Timeline management
     const setTimeRange = useCallback((start: Date | null, end: Date | null) => {
@@ -147,37 +111,6 @@ export function useBlackboxState() {
         setState(prev => ({ ...prev, currentChunkActualDuration: duration }));
     }, []);
 
-    // Sensor data
-    const setSensorSamples = useCallback((samples: SensorSample[]) => {
-        setState(prev => ({ ...prev, sensorSamples: samples }));
-    }, []);
-
-    const setSensorCursorTime = useCallback((time: Date | null) => {
-        setState(prev => ({ ...prev, sensorCursorTime: time }));
-    }, []);
-
-    const setSensorWindow = useCallback((start: Date | null, end: Date | null) => {
-        setState(prev => ({
-            ...prev,
-            sensorWindowStart: start,
-            sensorWindowEnd: end,
-        }));
-    }, []);
-
-    // Event buckets
-    const setEventBuckets = useCallback((buckets: EventBucket[]) => {
-        setState(prev => ({ ...prev, eventBuckets: buckets }));
-    }, []);
-
-    // Timeline entries
-    const setTimeline = useCallback((timeline: TimelineEntry[]) => {
-        setState(prev => ({ ...prev, timeline }));
-    }, []);
-
-    const setTimelineFull = useCallback((timelineFull: TimelineEntry[]) => {
-        setState(prev => ({ ...prev, timelineFull }));
-    }, []);
-
     // Reset state
     const reset = useCallback(() => {
         setState(initialState);
@@ -188,15 +121,10 @@ export function useBlackboxState() {
         // Camera
         fetchCameras,
         setCamera,
-        // Sensors
-        fetchSensors,
-        toggleSensor,
         // Timeline
         setTimeRange,
         setCurrentTime,
         setCurrentIndex,
-        setTimeline,
-        setTimelineFull,
         // Playback
         setIsPlaying,
         setIsLoading,
@@ -204,15 +132,9 @@ export function useBlackboxState() {
         setChunkInfo,
         setChunkBaseline,
         setChunkActualDuration,
-        // Sensor data
-        setSensorSamples,
-        setSensorCursorTime,
-        setSensorWindow,
-        // Events
-        setEventBuckets,
         // Reset
         reset,
     };
 }
 
-export type BlackboxStateHook = ReturnType<typeof useBlackboxState>;
+export type VideoStateHook = ReturnType<typeof useVideoState>;
