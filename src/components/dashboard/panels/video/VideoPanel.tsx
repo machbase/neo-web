@@ -228,17 +228,17 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(({ pChartVariab
         }
     }, [liveMode, videoPlayer, state.currentTime, state.start]);
 
-    const handleTimeRangeApply = useCallback(
-        async (start: Date, end: Date) => {
-            setTimeRange(start, end);
-            // If current time is strictly outside the new range, reset it to start
-            if (state.currentTime && (state.currentTime < start || state.currentTime > end)) {
-                setStateCurrentTime(start);
-            }
-            await videoPlayer.loadChunk(start);
-        },
-        [setTimeRange, setStateCurrentTime, state.currentTime, videoPlayer]
-    );
+    const handleTimeRangeApply = useCallback(async (start: Date, end: Date) => {
+        // Pause playback when time range changes to prevent UI sync issues
+        videoPlayer.pause();
+
+        setTimeRange(start, end);
+        // If current time is strictly outside the new range, reset it to start
+        if (state.currentTime && (state.currentTime < start || state.currentTime > end)) {
+            setStateCurrentTime(start);
+        }
+        await videoPlayer.loadChunk(start);
+    }, [setTimeRange, setStateCurrentTime, state.currentTime, videoPlayer]);
 
     const handleFullscreen = useCallback(() => {
         const target = containerRef.current as any;
