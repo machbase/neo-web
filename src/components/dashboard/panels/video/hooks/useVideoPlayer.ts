@@ -24,6 +24,7 @@ interface BufferedChunk {
 export function useVideoPlayer(
     videoRef: React.RefObject<HTMLVideoElement>,
     camera: string | null,
+    endTime: Date | null,
     onTimeUpdate?: (time: Date) => void
 ) {
     const [state, setState] = useState<VideoPlayerState>({
@@ -437,6 +438,11 @@ export function useVideoPlayer(
         const chunkEndMs = chunkStartMs + (serverDuration * 1000);
         const nextSearchTime = new Date(chunkEndMs + 1000);
 
+        // Don't prefetch if next time exceeds end time
+        if (endTime && nextSearchTime > endTime) {
+            return;
+        }
+
         console.log('[VIDEO] Prefetching next chunk at:', formatIsoWithMs(nextSearchTime));
 
         prefetchIssuedRef.current = true;
@@ -504,11 +510,18 @@ export function useVideoPlayer(
             // Save current chunk startIso BEFORE loading next (like viewer-v3.html)
             const currentChunkStartIso = currentChunk.startIso;
 
-            // Calculate next search time based on actual video duration
+            // Calculate next search time
             const chunkStartMs = currentChunk.start.getTime();
             const videoElapsedMs = (video.duration || video.currentTime || 0) * 1000;
             const actualEndTime = new Date(chunkStartMs + videoElapsedMs);
             const nextSearchTime = new Date(actualEndTime.getTime() + 2000);
+
+            // Check if we reached the defined end time
+            if (endTime && actualEndTime >= endTime) {
+                console.log('[VIDEO] Reached end of time range - stopping playback');
+                setState(prev => ({ ...prev, isPlaying: false }));
+                return;
+            }
 
             console.log('[VIDEO] Current chunk:', currentChunkStartIso);
             console.log('[VIDEO] Searching for next chunk at:', formatIsoWithMs(nextSearchTime));
@@ -518,12 +531,19 @@ export function useVideoPlayer(
             prefetchedChunkInfoRef.current = null;
 
             try {
-                // Fetch next chunk info first (like viewer-v3.html)
+                // Fetch next chunk info first
                 const nextChunkInfo = await fetchChunkInfo(camera, nextSearchTime);
 
                 // No next chunk found
                 if (!nextChunkInfo) {
                     console.log('[VIDEO] No next chunk found (404) - stopping playback');
+                    setState(prev => ({ ...prev, isPlaying: false }));
+                    return;
+                }
+
+                // Check if next chunk exceeds endTime
+                if (endTime && nextChunkInfo.start.getTime() > endTime.getTime()) {
+                    console.log('[VIDEO] Next chunk exceeds end time - stopping playback');
                     setState(prev => ({ ...prev, isPlaying: false }));
                     return;
                 }
