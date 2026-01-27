@@ -283,6 +283,18 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(({ pChartVariab
     const textColor = ChartThemeTextColor[theme] || ChartThemeTextColor['dark'];
     const bgColor = ChartThemeBackgroundColor[theme] || ChartThemeBackgroundColor['dark'];
 
+    const handleSliderInteractionStart = useCallback(() => {
+        setIsDraggingSlider(true);
+        // Always pause when dragging starts
+        if (videoPlayer.isPlaying) {
+            videoPlayer.pause();
+        }
+    }, [videoPlayer]);
+
+    const handleSliderInteractionEnd = useCallback(() => {
+        setIsDraggingSlider(false);
+    }, []);
+
     return (
         <div
             className={`video-panel ${isFullscreen ? 'fullscreen' : ''}`}
@@ -448,9 +460,9 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(({ pChartVariab
                             max={sliderMax}
                             value={sliderValue}
                             onChange={handleSliderChange}
-                            onMouseDown={() => setIsDraggingSlider(true)}
-                            onMouseUp={() => setIsDraggingSlider(false)}
-                            onMouseLeave={() => setIsDraggingSlider(false)}
+                            onMouseDown={handleSliderInteractionStart}
+                            onMouseUp={handleSliderInteractionEnd}
+                            onMouseLeave={handleSliderInteractionEnd}
                         />
                     </div>
                 </div>
