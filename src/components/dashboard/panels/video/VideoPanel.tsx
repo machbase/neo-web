@@ -1,22 +1,21 @@
 // Video Panel - Main Component (New UI Design)
 
-import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
+import { useRef, useEffect, useCallback, useState, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { useVideoState } from './hooks/useVideoState';
 import { useVideoPlayer } from './hooks/useVideoPlayer';
 import { useLiveMode } from './hooks/useLiveMode';
-import { VideoPanelProps } from './types/video';
+import { VideoPanelProps, VideoPanelHandle } from './types/video';
 import { registerVideoPanel, unregisterVideoPanel, updateVideoTime, emitVideoCommand, correctSyncTime } from '@/hooks/useVideoSync';
 import { formatTimeLabel } from './utils/timeUtils';
 import { TimeRangeSelector } from './modals/TimeRangeSelector';
 import { IconButton, Dropdown, Badge } from '@/design-system/components';
 import { ChartTheme } from '@/type/eChart';
-import { ChartThemeTextColor } from '@/utils/constants';
+import { ChartThemeTextColor, ChartThemeBackgroundColor } from '@/utils/constants';
 import './VideoPanel.scss';
 
 const SYNC_CORRECTION_INTERVAL = 1000; // 1 second
 const SYNC_CORRECTION_THRESHOLD = 500; // 500ms
-
-const VideoPanel = ({ pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }: VideoPanelProps) => {
+const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(({ pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }, ref) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const seekControlRef = useRef<HTMLDivElement>(null);
@@ -251,6 +250,24 @@ const VideoPanel = ({ pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBo
         }
     }, []);
 
+    // Expose toggleFullscreen to parent via ref
+    useImperativeHandle(ref, () => ({
+        toggleFullscreen: handleFullscreen
+    }));
+
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        };
+    }, []);
+
     // Computed values
     const displayTime = videoPlayer.currentTime || state.currentTime;
     const sliderMin = state.start?.getTime() ?? 0;
@@ -259,19 +276,20 @@ const VideoPanel = ({ pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBo
     const sliderProgress = sliderMax > sliderMin ? ((sliderValue - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
 
     // Theme color
-    const theme = (pPanelInfo.theme as ChartTheme) || 'dark';
-    const textColor = ChartThemeTextColor[theme];
+    let theme = (pPanelInfo.theme as ChartTheme) || 'dark';
+
+    const textColor = ChartThemeTextColor[theme] || ChartThemeTextColor['dark'];
+    const bgColor = ChartThemeBackgroundColor[theme] || ChartThemeBackgroundColor['dark'];
 
     return (
         <div
-            className="video-panel"
+            className={`video-panel ${isFullscreen ? 'fullscreen' : ''}`}
             ref={containerRef}
-            style={
-                {
-                    color: textColor,
-                    '--panel-text-color': textColor,
-                } as React.CSSProperties
-            }
+            style={{
+                color: textColor,
+                '--panel-text-color': textColor,
+                '--panel-bg-color': bgColor,
+            } as React.CSSProperties}
         >
             {/* Header */}
             <header className="panel-header">
@@ -285,13 +303,6 @@ const VideoPanel = ({ pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBo
                             SYNC
                         </Badge>
                     ) : null}
-                    <IconButton
-                        icon={<span className="material-icons-round">fullscreen</span>}
-                        onClick={handleFullscreen}
-                        isToolTip={false}
-                        aria-label="Fullscreen"
-                        variant="secondary"
-                    />
                 </div>
             </header>
 
@@ -391,6 +402,9 @@ const VideoPanel = ({ pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBo
                 )}
             </div>
 
+            {/* Fullscreen Hover Trigger (Invisible area at bottom to show controls) */}
+            <div className="fullscreen-hover-trigger" />
+
             {/* Bottom Controls Bar (always visible) */}
             <div className="controls-bar">
                 <div className="controls-left">
@@ -460,6 +474,6 @@ const VideoPanel = ({ pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBo
             )}
         </div>
     );
-};
+});
 
 export default VideoPanel;

@@ -2,7 +2,7 @@ import LineChart from './chart/LineChart';
 import VideoPanel from './video/VideoPanel';
 import PanelHeader from './PanelHeader';
 import './Panel.scss';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ChartThemeBackgroundColor } from '@/utils/constants';
 import { ChartTheme } from '@/type/eChart';
 
@@ -24,6 +24,15 @@ const Panel = ({
     pIsActiveTab,
 }: any) => {
     const [sRefreshCount, setRefreshCount] = useState<number>(0);
+    // Ref for VideoPanel to access fullscreen toggle
+    const videoPanelRef = useRef<any>(null);
+
+    const handleVideoFullscreen = () => {
+        if (videoPanelRef.current && videoPanelRef.current.toggleFullscreen) {
+            videoPanelRef.current.toggleFullscreen();
+        }
+    };
+
     return (
         <div className="panel-wrap" style={{ backgroundColor: ChartThemeBackgroundColor[pPanelInfo.theme as ChartTheme] }}>
             <PanelHeader
@@ -35,11 +44,13 @@ const Panel = ({
                 pPanelInfo={pPanelInfo}
                 pIsView={pIsView}
                 pIsHeader={pIsHeader}
+                pOnFullscreen={handleVideoFullscreen}
             />
             {pPanelInfo ? (
                 pPanelInfo?.type === 'Video' ? (
                     <VideoPanel
                         pChartVariableId={pChartVariableId}
+                        ref={videoPanelRef}
                         pPanelInfo={pPanelInfo}
                         pBoardInfo={pBoardInfo}
                         pBoardTimeMinMax={pBoardTimeMinMax}

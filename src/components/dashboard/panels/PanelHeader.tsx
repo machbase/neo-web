@@ -29,10 +29,10 @@ import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button } from '@/design-system/components';
-import { VscMultipleWindows } from 'react-icons/vsc';
+import { VscMultipleWindows, VscScreenFull } from 'react-icons/vsc';
 import { VIDEO_PANEL_DEFAULT } from '@/components/dashboard/createPanel/option/VideoOptions';
 
-const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo }: any) => {
+const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
@@ -73,12 +73,12 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             sBoardList.map((aItem: any) => {
                 return aItem.id === sSelectedTab
                     ? {
-                          ...aItem,
-                          dashboard: {
-                              ...aItem.dashboard,
-                              panels: aItem.dashboard.panels.filter((aItem: any) => aItem.id !== pPanelInfo.id),
-                          },
-                      }
+                        ...aItem,
+                        dashboard: {
+                            ...aItem.dashboard,
+                            panels: aItem.dashboard.panels.filter((aItem: any) => aItem.id !== pPanelInfo.id),
+                        },
+                    }
                     : aItem;
             })
         );
@@ -440,7 +440,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 {pPanelInfo.type === 'Video' ? (
                                     <>
                                         <Menu.Item
-                                            onClick={() => {}}
+                                            onClick={() => { }}
                                             icon={<VscSync />}
                                             rightIcon={
                                                 <Page.Switch
@@ -455,8 +455,11 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                         >
                                             Synchronization
                                         </Menu.Item>
-                                        <Menu.Item onClick={() => {}} icon={<VscMultipleWindows />}>
+                                        <Menu.Item onClick={() => { }} icon={<VscMultipleWindows />}>
                                             Detail board
+                                        </Menu.Item>
+                                        <Menu.Item onClick={pOnFullscreen} icon={<VscScreenFull />}>
+                                            Fullscreen
                                         </Menu.Item>
                                     </>
                                 ) : null}
@@ -496,9 +499,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                 </div>
             )}
             <div
-                className={`board-panel-header${!pIsHeader ? ' display-none' : ''}${pPanelInfo.theme !== 'dark' ? ' anel-theme-white' : ''}${
-                    pType === undefined ? ' cursor-grab' : ''
-                }`}
+                className={`board-panel-header${!pIsHeader ? ' display-none' : ''}${pPanelInfo.theme !== 'dark' ? ' anel-theme-white' : ''}${pType === undefined ? ' cursor-grab' : ''
+                    }`}
             >
                 {/* <div style={{ textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>{pPanelInfo.title}</div> */}
                 <div className={`panel-header-navigator ${pType !== undefined ? 'display-none' : ''}`}>
