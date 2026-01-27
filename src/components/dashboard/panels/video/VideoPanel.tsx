@@ -241,12 +241,14 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(({ pChartVariab
     );
 
     const handleFullscreen = useCallback(() => {
-        const target = containerRef.current;
+        const target = containerRef.current as any;
         if (!target) return;
-        if (document.fullscreenElement) {
-            document.exitFullscreen();
+        if ((document as any).webkitFullscreenElement) {
+            (document as any).webkitExitFullscreen();
         } else {
-            target.requestFullscreen();
+            if (target.webkitRequestFullscreen) {
+                target.webkitRequestFullscreen();
+            }
         }
     }, []);
 
@@ -259,12 +261,12 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(({ pChartVariab
 
     useEffect(() => {
         const handleFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
+            setIsFullscreen(!!(document as any).webkitFullscreenElement);
         };
 
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
         return () => {
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
         };
     }, []);
 
@@ -401,6 +403,18 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(({ pChartVariab
                     </div>
                 )}
             </div>
+
+            {/* Center Hover Zone & Button (Fullscreen Only) */}
+            {isFullscreen && (
+                <>
+                    <div className="center-hover-zone" />
+                    <div className="centered-play-btn" onClick={handlePlayToggle}>
+                        <span className="material-icons-round">
+                            {videoPlayer.isPlaying ? 'pause' : 'play_arrow'}
+                        </span>
+                    </div>
+                </>
+            )}
 
             {/* Fullscreen Hover Trigger (Invisible area at bottom to show controls) */}
             <div className="fullscreen-hover-trigger" />

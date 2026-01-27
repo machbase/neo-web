@@ -371,6 +371,7 @@
     &.fullscreen {
         background-color: #000;
         justify-content: center;
+        z-index: 9999;
 
         .panel-header {
             display: none !important;
@@ -384,6 +385,49 @@
             video {
                 object-fit: contain;
             }
+        }
+
+        .center-hover-zone {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30%;
+            height: 30%;
+            background: transparent;
+            z-index: 95;
+        }
+
+        .centered-play-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 96;
+            color: #fff;
+            pointer-events: none;
+
+            .material-icons-round {
+                font-size: 48px;
+            }
+        }
+
+        .center-hover-zone:hover~.centered-play-btn,
+        .centered-play-btn:hover {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
         }
 
         .fullscreen-hover-trigger {
