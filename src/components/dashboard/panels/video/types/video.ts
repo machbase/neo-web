@@ -59,3 +59,7 @@ export interface VideoPanelProps {
     pParentWidth: number;
     pIsHeader: boolean;
 }
+
+export interface VideoPanelHandle {
+    toggleFullscreen: () => void;
+}
