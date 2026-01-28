@@ -30,6 +30,7 @@ import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button } from '@/design-system/components';
 import { VscMultipleWindows } from 'react-icons/vsc';
+import { VIDEO_PANEL_DEFAULT } from '@/components/dashboard/createPanel/option/VideoOptions';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
@@ -39,6 +40,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     const [sDownloadModal, setDownloadModal] = useState<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const { getExperiment } = useExperiment();
+
+    const videoInfo = pPanelInfo.type === 'Video' ? { ...VIDEO_PANEL_DEFAULT, ...pPanelInfo.videoInfo } : null;
 
     // Convert timeRange with special values (now, last) to actual timestamps
     const getConvertedTimeRange = () => {
@@ -441,7 +444,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                             icon={<VscSync />}
                                             rightIcon={
                                                 <Page.Switch
-                                                    pState={pPanelInfo.videoInfo.enableSync}
+                                                    pState={videoInfo.enableSync}
                                                     pCallback={(e) => {
                                                         e.stopPropagation();
                                                         e.preventDefault();
