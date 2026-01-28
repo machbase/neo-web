@@ -4,20 +4,12 @@ import { getCameraListByTable } from '@/api/repository/mediaSvr';
 import { VideoBlockSource } from './VideoBlockSource';
 import { VideoBlockEvents } from './VideoBlockEvents';
 
-export interface VideoInfoType {
+export interface SourceInfoType {
     table: string;
     camera: string;
-    realtimeStream: boolean;
+    liveModeOnStart: boolean;
     enableSync: boolean;
 }
-
-export const VIDEO_INFO_DEFAULT: VideoInfoType = {
-    table: '',
-    camera: '',
-    realtimeStream: false,
-    enableSync: false,
-};
-
 interface VideoBlockProps {
     pPanelOption: any;
     pSetPanelOption: any;
@@ -28,9 +20,7 @@ export const VideoBlock = ({ pPanelOption, pSetPanelOption, pTableList = [] }: V
     const [sSelectTab, setSelectTab] = useState<string>('source');
     const [sCameraList, setCameraList] = useState<{ label: string; value: string }[]>([]);
     const [isLoadingCameras, setIsLoadingCameras] = useState(false);
-
-    const videoInfo: VideoInfoType = pPanelOption.videoInfo ?? VIDEO_INFO_DEFAULT;
-
+    const sourceInfo: SourceInfoType = pPanelOption.chartOptions.source;
     // Fetch camera list when table is selected
     const fetchCameraList = useCallback(async (tableName: string) => {
         if (!tableName) {
@@ -58,17 +48,20 @@ export const VideoBlock = ({ pPanelOption, pSetPanelOption, pTableList = [] }: V
     }, []);
 
     useEffect(() => {
-        fetchCameraList(videoInfo.table);
-    }, [videoInfo.table, fetchCameraList]);
+        fetchCameraList(sourceInfo.table);
+    }, [sourceInfo.table, fetchCameraList]);
 
-    const handleChange = <K extends keyof VideoInfoType>(key: K, value: VideoInfoType[K]) => {
+    const handleChange = <K extends keyof SourceInfoType>(key: K, value: SourceInfoType[K]) => {
         pSetPanelOption((prev: any) => {
-            const prevVideoInfo = prev.videoInfo ?? VIDEO_INFO_DEFAULT;
+            const prevSourceInfo = prev.chartOptions.source;
             // Reset camera when table changes
-            const newVideoInfo = key === 'table' ? { ...prevVideoInfo, [key]: value, camera: '' } : { ...prevVideoInfo, [key]: value };
+            const newSourceInfo = key === 'table' ? { ...prevSourceInfo, [key]: value, camera: '' } : { ...prevSourceInfo, [key]: value };
             return {
                 ...prev,
-                videoInfo: newVideoInfo,
+                chartOptions: {
+                    ...prev.chartOptions,
+                    source: newSourceInfo,
+                },
             };
         });
     };
@@ -88,7 +81,7 @@ export const VideoBlock = ({ pPanelOption, pSetPanelOption, pTableList = [] }: V
             <Page.Body style={{ display: 'flex', flexDirection: 'column', borderRadius: '4px', border: '1px solid #b8c8da41', gap: '8px' }}>
                 {sSelectTab === 'source' && (
                     <VideoBlockSource
-                        videoInfo={videoInfo}
+                        sourceInfo={sourceInfo}
                         cameraList={sCameraList}
                         tableList={pTableList}
                         isLoadingCameras={isLoadingCameras}

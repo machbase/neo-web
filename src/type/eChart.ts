@@ -40,7 +40,8 @@ export type ChartType =
     | 'tql'
     | 'text'
     | 'geomap'
-    | 'advScatter';
+    | 'advScatter'
+    | 'video';
 export type ChartTheme =
     | 'dark'
     | 'white'
