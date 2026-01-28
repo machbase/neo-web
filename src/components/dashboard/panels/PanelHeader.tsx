@@ -380,6 +380,30 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         });
         setBoardList(() => sTabList);
     };
+    const handleVideoSyncOpt = () => {
+        const sTmpPanel = JSON.parse(JSON.stringify(pPanelInfo));
+        sTmpPanel.videoInfo.enableSync = !sTmpPanel.videoInfo.enableSync;
+        sTmpPanel.id = generateUUID();
+        let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+        const sTabList = sBoardList.map((aItem) => {
+            if (aItem.id === pBoardInfo.id) {
+                const sTmpDashboard = {
+                    ...aItem.dashboard,
+                    panels: aItem.dashboard.panels.map((aPanel: any) => {
+                        if (aPanel.id === pPanelInfo.id) return sTmpPanel;
+                        else return aPanel;
+                    }),
+                };
+                sSaveTarget = {
+                    ...aItem,
+                    dashboard: sTmpDashboard,
+                    savedCode: JSON.stringify(sTmpDashboard),
+                };
+                return sSaveTarget;
+            } else return aItem;
+        });
+        setBoardList(() => sTabList);
+    };
 
     return (
         <>
@@ -417,10 +441,11 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                             icon={<VscSync />}
                                             rightIcon={
                                                 <Page.Switch
-                                                    pState={true}
+                                                    pState={pPanelInfo.videoInfo.enableSync}
                                                     pCallback={(e) => {
                                                         e.stopPropagation();
                                                         e.preventDefault();
+                                                        handleVideoSyncOpt();
                                                     }}
                                                 />
                                             }

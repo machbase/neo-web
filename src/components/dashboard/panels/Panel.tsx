@@ -38,7 +38,14 @@ const Panel = ({
             />
             {pPanelInfo ? (
                 pPanelInfo?.type === 'Video' ? (
-                    <VideoPanel pPanelInfo={pPanelInfo} pBoardInfo={pBoardInfo} pBoardTimeMinMax={pBoardTimeMinMax} pParentWidth={pParentWidth} pIsHeader={pIsHeader} />
+                    <VideoPanel
+                        pChartVariableId={pChartVariableId}
+                        pPanelInfo={pPanelInfo}
+                        pBoardInfo={pBoardInfo}
+                        pBoardTimeMinMax={pBoardTimeMinMax}
+                        pParentWidth={pParentWidth}
+                        pIsHeader={pIsHeader}
+                    />
                 ) : (
                     <LineChart
                         pLoopMode={pLoopMode}
