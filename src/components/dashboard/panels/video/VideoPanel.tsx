@@ -5,14 +5,18 @@ import { useVideoState } from './hooks/useVideoState';
 import { useVideoPlayer } from './hooks/useVideoPlayer';
 import { useLiveMode } from './hooks/useLiveMode';
 import { VideoPanelProps } from './types/video';
+import { registerVideoPanel, unregisterVideoPanel, updateVideoTime, emitVideoCommand, correctSyncTime } from '@/hooks/useVideoSync';
 import { formatTimeLabel } from './utils/timeUtils';
 import { TimeRangeSelector } from './modals/TimeRangeSelector';
-import { IconButton, Dropdown } from '@/design-system/components';
+import { IconButton, Dropdown, Badge } from '@/design-system/components';
 import { ChartTheme } from '@/type/eChart';
 import { ChartThemeTextColor } from '@/utils/constants';
 import './VideoPanel.scss';
 
-const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }: VideoPanelProps) => {
+const SYNC_CORRECTION_INTERVAL = 1000; // 1 second
+const SYNC_CORRECTION_THRESHOLD = 500; // 500ms
+
+const VideoPanel = ({ pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }: VideoPanelProps) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const seekControlRef = useRef<HTMLDivElement>(null);
@@ -23,33 +27,38 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
     const [isDraggingSlider, setIsDraggingSlider] = useState(false);
     const [isTimeRangeModalOpen, setIsTimeRangeModalOpen] = useState(false);
 
+    const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
 
-    const {
-        state,
-        fetchCameras,
-        setTimeRange,
-        setCurrentTime: setStateCurrentTime,
-        setIsPlaying: setStateIsPlaying,
-        setIsLoading: setStateIsLoading,
-    } = useVideoState();
-
-    const videoPlayer = useVideoPlayer(
-        videoRef,
-        state.camera,
-        (time) => setStateCurrentTime(time)
-    );
+    const videoPlayer = useVideoPlayer(videoRef, state.camera, (time) => setStateCurrentTime(time));
 
     const liveMode = useLiveMode(videoRef);
+
+    // Sync settings
+    const syncColor = pPanelInfo.titleColor || '#ff0000';
+    const syncEnabled = pPanelInfo.videoInfo?.enableSync ?? true;
+    const dependentPanels = pPanelInfo?.videoInfo?.dependentPanels ?? [];
+
+    // Create event object for sync
+    const createSyncEvent = useCallback(() => {
+        if (!videoPlayer.currentTime) return null;
+        return {
+            originPanelId: pPanelInfo.id,
+            panelId: pPanelInfo.id,
+            chartVariableId: pChartVariableId,
+            currentTime: videoPlayer.currentTime,
+            duration: (state.end?.getTime() ?? 0) - (state.start?.getTime() ?? 0),
+            isPlaying: videoPlayer.isPlaying,
+            color: syncColor,
+            dependentPanels,
+            sync: syncEnabled,
+        };
+    }, [pPanelInfo.id, pChartVariableId, videoPlayer.currentTime, videoPlayer.isPlaying, state.start, state.end, syncColor, dependentPanels, syncEnabled]);
 
     // Calculate time range from dashboard
     const dashboardTimeRange = useMemo(() => {
         if (!pBoardTimeMinMax) return { start: null, end: null };
-        const min = typeof pBoardTimeMinMax.min === 'number'
-            ? new Date(pBoardTimeMinMax.min)
-            : new Date(pBoardTimeMinMax.min);
-        const max = typeof pBoardTimeMinMax.max === 'number'
-            ? new Date(pBoardTimeMinMax.max)
-            : new Date(pBoardTimeMinMax.max);
+        const min = typeof pBoardTimeMinMax.min === 'number' ? new Date(pBoardTimeMinMax.min) : new Date(pBoardTimeMinMax.min);
+        const max = typeof pBoardTimeMinMax.max === 'number' ? new Date(pBoardTimeMinMax.max) : new Date(pBoardTimeMinMax.max);
         return {
             start: Number.isNaN(min.getTime()) ? null : min,
             end: Number.isNaN(max.getTime()) ? null : max,
@@ -83,23 +92,78 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
         setStateIsLoading(videoPlayer.isLoading);
     }, [videoPlayer.isLoading, setStateIsLoading]);
 
-    // Handlers
+    // Register video panel (always register for chart line drawing)
+    useEffect(() => {
+        // Register with initial event (create dummy event if currentTime not ready)
+        const event = createSyncEvent() || {
+            originPanelId: pPanelInfo.id,
+            panelId: pPanelInfo.id,
+            chartVariableId: pChartVariableId,
+            currentTime: new Date(),
+            duration: 0,
+            isPlaying: false,
+            color: syncColor,
+            dependentPanels,
+            sync: syncEnabled,
+        };
+        registerVideoPanel(_pBoardInfo.id, event, videoPlayer);
+
+        return () => {
+            unregisterVideoPanel(_pBoardInfo.id, pPanelInfo.id);
+        };
+    }, [syncEnabled, _pBoardInfo.id, pPanelInfo.id, pChartVariableId, syncColor, dependentPanels, videoPlayer]);
+
+    // Update video time for chart line drawing (always draw regardless of sync)
+    useEffect(() => {
+        if (!videoPlayer.currentTime) return;
+
+        const event = createSyncEvent();
+        if (event) {
+            updateVideoTime(_pBoardInfo.id, event);
+        }
+    }, [videoPlayer.currentTime, _pBoardInfo.id, createSyncEvent]);
+
+    // Periodic sync correction (only when playing and is master)
+    useEffect(() => {
+        if (!syncEnabled || !videoPlayer.isPlaying) return;
+
+        const intervalId = setInterval(() => {
+            if (videoPlayer.currentTime) {
+                correctSyncTime(_pBoardInfo.id, pPanelInfo.id, videoPlayer.currentTime, SYNC_CORRECTION_THRESHOLD);
+            }
+        }, SYNC_CORRECTION_INTERVAL);
+
+        return () => clearInterval(intervalId);
+    }, [syncEnabled, videoPlayer.isPlaying, videoPlayer.currentTime, _pBoardInfo.id, pPanelInfo.id]);
+
+    // Handlers with sync command
     const handlePlayToggle = useCallback(() => {
         if (videoPlayer.isPlaying) {
             videoPlayer.pause();
+            if (syncEnabled) {
+                emitVideoCommand(_pBoardInfo.id, pPanelInfo.id, 'pause');
+            }
         } else {
             videoPlayer.play();
+            if (syncEnabled) {
+                emitVideoCommand(_pBoardInfo.id, pPanelInfo.id, 'play');
+            }
         }
-    }, [videoPlayer]);
+    }, [videoPlayer, syncEnabled, _pBoardInfo.id, pPanelInfo.id]);
 
     // Calculate seek time based on unit
     const getSeekMs = useCallback(() => {
         switch (seekUnit) {
-            case 'frame': return seekStep * (1000 / (videoPlayer.fps || 30));
-            case 'sec': return seekStep * 1000;
-            case 'min': return seekStep * 60 * 1000;
-            case 'hour': return seekStep * 60 * 60 * 1000;
-            default: return seekStep * 1000;
+            case 'frame':
+                return seekStep * (1000 / (videoPlayer.fps || 30));
+            case 'sec':
+                return seekStep * 1000;
+            case 'min':
+                return seekStep * 60 * 1000;
+            case 'hour':
+                return seekStep * 60 * 60 * 1000;
+            default:
+                return seekStep * 1000;
         }
     }, [seekStep, seekUnit, videoPlayer.fps]);
 
@@ -109,7 +173,10 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
         const newTime = new Date(currentTime.getTime() - getSeekMs());
         if (state.start && newTime < state.start) return;
         await videoPlayer.seekToTime(newTime);
-    }, [videoPlayer, state.currentTime, state.start, getSeekMs]);
+        if (syncEnabled) {
+            emitVideoCommand(_pBoardInfo.id, pPanelInfo.id, 'seek', newTime);
+        }
+    }, [videoPlayer, state.currentTime, state.start, getSeekMs, syncEnabled, _pBoardInfo.id, pPanelInfo.id]);
 
     const handleNextChunk = useCallback(async () => {
         const currentTime = videoPlayer.currentTime || state.currentTime;
@@ -117,14 +184,25 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
         const newTime = new Date(currentTime.getTime() + getSeekMs());
         if (state.end && newTime > state.end) return;
         await videoPlayer.seekToTime(newTime);
-    }, [videoPlayer, state.currentTime, state.end, getSeekMs]);
-
-    const handleSliderChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const ms = parseInt(e.target.value, 10);
-        if (!Number.isNaN(ms)) {
-            await videoPlayer.seekToTime(new Date(ms));
+        if (syncEnabled) {
+            emitVideoCommand(_pBoardInfo.id, pPanelInfo.id, 'seek', newTime);
         }
-    }, [videoPlayer]);
+    }, [videoPlayer, state.currentTime, state.end, getSeekMs, syncEnabled, _pBoardInfo.id, pPanelInfo.id]);
+
+    const handleSliderChange = useCallback(
+        async (e: React.ChangeEvent<HTMLInputElement>) => {
+            if (liveMode.isLive) return;
+            const ms = parseInt(e.target.value, 10);
+            if (!Number.isNaN(ms)) {
+                const newTime = new Date(ms);
+                await videoPlayer.seekToTime(newTime);
+                if (syncEnabled) {
+                    emitVideoCommand(_pBoardInfo.id, pPanelInfo.id, 'seek', newTime);
+                }
+            }
+        },
+        [videoPlayer, syncEnabled, _pBoardInfo.id, pPanelInfo.id, liveMode.isLive]
+    );
 
     const handleLiveToggle = useCallback(async () => {
         if (liveMode.isLive) {
@@ -140,14 +218,17 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
         }
     }, [liveMode, videoPlayer, state.currentTime, state.start]);
 
-    const handleTimeRangeApply = useCallback(async (start: Date, end: Date) => {
-        setTimeRange(start, end);
-        // If current time is strictly outside the new range, reset it to start
-        if (state.currentTime && (state.currentTime < start || state.currentTime > end)) {
-            setStateCurrentTime(start);
-        }
-        await videoPlayer.loadChunk(start);
-    }, [setTimeRange, setStateCurrentTime, state.currentTime, videoPlayer]);
+    const handleTimeRangeApply = useCallback(
+        async (start: Date, end: Date) => {
+            setTimeRange(start, end);
+            // If current time is strictly outside the new range, reset it to start
+            if (state.currentTime && (state.currentTime < start || state.currentTime > end)) {
+                setStateCurrentTime(start);
+            }
+            await videoPlayer.loadChunk(start);
+        },
+        [setTimeRange, setStateCurrentTime, state.currentTime, videoPlayer]
+    );
 
     const handleFullscreen = useCallback(() => {
         const target = containerRef.current;
@@ -164,9 +245,7 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
     const sliderMin = state.start?.getTime() ?? 0;
     const sliderMax = state.end?.getTime() ?? 0;
     const sliderValue = displayTime?.getTime() ?? sliderMin;
-    const sliderProgress = sliderMax > sliderMin
-        ? ((sliderValue - sliderMin) / (sliderMax - sliderMin)) * 100
-        : 0;
+    const sliderProgress = sliderMax > sliderMin ? ((sliderValue - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
 
     // Theme color
     const theme = (pPanelInfo.theme as ChartTheme) || 'dark';
@@ -176,10 +255,12 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
         <div
             className="video-panel"
             ref={containerRef}
-            style={{
-                color: textColor,
-                '--panel-text-color': textColor,
-            } as React.CSSProperties}
+            style={
+                {
+                    color: textColor,
+                    '--panel-text-color': textColor,
+                } as React.CSSProperties
+            }
         >
             {/* Header */}
             <header className="panel-header">
@@ -188,12 +269,11 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
                     <span className="panel-title">{pPanelInfo.title || 'Video 1'}</span>
                 </div>
                 <div className="header-right">
-                    {liveMode.isLive && (
-                        <div className="sync-badge">
-                            <div className="sync-dot" />
-                            <span>SYNC</span>
-                        </div>
-                    )}
+                    {syncEnabled ? (
+                        <Badge variant="success" showDot dotColor="primary" size="md">
+                            SYNC
+                        </Badge>
+                    ) : null}
                     <IconButton
                         icon={<span className="material-icons-round">fullscreen</span>}
                         onClick={handleFullscreen}
@@ -206,11 +286,7 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
 
             {/* Video Area */}
             <div className="video-container">
-                <video
-                    ref={videoRef}
-                    playsInline
-                    muted
-                />
+                <video ref={videoRef} playsInline muted />
 
                 {/* Draggable Seek Step Control */}
                 {isSeekControlVisible && (
@@ -218,10 +294,7 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
                         ref={seekControlRef}
                         className="seek-control"
                         style={{
-                            ...(seekControlPos === null
-                                ? { right: '16px', bottom: '80px' }
-                                : { left: `${seekControlPos.x}px`, top: `${seekControlPos.y}px` }
-                            ),
+                            ...(seekControlPos === null ? { right: '16px', bottom: '80px' } : { left: `${seekControlPos.x}px`, top: `${seekControlPos.y}px` }),
                         }}
                     >
                         <div
@@ -266,18 +339,12 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
                         <IconButton
                             icon={<span className="material-icons-round">keyboard_double_arrow_left</span>}
                             onClick={handlePrevChunk}
-                            aria-label="이전"
+                            aria-label="Previous"
                             variant="ghost"
                             size="xsm"
                             className="seek-btn"
                         />
-                        <input
-                            type="number"
-                            className="seek-input"
-                            value={seekStep}
-                            onChange={(e) => setSeekStep(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                            min={1}
-                        />
+                        <input type="number" className="seek-input" value={seekStep} onChange={(e) => setSeekStep(Math.max(1, parseInt(e.target.value, 10) || 1))} min={1} />
                         <Dropdown.Root
                             options={[
                                 { label: 'FRAME', value: 'frame' },
@@ -296,7 +363,7 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
                         <IconButton
                             icon={<span className="material-icons-round">keyboard_double_arrow_right</span>}
                             onClick={handleNextChunk}
-                            aria-label="다음"
+                            aria-label="Next"
                             variant="ghost"
                             size="xsm"
                             className="seek-btn"
@@ -304,7 +371,7 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
                         <IconButton
                             icon={<span className="material-icons-round">close</span>}
                             onClick={() => setIsSeekControlVisible(false)}
-                            aria-label="닫기"
+                            aria-label="Close"
                             variant="ghost"
                             size="xsm"
                             className="close-btn seek-btn"
@@ -317,9 +384,7 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
             <div className="controls-bar">
                 <div className="controls-left">
                     <button className="play-btn" onClick={handlePlayToggle}>
-                        <span className="material-icons-round">
-                            {videoPlayer.isPlaying ? 'pause' : 'play_arrow'}
-                        </span>
+                        <span className="material-icons-round">{videoPlayer.isPlaying ? 'pause' : 'play_arrow'}</span>
                     </button>
                     <button className="nav-btn" disabled>
                         <span className="material-icons-round">skip_previous</span>
@@ -356,7 +421,7 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
                         icon={<span className="material-icons-outlined">sensors</span>}
                         onClick={handleLiveToggle}
                         active={liveMode.isLive}
-                        toolTipContent="실시간"
+                        toolTipContent="Live"
                         isToolTip
                         aria-label="Toggle Live Mode"
                         variant="secondary"
@@ -364,7 +429,7 @@ const VideoPanel = ({ pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pPa
                     <IconButton
                         icon={<span className="material-icons-outlined">calendar_month</span>}
                         onClick={() => setIsTimeRangeModalOpen(true)}
-                        toolTipContent="시간 범위"
+                        toolTipContent="Time Range"
                         isToolTip
                         aria-label="Select Time Range"
                         variant="secondary"
