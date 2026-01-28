@@ -7,7 +7,7 @@ export interface VideoInfoType {
     dependentPanels: string[];
 }
 
-export const VIDEO_INFO_DEFAULT: VideoInfoType = {
+export const VIDEO_PANEL_DEFAULT: VideoInfoType = {
     dependentPanels: [],
 };
 
@@ -26,7 +26,10 @@ interface VideoOptionsProps {
 const CHART_TYPES = ['Line', 'Bar', 'Scatter', 'Liquidfill', 'Pie', 'Gauge', 'Geomap'];
 
 export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: VideoOptionsProps) => {
-    const videoInfo: VideoInfoType = pPanelOption.videoInfo ?? VIDEO_INFO_DEFAULT;
+    const videoInfo: VideoInfoType = {
+        ...VIDEO_PANEL_DEFAULT,
+        ...pPanelOption.videoInfo,
+    };
 
     // Get available chart panels from dashboard (exclude current panel and non-chart types)
     const availablePanels: DependentPanelItem[] = (pBoardInfo?.dashboard?.panels ?? [])
@@ -37,7 +40,7 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
             type: panel.type,
         }));
 
-    const selectedPanels = availablePanels.filter((panel) => videoInfo.dependentPanels.includes(panel.id));
+    const selectedPanels = availablePanels.filter((panel) => videoInfo.dependentPanels?.includes(panel.id));
 
     const handleAddPanel = (panelId: string) => {
         if (videoInfo.dependentPanels.includes(panelId)) return;
@@ -122,7 +125,7 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
 
                     {/* Selected panels list */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px' }}>
-                        {selectedPanels.map((panel) => (
+                        {selectedPanels?.map((panel) => (
                             <div
                                 key={panel.id}
                                 style={{
