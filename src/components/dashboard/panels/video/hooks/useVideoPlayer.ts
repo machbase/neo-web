@@ -417,8 +417,6 @@ export function useVideoPlayer(
         await loadChunk(targetTime);
     }, [camera, state.currentChunkInfo, videoRef, loadChunk, onTimeUpdate]);
 
-    // Prefetch state refs
-    const prefetchedChunkInfoRef = useRef<ChunkInfo | null>(null);
     const prefetchIssuedRef = useRef<boolean>(false);
     const isPlayingRef = useRef<boolean>(false);
 
@@ -427,40 +425,58 @@ export function useVideoPlayer(
         isPlayingRef.current = state.isPlaying;
     }, [state.isPlaying]);
 
-    // Prefetch next chunk
-    const prefetchNextChunk = useCallback(async () => {
-        if (!camera || !state.currentChunkInfo || prefetchIssuedRef.current) return;
+    // Append next chunk
+    const appendNextChunk = useCallback(async (nextChunkInfo: ChunkInfo) => {
+        if (!camera || !videoRef.current || !sourceBufferRef.current || !mediaSourceRef.current) return false;
 
-        const serverDuration = state.currentChunkInfo.duration;
-        if (!Number.isFinite(serverDuration) || serverDuration <= 0) return;
-
-        const chunkStartMs = state.currentChunkInfo.start.getTime();
-        const chunkEndMs = chunkStartMs + (serverDuration * 1000);
-        const nextSearchTime = new Date(chunkEndMs + 1000);
-
-        // Don't prefetch if next time exceeds end time
-        if (endTime && nextSearchTime > endTime) {
-            return;
-        }
-
-        console.log('[VIDEO] Prefetching next chunk at:', formatIsoWithMs(nextSearchTime));
-
-        prefetchIssuedRef.current = true;
+        console.log('[VIDEO] Seamlessly appending next chunk:', nextChunkInfo.startIso);
+        setState(prev => ({ ...prev, isLoading: true }));
 
         try {
-            const info = await fetchChunkInfo(camera, nextSearchTime);
-            if (info) {
-                console.log('[VIDEO] Prefetched chunk info:', info.startIso);
-                await fetchChunkBuffer(camera, info.startIso);
-                prefetchedChunkInfoRef.current = info;
+            const chunkData = await fetchChunkBuffer(camera, nextChunkInfo.startIso);
+            if (!chunkData) {
+                console.error('[VIDEO] Failed to fetch next chunk data');
+                setState(prev => ({ ...prev, isLoading: false }));
+                return false;
             }
-        } catch (err) {
-            console.warn('[VIDEO] Prefetch failed:', err);
-            prefetchIssuedRef.current = false;
-        }
-    }, [camera, state.currentChunkInfo, fetchChunkInfo, fetchChunkBuffer]);
 
-    // Handle video time update + prefetch trigger
+            // Append to existing SourceBuffer
+            await appendBuffer(sourceBufferRef.current, chunkData);
+
+            // Update buffered chunks
+            const buffered = sourceBufferRef.current.buffered;
+            const newBufferEnd = buffered.length > 0 ? buffered.end(buffered.length - 1) : 0;
+
+            // Get previous chunk's buffer end to calculate start of this one
+            const prevChunk = bufferedChunksRef.current[bufferedChunksRef.current.length - 1];
+            const thisBufferStart = prevChunk ? prevChunk.bufferEnd : 0;
+            const thisBufferEnd = newBufferEnd;
+
+            const newBufferedChunk: BufferedChunk = {
+                startIso: nextChunkInfo.startIso,
+                chunkInfo: nextChunkInfo,
+                bufferStart: thisBufferStart,
+                bufferEnd: thisBufferEnd
+            };
+
+            bufferedChunksRef.current.push(newBufferedChunk);
+
+            // Update current chunk info to the new one (as we are extending playback)
+            // Note: effectively we are playing the timeline, so currentChunkInfo might strictly be "what is playing now", 
+            // but here we just added it. We'll update currentChunkInfo in timeUpdate based on playback position.
+
+            setState(prev => ({ ...prev, isLoading: false }));
+            console.log('[VIDEO] Appended successfully. Buffer now:', thisBufferStart, '->', thisBufferEnd);
+            return true;
+
+        } catch (err) {
+            console.error('[VIDEO] Failed to append next chunk:', err);
+            setState(prev => ({ ...prev, isLoading: false }));
+            return false;
+        }
+    }, [camera, videoRef, fetchChunkBuffer, appendBuffer]);
+
+    // Handle video time update + prefetch/append trigger
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
@@ -468,109 +484,138 @@ export function useVideoPlayer(
         const PREFETCH_THRESHOLD_SECONDS = 3;
 
         const handleTimeUpdate = () => {
-            if (!state.currentChunkInfo || state.isLoading) return;
+            if (state.isLoading) return;
 
-            const elapsed = video.currentTime - currentChunkBaselineRef.current;
-            const currentVideoTime = new Date(state.currentChunkInfo.start.getTime() + elapsed * 1000);
+            const currentTime = video.currentTime;
 
-            setState(prev => ({ ...prev, currentTime: currentVideoTime }));
-            onTimeUpdate?.(currentVideoTime);
+            // Find which chunk we are currently playing
+            const playingChunk = bufferedChunksRef.current.find(chunk =>
+                currentTime >= (chunk.bufferStart - 0.1) && currentTime < (chunk.bufferEnd + 0.1)
+            );
 
-            // Trigger prefetch when approaching chunk end (only when playing)
-            if (state.isPlaying && currentChunkActualDurationRef.current > 0) {
-                const remaining = currentChunkActualDurationRef.current - elapsed;
-                if (remaining <= PREFETCH_THRESHOLD_SECONDS && !prefetchIssuedRef.current) {
-                    console.log('[VIDEO] Remaining:', remaining.toFixed(2), 's - triggering prefetch');
-                    prefetchNextChunk();
+            if (playingChunk) {
+                const elapsedInChunk = Math.max(0, currentTime - playingChunk.bufferStart);
+                const currentVideoTime = new Date(playingChunk.chunkInfo.start.getTime() + elapsedInChunk * 1000);
+
+                setState(prev => ({
+                    ...prev,
+                    currentTime: currentVideoTime,
+                    currentChunkInfo: playingChunk.chunkInfo
+                }));
+                onTimeUpdate?.(currentVideoTime);
+
+                // Check if we reached the end time
+                if (endTime && currentVideoTime >= endTime) {
+                    // console.log('[VIDEO] Reached end of time range (in timeUpdate) - stopping playback');
+                    if (state.isPlaying) {
+                        video.pause();
+                        setState(prev => ({ ...prev, isPlaying: false }));
+                    }
+                    return;
+                }
+
+                // Seamless prefetch logic
+                if (state.isPlaying) {
+                    const remainingInChunk = playingChunk.bufferEnd - currentTime;
+
+                    // If we are near the end of the *last* buffered chunk, trigger append
+                    const lastChunk = bufferedChunksRef.current[bufferedChunksRef.current.length - 1];
+                    const isLastChunk = playingChunk.startIso === lastChunk.startIso;
+
+                    if (isLastChunk && remainingInChunk <= PREFETCH_THRESHOLD_SECONDS && !prefetchIssuedRef.current) {
+                        prefetchNextChunk();
+                    }
                 }
             }
         };
 
         video.addEventListener('timeupdate', handleTimeUpdate);
         return () => video.removeEventListener('timeupdate', handleTimeUpdate);
-    }, [videoRef, state.currentChunkInfo, state.isLoading, state.isPlaying, onTimeUpdate, prefetchNextChunk]);
+    }, [videoRef, state.isLoading, state.isPlaying, onTimeUpdate]); // Removed prefetchNextChunk from dependency to avoid cycle, used ref
 
-    // Handle video ended - load next chunk (seamlessly if prefetched)
+    // Prefetch next chunk and append
+    const prefetchNextChunk = useCallback(async () => {
+        if (!camera || prefetchIssuedRef.current || bufferedChunksRef.current.length === 0) return;
+
+        const lastChunk = bufferedChunksRef.current[bufferedChunksRef.current.length - 1];
+        const serverDuration = lastChunk.chunkInfo.duration;
+
+        if (!Number.isFinite(serverDuration) || serverDuration <= 0) return;
+
+        const chunkStartMs = lastChunk.chunkInfo.start.getTime();
+        const chunkEndMs = chunkStartMs + (serverDuration * 1000);
+        const nextSearchTime = new Date(chunkEndMs + 1000); // Add margin
+
+        // Don't prefetch if next time exceeds end time
+        if (endTime && nextSearchTime > endTime) {
+            return;
+        }
+
+        console.log('[VIDEO] Prefetching/Appending next chunk at:', formatIsoWithMs(nextSearchTime));
+        prefetchIssuedRef.current = true;
+
+        try {
+            const info = await fetchChunkInfo(camera, nextSearchTime);
+            if (!info) {
+                console.warn('[VIDEO] No next chunk found');
+                prefetchIssuedRef.current = false;
+                return;
+            }
+
+            // Check if we already have this chunk (avoid dupes)
+            if (bufferedChunksRef.current.some(c => c.startIso === info.startIso)) {
+                console.log('[VIDEO] Chunk already buffered');
+                prefetchIssuedRef.current = false;
+                return;
+            }
+
+            // Append it
+            await appendNextChunk(info);
+
+            // Reset flag
+            prefetchIssuedRef.current = false;
+
+        } catch (err) {
+            console.warn('[VIDEO] Prefetch/Append failed:', err);
+            prefetchIssuedRef.current = false;
+        }
+    }, [camera, fetchChunkInfo, endTime, appendNextChunk]);
+
+    // Handle video ended - fallback for gaps or end of stream
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
 
         const handleEnded = async () => {
-            // Use ref to avoid stale closure
             const wasPlaying = isPlayingRef.current;
-            const currentChunk = state.currentChunkInfo;
+            console.log('[VIDEO] Ended event (Fallback) - wasPlaying:', wasPlaying);
 
-            console.log('[VIDEO] Ended event - wasPlaying:', wasPlaying);
+            // If we ended but we have more chunks buffered, it might be a gap. 
+            // In sequence mode, gaps might just stop playback.
+            // Try to seek slightly forward if there is a gap?
+            // For now, if we really ended, it means we ran out of buffer.
 
-            if (!currentChunk || !camera) {
-                console.log('[VIDEO] No current chunk, stopping');
-                return;
+            // Check if we are at the end time
+            const lastChunk = bufferedChunksRef.current[bufferedChunksRef.current.length - 1];
+            if (lastChunk && endTime) {
+                const chunkEndMs = lastChunk.chunkInfo.start.getTime() + (lastChunk.chunkInfo.duration * 1000);
+                if (chunkEndMs >= endTime.getTime()) {
+                    console.log('[VIDEO] Really reached end of time range');
+                    setState(prev => ({ ...prev, isPlaying: false }));
+                    return;
+                }
             }
 
-            // Save current chunk startIso BEFORE loading next (like viewer-v3.html)
-            const currentChunkStartIso = currentChunk.startIso;
-
-            // Calculate next search time
-            const chunkStartMs = currentChunk.start.getTime();
-            const videoElapsedMs = (video.duration || video.currentTime || 0) * 1000;
-            const actualEndTime = new Date(chunkStartMs + videoElapsedMs);
-            const nextSearchTime = new Date(actualEndTime.getTime() + 2000);
-
-            // Check if we reached the defined end time
-            if (endTime && actualEndTime >= endTime) {
-                console.log('[VIDEO] Reached end of time range - stopping playback');
-                setState(prev => ({ ...prev, isPlaying: false }));
-                return;
-            }
-
-            console.log('[VIDEO] Current chunk:', currentChunkStartIso);
-            console.log('[VIDEO] Searching for next chunk at:', formatIsoWithMs(nextSearchTime));
-
-            // Reset prefetch state
-            prefetchIssuedRef.current = false;
-            prefetchedChunkInfoRef.current = null;
-
-            try {
-                // Fetch next chunk info first
-                const nextChunkInfo = await fetchChunkInfo(camera, nextSearchTime);
-
-                // No next chunk found
-                if (!nextChunkInfo) {
-                    console.log('[VIDEO] No next chunk found (404) - stopping playback');
-                    setState(prev => ({ ...prev, isPlaying: false }));
-                    return;
-                }
-
-                // Check if next chunk exceeds endTime
-                if (endTime && nextChunkInfo.start.getTime() > endTime.getTime()) {
-                    console.log('[VIDEO] Next chunk exceeds end time - stopping playback');
-                    setState(prev => ({ ...prev, isPlaying: false }));
-                    return;
-                }
-
-                // Check if next chunk is same as current chunk
-                if (nextChunkInfo.startIso === currentChunkStartIso) {
-                    console.log('[VIDEO] Next chunk is same as current chunk - no more chunks');
-                    setState(prev => ({ ...prev, isPlaying: false }));
-                    return;
-                }
-
-                console.log('[VIDEO] Loading next chunk:', nextChunkInfo.startIso);
-
-                // Load the next chunk
-                const success = await loadChunk(new Date(nextChunkInfo.start.getTime()));
-                if (success && wasPlaying) {
-                    play();
-                }
-            } catch (err) {
-                console.error('[VIDEO] Failed to load next chunk:', err);
-                setState(prev => ({ ...prev, isPlaying: false }));
+            // If not at end time, maybe fetch took too long. Try prefetch again directly
+            if (wasPlaying) {
+                console.log('[VIDEO] Buffering stall? Trying to fetch next chunk...');
+                prefetchNextChunk();
             }
         };
 
         video.addEventListener('ended', handleEnded);
         return () => video.removeEventListener('ended', handleEnded);
-    }, [videoRef, state.currentChunkInfo, camera, fetchChunkInfo, loadChunk, play]);
+    }, [videoRef, endTime, prefetchNextChunk]);
 
     // Cleanup on unmount
     useEffect(() => {
