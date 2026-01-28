@@ -1,15 +1,15 @@
 import { Page, Dropdown } from '@/design-system/components';
-import { VideoInfoType } from './VideoBlock';
+import { SourceInfoType } from './VideoBlock';
 
 interface VideoBlockSourceProps {
-    videoInfo: VideoInfoType;
+    sourceInfo: SourceInfoType;
     cameraList: { label: string; value: string }[];
     tableList: { label: string; value: string }[];
     isLoadingCameras: boolean;
-    onChangeVideoInfo: <K extends keyof VideoInfoType>(key: K, value: VideoInfoType[K]) => void;
+    onChangeVideoInfo: <K extends keyof SourceInfoType>(key: K, value: SourceInfoType[K]) => void;
 }
 
-export const VideoBlockSource = ({ videoInfo, cameraList, tableList, isLoadingCameras, onChangeVideoInfo }: VideoBlockSourceProps) => {
+export const VideoBlockSource = ({ sourceInfo, cameraList, tableList, isLoadingCameras, onChangeVideoInfo }: VideoBlockSourceProps) => {
     return (
         <Page.ContentBlock pHoverNone style={{ padding: '0' }}>
             <Page.DpRow style={{ gap: '4px', alignItems: 'start', flexWrap: 'wrap' }}>
@@ -18,7 +18,7 @@ export const VideoBlockSource = ({ videoInfo, cameraList, tableList, isLoadingCa
                     <Dropdown.Root
                         label="Select Table"
                         options={tableList}
-                        value={videoInfo.table}
+                        value={sourceInfo.table}
                         onChange={(val) => onChangeVideoInfo('table', val)}
                         placeholder="Select a table"
                     >
@@ -30,10 +30,10 @@ export const VideoBlockSource = ({ videoInfo, cameraList, tableList, isLoadingCa
                     <Dropdown.Root
                         label="Select Camera"
                         options={cameraList}
-                        value={videoInfo.camera}
+                        value={sourceInfo.camera}
                         onChange={(val) => onChangeVideoInfo('camera', val)}
                         placeholder={isLoadingCameras ? 'Loading...' : 'Select a camera'}
-                        disabled={!videoInfo.table || isLoadingCameras}
+                        disabled={!sourceInfo.table || isLoadingCameras}
                     >
                         <Dropdown.Trigger />
                         <Dropdown.Menu>
@@ -46,13 +46,13 @@ export const VideoBlockSource = ({ videoInfo, cameraList, tableList, isLoadingCa
                 <Page.ContentBlock pHoverNone>
                     <Page.ContentBlock pHoverNone>
                         <Page.DpRow style={{ gap: '8px', alignItems: 'center' }}>
-                            <Page.Switch pState={videoInfo.realtimeStream} pCallback={() => onChangeVideoInfo('realtimeStream', !videoInfo.realtimeStream)} />
+                            <Page.Switch pState={sourceInfo.liveModeOnStart} pCallback={() => onChangeVideoInfo('liveModeOnStart', !sourceInfo.liveModeOnStart)} />
                             <Page.ContentDesc>Live Mode on Start</Page.ContentDesc>
                         </Page.DpRow>
                     </Page.ContentBlock>
                     <Page.ContentBlock pHoverNone>
                         <Page.DpRow style={{ gap: '8px', alignItems: 'center' }}>
-                            <Page.Switch pState={videoInfo.enableSync} pCallback={() => onChangeVideoInfo('enableSync', !videoInfo.enableSync)} />
+                            <Page.Switch pState={sourceInfo.enableSync} pCallback={() => onChangeVideoInfo('enableSync', !sourceInfo.enableSync)} />
                             <Page.ContentDesc>Enable Synchronization</Page.ContentDesc>
                         </Page.DpRow>
                     </Page.ContentBlock>

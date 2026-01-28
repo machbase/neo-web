@@ -428,9 +428,7 @@ const CreatePanel = ({
                         <Button size="sm" variant="ghost" onClick={handleTimeRange}>
                             <Calendar style={{ paddingRight: '8px' }} />
                             {pBoardInfo?.dashboard?.timeRange?.start ? (
-                                <>
-                                    {formatTimeValue(pBoardInfo.dashboard.timeRange.start) + '~' + formatTimeValue(pBoardInfo.dashboard.timeRange.end)}
-                                </>
+                                <>{formatTimeValue(pBoardInfo.dashboard.timeRange.start) + '~' + formatTimeValue(pBoardInfo.dashboard.timeRange.end)}</>
                             ) : (
                                 <span>Time range not set</span>
                             )}

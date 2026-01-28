@@ -88,6 +88,20 @@ export const DefaultYAxisOption = {
     // }
 };
 
+export const DeafultVideoOption = {
+    source: {
+        table: '' as string,
+        camera: '' as string,
+        liveModeOnStart: false as boolean,
+        enableSync: false as boolean,
+    },
+    event: {},
+    dependent: {
+        panels: [],
+        color: '#FB9E00' as string,
+    },
+};
+
 export const DefaultGeomapOpntion = {
     tooltipTime: true as boolean,
     tooltipCoor: false as boolean,
@@ -358,6 +372,8 @@ export const getDefaultSeriesOption = (aChartType: ChartType) => {
             return DefaultTextchartOpntion;
         case 'geomap':
             return DefaultGeomapOpntion;
+        case 'video':
+            return DeafultVideoOption;
         default:
             return DefaultLineChartOption;
     }

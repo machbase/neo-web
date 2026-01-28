@@ -3,19 +3,12 @@ import { generateUUID } from '@/utils';
 import { ChartThemeList } from '@/utils/constants';
 import { VscClose } from 'react-icons/vsc';
 
-export interface VideoPanelType {
-    dependentPanels: string[];
-    realtimeStream: boolean;
-    enableSync: boolean;
+export interface DependentType {
+    panels: string[];
+    color: string;
 }
 
-export const VIDEO_PANEL_DEFAULT: VideoPanelType = {
-    dependentPanels: [],
-    realtimeStream: true,
-    enableSync: false,
-};
-
-interface DependentPanelItem {
+interface PanelInfo {
     id: string;
     title: string;
     type: string;
@@ -30,13 +23,10 @@ interface VideoOptionsProps {
 const CHART_TYPES = ['Line', 'Bar', 'Scatter', 'Liquidfill', 'Pie', 'Gauge', 'Geomap'];
 
 export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: VideoOptionsProps) => {
-    const videoInfo: VideoPanelType = {
-        ...VIDEO_PANEL_DEFAULT,
-        ...pPanelOption.videoInfo,
-    };
+    const dependentInfo: DependentType = { ...pPanelOption.chartOptions.dependent };
 
     // Get available chart panels from dashboard (exclude current panel and non-chart types)
-    const availablePanels: DependentPanelItem[] = (pBoardInfo?.dashboard?.panels ?? [])
+    const availablePanels: PanelInfo[] = (pBoardInfo?.dashboard?.panels ?? [])
         .filter((panel: any) => panel.id !== pPanelOption.id && CHART_TYPES.includes(panel.type))
         .map((panel: any) => ({
             id: panel.id,
@@ -44,15 +34,18 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
             type: panel.type,
         }));
 
-    const selectedPanels = availablePanels.filter((panel) => videoInfo.dependentPanels?.includes(panel.id));
+    const selectedPanels = availablePanels.filter((panel) => dependentInfo.panels?.includes(panel.id));
 
     const handleAddPanel = (panelId: string) => {
-        if (videoInfo.dependentPanels.includes(panelId)) return;
+        if (dependentInfo.panels.includes(panelId)) return;
         pSetPanelOption((prev: any) => ({
             ...prev,
-            videoInfo: {
-                ...prev.videoInfo,
-                dependentPanels: [...(prev.videoInfo?.dependentPanels ?? []), panelId],
+            chartOptions: {
+                ...prev.chartOptions,
+                dependent: {
+                    ...prev.chartOptions.dependent,
+                    panels: [...(prev.chartOptions.dependent?.panels ?? []), panelId],
+                },
             },
         }));
     };
@@ -60,9 +53,25 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
     const handleRemovePanel = (panelId: string) => {
         pSetPanelOption((prev: any) => ({
             ...prev,
-            videoInfo: {
-                ...prev.videoInfo,
-                dependentPanels: (prev.videoInfo?.dependentPanels ?? []).filter((id: string) => id !== panelId),
+            chartOptions: {
+                ...prev.chartOptions,
+                dependent: {
+                    ...prev.chartOptions.dependent,
+                    panels: (prev.chartOptions.dependent?.panels ?? []).filter((id: string) => id !== panelId),
+                },
+            },
+        }));
+    };
+
+    const handleDependentColor = (color: string) => {
+        pSetPanelOption((prev: any) => ({
+            ...prev,
+            chartOptions: {
+                ...prev.chartOptions,
+                dependent: {
+                    ...prev.chartOptions.dependent,
+                    color: color,
+                },
             },
         }));
     };
@@ -94,7 +103,7 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
 
     // Filter out already selected panels from dropdown options
     const dropdownOptions = availablePanels
-        .filter((panel) => !videoInfo.dependentPanels.includes(panel.id))
+        .filter((panel) => !dependentInfo.panels.includes(panel.id))
         .map((panel) => ({
             label: panel.title,
             value: panel.id,
@@ -168,7 +177,7 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
                     <Page.Space />
                     <Page.DpRow style={{ gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
                         <Page.ContentDesc>Time sync color</Page.ContentDesc>
-                        <ColorPicker color={(pPanelOption?.titleColor as string) ?? '#000000'} onChange={(color: string) => handleCustomOption(color, 'titleColor')} />
+                        <ColorPicker color={pPanelOption?.chartOptions.dependent.color ?? '#FB9E00'} onChange={handleDependentColor} />
                     </Page.DpRow>
                 </Page.ContentBlock>
             </Page.Collapse>
