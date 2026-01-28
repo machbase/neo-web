@@ -70,10 +70,21 @@ const VideoPanel = ({ pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBo
         const init = async () => {
             setStateIsLoading(true);
             try {
-                const cameras = await fetchCameras();
-                if (cameras.length > 0 && state.camera && dashboardTimeRange.start && dashboardTimeRange.end) {
+                const sLiveModeOnStart = pPanelInfo?.videoInfo?.realtimeStream ?? false;
+
+                // Always initialize time range from dashboard (regardless of mode)
+                if (dashboardTimeRange.start && dashboardTimeRange.end) {
                     setTimeRange(dashboardTimeRange.start, dashboardTimeRange.end);
                     setStateCurrentTime(dashboardTimeRange.start);
+                }
+
+                // Always fetch cameras (needed for loadChunk to work after live mode ends)
+                const cameras = await fetchCameras();
+
+                // Then handle mode-specific logic
+                if (sLiveModeOnStart) {
+                    liveMode.startLive();
+                } else if (cameras.length > 0 && state.camera && dashboardTimeRange.start) {
                     await videoPlayer.loadChunk(dashboardTimeRange.start);
                 }
             } finally {
