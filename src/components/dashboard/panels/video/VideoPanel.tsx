@@ -28,7 +28,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(({ pChartVariab
 
     const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
 
-    const videoPlayer = useVideoPlayer(videoRef, state.camera, (time) => setStateCurrentTime(time));
+    const videoPlayer = useVideoPlayer(videoRef, state.camera, state.end, (time) => setStateCurrentTime(time));
 
     const liveMode = useLiveMode(videoRef);
 
@@ -233,11 +233,22 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(({ pChartVariab
         videoPlayer.pause();
 
         setTimeRange(start, end);
-        // If current time is strictly outside the new range, reset it to start
-        if (state.currentTime && (state.currentTime < start || state.currentTime > end)) {
-            setStateCurrentTime(start);
+
+        let targetTime = start;
+        const current = state.currentTime;
+
+        if (current) {
+            if (current < start) {
+                targetTime = start;
+            } else if (current > end) {
+                targetTime = end;
+            } else {
+                targetTime = current;
+            }
         }
-        await videoPlayer.loadChunk(start);
+
+        setStateCurrentTime(targetTime);
+        await videoPlayer.loadChunk(targetTime);
     }, [setTimeRange, setStateCurrentTime, state.currentTime, videoPlayer]);
 
     const handleFullscreen = useCallback(() => {
@@ -275,7 +286,10 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(({ pChartVariab
     const sliderMin = state.start?.getTime() ?? 0;
     const sliderMax = state.end?.getTime() ?? 0;
     const sliderValue = displayTime?.getTime() ?? sliderMin;
-    const sliderProgress = sliderMax > sliderMin ? ((sliderValue - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
+    const rawProgress = sliderMax > sliderMin
+        ? ((sliderValue - sliderMin) / (sliderMax - sliderMin)) * 100
+        : 0;
+    const sliderProgress = Math.min(100, Math.max(0, rawProgress));
 
     // Theme color
     let theme = (pPanelInfo.theme as ChartTheme) || 'dark';
