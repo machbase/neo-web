@@ -3,12 +3,16 @@ import { generateUUID } from '@/utils';
 import { ChartThemeList } from '@/utils/constants';
 import { VscClose } from 'react-icons/vsc';
 
-export interface VideoInfoType {
+export interface VideoPanelType {
     dependentPanels: string[];
+    realtimeStream: boolean;
+    enableSync: boolean;
 }
 
-export const VIDEO_PANEL_DEFAULT: VideoInfoType = {
+export const VIDEO_PANEL_DEFAULT: VideoPanelType = {
     dependentPanels: [],
+    realtimeStream: true,
+    enableSync: false,
 };
 
 interface DependentPanelItem {
@@ -26,7 +30,7 @@ interface VideoOptionsProps {
 const CHART_TYPES = ['Line', 'Bar', 'Scatter', 'Liquidfill', 'Pie', 'Gauge', 'Geomap'];
 
 export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: VideoOptionsProps) => {
-    const videoInfo: VideoInfoType = {
+    const videoInfo: VideoPanelType = {
         ...VIDEO_PANEL_DEFAULT,
         ...pPanelOption.videoInfo,
     };
