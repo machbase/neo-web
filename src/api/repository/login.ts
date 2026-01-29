@@ -38,11 +38,11 @@ export const logOut = async () => {
     });
 };
 
-export const changePwd = async (aUser: string, aNewPwd: string) => {
+export const chPasswd = async (aNewPasswd: string) => {
     const sData = await request({
         method: 'POST',
-        url: '/api/query',
-        data: { q: 'ALTER USER ' + aUser + ' IDENTIFIED BY ' + "'" + aNewPwd + "'" },
+        url: '/api/chpasswd',
+        data: { newPassword: aNewPasswd },
     });
 
     return sData;

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal, PasswordInput, Alert } from '@/design-system/components';
 import { RiLockPasswordLine } from 'react-icons/ri';
-import { getUserName } from '@/utils';
-import { changePwd, getLogin } from '@/api/repository/login';
+import { chPasswd, getLogin } from '@/api/repository/login';
 import { checkPwdPolicy, parsePwd } from './utils';
 
 interface PasswordProps {
@@ -11,7 +10,6 @@ interface PasswordProps {
 }
 
 export const PasswordModal = ({ isOpen, onClose }: PasswordProps) => {
-    const [sCurrentUserName, setCurUserName] = useState<string>('');
     const [sNewPassword, setNewPassword] = useState<string>('');
     const [sConfirmPassword, setConfirmPassword] = useState<string>('');
     const [sPwdDiff, setPwdDiff] = useState<string | undefined>(undefined);
@@ -25,7 +23,7 @@ export const PasswordModal = ({ isOpen, onClose }: PasswordProps) => {
 
         setIsLoading(true);
         const sParsedNewPwd = parsePwd(sNewPassword);
-        const sPwdRes = await changePwd(sCurrentUserName, sParsedNewPwd);
+        const sPwdRes = await chPasswd(sParsedNewPwd);
         const sParsedRes = sPwdRes?.data ? sPwdRes.data : sPwdRes;
         setRes(sParsedRes);
         setIsLoading(false);
@@ -38,9 +36,7 @@ export const PasswordModal = ({ isOpen, onClose }: PasswordProps) => {
     };
 
     const init = async () => {
-        const sChcekRes: any = await getLogin();
-        if (sChcekRes.success) setCurUserName(getUserName()?.toUpperCase());
-        else setCurUserName('');
+        await getLogin();
     };
 
     useEffect(() => {

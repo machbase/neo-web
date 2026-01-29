@@ -37,13 +37,3 @@ export const logOut = async () => {
         data: { refreshToken: localStorage.getItem('refreshToken') },
     });
 };
-
-export const changePwd = async (aUser: string, aNewPwd: string) => {
-    const sData = await request({
-        method: 'POST',
-        url: '/api/query',
-        data: { q: 'ALTER USER ' + aUser + ' IDENTIFIED BY ' + "'" + aNewPwd + "'" },
-    });
-
-    return sData;
-};
