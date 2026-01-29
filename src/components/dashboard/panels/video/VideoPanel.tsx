@@ -5,7 +5,8 @@ import { useVideoState } from './hooks/useVideoState';
 import { useVideoPlayer } from './hooks/useVideoPlayer';
 import { useLiveMode } from './hooks/useLiveMode';
 import { VideoPanelProps, VideoPanelHandle } from './types/video';
-import { registerVideoPanel, unregisterVideoPanel, updateVideoTime, emitVideoCommand, correctSyncTime } from '@/hooks/useVideoSync';
+import { registerVideoPanel, unregisterVideoPanel, updateVideoTime, emitVideoCommand, correctSyncTime, clearTimeLineX, clearSyncBorder } from '@/hooks/useVideoSync';
+import { PanelIdParser } from '@/utils/dashboardUtil';
 import { formatTimeLabel } from './utils/timeUtils';
 import { TimeRangeSelector } from './modals/TimeRangeSelector';
 import { IconButton, Dropdown, Badge } from '@/design-system/components';
@@ -124,15 +125,15 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             };
         }, [syncEnabled, _pBoardInfo.id, pPanelInfo.id, pChartVariableId, syncColor, dependentPanels, videoPlayer]);
 
-        // Update video time for chart line drawing (always draw regardless of sync)
+        // Update video time for chart line drawing (skip in live mode)
         useEffect(() => {
-            if (!videoPlayer.currentTime) return;
+            if (!videoPlayer.currentTime || liveMode.isLive) return;
 
             const event = createSyncEvent();
             if (event) {
                 updateVideoTime(_pBoardInfo.id, event);
             }
-        }, [videoPlayer.currentTime, _pBoardInfo.id, createSyncEvent]);
+        }, [videoPlayer.currentTime, _pBoardInfo.id, createSyncEvent, liveMode.isLive]);
 
         // Periodic sync correction (only when playing and is master)
         useEffect(() => {
@@ -226,8 +227,12 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             } else {
                 videoPlayer.pause();
                 liveMode.startLive();
+                // Clear time sync lines on dependent charts when entering live mode
+                const dependentPanelIds = dependentPanels.map((p: string) => PanelIdParser(pChartVariableId + '-' + p));
+                clearTimeLineX(dependentPanelIds);
+                clearSyncBorder(pChartVariableId, pPanelInfo.id);
             }
-        }, [liveMode, videoPlayer, state.currentTime, state.start]);
+        }, [liveMode, videoPlayer, state.currentTime, state.start, dependentPanels, pChartVariableId]);
 
         const handleTimeRangeApply = useCallback(
             async (start: Date, end: Date) => {
@@ -313,6 +318,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
         return (
             <div
+                id={PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}
                 className={`video-panel ${isFullscreen ? 'fullscreen' : ''}`}
                 ref={containerRef}
                 style={

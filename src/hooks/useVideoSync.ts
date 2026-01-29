@@ -90,10 +90,39 @@ const getDependencies = (eventList: Map<string, VideoPanelStore>, curEvent: Vide
     return Array.from(dependencies);
 };
 
-const drawTimeLineX = (dependentPanelIdList: string[], color: string, curTime: Date) => {
+export const clearSyncBorder = (chartVariableId: string, panelId: string) => {
+    const videoDom = document.getElementById(PanelIdParser(chartVariableId + '-' + panelId));
+    if (videoDom) drawSyncBorder(videoDom, '', false);
+};
+
+const SYNC_BORDER_COLOR = '#ff9800';
+const drawSyncBorder = (dom: HTMLElement, color: string, sync: boolean) => {
+    const wrapper = dom.closest('.panel-wrap') as HTMLElement;
+    const applyColor = sync ? SYNC_BORDER_COLOR : color;
+    if (wrapper) wrapper.style.borderColor = applyColor;
+};
+
+export const clearTimeLineX = (dependentPanelIdList: string[]) => {
     dependentPanelIdList.forEach((panelId) => {
         const dom = document.getElementById(panelId);
         if (dom) {
+            drawSyncBorder(dom, '', false);
+            const _chart = (echarts as any)['getInstanceByDom'](dom as any) as any;
+            if (_chart) {
+                const graphicId = 'timeline-marker-' + panelId;
+                _chart.setOption({
+                    graphic: [{ id: graphicId, $action: 'remove' }],
+                });
+            }
+        }
+    });
+};
+
+const drawTimeLineX = (dependentPanelIdList: string[], color: string, curTime: Date, sync: boolean) => {
+    dependentPanelIdList.forEach((panelId) => {
+        const dom = document.getElementById(panelId);
+        if (dom) {
+            drawSyncBorder(dom, color, sync);
             const _chart = (echarts as any)['getInstanceByDom'](dom as any) as any;
             if (_chart) {
                 const currentOption = _chart.getOption();
@@ -116,6 +145,7 @@ const drawTimeLineX = (dependentPanelIdList: string[], color: string, curTime: D
                         {
                             id: graphicId,
                             type: 'line',
+                            z: 100,
                             shape: {
                                 x1: X_Line,
                                 y1: gridRect.y,
@@ -159,7 +189,10 @@ export const updateVideoTime = (boardId: string, event: VideoTimeEvent) => {
     // Draw chart line
     const dependentPanelList = getDependencies(store, event);
     if (dependentPanelList && dependentPanelList.length > 0) {
-        drawTimeLineX(dependentPanelList, event.color, event.currentTime);
+        const videoDom = document.getElementById(PanelIdParser(event.chartVariableId + '-' + event.panelId));
+
+        if (videoDom) drawSyncBorder(videoDom, event.color, event.sync);
+        drawTimeLineX(dependentPanelList, event.color, event.currentTime, event.sync);
     }
 };
 
