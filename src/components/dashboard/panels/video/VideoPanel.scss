@@ -121,6 +121,13 @@
             border-radius: 8px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             z-index: 20;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+
+            &.hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
 
             .drag-handle {
                 cursor: grab;
