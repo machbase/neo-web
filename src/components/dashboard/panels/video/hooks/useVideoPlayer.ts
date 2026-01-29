@@ -25,6 +25,7 @@ export function useVideoPlayer(
     videoRef: React.RefObject<HTMLVideoElement>,
     camera: string | null,
     endTime: Date | null,
+    isLive: boolean,
     onTimeUpdate?: (time: Date) => void
 ) {
     const [state, setState] = useState<VideoPlayerState>({
@@ -306,7 +307,7 @@ export function useVideoPlayer(
             const safeEnd = Math.max(startBuffered, endBuffered - 0.05);
             seekTarget = Math.min(safeEnd, Math.max(startBuffered, seekTarget));
 
-            console.log('[VIDEO] Seeking to:', seekTarget.toFixed(3));
+            console.log('[VIDEO] Seeking to:', seekTarget.toFixed(3), 'offset:', offsetSeconds, 'targetTime:', formatIsoWithMs(targetTime));
 
             if (Number.isFinite(seekTarget) && videoRef.current) {
                 videoRef.current.currentTime = seekTarget;
@@ -484,6 +485,8 @@ export function useVideoPlayer(
         const PREFETCH_THRESHOLD_SECONDS = 3;
 
         const handleTimeUpdate = () => {
+            // Skip all time updates during live mode to protect currentTime
+            if (isLive) return;
             if (state.isLoading) return;
 
             const currentTime = video.currentTime;
