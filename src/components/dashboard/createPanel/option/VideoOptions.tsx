@@ -105,7 +105,7 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
     const dropdownOptions = availablePanels
         .filter((panel) => !dependentInfo.panels.includes(panel.id))
         .map((panel) => ({
-            label: panel.title,
+            label: `[${panel.type}] ${panel.title}`,
             value: panel.id,
         }));
 
@@ -131,7 +131,7 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
             </Page.Collapse>
             <Page.Divi />
 
-            <Page.Collapse title="Dependent Panels">
+            <Page.Collapse title="Dependent option">
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Page.ContentDesc>Linked synchronized charts</Page.ContentDesc>
                     <Page.Space />
